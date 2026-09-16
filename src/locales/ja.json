@@ -1,0 +1,110 @@
+{
+  "actions": {
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "retry": "再試行",
+    "stop": "停止",
+    "activity": "アクティビティ",
+    "submit": "送信",
+    "open": "開く",
+    "reveal": "ファイルマネージャーで表示"
+  },
+  "connection": {
+    "reconnect": "再接続"
+  },
+  "sidebar": {
+    "plugins": "プラグイン",
+    "newChat": "新しいチャット",
+    "chats": "チャット",
+    "untitled": "新しいチャット",
+    "unarchive": "復元",
+    "delete": "削除",
+    "search": "チャットを検索",
+    "stop": "停止",
+    "settings": "設定"
+  },
+  "welcome": {
+    "chooseFolder": "フォルダを選択"
+  },
+  "chat": {
+    "thinking": "考え中",
+    "interrupted": "停止済み",
+    "commands": "コマンド",
+    "input": {
+      "image": "画像",
+      "removeAttachment": "添付を削除",
+      "imageTooLargeTitle": "画像の添付ファイルが大きすぎます",
+      "imageTooLargeDesc": "画像の合計サイズは {{mb}}MB を超えてはいけません。一部の画像を削除して再試行してください。",
+      "unsupportedAttachmentTitle": "画像の添付ファイルのみサポート",
+      "unsupportedAttachmentDesc": "画像以外のファイルはモデルに送信できないため、無視されました"
+    },
+    "model": {
+      "model": "モデル",
+      "switchModel": "モデルを切り替え",
+      "switchPermissionMode": "権限モードを切り替え"
+    },
+    "tokens": {
+      "openDetails": "トークン使用量",
+      "input": "入力",
+      "output": "出力",
+      "cachedRead": "キャッシュ読み取り",
+      "cachedWrite": "キャッシュ書き込み",
+      "cacheHitRate": "キャッシュヒット",
+      "total": "合計",
+      "context": "context window"
+    },
+    "tool": {
+      "running": "実行中",
+      "stopped": "停止済み",
+      "failed": "失敗",
+      "output": "出力",
+      "input": "入力"
+    }
+  },
+  "composer": {
+    "mode": "権限",
+    "model": "モデル"
+  },
+  "approval": {
+    "answerOther": "その他"
+  },
+  "settings": {
+    "general": "一般",
+    "title": "設定",
+    "appearance": "外観",
+    "theme": "テーマ",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "language": "言語",
+    "about": "概要"
+  },
+  "provider": {
+    "model": "モデル",
+    "restoreButton": "元に戻す"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "更新のため再起動しますか?",
+    "relaunchConfirmDesc": "更新を適用するためにアプリを閉じて再起動します。",
+    "relaunchNow": "今すぐ再起動",
+    "relaunchLater": "後で更新",
+    "install": "クリックしてインストールし、再起動"
+  },
+  "plugins": {
+    "title": "プラグイン",
+    "plugins": "プラグイン",
+    "skills": "スキル",
+    "uninstall": "アンインストール"
+  },
+  "palette": {
+    "actions": "アクション",
+    "chats": "チャット",
+    "newChat": "新しいチャット",
+    "settings": "設定を開く"
+  },
+  "time": {
+    "today": "今日",
+    "yesterday": "昨日"
+  }
+}

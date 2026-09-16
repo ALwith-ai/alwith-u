@@ -1,0 +1,259 @@
+import { afterEach, expect, test } from "bun:test"
+import { CodexClient } from "../client"
+import { FakeHubPort } from "./fake-runtime-client"
+import { isSelectOption } from "@alwith/api"
+import { createFakeAgent } from "./fake-agent"
+
+const clients: CodexClient[] = []
+afterEach(() => {
+  for (const client of clients.splice(0)) client.disconnect()
+})
+
+async function make() {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  clients.push(client)
+  await client.connect()
+  return { client, fake }
+}
+
+async function until(predicate: () => boolean) {
+  const start = Date.now()
+  while (!predicate()) {
+    if (Date.now() - start > 3000) throw new Error("Timed out")
+    await Bun.sleep(5)
+  }
+}
+
+test("prompt acknowledgement is not completion; cancelling one session leaves the other running", async () => {
+  const { client } = await make()
+  const [a, b] = await Promise.all([client.newSession("/tmp/a"), client.newSession("/tmp/b")])
+  await Promise.all([
+    client.prompt(a, [{ type: "text", text: "one" }]),
+    client.prompt(b, [{ type: "text", text: "two" }])
+  ])
+  expect(client.session(a).state).toBe("running")
+  expect(client.session(b).state).toBe("running")
+  await client.cancel(a)
+  await until(() => client.session(a).state === "idle" && client.session(b).state === "idle")
+  expect(client.session(a).items.some(item => item.kind === "assistant")).toBe(false)
+  const reply = client.session(b).items.find(item => item.kind === "assistant")
+  expect(reply?.kind === "assistant" && reply.content[0]?.type === "text" ? reply.content[0].text : "").toBe(
+    `reply:${b}`
+  )
+  expect(client.state.sessions[b]).toBe(client.session(b))
+})
+
+test("permission requests surface as actions and resolve back to the agent", async () => {
+  const { client } = await make()
+  const id = await client.newSession("/tmp/a")
+  await client.prompt(id, [{ type: "text", text: "permission" }])
+  await until(() => client.state.actions.length === 1)
+  const action = client.state.actions[0]!
+  expect(action.kind).toBe("permission")
+  expect(client.session(id).state).toBe("requires_action")
+  expect(() =>
+    client.respond(action.id, {
+      outcome: { outcome: "selected", optionId: "nope" }
+    })
+  ).toThrow()
+  client.respond(action.id, {
+    outcome: { outcome: "selected", optionId: "allow_once" }
+  })
+  await until(() => client.session(id).state === "idle")
+  expect(client.state.actions).toHaveLength(0)
+  const reply = client.session(id).items.find(item => item.kind === "assistant")
+  expect(reply?.kind === "assistant" && reply.content[0]?.type === "text" ? reply.content[0].text : "").toContain(
+    "allow_once"
+  )
+})
+
+test("terminal output is decoded across chunk boundaries", async () => {
+  const { client } = await make()
+  const id = await client.newSession("/tmp/a")
+  await client.prompt(id, [{ type: "text", text: "terminal" }])
+  await until(() => client.session(id).state === "idle")
+  expect(client.session(id).terminals.t1?.output).toBe("héllo")
+  const tool = client.session(id).items.find(item => item.kind === "tool")
+  expect(tool?.kind === "tool" ? tool.status : null).toBe("completed")
+})
+
+test("threads come from the agent and open() replays history", async () => {
+  const { client, fake } = await make()
+  await client.listThreads()
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h1"])
+  await client.listThreads({ archived: true })
+  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(["h2"])
+  await client.open("h1", "/tmp/one")
+  const session = client.session("h1")
+  expect(session.attached).toBe(true)
+  expect(session.items.map(item => item.kind)).toEqual(["user", "assistant"])
+  await client.archive("h1")
+  expect(fake.archived.has("h1")).toBe(true)
+  expect(client.state.threads).toHaveLength(0)
+  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(["h1", "h2"])
+  expect(client.state.sessions.h1).toBeUndefined()
+})
+
+test("authentication errors propagate from session/new", async () => {
+  const { client } = await make()
+  await expect(client.newSession("/needs-auth")).rejects.toThrow()
+})
+
+test("a configured gateway can create a chat without signing in to Codex", async () => {
+  const { client, fake } = await make()
+  await client.registerGateway({
+    id: "deepseek",
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/",
+    bearerToken: "test-only",
+    models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }],
+    config: {}
+  })
+  await expect(client.newSession("/needs-auth")).rejects.toThrow()
+  const id = await client.newSession("/needs-auth", "deepseek-flash")
+  expect(fake.modelHints.get(id)).toBe("deepseek-flash")
+  expect(client.session(id).attached).toBe(true)
+})
+
+test("registerGateway sends catalog-mode hints and moved threads resume with _meta.alwith.model", async () => {
+  const { client, fake } = await make()
+  expect(client.providerCatalog).toBe(true)
+  await client.registerGateway({
+    id: "deepseek",
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/",
+    bearerToken: "sk-test",
+    models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }],
+    config: { model_catalog_json: "/models.json", web_search: "disabled" }
+  })
+  const sent = fake.gateway.current!
+  expect(sent.providerId).toBe("openai")
+  expect(sent.baseUrl).toBe("https://api.deepseek.com/")
+  expect(sent._meta).toEqual({
+    codex: {
+      id: "deepseek",
+      mode: "catalog",
+      name: "DeepSeek",
+      bearerToken: "sk-test",
+      config: { model_catalog_json: "/models.json", web_search: "disabled" }
+    },
+    alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }] }
+  })
+
+  // A thread the user moved to DeepSeek earlier is asked for on resume; others are not.
+  const seen: Array<[string, string, boolean]> = []
+  client.onSessionModel((sessionId, modelId, isGateway) => seen.push([sessionId, modelId, isGateway]))
+  client.setGatewayModels({ h1: "deepseek-flash" })
+  await client.open("h1", "/tmp/one")
+  await client.open("h2", "/tmp/two")
+  expect(fake.modelHints.get("h1")).toBe("deepseek-flash")
+  expect(fake.modelHints.get("h2")).toBeNull()
+  expect(seen).toEqual([
+    ["h1", "deepseek-flash", true],
+    ["h2", "gpt-5.6-sol", false]
+  ])
+
+  // New chats start native; a gateway model can be asked for explicitly.
+  const native = await client.newSession("/tmp/n")
+  const moved = await client.newSession("/tmp/m", "deepseek-flash")
+  expect(fake.modelHints.get(native)).toBeNull()
+  expect(fake.modelHints.get(moved)).toBe("deepseek-flash")
+
+  await client.unregisterGateway("deepseek")
+  expect(fake.gateway.current).toBeNull()
+})
+
+test("several gateways register under their own ids and can be removed one at a time", async () => {
+  const { client, fake } = await make()
+  await client.registerGateway({
+    id: "deepseek",
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/",
+    bearerToken: "sk-a",
+    models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }],
+    config: {}
+  })
+  await client.registerGateway({
+    id: "xai",
+    name: "xAI",
+    baseUrl: "https://api.x.ai/v1",
+    bearerToken: "xai-b",
+    models: [{ id: "grok-4.6", label: "Grok 4.6" }],
+    config: {}
+  })
+  expect([...fake.gateways.keys()]).toEqual(["deepseek", "xai"])
+  expect(client.gatewayIds).toEqual(["deepseek", "xai"])
+
+  // Every session's model option carries one group per gateway after Codex's own.
+  const id = await client.newSession("/tmp/g")
+  const option = client.session(id).configOptions.find(entry => entry.configId === "model")
+  if (option === undefined || !isSelectOption(option)) throw new Error("model option missing")
+  const groupIds = option.options.map(group => ("groupId" in group ? group.groupId : ""))
+  expect(groupIds).toEqual(["codex", "deepseek", "xai"])
+
+  // A model of the second gateway counts as a gateway model.
+  const seen: Array<[string, boolean]> = []
+  client.onSessionModel((_sessionId, modelId, isGateway) => seen.push([modelId, isGateway]))
+  const moved = await client.newSession("/tmp/x", "grok-4.6")
+  expect(fake.modelHints.get(moved)).toBe("grok-4.6")
+  expect(seen.at(-1)).toEqual(["grok-4.6", true])
+
+  await client.unregisterGateway("xai")
+  expect([...fake.gateways.keys()]).toEqual(["deepseek"])
+  expect(fake.gateway.current).not.toBeNull()
+  await client.unregisterGateway("deepseek")
+  expect(fake.gateway.current).toBeNull()
+})
+
+test("rename, account, rate limits and file search pass through the adapter's _codex methods", async () => {
+  const { client, fake } = await make()
+  await client.listThreads({ reset: true })
+  await client.renameSession("h1", "Renamed")
+  expect(fake.renamed.get("h1")).toBe("Renamed")
+  expect(client.state.threads.find(thread => thread.sessionId === "h1")?.title).toBe("Renamed")
+
+  const account = await client.readAccount()
+  expect(account.account).toEqual({ type: "chatgpt", email: "ny@example.com", planType: "plus" })
+  const limits = await client.readRateLimits()
+  expect(limits.primary?.usedPercent).toBe(40)
+
+  const seen: number[] = []
+  const stop = client.onRateLimits(update => seen.push(update.primary?.usedPercent ?? -1))
+  await fake.pushRateLimits(65)
+  await until(() => seen.length === 1)
+  expect(seen).toEqual([65])
+  stop()
+
+  const found = await client.fuzzyFileSearch({ query: "client", roots: ["/tmp/one"] })
+  expect(fake.fileSearches).toEqual(["client"])
+  expect(found.files.map(file => file.path)).toEqual(["src/agent/client.ts"])
+})
+
+test("the user's message is on screen before Codex reports it, and the report only claims the id", async () => {
+  const { client } = await make()
+  const id = await client.newSession("/tmp/a")
+  const sending = client.prompt(id, [{ type: "text", text: "shown at once" }])
+  const local = client.session(id).items.find(item => item.kind === "user")
+  expect(local?.kind === "user" ? local.echo : null).toBe("pending")
+  await sending
+  await until(() => client.session(id).state === "idle")
+  const users = client.session(id).items.filter(item => item.kind === "user")
+  expect(users).toHaveLength(1)
+  expect(users[0]?.id).toBe("u")
+  expect(users[0]?.kind === "user" ? users[0].echo : null).toBe("adopted")
+})
+
+test("Stop answers the session's pending permission with cancelled before session/cancel — no zombie prompt on the next attach", async () => {
+  const { client } = await make()
+  const id = await client.newSession("/tmp/a")
+  await client.prompt(id, [{ type: "text", text: "permission" }])
+  await until(() => client.state.actions.length === 1)
+  await client.cancel(id)
+  expect(client.state.actions).toEqual([])
+  await until(() => client.session(id).state === "idle")
+  const reply = client.session(id).items.find(item => item.kind === "assistant")
+  // the fake echoes the answer it got as JSON text
+  expect(JSON.stringify(reply)).toContain("cancelled")
+})

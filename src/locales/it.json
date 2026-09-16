@@ -1,0 +1,108 @@
+{
+  "actions": {
+    "copy": "Copia",
+    "copied": "Copiato",
+    "cancel": "Annulla",
+    "close": "Chiudi",
+    "retry": "Riprova",
+    "stop": "Interrompi",
+    "activity": "Attività",
+    "submit": "Invia",
+    "open": "Apri",
+    "reveal": "Mostra nel gestore di file"
+  },
+  "connection": {
+    "reconnect": "Riconnetti",
+    "apiKeyTitle": "Chiave API"
+  },
+  "sidebar": {
+    "plugins": "Plugin",
+    "newChat": "Nuova chat",
+    "chats": "Chat",
+    "untitled": "Nuova chat",
+    "unarchive": "Ripristina",
+    "delete": "Elimina",
+    "search": "Cerca chat",
+    "stop": "Interrompi",
+    "settings": "Impostazioni"
+  },
+  "welcome": {
+    "chooseFolder": "Scegli cartella"
+  },
+  "chat": {
+    "thinking": "Sto pensando",
+    "interrupted": "Interrotto",
+    "commands": "Comandi",
+    "input": {
+      "image": "Immagine",
+      "removeAttachment": "Rimuovi allegato",
+      "imageTooLargeTitle": "Allegati immagine troppo grandi",
+      "imageTooLargeDesc": "La dimensione totale delle immagini non deve superare {{mb}} MB. Rimuovi alcune immagini e riprova.",
+      "unsupportedAttachmentTitle": "Sono supportati solo allegati immagine",
+      "unsupportedAttachmentDesc": "I file non immagine non possono essere inviati al modello e sono stati ignorati"
+    },
+    "model": {
+      "model": "Modello",
+      "switchModel": "Cambia modello",
+      "switchPermissionMode": "Cambia modalità permessi"
+    },
+    "tokens": {
+      "openDetails": "Utilizzo dei token",
+      "cachedRead": "Lettura cache",
+      "cachedWrite": "Scrittura cache",
+      "cacheHitRate": "Hit cache",
+      "total": "Totale",
+      "context": "Finestra di contesto"
+    },
+    "tool": {
+      "running": "In esecuzione",
+      "stopped": "Interrotto",
+      "failed": "Fallito"
+    }
+  },
+  "composer": {
+    "mode": "Autorizzazioni",
+    "model": "Modello"
+  },
+  "approval": {
+    "answerOther": "Altro"
+  },
+  "settings": {
+    "general": "Generale",
+    "title": "Impostazioni",
+    "appearance": "Aspetto",
+    "theme": "Tema",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "language": "Lingua",
+    "about": "Informazioni"
+  },
+  "provider": {
+    "apiKey": "Chiave API",
+    "model": "Modello",
+    "restoreButton": "Ripristina"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "Riavviare per aggiornare?",
+    "relaunchConfirmDesc": "L'app si chiuderà e si riavvierà per applicare l'aggiornamento.",
+    "relaunchNow": "Riavvia ora",
+    "relaunchLater": "Aggiorna più tardi",
+    "install": "Clicca per installare e riavviare"
+  },
+  "plugins": {
+    "title": "Plugin",
+    "plugins": "Plugin",
+    "skills": "Skill",
+    "uninstall": "Disinstalla"
+  },
+  "palette": {
+    "actions": "Azioni",
+    "chats": "Chat",
+    "newChat": "Nuova chat",
+    "settings": "Apri impostazioni"
+  },
+  "time": {
+    "today": "Oggi",
+    "yesterday": "Ieri"
+  }
+}

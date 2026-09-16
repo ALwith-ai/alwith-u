@@ -1,0 +1,14 @@
+ALwith ü
+Copyright 2026 ALWITHAI PTE. LTD.
+
+This product bundles the OpenAI Codex CLI (https://github.com/openai/codex),
+licensed under the Apache License, Version 2.0, and codex-acp-v2
+(https://www.npmjs.com/package/@nyssance/codex-acp-v2), licensed under the
+Apache License, Version 2.0. Their notices ship under resources/licenses.
+
+The ALwith Runtime (alwith-runtime) bundled with this product is proprietary software
+of ALWITHAI PTE. LTD. and is not covered by this licence; it is distributed as
+a binary only and reached through the documented alwith-runtime-v1 protocol.
+
+ALwith ü is an independent project and is not affiliated with or endorsed
+by OpenAI.

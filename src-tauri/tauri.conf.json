@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ALwith U",
+  "version": "../package.json",
+  "identifier": "ai.alwith.u",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1430",
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run stage && bun run build"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "ALwith U",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 600,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$HOME/.codex/**"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVENkIwRUNFMzFGQjk0NTEKUldSUmxQc3h6ZzVyWFI4SFdzZmlOZnoxVjd1MjFEeG1nWnhtcFk2OVZuNW9PcWwwV3FQQW1YQWYK",
+      "endpoints": ["https://github.com/nyssance/alwith-u/releases/latest/download/latest.json"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "category": "DeveloperTool",
+    "externalBin": ["binaries/alwith-runtime", "binaries/codex-acp-v2", "binaries/codex", "binaries/codex-code-mode-host"],
+    "resources": {
+      "resources/licenses": "licenses",
+      "resources/deepseek": "deepseek"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "entitlements": "./Entitlements.plist"
+    }
+  }
+}

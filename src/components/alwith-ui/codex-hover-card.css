@@ -1,0 +1,73 @@
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-title"] {
+  color: inherit;
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-body"] {
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-row"] {
+  align-items: center;
+  color: inherit;
+  font-size: 14px;
+  gap: 6px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-details"],
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-actions"] {
+  border-color: color-mix(in srgb, currentColor 8%, transparent);
+  border-top-style: solid;
+  border-top-width: 1px;
+  gap: 4px;
+  padding-top: 6px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-actions"] {
+  margin-inline: 0;
+  gap: 4px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-separator"] {
+  display: none;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"] {
+  height: 20px;
+  gap: 6px;
+  padding-inline: 0;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"] svg,
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-row"] svg,
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-title-row"] svg {
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  width: 16px;
+  height: 16px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-icon"] > * {
+  width: 16px;
+  height: 16px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"]:hover {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"]:active {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}

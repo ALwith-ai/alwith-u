@@ -1,0 +1,179 @@
+{
+  "actions": {
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "retry": "إعادة المحاولة",
+    "send": "إرسال",
+    "stop": "إيقاف",
+    "activity": "النشاط",
+    "foreground": "في المقدمة",
+    "background": "في الخلفية",
+    "submit": "إرسال",
+    "open": "فتح",
+    "reveal": "إظهار في مدير الملفات",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل"
+  },
+  "connection": {
+    "reconnect": "أعد الاتصال",
+    "signOut": "تسجيل الخروج",
+    "apiKeyTitle": "مفتاح واجهة برمجة التطبيقات"
+  },
+  "sidebar": {
+    "plugins": "المكونات الإضافية",
+    "newChat": "دردشة جديدة",
+    "chats": "الدردشات",
+    "untitled": "دردشة جديدة",
+    "unarchive": "استعادة",
+    "delete": "حذف",
+    "search": "البحث في الدردشات…",
+    "stop": "إيقاف",
+    "settings": "الإعدادات"
+  },
+  "welcome": {
+    "chooseFolder": "اختر المجلد"
+  },
+  "chat": {
+    "working": "عمل",
+    "worked": "تم",
+    "workedFor": "تمت المعالجة لمدة {{duration}}",
+    "thinking": "جارٍ التفكير",
+    "thought": "قام بالتفكير",
+    "thoughtFor": "قام بالتفكير لمدة {{duration}}",
+    "interrupted": "تم الإيقاف",
+    "contextCompacted": "تم ضغط السياق",
+    "commands": "الأوامر",
+    "input": {
+      "image": "صورة",
+      "removeAttachment": "إزالة المرفق",
+      "imageTooLargeTitle": "مرفقات الصور كبيرة جدًا",
+      "imageTooLargeDesc": "يجب ألا يتجاوز الحجم الإجمالي للصورة{{mb}}ميغابايت. قم بإزالة بعض الصور وحاول مرة أخرى.",
+      "unsupportedAttachmentTitle": "يتم دعم مرفقات الصور فقط",
+      "unsupportedAttachmentDesc": "لا يمكن إرسال الملفات غير الصورية إلى النموذج وتم تجاهلها"
+    },
+    "model": {
+      "model": "النموذج",
+      "switchModel": "نموذج التبديل",
+      "switchPermissionMode": "تبديل وضع الإذن"
+    },
+    "tokens": {
+      "openDetails": "استخدام الرمز المميّز",
+      "input": "المدخلات",
+      "output": "المخرجات",
+      "cachedRead": "قراءة مخبأة",
+      "cachedWrite": "الكتابة المخزنة مؤقتا",
+      "cacheHitRate": "ضرب ذاكرة التخزين المؤقت",
+      "total": "المجموع",
+      "notAvailable": "لا يوجد",
+      "context": "نافذة السياق",
+      "contextSummary": "{{used}} / {{limit}}الرموز المميزة ·{{percent}}%"
+    },
+    "tool": {
+      "running": "جري",
+      "ran": "تم التشغيل",
+      "ranCommand": "تم تشغيل أمر",
+      "searching": "جارٍ البحث",
+      "searched": "تم البحث",
+      "searchingWeb": "جارٍ البحث في الويب",
+      "searchedWeb": "تم البحث في الويب",
+      "forDetail": "عن {{detail}}",
+      "read": "قراءة",
+      "readFiles": "تمت قراءة الملفات",
+      "editing": "جارٍ تعديل",
+      "edited": "تم التحرير",
+      "editingFiles": "جارٍ تعديل الملفات",
+      "editedFiles": "تم تعديل الملفات",
+      "subagentFinished": "أكمل {{name}} المهمة",
+      "exitCode": "إنهاء الكود {{code}}",
+      "stopped": "تم الإيقاف",
+      "failed": "فشل",
+      "output": "الإخراج",
+      "input": "مدخل",
+      "audioOutput": "مخرج صوتي",
+      "summary": {
+        "read": {
+          "leading_other": "يقرأ{{count}}ملفات"
+        },
+        "edit": {
+          "leading_one": "تم تعديل {{count}} ملف",
+          "leading_other": "تم تحريره{{count}}ملفات"
+        },
+        "execute": {
+          "leading_other": "ركض{{count}}الأوامر"
+        }
+      }
+    },
+    "files": {
+      "editedCount_one": "تم تعديل {{count}} ملف",
+      "editedCount_other": "تم تحريره{{count}}ملفات",
+      "viewChanges": "عرض التغييرات",
+      "hideChanges": "إخفاء التغييرات",
+      "changedLines": "الأسطر المتغيرة"
+    },
+    "plan": {
+      "title": "الخطة"
+    }
+  },
+  "composer": {
+    "mode": "الأذونات",
+    "model": "النموذج"
+  },
+  "approval": {
+    "answerOther": "آخر"
+  },
+  "settings": {
+    "general": "عام",
+    "versionLabel": "الإصدار",
+    "title": "الإعدادات",
+    "appearance": "المظهر",
+    "theme": "المظهر",
+    "themeLight": "ضوء",
+    "themeDark": "داكن",
+    "themeSystem": "النظام",
+    "language": "اللغة",
+    "about": "عن"
+  },
+  "provider": {
+    "label": "مزود",
+    "apiKey": "مفتاح واجهة برمجة التطبيقات",
+    "model": "نموذج",
+    "apply": "اعتماد",
+    "restoreButton": "استعادة"
+  },
+  "updater": {
+    "upToDate": "محدّث",
+    "relaunchConfirmTitle": "هل تريد إعادة التشغيل للتحديث؟",
+    "relaunchConfirmDesc": "سيتم إغلاق التطبيق وإعادة تشغيله لتطبيق التحديث.",
+    "relaunchNow": "أعد التشغيل الآن",
+    "relaunchLater": "التحديث لاحقًا",
+    "install": "أعد التشغيل للتحديث"
+  },
+  "plugins": {
+    "title": "المكونات الإضافية",
+    "marketplace": "المتجر",
+    "installedTab": "تم التثبيت",
+    "plugins": "المكونات الإضافية",
+    "skills": "المهارات",
+    "install": "تثبيت",
+    "installed": "تم التثبيت",
+    "uninstall": "إلغاء التثبيت",
+    "searchPlaceholder": "بحث في المكونات الإضافية",
+    "enabled": "مفعّل",
+    "scope": {
+      "user": "المستخدم",
+      "system": "النظام"
+    }
+  },
+  "palette": {
+    "actions": "الإجراءات",
+    "chats": "الدردشات",
+    "newChat": "دردشة جديدة",
+    "settings": "فتح الإعدادات"
+  },
+  "time": {
+    "today": "اليوم",
+    "yesterday": "أمس"
+  }
+}

@@ -1,0 +1,9 @@
+/* CSS Custom Highlight API ranges set by chat-search.tsx; no DOM is rewritten to highlight. */
+::highlight(chat-search) {
+  background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+::highlight(chat-search-current) {
+  background-color: color-mix(in oklch, var(--primary) 55%, transparent);
+  color: var(--primary-foreground);
+}

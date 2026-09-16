@@ -1,0 +1,8 @@
+node_modules/
+dist/
+src-tauri/
+src/components/ui/
+src/features/chat/codex/markdown-renderer.tsx
+src/features/chat/codex/markdown-rules.ts
+src/features/chat/codex/styles.css
+bun.lock
