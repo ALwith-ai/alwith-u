@@ -37,6 +37,9 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(runtime::RuntimeState::default());
 
+    #[cfg(feature = "hasgard-testing")]
+    let builder = builder.plugin(tauri_plugin_hasgard::init());
+
     builder
         .on_menu_event(|app, event| {
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {

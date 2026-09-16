@@ -13,7 +13,11 @@ crate-type = ["rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+hasgard-testing = ["dep:tauri-plugin-hasgard"]
+
 [dependencies]
+tauri-plugin-hasgard = { version = "0.4.1", optional = true }
 libloading = "0.8"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }

@@ -135,6 +135,11 @@ run side by side with separate preferences, logs and window state. That is how t
 app develops itself: chat with Codex in the installed build, restart the dev build
 freely. Both see the same Codex threads; do not open one thread in both.
 
+The dev command enables the `hasgard-testing` Cargo feature (Tauri Hasgard's
+automation bridge). Normal builds omit both the plugin and its capability.
+To compile a testable desktop binary without starting a dev server, use
+`bun run tauri build --debug --features hasgard-testing --no-bundle`.
+
 `bun run stage` targets the host triple; pass a Rust target triple to stage another
 platform (the matching `@openai/codex-<platform>` package must be installed).
 
