@@ -83,6 +83,8 @@ QA 平台凭据由 Desktop 提供是已接受的业务边界，不是待消除�
 
 平台 Auth 由公共 `@alwith/auth` TS 包和 `alwith-auth` Rust 库提供，不属于 Runtime 核心，也不属于 CLI／模型供应商认证。Desktop 的 QA 凭据适配仍由 Desktop 提供。U 复用登录接口、账号状态、token 存储契约与 Rust 刷新合并逻辑；JSON 凭据留在各应用自己的数据目录，未改为 Rust 私有凭据库，未迁移 Desktop 登录。U 已接邮箱验证码／密码登录、注册和账号设置；OAuth 尚未接入，现有 Desktop 深链不能直接复用。开发环境接 api-dev，正式构建接 api。服务器是否允许同账号多登录会话、同账号宠物权益的端到端一致性仍需实际联调，不将前端接线当作完整验收。
 
+外部 U 构建不链接私有 Auth 或应用发现 crate：`@alwith/native` 通过 npm 分发预编译动态库，U 只保留薄 ABI 调用层。内部 Desktop 仍可直接复用同一份 Rust 实现；这不是复制两份认证逻辑，也没有将认证迁入 Runtime。具体发行平台与验证结果见 [原生分发说明](native-distribution.md)。
+
 模块对界面侧的类型随包一起给：模块包自带 `types.ts`（从 Rust 类型生成），应用界面从包里 import。应用的进程侧是否链接模块的 Rust crate、是否需要 Rust 合同类型，按实际消费者定；Desktop 目前把模块载荷按 JSON 过界，是当前选择，不是规则。
 
 ## 保密与技术边界

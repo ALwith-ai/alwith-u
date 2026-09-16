@@ -5,7 +5,7 @@
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
 
-@source "../node_modules/@alwith/chat/src";
+@source "../node_modules/@alwith/chat/dist";
 
 @custom-variant dark (&:is(.dark *));
 

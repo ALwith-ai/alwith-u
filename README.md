@@ -96,24 +96,32 @@ Requires Bun 1.4+, Rust stable and the Tauri 2 prerequisites for your platform.
 
 ```sh
 bun install
-bun run stage        # copies codex + codex-code-mode-host + alwith-runtime, compiles codex-acp-v2, writes licences
+bun run stage        # stages native npm binaries, Runtime, Codex and licences; compiles the ACP adapter
 bun tauri dev
 ```
 
-`stage` downloads the release pinned in `runtime.json` by default and verifies it against
-the release's `SHA256SUMS`. Local development must explicitly set `RUNTIME_SOURCE=sibling`
+`stage` anonymously downloads the public release pinned in `runtime.json` and verifies
+its pinned SHA256, including on cache hits. No GitHub token or private checkout is needed.
+Local Runtime development must explicitly set `RUNTIME_SOURCE=sibling`
 to use a neighbouring checkout's build, or `RUNTIME_PATH` to use an existing binary.
-The Runtime repository is currently private, so the download
-goes through the GitHub API with `GH_TOKEN` / `GITHUB_TOKEN` or the logged-in `gh`
-CLI's token; a public release repository needs no token. Bumping the Runtime is a one-line
-change to `runtime.json`.
+Auth and installed-app implementations arrive as closed platform binaries through
+`@alwith/native`; Tauri contains only the thin ABI bridge. Login storage is unchanged.
+See [native distribution](docs/native-distribution.md).
+
+**Current end-to-end public Runtime availability: macOS ARM64.** Native libraries
+already cover all six desktop targets; the remaining Runtime binaries are not yet
+published. Update both version and target checksums when changing `runtime.json`.
 
 ## Releases
 
-`.github/workflows/ci.yml` runs typecheck, tests, lint and the web build on every push.
+`.github/workflows/ci.yml` runs typecheck, tests, lint, the web build and a macOS ARM64
+desktop compilation using public dependencies on every push.
 Tagging `v<version>` runs `release.yml`: six targets, sidecars staged from npm and the
 pinned Runtime release, bundles uploaded to a draft GitHub Release by `tauri-action`. Apple
 signing and notarisation use the `APPLE_*` secrets listed at the top of the workflow.
+The release matrix still describes six targets; unavailable Runtime targets currently
+fail explicitly rather than fetching private sources. Do not tag a full multi-platform
+release until their binary pins are populated.
 
 Updates: `createUpdaterArtifacts` signs every bundle with the minisign key whose public
 half sits in `tauri.conf.json` (`plugins.updater.pubkey`); the private key goes into the

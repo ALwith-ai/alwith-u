@@ -46,6 +46,7 @@
     "externalBin": ["binaries/alwith-runtime", "binaries/codex-acp-v2", "binaries/codex", "binaries/codex-code-mode-host"],
     "resources": {
       "resources/licenses": "licenses",
+      "resources/native": "native",
       "resources/deepseek": "deepseek"
     },
     "icon": [

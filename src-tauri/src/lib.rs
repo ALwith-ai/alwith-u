@@ -1,6 +1,7 @@
 mod auth;
 mod installed_apps;
 mod menu;
+mod native;
 mod runtime;
 mod updater;
 mod window;
@@ -27,7 +28,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
-        .manage(alwith_auth::RefreshState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -51,6 +51,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            app.manage(native::Native::load(app.handle())?);
             log::info!("ALwith ü {} starting", env!("CARGO_PKG_VERSION"));
             // The window is transparent; macOS paints the sidebar glass behind it (ALwith
             // Desktop's native_window_effects). Panels that must stay opaque paint their own

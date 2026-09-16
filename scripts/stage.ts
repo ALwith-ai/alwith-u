@@ -8,9 +8,10 @@
  *
  * Usage: bun scripts/stage.ts [rust-target-triple]   (then TAURI_ENV_TARGET_TRIPLE, then the host)
  */
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { $ } from "bun"
+import { stageNative } from "@alwith/native/stage"
 import { runtimeBuildArtifact, runtimeReleaseCache, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 
 const root = resolve(import.meta.dirname, "..")
@@ -65,6 +66,13 @@ const target = TARGETS[triple]
 if (!target) throw new Error(`Unsupported target triple ${triple}. Known: ${Object.keys(TARGETS).join(", ")}`)
 mkdirSync(binaries, { recursive: true })
 mkdirSync(licenses, { recursive: true })
+const nativeLibrary = stageNative(triple, join(root, "src-tauri/resources/native"), licenses)
+if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
+  // A hardened application must load a library signed by the same team. Verify
+  // the distributed bytes first, then sign the staged copy using the app's identity.
+  await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${nativeLibrary}`
+}
+console.log(`alwith-native -> ${nativeLibrary}`)
 
 const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8"))
 const codexVersion: string = codexPackage.version
@@ -96,7 +104,7 @@ console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
 //   RUNTIME_PATH=<file>      an explicit binary for this triple
 //   RUNTIME_SOURCE=sibling   ../alwith-runtime/target[/<cross-target>]/release
 //                            (needs `cargo build --release [--target <cross-target>]` there)
-//   RUNTIME_SOURCE=release   the GitHub Release pinned in runtime.json, verified against SHA256SUMS
+//   RUNTIME_SOURCE=release   public release; checksum pinned in runtime.json, no credentials
 // Default: always the pinned release. A sibling checkout is an explicit development opt-in.
 const runtimeDestination = join(binaries, `alwith-runtime-${triple}${target.exe}`)
 copyFileSync(await resolveRuntime(), runtimeDestination)
@@ -120,66 +128,39 @@ async function resolveRuntime(): Promise<string> {
 }
 
 async function downloadRuntime(): Promise<string> {
-  const pin = JSON.parse(readFileSync(join(root, "runtime.json"), "utf8")) as { repo: string; version: string }
+  const pin = JSON.parse(readFileSync(join(root, "runtime.json"), "utf8")) as {
+    repo: string; version: string; sha256: Record<string, string>
+  }
+  const expected = pin.sha256[triple]
+  if (!expected) throw new Error(`Runtime ${pin.version} has no published artifact for ${triple}; available: ${Object.keys(pin.sha256).join(", ")}`)
   const base = process.env.RUNTIME_BASE_URL ?? `https://github.com/${pin.repo}/releases/download/v${pin.version}`
   const archiveName = `alwith-runtime-${triple}.tar.gz`
   const cache = runtimeReleaseCache(binaries, pin.version, triple)
   const binary = join(cache, `alwith-runtime${target.exe}`)
-  if (existsSync(binary)) {
-    console.log(`alwith-runtime ${pin.version} (cached)`)
-    return binary
-  }
-  const [sums, archive] = await Promise.all([
-    fetchAsset(pin, base, "SHA256SUMS").then(response => response.text()),
-    fetchAsset(pin, base, archiveName).then(response => response.bytes())
-  ])
-  const expected = sums
-    .split("\n")
-    .map(line => line.trim().split(/\s+\*?/))
-    .find(([, name]) => name === archiveName)?.[0]
-  if (!expected) throw new Error(`SHA256SUMS at ${base} has no entry for ${archiveName}`)
-  const actual = new Bun.CryptoHasher("sha256").update(archive).digest("hex")
-  if (actual !== expected) throw new Error(`${archiveName}: sha256 ${actual} != ${expected} from SHA256SUMS`)
-  rmSync(cache, { recursive: true, force: true })
-  mkdirSync(cache, { recursive: true })
   const archivePath = join(cache, archiveName)
+  // Recheck even cached archives and re-extract: a stale extracted binary must not
+  // bypass validation. No gh login, token or private-repository fallback is used.
+  const archive = existsSync(archivePath) ? readFileSync(archivePath)
+    : await fetchOk(`${base}/${archiveName}`).then(response => response.bytes())
+  const actual = new Bun.CryptoHasher("sha256").update(archive).digest("hex")
+  if (actual !== expected) throw new Error(`${archiveName}: sha256 ${actual} != pinned ${expected}`)
+  mkdirSync(cache, { recursive: true })
   writeFileSync(archivePath, archive)
   await $`tar -xzf ${archivePath} -C ${cache}`
-  rmSync(archivePath)
   if (!existsSync(binary)) throw new Error(`${archiveName} did not contain alwith-runtime${target.exe}`)
+  const legal = join(licenses, "alwith-runtime")
+  mkdirSync(legal, { recursive: true })
+  for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses"]) {
+    cpSync(join(cache, name), join(legal, name), { recursive: true })
+  }
   console.log(`alwith-runtime ${pin.version} <- ${base}/${archiveName}`)
   return binary
 }
 
-async function fetchOk(url: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(url, init)
+async function fetchOk(url: string): Promise<Response> {
+  const response = await fetch(url)
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
   return response
-}
-
-/**
- * A release asset. Public repositories serve the plain download URL; a private one (the Runtime
- * source repository) needs a token, in which case the asset is fetched through the GitHub
- * API. The token comes from GH_TOKEN / GITHUB_TOKEN, else from `gh auth token` when the
- * GitHub CLI is logged in. RUNTIME_BASE_URL bypasses all of this (local tests).
- */
-async function fetchAsset(pin: { repo: string; version: string }, base: string, name: string): Promise<Response> {
-  if (process.env.RUNTIME_BASE_URL) return fetchOk(`${base}/${name}`)
-  const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? (await ghAuthToken())
-  if (token === null) return fetchOk(`${base}/${name}`)
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
-  const release = (await fetchOk(`https://api.github.com/repos/${pin.repo}/releases/tags/v${pin.version}`, {
-    headers
-  }).then(response => response.json())) as { assets: Array<{ name: string; url: string }> }
-  const asset = release.assets.find(entry => entry.name === name)
-  if (!asset) throw new Error(`release v${pin.version} of ${pin.repo} has no asset ${name}`)
-  return fetchOk(asset.url, { headers: { ...headers, Accept: "application/octet-stream" } })
-}
-
-async function ghAuthToken(): Promise<string | null> {
-  const result = await $`gh auth token`.quiet().nothrow()
-  const token = result.stdout.toString().trim()
-  return result.exitCode === 0 && token.length > 0 ? token : null
 }
 
 // The @openai/codex npm package ships no licence file; resources/licenses/codex.txt is kept in the repo.
