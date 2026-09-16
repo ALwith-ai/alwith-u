@@ -9,3 +9,4 @@ src-tauri/resources/licenses/alwith-runtime/
 src-tauri/target/
 src-tauri/gen/schemas/
 *.bun-build
+test-results.xml
