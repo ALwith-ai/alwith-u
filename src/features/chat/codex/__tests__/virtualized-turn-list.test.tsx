@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, test } from "bun:test"
 import { createRef } from "react"
 import {
@@ -96,6 +96,7 @@ function threadHeight(scrollElement: HTMLElement): number {
 
 describe("VirtualizedTurnList", () => {
   afterEach(() => {
+    cleanup()
     globalThis.ResizeObserver = nativeResizeObserver
     document.body.replaceChildren()
   })

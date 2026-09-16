@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react"
+import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { NavigationGroup } from "../navigation-group"
@@ -6,6 +6,7 @@ import { NavigationGroup } from "../navigation-group"
 installDom()
 
 afterEach(() => {
+  cleanup()
   document.body.innerHTML = ""
 })
 

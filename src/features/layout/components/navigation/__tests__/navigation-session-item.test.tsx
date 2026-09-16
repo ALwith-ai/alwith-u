@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react"
+import { cleanup, render } from "@testing-library/react"
 import { afterEach, describe, expect, test } from "bun:test"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 
@@ -10,6 +10,7 @@ installDom()
 const { NavigationSessionItem } = await import("../navigation-session-item")
 
 afterEach(() => {
+  cleanup()
   document.body.innerHTML = ""
 })
 

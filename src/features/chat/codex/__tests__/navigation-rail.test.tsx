@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import type { MessageItem } from "@alwith/api"
 import type { Turn } from "../../turns"
@@ -13,6 +13,7 @@ const { ThreadUserMessageNavigationRail, toNavigationRailItems } = await import(
 navigationSoundStore.setState({ soundMode: "none" })
 
 afterEach(() => {
+  cleanup()
   document.body.innerHTML = ""
 })
 
