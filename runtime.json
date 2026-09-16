@@ -1,7 +1,7 @@
 {
   "repo": "ALwith-ai/alwith-releases",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "sha256": {
-    "aarch64-apple-darwin": "09ad35961590df51aacbff6a2b50affe7948fcb9c404cc3dfc4daa232668fcda"
+    "aarch64-apple-darwin": "a67186b1e8e2d62197d429dcb7084e3d89d95eeb92404a79cde174cabbd71807"
   }
 }
