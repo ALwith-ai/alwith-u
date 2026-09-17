@@ -21,17 +21,13 @@ pub const STATE_EVENT: &str = "updater:state";
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 fn is_newer_version(candidate: &str, current: &str) -> Result<bool, String> {
-    let candidate =
-        Version::parse(candidate.trim_start_matches('v')).map_err(|error| error.to_string())?;
-    let current =
-        Version::parse(current.trim_start_matches('v')).map_err(|error| error.to_string())?;
+    let candidate = Version::parse(candidate.trim_start_matches('v')).map_err(|error| error.to_string())?;
+    let current = Version::parse(current.trim_start_matches('v')).map_err(|error| error.to_string())?;
     Ok(candidate > current)
 }
 
 pub fn is_same_release(remote: Option<&UpdateInfo>, ready: &UpdateInfo) -> bool {
-    remote.is_some_and(|remote| {
-        remote.version == ready.version && remote.signature == ready.signature
-    })
+    remote.is_some_and(|remote| remote.version == ready.version && remote.signature == ready.signature)
 }
 
 pub struct UpdaterService {
@@ -41,10 +37,7 @@ pub struct UpdaterService {
 
 impl UpdaterService {
     pub fn new(notify: impl Fn(&State) + Send + Sync + 'static) -> Self {
-        Self {
-            state: RwLock::new(State::Uninitialized),
-            notify_listeners: Box::new(notify),
-        }
+        Self { state: RwLock::new(State::Uninitialized), notify_listeners: Box::new(notify) }
     }
 
     pub fn state(&self) -> State {
@@ -92,18 +85,14 @@ pub type ProgressFn = Box<dyn Fn(u64, Option<u64>) + Send + Sync>;
 
 pub trait Downloader: Send + Sync {
     fn download<'a>(
-        &'a self,
-        update: &'a UpdateInfo,
-        on_progress: ProgressFn,
+        &'a self, update: &'a UpdateInfo, on_progress: ProgressFn,
     ) -> BoxFuture<'a, Result<Vec<u8>, String>>;
 }
 
 impl UpdaterService {
     /// Downloads into `<updater_dir>/<filename>` and records it as ready in the state file.
     pub async fn download_update(
-        self: &std::sync::Arc<Self>,
-        downloader: &dyn Downloader,
-        updater_dir: &std::path::Path,
+        self: &std::sync::Arc<Self>, downloader: &dyn Downloader, updater_dir: &std::path::Path,
     ) -> Result<(), String> {
         let update = match self.state() {
             State::AvailableForDownload { update } => update,
@@ -143,13 +132,8 @@ impl UpdaterService {
 
         std::fs::create_dir_all(updater_dir).map_err(|e| e.to_string())?;
         std::fs::write(updater_dir.join(&update.filename), &bytes).map_err(|e| e.to_string())?;
-        persist::save(
-            &updater_dir.join(persist::STATE_FILE),
-            &persist::PersistedState {
-                ready: Some(update.clone()),
-            },
-        )
-        .map_err(|e| e.to_string())?;
+        persist::save(&updater_dir.join(persist::STATE_FILE), &persist::PersistedState { ready: Some(update.clone()) })
+            .map_err(|e| e.to_string())?;
 
         self.set_state(State::Ready { update });
         Ok(())
@@ -159,9 +143,7 @@ impl UpdaterService {
     /// auto-downloaded; the user only confirms the relaunch. A failed download must go back
     /// to `Idle`, otherwise the hourly check (which only runs from `Idle`) is stuck for good.
     pub async fn autodownload_if_available(
-        self: &std::sync::Arc<Self>,
-        downloader: &dyn Downloader,
-        updater_dir: &std::path::Path,
+        self: &std::sync::Arc<Self>, downloader: &dyn Downloader, updater_dir: &std::path::Path,
     ) {
         if !matches!(self.state(), State::AvailableForDownload { .. }) {
             return;
@@ -175,11 +157,7 @@ impl UpdaterService {
 
 pub trait Installer: Send + Sync {
     /// `Ok` means the install was started; `Err` restores `Ready` so the user can retry.
-    fn install<'a>(
-        &'a self,
-        update: &'a UpdateInfo,
-        bytes: Vec<u8>,
-    ) -> BoxFuture<'a, Result<(), String>>;
+    fn install<'a>(&'a self, update: &'a UpdateInfo, bytes: Vec<u8>) -> BoxFuture<'a, Result<(), String>>;
     /// Windows NSIS relaunches itself (`/R`); every other platform needs an explicit restart.
     fn needs_explicit_restart(&self) -> bool;
     fn restart(&self) -> BoxFuture<'_, Result<(), String>>;
@@ -187,9 +165,7 @@ pub trait Installer: Send + Sync {
 
 impl UpdaterService {
     pub async fn install_and_relaunch(
-        &self,
-        installer: &dyn Installer,
-        updater_dir: &std::path::Path,
+        &self, installer: &dyn Installer, updater_dir: &std::path::Path,
     ) -> Result<(), String> {
         let (update, ready_snapshot) = match self.state() {
             ref s @ State::Ready { ref update } => (update.clone(), s.clone()),
@@ -197,9 +173,7 @@ impl UpdaterService {
         };
 
         let bytes = std::fs::read(updater_dir.join(&update.filename)).map_err(|e| e.to_string())?;
-        self.set_state(State::Restarting {
-            update: update.clone(),
-        });
+        self.set_state(State::Restarting { update: update.clone() });
 
         if let Err(e) = installer.install(&update, bytes).await {
             self.set_state(ready_snapshot);
@@ -227,10 +201,7 @@ impl UpdaterService {
     /// running version, its minisign signature checks out, and the remote still publishes the
     /// same release (a network error keeps the verified archive).
     pub async fn init_recover(
-        &self,
-        updater_dir: &std::path::Path,
-        current_version: &str,
-        verifier: &dyn SignatureVerifier,
+        &self, updater_dir: &std::path::Path, current_version: &str, verifier: &dyn SignatureVerifier,
         checker: &dyn UpdateChecker,
     ) {
         let persisted = persist::load(&updater_dir.join(persist::STATE_FILE));
@@ -253,9 +224,7 @@ impl UpdaterService {
             return discard(self);
         }
         match checker.check() {
-            Ok(remote) if is_same_release(remote.as_ref(), &ready) => {
-                self.set_state(State::Ready { update: ready })
-            }
+            Ok(remote) if is_same_release(remote.as_ref(), &ready) => self.set_state(State::Ready { update: ready }),
             Ok(_) => discard(self),
             Err(error) => {
                 log::warn!("cached update release revalidation failed: {error}");
@@ -285,11 +254,7 @@ impl UpdateChecker for PluginChecker {
         let app = self.app.clone();
         let result = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async move {
-                app.updater()
-                    .map_err(|e| e.to_string())?
-                    .check()
-                    .await
-                    .map_err(|e| e.to_string())
+                app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())
             })
         })?;
         let Some(update) = result else {
@@ -318,20 +283,13 @@ impl PluginDownloader {
 
 impl Downloader for PluginDownloader {
     fn download<'a>(
-        &'a self,
-        update: &'a UpdateInfo,
-        on_progress: ProgressFn,
+        &'a self, update: &'a UpdateInfo, on_progress: ProgressFn,
     ) -> BoxFuture<'a, Result<Vec<u8>, String>> {
         Box::pin(async move {
             let updater = self.app.updater().map_err(|e| e.to_string())?;
-            let plugin_update = updater
-                .check()
-                .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| "no update available".to_string())?;
-            if plugin_update.version != update.version
-                || plugin_update.signature != update.signature
-            {
+            let plugin_update =
+                updater.check().await.map_err(|e| e.to_string())?.ok_or_else(|| "no update available".to_string())?;
+            if plugin_update.version != update.version || plugin_update.signature != update.signature {
                 return Err("update changed between check and download".to_string());
             }
             plugin_update
@@ -353,21 +311,12 @@ impl PluginInstaller {
 }
 
 impl Installer for PluginInstaller {
-    fn install<'a>(
-        &'a self,
-        update: &'a UpdateInfo,
-        bytes: Vec<u8>,
-    ) -> BoxFuture<'a, Result<(), String>> {
+    fn install<'a>(&'a self, update: &'a UpdateInfo, bytes: Vec<u8>) -> BoxFuture<'a, Result<(), String>> {
         Box::pin(async move {
             let updater = self.app.updater().map_err(|e| e.to_string())?;
-            let plugin_update = updater
-                .check()
-                .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| "no update available".to_string())?;
-            if plugin_update.version != update.version
-                || plugin_update.signature != update.signature
-            {
+            let plugin_update =
+                updater.check().await.map_err(|e| e.to_string())?.ok_or_else(|| "no update available".to_string())?;
+            if plugin_update.version != update.version || plugin_update.signature != update.signature {
                 return Err("downloaded update is no longer the current release".to_string());
             }
             plugin_update.install(bytes).map_err(|e| e.to_string())
@@ -395,19 +344,15 @@ impl MinisignVerifier {
 
 impl SignatureVerifier for MinisignVerifier {
     fn verify(&self, bytes: &[u8], signature: &str) -> Result<(), String> {
-        let public_key = base64::engine::general_purpose::STANDARD
-            .decode(&self.public_key)
-            .map_err(|error| error.to_string())?;
+        let public_key =
+            base64::engine::general_purpose::STANDARD.decode(&self.public_key).map_err(|error| error.to_string())?;
         let public_key = std::str::from_utf8(&public_key).map_err(|error| error.to_string())?;
         let public_key = PublicKey::decode(public_key).map_err(|error| error.to_string())?;
-        let signature = base64::engine::general_purpose::STANDARD
-            .decode(signature)
-            .map_err(|error| error.to_string())?;
+        let signature =
+            base64::engine::general_purpose::STANDARD.decode(signature).map_err(|error| error.to_string())?;
         let signature = std::str::from_utf8(&signature).map_err(|error| error.to_string())?;
         let signature = Signature::decode(signature).map_err(|error| error.to_string())?;
-        public_key
-            .verify(bytes, &signature, true)
-            .map_err(|error| error.to_string())
+        public_key.verify(bytes, &signature, true).map_err(|error| error.to_string())
     }
 }
 
@@ -435,9 +380,7 @@ pub fn init(app: &tauri::App) {
         .and_then(|value| value.as_str())
         .map(str::to_owned);
     let Some(public_key) = public_key.filter(|_| endpoints_ok) else {
-        svc.set_state(State::Disabled {
-            reason: state::DisablementReason::InvalidConfiguration,
-        });
+        svc.set_state(State::Disabled { reason: state::DisablementReason::InvalidConfiguration });
         return;
     };
 
@@ -447,13 +390,7 @@ pub fn init(app: &tauri::App) {
             return;
         };
         let checker = PluginChecker::new(app.clone());
-        svc.init_recover(
-            &updater_dir,
-            env!("CARGO_PKG_VERSION"),
-            &MinisignVerifier::new(public_key),
-            &checker,
-        )
-        .await;
+        svc.init_recover(&updater_dir, env!("CARGO_PKG_VERSION"), &MinisignVerifier::new(public_key), &checker).await;
 
         let svc_overwrite = svc.clone();
         let app_overwrite = app.clone();
@@ -465,21 +402,13 @@ pub fn init(app: &tauri::App) {
                     let svc = svc_overwrite.clone();
                     let app = app_overwrite.clone();
                     async move {
-                        let State::Ready {
-                            update: ready_update,
-                        } = svc.state()
-                        else {
+                        let State::Ready { update: ready_update } = svc.state() else {
                             return;
                         };
                         let checker = PluginChecker::new(app.clone());
-                        let latest = scheduler::is_latest_with_timeout(
-                            scheduler::OVERWRITE_CHECK_TIMEOUT,
-                            || async {
-                                checker
-                                    .check()
-                                    .map(|remote| is_same_release(remote.as_ref(), &ready_update))
-                            },
-                        )
+                        let latest = scheduler::is_latest_with_timeout(scheduler::OVERWRITE_CHECK_TIMEOUT, || async {
+                            checker.check().map(|remote| is_same_release(remote.as_ref(), &ready_update))
+                        })
                         .await;
                         if latest == Some(false) {
                             let Ok(updater_dir) = commands::updater_dir(&app) else {
@@ -495,15 +424,11 @@ pub fn init(app: &tauri::App) {
             .await;
         });
 
-        scheduler::schedule_check_loop(
-            scheduler::FIRST_CHECK_DELAY,
-            scheduler::CHECK_INTERVAL,
-            move || {
-                let svc = svc.clone();
-                let app = app.clone();
-                async move { commands::check_and_autodownload(app, svc).await }
-            },
-        )
+        scheduler::schedule_check_loop(scheduler::FIRST_CHECK_DELAY, scheduler::CHECK_INTERVAL, move || {
+            let svc = svc.clone();
+            let app = app.clone();
+            async move { commands::check_and_autodownload(app, svc).await }
+        })
         .await;
     });
 }
@@ -515,8 +440,7 @@ pub(crate) mod test_support {
 
     impl TempDir {
         pub fn new() -> Self {
-            let path =
-                std::env::temp_dir().join(format!("alwith-u-updater-{}", uuid::Uuid::new_v4()));
+            let path = std::env::temp_dir().join(format!("alwith-u-updater-{}", uuid::Uuid::new_v4()));
             std::fs::create_dir_all(&path).unwrap();
             Self(path)
         }
@@ -549,11 +473,7 @@ mod tests {
 
     struct MockDownloader(Result<Vec<u8>, String>);
     impl Downloader for MockDownloader {
-        fn download<'a>(
-            &'a self,
-            _: &'a UpdateInfo,
-            _: ProgressFn,
-        ) -> BoxFuture<'a, Result<Vec<u8>, String>> {
+        fn download<'a>(&'a self, _: &'a UpdateInfo, _: ProgressFn) -> BoxFuture<'a, Result<Vec<u8>, String>> {
             let result = self.0.clone();
             Box::pin(async move { result })
         }
@@ -565,11 +485,7 @@ mod tests {
         restart_called: Arc<AtomicBool>,
     }
     impl Installer for MockInstaller {
-        fn install<'a>(
-            &'a self,
-            _: &'a UpdateInfo,
-            _: Vec<u8>,
-        ) -> BoxFuture<'a, Result<(), String>> {
+        fn install<'a>(&'a self, _: &'a UpdateInfo, _: Vec<u8>) -> BoxFuture<'a, Result<(), String>> {
             let result = self.install_result.clone();
             Box::pin(async move { result })
         }
@@ -585,20 +501,14 @@ mod tests {
     struct MockVerifier(bool);
     impl SignatureVerifier for MockVerifier {
         fn verify(&self, _: &[u8], _: &str) -> Result<(), String> {
-            if self.0 {
-                Ok(())
-            } else {
-                Err("bad sig".into())
-            }
+            if self.0 { Ok(()) } else { Err("bad sig".into()) }
         }
     }
 
     fn recording_service() -> (Arc<UpdaterService>, Arc<Mutex<Vec<State>>>) {
         let emitted = Arc::new(Mutex::new(Vec::<State>::new()));
         let sink = emitted.clone();
-        let svc = Arc::new(UpdaterService::new(move |s| {
-            sink.lock().unwrap().push(s.clone())
-        }));
+        let svc = Arc::new(UpdaterService::new(move |s| sink.lock().unwrap().push(s.clone())));
         (svc, emitted)
     }
 
@@ -616,13 +526,8 @@ mod tests {
         let update = sample_update(version);
         let tmp = TempDir::new();
         std::fs::write(tmp.path().join(&update.filename), b"hello").unwrap();
-        persist::save(
-            &tmp.path().join(persist::STATE_FILE),
-            &persist::PersistedState {
-                ready: Some(update.clone()),
-            },
-        )
-        .unwrap();
+        persist::save(&tmp.path().join(persist::STATE_FILE), &persist::PersistedState { ready: Some(update.clone()) })
+            .unwrap();
         (svc, tmp, update)
     }
 
@@ -635,13 +540,7 @@ mod tests {
         emitted.lock().unwrap().clear();
         svc.check_for_updates(&MockChecker(Ok(Some(sample_update("0.2.0")))));
         assert!(matches!(svc.state(), State::AvailableForDownload { .. }));
-        assert!(
-            !emitted
-                .lock()
-                .unwrap()
-                .iter()
-                .any(|s| matches!(s, State::AvailableForDownload { .. }))
-        );
+        assert!(!emitted.lock().unwrap().iter().any(|s| matches!(s, State::AvailableForDownload { .. })));
     }
 
     #[test]
@@ -652,11 +551,7 @@ mod tests {
         assert!(matches!(svc.state(), State::Idle));
         svc.check_for_updates(&MockChecker(Err("net down".into())));
         assert!(matches!(svc.state(), State::Idle));
-        svc.set_state(State::Downloading {
-            update: sample_update("0.2.0"),
-            downloaded_bytes: None,
-            total_bytes: None,
-        });
+        svc.set_state(State::Downloading { update: sample_update("0.2.0"), downloaded_bytes: None, total_bytes: None });
         svc.check_for_updates(&MockChecker(Ok(Some(sample_update("0.3.0")))));
         assert!(matches!(svc.state(), State::Downloading { .. }));
     }
@@ -667,45 +562,23 @@ mod tests {
     async fn download_success_transitions_to_ready_and_persists() {
         let svc = Arc::new(UpdaterService::new(|_| {}));
         let update = sample_update("0.2.0");
-        svc.set_state(State::AvailableForDownload {
-            update: update.clone(),
-        });
+        svc.set_state(State::AvailableForDownload { update: update.clone() });
         let tmp = TempDir::new();
-        svc.download_update(&MockDownloader(Ok(b"hello".to_vec())), tmp.path())
-            .await
-            .unwrap();
+        svc.download_update(&MockDownloader(Ok(b"hello".to_vec())), tmp.path()).await.unwrap();
         assert!(matches!(svc.state(), State::Ready { .. }));
-        assert_eq!(
-            std::fs::read(tmp.path().join(&update.filename)).unwrap(),
-            b"hello"
-        );
-        assert_eq!(
-            persist::load(&tmp.path().join(persist::STATE_FILE))
-                .ready
-                .unwrap()
-                .version,
-            "0.2.0"
-        );
+        assert_eq!(std::fs::read(tmp.path().join(&update.filename)).unwrap(), b"hello");
+        assert_eq!(persist::load(&tmp.path().join(persist::STATE_FILE)).ready.unwrap().version, "0.2.0");
     }
 
     #[tokio::test]
     async fn download_failure_persists_nothing_and_autodownload_resets_to_idle() {
         let svc = Arc::new(UpdaterService::new(|_| {}));
-        svc.set_state(State::AvailableForDownload {
-            update: sample_update("0.2.0"),
-        });
+        svc.set_state(State::AvailableForDownload { update: sample_update("0.2.0") });
         let tmp = TempDir::new();
-        assert!(
-            svc.download_update(&MockDownloader(Err("net".into())), tmp.path())
-                .await
-                .is_err()
-        );
+        assert!(svc.download_update(&MockDownloader(Err("net".into())), tmp.path()).await.is_err());
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
-        svc.set_state(State::AvailableForDownload {
-            update: sample_update("0.2.0"),
-        });
-        svc.autodownload_if_available(&MockDownloader(Err("net".into())), tmp.path())
-            .await;
+        svc.set_state(State::AvailableForDownload { update: sample_update("0.2.0") });
+        svc.autodownload_if_available(&MockDownloader(Err("net".into())), tmp.path()).await;
         assert!(matches!(svc.state(), State::Idle));
     }
 
@@ -714,13 +587,8 @@ mod tests {
         let svc = Arc::new(UpdaterService::new(|_| {}));
         svc.set_state(State::idle());
         let tmp = TempDir::new();
-        assert!(
-            svc.download_update(&MockDownloader(Ok(vec![])), tmp.path())
-                .await
-                .is_err()
-        );
-        svc.autodownload_if_available(&MockDownloader(Ok(b"x".to_vec())), tmp.path())
-            .await;
+        assert!(svc.download_update(&MockDownloader(Ok(vec![])), tmp.path()).await.is_err());
+        svc.autodownload_if_available(&MockDownloader(Ok(b"x".to_vec())), tmp.path()).await;
         assert!(matches!(svc.state(), State::Idle));
     }
 
@@ -729,9 +597,7 @@ mod tests {
         struct ProgressDownloader;
         impl Downloader for ProgressDownloader {
             fn download<'a>(
-                &'a self,
-                _: &'a UpdateInfo,
-                on_progress: ProgressFn,
+                &'a self, _: &'a UpdateInfo, on_progress: ProgressFn,
             ) -> BoxFuture<'a, Result<Vec<u8>, String>> {
                 Box::pin(async move {
                     let total = 10_000_000u64;
@@ -747,19 +613,13 @@ mod tests {
         update.content_length = None;
         svc.set_state(State::AvailableForDownload { update });
         let tmp = TempDir::new();
-        svc.download_update(&ProgressDownloader, tmp.path())
-            .await
-            .unwrap();
+        svc.download_update(&ProgressDownloader, tmp.path()).await.unwrap();
         let progress: Vec<u64> = emitted
             .lock()
             .unwrap()
             .iter()
             .filter_map(|s| match s {
-                State::Downloading {
-                    downloaded_bytes,
-                    total_bytes,
-                    ..
-                } => {
+                State::Downloading { downloaded_bytes, total_bytes, .. } => {
                     if downloaded_bytes.unwrap_or(0) > 0 {
                         assert_eq!(*total_bytes, Some(10_000_000));
                     }
@@ -779,18 +639,11 @@ mod tests {
     #[tokio::test]
     async fn install_success_restarts_when_needed_and_clears_cache() {
         let (svc, tmp, update) = ready_on_disk("0.2.0");
-        svc.set_state(State::Ready {
-            update: update.clone(),
-        });
+        svc.set_state(State::Ready { update: update.clone() });
         let restart_called = Arc::new(AtomicBool::new(false));
-        let installer = MockInstaller {
-            install_result: Ok(()),
-            needs_restart: true,
-            restart_called: restart_called.clone(),
-        };
-        svc.install_and_relaunch(&installer, tmp.path())
-            .await
-            .unwrap();
+        let installer =
+            MockInstaller { install_result: Ok(()), needs_restart: true, restart_called: restart_called.clone() };
+        svc.install_and_relaunch(&installer, tmp.path()).await.unwrap();
         assert!(restart_called.load(Ordering::Relaxed));
         assert!(!tmp.path().join(&update.filename).exists());
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
@@ -801,33 +654,22 @@ mod tests {
         let (svc, tmp, update) = ready_on_disk("0.2.0");
         svc.set_state(State::Ready { update });
         let restart_called = Arc::new(AtomicBool::new(false));
-        let installer = MockInstaller {
-            install_result: Ok(()),
-            needs_restart: false,
-            restart_called: restart_called.clone(),
-        };
-        svc.install_and_relaunch(&installer, tmp.path())
-            .await
-            .unwrap();
+        let installer =
+            MockInstaller { install_result: Ok(()), needs_restart: false, restart_called: restart_called.clone() };
+        svc.install_and_relaunch(&installer, tmp.path()).await.unwrap();
         assert!(!restart_called.load(Ordering::Relaxed));
     }
 
     #[tokio::test]
     async fn install_failure_restores_ready_and_keeps_archive() {
         let (svc, tmp, update) = ready_on_disk("0.2.0");
-        svc.set_state(State::Ready {
-            update: update.clone(),
-        });
+        svc.set_state(State::Ready { update: update.clone() });
         let installer = MockInstaller {
             install_result: Err("bad".into()),
             needs_restart: true,
             restart_called: Arc::new(AtomicBool::new(false)),
         };
-        assert!(
-            svc.install_and_relaunch(&installer, tmp.path())
-                .await
-                .is_err()
-        );
+        assert!(svc.install_and_relaunch(&installer, tmp.path()).await.is_err());
         assert!(matches!(svc.state(), State::Ready { .. }));
         assert!(tmp.path().join(&update.filename).exists());
     }
@@ -842,11 +684,7 @@ mod tests {
             restart_called: Arc::new(AtomicBool::new(false)),
         };
         let tmp = TempDir::new();
-        assert!(
-            svc.install_and_relaunch(&installer, tmp.path())
-                .await
-                .is_err()
-        );
+        assert!(svc.install_and_relaunch(&installer, tmp.path()).await.is_err());
     }
 
     // ── recover ──
@@ -855,39 +693,21 @@ mod tests {
     async fn recover_no_state_goes_idle() {
         let svc = Arc::new(UpdaterService::new(|_| {}));
         let tmp = TempDir::new();
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Ok(None)),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(None))).await;
         assert!(matches!(svc.state(), State::Idle));
     }
 
     #[tokio::test]
     async fn recover_valid_archive_matching_remote_goes_ready() {
         let (svc, tmp, update) = ready_on_disk("1.1.0");
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Ok(Some(update))),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
         assert!(matches!(svc.state(), State::Ready { update } if update.version == "1.1.0"));
     }
 
     #[tokio::test]
     async fn recover_network_error_keeps_verified_archive_ready() {
         let (svc, tmp, _) = ready_on_disk("1.1.0");
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Err("offline".into())),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Err("offline".into()))).await;
         assert!(matches!(svc.state(), State::Ready { .. }));
         assert!(tmp.path().join(persist::STATE_FILE).exists());
     }
@@ -895,75 +715,36 @@ mod tests {
     #[tokio::test]
     async fn recover_discards_bad_signature_missing_archive_and_changed_remote() {
         let (svc, tmp, update) = ready_on_disk("1.1.0");
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(false),
-            &MockChecker(Ok(Some(update))),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(false), &MockChecker(Ok(Some(update)))).await;
         assert!(matches!(svc.state(), State::Idle));
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
 
         let (svc, tmp, update) = ready_on_disk("1.1.0");
         std::fs::remove_file(tmp.path().join(&update.filename)).unwrap();
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Ok(Some(update))),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
         assert!(matches!(svc.state(), State::Idle));
 
         let (svc, tmp, _) = ready_on_disk("1.1.0");
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Ok(Some(sample_update("1.2.0")))),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(sample_update("1.2.0")))))
+            .await;
         assert!(matches!(svc.state(), State::Idle));
 
         let (svc, tmp, _) = ready_on_disk("28.0.0");
-        svc.init_recover(
-            tmp.path(),
-            "26.7.31",
-            &MockVerifier(true),
-            &MockChecker(Ok(None)),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "26.7.31", &MockVerifier(true), &MockChecker(Ok(None))).await;
         assert!(matches!(svc.state(), State::Idle));
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
 
         let (svc, tmp, mut update) = ready_on_disk("1.1.0");
         update.signature = "replacement".into();
-        svc.init_recover(
-            tmp.path(),
-            "1.0.0",
-            &MockVerifier(true),
-            &MockChecker(Ok(Some(update))),
-        )
-        .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
         assert!(matches!(svc.state(), State::Idle));
     }
 
     #[tokio::test]
     async fn recover_discards_archives_not_newer_than_running_or_unparseable() {
-        for (cached, current) in [
-            ("1.1.0", "1.1.0"),
-            ("1.1.0", "1.2.0"),
-            ("invalid-version", "1.0.0"),
-        ] {
+        for (cached, current) in [("1.1.0", "1.1.0"), ("1.1.0", "1.2.0"), ("invalid-version", "1.0.0")] {
             let (svc, tmp, update) = ready_on_disk(cached);
-            svc.init_recover(
-                tmp.path(),
-                current,
-                &MockVerifier(true),
-                &MockChecker(Ok(Some(update))),
-            )
-            .await;
+            svc.init_recover(tmp.path(), current, &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
             assert!(matches!(svc.state(), State::Idle), "{cached} vs {current}");
             assert!(!tmp.path().join(persist::STATE_FILE).exists());
         }

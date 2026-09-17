@@ -138,11 +138,13 @@
   body {
     background: transparent;
   }
-  [data-slot="sidebar"],
-  [data-slot="sidebar-inner"],
-  [data-slot="sidebar-inner"] > div {
-    background-color: transparent !important;
-  }
+}
+/* Unlayered on purpose: it must beat the sidebar's bg-* utilities, and an unlayered rule
+   wins over every @layer without !important. */
+[data-slot="sidebar"],
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-inner"] > div {
+  background-color: transparent;
 }
 :root {
   --chat-font-size: 14px;

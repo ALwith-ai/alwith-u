@@ -112,9 +112,10 @@ export function Composer({
     setMentions(current => (current.includes(path) ? current : [...current, path]))
   }, [])
 
+  // Mounted per session (ChatView is keyed): focus on arrival.
   useEffect(() => {
     textareaRef.current?.focus()
-  }, [session.id])
+  }, [])
 
   const submit = useCallback(
     async ({ text: input, files }: PromptInputMessage) => {

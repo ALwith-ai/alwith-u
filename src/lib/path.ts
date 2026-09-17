@@ -13,13 +13,3 @@ export function basename(p: string): string {
   const last = normalized.split("/").pop()
   return last && last.length > 0 ? last : p
 }
-
-/**
- * Lower-case extension without the dot, or "" when there is none. The dot has to sit
- * inside the name (index > 0), which excludes dotfiles like `.gitignore`.
- */
-export function fileExtension(p: string): string {
-  const name = basename(p)
-  const dot = name.lastIndexOf(".")
-  return dot > 0 ? name.slice(dot + 1).toLowerCase() : ""
-}

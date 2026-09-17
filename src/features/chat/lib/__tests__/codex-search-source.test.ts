@@ -51,6 +51,11 @@ describe("Codex search source", () => {
   })
 
   test("an empty query matches nothing", () => {
-    expect(findCodexSearchSourceMatches(groupTurns({ ...createSession("s", "/"), items: [message("turn-0", "user", "text", 1)] }), "  ")).toEqual([])
+    expect(
+      findCodexSearchSourceMatches(
+        groupTurns({ ...createSession("s", "/"), items: [message("turn-0", "user", "text", 1)] }),
+        "  "
+      )
+    ).toEqual([])
   })
 })

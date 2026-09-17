@@ -31,13 +31,17 @@ export function bootstrapAuxWindow(opts: {
     hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
     void startPreferenceSync()
     await initPlatformAuth()
-    createRoot(document.getElementById("root")!).render(
+    const root = document.getElementById("root")
+    if (!root) throw new Error("the window page has no #root")
+    createRoot(root).render(
       <StrictMode>
         <AppDirectionProvider>
           <ThemeProvider>
             <TooltipProvider>
               <ErrorBoundary>
-                <AuthGate auxiliary><Component preferences={preferences} /></AuthGate>
+                <AuthGate auxiliary>
+                  <Component preferences={preferences} />
+                </AuthGate>
               </ErrorBoundary>
               {opts.toaster ? <Toaster position="top-center" /> : null}
             </TooltipProvider>

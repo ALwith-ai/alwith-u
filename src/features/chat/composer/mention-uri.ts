@@ -15,14 +15,3 @@ export function formatMentionUri(m: MentionUri): string {
 export function mentionDisplayName(m: MentionUri): string {
   return basename(m.absPath)
 }
-
-export function parseMentionUri(uri: string): MentionUri | null {
-  if (!uri.startsWith("file://")) return null
-  const raw = uri.slice("file://".length)
-  try {
-    return { kind: "file", absPath: decodeURIComponent(raw) }
-  } catch {
-    // A file name may contain a literal `%`; the raw path still names the file.
-    return { kind: "file", absPath: raw }
-  }
-}

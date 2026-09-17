@@ -100,7 +100,7 @@ export function ModelSelectGroup({
       }))}
       onBooleanChange={(id, value) => {
         const option = booleans.find(option => option.configId === id)
-        if (!option) throw new Error("Unknown boolean config: " + id)
+        if (!option) throw new Error(`Unknown boolean config: ${id}`)
         set(option, value)
       }}
     />

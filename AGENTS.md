@@ -65,6 +65,9 @@ Always answer the user in Chinese.
 
 ## Validate before handing back
 
-`bun run typecheck`, `bun test`, `bun run lint`, `bun run build`. Run
+`bun run typecheck`, `bun test`, `bun run lint`, `bun run knip`, `bun run build`;
+these are CI's gates and match ALwith Desktop's (biome + oxlint, knip for dead
+code). `bun run format` before committing; formatting is not a gate. Run
 `bun run test:live` (uses the user's Codex login) when touching the protocol or
-turn lifecycle. Run `cargo check` in `src-tauri` when touching Rust.
+turn lifecycle. In `src-tauri` when touching Rust: `cargo fmt`, `cargo clippy
+--all-targets`, `cargo test --lib` (rustfmt.toml is Desktop's).

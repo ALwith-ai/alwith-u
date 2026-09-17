@@ -41,12 +41,7 @@ fn detect_locale(app: &AppHandle) -> &'static str {
         .ok()
         .and_then(|dir| std::fs::read_to_string(dir.join("preferences.json")).ok())
         .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
-        .and_then(|value| {
-            value
-                .get("language")
-                .and_then(|language| language.as_str())
-                .map(str::to_owned)
-        });
+        .and_then(|value| value.get("language").and_then(|language| language.as_str()).map(str::to_owned));
     match saved.as_deref() {
         Some("zh-CN") => return "zh-CN",
         Some("en") => return "en",
@@ -131,9 +126,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     #[cfg(target_os = "macos")]
     let app_submenu = {
         let preferences_item =
-            MenuItemBuilder::with_id(OPEN_SETTINGS_ID, t("app.preferences", lang))
-                .accelerator("Cmd+,")
-                .build(app)?;
+            MenuItemBuilder::with_id(OPEN_SETTINGS_ID, t("app.preferences", lang)).accelerator("Cmd+,").build(app)?;
         SubmenuBuilder::new(app, "ALwith ü")
             .about_with_text(t("app.about", lang), None)
             .separator()
@@ -149,18 +142,16 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
             .build()?
     };
 
-    let new_chat_item = MenuItemBuilder::with_id(NEW_CHAT_ID, t("file.newChat", lang))
-        .accelerator("CmdOrCtrl+N")
-        .build(app)?;
+    let new_chat_item =
+        MenuItemBuilder::with_id(NEW_CHAT_ID, t("file.newChat", lang)).accelerator("CmdOrCtrl+N").build(app)?;
     let file_submenu = SubmenuBuilder::new(app, t("menu.file", lang))
         .item(&new_chat_item)
         .separator()
         .close_window_with_text(t("file.closeWindow", lang))
         .build()?;
 
-    let find_item = MenuItemBuilder::with_id(FIND_IN_CHAT_ID, t("edit.find", lang))
-        .accelerator("CmdOrCtrl+F")
-        .build(app)?;
+    let find_item =
+        MenuItemBuilder::with_id(FIND_IN_CHAT_ID, t("edit.find", lang)).accelerator("CmdOrCtrl+F").build(app)?;
     let edit_submenu = SubmenuBuilder::new(app, t("menu.edit", lang))
         .undo_with_text(t("edit.undo", lang))
         .redo_with_text(t("edit.redo", lang))
@@ -173,23 +164,18 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
         .item(&find_item)
         .build()?;
 
-    let command_palette_item =
-        MenuItemBuilder::with_id(COMMAND_PALETTE_ID, t("view.commandPalette", lang))
-            .accelerator("CmdOrCtrl+K")
-            .build(app)?;
-    let zoom_in_item = MenuItemBuilder::with_id(ZOOM_IN_ID, t("view.zoomIn", lang))
-        .accelerator("CmdOrCtrl+=")
+    let command_palette_item = MenuItemBuilder::with_id(COMMAND_PALETTE_ID, t("view.commandPalette", lang))
+        .accelerator("CmdOrCtrl+K")
         .build(app)?;
-    let zoom_out_item = MenuItemBuilder::with_id(ZOOM_OUT_ID, t("view.zoomOut", lang))
-        .accelerator("CmdOrCtrl+-")
+    let zoom_in_item =
+        MenuItemBuilder::with_id(ZOOM_IN_ID, t("view.zoomIn", lang)).accelerator("CmdOrCtrl+=").build(app)?;
+    let zoom_out_item =
+        MenuItemBuilder::with_id(ZOOM_OUT_ID, t("view.zoomOut", lang)).accelerator("CmdOrCtrl+-").build(app)?;
+    let actual_size_item =
+        MenuItemBuilder::with_id(ACTUAL_SIZE_ID, t("view.actualSize", lang)).accelerator("CmdOrCtrl+0").build(app)?;
+    let open_hotkeys_item = MenuItemBuilder::with_id(OPEN_HOTKEYS_ID, t("view.keyboardShortcuts", lang))
+        .accelerator("CmdOrCtrl+/")
         .build(app)?;
-    let actual_size_item = MenuItemBuilder::with_id(ACTUAL_SIZE_ID, t("view.actualSize", lang))
-        .accelerator("CmdOrCtrl+0")
-        .build(app)?;
-    let open_hotkeys_item =
-        MenuItemBuilder::with_id(OPEN_HOTKEYS_ID, t("view.keyboardShortcuts", lang))
-            .accelerator("CmdOrCtrl+/")
-            .build(app)?;
     let view_submenu = SubmenuBuilder::new(app, t("menu.view", lang))
         .item(&command_palette_item)
         .separator()
@@ -200,11 +186,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
         .item(&open_hotkeys_item)
         .build()?;
 
-    let maximize_key = if cfg!(target_os = "macos") {
-        "window.zoom"
-    } else {
-        "window.maximize"
-    };
+    let maximize_key = if cfg!(target_os = "macos") { "window.zoom" } else { "window.maximize" };
     let window_submenu = SubmenuBuilder::new(app, t("menu.window", lang))
         .minimize_with_text(t("window.minimize", lang))
         .maximize_with_text(t(maximize_key, lang))
@@ -214,9 +196,5 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let menu = MenuBuilder::new(app);
     #[cfg(target_os = "macos")]
     let menu = menu.item(&app_submenu);
-    menu.item(&file_submenu)
-        .item(&edit_submenu)
-        .item(&view_submenu)
-        .item(&window_submenu)
-        .build()
+    menu.item(&file_submenu).item(&edit_submenu).item(&view_submenu).item(&window_submenu).build()
 }

@@ -70,10 +70,10 @@ describe("elicitation form", () => {
 
   test("a multi choice needs at least one pick and a required text needs content", () => {
     const [choice, tags, note] = elicitationFields(schema)
-    expect(isAnswered(choice!, "a")).toBe(true)
-    expect(isAnswered(tags!, [])).toBe(false)
-    expect(isAnswered(tags!, ["x"])).toBe(true)
-    expect(isAnswered(note!, "")).toBe(false)
-    expect(isAnswered(note!, "done")).toBe(true)
+    expect(isAnswered(choice, "a")).toBe(true)
+    expect(isAnswered(tags, [])).toBe(false)
+    expect(isAnswered(tags, ["x"])).toBe(true)
+    expect(isAnswered(note, "")).toBe(false)
+    expect(isAnswered(note, "done")).toBe(true)
   })
 })

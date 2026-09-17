@@ -84,15 +84,22 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
         buffered = lines.pop() ?? ""
         const inbound: string[] = []
         for (const line of lines.filter(line => line.length > 0)) {
-          const value = JSON.parse(line) as { id?: unknown; result?: unknown; error?: unknown; method?: string; params?: unknown }
+          const value = JSON.parse(line) as {
+            id?: unknown
+            result?: unknown
+            error?: unknown
+            method?: string
+            params?: unknown
+          }
           if (value.method === undefined && value.id === this.initializeRequestId && value.result !== undefined) {
             this.initializeSnapshot = value.result
           }
           // Like the real Runtime: answers to its own requests never reach `inbound`; notifications and
           // agent requests are split out as events alongside the raw line.
-          if (value.method === undefined && typeof value.id === "string" && this.pendingAcp.has(value.id)) {
-            const waiter = this.pendingAcp.get(value.id)!
-            this.pendingAcp.delete(value.id)
+          const waiter =
+            value.method === undefined && typeof value.id === "string" ? this.pendingAcp.get(value.id) : undefined
+          if (waiter !== undefined) {
+            this.pendingAcp.delete(value.id as string)
             if (value.error !== undefined && value.error !== null)
               waiter.reject(new RuntimeRequestError("acpRequest", value.error as RuntimeResponseError))
             else waiter.resolve(value.result ?? null)
@@ -100,9 +107,11 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
           }
           if (value.method !== undefined) {
             if (value.id !== undefined && value.id !== null) {
-              for (const handler of this.acpAgentRequestHandlers) handler({ agentId, id: value.id, method: value.method, params: value.params })
+              for (const handler of this.acpAgentRequestHandlers)
+                handler({ agentId, id: value.id, method: value.method, params: value.params })
             } else {
-              for (const handler of this.acpNotificationHandlers) handler({ agentId, method: value.method, params: value.params })
+              for (const handler of this.acpNotificationHandlers)
+                handler({ agentId, method: value.method, params: value.params })
             }
           }
           inbound.push(line)
@@ -185,8 +194,16 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     await this.send(agentId, JSON.stringify(frame))
   }
 
-  initialize(agentId: string, info?: { name: string; version: string }, capabilities?: Record<string, unknown>): Promise<unknown> {
-    return this.acpRequest(agentId, "initialize", { protocolVersion: 2, info: info ?? { name: "fake-runtime", version: "0" }, capabilities: capabilities ?? {} })
+  initialize(
+    agentId: string,
+    info?: { name: string; version: string },
+    capabilities?: Record<string, unknown>
+  ): Promise<unknown> {
+    return this.acpRequest(agentId, "initialize", {
+      protocolVersion: 2,
+      info: info ?? { name: "fake-runtime", version: "0" },
+      capabilities: capabilities ?? {}
+    })
   }
 
   private async ensureInitialized(agentId: string): Promise<void> {
@@ -197,27 +214,59 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     return meta === undefined ? params : { ...params, _meta: meta }
   }
 
-  async sessionNew(agentId: string, cwd: string, mcpServers: unknown[] = [], meta?: Record<string, unknown>): Promise<RuntimeSessionResult> {
+  async sessionNew(
+    agentId: string,
+    cwd: string,
+    mcpServers: unknown[] = [],
+    meta?: Record<string, unknown>
+  ): Promise<RuntimeSessionResult> {
     await this.ensureInitialized(agentId)
     return this.acpRequest(agentId, "session/new", this.withMeta({ cwd, mcpServers }, meta))
   }
 
-  async sessionLoad(agentId: string, sessionId: string, cwd: string, mcpServers: unknown[] = [], meta?: Record<string, unknown>): Promise<RuntimeSessionResult> {
+  async sessionLoad(
+    agentId: string,
+    sessionId: string,
+    cwd: string,
+    mcpServers: unknown[] = [],
+    meta?: Record<string, unknown>
+  ): Promise<RuntimeSessionResult> {
     await this.ensureInitialized(agentId)
     return this.acpRequest(agentId, "session/load", this.withMeta({ sessionId, cwd, mcpServers }, meta))
   }
 
-  async sessionResume(agentId: string, sessionId: string, cwd: string, replayFrom?: unknown, meta?: Record<string, unknown>): Promise<RuntimeSessionResult> {
+  async sessionResume(
+    agentId: string,
+    sessionId: string,
+    cwd: string,
+    replayFrom?: unknown,
+    meta?: Record<string, unknown>
+  ): Promise<RuntimeSessionResult> {
     await this.ensureInitialized(agentId)
-    return this.acpRequest(agentId, "session/resume", this.withMeta(replayFrom === undefined ? { sessionId, cwd } : { sessionId, cwd, replayFrom }, meta))
+    return this.acpRequest(
+      agentId,
+      "session/resume",
+      this.withMeta(replayFrom === undefined ? { sessionId, cwd } : { sessionId, cwd, replayFrom }, meta)
+    )
   }
 
-  async sessionFork(agentId: string, sessionId: string, cwd: string, mcpServers: unknown[] = [], meta?: Record<string, unknown>): Promise<RuntimeSessionResult> {
+  async sessionFork(
+    agentId: string,
+    sessionId: string,
+    cwd: string,
+    mcpServers: unknown[] = [],
+    meta?: Record<string, unknown>
+  ): Promise<RuntimeSessionResult> {
     await this.ensureInitialized(agentId)
     return this.acpRequest(agentId, "session/fork", this.withMeta({ sessionId, cwd, mcpServers }, meta))
   }
 
-  prompt(agentId: string, sessionId: string, prompt: unknown[], meta?: Record<string, unknown>): Promise<RuntimePromptResult> {
+  prompt(
+    agentId: string,
+    sessionId: string,
+    prompt: unknown[],
+    meta?: Record<string, unknown>
+  ): Promise<RuntimePromptResult> {
     return this.acpRequest(agentId, "session/prompt", this.withMeta({ sessionId, prompt }, meta))
   }
 

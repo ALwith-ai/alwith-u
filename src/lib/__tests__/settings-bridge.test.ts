@@ -6,6 +6,7 @@ import {
   type SettingsAgent,
   type SettingsEvents
 } from "../settings-bridge"
+import { must } from "./must"
 
 function eventBus() {
   const listeners = new Map<string, Set<EventCallback<unknown>>>()
@@ -98,10 +99,10 @@ test("overlapping requests match their own results and errors release listeners"
   const rejected = second.catch((error: unknown) => error)
   // Flush promise work; no timers, processes or actual login.
   for (let index = 0; index < 5; index++) await Promise.resolve()
-  finish.get("bad")!()
+  must(finish.get("bad"), "the bad login to be pending")()
   expect(await rejected).toEqual(new Error("Login rejected"))
   expect(bus.count("settings:auth-result")).toBe(1)
-  finish.get("good")!()
+  must(finish.get("good"), "the good login to be pending")()
   await first
   expect(bus.count("settings:auth-result")).toBe(0)
   stop()

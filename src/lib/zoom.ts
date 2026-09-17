@@ -34,12 +34,12 @@ async function apply(level: number): Promise<void> {
 
 export function zoomIn(): Promise<void> {
   const index = stepIndex(zoomStore.getState().level)
-  return apply(ZOOM_LEVELS[Math.min(index + 1, ZOOM_LEVELS.length - 1)]!)
+  return apply(ZOOM_LEVELS[Math.min(index + 1, ZOOM_LEVELS.length - 1)])
 }
 
 export function zoomOut(): Promise<void> {
   const index = stepIndex(zoomStore.getState().level)
-  return apply(ZOOM_LEVELS[Math.max(index - 1, 0)]!)
+  return apply(ZOOM_LEVELS[Math.max(index - 1, 0)])
 }
 
 export function resetZoom(): Promise<void> {

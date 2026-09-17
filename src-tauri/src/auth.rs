@@ -2,9 +2,7 @@
 // Credentials remain in this application's existing JSON store.
 #[tauri::command]
 pub async fn refresh_tokens(
-    state: tauri::State<'_, crate::native::Native>,
-    api_base_url: String,
-    refresh_token: String,
+    state: tauri::State<'_, crate::native::Native>, api_base_url: String, refresh_token: String,
 ) -> Result<serde_json::Value, serde_json::Value> {
     state
         .call(

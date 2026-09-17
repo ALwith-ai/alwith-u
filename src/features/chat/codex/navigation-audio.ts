@@ -34,6 +34,8 @@ export function playThreadUserMessageNavigationSequence(
   instrument: NavigationInstrument,
   mode: NavigationSoundMode
 ) {
-  diag(`sequence ${fromIndex}->${toIndex} mode=${mode} instrument=${instrument} context=${getNavigationAudioContextState() ?? "none"}`)
+  diag(
+    `sequence ${fromIndex}->${toIndex} mode=${mode} instrument=${instrument} context=${getNavigationAudioContextState() ?? "none"}`
+  )
   playSequence(fromIndex, toIndex, tokenPairs, instrument, mode)
 }

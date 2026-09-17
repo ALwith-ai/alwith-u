@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from "bun:test"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { createPluginsStore, installParams, type PluginsApi } from "../store"
+import { must } from "@/lib/__tests__/must"
 
 mock.module("sonner", () => ({ toast: { success: () => undefined, error: () => undefined, message: () => undefined } }))
 
@@ -109,7 +110,7 @@ describe("plugins store", () => {
     const api = fakeApi()
     const store = createPluginsStore(api)
     await store.getState().refresh([])
-    const remote = store.getState().marketplaces[0]!
+    const remote = store.getState().marketplaces[0]
     await store.getState().install({ plugin: plugin("beta", false), marketplace: remote })
     expect(api.calls).toContain("install:beta:official")
     expect(store.getState().installed.find(entry => entry.plugin.id === "beta")?.plugin.installed).toBe(true)
@@ -136,7 +137,10 @@ describe("plugins store", () => {
     const api = fakeApi()
     const store = createPluginsStore(api)
     await store.getState().refresh([])
-    const target = store.getState().skills.find(s => s.path === "/a/.codex/s2")!
+    const target = must(
+      store.getState().skills.find(s => s.path === "/a/.codex/s2"),
+      "the s2 skill"
+    )
     await store.getState().setSkillEnabled(target, true)
     expect(api.calls).toContain("skill:/a/.codex/s2:true")
     expect(store.getState().skills.find(s => s.path === "/a/.codex/s2")?.enabled).toBe(true)

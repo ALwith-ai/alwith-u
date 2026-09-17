@@ -24,8 +24,7 @@ fn error(message: impl ToString) -> Value {
 impl Native {
     pub fn load(app: &tauri::AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
-        let directory =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native");
+        let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native");
         #[cfg(not(debug_assertions))]
         let directory = app.path().resource_dir()?.join("native");
         let _ = app;
@@ -37,8 +36,7 @@ impl Native {
         // Release downloads are checksum verified. No Rust layouts cross the ABI.
         unsafe {
             let library = Library::new(path)?;
-            let version =
-                library.get::<unsafe extern "C" fn() -> u32>(b"alwith_native_abi_version\0")?;
+            let version = library.get::<unsafe extern "C" fn() -> u32>(b"alwith_native_abi_version\0")?;
             if version() != 1 {
                 return Err("unsupported ALwith native ABI (expected 1)".into());
             }
@@ -53,8 +51,7 @@ impl Native {
 
     pub async fn call(&self, method: &str, params: Value) -> Result<Value, Value> {
         let functions = Arc::clone(&self.0);
-        let request =
-            CString::new(json!({"method": method, "params": params}).to_string()).map_err(error)?;
+        let request = CString::new(json!({"method": method, "params": params}).to_string()).map_err(error)?;
         tauri::async_runtime::spawn_blocking(move || {
             // SAFETY: request is alive throughout the call; copy response bytes
             // before returning allocation ownership to the library's allocator.
@@ -63,9 +60,7 @@ impl Native {
                 if pointer.is_null() {
                     return Err(error("native library returned a null response"));
                 }
-                let response = serde_json::from_slice::<Result<Value, Value>>(
-                    CStr::from_ptr(pointer).to_bytes(),
-                );
+                let response = serde_json::from_slice::<Result<Value, Value>>(CStr::from_ptr(pointer).to_bytes());
                 (functions.free)(pointer);
                 response.map_err(|_| error("invalid native ABI response"))?
             }

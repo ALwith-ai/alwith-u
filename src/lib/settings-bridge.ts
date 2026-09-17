@@ -112,7 +112,9 @@ export function serveSettingsBridge(
     revision++
     unsubscribe()
     stopLimits()
-    void stops.then(fns => fns.forEach(stop => stop()))
+    void stops.then(fns => {
+      for (const stop of fns) stop()
+    })
   }
 }
 
@@ -136,7 +138,9 @@ export function useSettingsAccount(): SettingsAccount | undefined {
     })
     return () => {
       disposed = true
-      void stops.then(fns => fns.forEach(stop => stop()))
+      void stops.then(fns => {
+        for (const stop of fns) stop()
+      })
     }
   }, [])
   return account

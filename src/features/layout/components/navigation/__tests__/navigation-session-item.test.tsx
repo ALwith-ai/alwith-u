@@ -1,6 +1,7 @@
 import { cleanup, render } from "@testing-library/react"
 import { afterEach, describe, expect, test } from "bun:test"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { must } from "@/lib/__tests__/must"
 
 installDom()
 
@@ -19,10 +20,10 @@ describe("NavigationSessionItem", () => {
     const screen = render(<NavigationSessionItem title="Session" />)
 
     expect(screen.getAllByText("Session")).toHaveLength(1)
-    const row = screen.getByText("Session").closest("[data-slot=navigation-session-item]")!
+    const row = must(screen.getByText("Session").closest("[data-slot=navigation-session-item]"), "the session row")
     for (const cls of ["h-[var(--navigation-row-height)]", "rounded-[10px]", "ps-1", "pe-1.5", "gap-1", "items-center"])
       expect(row.classList.contains(cls)).toBe(true)
-    const leading = row.querySelector("[data-slot=navigation-leading]")!
+    const leading = must(row.querySelector("[data-slot=navigation-leading]"), "the leading slot")
     for (const cls of ["size-6", "items-center", "justify-center"]) expect(leading.classList.contains(cls)).toBe(true)
   })
 })

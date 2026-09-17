@@ -44,5 +44,8 @@ function itemText(item: Item): string[] {
 }
 
 export function findCodexSearchSourceMatches(turns: Turn[], rawQuery: string): SearchSourceMatch[] {
-  return findTextSourceMatches(turns.map(turn => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })), rawQuery)
+  return findTextSourceMatches(
+    turns.map(turn => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
+    rawQuery
+  )
 }

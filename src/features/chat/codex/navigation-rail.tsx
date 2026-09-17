@@ -1,5 +1,8 @@
 import { type ComponentProps, useMemo } from "react"
-import { ThreadUserMessageNavigationRail as SharedRail, type NavigationRailAudio } from "@alwith/module-chat/navigation-rail"
+import {
+  ThreadUserMessageNavigationRail as SharedRail,
+  type NavigationRailAudio
+} from "@alwith/module-chat/navigation-rail"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { textOf } from "@alwith/api"
 import { useStore } from "zustand"
@@ -26,7 +29,7 @@ export function toNavigationRailItems(turns: Turn[], turnUsage: Record<string, a
     for (const message of turn.final) {
       const text = textOf(message.content).trim()
       if (text.length === 0) continue
-      response = text.split(/\n\s*\n/)[0]!
+      response = text.split(/\n\s*\n/)[0]
       break
     }
     const usage = turnUsage[turn.user.id]
@@ -45,12 +48,16 @@ export function toNavigationRailItems(turns: Turn[], turnUsage: Record<string, a
 export function ThreadUserMessageNavigationRail(props: Omit<ComponentProps<typeof SharedRail>, "audio">) {
   const navigationInstrument = useStore(navigationSoundStore, state => state.instrument)
   const navigationSoundMode = useStore(navigationSoundStore, state => state.soundMode)
-  const audio = useMemo<NavigationRailAudio>(() => ({
-    installUnlock: installThreadUserMessageNavigationAudioUnlock,
-    preload: () => {
-      if (navigationSoundMode !== "none") preloadThreadUserMessageNavigationInstrument(navigationInstrument)
-    },
-    playSequence: (from, to, tokens) => playThreadUserMessageNavigationSequence(from, to, tokens, navigationInstrument, navigationSoundMode)
-  }), [navigationInstrument, navigationSoundMode])
+  const audio = useMemo<NavigationRailAudio>(
+    () => ({
+      installUnlock: installThreadUserMessageNavigationAudioUnlock,
+      preload: () => {
+        if (navigationSoundMode !== "none") preloadThreadUserMessageNavigationInstrument(navigationInstrument)
+      },
+      playSequence: (from, to, tokens) =>
+        playThreadUserMessageNavigationSequence(from, to, tokens, navigationInstrument, navigationSoundMode)
+    }),
+    [navigationInstrument, navigationSoundMode]
+  )
   return <SharedRail {...props} audio={audio} />
 }

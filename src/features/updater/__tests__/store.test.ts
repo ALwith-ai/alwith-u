@@ -2,6 +2,7 @@
 // reflection layer: fetch once, follow events, ask to relaunch exactly once per ready version.
 import { expect, test } from "bun:test"
 import { createUpdaterStore, type UpdaterIo, type UpdaterState } from "../store"
+import { must } from "@/lib/__tests__/must"
 
 function fakeIo(initial: UpdaterState, accept = false) {
   const calls = { getState: 0, listen: 0, ask: 0, install: 0 }
@@ -24,7 +25,7 @@ function fakeIo(initial: UpdaterState, accept = false) {
       calls.install += 1
     }
   }
-  return { io, calls, emit: (state: UpdaterState) => emit!(state) }
+  return { io, calls, emit: (state: UpdaterState) => must(emit, "a registered state listener")(state) }
 }
 
 const ready: UpdaterState = {

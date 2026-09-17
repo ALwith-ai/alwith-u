@@ -3,9 +3,7 @@
 
 #[tauri::command]
 pub async fn read_apps_info(
-    state: tauri::State<'_, crate::native::Native>,
-    names: Vec<String>,
-    with_icons: bool,
+    state: tauri::State<'_, crate::native::Native>, names: Vec<String>, with_icons: bool,
 ) -> Result<serde_json::Value, serde_json::Value> {
     state
         .call(
@@ -19,9 +17,7 @@ pub async fn read_apps_info(
 
 #[tauri::command]
 pub async fn open_path_in_app(
-    state: tauri::State<'_, crate::native::Native>,
-    bundle_id: String,
-    path: String,
+    state: tauri::State<'_, crate::native::Native>, bundle_id: String, path: String,
 ) -> Result<serde_json::Value, serde_json::Value> {
     state
         .call(

@@ -33,7 +33,7 @@ test("U shared approval answers the exact pending request through the real ACP c
   const sessionId = await client.newSession("/tmp/approval-test")
   await client.prompt(sessionId, [{ type: "text", text: "permission" }])
   await waitFor(() => expect(client.state.actions.length).toBe(1))
-  const action = client.state.actions[0]!
+  const action = client.state.actions[0]
   const respond = spyOn(applicationClient, "respond").mockImplementation((id, answer) => client.respond(id, answer))
   try {
     const view = render(<ActionCard action={action} />)

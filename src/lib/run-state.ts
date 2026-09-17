@@ -25,6 +25,3 @@ export const RUN_STATE_TEXT: Record<RunState, string> = {
   done: "text-blue-500",
   idle: "text-green-500"
 }
-
-/** 注意力优先级(上卷 / 排序):requires_action > done > running > idle。只上卷颜色,不上卷计数。 */
-export const RUN_STATE_PRIORITY: Record<RunState, number> = { requires_action: 4, done: 3, running: 2, idle: 1 }

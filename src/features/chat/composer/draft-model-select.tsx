@@ -29,10 +29,11 @@ export function DraftModelSelect({
     }))
   ]
   const models = groups.flatMap(group => group.models)
-  const selected = model === null ? nativeModel : models.find(item => item.api_id === model)
+  const selected =
+    model === null ? nativeModel : (models.find(item => item.api_id === model) ?? { api_id: model, label: model })
   return (
     <ModelSelect
-      value={selected ?? { api_id: model!, label: model! }}
+      value={selected}
       models={models}
       modelGroups={groups}
       showModelList

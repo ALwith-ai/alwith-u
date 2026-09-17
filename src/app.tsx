@@ -123,16 +123,14 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useEffect(() => {
     const stopBridge = serveSettingsBridge({
       agent: () => {
-        if (client.state.connection !== "ready") return null
-        const info = client.state.agent?.info
-        return info
-          ? {
-              name: info.title ?? info.name,
-              version: info.version,
-              authMethods: client.state.agent!.authMethods ?? [],
-              actions: client.state.actions.filter(action => action.sessionId === null)
-            }
-          : null
+        const agent = client.state.agent
+        if (client.state.connection !== "ready" || !agent?.info) return null
+        return {
+          name: agent.info.title ?? agent.info.name,
+          version: agent.info.version,
+          authMethods: agent.authMethods ?? [],
+          actions: client.state.actions.filter(action => action.sessionId === null)
+        }
       },
       subscribe: listener => client.store.subscribe(listener),
       logout: () => client.logout(),
@@ -189,7 +187,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       webview.listen("menu:zoom-out", () => void zoomOut()),
       webview.listen("menu:actual-size", () => void resetZoom())
     ])
-    return () => void listeners.then(stops => stops.forEach(stop => stop()))
+    return () => {
+      void listeners.then(stops => {
+        for (const stop of stops) stop()
+      })
+    }
   }, [newChat])
 
   useEffect(() => {
@@ -241,7 +243,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         </div>
       ) : null
     if (view === "plugins") return <PluginsPage cwd={session?.cwd ?? lastDirectory} />
-    if (session !== null) return <ChatView session={session} />
+    // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
+    if (session !== null) return <ChatView key={session.id} session={session} />
     return (
       <>
         {connectionNotice}

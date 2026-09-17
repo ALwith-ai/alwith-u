@@ -1,6 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["oxc", "react", "typescript", "unicorn"],
+  "plugins": [
+    "import",
+    "oxc",
+    "react",
+    "typescript",
+    "unicorn"
+  ],
   "categories": {
     "correctness": "error"
   },
@@ -14,6 +20,14 @@
     "reportUnusedDisableDirectives": "error"
   },
   "rules": {
+    "import/default": "off",
+    "import/no-cycle": [
+      "error",
+      {
+        "allowUnsafeDynamicCyclicDependency": true,
+        "ignoreTypes": false
+      }
+    ],
     "react/error-boundaries": "off",
     "react/globals": "off",
     "react/immutability": "off",
@@ -27,5 +41,10 @@
     "react/static-components": "off",
     "react/use-memo": "off"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/src-tauri/**", "src/components/ui/**"]
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/src-tauri/**",
+    "src/components/ui/**"
+  ]
 }

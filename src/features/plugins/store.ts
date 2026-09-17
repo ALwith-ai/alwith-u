@@ -85,10 +85,6 @@ export function pluginTitle(plugin: PluginSummary): string {
   return plugin.interface?.displayName ?? plugin.name
 }
 
-export function pluginDescription(plugin: PluginSummary): string {
-  return plugin.interface?.shortDescription ?? ""
-}
-
 /** Skills for several cwds overlap (user and system scopes repeat); one row per path. */
 export function mergeSkills(response: SkillsListResponse): { skills: SkillMetadata[]; errors: SkillErrorInfo[] } {
   const byPath = new Map<string, SkillMetadata>()
@@ -109,11 +105,6 @@ export function installedEntries(response: PluginInstalledResponse): PluginEntry
   return entries.sort((a, b) => (b.plugin.installedAt ?? 0) - (a.plugin.installedAt ?? 0))
 }
 
-/** Every catalog plugin with its marketplace, in catalog order. */
-export function catalogEntries(marketplaces: PluginMarketplaceEntry[]): PluginEntry[] {
-  return marketplaces.flatMap(marketplace => marketplace.plugins.map(plugin => ({ plugin, marketplace })))
-}
-
 /** Where Codex should install from: the local marketplace file, else the remote catalog by name. */
 export function installParams(entry: PluginEntry): PluginInstallParams {
   const { plugin, marketplace } = entry
@@ -130,16 +121,6 @@ export function readParams(entry: PluginEntry): PluginReadParams {
     pluginName: plugin.name,
     ...(marketplace.path === null ? { remoteMarketplaceName: marketplace.name } : { marketplacePath: marketplace.path })
   }
-}
-
-/** Built-in marketplaces (OpenAI's, and any remote catalog) can be neither removed nor upgraded by hand. */
-export function isBuiltInMarketplace(marketplace: PluginMarketplaceEntry): boolean {
-  return marketplace.path === null || marketplace.name.startsWith("openai-")
-}
-
-/** Only Git-backed marketplaces can be upgraded; a folder marketplace is edited in place. */
-export function isGitMarketplace(marketplace: PluginMarketplaceEntry): boolean {
-  return marketplace.plugins.some(plugin => plugin.source.type === "git")
 }
 
 export function createPluginsStore(api: PluginsApi): PluginsStore {

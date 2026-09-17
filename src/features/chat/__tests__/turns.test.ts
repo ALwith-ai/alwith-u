@@ -1,9 +1,15 @@
 import { describe, expect, test } from "bun:test"
 import { addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
 import { groupTurns } from "../turns"
+import { must } from "@/lib/__tests__/must"
 
 const text = (messageId: string, text: string, _meta?: Record<string, unknown>) =>
-  ({ sessionUpdate: "agent_message_chunk", messageId, content: { type: "text", text }, ...(_meta ? { _meta } : {}) }) as never
+  ({
+    sessionUpdate: "agent_message_chunk",
+    messageId,
+    content: { type: "text", text },
+    ...(_meta ? { _meta } : {})
+  }) as never
 const idle = { sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" } as never
 
 function feed(session: Session, ...updates: unknown[]): Session {
@@ -37,10 +43,10 @@ describe("groupTurns over @alwith/api", () => {
   test("endedAt is the idle frame while a finished turn, the latest arrival while it runs", () => {
     let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
     session = feed(session, text("a", "…"))
-    const running = groupTurns(session)[0]!
-    expect(running.endedAt).toBe(running.items.at(-1)!.at)
+    const running = groupTurns(session)[0]
+    expect(running.endedAt).toBe(must(running.items.at(-1), "the running item").at)
     session = feed(session, idle)
-    const finished = groupTurns(session)[0]!
+    const finished = groupTurns(session)[0]
     expect(finished.endedAt).toBeGreaterThan(running.endedAt)
   })
 

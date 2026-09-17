@@ -4,9 +4,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Manager, State as TauriState};
 
 #[tauri::command]
-pub async fn updater_get_state(
-    svc: TauriState<'_, Arc<UpdaterService>>,
-) -> Result<UpdaterState, ()> {
+pub async fn updater_get_state(svc: TauriState<'_, Arc<UpdaterService>>) -> Result<UpdaterState, ()> {
     Ok(svc.state())
 }
 
@@ -15,24 +13,19 @@ pub async fn updater_get_state(
 pub async fn check_and_autodownload(app: AppHandle, svc: Arc<UpdaterService>) {
     let checker = PluginChecker::new(app.clone());
     let svc_check = svc.clone();
-    if tokio::task::spawn_blocking(move || svc_check.check_for_updates(&checker))
-        .await
-        .is_err()
-    {
+    if tokio::task::spawn_blocking(move || svc_check.check_for_updates(&checker)).await.is_err() {
         return;
     }
     let Ok(updater_dir) = updater_dir(&app) else {
         return;
     };
     let downloader = PluginDownloader::new(app);
-    svc.autodownload_if_available(&downloader, &updater_dir)
-        .await;
+    svc.autodownload_if_available(&downloader, &updater_dir).await;
 }
 
 #[tauri::command]
 pub async fn updater_install_and_relaunch(
-    app: AppHandle,
-    svc: TauriState<'_, Arc<UpdaterService>>,
+    app: AppHandle, svc: TauriState<'_, Arc<UpdaterService>>,
 ) -> Result<(), String> {
     let installer = PluginInstaller::new(app.clone());
     let updater_dir = updater_dir(&app)?;

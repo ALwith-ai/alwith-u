@@ -10,10 +10,7 @@ pub struct PersistedState {
 }
 
 pub fn filename_from_url(url: &str) -> Option<String> {
-    url.rsplit('/')
-        .next()
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+    url.rsplit('/').next().filter(|s| !s.is_empty()).map(|s| s.to_string())
 }
 
 /// A missing or corrupt file means "no pending update": the file is a regenerable cache
@@ -65,12 +62,8 @@ mod tests {
 
     #[test]
     fn filename_from_full_url() {
-        let url =
-            "https://github.com/o/r/releases/download/v0.2.0/ALwith.Codex_0.2.0_aarch64.app.tar.gz";
-        assert_eq!(
-            filename_from_url(url).as_deref(),
-            Some("ALwith.Codex_0.2.0_aarch64.app.tar.gz")
-        );
+        let url = "https://github.com/o/r/releases/download/v0.2.0/ALwith.Codex_0.2.0_aarch64.app.tar.gz";
+        assert_eq!(filename_from_url(url).as_deref(), Some("ALwith.Codex_0.2.0_aarch64.app.tar.gz"));
     }
 
     #[test]

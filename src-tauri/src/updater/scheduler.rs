@@ -21,9 +21,7 @@ where
 /// Every 5 minutes, while an update sits in `Ready`, re-validate it against the remote so a
 /// release withdrawn or replaced after download is not installed.
 pub async fn schedule_overwrite_check<IsReady, CheckOver, FutCheck>(
-    interval: Duration,
-    is_ready: IsReady,
-    check_overwrite: CheckOver,
+    interval: Duration, is_ready: IsReady, check_overwrite: CheckOver,
 ) where
     IsReady: Fn() -> bool + Send + Sync,
     CheckOver: Fn() -> FutCheck + Send + Sync,
@@ -106,10 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn is_latest_with_timeout_maps_success_timeout_and_error() {
-        assert_eq!(
-            is_latest_with_timeout(TICK, || async { Ok(true) }).await,
-            Some(true)
-        );
+        assert_eq!(is_latest_with_timeout(TICK, || async { Ok(true) }).await, Some(true));
         assert_eq!(
             is_latest_with_timeout(TICK, || async {
                 tokio::time::sleep(TICK * 5).await;
@@ -118,9 +113,6 @@ mod tests {
             .await,
             None
         );
-        assert_eq!(
-            is_latest_with_timeout(TICK, || async { Err("net".into()) }).await,
-            None
-        );
+        assert_eq!(is_latest_with_timeout(TICK, || async { Err("net".into()) }).await, None);
     }
 }

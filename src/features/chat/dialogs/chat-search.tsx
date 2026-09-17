@@ -6,7 +6,6 @@ import { useStore } from "zustand"
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
 import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"
-export { collectMatches } from "@alwith/module-chat/search"
 
 export function ChatSearch({ rootRef }: { rootRef: RefObject<HTMLElement | null> }) {
   const { t } = useTranslation()
@@ -17,7 +16,10 @@ export function ChatSearch({ rootRef }: { rootRef: RefObject<HTMLElement | null>
     [rootRef]
   )
   const findSourceMatches = useCallback((query: string) => findCodexSearchSourceMatches(turns, query), [turns])
-  const revealTurn = useCallback((key: string, signal: AbortSignal) => revealThreadTurn(sessionId, key, signal), [sessionId])
+  const revealTurn = useCallback(
+    (key: string, signal: AbortSignal) => revealThreadTurn(sessionId, key, signal),
+    [sessionId]
+  )
   const subscribeOpen = useCallback((open: () => void) => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "f") {

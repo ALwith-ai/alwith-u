@@ -12,7 +12,12 @@ export type ThreadRegistry = {
   beforeReveal: (() => void) | null
 }
 
-export const threadRegistry = createStore<ThreadRegistry>(() => ({ sessionId: null, turns: [], api: null, beforeReveal: null }))
+export const threadRegistry = createStore<ThreadRegistry>(() => ({
+  sessionId: null,
+  turns: [],
+  api: null,
+  beforeReveal: null
+}))
 
 export function publishThread(entry: ThreadRegistry): void {
   threadRegistry.setState(entry)

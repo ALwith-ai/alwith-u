@@ -1,0 +1,8 @@
+max_width = 120
+unstable_features = true
+fn_params_layout = "Compressed"
+# fn_single_line = true
+newline_style = "Unix"
+trailing_comma = "Never"
+trailing_semicolon = false
+use_small_heuristics = "Max"

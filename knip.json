@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/settings-main.tsx",
+    "src/**/*.test.{ts,tsx}",
+    "scripts/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,css}",
+    "scripts/**/*.ts"
+  ],
+  "ignore": [
+    "src/components/ui/**"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "files": "error",
+    "exports": "error",
+    "types": "off",
+    "duplicates": "off",
+    "enumMembers": "off",
+    "dependencies": "off",
+    "devDependencies": "off",
+    "optionalPeerDependencies": "off",
+    "unlisted": "off",
+    "unresolved": "off",
+    "binaries": "off"
+  }
+}

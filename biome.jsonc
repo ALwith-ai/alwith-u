@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!!**/dist", "!**/*.svg", "!src/components/ui"]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // 组件各自的 CSS 只按尾元素比特异性(.a li > button 与 .b button)会被判为"后者可能不生效",
+        // 但两者从不命中同一元素;这条规则在按组件分文件的样式里几乎全是误报(与 Desktop 同一决定)
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        // SVG 均为三方或装饰图标,可访问名在使用边界的按钮/img 上提供
+        "noSvgWithoutTitle": "off",
+        // Biome 无法区分 hover/拖拽/阻止冒泡与键盘可激活交互;真正的键盘缺失由 useKeyWithClickEvents 检查
+        "noStaticElementInteractions": "off",
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": ["Checkbox", "Input", "RadioGroupItem", "Select", "Slider", "Switch", "Textarea"]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

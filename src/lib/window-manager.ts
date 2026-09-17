@@ -22,7 +22,7 @@ function themeBackgroundRGB(): [number, number, number] {
   ctx.fillStyle = css
   ctx.fillRect(0, 0, 1, 1)
   const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
-  return [r!, g!, b!]
+  return [r, g, b]
 }
 
 /**

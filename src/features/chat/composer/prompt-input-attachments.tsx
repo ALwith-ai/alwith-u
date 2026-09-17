@@ -7,5 +7,5 @@ export { PromptInputAttachments, type PromptInputAttachmentsProps } from "@alwit
 export type PromptInputAttachmentProps = Omit<SharedAttachmentProps, "t">
 export function PromptInputAttachment(props: PromptInputAttachmentProps) {
   const { t } = useTranslation()
-  return <SharedAttachment {...props} t={key => t("chat." + key)} />
+  return <SharedAttachment {...props} t={key => t(`chat.${key}`)} />
 }

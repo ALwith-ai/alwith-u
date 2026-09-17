@@ -68,7 +68,8 @@ function place(turn: Turn, item: Item): void {
     case "assistant": {
       const itemPhase = phase(item)
       if (itemPhase === "final_answer") turn.final.push(item)
-      else if (itemPhase === "commentary" || isNotice(item)) turn.work.push({ kind: "text", key: `text:${item.id}`, item })
+      else if (itemPhase === "commentary" || isNotice(item))
+        turn.work.push({ kind: "text", key: `text:${item.id}`, item })
       else turn.final.push(item)
       break
     }

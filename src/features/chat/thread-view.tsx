@@ -211,14 +211,9 @@ export function ThreadView({ session }: { session: Session }) {
     if (atBottomRef.current) schedulePin()
   }, [schedulePin, session.items])
 
-  // Switching sessions clears the spacer and the turn memory; opening history lands at the
-  // bottom (the virtual list restores a remembered position itself).
+  // Mounted per session (ChatView is keyed), so the spacer and the turn memory start empty;
+  // opening history lands at the bottom (the virtual list restores a remembered position itself).
   const previousLastRef = useRef<{ key: string; hasUser: boolean } | null>(null)
-  useEffect(() => {
-    previousLastRef.current = null
-    spacerHeightRef.current = 0
-    setSpacerHeightPx(0)
-  }, [session.id])
 
   useEffect(() => {
     if (scrollRoot === null) return
@@ -267,13 +262,13 @@ export function ThreadView({ session }: { session: Session }) {
         ref={setScrollRoot}
         data-chat-scroll
         className="min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: 滚动容器需可聚焦才能用键盘滚动
         tabIndex={0}
         role="log"
         aria-label={t("chat.thread")}>
         <div className="min-h-full w-full px-6">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
             <VirtualizedTurnList
-              key={session.id}
               ref={threadRef}
               entries={entries}
               renderTurn={renderTurn}

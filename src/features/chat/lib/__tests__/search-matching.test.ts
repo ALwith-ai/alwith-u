@@ -3,18 +3,24 @@ import { findTextSourceMatches, literalMatches } from "@alwith/module-chat/searc
 
 describe("shared source and DOM matching contract", () => {
   test("case-insensitive Unicode matches preserve original UTF-16 offsets", () => {
-    expect([...literalMatches("İX 😀x K", "x")]).toEqual([{ start: 1, end: 2 }, { start: 5, end: 6 }])
+    expect([...literalMatches("İX 😀x K", "x")]).toEqual([
+      { start: 1, end: 2 },
+      { start: 5, end: 6 }
+    ])
     expect([...literalMatches("İ", "i")]).toEqual([])
     expect([...literalMatches("K", "k")]).toEqual([{ start: 0, end: 1 }])
     expect([...literalMatches("ſ", "s")]).toEqual([{ start: 0, end: 1 }])
   })
 
   test("queries are literal, non-overlapping and empty queries have no hits", () => {
-    const punctuation = ".*+?^${}()|[]\\"
+    const punctuation = [".", "*", "+", "?", "^", "$", "{", "}", "(", ")", "|", "[", "]", "\\"].join("")
     expect([...literalMatches(`before ${punctuation} after`, punctuation)]).toEqual([
       { start: 7, end: 7 + punctuation.length }
     ])
-    expect([...literalMatches("aaaaa", "aa")]).toEqual([{ start: 0, end: 2 }, { start: 2, end: 4 }])
+    expect([...literalMatches("aaaaa", "aa")]).toEqual([
+      { start: 0, end: 2 },
+      { start: 2, end: 4 }
+    ])
     expect([...literalMatches("text", "")]).toEqual([])
   })
 

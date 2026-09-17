@@ -29,13 +29,21 @@ export class ChatWorkerStub {
         lexer = createStreamingMarkdownLexer()
         this.lexers.set(request.clientId, lexer)
       }
-      this.respond({ clientId: request.clientId, revision: request.revision, ok: true, tokens: lexer.parse(request.source) })
+      this.respond({
+        clientId: request.clientId,
+        revision: request.revision,
+        ok: true,
+        tokens: lexer.parse(request.source)
+      })
     } else {
       const request = message as CodeHighlightRequest
       const language = request.language?.toLowerCase()
-      const html = language === undefined || language.length === 0
-        ? highlighter.highlightAuto(request.code).value
-        : highlighter.getLanguage(language) === undefined ? null : highlighter.highlight(request.code, { language }).value
+      const html =
+        language === undefined || language.length === 0
+          ? highlighter.highlightAuto(request.code).value
+          : highlighter.getLanguage(language) === undefined
+            ? null
+            : highlighter.highlight(request.code, { language }).value
       this.respond({ clientId: request.clientId, revision: request.revision, ok: true, html })
     }
   }

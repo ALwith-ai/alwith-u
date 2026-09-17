@@ -147,11 +147,15 @@ platform (the matching `@openai/codex-<platform>` package must be installed).
 ```sh
 bun run typecheck
 bun test
-bun run lint
+bun run lint         # biome + oxlint, the same rules as ALwith Desktop
+bun run knip         # dead files and exports
 bun run build
 bun run test:live    # stages sidecars; tests stdio + WebSocket with two tiny read-only chats each
 bun tauri build
 ```
+
+`bun run format` (prettier) keeps the style; it is not a gate. Rust: `cargo fmt`, `cargo clippy --all-targets`
+and `cargo test --lib` in `src-tauri`, with Desktop's `rustfmt.toml`.
 
 The live check uses the same client and assertions for both transports: concurrent replies,
 session listing, live-agent attach, then native history replay after stopping and restarting

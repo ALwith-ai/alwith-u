@@ -79,8 +79,18 @@ function fileChanges(items: ToolItem[]): FileChange[] {
 
 export function EditedFilesCard({ items }: { items: ToolItem[] }) {
   const host = useChatActivityHost()
-  return <ActivityHostProvider host={host}><SharedCard files={fileChanges(items)}
-    onOpen={file => openDiffModal({ path: file.path, patch: file.patch })}
-    renderPath={file => <><CodexFileIcon path={file.path} className="codex-edited-file-icon" /><span className="codex-edited-file-name">{file.path}</span></>} />
-  </ActivityHostProvider>
+  return (
+    <ActivityHostProvider host={host}>
+      <SharedCard
+        files={fileChanges(items)}
+        onOpen={file => openDiffModal({ path: file.path, patch: file.patch })}
+        renderPath={file => (
+          <>
+            <CodexFileIcon path={file.path} className="codex-edited-file-icon" />
+            <span className="codex-edited-file-name">{file.path}</span>
+          </>
+        )}
+      />
+    </ActivityHostProvider>
+  )
 }

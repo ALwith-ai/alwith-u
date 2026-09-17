@@ -10,11 +10,7 @@ use tauri::{Emitter, Manager};
 
 pub fn run() {
     let builder = tauri::Builder::default()
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .level(log::LevelFilter::Info)
-                .build(),
-        )
+        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -45,11 +41,7 @@ pub fn run() {
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
-            if let Some(focused) = app
-                .webview_windows()
-                .into_values()
-                .find(|w| w.is_focused().unwrap_or(false))
-            {
+            if let Some(focused) = app.webview_windows().into_values().find(|w| w.is_focused().unwrap_or(false)) {
                 let _ = app.emit_to(focused.label(), event_name, ());
             }
         })
@@ -64,11 +56,7 @@ pub fn run() {
                 use tauri::window::{Effect, EffectsBuilder};
                 app.get_webview_window("main")
                     .expect("main window exists at setup")
-                    .set_effects(
-                        EffectsBuilder::new()
-                            .effect(Effect::UnderWindowBackground)
-                            .build(),
-                    )?;
+                    .set_effects(EffectsBuilder::new().effect(Effect::UnderWindowBackground).build())?;
             }
             // Windows draws no app-level menu (it would surface on every window); macOS wants
             // one NSApp menu and Linux a per-window one. Built here, not in `Builder::menu`,
@@ -95,10 +83,7 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building ALwith U")
         .run(|app, event| match event {
-            tauri::RunEvent::WindowEvent {
-                event: tauri::WindowEvent::Destroyed,
-                ..
-            } => {
+            tauri::RunEvent::WindowEvent { event: tauri::WindowEvent::Destroyed, .. } => {
                 app.state::<runtime::RuntimeState>().shutdown();
             }
             // Quit paths that never destroy the window (Cmd+Q from the menu, app.exit) still

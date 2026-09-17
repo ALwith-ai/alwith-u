@@ -102,12 +102,6 @@ export const PROVIDERS: Provider[] = [
   }
 ]
 
-export function providerById(id: string): Provider {
-  const provider = PROVIDERS.find(entry => entry.id === id)
-  if (!provider) throw new Error(`Unknown provider ${id}`)
-  return provider
-}
-
 export function providerRegion(provider: Provider, regionId: string | undefined): ProviderRegion | null {
   if (!provider.regions) return null
   const region = provider.regions.find(entry => entry.id === regionId) ?? provider.regions[0]

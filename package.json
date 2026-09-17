@@ -15,9 +15,11 @@
     "typecheck": "tsc -b",
     "test": "bun test src scripts/lib",
     "test:live": "bun run stage && bun scripts/live.ts",
-    "lint": "oxlint",
+    "lint": "biome lint --error-on-warnings ./src && oxlint",
     "format": "prettier --write \"{src,scripts}/**/*.{ts,tsx,css}\"",
-    "stage": "bun scripts/stage.ts"
+    "stage": "bun scripts/stage.ts",
+    "lint:fix": "biome lint --write ./src && oxlint --fix",
+    "knip": "knip --no-progress"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
@@ -69,6 +71,7 @@
   },
   "devDependencies": {
     "@alwith/native": "0.1.1",
+    "@biomejs/biome": "^2.5.14",
     "@happy-dom/global-registrator": "^20.14.3",
     "@nyssance/codex-acp-v2": "0.6.0",
     "@openai/codex": "0.154.0",
@@ -80,6 +83,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/semver": "^7.8.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "knip": "^6.36.0",
     "oxlint": "^1.82.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
@@ -88,7 +92,6 @@
   },
   "optionalDependencies": {
     "@openai/codex-darwin-arm64": "npm:@openai/codex@0.154.0-darwin-arm64",
-    "@openai/codex-darwin-x64": "npm:@openai/codex@0.154.0-darwin-x64",
     "@openai/codex-linux-x64": "npm:@openai/codex@0.154.0-linux-x64",
     "@openai/codex-linux-arm64": "npm:@openai/codex@0.154.0-linux-arm64",
     "@openai/codex-win32-x64": "npm:@openai/codex@0.154.0-win32-x64",

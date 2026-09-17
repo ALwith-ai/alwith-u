@@ -76,21 +76,35 @@ function AssistantTurnImpl({
   const host = useChatActivityHost()
   const finalText = turn.final.map(messageText).join("\n")
   const hasFinal = finalText.trim().length > 0
-  return <ActivityHostProvider host={host}>
-    <CodexAssistantTurn stateKey={turn.key} active={active} startedAt={turn.startedAt}
-      durationMs={turn.replayed ? undefined : turn.endedAt - turn.startedAt}
-      loading={active && turn.work.length === 0 && !hasFinal}
-      work={turn.work.map(entry => <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={active} />)}
-      answer={hasFinal ? <div className="codex-assistant-message">
-        <CodexMarkdownRenderer text={finalText} streaming={active} />
-        {!active && <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />}
-      </div> : null}
-      footer={<>
-        {turn.edits.length > 0 && !active && <EditedFilesCard items={turn.edits} />}
-        {interrupted && <div className="codex-interrupted-turn">{t("chat.interrupted")}</div>}
-        {error !== null && isLast && <TurnErrorView error={error} />}
-      </>} />
-  </ActivityHostProvider>
+  return (
+    <ActivityHostProvider host={host}>
+      <CodexAssistantTurn
+        stateKey={turn.key}
+        active={active}
+        startedAt={turn.startedAt}
+        durationMs={turn.replayed ? undefined : turn.endedAt - turn.startedAt}
+        loading={active && turn.work.length === 0 && !hasFinal}
+        work={turn.work.map(entry => (
+          <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={active} />
+        ))}
+        answer={
+          hasFinal ? (
+            <div className="codex-assistant-message">
+              <CodexMarkdownRenderer text={finalText} streaming={active} />
+              {!active && <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />}
+            </div>
+          ) : null
+        }
+        footer={
+          <>
+            {turn.edits.length > 0 && !active && <EditedFilesCard items={turn.edits} />}
+            {interrupted && <div className="codex-interrupted-turn">{t("chat.interrupted")}</div>}
+            {error !== null && isLast && <TurnErrorView error={error} />}
+          </>
+        }
+      />
+    </ActivityHostProvider>
+  )
 }
 
 export const AssistantTurn = memo(AssistantTurnImpl)

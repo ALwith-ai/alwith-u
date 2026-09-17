@@ -13,10 +13,8 @@ export {
   PromptInputProvider,
   type PromptInputProviderProps,
   type TextInputContext,
-  useOptionalPromptInputController,
   usePromptInputAttachments,
-  usePromptInputController,
-  usePromptInputSubmit
+  usePromptInputController
 } from "./prompt-input-context"
 export {
   PromptInputTextarea,

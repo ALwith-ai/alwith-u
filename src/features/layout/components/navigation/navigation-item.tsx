@@ -1,10 +1,6 @@
 import type { ComponentProps } from "react"
 import { cn } from "@/lib/utils"
 
-export function NavigationItem({ className, ...props }: ComponentProps<"li">) {
-  return <li className={cn("relative", className)} {...props} />
-}
-
 export function NavigationItemButton({ active, className, ...props }: ComponentProps<"button"> & { active?: boolean }) {
   return (
     <button

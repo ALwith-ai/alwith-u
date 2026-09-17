@@ -39,7 +39,11 @@ test("a Runtime that already runs the agent is attached, not restarted, and pend
   const permission = {
     id: 41,
     method: "session/request_permission",
-    params: { sessionId: "s-old", title: "Run command?", options: [{ optionId: "allow_once", name: "Allow once", kind: "allow_once" }] }
+    params: {
+      sessionId: "s-old",
+      title: "Run command?",
+      options: [{ optionId: "allow_once", name: "Allow once", kind: "allow_once" }]
+    }
   }
   port.seedRunningSession("s-old", "codex", [permission])
   // Another app's agent on the same Runtime: never attached (attach claims it; releasing it
@@ -55,7 +59,7 @@ test("a Runtime that already runs the agent is attached, not restarted, and pend
   expect(client.state.connection).toBe("ready")
   expect(client.state.agent?.info.name).toBe("fake-codex")
   await until(() => client.state.actions.length === 1)
-  const action = client.state.actions[0]!
+  const action = client.state.actions[0]
   expect(action.kind).toBe("permission")
   expect(action.sessionId).toBe("s-old")
 })

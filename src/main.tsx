@@ -26,7 +26,7 @@ function describe(value: unknown): string {
 // handlers, so its rejection is swallowed here.
 const seenGlobalErrors = new Set<string>()
 function surfaceGlobalError(message: string): void {
-  const cause = message.split("\n", 1)[0]!
+  const cause = message.split("\n", 1)[0]
   if (!seenGlobalErrors.has(cause)) {
     seenGlobalErrors.add(cause)
     toast.error(cause)
@@ -50,13 +50,17 @@ async function bootstrap(): Promise<void> {
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
   await initPlatformAuth()
-  createRoot(document.getElementById("root")!).render(
+  const root = document.getElementById("root")
+  if (!root) throw new Error("index.html has no #root")
+  createRoot(root).render(
     <StrictMode>
       <AppDirectionProvider>
         <ThemeProvider>
           <TooltipProvider>
             <ErrorBoundary>
-              <AuthGate><App initialPreferences={preferences} /></AuthGate>
+              <AuthGate>
+                <App initialPreferences={preferences} />
+              </AuthGate>
             </ErrorBoundary>
             <Toaster position="bottom-right" />
           </TooltipProvider>

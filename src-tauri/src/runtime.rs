@@ -57,11 +57,7 @@ impl RuntimeState {
 fn sidecar_path(name: &str) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|error| error.to_string())?;
     let directory = exe.parent().ok_or("executable has no parent directory")?;
-    let file = if cfg!(windows) {
-        format!("{name}.exe")
-    } else {
-        name.to_string()
-    };
+    let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
     let path = directory.join(file);
     if !path.is_file() {
         return Err(format!("sidecar {name} missing at {}", path.display()));
@@ -88,12 +84,7 @@ pub async fn runtime_start(app: AppHandle, state: State<'_, RuntimeState>) -> Re
     if *state.ready.lock().unwrap() {
         return Ok(());
     }
-    let journal = app
-        .path()
-        .app_cache_dir()
-        .map_err(|error| error.to_string())?
-        .join("runtime")
-        .join("sessions");
+    let journal = app.path().app_cache_dir().map_err(|error| error.to_string())?.join("runtime").join("sessions");
     let command = app
         .shell()
         .sidecar("alwith-runtime")
@@ -120,10 +111,9 @@ pub async fn runtime_start(app: AppHandle, state: State<'_, RuntimeState>) -> Re
                         return Ok::<(), String>(());
                     }
                 }
-                CommandEvent::Stderr(bytes) => log::info!(
-                    "[alwith-runtime] {}",
-                    String::from_utf8_lossy(&bytes).trim_end()
-                ),
+                CommandEvent::Stderr(bytes) => {
+                    log::info!("[alwith-runtime] {}", String::from_utf8_lossy(&bytes).trim_end())
+                }
                 CommandEvent::Error(message) => return Err(format!("alwith-runtime: {message}")),
                 CommandEvent::Terminated(payload) => {
                     return Err(format!(
@@ -169,10 +159,7 @@ pub async fn runtime_start(app: AppHandle, state: State<'_, RuntimeState>) -> Re
                     }
                 }
                 Some(CommandEvent::Stderr(bytes)) => {
-                    log::info!(
-                        "[alwith-runtime] {}",
-                        String::from_utf8_lossy(&bytes).trim_end()
-                    );
+                    log::info!("[alwith-runtime] {}", String::from_utf8_lossy(&bytes).trim_end());
                 }
                 Some(CommandEvent::Error(message)) => log::error!("[alwith-runtime] {message}"),
                 Some(CommandEvent::Terminated(payload)) => exit = (payload.code, payload.signal),
@@ -181,18 +168,11 @@ pub async fn runtime_start(app: AppHandle, state: State<'_, RuntimeState>) -> Re
             }
         }
         emit_lines(&handle, batch);
-        log::info!(
-            "alwith-runtime exited (code {:?}, signal {:?})",
-            exit.0,
-            exit.1
-        );
+        log::info!("alwith-runtime exited (code {:?}, signal {:?})", exit.0, exit.1);
         let state = handle.state::<RuntimeState>();
         state.child.lock().unwrap().take();
         *state.ready.lock().unwrap() = false;
-        let _ = handle.emit(
-            EXIT_EVENT,
-            serde_json::json!({ "code": exit.0, "signal": exit.1 }),
-        );
+        let _ = handle.emit(EXIT_EVENT, serde_json::json!({ "code": exit.0, "signal": exit.1 }));
     });
     Ok(())
 }

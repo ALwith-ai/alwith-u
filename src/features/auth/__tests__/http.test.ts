@@ -28,7 +28,7 @@ async function setup(
   const transport = createAuthTransport({
     baseUrl: "https://api.example.test/service",
     storage,
-    fetch: ((url, init) => fetcher(String(url), init!)) as typeof fetch,
+    fetch: ((url, init) => fetcher(String(url), init ?? {})) as typeof fetch,
     refresh,
     expired: async () => {
       expirations++

@@ -3,6 +3,7 @@ import { CodexClient } from "../client"
 import { FakeHubPort } from "./fake-runtime-client"
 import { isSelectOption } from "@alwith/api"
 import { createFakeAgent } from "./fake-agent"
+import { must } from "@/lib/__tests__/must"
 
 const clients: CodexClient[] = []
 afterEach(() => {
@@ -50,7 +51,7 @@ test("permission requests surface as actions and resolve back to the agent", asy
   const id = await client.newSession("/tmp/a")
   await client.prompt(id, [{ type: "text", text: "permission" }])
   await until(() => client.state.actions.length === 1)
-  const action = client.state.actions[0]!
+  const action = client.state.actions[0]
   expect(action.kind).toBe("permission")
   expect(client.session(id).state).toBe("requires_action")
   expect(() =>
@@ -141,7 +142,7 @@ test("registerGateway sends catalog-mode hints and moved threads resume with _me
     models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }],
     config: { model_catalog_json: "/models.json", web_search: "disabled" }
   })
-  const sent = fake.gateway.current!
+  const sent = must(fake.gateway.current, "a gateway request")
   expect(sent.providerId).toBe("openai")
   expect(sent.baseUrl).toBe("https://api.deepseek.com/")
   expect(sent._meta).toEqual({

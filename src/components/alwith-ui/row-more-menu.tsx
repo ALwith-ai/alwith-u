@@ -4,23 +4,9 @@
  * 菜单项直接用 DropdownMenuItem 内置排版(gap-2 / svg size-4),别再手写 me-2/size。
  * Collection 行、Collection 组头、Sessions 行共用;新增行级菜单一律走这里。
  */
-import { MoreHorizontalIcon, SquareIcon } from "lucide-react"
+import { SquareIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-export function RowMoreMenu({ children, title }: { children: ReactNode; title?: string }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-5" title={title} />}>
-        <MoreHorizontalIcon className="size-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px]">
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
 
 /** 行尾图标钮的共同外形:与 ⋯ 同一个 size-5 中线槽(TrailingSwap 的 w-5)。 */
 function RowIconButton({ title, onPress, children }: { title: string; onPress: () => void; children: ReactNode }) {

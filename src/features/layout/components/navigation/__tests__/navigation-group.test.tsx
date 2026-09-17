@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { NavigationGroup } from "../navigation-group"
+import { must } from "@/lib/__tests__/must"
 
 installDom()
 
@@ -22,7 +23,7 @@ describe("NavigationGroup", () => {
     expect(screen.getAllByRole("button", { name: "Project" })).toHaveLength(1)
     expect(screen.queryByText("Session")).toBeNull()
     const trigger = screen.getByRole("button", { name: "Project" })
-    const row = trigger.parentElement!
+    const row = must(trigger.parentElement, "the trigger row")
     for (const cls of [
       "h-[var(--navigation-row-height)]",
       "rounded-[10px]",
@@ -35,8 +36,10 @@ describe("NavigationGroup", () => {
       expect(row.classList.contains(cls)).toBe(true)
     expect(row.getAttribute("data-active")).toBe("")
     expect(trigger.querySelector("svg")).toBeNull()
-    expect(row.parentElement!.classList.contains("text-[#1a1c1f]")).toBe(true)
-    expect(screen.getByText("Project").parentElement!.classList.contains("opacity-70")).toBe(true)
+    expect(must(row.parentElement, "the group").classList.contains("text-[#1a1c1f]")).toBe(true)
+    expect(must(screen.getByText("Project").parentElement, "the project row").classList.contains("opacity-70")).toBe(
+      true
+    )
 
     fireEvent.click(screen.getByText("Project"))
     expect(onOpenChange).toHaveBeenCalledTimes(1)
@@ -53,7 +56,7 @@ describe("NavigationGroup", () => {
 
     expect(screen.getAllByText("Session")).toHaveLength(1)
     expect(screen.getAllByText("Another session")).toHaveLength(1)
-    const stack = screen.getByText("Session").parentElement!
+    const stack = must(screen.getByText("Session").parentElement, "the session stack")
     expect(stack.classList.contains("mt-0.5")).toBe(true)
     expect(stack.classList.contains("gap-0.5")).toBe(true)
   })

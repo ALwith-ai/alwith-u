@@ -8,7 +8,8 @@
  *
  * Usage: bun scripts/stage.ts [rust-target-triple]   (then TAURI_ENV_TARGET_TRIPLE, then the host)
  */
-import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { $ } from "bun"
 import { stageNative } from "@alwith/native/stage"
@@ -97,7 +98,16 @@ for (const name of ["codex", "codex-code-mode-host"]) {
 const adapterPackage = JSON.parse(readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8"))
 const adapterEntry = join(root, "node_modules/@nyssance/codex-acp-v2/dist/index.js")
 const adapterDestination = join(binaries, `codex-acp-v2-${triple}${target.exe}`)
-await $`bun build ${adapterEntry} --compile --minify --target=${target.bun} --outfile ${adapterDestination}`
+// bun 1.4.2 leaves a ~58 MB `.<hash>-00000000.bun-build` temp file in the cwd of every
+// native-target compile; building inside a throwaway directory keeps them out of the repo.
+const compileDir = mkdtempSync(join(tmpdir(), "alwith-u-compile-"))
+try {
+  await $`bun build ${adapterEntry} --compile --minify --target=${target.bun} --outfile ${adapterDestination}`.cwd(
+    compileDir
+  )
+} finally {
+  rmSync(compileDir, { recursive: true, force: true })
+}
 console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
 
 // alwith-runtime is the closed ALwith Runtime, shipped as npm platform packages (@alwith/runtime).
@@ -125,7 +135,9 @@ function resolveRuntimeOverride(): string | null {
   const sibling = resolve(root, "../alwith-runtime")
   const built = runtimeBuildArtifact(sibling, triple, nativeTriple)
   if (!existsSync(built))
-    throw new Error(`alwith-runtime not built at ${built}; run cargo build --release${triple === nativeTriple ? "" : ` --target ${triple}`} in ${sibling}`)
+    throw new Error(
+      `alwith-runtime not built at ${built}; run cargo build --release${triple === nativeTriple ? "" : ` --target ${triple}`} in ${sibling}`
+    )
   return built
 }
 

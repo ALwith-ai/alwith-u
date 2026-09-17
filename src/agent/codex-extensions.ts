@@ -302,10 +302,7 @@ export type CodexTurnError = {
 
 export function codexTurnError(error: TurnError): CodexTurnError {
   const codex = error.meta?.codex
-  const detail =
-    typeof codex === "object" && codex !== null
-      ? (codex as { error?: unknown }).error
-      : undefined
+  const detail = typeof codex === "object" && codex !== null ? (codex as { error?: unknown }).error : undefined
   const fields = typeof detail === "object" && detail !== null ? (detail as Record<string, unknown>) : undefined
   return {
     message: typeof fields?.message === "string" ? fields.message : "Turn failed",

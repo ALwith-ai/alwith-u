@@ -8,20 +8,38 @@ afterEach(() => {
 
 test("search releases following before mounting and aligning the target turn", async () => {
   const calls: string[] = []
-  publishThread({ sessionId: "one", turns: [], beforeReveal: () => { calls.push("release") },
-    api: { scrollToKey: async (key, target, options) => {
-      expect(target).toBeUndefined()
-      expect(options).toEqual({ align: "top" })
-      calls.push(key)
-    } } })
+  publishThread({
+    sessionId: "one",
+    turns: [],
+    beforeReveal: () => {
+      calls.push("release")
+    },
+    api: {
+      scrollToKey: async (key, target, options) => {
+        expect(target).toBeUndefined()
+        expect(options).toEqual({ align: "top" })
+        calls.push(key)
+      }
+    }
+  })
   await revealThreadTurn("one", "turn-one", new AbortController().signal)
   expect(calls).toEqual(["release", "turn-one"])
 })
 
 test("aborted and stale-session searches cannot move the newly selected chat", async () => {
   const calls: string[] = []
-  publishThread({ sessionId: "two", turns: [], beforeReveal: () => { calls.push("release") },
-    api: { scrollToKey: async () => { calls.push("scroll") } } })
+  publishThread({
+    sessionId: "two",
+    turns: [],
+    beforeReveal: () => {
+      calls.push("release")
+    },
+    api: {
+      scrollToKey: async () => {
+        calls.push("scroll")
+      }
+    }
+  })
   await revealThreadTurn("one", "old-turn", new AbortController().signal)
   const controller = new AbortController()
   controller.abort()

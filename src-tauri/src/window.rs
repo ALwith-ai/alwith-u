@@ -21,8 +21,7 @@ pub fn attach_window_to_main(app: tauri::AppHandle, label: String) -> Result<boo
             .run_on_main_thread(move || {
                 use objc2_app_kit::{NSWindow, NSWindowOrderingMode};
                 // ns_window() must be called on the main thread.
-                let (Ok(child_ptr), Ok(main_ptr)) = (child_for_ptr.ns_window(), main.ns_window())
-                else {
+                let (Ok(child_ptr), Ok(main_ptr)) = (child_for_ptr.ns_window(), main.ns_window()) else {
                     return;
                 };
                 // SAFETY: both pointers are live NSWindows owned by Tauri; this runs on the main thread.

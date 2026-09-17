@@ -96,10 +96,10 @@ describe("navigation rail", () => {
     const rows = container.querySelectorAll("[data-thread-user-message-navigation-item-id]")
     expect(rows.length).toBe(5)
     await act(async () => {
-      fireEvent.click(rows[2]!)
+      fireEvent.click(rows[2])
     })
     expect(released).toBe(1)
     expect(revealed).toEqual(["turn:user:user-2"])
-    expect(rows[4]!.getAttribute("aria-current")).toBe("true")
+    expect(rows[4].getAttribute("aria-current")).toBe("true")
   })
 })
