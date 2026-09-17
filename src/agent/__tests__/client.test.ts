@@ -15,7 +15,7 @@ async function make() {
   const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
-  return { client, fake }
+  return { client, fake, port }
 }
 
 async function until(predicate: () => boolean) {
@@ -94,6 +94,19 @@ test("threads come from the agent and open() replays history", async () => {
   expect(client.state.threads).toHaveLength(0)
   expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(["h1", "h2"])
   expect(client.state.sessions.h1).toBeUndefined()
+})
+
+test("a gap the client could not refill replays the whole session from the engine's record", async () => {
+  const { client, port } = await make()
+  await client.open("h1", "/tmp/one")
+  expect(client.session("h1").items.map(item => item.kind)).toEqual(["user", "assistant"])
+  // The Runtime journal no longer had frames 3..5: what we hold is not continuous any more.
+  for (const handler of port.gapHandlers) handler({ sessionId: "h1", from: 3, to: 5 })
+  expect(client.session("h1").restoring).toBe(true)
+  await until(() => !client.session("h1").restoring)
+  // Replayed, not appended: the old projection was cleared first.
+  expect(client.session("h1").items.map(item => item.kind)).toEqual(["user", "assistant"])
+  expect(client.session("h1").attached).toBe(true)
 })
 
 test("authentication errors propagate from session/new", async () => {

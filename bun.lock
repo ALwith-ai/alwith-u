@@ -6,7 +6,7 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "1.4.0",
-        "@alwith/api": "0.1.1",
+        "@alwith/api": "0.1.2",
         "@alwith/module-auth": "0.1.0",
         "@alwith/module-chat": "0.1.0",
         "@alwith/runtime": "0.1.3",
@@ -84,7 +84,7 @@
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.4.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-/eufudw+aFY1LKLolT6yFE6UMmYRl7fMJ/DEONSIyR6wI3slHWITBsANRGqXEY8FRzqUxwh7QEaGiZHcJPVThg=="],
 
-    "@alwith/api": ["@alwith/api@0.1.1", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-7+E+npiqpT4hta7cgpZB8mlMO/Vsh8apb0yMsuOVz0KqEqxrZolWgHo/LWAydA/U0MYW0pOaoTdlYCPvIJelKw=="],
+    "@alwith/api": ["@alwith/api@0.1.2", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-RoMGwPXPMGZB0M+4tqFhtkWyQULholKw+NnyvFIOzd2EoohZtV45m0B/MA4oFXdOp0VOP7zZFA8MghDeZlLDlw=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.0", "", {}, "sha512-XwDyzwlSnJcRuKoxaoEhAIDADYbwdmfl5wAnU2XwxQR8X8arMC/fD9XUoKW4Vdce17Bz7ARGpVbCtMf1sGhTrw=="],
 

@@ -3,6 +3,7 @@
 import * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { RuntimeRequestError } from "@alwith/api"
 import type {
+  RuntimeGap,
   RuntimeAcpAgentRequest,
   RuntimeAcpNotification,
   RuntimeAttachInfo,
@@ -251,5 +252,15 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
   async onRunStates(handler: (sessions: SessionRunState[]) => void): Promise<() => void> {
     this.runStateHandlers.add(handler)
     return () => this.runStateHandlers.delete(handler)
+  }
+
+  async onOutbound(): Promise<() => void> {
+    return () => undefined
+  }
+
+  readonly gapHandlers = new Set<(gap: RuntimeGap) => void>()
+  onGap(handler: (gap: RuntimeGap) => void): () => void {
+    this.gapHandlers.add(handler)
+    return () => this.gapHandlers.delete(handler)
   }
 }

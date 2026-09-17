@@ -260,6 +260,7 @@ export class CodexClient {
    */
   private async hold(): Promise<Agent> {
     const port = await this.openPort()
+    port.onGap(gap => void this.reloadAfterGap(gap.sessionId))
     const agents = new Agents<Launch>(port, {
       info: CLIENT_INFO,
       capabilities: { elicitation: { form: {}, url: {} } }
@@ -418,7 +419,22 @@ export class CodexClient {
   async open(id: string, cwd: string): Promise<void> {
     const existing = this.sessions.sessions.get(id)
     if (existing?.attached || existing?.restoring) return
-    if (!existing) this.sessions.set(createSession(id, cwd))
+    await this.replay(id, cwd)
+  }
+
+  /**
+   * The client could not refill a hole in this session's event stream (the Runtime journal had
+   * already dropped those frames): what we hold is no longer continuous, so replay the whole
+   * session from the engine's own record instead of rendering as if nothing happened.
+   */
+  private async reloadAfterGap(id: string): Promise<void> {
+    const session = this.sessions.sessions.get(id)
+    if (!session || session.restoring) return
+    await this.replay(id, session.cwd)
+  }
+
+  private async replay(id: string, cwd: string): Promise<void> {
+    if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     this.sessions.beginReplay(id)
     this.publishSession(this.sessions.get(id))
     try {
