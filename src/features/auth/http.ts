@@ -9,7 +9,7 @@ interface Host {
   expired(): Promise<void>
 }
 
-/** App transport only: authentication contracts and native refresh belong to @alwith/auth. */
+/** App transport only: authentication contracts and native refresh belong to @alwith/module-auth. */
 export function createAuthTransport(host: Host) {
   let revision = 0
   let pending: Promise<void> | undefined

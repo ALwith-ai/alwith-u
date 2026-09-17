@@ -4,7 +4,7 @@ U 源码可公开；Auth 等私有实现不随源码公开，也不需要私有�
 
 | 层 | U 使用什么 | 是否需要私有源码 |
 | --- | --- | --- |
-| 前端 API、聊天、账号接口 | npm 的 `@alwith/api`、`@alwith/chat`、`@alwith/auth` | 否 |
+| 前端 API、聊天、账号接口 | npm 的 `@alwith/api`、`@alwith/module-chat`、`@alwith/module-auth` | 否 |
 | 原生 Auth 刷新、应用发现 | `@alwith/native` 自动选择平台动态库 | 否 |
 | Tauri | `src-tauri/src/native.rs` 的薄 C ABI 桥接 | 否；不含 Auth 实现 |
 | Agent 托管 | 固定版本 Runtime 二进制 | 否 |

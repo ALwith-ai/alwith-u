@@ -40,7 +40,7 @@ Deliberately left out: file tree, browser, file preview, computer use, cloud tas
 ## ALwith account
 
 U requires an ALwith login (email code, password or email registration). It reuses
-`@alwith/auth` and `alwith-auth`; Desktop is unchanged. Each application logs in
+`@alwith/module-auth` and `alwith-module-auth`; Desktop is unchanged. Each application logs in
 independently and stores its own tokens in its Tauri application data directory:
 `auth.api.alwith.ai.json` (production) or `auth.api-dev.alwith.ai.json` (development).
 No credentials are copied from Desktop. Refresh and logout affect U's login;
