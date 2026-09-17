@@ -1,1 +1,1 @@
-export * from "@alwith/chat/permission-options"
+export * from "@alwith/module-chat/permission-options"

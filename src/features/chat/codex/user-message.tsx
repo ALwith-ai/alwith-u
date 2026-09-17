@@ -1,6 +1,6 @@
 import { basename } from "@/lib/path"
 import { isEmbeddedResource, isImage, isResourceLink, type MessageItem } from "@alwith/api"
-import { CodexUserMessage, type MessageMention } from "@alwith/chat/user-message"
+import { CodexUserMessage, type MessageMention } from "@alwith/module-chat/user-message"
 import { memo } from "react"
 import { messageText } from "../turns"
 import { useChatActivityHost } from "./activity-host"

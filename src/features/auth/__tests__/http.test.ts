@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { createTokenStorage } from "@alwith/auth"
+import { createTokenStorage } from "@alwith/module-auth"
 import { createAuthTransport } from "../http"
 
 function deferred<T>() {

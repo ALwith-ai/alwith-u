@@ -1,5 +1,5 @@
-import { type ActivityHost } from "@alwith/chat/activity-host"
-import { TerminalOutput } from "@alwith/chat/terminal-output"
+import { type ActivityHost } from "@alwith/module-chat/activity-host"
+import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { openExternal } from "@/lib/open"

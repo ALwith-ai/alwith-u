@@ -1,4 +1,4 @@
-import type { LoginResponse } from "@alwith/auth"
+import type { LoginResponse } from "@alwith/module-auth"
 
 /** Validate the server boundary before persisting any credentials. */
 export function assertActiveLogin(value: unknown): asserts value is LoginResponse {

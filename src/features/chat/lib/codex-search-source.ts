@@ -6,9 +6,9 @@ import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { isText } from "@alwith/api"
 import type { Item } from "@alwith/api"
 import type { Turn } from "../turns"
-import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/chat/search-source"
+import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"
 
-export type { SearchSourceMatch as CodexSearchSourceMatch } from "@alwith/chat/search-source"
+export type { SearchSourceMatch as CodexSearchSourceMatch } from "@alwith/module-chat/search-source"
 
 function stringsInValue(value: unknown): string[] {
   if (typeof value === "string") return [value]

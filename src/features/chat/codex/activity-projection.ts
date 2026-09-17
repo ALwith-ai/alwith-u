@@ -1,5 +1,5 @@
 import { terminalOf, textOf, type MessageItem, type Terminal, type ToolItem } from "@alwith/api"
-import type { CodexActivityBlock } from "@alwith/chat/group-blocks"
+import type { CodexActivityBlock } from "@alwith/module-chat/group-blocks"
 
 /** Adapt display data only; session updates, tool patches and terminal streams are folded by @alwith/api. */
 export function projectActivity(item: MessageItem | ToolItem, terminals: Record<string, Terminal>, streaming: boolean): CodexActivityBlock {

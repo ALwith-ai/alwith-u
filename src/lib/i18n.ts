@@ -1,5 +1,5 @@
 import i18n from "i18next"
-import { withChatResources } from "@alwith/chat/locales"
+import { withChatResources } from "@alwith/module-chat/locales"
 import { initReactI18next } from "react-i18next"
 import ar from "@/locales/ar.json"
 import de from "@/locales/de.json"

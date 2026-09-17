@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { CompletionMenu as SharedCompletionMenu } from "@alwith/chat/completion-menu"
+import { CompletionMenu as SharedCompletionMenu } from "@alwith/module-chat/completion-menu"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"

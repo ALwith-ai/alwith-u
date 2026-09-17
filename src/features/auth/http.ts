@@ -1,4 +1,4 @@
-import type { createTokenStorage } from "@alwith/auth"
+import type { createTokenStorage } from "@alwith/module-auth"
 
 type Storage = ReturnType<typeof createTokenStorage>
 interface Host {

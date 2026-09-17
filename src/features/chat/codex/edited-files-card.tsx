@@ -1,5 +1,5 @@
-import { EditedFilesCard as SharedCard } from "@alwith/chat/edited-files-card"
-import { ActivityHostProvider } from "@alwith/chat/activity-host"
+import { EditedFilesCard as SharedCard } from "@alwith/module-chat/edited-files-card"
+import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { useChatActivityHost } from "./activity-host"
 import { CodexFileIcon } from "@/components/icons/codex/file-icon"
 import { isDiffEntry } from "@alwith/api"

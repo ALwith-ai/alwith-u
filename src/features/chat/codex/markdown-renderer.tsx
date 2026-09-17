@@ -1,4 +1,4 @@
-import { CodexMarkdownRenderer as SharedMarkdown, type MarkdownHost } from "@alwith/chat/markdown"
+import { CodexMarkdownRenderer as SharedMarkdown, type MarkdownHost } from "@alwith/module-chat/markdown"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"

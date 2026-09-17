@@ -1,1 +1,1 @@
-export * from "@alwith/chat/navigation-instruments"
+export * from "@alwith/module-chat/navigation-instruments"

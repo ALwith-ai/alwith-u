@@ -1,7 +1,7 @@
 import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
-import type { CompletionItem } from "@alwith/chat/completion-filter"
-export { detectTrigger, type Trigger, type TriggerKind } from "@alwith/chat/completion-trigger"
-export { filterSlashCommands, type CompletionItem } from "@alwith/chat/completion-filter"
+import type { CompletionItem } from "@alwith/module-chat/completion-filter"
+export { detectTrigger, type Trigger, type TriggerKind } from "@alwith/module-chat/completion-trigger"
+export { filterSlashCommands, type CompletionItem } from "@alwith/module-chat/completion-filter"
 
 /** Absolute path of a Codex search hit (`path` is relative to `root` unless already absolute). */
 export function searchResultPath(result: FuzzyFileSearchResult): string {

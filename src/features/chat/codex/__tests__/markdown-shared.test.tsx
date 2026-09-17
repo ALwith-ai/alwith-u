@@ -1,4 +1,4 @@
-import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/chat/markdown"
+import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import { installDom } from "./dom-environment"

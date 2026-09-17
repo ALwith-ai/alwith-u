@@ -2,9 +2,9 @@
 import {
   PromptInput as SharedPromptInput,
   type PromptInputProps as SharedPromptInputProps
-} from "@alwith/chat/composer"
+} from "@alwith/module-chat/composer"
 import { toast } from "sonner"
-export * from "@alwith/chat/composer"
+export * from "@alwith/module-chat/composer"
 export {
   type Attachment,
   type AttachmentsContext,

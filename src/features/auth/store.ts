@@ -7,7 +7,7 @@ import {
   type AuthState,
   type AuthStateEvent,
   type LoginResponse
-} from "@alwith/auth"
+} from "@alwith/module-auth"
 import { invoke } from "@tauri-apps/api/core"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"

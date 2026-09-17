@@ -8,7 +8,7 @@ import * as JSXDevRuntime from "react/jsx-dev-runtime"
 // Match Vite's React dedupe when testing locally linked React packages.
 // No DOM installation here: browser globals remain isolated per test file.
 const appRequire = createRequire(import.meta.url)
-const chatRequire = createRequire(realpathSync(appRequire.resolve("@alwith/chat/virtualized-turn-list")))
+const chatRequire = createRequire(realpathSync(appRequire.resolve("@alwith/module-chat/virtualized-turn-list")))
 // Alias to the real app exports, not fake hooks or a mocked renderer.
 for (const [name, exports] of [
   ["react", React],

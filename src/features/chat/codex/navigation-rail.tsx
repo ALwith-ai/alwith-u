@@ -1,17 +1,17 @@
 import { type ComponentProps, useMemo } from "react"
-import { ThreadUserMessageNavigationRail as SharedRail, type NavigationRailAudio } from "@alwith/chat/navigation-rail"
+import { ThreadUserMessageNavigationRail as SharedRail, type NavigationRailAudio } from "@alwith/module-chat/navigation-rail"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { textOf } from "@alwith/api"
 import { useStore } from "zustand"
 import { messageText, type Turn } from "../turns"
-import type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/chat/navigation-rail"
+import type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/module-chat/navigation-rail"
 import { navigationSoundStore } from "./navigation-sound-store"
 import {
   installThreadUserMessageNavigationAudioUnlock,
   playThreadUserMessageNavigationSequence,
   preloadThreadUserMessageNavigationInstrument
 } from "./navigation-audio"
-export type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/chat/navigation-rail"
+export type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/module-chat/navigation-rail"
 
 /**
  * One entry per turn that starts with a user message; the preview shows the first

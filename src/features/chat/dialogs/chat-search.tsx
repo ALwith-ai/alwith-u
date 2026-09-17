@@ -1,12 +1,12 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { ChatSearch as SharedChatSearch } from "@alwith/chat/search"
+import { ChatSearch as SharedChatSearch } from "@alwith/module-chat/search"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
 import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"
-export { collectMatches } from "@alwith/chat/search"
+export { collectMatches } from "@alwith/module-chat/search"
 
 export function ChatSearch({ rootRef }: { rootRef: RefObject<HTMLElement | null> }) {
   const { t } = useTranslation()

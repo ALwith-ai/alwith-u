@@ -1,11 +1,11 @@
-export * from "@alwith/chat/navigation-audio"
+export * from "@alwith/module-chat/navigation-audio"
 import {
   getNavigationAudioContextState,
   getNavigationInstrumentReady,
   preloadThreadUserMessageNavigationInstrument as preloadInstrument,
   playThreadUserMessageNavigationSequence as playSequence,
   type NavigationTokenPair
-} from "@alwith/chat/navigation-audio"
+} from "@alwith/module-chat/navigation-audio"
 import type { NavigationInstrument, NavigationSoundMode } from "./navigation-instruments"
 
 // DIAG: environment facts for the "no sound in the packaged app" investigation.

@@ -1,6 +1,6 @@
-import { createStreamingMarkdownLexer } from "@alwith/chat/streaming-markdown"
-import type { MarkdownParseResponse, MarkdownWorkerRequest } from "@alwith/chat/markdown-parser"
-import type { CodeHighlightRequest, CodeHighlightResponse } from "@alwith/chat/code-highlighter"
+import { createStreamingMarkdownLexer } from "@alwith/module-chat/streaming-markdown"
+import type { MarkdownParseResponse, MarkdownWorkerRequest } from "@alwith/module-chat/markdown-parser"
+import type { CodeHighlightRequest, CodeHighlightResponse } from "@alwith/module-chat/code-highlighter"
 import highlighter from "highlight.js"
 
 /** In-process worker transport: real parsing/highlighting, no native worker or child process. */

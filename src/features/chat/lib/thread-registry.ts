@@ -2,7 +2,7 @@
 // pieces that live outside it (find-in-thread reveals off-screen turns through it). ALwith
 // Desktop hands the same ref around through its pane context; this app has one chat.
 import { createStore } from "zustand/vanilla"
-import type { VirtualizedTurnListApi } from "@alwith/chat/virtualized-turn-list"
+import type { VirtualizedTurnListApi } from "@alwith/module-chat/virtualized-turn-list"
 import type { Turn } from "../turns"
 
 export type ThreadRegistry = {

@@ -1,4 +1,4 @@
-import { PromptInputProvider, usePromptInputController } from "@alwith/chat/composer-context"
+import { PromptInputProvider, usePromptInputController } from "@alwith/module-chat/composer-context"
 import { fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, mock, spyOn, test } from "bun:test"
 import { installDom } from "../../codex/__tests__/dom-environment"

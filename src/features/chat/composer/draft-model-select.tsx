@@ -1,4 +1,4 @@
-import { ModelSelect, type ChatModelOption } from "@alwith/chat/model-select"
+import { ModelSelect, type ChatModelOption } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
 import type { ProviderKey } from "@/lib/preferences"
 import { PROVIDERS } from "@/lib/providers"

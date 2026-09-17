@@ -7,7 +7,7 @@ import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { CodeXmlIcon, EyeIcon, type LucideIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { PermissionModeSelect as SharedPermissionModeSelect } from "@alwith/chat/permission-mode-select"
+import { PermissionModeSelect as SharedPermissionModeSelect } from "@alwith/module-chat/permission-mode-select"
 import { isGroupedSelect, isSelectOption, type SelectOption } from "@alwith/api"
 import { client } from "@/lib/client"
 

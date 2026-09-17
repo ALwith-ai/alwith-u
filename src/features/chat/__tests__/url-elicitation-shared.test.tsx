@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test"
-import { UrlElicitationCard } from "@alwith/chat/url-elicitation-card"
+import { UrlElicitationCard } from "@alwith/module-chat/url-elicitation-card"
 import { act, fireEvent, render } from "@testing-library/react"
 import { installDom } from "../codex/__tests__/dom-environment"
 

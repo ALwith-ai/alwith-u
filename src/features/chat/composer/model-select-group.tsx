@@ -1,4 +1,4 @@
-import { ModelSelect, type ChatModelOption } from "@alwith/chat/model-select"
+import { ModelSelect, type ChatModelOption } from "@alwith/module-chat/model-select"
 /**
  * The model menu: model list, reasoning effort slider, other model settings (selects as
  * radio sections, booleans as switches). Everything is data-driven from the agent's

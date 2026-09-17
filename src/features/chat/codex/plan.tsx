@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { CodexPlan as SharedPlan } from "@alwith/chat/plan"
+import { CodexPlan as SharedPlan } from "@alwith/module-chat/plan"
 import { isPlanItems, isPlanMarkdown } from "@alwith/api"
 import { CodexMarkdownRenderer } from "./markdown-renderer"
 

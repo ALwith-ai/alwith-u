@@ -1,4 +1,4 @@
-import { isValidPassword } from "@alwith/auth"
+import { isValidPassword } from "@alwith/module-auth"
 import { useEffect, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"

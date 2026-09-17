@@ -1,8 +1,8 @@
-import { UrlElicitationCard } from "@alwith/chat/url-elicitation-card"
+import { UrlElicitationCard } from "@alwith/module-chat/url-elicitation-card"
 // Permission requests and elicitations from the agent. Every answer maps back to
 // an option the agent advertised; nothing is invented on the client.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { PermissionView } from "@alwith/chat/permission-view"
+import { PermissionView } from "@alwith/module-chat/permission-view"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { PendingAction } from "@/agent/client"

@@ -1,1 +1,1 @@
-export * from "@alwith/chat/composer-context"
+export * from "@alwith/module-chat/composer-context"

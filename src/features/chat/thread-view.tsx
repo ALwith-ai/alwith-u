@@ -13,7 +13,7 @@ import {
   VirtualizedTurnList,
   type VirtualizedTurnListApi,
   type VirtualizedTurnListEntry
-} from "@alwith/chat/virtualized-turn-list"
+} from "@alwith/module-chat/virtualized-turn-list"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { groupTurns, type Turn } from "./turns"
 

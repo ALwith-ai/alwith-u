@@ -1,1 +1,1 @@
-export * from "@alwith/chat/composer-clipboard"
+export * from "@alwith/module-chat/composer-clipboard"

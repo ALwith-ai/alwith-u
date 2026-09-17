@@ -5,7 +5,7 @@ import {
   VirtualizedTurnList,
   type VirtualizedTurnListApi,
   type VirtualizedTurnListEntry
-} from "@alwith/chat/virtualized-turn-list"
+} from "@alwith/module-chat/virtualized-turn-list"
 import { installDom } from "./dom-environment"
 
 installDom()
