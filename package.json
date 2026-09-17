@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
-    "@alwith/api": "0.1.0",
+    "@alwith/api": "0.1.1",
     "@alwith/auth": "0.1.0",
     "@alwith/chat": "0.1.0",
     "@base-ui/react": "^1.8.0",

@@ -6,7 +6,7 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "1.4.0",
-        "@alwith/api": "0.1.0",
+        "@alwith/api": "0.1.1",
         "@alwith/auth": "0.1.0",
         "@alwith/chat": "0.1.0",
         "@base-ui/react": "^1.8.0",
@@ -81,19 +81,9 @@
     },
   },
   "packages": {
-    "@alwith/native-darwin-x64": ["@alwith/native-darwin-x64@0.1.0","",{"os":"darwin","cpu":"x64"},"sha512-4GSeky/kRXTJiBzNdJMbd0flbbVYjsPwgsr6WNWrjxVOgDG4NNWOyH5/nITGdTT2J/+bA3idFy+21gE7tO0xxA=="],
-
-    "@alwith/native-linux-arm64": ["@alwith/native-linux-arm64@0.1.0","",{"os":"linux","cpu":"arm64"},"sha512-T4D7fN33nf0ScarG81l80EDO9LAB9jkYgYbx6hqR0YOWcKs0t6mgQYNHwobOk58D7KXv9M5meza0ajO/0JxUtg=="],
-
-    "@alwith/native-linux-x64": ["@alwith/native-linux-x64@0.1.0","",{"os":"linux","cpu":"x64"},"sha512-SIBcU+BBTaJ+kLPivwtutj9hZsgOGMwn2hOcFJNnFIKKbGRWdH5JTzP8ivBWNrq2gsJGsI4A0Z6fkMj22OlaDg=="],
-
-    "@alwith/native-win32-arm64": ["@alwith/native-win32-arm64@0.1.0","",{"os":"win32","cpu":"arm64"},"sha512-NhTewGTv5ZowLgI54WzpYno1y4a8L2+xBH6yKMHS3LNlCKhpJ7VP3Z3xElgdUT+oHUh7TDNcNSxcbQ1Ob2sTog=="],
-
-    "@alwith/native-win32-x64": ["@alwith/native-win32-x64@0.1.0","",{"os":"win32","cpu":"x64"},"sha512-w9bUY5FevwGAL1BbQz/ftLaO6zp82qt2SpykhxJH/mVKxJfG/NB0U27kNwjd8nG2P2BzTi8Al/1xbUPmibxL9g=="],
-
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.4.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-/eufudw+aFY1LKLolT6yFE6UMmYRl7fMJ/DEONSIyR6wI3slHWITBsANRGqXEY8FRzqUxwh7QEaGiZHcJPVThg=="],
 
-    "@alwith/api": ["@alwith/api@0.1.0", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-iVHbPvbfv51huh/P013GJLEB5wQQ72l4H4w1/JhMzMI4r8KwovQVVL/4ijT5BijkebQhb3G5w15xKHDBDB1DMg=="],
+    "@alwith/api": ["@alwith/api@0.1.1", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-7+E+npiqpT4hta7cgpZB8mlMO/Vsh8apb0yMsuOVz0KqEqxrZolWgHo/LWAydA/U0MYW0pOaoTdlYCPvIJelKw=="],
 
     "@alwith/auth": ["@alwith/auth@0.1.0", "", {}, "sha512-n7cCCibgBrBgiEDl8zcmW1R370mgvKfVERkMinE56Fr39jo0Rjt32She7128wgaZ9537/NZsj4Un89NNBU3aYQ=="],
 
@@ -102,6 +92,16 @@
     "@alwith/native": ["@alwith/native@0.1.0", "", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.0", "@alwith/native-darwin-x64": "0.1.0", "@alwith/native-linux-arm64": "0.1.0", "@alwith/native-linux-x64": "0.1.0", "@alwith/native-win32-arm64": "0.1.0", "@alwith/native-win32-x64": "0.1.0" } }, "sha512-T7Ztu/gyjLbmVgm/IK8iD9iA2x10/ESD7qhbFVtF9IGnnueP6UsZaDsNZ6+n1iSqaLpabNKy49/CL5Oj/B3Mrg=="],
 
     "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@0.1.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-2ZW4JEaDYfw/voFoipGAN/W8IIuELMMZasfWRgCQM3ajXt8MwwjfiIMWfsU+W4FQloA9woV62Z48mIsfH8G1JQ=="],
+
+    "@alwith/native-darwin-x64": ["@alwith/native-darwin-x64@0.1.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-4GSeky/kRXTJiBzNdJMbd0flbbVYjsPwgsr6WNWrjxVOgDG4NNWOyH5/nITGdTT2J/+bA3idFy+21gE7tO0xxA=="],
+
+    "@alwith/native-linux-arm64": ["@alwith/native-linux-arm64@0.1.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-T4D7fN33nf0ScarG81l80EDO9LAB9jkYgYbx6hqR0YOWcKs0t6mgQYNHwobOk58D7KXv9M5meza0ajO/0JxUtg=="],
+
+    "@alwith/native-linux-x64": ["@alwith/native-linux-x64@0.1.0", "", { "os": "linux", "cpu": "x64" }, "sha512-SIBcU+BBTaJ+kLPivwtutj9hZsgOGMwn2hOcFJNnFIKKbGRWdH5JTzP8ivBWNrq2gsJGsI4A0Z6fkMj22OlaDg=="],
+
+    "@alwith/native-win32-arm64": ["@alwith/native-win32-arm64@0.1.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-NhTewGTv5ZowLgI54WzpYno1y4a8L2+xBH6yKMHS3LNlCKhpJ7VP3Z3xElgdUT+oHUh7TDNcNSxcbQ1Ob2sTog=="],
+
+    "@alwith/native-win32-x64": ["@alwith/native-win32-x64@0.1.0", "", { "os": "win32", "cpu": "x64" }, "sha512-w9bUY5FevwGAL1BbQz/ftLaO6zp82qt2SpykhxJH/mVKxJfG/NB0U27kNwjd8nG2P2BzTi8Al/1xbUPmibxL9g=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
