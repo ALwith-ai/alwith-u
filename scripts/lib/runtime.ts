@@ -5,7 +5,7 @@ import { resolve } from "node:path"
 import { createInterface } from "node:readline"
 
 const root = resolve(import.meta.dirname, "../..")
-const TRIPLES = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+const TRIPLES = ["aarch64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
 
 export function staged(name: string): string {
   const platform =

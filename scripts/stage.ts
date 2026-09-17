@@ -25,7 +25,6 @@ const TARGETS: Record<string, Target> = {
     bun: "bun-darwin-arm64",
     exe: ""
   },
-  "x86_64-apple-darwin": { npm: "darwin-x64", bun: "bun-darwin-x64", exe: "" },
   "x86_64-unknown-linux-gnu": {
     npm: "linux-x64",
     bun: "bun-linux-x64",
