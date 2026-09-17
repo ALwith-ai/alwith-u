@@ -1,4 +1,4 @@
-@import "@alwith/chat/styles.css";
+@import "@alwith/module-chat/styles.css";
 
 /* U-only chat adaptations; common Desktop geometry lives in @alwith/chat. */
 .codex-edited-file-path {
