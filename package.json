@@ -67,7 +67,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@alwith/native": "0.1.0",
+    "@alwith/native": "0.1.1",
     "@happy-dom/global-registrator": "^20.14.3",
     "@nyssance/codex-acp-v2": "0.6.0",
     "@openai/codex": "0.154.0",
