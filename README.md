@@ -100,17 +100,16 @@ bun run stage        # stages native npm binaries, Runtime, Codex and licences; 
 bun tauri dev
 ```
 
-`stage` anonymously downloads the public release pinned in `runtime.json` and verifies
-its pinned SHA256, including on cache hits. No GitHub token or private checkout is needed.
-Local Runtime development must explicitly set `RUNTIME_SOURCE=sibling`
-to use a neighbouring checkout's build, or `RUNTIME_PATH` to use an existing binary.
-Auth and installed-app implementations arrive as closed platform binaries through
-`@alwith/native`; Tauri contains only the thin ABI bridge. Login storage is unchanged.
-See [native distribution](docs/native-distribution.md).
+`stage` takes the Runtime from the installed `@alwith/runtime` platform package (npm installs
+the one binary for your platform; `stageRuntime()` verifies its pinned SHA256 before copying).
+No GitHub token, download script or private checkout is involved. Local Runtime development
+must explicitly set `RUNTIME_SOURCE=sibling` to use a neighbouring checkout's build, or
+`RUNTIME_PATH` to use an existing binary. Auth and installed-app implementations arrive the
+same way through `@alwith/native`; Tauri contains only the thin ABI bridge. Login storage is
+unchanged. See [native distribution](docs/native-distribution.md).
 
-**Current end-to-end public Runtime availability: macOS ARM64.** Native libraries
-already cover all six desktop targets; the remaining Runtime binaries are not yet
-published. Update both version and target checksums when changing `runtime.json`.
+Runtime and native libraries are published for macOS arm64, Linux x64/arm64 and Windows
+x64/arm64 (no Intel Mac). To bump either, change the version in `package.json` and `bun install`.
 
 ## Releases
 

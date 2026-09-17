@@ -24,6 +24,7 @@
     "@alwith/api": "0.1.1",
     "@alwith/module-auth": "0.1.0",
     "@alwith/module-chat": "0.1.0",
+    "@alwith/runtime": "0.1.2",
     "@base-ui/react": "^1.8.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@shadcn/react": "^0.3.1",

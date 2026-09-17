@@ -3,7 +3,7 @@
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
  *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
  *   binaries/codex-acp-v2-<triple>                          the ACP v2 adapter compiled into a standalone Bun executable
- *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary (pinned release; explicit local override)
+ *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
  * plus the licence notices shipped under resources/licenses.
  *
  * Usage: bun scripts/stage.ts [rust-target-triple]   (then TAURI_ENV_TARGET_TRIPLE, then the host)
@@ -12,7 +12,8 @@ import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, w
 import { join, resolve } from "node:path"
 import { $ } from "bun"
 import { stageNative } from "@alwith/native/stage"
-import { runtimeBuildArtifact, runtimeReleaseCache, runtimeSource, stageTarget } from "./lib/runtime-artifact"
+import { stageRuntime } from "@alwith/runtime/stage"
+import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 
 const root = resolve(import.meta.dirname, "..")
 const binaries = join(root, "src-tauri/binaries")
@@ -99,67 +100,33 @@ const adapterDestination = join(binaries, `codex-acp-v2-${triple}${target.exe}`)
 await $`bun build ${adapterEntry} --compile --minify --target=${target.bun} --outfile ${adapterDestination}`
 console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
 
-// alwith-runtime is the closed ALwith Runtime, shipped as a binary. Where it comes from:
+// alwith-runtime is the closed ALwith Runtime, shipped as npm platform packages (@alwith/runtime).
 //   RUNTIME_PATH=<file>      an explicit binary for this triple
 //   RUNTIME_SOURCE=sibling   ../alwith-runtime/target[/<cross-target>]/release
 //                            (needs `cargo build --release [--target <cross-target>]` there)
-//   RUNTIME_SOURCE=release   public release; checksum pinned in runtime.json, no credentials
-// Default: always the pinned release. A sibling checkout is an explicit development opt-in.
+//   RUNTIME_SOURCE=npm       the installed @alwith/runtime-<platform> package, sha256 verified (default)
 const runtimeDestination = join(binaries, `alwith-runtime-${triple}${target.exe}`)
-copyFileSync(await resolveRuntime(), runtimeDestination)
-if (!target.exe) chmodSync(runtimeDestination, 0o755)
+const runtimeOverride = resolveRuntimeOverride()
+if (runtimeOverride) {
+  copyFileSync(runtimeOverride, runtimeDestination)
+  if (!target.exe) chmodSync(runtimeDestination, 0o755)
+} else {
+  stageRuntime(triple, runtimeDestination, licenses)
+}
 console.log(`alwith-runtime -> ${runtimeDestination}`)
 
-async function resolveRuntime(): Promise<string> {
+/** A development override for the Runtime binary; null means the installed npm package. */
+function resolveRuntimeOverride(): string | null {
   if (process.env.RUNTIME_PATH) {
     if (!existsSync(process.env.RUNTIME_PATH)) throw new Error(`RUNTIME_PATH not found: ${process.env.RUNTIME_PATH}`)
     return process.env.RUNTIME_PATH
   }
+  if (runtimeSource(process.env.RUNTIME_SOURCE) === "npm") return null
   const sibling = resolve(root, "../alwith-runtime")
-  const source = runtimeSource(process.env.RUNTIME_SOURCE)
-  if (source === "sibling") {
-    const built = runtimeBuildArtifact(sibling, triple, nativeTriple)
-    if (!existsSync(built))
-      throw new Error(`alwith-runtime not built at ${built}; run cargo build --release${triple === nativeTriple ? "" : ` --target ${triple}`} in ${sibling}`)
-    return built
-  }
-  return downloadRuntime()
-}
-
-async function downloadRuntime(): Promise<string> {
-  const pin = JSON.parse(readFileSync(join(root, "runtime.json"), "utf8")) as {
-    repo: string; version: string; sha256: Record<string, string>
-  }
-  const expected = pin.sha256[triple]
-  if (!expected) throw new Error(`Runtime ${pin.version} has no published artifact for ${triple}; available: ${Object.keys(pin.sha256).join(", ")}`)
-  const base = process.env.RUNTIME_BASE_URL ?? `https://github.com/${pin.repo}/releases/download/v${pin.version}`
-  const archiveName = `alwith-runtime-${triple}.tar.gz`
-  const cache = runtimeReleaseCache(binaries, pin.version, triple)
-  const binary = join(cache, `alwith-runtime${target.exe}`)
-  const archivePath = join(cache, archiveName)
-  // Recheck even cached archives and re-extract: a stale extracted binary must not
-  // bypass validation. No gh login, token or private-repository fallback is used.
-  const archive = existsSync(archivePath) ? readFileSync(archivePath)
-    : await fetchOk(`${base}/${archiveName}`).then(response => response.bytes())
-  const actual = new Bun.CryptoHasher("sha256").update(archive).digest("hex")
-  if (actual !== expected) throw new Error(`${archiveName}: sha256 ${actual} != pinned ${expected}`)
-  mkdirSync(cache, { recursive: true })
-  writeFileSync(archivePath, archive)
-  await $`tar -xzf ${archivePath} -C ${cache}`
-  if (!existsSync(binary)) throw new Error(`${archiveName} did not contain alwith-runtime${target.exe}`)
-  const legal = join(licenses, "alwith-runtime")
-  mkdirSync(legal, { recursive: true })
-  for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses"]) {
-    cpSync(join(cache, name), join(legal, name), { recursive: true })
-  }
-  console.log(`alwith-runtime ${pin.version} <- ${base}/${archiveName}`)
-  return binary
-}
-
-async function fetchOk(url: string): Promise<Response> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
-  return response
+  const built = runtimeBuildArtifact(sibling, triple, nativeTriple)
+  if (!existsSync(built))
+    throw new Error(`alwith-runtime not built at ${built}; run cargo build --release${triple === nativeTriple ? "" : ` --target ${triple}`} in ${sibling}`)
+  return built
 }
 
 // The @openai/codex npm package ships no licence file; resources/licenses/codex.txt is kept in the repo.
