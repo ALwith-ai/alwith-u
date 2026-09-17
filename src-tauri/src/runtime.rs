@@ -26,8 +26,26 @@ pub struct RuntimeState {
     starting: tokio::sync::Mutex<()>,
 }
 
+/// How long the exit chain waits for the Runtime to leave on its own before killing it.
+const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
+
 impl RuntimeState {
+    /// Exit chain: ask the Runtime to leave (`shutdown`; it gives modules and agents a 2 s window,
+    /// then reaps every agent process group), wait for it to exit, kill only if it does not.
+    /// A straight kill would leave the agents' process groups (a dev server a bash tool started)
+    /// running after the app is gone. Synchronous on purpose: it runs from Tauri's exit hook.
     pub fn shutdown(&self) {
+        let asked = match self.child.lock().unwrap().as_mut() {
+            Some(child) => child.write(b"{\"id\":0,\"method\":\"shutdown\"}\n").is_ok(),
+            None => false,
+        };
+        if asked {
+            let deadline = std::time::Instant::now() + SHUTDOWN_GRACE;
+            // The pump clears `child` when it sees the process terminate.
+            while std::time::Instant::now() < deadline && self.child.lock().unwrap().is_some() {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
         if let Some(child) = self.child.lock().unwrap().take() {
             let _ = child.kill();
         }
