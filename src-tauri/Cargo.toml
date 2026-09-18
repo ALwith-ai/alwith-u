@@ -17,7 +17,7 @@ tauri-build = { version = "2", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
-alwith-api = { git = "https://github.com/ALwith-ai/alwith-api.git", rev = "60a930f62092dff77dbbf5101d0a891ace83af31" }
+alwith-api = { path = "../node_modules/@alwith/api/rust" }
 tempfile = "3"
 tauri-plugin-hasgard = { version = "0.4.1", optional = true }
 libloading = "0.8"

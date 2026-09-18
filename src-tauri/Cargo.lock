@@ -41,7 +41,6 @@ dependencies = [
 [[package]]
 name = "alwith-api"
 version = "0.1.1"
-source = "git+https://github.com/ALwith-ai/alwith-api.git?rev=60a930f62092dff77dbbf5101d0a891ace83af31#60a930f62092dff77dbbf5101d0a891ace83af31"
 dependencies = [
  "log",
  "serde",

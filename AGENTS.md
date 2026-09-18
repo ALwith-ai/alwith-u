@@ -30,6 +30,9 @@ Always answer the user in Chinese.
 - Two boundaries, both process boundaries with versioned protocols: the Runtime
   (`alwith-runtime-v1` frames over stdio inside Tauri, WebSocket for scripts; client `@alwith/api` in the sibling `alwith-api` repo) owns the agent process;
   `@nyssance/codex-acp-v2` speaks ACP v2 for Codex. Never depend on Runtime source.
+- The installed `@alwith/api` package supplies both the TypeScript client and the
+  `rust/` SDK. Cargo must consume `../node_modules/@alwith/api/rust`; never add a
+  Git or sibling-source dependency on `alwith-api`.
 - ACP v2 only: import `@agentclientprotocol/sdk/experimental/v2`.
 - The UI never consumes Codex app-server events directly. Extension methods the
   adapter exposes (`_codex/session_archive`, `_meta.codex.*`) are documented in its
@@ -60,8 +63,9 @@ Always answer the user in Chinese.
   turn list, `src-tauri/src/updater`, `menu.rs`) stay recognisably Desktop's code:
   subtract, do not redesign.
 - Sidecars are staged by `scripts/stage.ts`; `src-tauri/binaries/` is not committed.
-  `alwith-runtime` is pinned in `runtime.json` and downloaded with checksum verification
-  by default. Local Runtime builds require explicit `RUNTIME_SOURCE=sibling` or `RUNTIME_PATH`.
+  `alwith-runtime` is pinned through `@alwith/runtime` in `package.json` and staged
+  from its checksum-verified platform package by default. Local Runtime builds require
+  explicit `RUNTIME_SOURCE=sibling` or `RUNTIME_PATH`.
 
 ## Validate before handing back
 
