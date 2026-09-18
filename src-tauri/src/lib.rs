@@ -83,12 +83,13 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building ALwith U")
         .run(|app, event| match event {
-            tauri::RunEvent::WindowEvent { event: tauri::WindowEvent::Destroyed, .. } => {
-                app.state::<runtime::RuntimeState>().shutdown();
+            // U's main window owns the application lifetime. A hidden settings window must
+            // neither keep a headless U running nor stop chats when it is destroyed.
+            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
+                app.exit(0);
             }
-            // Quit paths that never destroy the window (Cmd+Q from the menu, app.exit) still
-            // have to take alwith-runtime with them; the kill is synchronous so the tokio runtime
-            // cannot tear down first.
+            // Runtime belongs to the application. All quit paths converge here; shutdown is
+            // synchronous so the async runtime cannot tear down before its children leave.
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
                 app.state::<runtime::RuntimeState>().shutdown();
             }
