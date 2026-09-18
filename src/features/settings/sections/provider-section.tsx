@@ -3,7 +3,7 @@
 // several endpoints. A saved key puts the provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
 import { ExternalLinkIcon, EyeIcon, EyeOffIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { openExternal } from "@/lib/open"
 import { useProviders } from "@/lib/use-providers"
-import type { ProviderKey, ProviderInput } from "@/lib/providers"
+import type { ProviderKey, ProviderInput, ProviderSnapshot } from "@/lib/providers"
 import { PROVIDERS, type Provider, providerKeyUrl, providerRegion, saveProviderKey } from "@/lib/providers"
 import { SettingGroup, SettingLabel } from "./shared"
 import { CodexProviderSection } from "./codex-provider-section"
@@ -29,11 +29,14 @@ export function ProviderSection() {
   const keys = snapshot?.providers ?? {}
   const [busy, setBusy] = useState<string | null>(null)
 
-  const save = async (provider: Provider, key: ProviderInput | null) => {
-    if (!snapshot) return
+  const save = async (
+    revision: number,
+    provider: Provider,
+    key: ProviderInput | null
+  ): Promise<ProviderSnapshot | null> => {
     setBusy(provider.id)
     try {
-      const result = await saveProviderKey(snapshot.revision, provider.id, key)
+      const result = await saveProviderKey(revision, provider.id, key)
       if (result.error) toast.error(result.error)
       if (!result.error)
         toast.success(
@@ -41,8 +44,10 @@ export function ProviderSection() {
             name: provider.name
           })
         )
+      return result
     } catch (error) {
       toast.error(describe(error))
+      return null
     } finally {
       setBusy(null)
     }
@@ -55,50 +60,69 @@ export function ProviderSection() {
       {snapshot?.error && <p className="text-destructive text-sm">{snapshot.error}</p>}
       <SettingGroup>
         <SettingLabel>{t("provider.label")}</SettingLabel>
-        {PROVIDERS.map((provider, index) => (
-          <div key={provider.id}>
-            {index > 0 && <Separator />}
-            <ProviderRow
-              provider={provider}
-              saved={keys[provider.id] ?? null}
-              busy={busy !== null || snapshot === null}
-              onSave={key => void save(provider, key)}
-            />
-          </div>
-        ))}
+        {snapshot &&
+          PROVIDERS.map((provider, index) => (
+            <div key={provider.id}>
+              {index > 0 && <Separator />}
+              <ProviderRow
+                provider={provider}
+                saved={keys[provider.id] ?? null}
+                revision={snapshot.revision}
+                busy={busy !== null}
+                onSave={(revision, key) => save(revision, provider, key)}
+              />
+            </div>
+          ))}
       </SettingGroup>
     </div>
   )
 }
 
-function ProviderRow({
+export function ProviderRow({
   provider,
   saved,
+  revision,
   busy,
   onSave
 }: {
   provider: Provider
   saved: ProviderKey | null
+  revision: number
   busy: boolean
-  onSave: (key: ProviderInput | null) => void
+  onSave: (revision: number, key: ProviderInput | null) => Promise<ProviderSnapshot | null>
 }) {
   const { t } = useTranslation()
   const [apiKey, setApiKey] = useState("")
   const [showKey, setShowKey] = useState(false)
-  const [region, setRegion] = useState(saved?.region ?? provider.regions?.[0]?.id)
+  const [base, setBase] = useState({ saved, revision })
+  const [region, setRegion] = useState(providerRegion(provider, saved?.region)?.id)
   const Logo = provider.logo
   const configured = saved !== null
   const keyTrimmed = apiKey.trim()
   const keyUrl = providerKeyUrl(provider, region)
-  const regionChanged =
-    configured && provider.regions !== undefined && region !== providerRegion(provider, saved.region)?.id
+  const regionChanged = region !== providerRegion(provider, base.saved?.region)?.id
+  useEffect(() => {
+    if (revision > base.revision && keyTrimmed === "" && !regionChanged) {
+      setBase({ saved, revision })
+      setRegion(providerRegion(provider, saved?.region)?.id)
+    }
+  }, [revision, saved, provider, base.revision, keyTrimmed, regionChanged])
   const canSave = !busy && (keyTrimmed !== "" || regionChanged)
   const inputId = `${provider.id}-api-key`
 
+  const persist = async (input: ProviderInput | null) => {
+    const submittedKey = apiKey,
+      submittedRegion = region
+    const result = await onSave(base.revision, input)
+    if (!result) return
+    const nextSaved = result.providers[provider.id] ?? null
+    setBase({ saved: nextSaved, revision: result.revision })
+    setApiKey(current => (current === submittedKey ? "" : current))
+    setRegion(current => (current === submittedRegion ? providerRegion(provider, nextSaved?.region)?.id : current))
+  }
   const submit = () => {
-    if (keyTrimmed === "" && saved === null) return
-    onSave({ ...(keyTrimmed === "" ? {} : { apiKey: keyTrimmed }), ...(region === undefined ? {} : { region }) })
-    setApiKey("")
+    if (keyTrimmed === "" && base.saved === null) return
+    void persist({ ...(keyTrimmed === "" ? {} : { apiKey: keyTrimmed }), ...(region === undefined ? {} : { region }) })
   }
 
   return (
@@ -167,7 +191,7 @@ function ProviderRow({
       </Field>
       <div className="flex items-center justify-end gap-2">
         {configured && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => onSave(null)}>
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => void persist(null)}>
             {t("provider.remove")}
           </Button>
         )}
