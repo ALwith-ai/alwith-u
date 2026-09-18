@@ -1,9 +1,9 @@
 [
   {
-    "file": "alwith-api-182812e.tgz",
+    "file": "alwith-api-8521996.tgz",
     "source": "https://github.com/ALwith-ai/alwith-api",
-    "commit": "182812e",
-    "sha256": "60e96549df4f1ba9a4ff055eb673d6f828c26cc94267b181dfa97abe35bf31ee"
+    "commit": "85219966c62c1e806b872c2dfafa5654223c076c",
+    "sha256": "0807623b26c2761db5662179e457213b2804f3a15c669f9b7872714efde2af8b"
   },
   {
     "file": "codex-acp-v2-440a542.tgz",

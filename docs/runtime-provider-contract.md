@@ -22,7 +22,7 @@ The shared JSON catalog supplies endpoints and models to both layers. Gateway se
 
 ## Dependencies and verification
 
-`vendor/provenance.json` records the source commits and SHA-256 of the two local package artifacts. These packages are installed through the lockfile; no npm publication is implied. The Rust SDK is pinned by git revision. Runtime staging still uses its explicitly selected binary source; `RUNTIME_SOURCE=sibling` was used for this verification with Runtime `7ea6a52`.
+`vendor/provenance.json` records the source commits and SHA-256 of the two local package artifacts. These packages are installed through the lockfile; no npm publication is implied. The installed package supplies the Rust SDK at `node_modules/@alwith/api/rust`. Runtime staging defaults to the checksum-verified npm platform package; sibling builds require explicit opt-in. The earlier verification below used an explicitly selected Runtime `7ea6a52`.
 
 Verified on macOS arm64: 101 frontend tests, 33 Rust tests, typecheck, lint, knip, clippy and a Tauri debug app build. The real Codex live suite passed over both stdio and WebSocket, including concurrent conversations, reattach, fresh-agent replay and Runtime state queries.
 
@@ -33,3 +33,11 @@ Native Hasgard checks:
 - Closing main while the real settings window still existed left no U, Runtime, adapter or Codex process from the test instance.
 
 For native tests, create an empty temporary `CODEX_HOME` directory before launch and set a unique `TAURI_HASGARD_SOCKET`. Never run the fresh-store provider smoke against an existing user provider store. The logged-out auxiliary settings page remains behind the normal account gate; the native checks do not assert authenticated settings-page visual behavior. Windows/Linux and release signing were not exercised by these macOS checks.
+
+## Current artifact verification (2026-09-19)
+
+The previous pinned SDK tarball omitted `rust/`, breaking the current Cargo path dependency. The package is now built from API commit `85219966c62c1e806b872c2dfafa5654223c076c`, includes the Rust distribution, and fixes process-exit notification after failed Node/Bun spawn. Its source and SHA-256 are pinned in `vendor/provenance.json`; no npm publication or sibling source dependency was added.
+
+Typecheck, frontend tests, lint, knip, frontend build and the macOS debug bundle passed with this artifact. Standard staging used npm Runtime 0.1.4, Codex 0.154.0 and adapter 0.6.0 from the pinned 440a542 artifact. The live stdio and WebSocket tests each completed two short paid Codex replies, verified concurrent session isolation, reattachment and native history replay after restarting the same engine. Both Runtime processes exited.
+
+A separate native bundle used identifier `ai.alwith.u.smoke8521996` and an empty temporary `CODEX_HOME`. Both provider and auxiliary-window ownership smoke scripts passed. Closing main through the native macOS shortcut removed the app, Runtime, adapter and Codex processes (83339, 85449, 85450, 85461); the live WebSocket listener was also gone. The test provider store ended at revision 3 with zero credentials. Codex left lock files in its temporary directory, but no process held them. The normal ALwith sign-in gate was preserved; authenticated settings-page visual behavior remains unverified.

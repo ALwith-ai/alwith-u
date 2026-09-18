@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
-    "@alwith/api": "file:vendor/alwith-api-182812e.tgz",
+    "@alwith/api": "file:vendor/alwith-api-8521996.tgz",
     "@alwith/module-auth": "0.1.0",
     "@alwith/module-chat": "0.1.1",
     "@alwith/runtime": "0.1.4",
