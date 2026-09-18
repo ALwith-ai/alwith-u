@@ -1,4 +1,7 @@
 {
   "identifier": "ai.alwith.u.dev",
-  "productName": "ALwith U Dev"
+  "productName": "ALwith U Dev",
+  "bundle": {
+    "createUpdaterArtifacts": false
+  }
 }
