@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { openExternal } from "@/lib/open"
-import type { ProviderKey } from "@/lib/preferences"
+import { useProviders } from "@/lib/use-providers"
+import type { ProviderKey, ProviderInput } from "@/lib/providers"
 import { PROVIDERS, type Provider, providerKeyUrl, providerRegion, saveProviderKey } from "@/lib/providers"
 import { SettingGroup, SettingLabel } from "./shared"
 import { CodexProviderSection } from "./codex-provider-section"
@@ -22,16 +23,24 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function ProviderSection({ initialKeys }: { initialKeys: Record<string, ProviderKey> }) {
+export function ProviderSection() {
   const { t } = useTranslation()
-  const [keys, setKeys] = useState(initialKeys)
+  const snapshot = useProviders()
+  const keys = snapshot?.providers ?? {}
   const [busy, setBusy] = useState<string | null>(null)
 
-  const save = async (provider: Provider, key: ProviderKey | null) => {
+  const save = async (provider: Provider, key: ProviderInput | null) => {
+    if (!snapshot) return
     setBusy(provider.id)
     try {
-      setKeys(await saveProviderKey(keys, provider.id, key))
-      toast.success(t(key === null ? "provider.removed" : "provider.saved", { name: provider.name }))
+      const result = await saveProviderKey(snapshot.revision, provider.id, key)
+      if (result.error) toast.error(result.error)
+      if (!result.error)
+        toast.success(
+          t(result.status === "pending" ? "provider.pending" : key === null ? "provider.removed" : "provider.saved", {
+            name: provider.name
+          })
+        )
     } catch (error) {
       toast.error(describe(error))
     } finally {
@@ -42,6 +51,8 @@ export function ProviderSection({ initialKeys }: { initialKeys: Record<string, P
   return (
     <div className="flex flex-col gap-4">
       <CodexProviderSection />
+      {snapshot?.status === "pending" && <p className="text-muted-foreground text-sm">{t("provider.pending")}</p>}
+      {snapshot?.error && <p className="text-destructive text-sm">{snapshot.error}</p>}
       <SettingGroup>
         <SettingLabel>{t("provider.label")}</SettingLabel>
         {PROVIDERS.map((provider, index) => (
@@ -50,7 +61,7 @@ export function ProviderSection({ initialKeys }: { initialKeys: Record<string, P
             <ProviderRow
               provider={provider}
               saved={keys[provider.id] ?? null}
-              busy={busy === provider.id}
+              busy={busy !== null || snapshot === null}
               onSave={key => void save(provider, key)}
             />
           </div>
@@ -69,7 +80,7 @@ function ProviderRow({
   provider: Provider
   saved: ProviderKey | null
   busy: boolean
-  onSave: (key: ProviderKey | null) => void
+  onSave: (key: ProviderInput | null) => void
 }) {
   const { t } = useTranslation()
   const [apiKey, setApiKey] = useState("")
@@ -86,8 +97,7 @@ function ProviderRow({
 
   const submit = () => {
     if (keyTrimmed === "" && saved === null) return
-    const apiKeyToSave = keyTrimmed === "" && saved !== null ? saved.apiKey : keyTrimmed
-    onSave(region === undefined ? { apiKey: apiKeyToSave } : { apiKey: apiKeyToSave, region })
+    onSave({ ...(keyTrimmed === "" ? {} : { apiKey: keyTrimmed }), ...(region === undefined ? {} : { region }) })
     setApiKey("")
   }
 

@@ -1,9 +1,47 @@
 import { afterEach, expect, test } from "bun:test"
-import { CodexClient } from "../client"
+import { CodexClient, type GatewayModel } from "../client"
 import { FakeHubPort } from "./fake-runtime-client"
 import { isSelectOption } from "@alwith/api"
 import { createFakeAgent } from "./fake-agent"
 import { must } from "@/lib/__tests__/must"
+
+/**
+ * `providers/set` in catalog mode (codex-acp-v2 0.5.0): the gateway's models join every
+ * session's `model` option as their own group and a session moves to the gateway only when
+ * one of them is selected. Nothing global changes.
+ */
+type GatewayConfig = {
+  /** Gateway id (`_meta.codex.id`); one `model_providers` entry and one picker group per id. */
+  id: string
+  name: string
+  baseUrl: string
+  bearerToken: string
+  models: GatewayModel[]
+  /** Extra Codex thread-config keys applied only to threads on the gateway. */
+  config: Record<string, unknown>
+}
+
+// Native host owns provider registration; tests configure the in-process engine through its port.
+async function registerGateway(port: FakeHubPort, gateway: GatewayConfig) {
+  await port.acpRequest("codex", "providers/set", {
+    providerId: "openai",
+    apiType: "openai",
+    baseUrl: gateway.baseUrl,
+    _meta: {
+      codex: {
+        id: gateway.id,
+        mode: "catalog",
+        name: gateway.name,
+        bearerToken: gateway.bearerToken,
+        config: gateway.config
+      },
+      alwith: { models: gateway.models }
+    }
+  })
+}
+async function unregisterGateway(port: FakeHubPort, id: string) {
+  await port.acpRequest("codex", "providers/disable", { providerId: "openai", _meta: { codex: { id } } })
+}
 
 const clients: CodexClient[] = []
 afterEach(() => {
@@ -116,8 +154,8 @@ test("authentication errors propagate from session/new", async () => {
 })
 
 test("a configured gateway can create a chat without signing in to Codex", async () => {
-  const { client, fake } = await make()
-  await client.registerGateway({
+  const { client, fake, port } = await make()
+  await registerGateway(port, {
     id: "deepseek",
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com/",
@@ -131,10 +169,10 @@ test("a configured gateway can create a chat without signing in to Codex", async
   expect(client.session(id).attached).toBe(true)
 })
 
-test("registerGateway sends catalog-mode hints and moved threads resume with _meta.alwith.model", async () => {
-  const { client, fake } = await make()
+test("host configured gateway models are identified from the session catalog and resumed with the model hint", async () => {
+  const { client, fake, port } = await make()
   expect(client.providerCatalog).toBe(true)
-  await client.registerGateway({
+  await registerGateway(port, {
     id: "deepseek",
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com/",
@@ -175,13 +213,13 @@ test("registerGateway sends catalog-mode hints and moved threads resume with _me
   expect(fake.modelHints.get(native)).toBeNull()
   expect(fake.modelHints.get(moved)).toBe("deepseek-flash")
 
-  await client.unregisterGateway("deepseek")
+  await unregisterGateway(port, "deepseek")
   expect(fake.gateway.current).toBeNull()
 })
 
 test("several gateways register under their own ids and can be removed one at a time", async () => {
-  const { client, fake } = await make()
-  await client.registerGateway({
+  const { client, fake, port } = await make()
+  await registerGateway(port, {
     id: "deepseek",
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com/",
@@ -189,7 +227,7 @@ test("several gateways register under their own ids and can be removed one at a 
     models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }],
     config: {}
   })
-  await client.registerGateway({
+  await registerGateway(port, {
     id: "xai",
     name: "xAI",
     baseUrl: "https://api.x.ai/v1",
@@ -198,7 +236,6 @@ test("several gateways register under their own ids and can be removed one at a 
     config: {}
   })
   expect([...fake.gateways.keys()]).toEqual(["deepseek", "xai"])
-  expect(client.gatewayIds).toEqual(["deepseek", "xai"])
 
   // Every session's model option carries one group per gateway after Codex's own.
   const id = await client.newSession("/tmp/g")
@@ -214,10 +251,10 @@ test("several gateways register under their own ids and can be removed one at a 
   expect(fake.modelHints.get(moved)).toBe("grok-4.6")
   expect(seen.at(-1)).toEqual(["grok-4.6", true])
 
-  await client.unregisterGateway("xai")
+  await unregisterGateway(port, "xai")
   expect([...fake.gateways.keys()]).toEqual(["deepseek"])
   expect(fake.gateway.current).not.toBeNull()
-  await client.unregisterGateway("deepseek")
+  await unregisterGateway(port, "deepseek")
   expect(fake.gateway.current).toBeNull()
 })
 

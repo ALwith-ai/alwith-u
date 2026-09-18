@@ -1,0 +1,14 @@
+[
+  {
+    "file": "alwith-api-1cd114b.tgz",
+    "source": "https://github.com/ALwith-ai/alwith-api",
+    "commit": "1cd114b",
+    "sha256": "fac2517495cba2778598e9bb750353e9b627ee6fe1a77bcd79e78ab7b4eb86a6"
+  },
+  {
+    "file": "codex-acp-v2-440a542.tgz",
+    "source": "https://github.com/nyssance/codex-acp-v2",
+    "commit": "440a542",
+    "sha256": "d21de15df685711563b18481bf16c60bb78aa2ce58cb047a25ef85dba691a873"
+  }
+]

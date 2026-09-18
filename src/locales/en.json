@@ -323,6 +323,7 @@
     }
   },
   "provider": {
+    "pending": "Settings saved. Changes apply when active chats finish.",
     "label": "Model providers",
     "active": "{{count}} models of {{name}} appear in every chat's model picker. Each chat picks its own model.",
     "inactive": "Not configured.",

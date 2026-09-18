@@ -11,7 +11,6 @@ import { Pane } from "@/components/alwith-ui/pane"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
-import type { Preferences } from "@/lib/preferences"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"
 import { AboutSection } from "./sections/about-section"
 import { AppearanceSection } from "./sections/appearance-section"
@@ -31,7 +30,7 @@ function isSection(value: string | null): value is SettingsSection {
   return value !== null && (SETTINGS_SECTIONS as string[]).includes(value)
 }
 
-export function SettingsPage({ preferences }: { preferences: Preferences }) {
+export function SettingsPage() {
   const { t } = useTranslation()
   const [section, setSection] = useState<SettingsSection>(() => {
     const tab = new URLSearchParams(window.location.search).get("tab")
@@ -65,7 +64,7 @@ export function SettingsPage({ preferences }: { preferences: Preferences }) {
       case "appearance":
         return <AppearanceSection />
       case "provider":
-        return <ProviderSection initialKeys={preferences.providerKeys} />
+        return <ProviderSection />
       case "about":
         return <AboutSection />
     }

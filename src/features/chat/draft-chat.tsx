@@ -10,8 +10,8 @@ import { client, useApp } from "@/lib/client"
 import { Composer } from "./composer"
 import { chooseFolder, DraftProjectPicker } from "./draft-project-picker"
 import { DraftModelSelect } from "./composer/draft-model-select"
-import type { ProviderKey } from "@/lib/preferences"
-import { applyProviders, PROVIDERS } from "@/lib/providers"
+import type { ProviderKey } from "@/lib/providers"
+import { applyProviders, PROVIDERS, gatewayModelId } from "@/lib/providers"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -52,14 +52,16 @@ export function DraftChat({
     if (
       model !== null &&
       !PROVIDERS.some(
-        provider => providerKeys[provider.id] !== undefined && provider.models.some(item => item.id === model)
+        provider =>
+          providerKeys[provider.id] !== undefined &&
+          provider.models.some(item => gatewayModelId(provider.id, item.id) === model)
       )
     ) {
       onAuthRequired()
       throw new Error(t("provider.modelUnavailable"))
     }
     if (model !== null && !client.providerCatalog) throw new Error(t("provider.catalogUnavailable"))
-    await applyProviders(providerKeys)
+    await applyProviders()
     let directory = cwd
     if (directory === null) {
       directory = await chooseFolder(null)

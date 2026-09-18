@@ -1,7 +1,7 @@
 import { ModelSelect, type ChatModelOption } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
-import type { ProviderKey } from "@/lib/preferences"
-import { PROVIDERS } from "@/lib/providers"
+import type { ProviderKey } from "@/lib/providers"
+import { PROVIDERS, gatewayModelId } from "@/lib/providers"
 
 const nativeModel: ChatModelOption = { api_id: "", label: "Codex" }
 
@@ -22,7 +22,7 @@ export function DraftModelSelect({
       id: provider.id,
       name: provider.name,
       models: provider.models.map(item => ({
-        api_id: item.id,
+        api_id: gatewayModelId(provider.id, item.id),
         label: item.label ?? item.id,
         description: item.description
       }))

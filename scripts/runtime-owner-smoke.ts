@@ -38,7 +38,7 @@ async function ping() {
     const listener = await api.invoke('plugin:event|listen', {event:'runtime:lines',target:{kind:'Any'},handler:callback});
     const timeout = setTimeout(() => rejectReply(new Error('Runtime ping timed out')), 3000);
     try {
-      await api.invoke('runtime_send', {line:JSON.stringify({id,method:'ping'})});
+      await api.invoke('runtime_send', {connectionId:'owner-smoke',line:JSON.stringify({id,method:'ping'})});
       return await reply;
     } finally {
       clearTimeout(timeout);
@@ -52,7 +52,7 @@ async function ping() {
 }
 
 assert.deepEqual(await labels(), ["main"], "Use an isolated instance without a settings window")
-await hasgard(["ipc", "runtime_start", "--args", "{}"])
+await hasgard(["ipc", "runtime_start", "--args", JSON.stringify({ connectionId: "owner-smoke" })])
 await ping()
 await hasgard([
   "ipc",

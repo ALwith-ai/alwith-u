@@ -2,6 +2,7 @@ mod auth;
 mod installed_apps;
 mod menu;
 mod native;
+mod providers;
 mod runtime;
 mod updater;
 mod window;
@@ -47,6 +48,7 @@ pub fn run() {
         })
         .setup(|app| {
             app.manage(native::Native::load(app.handle())?);
+            app.manage(providers::Providers::load(app.handle())?);
             log::info!("ALwith ü {} starting", env!("CARGO_PKG_VERSION"));
             // The window is transparent; macOS paints the sidebar glass behind it (ALwith
             // Desktop's native_window_effects). Panels that must stay opaque paint their own
@@ -74,6 +76,9 @@ pub fn run() {
             auth::refresh_tokens,
             runtime::runtime_start,
             runtime::runtime_send,
+            providers::providers_read,
+            providers::providers_save,
+            providers::providers_apply,
             updater::commands::updater_get_state,
             updater::commands::updater_install_and_relaunch,
             window::attach_window_to_main,

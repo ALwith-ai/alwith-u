@@ -14,7 +14,7 @@ test("draft shows the configured provider models before any session exists", asy
   let selected: string | null = null
   const view = render(
     <DraftModelSelect
-      keys={{ deepseek: { apiKey: "test-secret-never-render" } }}
+      keys={{ deepseek: { configured: true } }}
       model={null}
       onChange={model => {
         selected = model
@@ -31,14 +31,14 @@ test("draft shows the configured provider models before any session exists", asy
   await act(async () => {
     fireEvent.click(view.getByText("DeepSeek-Flash"))
   })
-  expect(selected).toBe("deepseek-flash")
+  expect(selected).toBe("gateway:deepseek:deepseek-flash")
 })
 
 test("removing a provider does not silently switch a selected draft to Codex", () => {
   const view = render(
     <DraftModelSelect
       keys={{}}
-      model="deepseek-flash"
+      model="gateway:deepseek:deepseek-flash"
       onChange={() => {
         throw new Error("Unexpected model switch")
       }}

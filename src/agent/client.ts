@@ -3,7 +3,14 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { type Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
 import { createStore, type StoreApi } from "zustand/vanilla"
-import { AgentRequests, createSession, type PendingRequest, SessionStore, type Session } from "@alwith/api"
+import {
+  isSelectOption,
+  AgentRequests,
+  createSession,
+  type PendingRequest,
+  SessionStore,
+  type Session
+} from "@alwith/api"
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -30,22 +37,6 @@ export type ConnectionState = "disconnected" | "connecting" | "ready" | "failed"
 
 /** A model the gateway serves; Codex cannot list them, the client says what exists. */
 export type GatewayModel = { id: string; label?: string; description?: string }
-
-/**
- * `providers/set` in catalog mode (codex-acp-v2 0.5.0): the gateway's models join every
- * session's `model` option as their own group and a session moves to the gateway only when
- * one of them is selected. Nothing global changes.
- */
-export type GatewayConfig = {
-  /** Gateway id (`_meta.codex.id`); one `model_providers` entry and one picker group per id. */
-  id: string
-  name: string
-  baseUrl: string
-  bearerToken: string
-  models: GatewayModel[]
-  /** Extra Codex thread-config keys applied only to threads on the gateway. */
-  config: Record<string, unknown>
-}
 
 /** Fires when a session's selected model is known; `isGateway` tells whose model it is. */
 export type SessionModelListener = (sessionId: string, modelId: string, isGateway: boolean) => void
@@ -158,7 +149,6 @@ export class CodexClient {
   private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
-  private readonly gateways = new Map<string, GatewayConfig>()
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
     this.openPort = openPort
@@ -498,40 +488,6 @@ export class CodexClient {
     this.noteModel(this.sessions.get(id))
   }
 
-  /**
-   * Registers the gateway's models in every session's model picker (catalog mode). Only a
-   * session whose model option is set to one of them runs on the gateway.
-   */
-  async registerGateway(gateway: GatewayConfig): Promise<void> {
-    await this.live().request("providers/set", {
-      providerId: "openai",
-      apiType: "openai",
-      baseUrl: gateway.baseUrl,
-      _meta: {
-        codex: {
-          id: gateway.id,
-          mode: "catalog",
-          name: gateway.name,
-          bearerToken: gateway.bearerToken,
-          config: gateway.config
-        },
-        alwith: { models: gateway.models }
-      }
-    })
-    this.gateways.set(gateway.id, gateway)
-  }
-
-  /** Removes one gateway; the adapter moves its sessions back to Codex's own models. */
-  async unregisterGateway(id: string): Promise<void> {
-    await this.live().request("providers/disable", { providerId: "openai", _meta: { codex: { id } } })
-    this.gateways.delete(id)
-  }
-
-  /** Ids of the gateways registered on this connection. */
-  get gatewayIds(): string[] {
-    return [...this.gateways.keys()]
-  }
-
   /** Whether the agent can host gateway models in the per-session model option. */
   get providerCatalog(): boolean {
     const codex = this.state.agent?.capabilities?._meta?.codex
@@ -555,7 +511,13 @@ export class CodexClient {
   private noteModel(session: Session): void {
     const modelId = selectedModel(session.configOptions)
     if (modelId === null) return
-    const isGateway = [...this.gateways.values()].some(gateway => gateway.models.some(model => model.id === modelId))
+    const option = session.configOptions.find(entry => entry.category === "model" && entry.type === "select")
+    const isGateway =
+      option !== undefined &&
+      isSelectOption(option) &&
+      option.options.some(
+        group => "groupId" in group && group.groupId !== "codex" && group.options.some(model => model.value === modelId)
+      )
     if (isGateway) this.gatewayModels.set(session.id, modelId)
     else this.gatewayModels.delete(session.id)
     for (const listener of this.modelListeners) listener(session.id, modelId, isGateway)

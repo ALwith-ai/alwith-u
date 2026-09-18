@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "Inflector"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -33,9 +39,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-api"
+version = "0.1.1"
+source = "git+https://github.com/ALwith-ai/alwith-api.git?rev=c139f6c9f977e78fb804804c107cb1d7defef4bd#c139f6c9f977e78fb804804c107cb1d7defef4bd"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "specta",
+ "specta-typescript",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-u"
 version = "0.1.0"
 dependencies = [
+ "alwith-api",
  "base64 0.23.1",
  "libloading 0.8.9",
  "log",
@@ -61,6 +81,7 @@ dependencies = [
  "tauri-plugin-store",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
+ "tempfile",
  "tokio",
  "uuid",
 ]
@@ -3898,6 +3919,7 @@ version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
 dependencies = [
+ "indexmap 2.14.2",
  "itoa",
  "memchr",
  "serde",
@@ -4165,6 +4187,38 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
+]
+
+[[package]]
+name = "specta"
+version = "2.0.0-rc.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f320c7dd82008b6958f43f6257c95319c407d1c17ade43686e50ea520c28bb26"
+dependencies = [
+ "rustc_version",
+ "serde_json",
+ "specta-macros",
+]
+
+[[package]]
+name = "specta-macros"
+version = "2.0.0-rc.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "153f185d0051a64d81977bab5012809d5c9d9db8792406a0997352e05494f711"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "specta-typescript"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea586e1709619c9f4cb0c9115ff29c278f331c0450aff266c2913c639708b299"
+dependencies = [
+ "specta",
 ]
 
 [[package]]
@@ -5035,7 +5089,9 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
+ "parking_lot",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",

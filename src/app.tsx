@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -17,10 +16,11 @@ import { CommandPalette } from "@/features/palette/command-palette"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
+import { useProviders } from "@/lib/use-providers"
 import { applyProviders } from "@/lib/providers"
 import { onHubExit } from "@/lib/runtime"
 import { watchForNotifications } from "@/lib/notifications"
-import { PREFERENCES_CHANGED, type PreferenceChange, savePreference, type Preferences } from "@/lib/preferences"
+import { savePreference, type Preferences } from "@/lib/preferences"
 import { hasAccount } from "@/agent/codex-extensions"
 import { serveSettingsBridge } from "@/lib/settings-bridge"
 import { openSettingsWindow } from "@/lib/window-manager"
@@ -39,9 +39,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // user opens one.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
-  const [providerKeys, setProviderKeys] = useState(initialPreferences.providerKeys)
-  const providerKeysRef = useRef(providerKeys)
-  providerKeysRef.current = providerKeys
+  const providerSnapshot = useProviders()
+  const providerKeys = providerSnapshot?.providers ?? {}
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // What the main area shows: the selected chat, or the skills and plugins store.
@@ -92,7 +91,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       // Providers join the model pickers before any thread opens, so a thread the user moved
       // to one of them resumes there.
       client.setGatewayModels(initialPreferences.sessionModels)
-      await applyProviders(providerKeysRef.current)
+      await applyProviders()
       void stopRunStates.current?.then(stop => stop())
       stopRunStates.current = watchRunStates().catch((error: unknown) => {
         toast.error(describe(error))
@@ -146,16 +145,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       },
       onRateLimits: listener => client.onRateLimits(listener)
     })
-    const stopKey = listen<PreferenceChange>(PREFERENCES_CHANGED, event => {
-      if (event.payload.key !== "providerKeys") return
-      const keys = event.payload.value as Preferences["providerKeys"]
-      setProviderKeys(keys)
-      applyProviders(keys).catch((error: unknown) => toast.error(describe(error)))
-    })
-    return () => {
-      stopBridge()
-      void stopKey.then(stop => stop())
-    }
+    return stopBridge
   }, [])
 
   useEffect(() => {

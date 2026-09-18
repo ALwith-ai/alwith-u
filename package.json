@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
-    "@alwith/api": "0.1.2",
+    "@alwith/api": "file:vendor/alwith-api-1cd114b.tgz",
     "@alwith/module-auth": "0.1.0",
     "@alwith/module-chat": "0.1.1",
     "@alwith/runtime": "0.1.3",
@@ -73,7 +73,7 @@
     "@alwith/native": "0.1.1",
     "@biomejs/biome": "^2.5.14",
     "@happy-dom/global-registrator": "^20.14.3",
-    "@nyssance/codex-acp-v2": "0.6.0",
+    "@nyssance/codex-acp-v2": "file:vendor/codex-acp-v2-440a542.tgz",
     "@openai/codex": "0.154.0",
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/dom": "^10.4.1",
