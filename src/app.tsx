@@ -12,6 +12,7 @@ import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { DraftChat } from "@/features/chat/draft-chat"
 import { PluginsPage } from "@/features/plugins/plugins-page"
+import { StoryPage } from "@/features/story/story-page"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
@@ -44,7 +45,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // What the main area shows: the selected chat, or the skills and plugins store.
-  const [view, setView] = useState<"chat" | "plugins">("chat")
+  const [view, setView] = useState<"chat" | "plugins" | "story">("chat")
   const session = useSession(selectedId)
   const stopRunStates = useRef<Promise<() => void> | null>(null)
   const selectedRunState = useApp(state => (selectedId === null ? null : (state.runStates[selectedId]?.state ?? null)))
@@ -233,6 +234,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         </div>
       ) : null
     if (view === "plugins") return <PluginsPage cwd={session?.cwd ?? lastDirectory} />
+    if (view === "story") return <StoryPage />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
     if (session !== null) return <ChatView key={session.id} session={session} />
     return (
@@ -257,6 +259,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         onNewChat={newChat}
         onOpenSettings={() => void openSettingsWindow()}
         onOpenPlugins={() => setView("plugins")}
+        onOpenStory={() => setView("story")}
       />
       <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
         {globalActions.length > 0 && (
@@ -275,6 +278,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         onNewChat={newChat}
         onOpenSettings={() => void openSettingsWindow()}
         onOpenPlugins={() => setView("plugins")}
+        onOpenStory={() => setView("story")}
         onOpenHotkeys={() => setHotkeysOpen(true)}
         onSelect={select}
       />

@@ -44,6 +44,7 @@
     "signOut": "退出登录"
   },
   "sidebar": {
+    "story": "故事",
     "plugins": "插件",
     "newChat": "新聊天",
     "chats": "聊天",
@@ -548,6 +549,7 @@
     }
   },
   "palette": {
+    "story": "打开故事",
     "hotkeys": "键盘快捷键",
     "plugins": "打开插件",
     "placeholder": "输入命令或搜索聊天",
@@ -564,5 +566,28 @@
   "time": {
     "today": "今天",
     "yesterday": "昨天"
+  },
+  "story": {
+    "title": "故事",
+    "root": "故事目录",
+    "open": "打开",
+    "frame": "框架",
+    "frameHint": "agent 每次都先看到的固定设定。按 `## 键` 标题分节。",
+    "saveFrame": "保存框架",
+    "start": "启动 agent",
+    "stop": "停止",
+    "prompt": "输入",
+    "send": "发送",
+    "promptHint": "输入 /compact 强制压缩,摘要会成为一条笔记。",
+    "ledger": "账本",
+    "notes": "笔记",
+    "noNotes": "还没有笔记。",
+    "current": "当前",
+    "invalidated": "已作废",
+    "through": "覆盖到 #{{seq}},来源 {{sources}}",
+    "transcript": "对话",
+    "rejected": "权限请求已拒绝(演示不授予任何权限)",
+    "unavailable": "story 模块未加载。先构建它,再带 ALWITH_U_DSH_AGENT 运行 U;见 docs/story-demo.md。",
+    "status": "revision {{revision}} · {{entries}} 条 · {{notes}} 笔记"
   }
 }

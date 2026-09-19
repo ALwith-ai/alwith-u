@@ -50,6 +50,7 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "story": "Story",
     "plugins": "Plugins",
     "newChat": "New chat",
     "chats": "Chats",
@@ -569,6 +570,7 @@
     }
   },
   "palette": {
+    "story": "Open story",
     "hotkeys": "Keyboard shortcuts",
     "plugins": "Open plugins",
     "placeholder": "Type a command or search chats",
@@ -585,5 +587,28 @@
   "time": {
     "today": "Today",
     "yesterday": "Yesterday"
+  },
+  "story": {
+    "title": "Story",
+    "root": "Story root",
+    "open": "Open",
+    "frame": "Frame",
+    "frameHint": "Fixed settings the agent always sees first. One section per `## key` heading.",
+    "saveFrame": "Save frame",
+    "start": "Start agent",
+    "stop": "Stop",
+    "prompt": "Prompt",
+    "send": "Send",
+    "promptHint": "Type /compact to force a compaction; its summary becomes a note.",
+    "ledger": "Ledger",
+    "notes": "Notes",
+    "noNotes": "No notes yet.",
+    "current": "current",
+    "invalidated": "invalidated",
+    "through": "through #{{seq}}, sources {{sources}}",
+    "transcript": "Transcript",
+    "rejected": "Permission request rejected (the demo grants nothing)",
+    "unavailable": "The story module is not loaded. Build it and run U with ALWITH_U_DSH_AGENT set; see docs/story-demo.md.",
+    "status": "revision {{revision}} · {{entries}} entries · {{notes}} notes"
   }
 }

@@ -68,8 +68,38 @@ fn sidecar_path(name: &str) -> Result<PathBuf, String> {
 }
 
 fn engines_table() -> Result<String, String> {
-    Ok(json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}})
-        .to_string())
+    let mut engines = json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}});
+    // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
+    // `bun` (`ALWITH_U_BUN` overrides the executable). U does not ship dsh yet; the story demo needs it.
+    if let Ok(entry) = std::env::var("ALWITH_U_DSH_AGENT") {
+        if !PathBuf::from(&entry).is_file() {
+            return Err(format!("ALWITH_U_DSH_AGENT is not a file: {entry}"));
+        }
+        let bun = match std::env::var("ALWITH_U_BUN") {
+            Ok(path) => PathBuf::from(path),
+            Err(_) => find_on_path("bun").ok_or("bun not found on PATH; set ALWITH_U_BUN")?,
+        };
+        engines["dsh"] = json!({"command": bun, "args": [entry]});
+    }
+    Ok(engines.to_string())
+}
+
+/// The Runtime launches engines by absolute path; resolve a bare executable name the way a shell would.
+fn find_on_path(name: &str) -> Option<PathBuf> {
+    let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
+    std::env::split_paths(&std::env::var_os("PATH")?).map(|dir| dir.join(&file)).find(|path| path.is_file())
+}
+
+/// Where the Runtime finds modules (`alwith-module.json` packages): `ALWITH_MODULES_DIR` when set, else this
+/// checkout's `node_modules` in development builds. Release builds without the variable load no modules.
+fn modules_dir() -> Option<PathBuf> {
+    if let Some(dir) = std::env::var_os("ALWITH_MODULES_DIR") {
+        return Some(PathBuf::from(dir));
+    }
+    if cfg!(debug_assertions) {
+        return Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../node_modules"));
+    }
+    None
 }
 
 #[tauri::command]
@@ -103,6 +133,9 @@ pub async fn runtime_start(
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")
         .hide_console();
+    if let Some(dir) = modules_dir() {
+        command.env("ALWITH_MODULES_DIR", dir);
+    }
     let client = tokio::select! {
         result = tokio::time::timeout(READY_TIMEOUT, RuntimeClient::spawn(command)) => {
             Arc::new(result.map_err(|_| "alwith-runtime did not report ready in time")?.map_err(|error| error.to_string())?)
