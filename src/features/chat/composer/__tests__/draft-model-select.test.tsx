@@ -14,7 +14,14 @@ test("draft shows the configured provider models before any session exists", asy
   let selected: string | null = null
   const view = render(
     <DraftModelSelect
-      keys={{ deepseek: { configured: true } }}
+      snapshot={{
+        revision: 1,
+        appliedRevision: 1,
+        providers: { deepseek: { configured: true } },
+        customProviders: [],
+        status: "applied",
+        error: null
+      }}
       model={null}
       onChange={model => {
         selected = model
@@ -37,7 +44,14 @@ test("draft shows the configured provider models before any session exists", asy
 test("removing a provider does not silently switch a selected draft to Codex", () => {
   const view = render(
     <DraftModelSelect
-      keys={{}}
+      snapshot={{
+        revision: 2,
+        appliedRevision: 2,
+        providers: {},
+        customProviders: [],
+        status: "applied",
+        error: null
+      }}
       model="gateway:deepseek:deepseek-flash"
       onChange={() => {
         throw new Error("Unexpected model switch")

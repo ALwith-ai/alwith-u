@@ -14,7 +14,14 @@ afterEach(() => {
 let providersRead: ReturnType<typeof spyOn> | undefined
 let eventListen: ReturnType<typeof spyOn> | undefined
 function snapshot(revision: number, status: ProviderSnapshot["status"] = "applied"): ProviderSnapshot {
-  return { revision, appliedRevision: status === "applied" ? revision : null, providers: {}, status, error: null }
+  return {
+    revision,
+    appliedRevision: status === "applied" ? revision : null,
+    providers: {},
+    customProviders: [],
+    status,
+    error: null
+  }
 }
 
 for (const [eventRevision, readRevision, expectedRevision] of [

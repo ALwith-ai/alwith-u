@@ -2,9 +2,11 @@
 
 U owns one Runtime process through the Rust `alwith-api` SDK. Webviews own their subscriptions and request identities. Each connection supplies a UUID to `runtime_start` and `runtime_send`; the host rejects replaced connections and echoes that identity on replies. Closing a webview client rejects pending requests and removes subscriptions. The main native window owns application lifetime; destroying an auxiliary window preserves the Runtime, and quitting closes it with a three-second grace period.
 
-Provider credentials belong to the native host in `runtime-providers.json`, written by private temporary-file replacement. `providers_read` and `providers:changed` return configured/region metadata, saved revision, applied revision, pending/applied/failed status and sanitized errors. Settings submit only explicit edits with the expected revision. Region-only edits preserve the native credential. No credential is read back to React or broadcast through the preference store. There is no old preference-key migration.
+Provider credentials belong to the native host in `runtime-providers.json`, written by private temporary-file replacement. `providers_read` and `providers:changed` return configured/region/base-URL metadata, page-defined custom providers, saved revision, applied revision, pending/applied/failed status and sanitized errors. Settings submit only explicit edits with the expected revision. Region-only and public-config-only edits preserve the native credential. No credential is read back to React or broadcast through the preference store. Existing files without custom-provider fields continue to deserialize with empty defaults.
 
 The shared JSON catalog supplies endpoints and models to both layers. Gateway selection uses the adapter's connection-qualified model identity. Native Codex account login and gateway catalogs remain independent; no global Codex configuration is written.
+
+The settings page owns custom-provider names, base URLs and Desktop-compatible model JSON (`label`, `api_id`, optional `contextWindow` and `description`). Rust validates these values only at its persistence boundary, stores the API key privately, maps the page model shape to the adapter catalog shape and performs the explicit paid connection probe against `<base URL>/responses`. Probe errors are classified by transport/HTTP status, truncated and scrubbed of the submitted key before reaching the webview.
 
 | Boundary | Behavior |
 | --- | --- |

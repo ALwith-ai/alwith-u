@@ -10,8 +10,8 @@ import { client, useApp } from "@/lib/client"
 import { Composer } from "./composer"
 import { chooseFolder, DraftProjectPicker } from "./draft-project-picker"
 import { DraftModelSelect } from "./composer/draft-model-select"
-import type { ProviderKey } from "@/lib/providers"
-import { applyProviders, PROVIDERS, gatewayModelId } from "@/lib/providers"
+import type { ProviderSnapshot } from "@/lib/providers"
+import { applyProviders, gatewayModelId, providerGroups } from "@/lib/providers"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -25,7 +25,7 @@ export function DraftChat({
   onCwdChange,
   onCreated,
   onAuthRequired,
-  providerKeys
+  providerSnapshot
 }: {
   cwd: string | null
   onCwdChange: (cwd: string) => void
@@ -33,7 +33,7 @@ export function DraftChat({
   onCreated: (sessionId: string) => void
   /** session/new refused for want of a login; the app opens provider settings. */
   onAuthRequired: () => void
-  providerKeys: Record<string, ProviderKey>
+  providerSnapshot: ProviderSnapshot | null
 }) {
   const { t } = useTranslation()
   const threads = useApp(state => state.threads)
@@ -51,11 +51,10 @@ export function DraftChat({
     await client.connect()
     if (
       model !== null &&
-      !PROVIDERS.some(
-        provider =>
-          providerKeys[provider.id] !== undefined &&
+      (providerSnapshot === null ||
+        !providerGroups(providerSnapshot).some(provider =>
           provider.models.some(item => gatewayModelId(provider.id, item.id) === model)
-      )
+        ))
     ) {
       onAuthRequired()
       throw new Error(t("provider.modelUnavailable"))
@@ -99,7 +98,7 @@ export function DraftChat({
       <Composer
         session={{ ...draft, cwd: cwd ?? "" }}
         onSubmit={send}
-        modelSelector={<DraftModelSelect keys={providerKeys} model={model} onChange={setModel} />}
+        modelSelector={<DraftModelSelect snapshot={providerSnapshot} model={model} onChange={setModel} />}
       />
     </div>
   )

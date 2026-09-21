@@ -41,7 +41,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
-  const providerKeys = providerSnapshot?.providers ?? {}
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // What the main area shows: the selected chat, or the skills and plugins store.
@@ -245,7 +244,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onAuthRequired={() => void openSettingsWindow("provider")}
-          providerKeys={providerKeys}
+          providerSnapshot={providerSnapshot}
         />
       </>
     )

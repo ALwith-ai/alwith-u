@@ -61,6 +61,7 @@ dependencies = [
  "minisign-verify",
  "objc2",
  "objc2-app-kit",
+ "reqwest 0.12.28",
  "semver",
  "serde",
  "serde_json",

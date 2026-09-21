@@ -1,9 +1,10 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { beforeAll, expect, mock, test } from "bun:test"
+import { useState } from "react"
 import { installDom } from "../../../chat/codex/__tests__/dom-environment"
 import { initI18n } from "@/lib/i18n"
 import { PROVIDERS, type ProviderSnapshot } from "@/lib/providers"
-import { ProviderRow } from "../provider-section"
+import { ProviderRow, ProviderTabs } from "../provider-section"
 
 installDom()
 beforeAll(async () => {
@@ -17,6 +18,7 @@ function snapshot(revision: number, region = "intl"): ProviderSnapshot {
     appliedRevision: revision,
     status: "applied",
     error: null,
+    customProviders: [],
     providers: { qwen: { configured: true, region } }
   }
 }
@@ -140,4 +142,68 @@ test("a successful save advances the base without erasing text typed while it wa
   await act(async () => {
     finish(snapshot(3, "cn"))
   })
+})
+
+test("a built-in provider saves a page-configured API base URL", async () => {
+  const save = mock(async () => snapshot(2))
+  const view = render(
+    <ProviderRow
+      provider={provider}
+      saved={{ configured: true, region: "intl" }}
+      revision={1}
+      busy={false}
+      onSave={save}
+    />
+  )
+  await act(async () => {
+    const input = view.getByLabelText("API base URL")
+    input.focus()
+    fireEvent.input(input, {
+      target: { value: "https://gateway.example.test/v1" }
+    })
+    fireEvent.keyUp(input, { key: "a" })
+  })
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  })
+  expect(save.mock.calls[0]).toEqual([1, { region: "intl", baseUrl: "https://gateway.example.test/v1" }])
+})
+
+test("provider tabs show configuration state and switch the single active panel", async () => {
+  const custom = {
+    id: "custom_private",
+    name: "Private gateway",
+    baseUrl: "https://gateway.example.test/v1",
+    models: [{ label: "Model A", api_id: "model-a" }]
+  }
+  function Harness() {
+    const [active, setActive] = useState("deepseek")
+    return (
+      <>
+        <ProviderTabs
+          activeId={active}
+          keys={{ deepseek: { configured: true } }}
+          customProviders={[custom]}
+          onSelect={setActive}
+          onAdd={() => setActive("new")}
+        />
+        <output>{active}</output>
+      </>
+    )
+  }
+  const view = render(<Harness />)
+  expect(view.getByRole("button", { name: "DeepSeek" }).getAttribute("aria-pressed")).toBe("true")
+  expect(view.getByTestId("deepseek-status").getAttribute("data-configured")).toBe("true")
+  expect(view.getByTestId("qwen-status").getAttribute("data-configured")).toBe("false")
+
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Qwen" }))
+  })
+  expect(view.getByRole("button", { name: "Qwen" }).getAttribute("aria-pressed")).toBe("true")
+  expect(view.getByText("qwen")).toBeTruthy()
+
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Private gateway" }))
+  })
+  expect(view.getByText("custom_private")).toBeTruthy()
 })

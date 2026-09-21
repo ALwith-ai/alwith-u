@@ -11,14 +11,40 @@ import { GrokLogo } from "@/components/icons/grok-logo"
 import { OpenRouterLogo } from "@/components/icons/openrouter-logo"
 import { QwenLogo } from "@/components/icons/qwen-logo"
 import type { GatewayModel } from "@/agent/client"
-export type ProviderKey = { configured: boolean; region?: string | null }
-export type ProviderInput = { apiKey?: string; region?: string }
+export type ProviderKey = { configured: boolean; region?: string | null; baseUrl?: string | null }
+export type ProviderInput = { apiKey?: string; region?: string; baseUrl?: string }
+export type CustomModel = {
+  label: string
+  api_id: string
+  contextWindow?: number | null
+  description?: string
+}
+export type CustomProvider = { id: string; name: string; baseUrl: string; models: CustomModel[] }
+export type CustomProviderInput = CustomProvider & { apiKey?: string }
 export type ProviderSnapshot = {
   revision: number
   appliedRevision: number | null
   providers: Record<string, ProviderKey>
+  customProviders: CustomProvider[]
   status: "pending" | "applied" | "failed"
   error: string | null
+}
+export type ProviderTestResult = {
+  ok: boolean
+  code:
+    | "ok"
+    | "unauthorized"
+    | "not_found"
+    | "rate_limited"
+    | "request_rejected"
+    | "server_error"
+    | "timeout"
+    | "network"
+    | "request_failed"
+    | "invalid_response"
+  message: string
+  status: number | null
+  latencyMs: number | null
 }
 export const PROVIDERS_CHANGED = "providers:changed"
 
@@ -46,6 +72,53 @@ const logos: Record<string, Provider["logo"]> = {
   xai: GrokLogo
 }
 export const PROVIDERS: Provider[] = catalog.map(provider => ({ ...provider, logo: logos[provider.id] }))
+
+export function parseCustomModels(source: string): CustomModel[] {
+  const value: unknown = JSON.parse(source)
+  if (!Array.isArray(value) || value.length === 0) throw new Error("Add at least one model")
+  const ids = new Set<string>()
+  return value.map((item: unknown) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item))
+      throw new Error("Each model must be an object")
+    const model = item as Record<string, unknown>
+    const label = typeof model.label === "string" ? model.label.trim() : ""
+    const apiId = typeof model.api_id === "string" ? model.api_id.trim() : ""
+    if (label === "" || apiId === "") throw new Error("Model label and API ID cannot be empty")
+    if (ids.has(apiId)) throw new Error("Model IDs must be unique")
+    ids.add(apiId)
+    if (
+      model.contextWindow !== undefined &&
+      model.contextWindow !== null &&
+      (!Number.isSafeInteger(model.contextWindow) || (model.contextWindow as number) <= 0)
+    )
+      throw new Error("Model contextWindow must be a positive integer")
+    if (model.description !== undefined && typeof model.description !== "string")
+      throw new Error("Model description must be a string")
+    return {
+      label,
+      api_id: apiId,
+      ...(model.contextWindow === undefined ? {} : { contextWindow: model.contextWindow as number | null }),
+      ...(model.description === undefined ? {} : { description: model.description })
+    }
+  })
+}
+
+export function providerGroups(
+  snapshot: ProviderSnapshot
+): Array<{ id: string; name: string; models: GatewayModel[] }> {
+  return [
+    ...PROVIDERS.filter(provider => snapshot.providers[provider.id] !== undefined).map(provider => ({
+      id: provider.id,
+      name: provider.name,
+      models: provider.models
+    })),
+    ...snapshot.customProviders.map(provider => ({
+      id: provider.id,
+      name: provider.name,
+      models: provider.models.map(model => ({ id: model.api_id, label: model.label, description: model.description }))
+    }))
+  ]
+}
 export function gatewayModelId(providerId: string, modelId: string): string {
   return `gateway:${encodeURIComponent(providerId)}:${encodeURIComponent(modelId)}`
 }
@@ -73,4 +146,13 @@ export function saveProviderKey(
   input: ProviderInput | null
 ): Promise<ProviderSnapshot> {
   return invoke("providers_save", { providerId, input, expectedRevision: revision })
+}
+export function saveCustomProvider(revision: number, input: CustomProviderInput): Promise<ProviderSnapshot> {
+  return invoke("providers_save_custom", { input, expectedRevision: revision })
+}
+export function removeCustomProvider(revision: number, providerId: string): Promise<ProviderSnapshot> {
+  return invoke("providers_remove_custom", { providerId, expectedRevision: revision })
+}
+export function testProvider(providerId: string): Promise<ProviderTestResult> {
+  return invoke("providers_test", { providerId })
 }

@@ -1,24 +1,24 @@
 import { ModelSelect, type ChatModelOption } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
-import type { ProviderKey } from "@/lib/providers"
-import { PROVIDERS, gatewayModelId } from "@/lib/providers"
+import type { ProviderSnapshot } from "@/lib/providers"
+import { gatewayModelId, providerGroups } from "@/lib/providers"
 
 const nativeModel: ChatModelOption = { api_id: "", label: "Codex" }
 
 /** Native model details arrive with session/new; gateway models are already in the catalog. */
 export function DraftModelSelect({
-  keys,
+  snapshot,
   model,
   onChange
 }: {
-  keys: Record<string, ProviderKey>
+  snapshot: ProviderSnapshot | null
   model: string | null
   onChange: (model: string | null) => void
 }) {
   const { t } = useTranslation()
   const groups: { id: string; name: string; models: ChatModelOption[] }[] = [
     { id: "codex", name: "Codex", models: [nativeModel] },
-    ...PROVIDERS.filter(provider => keys[provider.id] !== undefined).map(provider => ({
+    ...(snapshot === null ? [] : providerGroups(snapshot)).map(provider => ({
       id: provider.id,
       name: provider.name,
       models: provider.models.map(item => ({
