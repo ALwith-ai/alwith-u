@@ -1,4 +1,13 @@
 {
+  "app": {
+    "name": "ALwith U"
+  },
+  "errorBoundary": {
+    "label": "错误",
+    "componentStack": "组件堆栈",
+    "title": "出了点问题。",
+    "retry": "重试"
+  },
   "platformAuth": {
     "intro": "登录你的 ALwith 账号",
     "independent": "U 与 Desktop 分别登录，同一 ALwith 账号的宠物和权益不变。模型供应商登录单独设置。",
@@ -41,7 +50,9 @@
     "signInDevice": "使用设备码登录",
     "signInApiKey": "使用 API key",
     "signInHint": "登录以使用 Codex 模型。其他供应商使用各自的 API 密钥。",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "apiKeyPlaceholder": "sk-…",
+    "apiKeyTitle": "API 密钥"
   },
   "sidebar": {
     "story": "故事",
@@ -133,7 +144,8 @@
       "cacheHitRate": "缓存命中率",
       "total": "总计",
       "notAvailable": "暂无",
-      "context": "上下文窗口"
+      "context": "上下文窗口",
+      "contextSummary": "{{used}} / {{limit}} Token · {{percent}}%"
     },
     "error": {
       "title": "Codex 遇到错误",
@@ -172,28 +184,39 @@
       "audioOutput": "音频输出",
       "summary": {
         "read": {
+          "leading_one": "读取了 {{count}} 个文件",
           "leading_other": "读取了 {{count}} 个文件",
+          "following_one": "、读取了 {{count}} 个文件",
           "following_other": "、读取了 {{count}} 个文件"
         },
         "edit": {
           "leading_one": "已编辑 {{count}} 个文件",
           "leading_other": "编辑了 {{count}} 个文件",
+          "following_one": "、编辑了 {{count}} 个文件",
           "following_other": "、编辑了 {{count}} 个文件"
         },
         "search": {
+          "leading_one": "搜索了 {{count}} 次",
           "leading_other": "搜索了 {{count}} 次",
+          "following_one": "、搜索了 {{count}} 次",
           "following_other": "、搜索了 {{count}} 次"
         },
         "execute": {
+          "leading_one": "运行了 {{count}} 条命令",
           "leading_other": "运行了 {{count}} 条命令",
+          "following_one": "、运行了 {{count}} 条命令",
           "following_other": "、运行了 {{count}} 条命令"
         },
         "fetch": {
+          "leading_one": "搜索了 {{count}} 次网页",
           "leading_other": "搜索了 {{count}} 次网页",
+          "following_one": "、搜索了 {{count}} 次网页",
           "following_other": "、搜索了 {{count}} 次网页"
         },
         "other": {
+          "leading_one": "使用了 {{count}} 个工具",
           "leading_other": "使用了 {{count}} 个工具",
+          "following_one": "、使用了 {{count}} 个工具",
           "following_other": "、使用了 {{count}} 个工具"
         }
       }
@@ -270,6 +293,7 @@
     "account": "账户",
     "provider": "模型提供方",
     "about": "关于",
+    "codexVersion": "Codex CLI {{version}}",
     "version": "版本 {{version}}",
     "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。"
   },
@@ -522,7 +546,9 @@
       "upgradedAll": "市场已升级",
       "upgradeAllError": "部分市场升级失败",
       "upgradeAllRequestError": "升级市场失败",
+      "pluginCount_one": "{{count}} 个插件",
       "pluginCount_other": "{{count}} 个插件",
+      "partialMore_one": "还有 {{count}} 个市场无法加载",
       "partialMore_other": "还有 {{count}} 个市场无法加载"
     }
   },

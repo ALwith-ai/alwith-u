@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 
 export function AppDirectionProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation()
-  const language = i18n.language
+  const language = i18n.resolvedLanguage ?? "en"
   const direction = i18n.dir(language)
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import { PatchView } from "./patch-view"
 
 export function useChatActivityHost(): ActivityHost {
   const { t, i18n } = useTranslation()
-  const language = i18n.language
+  const language = i18n.resolvedLanguage ?? "en"
   return useMemo(
     () =>
       ({

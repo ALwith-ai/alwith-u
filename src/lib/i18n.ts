@@ -1,18 +1,7 @@
 import i18n from "i18next"
-import { withChatResources } from "@alwith/module-chat/locales"
+import { chatLocales } from "@alwith/module-chat/locales"
 import { initReactI18next } from "react-i18next"
-import ar from "@/locales/ar.json"
-import de from "@/locales/de.json"
 import en from "@/locales/en.json"
-import es from "@/locales/es.json"
-import fr from "@/locales/fr.json"
-import hi from "@/locales/hi.json"
-import id from "@/locales/id.json"
-import it from "@/locales/it.json"
-import ja from "@/locales/ja.json"
-import ko from "@/locales/ko.json"
-import ptBR from "@/locales/pt-BR.json"
-import ru from "@/locales/ru.json"
 import zhCN from "@/locales/zh-CN.json"
 
 /** ALwith Desktop's language list; translations come from Desktop (scripts/locales-from-desktop.ts). */
@@ -62,21 +51,10 @@ function systemLanguage(): LanguageCode {
 
 export function initI18n(language: string | null): Promise<unknown> {
   return i18n.use(initReactI18next).init({
-    resources: withChatResources({
-      en: { translation: en },
-      "zh-CN": { translation: zhCN },
-      fr: { translation: fr },
-      de: { translation: de },
-      it: { translation: it },
-      es: { translation: es },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      ru: { translation: ru },
-      ar: { translation: ar },
-      "pt-BR": { translation: ptBR },
-      hi: { translation: hi },
-      id: { translation: id }
-    }),
+    resources: {
+      en: { translation: en, alwithChat: chatLocales.en },
+      "zh-CN": { translation: zhCN, alwithChat: chatLocales["zh-CN"] }
+    },
     lng: language !== null && isLanguageCode(language) ? language : systemLanguage(),
     fallbackLng: "en",
     interpolation: { escapeValue: false }

@@ -2,6 +2,7 @@
 import { error as logError } from "@tauri-apps/plugin-log"
 import { Component, type ErrorInfo, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
+import i18n from "@/lib/i18n"
 
 interface Props {
   children: ReactNode
@@ -15,6 +16,15 @@ interface State {
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null, errorInfo: null }
+  private readonly handleLanguageChanged = () => this.forceUpdate()
+
+  componentDidMount() {
+    i18n.on("languageChanged", this.handleLanguageChanged)
+  }
+
+  componentWillUnmount() {
+    i18n.off("languageChanged", this.handleLanguageChanged)
+  }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error }
@@ -22,7 +32,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // The production UI only says "Something went wrong."; the details live in the log file.
-    void logError(`[react] ${error.message}\n${error.stack ?? ""}\ncomponentStack:${errorInfo.componentStack ?? ""}`)
+    void logError(
+      `[react] ${error.message}\n${error.stack ?? ""}\ncomponentStack:${errorInfo.componentStack ?? ""}`
+    ).catch(failure => console.error("[logError]", failure))
     this.setState({ error, errorInfo })
   }
 
@@ -37,7 +49,9 @@ export class ErrorBoundary extends Component<Props, State> {
           {isDev ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="bg-primary/15 text-primary rounded px-2 py-0.5 text-xs font-medium">ERROR</span>
+                <span className="bg-primary/15 text-primary rounded px-2 py-0.5 text-xs font-medium">
+                  {i18n.t("errorBoundary.label")}
+                </span>
                 <span className="text-sm font-medium">{error.message}</span>
               </div>
               {error.stack && (
@@ -47,7 +61,9 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
               {errorInfo?.componentStack && (
                 <details>
-                  <summary className="text-muted-foreground cursor-pointer text-xs">Component Stack</summary>
+                  <summary className="text-muted-foreground cursor-pointer text-xs">
+                    {i18n.t("errorBoundary.componentStack")}
+                  </summary>
                   <pre className="bg-muted/50 mt-2 max-h-[200px] overflow-auto rounded-lg border p-4 font-mono text-xs break-all whitespace-pre-wrap">
                     {errorInfo.componentStack}
                   </pre>
@@ -55,11 +71,11 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
             </>
           ) : (
-            <p className="text-muted-foreground text-sm">Something went wrong.</p>
+            <p className="text-muted-foreground text-sm">{i18n.t("errorBoundary.title")}</p>
           )}
           <div>
             <Button variant="secondary" size="sm" onClick={() => this.setState({ error: null, errorInfo: null })}>
-              Retry
+              {i18n.t("errorBoundary.retry")}
             </Button>
           </div>
         </div>

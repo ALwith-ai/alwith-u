@@ -16,6 +16,12 @@
   "app": {
     "name": "ALwith U"
   },
+  "errorBoundary": {
+    "label": "ERROR",
+    "componentStack": "Component Stack",
+    "title": "Something went wrong.",
+    "retry": "Retry"
+  },
   "actions": {
     "copy": "Copy",
     "copied": "Copied",
