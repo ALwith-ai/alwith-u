@@ -7,6 +7,10 @@ import { useExternalApps } from "@/features/chat/open-in-editor"
 import i18n, { LANGUAGES, isLanguageCode } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
 import { SettingGroup, SettingRow } from "./shared"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { requestChatSurface } from "@/lib/chat-window"
 
 export function GeneralSection() {
   const { t } = useTranslation()
@@ -16,14 +20,44 @@ export function GeneralSection() {
   }, [])
   const apps = useExternalApps()
   const [externalEditor, setExternalEditor] = useState<string | null>(null)
+  const [shortcut, setShortcut] = useState("")
+  const [savingShortcut, setSavingShortcut] = useState(false)
   useEffect(() => {
-    void loadPreferences().then(preferences => setExternalEditor(preferences.externalEditor))
+    void loadPreferences().then(preferences => {
+      setExternalEditor(preferences.externalEditor)
+      setShortcut(preferences.chatWindowShortcut ?? "Alt+Space")
+    })
   }, [])
   const activeEditor = apps.find(app => app.bundle_id === externalEditor) ?? apps[0]
   return (
     <SettingGroup>
       <SettingRow title={t("settings.versionLabel")}>
         <span className="text-muted-foreground text-sm">v{version}</span>
+      </SettingRow>
+      <Separator />
+      <SettingRow title={t("chatWindow.shortcut")}>
+        <div className="flex items-center gap-2">
+          <Input
+            className="w-40"
+            aria-label={t("chatWindow.shortcut")}
+            value={shortcut}
+            placeholder={t("chatWindow.shortcutOff")}
+            onChange={event => setShortcut(event.target.value)}
+            disabled={savingShortcut}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={savingShortcut}
+            onClick={() => {
+              setSavingShortcut(true)
+              void requestChatSurface("main", { type: "shortcut", shortcut: shortcut.trim() })
+                .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+                .finally(() => setSavingShortcut(false))
+            }}>
+            {t("chatWindow.shortcutSave")}
+          </Button>
+        </div>
       </SettingRow>
       <Separator />
       <SettingRow title={t("settings.language")}>

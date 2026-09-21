@@ -6,6 +6,7 @@ import { LazyStore } from "@tauri-apps/plugin-store"
 import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/codex/navigation-instruments"
 
 export type Preferences = {
+  chatWindowShortcut?: string
   lastProjectDirectory: string | null
   language: string | null
   zoomLevel: number | null
@@ -42,6 +43,7 @@ export async function loadPreferences(): Promise<Preferences> {
     store.get<string>("externalEditor")
   ])
   return {
+    chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
     lastProjectDirectory: lastProjectDirectory ?? null,
     language: language ?? null,
     zoomLevel: zoomLevel ?? null,

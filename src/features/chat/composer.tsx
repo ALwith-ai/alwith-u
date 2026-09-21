@@ -38,11 +38,10 @@ import {
 import { PromptInputAttachment, PromptInputAttachments } from "./composer/prompt-input-attachments"
 import { SlashCommandButton } from "./composer/slash-command-button"
 import { UsageMeter } from "./usage-meter"
+import { drafts } from "./composer/drafts"
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"]
 
-type Draft = { text: string; attachments: Attachment[]; mentions: string[] }
-const drafts = new Map<string, Draft>()
 const EMPTY_ATTACHMENTS: Attachment[] = []
 
 async function readBase64(attachment: FileUIPart): Promise<string> {
@@ -97,7 +96,7 @@ export function Composer({
   const ready = session.attached && !session.restoring && !session.readOnly
 
   useEffect(() => {
-    drafts.set(session.id, { text, attachments, mentions })
+    drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
   }, [session.id, text, attachments, mentions])
 
   const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))

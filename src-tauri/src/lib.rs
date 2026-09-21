@@ -1,4 +1,5 @@
 mod auth;
+mod chat_window;
 mod installed_apps;
 mod menu;
 mod native;
@@ -23,6 +24,8 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(chat_window::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
@@ -31,7 +34,9 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        // Chat is created hidden before converting it to NSPanel. Restoring visibility here
+        // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
+        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat"]).build())
         .manage(runtime::RuntimeState::default());
 
     #[cfg(feature = "hasgard-testing")]
@@ -74,6 +79,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             auth::refresh_tokens,
+            chat_window::plugin::present_chat_window,
+            chat_window::plugin::resize_chat_window,
             runtime::runtime_start,
             runtime::runtime_send,
             providers::providers_read,

@@ -639,5 +639,12 @@
     "rejected": "权限请求已拒绝(演示不授予任何权限)",
     "unavailable": "story 模块未加载。先构建它,再带 ALWITH_U_DSH_AGENT 运行 U;见 docs/story-demo.md。",
     "status": "revision {{revision}} · {{entries}} 条 · {{notes}} 笔记"
+  },
+  "chatWindow": {
+    "open": "打开聊天浮窗",
+    "openInMain": "在主窗口打开",
+    "shortcut": "聊天浮窗快捷键",
+    "shortcutSave": "保存快捷键",
+    "shortcutOff": "关闭"
   }
 }

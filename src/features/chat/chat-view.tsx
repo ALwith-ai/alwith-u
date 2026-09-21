@@ -1,4 +1,4 @@
-import { Loader2Icon, LockIcon } from "lucide-react"
+import { Loader2Icon, LockIcon, PictureInPicture2Icon } from "lucide-react"
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -23,7 +23,7 @@ function isFormAction(action: PendingAction): action is FormAction {
   return action.kind === "elicitation" && isFormElicitation(action.params)
 }
 
-export function ChatView({ session }: { session: Session }) {
+export function ChatView({ session, onOpenWindow }: { session: Session; onOpenWindow?: () => void }) {
   const { t } = useTranslation()
   const actions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === session.id)))
   // Form elicitations are answered one at a time in a modal; everything else stays inline.
@@ -45,6 +45,16 @@ export function ChatView({ session }: { session: Session }) {
           <ProjectMenu cwd={session.cwd} />
         </div>
         <ChatSearch rootRef={rootRef} />
+        {onOpenWindow && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title={t("chatWindow.open")}
+            aria-label={t("chatWindow.open")}
+            onClick={onOpenWindow}>
+            <PictureInPicture2Icon />
+          </Button>
+        )}
       </header>
       {session.readOnly && (
         <div className="px-4 pb-2">

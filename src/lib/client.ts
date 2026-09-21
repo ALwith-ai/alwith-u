@@ -3,8 +3,14 @@ import { useStore } from "zustand"
 import { CodexClient, type AppState } from "@/agent/client"
 import type { Session } from "@alwith/api"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { isTauri } from "@tauri-apps/api/core"
+import { RemoteChatClient } from "@/lib/chat-window-client"
 
-export const client = new CodexClient(runtimeClient, { agentId: CODEX_AGENT_ID, launch: { engine: "codex" } })
+export const client =
+  isTauri() && getCurrentWebviewWindow().label === "chat"
+    ? new RemoteChatClient()
+    : new CodexClient(runtimeClient, { agentId: CODEX_AGENT_ID, launch: { engine: "codex" } })
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {

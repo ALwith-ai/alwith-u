@@ -1,6 +1,6 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
@@ -26,6 +26,14 @@ import { hasAccount } from "@/agent/codex-extensions"
 import { serveSettingsBridge } from "@/lib/settings-bridge"
 import { openSettingsWindow } from "@/lib/window-manager"
 import { resetZoom, zoomIn, zoomOut } from "@/lib/zoom"
+import { serveChatClient } from "@/lib/chat-window-client"
+import { openChatWindow, releaseChatWindow, serveChatSurface, setChatWindowHostReady } from "@/lib/chat-window"
+import { installChatShortcut } from "@/lib/chat-shortcut"
+import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
+import { DRAFT_SESSION_ID } from "@/features/chat/draft-chat"
+import { useWindowFocus } from "@/lib/window-focus"
+
+import { useSurfaceOperation } from "@/lib/use-surface-operation"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -39,6 +47,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -46,32 +55,43 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // What the main area shows: the selected chat, or the skills and plugins store.
   const [view, setView] = useState<"chat" | "plugins" | "story">("chat")
   const session = useSession(selectedId)
-  const stopRunStates = useRef<Promise<() => void> | null>(null)
   const selectedRunState = useApp(state => (selectedId === null ? null : (state.runStates[selectedId]?.state ?? null)))
+  const focused = useWindowFocus()
+  const { busy, operation } = useSurfaceOperation()
 
   // The selected chat is being looked at: `done` becomes `idle` for every client of this Runtime.
   useEffect(() => {
-    if (selectedId !== null && selectedRunState === "done")
+    if (focused && selectedId !== null && selectedRunState === "done")
       void markRead(selectedId).catch((error: unknown) => toast.error(describe(error)))
-  }, [selectedId, selectedRunState])
+  }, [focused, selectedId, selectedRunState])
 
-  const select = useCallback((thread: ThreadSummary) => {
-    setView("chat")
-    setSelectedId(thread.sessionId)
-    // Codex refuses to resume an archived thread; opening one restores it first, as the
-    // official client does.
-    const restored = client.connect().then(() => (thread.archived ? client.unarchive(thread.sessionId) : undefined))
-    restored
-      .then(() => client.open(thread.sessionId, thread.cwd))
-      .catch((error: unknown) => toast.error(describe(error)))
-  }, [])
+  const select = useCallback(
+    (thread: ThreadSummary) => {
+      // Codex refuses to resume an archived thread; opening one restores it first, as the
+      // official client does.
+      void operation
+        .run(async () => {
+          await client.connect()
+          if (thread.archived) await client.unarchive(thread.sessionId)
+          const transfer = await releaseChatWindow(thread.sessionId)
+          if (transfer) importDraft(thread.sessionId, transfer.draft)
+          await client.open(thread.sessionId, thread.cwd)
+          setSurfaceGeneration(value => value + 1)
+          setView("chat")
+          setSelectedId(thread.sessionId)
+        })
+        .catch((error: unknown) => toast.error(describe(error)))
+    },
+    [operation]
+  )
 
   // "New chat" returns to the empty draft, as in Desktop; the session is created on the
   // first send (DraftChat), never by opening a folder dialog here.
   const newChat = useCallback(() => {
+    if (operation.busy) return
     setView("chat")
     setSelectedId(null)
-  }, [])
+  }, [operation])
 
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
@@ -83,6 +103,64 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setSelectedId(id)
   }, [])
 
+  useEffect(() => {
+    let disposed = false
+    const shortcut = installChatShortcut(() => {
+      void openChatWindow().catch(error => toast.error(describe(error)))
+    })
+    const ready = (async () => {
+      const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
+      const stopSurface = await serveChatSurface(async action => {
+        switch (action.type) {
+          case "return":
+            return operation.run(async () => {
+              const transfer = action.transfer
+              if (transfer.sessionId !== null) {
+                if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
+                await client.open(transfer.sessionId, transfer.cwd)
+              }
+              importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
+              setLastDirectory(transfer.cwd)
+              setView("chat")
+              setSelectedId(transfer.sessionId)
+              setSurfaceGeneration(value => value + 1)
+              const main = getCurrentWebviewWindow()
+              await main.unminimize()
+              await main.show()
+              await main.setFocus()
+              return null
+            })
+          case "markRead":
+            await markRead(action.sessionId)
+            return null
+          case "shortcut":
+            await shortcut.set(action.shortcut)
+            return null
+          default:
+            throw new Error("Unsupported main window action")
+        }
+      })
+      if (disposed) {
+        stopClient()
+        stopSurface()
+        return () => {}
+      }
+      void shortcut
+        .set(initialPreferences.chatWindowShortcut ?? "Alt+Space", false)
+        .catch(error => toast.error(describe(error)))
+      return () => {
+        stopClient()
+        stopSurface()
+      }
+    })()
+    setChatWindowHostReady(ready)
+    return () => {
+      disposed = true
+      void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
+      void shortcut.dispose().catch(error => toast.error(describe(error)))
+    }
+  }, [initialPreferences.chatWindowShortcut, operation])
+
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.
   const connect = useCallback(async () => {
@@ -92,11 +170,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       // to one of them resumes there.
       client.setGatewayModels(initialPreferences.sessionModels)
       await applyProviders()
-      void stopRunStates.current?.then(stop => stop())
-      stopRunStates.current = watchRunStates().catch((error: unknown) => {
-        toast.error(describe(error))
-        return () => undefined
-      })
       await client.listThreads({ reset: true })
       const threads = client.state.threads
       void info(
@@ -106,6 +179,19 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       toast.error(describe(error))
     }
   }, [initialPreferences.sessionModels])
+
+  // Either window can reconnect the owner; refresh Runtime subscriptions for every ready port.
+  useEffect(() => {
+    if (connection !== "ready") return
+    const stop = watchRunStates()
+    void stop.catch((error: unknown) => toast.error(describe(error)))
+    return () => {
+      void stop.then(
+        unsubscribe => unsubscribe(),
+        () => undefined
+      )
+    }
+  }, [connection])
 
   // Remember which chats run on a gateway model, so they reopen there after a restart.
   useEffect(() => {
@@ -159,7 +245,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     })
     return () => {
       stopNotifications()
-      void stopRunStates.current?.then(stop => stop())
       void stopHubExit.then(stop => stop())
     }
   }, [connect, t])
@@ -235,52 +320,72 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     if (view === "plugins") return <PluginsPage cwd={session?.cwd ?? lastDirectory} />
     if (view === "story") return <StoryPage />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
-    if (session !== null) return <ChatView key={session.id} session={session} />
+    const moveToWindow = (): void => {
+      void operation
+        .run(async () => {
+          await openChatWindow({
+            sessionId: selectedId,
+            cwd: session?.cwd ?? lastDirectory,
+            draft: await exportDraft(selectedId ?? DRAFT_SESSION_ID)
+          })
+          setSelectedId(null)
+          importDraft(DRAFT_SESSION_ID, null)
+          setSurfaceGeneration(value => value + 1)
+        })
+        .catch(error => toast.error(describe(error)))
+    }
+    if (session !== null)
+      return <ChatView key={`${session.id}-${surfaceGeneration}`} session={session} onOpenWindow={moveToWindow} />
     return (
       <>
         {connectionNotice}
         <DraftChat
+          key={`draft-${surfaceGeneration}`}
           cwd={lastDirectory}
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
+          runOperation={operation.run}
+          onOpenWindow={moveToWindow}
         />
       </>
     )
   })()
 
   return (
-    <SidebarProvider className="h-full">
-      <ThreadSidebar
-        selectedId={selectedId}
-        onSelect={select}
-        onNewChat={newChat}
-        onOpenSettings={() => void openSettingsWindow()}
-        onOpenPlugins={() => setView("plugins")}
-        onOpenStory={() => setView("story")}
-      />
-      <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
-        {globalActions.length > 0 && (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
-            {globalActions.map(action => (
-              <ActionCard key={action.id} action={action} />
-            ))}
-          </div>
-        )}
-        {main}
-      </SidebarInset>
-      <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        onNewChat={newChat}
-        onOpenSettings={() => void openSettingsWindow()}
-        onOpenPlugins={() => setView("plugins")}
-        onOpenStory={() => setView("story")}
-        onOpenHotkeys={() => setHotkeysOpen(true)}
-        onSelect={select}
-      />
-    </SidebarProvider>
+    <div className="h-full" inert={busy} aria-busy={busy}>
+      <SidebarProvider className="h-full">
+        <ThreadSidebar
+          selectedId={selectedId}
+          onSelect={select}
+          onNewChat={newChat}
+          onOpenSettings={() => void openSettingsWindow()}
+          onOpenPlugins={() => setView("plugins")}
+          onOpenStory={() => setView("story")}
+        />
+        <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
+          {globalActions.length > 0 && (
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
+              {globalActions.map(action => (
+                <ActionCard key={action.id} action={action} />
+              ))}
+            </div>
+          )}
+          {main}
+        </SidebarInset>
+        <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          onNewChat={newChat}
+          onOpenSettings={() => void openSettingsWindow()}
+          onOpenPlugins={() => setView("plugins")}
+          onOpenStory={() => setView("story")}
+          onOpenHotkeys={() => setHotkeysOpen(true)}
+          onSelect={select}
+        />
+      </SidebarProvider>
+    </div>
   )
 }

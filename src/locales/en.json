@@ -640,5 +640,12 @@
     "rejected": "Permission request rejected (the demo grants nothing)",
     "unavailable": "The story module is not loaded. Build it and run U with ALWITH_U_DSH_AGENT set; see docs/story-demo.md.",
     "status": "revision {{revision}} · {{entries}} entries · {{notes}} notes"
+  },
+  "chatWindow": {
+    "open": "Open chat window",
+    "openInMain": "Open in main window",
+    "shortcut": "Chat window shortcut",
+    "shortcutSave": "Save shortcut",
+    "shortcutOff": "Off"
   }
 }

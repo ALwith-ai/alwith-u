@@ -3,6 +3,8 @@
 // message is sent (Desktop's ensureSession).
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { useMemo, useState } from "react"
+import { PictureInPicture2Icon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { useTranslation } from "react-i18next"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { createSession } from "@alwith/api"
@@ -12,6 +14,7 @@ import { chooseFolder, DraftProjectPicker } from "./draft-project-picker"
 import { DraftModelSelect } from "./composer/draft-model-select"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProviders, gatewayModelId, providerGroups } from "@/lib/providers"
+import { drafts } from "./composer/drafts"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -25,7 +28,9 @@ export function DraftChat({
   onCwdChange,
   onCreated,
   onAuthRequired,
-  providerSnapshot
+  providerSnapshot,
+  onOpenWindow,
+  runOperation
 }: {
   cwd: string | null
   onCwdChange: (cwd: string) => void
@@ -34,6 +39,8 @@ export function DraftChat({
   /** session/new refused for want of a login; the app opens provider settings. */
   onAuthRequired: () => void
   providerSnapshot: ProviderSnapshot | null
+  runOperation?: (operation: () => Promise<void>) => Promise<void>
+  onOpenWindow?: () => void
 }) {
   const { t } = useTranslation()
   const threads = useApp(state => state.threads)
@@ -45,7 +52,17 @@ export function DraftChat({
   }, [threads])
   // A session-shaped draft keeps the composer usable; nothing about it reaches Codex.
   const [draft] = useState(() => ({ ...createSession(DRAFT_SESSION_ID, ""), attached: true }))
-  const [model, setModel] = useState<string | null>(null)
+  const [model, setModel] = useState<string | null>(() => drafts.get(DRAFT_SESSION_ID)?.modelId ?? null)
+  const chooseModel = (modelId: string | null): void => {
+    setModel(modelId)
+    const draft = drafts.get(DRAFT_SESSION_ID)
+    drafts.set(DRAFT_SESSION_ID, {
+      text: draft?.text ?? "",
+      attachments: draft?.attachments ?? [],
+      mentions: draft?.mentions ?? [],
+      modelId
+    })
+  }
 
   const send = async (prompt: acp.ContentBlock[]) => {
     await client.connect()
@@ -88,6 +105,16 @@ export function DraftChat({
           </div>
           <DraftProjectPicker cwd={cwd} recentProjects={recentProjects} onChange={onCwdChange} />
         </div>
+        {onOpenWindow && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title={t("chatWindow.open")}
+            aria-label={t("chatWindow.open")}
+            onClick={onOpenWindow}>
+            <PictureInPicture2Icon />
+          </Button>
+        )}
       </header>
       <Empty className="flex-1">
         <EmptyHeader>
@@ -97,8 +124,8 @@ export function DraftChat({
       </Empty>
       <Composer
         session={{ ...draft, cwd: cwd ?? "" }}
-        onSubmit={send}
-        modelSelector={<DraftModelSelect snapshot={providerSnapshot} model={model} onChange={setModel} />}
+        onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
+        modelSelector={<DraftModelSelect snapshot={providerSnapshot} model={model} onChange={chooseModel} />}
       />
     </div>
   )

@@ -2,7 +2,11 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Main and settings windows: agent bridge, folder picker, external links, notifications, preferences and updates",
-  "windows": ["main", "settings"],
+  "windows": [
+    "main",
+    "settings",
+    "chat"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-set-title",
@@ -17,16 +21,31 @@
     "dialog:allow-open",
     "log:default",
     "os:default",
-    { "identifier": "http:default", "allow": [
-      { "url": "https://api.alwith.ai/service/**" },
-      { "url": "https://api-dev.alwith.ai/service/**" }
-    ] },
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://api.alwith.ai/service/**"
+        },
+        {
+          "url": "https://api-dev.alwith.ai/service/**"
+        }
+      ]
+    },
     "notification:default",
     "opener:default",
-    { "identifier": "opener:allow-open-path", "allow": [{ "path": "**" }] },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
     "process:allow-restart",
     "store:default",
     "updater:default",
-    "window-state:default"
+    "window-state:default",
+    "core:window:allow-start-resize-dragging"
   ]
 }
