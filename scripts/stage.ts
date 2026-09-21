@@ -108,6 +108,16 @@ try {
 } finally {
   rmSync(compileDir, { recursive: true, force: true })
 }
+if (triple.endsWith("apple-darwin")) {
+  const identity = process.env.APPLE_SIGNING_IDENTITY
+  if (identity) {
+    await $`codesign --force --timestamp --options runtime --sign ${identity} ${adapterDestination}`
+  } else {
+    // Bun's linker signature may no longer match the completed Mach-O. macOS refuses to
+    // launch that sidecar even outside a hardened bundle, so restore a valid ad-hoc signature.
+    await $`codesign --force --sign - ${adapterDestination}`
+  }
+}
 console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
 
 // alwith-runtime is the closed ALwith Runtime, shipped as npm platform packages (@alwith/runtime).
