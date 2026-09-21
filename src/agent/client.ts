@@ -1,7 +1,7 @@
 // The one ACP v2 client. Owns the connection, routes every update by session id,
 // and publishes state through a framework-agnostic zustand store.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { type Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
+import { Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
 import { createStore, type StoreApi } from "zustand/vanilla"
 import {
   isSelectOption,
@@ -96,6 +96,7 @@ export type AppState = {
 }
 
 const CLIENT_INFO = { name: "alwith-u", version: "0.1.0" }
+const CLIENT_CAPABILITIES = { elicitation: { form: {}, url: {} } }
 
 function toSummary(info: acp.SessionInfo): ThreadSummary {
   const codex = info._meta?.codex
@@ -253,7 +254,7 @@ export class CodexClient {
     port.onGap(gap => void this.reloadAfterGap(gap.sessionId))
     const agents = new Agents<Launch>(port, {
       info: CLIENT_INFO,
-      capabilities: { elicitation: { form: {}, url: {} } }
+      capabilities: CLIENT_CAPABILITIES
     })
     this.agents = agents
     // Which sessions are ours is a read-only question (`agentForSession`); asking it by attaching
@@ -265,6 +266,18 @@ export class CodexClient {
       if (!attached) continue
       this.requests.receiveAll(attached.info.pendingAgentRequests)
       return attached.agent
+    }
+    // A freshly started agent has no Runtime session yet. After a webview reload there is
+    // therefore no session to attach through, but the process still needs to be reused.
+    if ((await port.agents()).some(agent => agent.agentId === this.options.agentId)) {
+      const initialized = await port.acpRequest(this.options.agentId, "initialize", {
+        protocolVersion: 2,
+        info: CLIENT_INFO,
+        capabilities: CLIENT_CAPABILITIES
+      })
+      const agent = new Agent(port, this.options.agentId, this.options.launch.engine, initialized)
+      await agent.listen()
+      return agent
     }
     return agents.start(this.options.agentId, this.options.launch, this.options.launch.engine)
   }

@@ -63,3 +63,16 @@ test("a Runtime that already runs the agent is attached, not restarted, and pend
   expect(action.kind).toBe("permission")
   expect(action.sessionId).toBe("s-old")
 })
+
+test("a reload reuses a running agent that has no sessions", async () => {
+  const port = new FakeHubPort(() => createFakeAgent().app)
+  await port.start("codex", { engine: "codex" })
+
+  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  clients.push(client)
+  await client.connect()
+
+  expect(port.started).toEqual(["codex"])
+  expect(client.state.connection).toBe("ready")
+  expect(client.state.agent?.info.name).toBe("fake-codex")
+})

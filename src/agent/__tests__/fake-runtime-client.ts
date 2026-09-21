@@ -284,7 +284,16 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     return () => this.acpAgentRequestHandlers.delete(handler)
   }
   async agents() {
-    return []
+    return [...this.processes.keys()].map(agentId => ({
+      agentId,
+      pid: null,
+      provider: "",
+      model: "",
+      connection: "",
+      cpu: 0,
+      memMb: 0,
+      uptimeSecs: 0
+    }))
   }
   async ping(): Promise<void> {}
   async onInbound(handler: (payload: RuntimeInboundPayload) => void): Promise<() => void> {
