@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core"
-import { emitTo, listen } from "@tauri-apps/api/event"
+import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { createWindowController } from "./window-controller"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
@@ -23,18 +23,19 @@ export function setChatWindowHostReady(ready: Promise<unknown>): void {
 
 export async function requestChatSurface(target: "main" | "chat", action: SurfaceAction): Promise<ChatTransfer | null> {
   const id = crypto.randomUUID()
+  const current = getCurrentWebviewWindow()
   let settle!: (value: SurfaceResponse) => void
   let fail!: (error: Error) => void
   const response = new Promise<SurfaceResponse>((resolve, reject) => {
     settle = resolve
     fail = reject
   })
-  const stop = await listen<SurfaceResponse>(RESPONSE, ({ payload }) => {
+  const stop = await current.listen<SurfaceResponse>(RESPONSE, ({ payload }) => {
     if (payload.id === id) settle(payload)
   })
   const timer = setTimeout(() => fail(new Error("Chat window did not respond")), 60_000)
   try {
-    const from = getCurrentWebviewWindow().label
+    const from = current.label
     if (from !== "main" && from !== "chat" && from !== "settings") throw new Error("Invalid chat window sender")
     await emitTo(target, REQUEST, { id, from, action } satisfies SurfaceRequest)
     const result = await response
@@ -49,7 +50,7 @@ export async function requestChatSurface(target: "main" | "chat", action: Surfac
 export async function serveChatSurface(
   handler: (action: SurfaceAction) => Promise<ChatTransfer | null>
 ): Promise<() => void> {
-  return listen<SurfaceRequest>(REQUEST, async ({ payload }) => {
+  return getCurrentWebviewWindow().listen<SurfaceRequest>(REQUEST, async ({ payload }) => {
     if (!["main", "chat", "settings"].includes(payload.from)) return
     try {
       const value = await handler(payload.action)
@@ -71,7 +72,7 @@ async function createChatWindow(): Promise<void> {
     ready = resolve
     fail = reject
   })
-  const stop = await listen(READY, ready)
+  const stop = await getCurrentWebviewWindow().listen(READY, ready)
   const timer = setTimeout(() => fail(new Error("Chat window failed to initialize")), 60_000)
   let stopError: (() => void) | undefined
   let created: WebviewWindow | undefined
