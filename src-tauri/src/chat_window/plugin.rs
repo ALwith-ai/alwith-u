@@ -52,7 +52,6 @@ pub fn init() -> TauriPlugin<tauri::Wry> {
         .setup(|app, _| {
             #[cfg(target_os = "macos")]
             {
-                app.plugin(tauri_nspanel::init())?;
                 super::install_input_observer();
                 observer::install(app);
             }

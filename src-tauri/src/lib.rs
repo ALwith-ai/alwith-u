@@ -24,7 +24,12 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
+
+    let builder = builder
         .plugin(chat_window::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
