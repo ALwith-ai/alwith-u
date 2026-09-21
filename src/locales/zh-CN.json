@@ -57,6 +57,8 @@
   "sidebar": {
     "story": "故事",
     "plugins": "插件",
+    "activity": "活动",
+    "background": "后台",
     "newChat": "新聊天",
     "chats": "聊天",
     "archived": "已归档",

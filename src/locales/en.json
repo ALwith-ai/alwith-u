@@ -58,6 +58,8 @@
   "sidebar": {
     "story": "Story",
     "plugins": "Plugins",
+    "activity": "Activity",
+    "background": "Background",
     "newChat": "New chat",
     "chats": "Chats",
     "archived": "Archived",

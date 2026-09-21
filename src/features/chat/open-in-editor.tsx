@@ -88,19 +88,21 @@ export function ProjectMenu({ cwd }: { cwd: string }) {
         {apps.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>{t("chat.openIn")}</DropdownMenuLabel>
-            <MenuRadioSelect
-              value={active?.bundle_id ?? ""}
-              onValueChange={value => {
-                const app = apps.find(item => item.bundle_id === value)
-                if (app) openWith(app)
-              }}
-              options={apps.map(app => ({
-                value: app.bundle_id,
-                label: app.name,
-                icon: app.icon ? <img src={app.icon} alt="" className="size-5 shrink-0" /> : undefined
-              }))}
-            />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>{t("chat.openIn")}</DropdownMenuLabel>
+              <MenuRadioSelect
+                value={active?.bundle_id ?? ""}
+                onValueChange={value => {
+                  const app = apps.find(item => item.bundle_id === value)
+                  if (app) openWith(app)
+                }}
+                options={apps.map(app => ({
+                  value: app.bundle_id,
+                  label: app.name,
+                  icon: app.icon ? <img src={app.icon} alt="" className="size-5 shrink-0" /> : undefined
+                }))}
+              />
+            </DropdownMenuGroup>
           </>
         )}
       </DropdownMenuContent>

@@ -29,6 +29,13 @@ test.serial("every English UI message has an explicit Simplified Chinese transla
   expect(resourceContract(chatLocales["zh-CN"])).toEqual(resourceContract(chatLocales.en))
 })
 
+test.serial("the Simplified Chinese activity sidebar uses translated labels", async () => {
+  await initI18n("zh-CN")
+
+  expect(i18n.t("sidebar.activity")).toBe("活动")
+  expect(i18n.t("sidebar.background")).toBe("后台")
+})
+
 test.serial("incomplete languages display the complete English UI without mixing translations", async () => {
   for (const { code } of LANGUAGES) {
     if (code === "en" || code === "zh-CN") continue
