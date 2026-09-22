@@ -1,6 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ALwith U",
+  "mainBinaryName": "alwith-u",
   "version": "../package.json",
   "identifier": "ai.alwith.u",
   "build": {
@@ -35,11 +36,12 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVENkIwRUNFMzFGQjk0NTEKUldSUmxQc3h6ZzVyWFI4SFdzZmlOZnoxVjd1MjFEeG1nWnhtcFk2OVZuNW9PcWwwV3FQQW1YQWYK",
-      "endpoints": ["https://github.com/nyssance/alwith-u/releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/ALwith-ai/alwith-u/releases/latest/download/latest.json"]
     }
   },
   "bundle": {
     "active": true,
+    "publisher": "alwith.ai",
     "targets": "all",
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",

@@ -3,6 +3,7 @@ import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { createWindowController } from "./window-controller"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
+import i18n from "./i18n"
 
 export type ChatTransfer = { sessionId: string | null; cwd: string | null; draft: ComposerDraft | null }
 type SurfaceAction =
@@ -79,7 +80,7 @@ async function createChatWindow(): Promise<void> {
   try {
     const window = new WebviewWindow("chat", {
       url: "/chat.html",
-      title: "ALwith U",
+      title: i18n.t("app.name"),
       width: 560,
       height: 640,
       minWidth: 420,

@@ -36,6 +36,15 @@ test.serial("the Simplified Chinese activity sidebar uses translated labels", as
   expect(i18n.t("sidebar.background")).toBe("后台")
 })
 
+test.serial("supported locales use the ALwith U product name", async () => {
+  for (const language of ["en", "zh-CN"]) {
+    await initI18n(language)
+
+    expect(i18n.t("app.name")).toBe("ALwith U")
+    expect(i18n.t("platformAuth.signOut")).toContain("ALwith U")
+  }
+})
+
 test.serial("incomplete languages display the complete English UI without mixing translations", async () => {
   for (const { code } of LANGUAGES) {
     if (code === "en" || code === "zh-CN") continue

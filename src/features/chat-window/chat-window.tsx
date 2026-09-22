@@ -180,7 +180,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
         <span className="flex-1 text-sm font-medium" data-tauri-drag-region>
-          ALwith U
+          {t("app.name")}
         </span>
         <Button
           variant="ghost"

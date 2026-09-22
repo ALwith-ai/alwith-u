@@ -68,7 +68,8 @@ fn sidecar_path(name: &str) -> Result<PathBuf, String> {
 }
 
 fn engines_table() -> Result<String, String> {
-    let mut engines = json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}});
+    let mut engines =
+        json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}});
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
     // `bun` (`ALWITH_U_BUN` overrides the executable). U does not ship dsh yet; the story demo needs it.
     if let Ok(entry) = std::env::var("ALWITH_U_DSH_AGENT") {

@@ -1,33 +1,26 @@
-# Desktop bundles for every platform. Sidecars come from scripts/stage.ts: the Codex CLI
-# from npm, codex-acp-v2 compiled with Bun, and alwith-runtime from the @alwith/runtime
-# platform package (sha256 verified by stageRuntime()).
-#
-# Secrets: APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY plus
-# APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID for a notarised macOS build; TAURI_SIGNING_PRIVATE_KEY
-# and TAURI_SIGNING_PRIVATE_KEY_PASSWORD once the updater is enabled. Without them the
-# macOS build is unsigned and still uploads.
+# Manual runs build unsigned installers as workflow artifacts. Version tags create
+# a signed, notarised draft release with Tauri updater metadata.
 name: release
 
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  bundle:
+  test-bundles:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: aarch64-apple-darwin
             runner: macos-15
-          - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-24.04
-          - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-24.04-arm
           - target: x86_64-pc-windows-msvc
             runner: windows-2025
           - target: aarch64-pc-windows-msvc
@@ -43,14 +36,72 @@ jobs:
         with:
           workspaces: src-tauri
           key: ${{ matrix.target }}
-      - name: Linux packages
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - run: bun install --frozen-lockfile
-      - run: bun scripts/stage.ts ${{ matrix.target }}
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
+        with:
+          tauriScript: bun run tauri
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json
+          uploadWorkflowArtifacts: true
+          workflowArtifactNamePattern: alwith-u-[version]-[platform]-[arch]-[bundle]
+
+  release-preflight:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Verify tag and package versions match
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          bun -e 'const version = (await Bun.file("package.json").json()).version;
+          const tag = process.env.RELEASE_TAG;
+          if (tag !== `v${version}`) throw new Error(`Release tag ${tag} does not match package version v${version}`)'
+      - name: Verify release signing secrets
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: >-
+          bun -e 'const required = ["APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD",
+          "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID",
+          "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"];
+          const missing = required.filter(name => !process.env[name]);
+          if (missing.length) throw new Error(`Missing release secrets: ${missing.join(", ")}`)'
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release-preflight
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-15
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2025
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -62,7 +113,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          tauriScript: bun run tauri
           tagName: ${{ github.ref_name }}
-          releaseName: ALwith ü ${{ github.ref_name }}
+          releaseName: ALwith U ${{ github.ref_name }}
           releaseDraft: true
+          generateReleaseNotes: true
+          updaterJsonPreferNsis: true
+          releaseAssetNamePattern: alwith-u_[version]_[platform]_[arch][setup][ext]
           args: --target ${{ matrix.target }}

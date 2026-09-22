@@ -2,7 +2,7 @@ OpenAI Codex CLI
 https://github.com/openai/codex
 
 The bundled `codex` executable is the unmodified OpenAI Codex CLI, distributed
-under the Apache License, Version 2.0. ALwith ü is an independent project
+under the Apache License, Version 2.0. ALwith U is an independent project
 and is not affiliated with or endorsed by OpenAI.
 
                                  Apache License

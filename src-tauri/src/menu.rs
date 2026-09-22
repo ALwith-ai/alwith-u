@@ -60,13 +60,13 @@ fn t(key: &str, lang: &str) -> &'static str {
         ("zh-CN", "menu.edit") => "编辑",
         ("zh-CN", "menu.view") => "视图",
         ("zh-CN", "menu.window") => "窗口",
-        ("zh-CN", "app.about") => "关于 ALwith ü",
+        ("zh-CN", "app.about") => "关于 ALwith U",
         ("zh-CN", "app.preferences") => "偏好设置…",
         ("zh-CN", "app.services") => "服务",
-        ("zh-CN", "app.hide") => "隐藏 ALwith ü",
+        ("zh-CN", "app.hide") => "隐藏 ALwith U",
         ("zh-CN", "app.hideOthers") => "隐藏其他",
         ("zh-CN", "app.showAll") => "全部显示",
-        ("zh-CN", "app.quit") => "退出 ALwith ü",
+        ("zh-CN", "app.quit") => "退出 ALwith U",
         ("zh-CN", "file.newChat") => "新建对话",
         ("zh-CN", "file.closeWindow") => "关闭窗口",
         ("zh-CN", "edit.undo") => "撤销",
@@ -90,13 +90,13 @@ fn t(key: &str, lang: &str) -> &'static str {
         (_, "menu.edit") => "Edit",
         (_, "menu.view") => "View",
         (_, "menu.window") => "Window",
-        (_, "app.about") => "About ALwith ü",
+        (_, "app.about") => "About ALwith U",
         (_, "app.preferences") => "Preferences…",
         (_, "app.services") => "Services",
-        (_, "app.hide") => "Hide ALwith ü",
+        (_, "app.hide") => "Hide ALwith U",
         (_, "app.hideOthers") => "Hide Others",
         (_, "app.showAll") => "Show All",
-        (_, "app.quit") => "Quit ALwith ü",
+        (_, "app.quit") => "Quit ALwith U",
         (_, "file.newChat") => "New Chat",
         (_, "file.closeWindow") => "Close Window",
         (_, "edit.undo") => "Undo",
@@ -127,7 +127,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let app_submenu = {
         let preferences_item =
             MenuItemBuilder::with_id(OPEN_SETTINGS_ID, t("app.preferences", lang)).accelerator("Cmd+,").build(app)?;
-        SubmenuBuilder::new(app, "ALwith ü")
+        SubmenuBuilder::new(app, "ALwith U")
             .about_with_text(t("app.about", lang), None)
             .separator()
             .item(&preferences_item)
