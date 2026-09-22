@@ -6,9 +6,9 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "1.4.0",
-        "@alwith/api": "file:vendor/alwith-api-8521996.tgz",
+        "@alwith/api": "0.1.6",
         "@alwith/module-auth": "0.1.0",
-        "@alwith/module-chat": "0.1.1",
+        "@alwith/module-chat": "0.1.3",
         "@alwith/module-story": "file:../alwith-modules/modules/alwith-story",
         "@alwith/runtime": "0.1.4",
         "@base-ui/react": "^1.8.0",
@@ -87,11 +87,11 @@
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.4.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-/eufudw+aFY1LKLolT6yFE6UMmYRl7fMJ/DEONSIyR6wI3slHWITBsANRGqXEY8FRzqUxwh7QEaGiZHcJPVThg=="],
 
-    "@alwith/api": ["@alwith/api@vendor/alwith-api-8521996.tgz", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-lTXIcJAxna8TEWcKhaSoNk52XMwyvNSR4AGSlByVOda4wwO2/Nd+R8BgV04ptDuh4yskrXxxcqlzE8ZAfoushA=="],
+    "@alwith/api": ["@alwith/api@0.1.6", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.4.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-hEQezOBuBQ9VwEYK4340GEuXaBJFJomRdcMpFC66yhBzErlpQAq0Kh6knZ7kDEX1b9Og23j55eiMRDW24fQjdA=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.0", "", {}, "sha512-XwDyzwlSnJcRuKoxaoEhAIDADYbwdmfl5wAnU2XwxQR8X8arMC/fD9XUoKW4Vdce17Bz7ARGpVbCtMf1sGhTrw=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.1.1", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-7eUUMekkUOLBNdiagtIkh8kl8xXVEgtnhQd5tc2OIc7LYDhiAIcYZIe3quE3DOvnKzOOjSARVMzH50XQruzs9g=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.1.3", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-UVSdfCSJwjFvbzw5QrpaxuL+z4Wa67DXK82TQfSu3+hu8xTi9Bb9SPIDe5N+XyCIl61xAoCunfHlCxvWl8b6rQ=="],
 
     "@alwith/module-story": ["@alwith/module-story@file:../alwith-modules/modules/alwith-story", {}],
 
