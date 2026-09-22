@@ -1,4 +1,4 @@
-import { BookOpenIcon, KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
+import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
 import {
@@ -13,7 +13,6 @@ import {
 import type { ThreadSummary } from "@/agent/client"
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { useApp } from "@/lib/client"
-import { useStoryAvailable } from "@/features/story/use-story-available"
 import { basename } from "@/lib/path"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 
@@ -23,7 +22,6 @@ export function CommandPalette({
   onNewChat,
   onOpenSettings,
   onOpenPlugins,
-  onOpenStory,
   onOpenHotkeys,
   onSelect
 }: {
@@ -32,7 +30,6 @@ export function CommandPalette({
   onNewChat: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
-  onOpenStory: () => void
   onOpenHotkeys: () => void
   onSelect: (thread: ThreadSummary) => void
 }) {
@@ -40,7 +37,6 @@ export function CommandPalette({
   const { resolvedTheme, setTheme } = useTheme()
   const threads = useApp(state => state.threads)
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
-  const storyAvailable = useStoryAvailable()
   const run = (action: () => void) => {
     onOpenChange(false)
     action()
@@ -78,12 +74,6 @@ export function CommandPalette({
             <CommandItem onSelect={() => run(onOpenPlugins)}>
               <PuzzleIcon />
               {t("palette.plugins")}
-            </CommandItem>
-          )}
-          {storyAvailable && (
-            <CommandItem onSelect={() => run(onOpenStory)}>
-              <BookOpenIcon />
-              {t("palette.story")}
             </CommandItem>
           )}
         </CommandGroup>

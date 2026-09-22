@@ -16,7 +16,6 @@ import {
   GitForkIcon,
   PencilIcon,
   PlusIcon,
-  BookOpenIcon,
   PuzzleIcon,
   SearchIcon,
   SettingsIcon,
@@ -32,7 +31,6 @@ import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
-import { useStoryAvailable } from "@/features/story/use-story-available"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -184,19 +182,16 @@ export function ThreadSidebar({
   onSelect,
   onNewChat,
   onOpenSettings,
-  onOpenPlugins,
-  onOpenStory
+  onOpenPlugins
 }: {
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
-  onOpenStory: () => void
 }) {
   const { t } = useTranslation()
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
-  const storyAvailable = useStoryAvailable()
   const threads = useApp(state => state.threads)
   const threadsCursor = useApp(state => state.threadsCursor)
   const archived = useApp(state => state.archivedThreads)
@@ -411,12 +406,6 @@ export function ThreadSidebar({
           <NavigationItemButton className={MENU_HIGHLIGHT} onClick={onOpenPlugins}>
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
-          </NavigationItemButton>
-        )}
-        {storyAvailable && (
-          <NavigationItemButton className={MENU_HIGHLIGHT} onClick={onOpenStory}>
-            <BookOpenIcon />
-            <span>{t("sidebar.story")}</span>
           </NavigationItemButton>
         )}
         <NavigationItemButton className={MENU_HIGHLIGHT} onClick={onOpenSettings}>

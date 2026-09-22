@@ -3,6 +3,7 @@
   "entry": [
     "src/settings-main.tsx",
     "src/chat-main.tsx",
+    "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
     "scripts/**/*.ts"
   ],

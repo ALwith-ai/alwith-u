@@ -362,7 +362,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onNewChat={newChat}
           onOpenSettings={() => void openSettingsWindow()}
           onOpenPlugins={() => setView("plugins")}
-          onOpenStory={() => setView("story")}
         />
         <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
           {globalActions.length > 0 && (
@@ -381,7 +380,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onNewChat={newChat}
           onOpenSettings={() => void openSettingsWindow()}
           onOpenPlugins={() => setView("plugins")}
-          onOpenStory={() => setView("story")}
           onOpenHotkeys={() => setHotkeysOpen(true)}
           onSelect={select}
         />
