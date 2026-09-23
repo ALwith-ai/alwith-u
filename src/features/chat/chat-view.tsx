@@ -1,23 +1,22 @@
-import { Loader2Icon, LockIcon, PictureInPicture2Icon } from "lucide-react"
+import { LockIcon, PictureInPicture2Icon } from "lucide-react"
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import type { PendingAction } from "@/agent/client"
 import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
 import { client, useApp } from "@/lib/client"
 import { ActionCard } from "./action-card"
+import { ChatBody } from "./chat-body"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
 import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
 import { ImageLightbox } from "./dialogs/image-lightbox"
 import { ProjectMenu } from "./open-in-editor"
-import { ThreadView } from "./thread-view"
 
 function isFormAction(action: PendingAction): action is FormAction {
   return action.kind === "elicitation" && isFormElicitation(action.params)
@@ -70,29 +69,7 @@ export function ChatView({ session, onOpenWindow }: { session: Session; onOpenWi
           </Alert>
         </div>
       )}
-      {session.restoring && session.items.length === 0 ? (
-        <div className="text-muted-foreground flex flex-1 items-center justify-center gap-2 text-sm">
-          <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
-          {t("chat.restoring")}
-        </div>
-      ) : !session.attached ? (
-        <Empty className="flex-1">
-          <EmptyHeader>
-            <EmptyTitle>{t("chat.reopen")}</EmptyTitle>
-            <EmptyDescription>{t("chat.detached")}</EmptyDescription>
-          </EmptyHeader>
-          <Button onClick={reopen}>{t("chat.reopen")}</Button>
-        </Empty>
-      ) : session.items.length === 0 && session.state === "idle" ? (
-        <Empty className="flex-1">
-          <EmptyHeader>
-            <EmptyTitle>{t("welcome.title")}</EmptyTitle>
-            <EmptyDescription className="truncate font-mono">{session.cwd}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <ThreadView session={session} />
-      )}
+      <ChatBody session={session} />
       {inline.length > 0 && (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
           {inline.map(action => (

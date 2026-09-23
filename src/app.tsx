@@ -16,6 +16,7 @@ import { StoryPage } from "@/features/story/story-page"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
+import { selectThread } from "@/features/threads/select-thread"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { useProviders } from "@/lib/use-providers"
 import { applyProviders } from "@/lib/providers"
@@ -70,16 +71,21 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       // Codex refuses to resume an archived thread; opening one restores it first, as the
       // official client does.
       void operation
-        .run(async () => {
-          await client.connect()
-          if (thread.archived) await client.unarchive(thread.sessionId)
-          const transfer = await releaseChatWindow(thread.sessionId)
-          if (transfer) importDraft(thread.sessionId, transfer.draft)
-          await client.open(thread.sessionId, thread.cwd)
-          setSurfaceGeneration(value => value + 1)
-          setView("chat")
-          setSelectedId(thread.sessionId)
-        })
+        .run(() =>
+          selectThread(thread, {
+            connect: () => client.connect(),
+            unarchive: id => client.unarchive(id),
+            release: releaseChatWindow,
+            importDraft,
+            open: (id, cwd) => client.open(id, cwd),
+            show: id => {
+              setSurfaceGeneration(value => value + 1)
+              setView("chat")
+              setSelectedId(id)
+            },
+            onOpenError: (error: unknown) => toast.error(describe(error))
+          })
+        )
         .catch((error: unknown) => toast.error(describe(error)))
     },
     [operation]
