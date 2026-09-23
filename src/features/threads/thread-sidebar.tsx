@@ -4,8 +4,6 @@
  * Desktop's navigation primitives (`NavigationGroup` / `NavigationSessionItem`); row
  * actions live in the hover card, the row's trailing slot only ever shows the stop button.
  */
-import { PictureInPicture2Icon } from "lucide-react"
-import { openChatWindow } from "@/lib/chat-window"
 import {
   ActivityIcon,
   ArchiveIcon,
@@ -250,18 +248,6 @@ export function ThreadSidebar({
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
           </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title={t("chatWindow.open")}
-            aria-label={t("chatWindow.open")}
-            onClick={() =>
-              void openChatWindow().catch((error: unknown) =>
-                toast.error(error instanceof Error ? error.message : String(error))
-              )
-            }>
-            <PictureInPicture2Icon />
-          </Button>
           <Tooltip>
             <TooltipTrigger
               render={

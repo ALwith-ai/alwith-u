@@ -70,6 +70,36 @@ test("the bridge returns operation errors and disconnect rejects pending calls",
   }
 })
 
+test("floating rename and delete target only the explicit session and synchronize both windows", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const floatingId = await remote.newSession("/tmp/floating-project")
+    const mainId = await owner.newSession("/tmp/main-project")
+    await remote.renameSession(floatingId, "Renamed floating chat")
+    expect(fake.renamed.get(floatingId)).toBe("Renamed floating chat")
+    expect(fake.renamed.has(mainId)).toBe(false)
+    expect(owner.session(floatingId).title).toBe("Renamed floating chat")
+    expect(remote.session(floatingId).title).toBe("Renamed floating chat")
+    await remote.delete(floatingId)
+    expect(fake.deleted.has(floatingId)).toBe(true)
+    expect(fake.deleted.has(mainId)).toBe(false)
+    expect(owner.state.sessions[floatingId]).toBeUndefined()
+    expect(remote.state.sessions[floatingId]).toBeUndefined()
+    expect(remote.session(mainId)).toEqual(owner.session(mainId))
+    expect(port.started).toEqual(["codex"])
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("an already initialized window reconnects the owner after Runtime disconnect", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

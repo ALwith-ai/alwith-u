@@ -389,6 +389,30 @@ export class CodexClient {
     })
   }
 
+  /** Read a complete project index without changing the sidebar's pagination or persisting history. */
+  async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
+    const agent = this.live()
+    const threads = new Map<string, ThreadSummary>()
+    const cursors = new Set<string>()
+    let cursor: string | undefined
+    do {
+      const response = await agent.request<acp.ListSessionsResponse>("session/list", {
+        cwd,
+        ...(cursor === undefined ? {} : { cursor })
+      })
+      for (const info of response.sessions) {
+        const thread = toSummary(info)
+        if (thread.cwd === cwd && !thread.archived) threads.set(thread.sessionId, thread)
+      }
+      cursor = response.nextCursor ?? undefined
+      if (cursor !== undefined) {
+        if (cursors.has(cursor)) throw new Error("Session list returned a repeated cursor")
+        cursors.add(cursor)
+      }
+    } while (cursor !== undefined)
+    return [...threads.values()]
+  }
+
   async newSession(cwd: string, model: string | null = null): Promise<string> {
     const response = await this.live().request<acp.NewSessionResponse>("session/new", {
       cwd,

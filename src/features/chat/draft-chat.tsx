@@ -2,13 +2,13 @@
 // composer ready and a project capsule; the Codex session exists only once the first
 // message is sent (Desktop's ensureSession).
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { useMemo, useState } from "react"
-import { PictureInPicture2Icon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { type ReactNode, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { createSession } from "@alwith/api"
 import { client, useApp } from "@/lib/client"
+import { ChatActionsMenu } from "./chat-actions-menu"
+import { ChatHeader } from "./chat-header"
 import { Composer } from "./composer"
 import { chooseFolder, DraftProjectPicker } from "./draft-project-picker"
 import { DraftModelSelect } from "./composer/draft-model-select"
@@ -30,7 +30,10 @@ export function DraftChat({
   onAuthRequired,
   providerSnapshot,
   onOpenWindow,
-  runOperation
+  runOperation,
+  headerTarget,
+  projectMenu,
+  onNewChat
 }: {
   cwd: string | null
   onCwdChange: (cwd: string) => void
@@ -41,6 +44,9 @@ export function DraftChat({
   providerSnapshot: ProviderSnapshot | null
   runOperation?: (operation: () => Promise<void>) => Promise<void>
   onOpenWindow?: () => void
+  headerTarget?: HTMLElement | null
+  projectMenu?: ReactNode
+  onNewChat: () => void
 }) {
   const { t } = useTranslation()
   const threads = useApp(state => state.threads)
@@ -98,24 +104,14 @@ export function DraftChat({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="relative flex h-12 shrink-0 items-center gap-3 px-4" data-tauri-drag-region>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="truncate text-sm font-medium" data-tauri-drag-region>
-            {t("sidebar.newChat")}
-          </div>
-          <DraftProjectPicker cwd={cwd} recentProjects={recentProjects} onChange={onCwdChange} />
-        </div>
-        {onOpenWindow && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title={t("chatWindow.open")}
-            aria-label={t("chatWindow.open")}
-            onClick={onOpenWindow}>
-            <PictureInPicture2Icon />
-          </Button>
-        )}
-      </header>
+      <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
+        <ChatActionsMenu
+          surface={headerTarget === undefined ? "main" : "floating"}
+          onOpenWindow={onOpenWindow}
+          cwd={cwd}
+          onNewChat={onNewChat}
+        />
+      </ChatHeader>
       <Empty className="flex-1">
         <EmptyHeader>
           <EmptyTitle>{t("welcome.title")}</EmptyTitle>
@@ -123,6 +119,7 @@ export function DraftChat({
         </EmptyHeader>
       </Empty>
       <Composer
+        inputHeader={<DraftProjectPicker cwd={cwd} recentProjects={recentProjects} onChange={onCwdChange} />}
         session={{ ...draft, cwd: cwd ?? "" }}
         onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
         modelSelector={<DraftModelSelect snapshot={providerSnapshot} model={model} onChange={chooseModel} />}

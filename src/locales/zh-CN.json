@@ -22,6 +22,8 @@
     "waitlisted": "你的账号正在等待开通。", "disabled": "你的账号已停用。"
   },
   "actions": {
+    "more": "更多操作",
+    "openFolder": "打开项目文件夹",
     "copy": "复制",
     "copied": "已复制",
     "cancel": "取消",
@@ -82,6 +84,11 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "project": {
+      "chatCount_one": "{{count}} 个会话",
+      "chatCount_other": "{{count}} 个会话",
+      "loading": "正在加载会话…"
+    },
     "draft": {
       "selectProject": "选择项目",
       "newProject": "新建项目"
@@ -645,7 +652,6 @@
   },
   "chatWindow": {
     "open": "打开聊天浮窗",
-    "openInMain": "在主窗口打开",
     "shortcut": "聊天浮窗快捷键",
     "shortcutSave": "保存快捷键",
     "shortcutOff": "关闭"

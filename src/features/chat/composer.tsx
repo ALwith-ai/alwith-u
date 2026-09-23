@@ -74,13 +74,15 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
 export function Composer({
   session,
   onSubmit,
-  modelSelector
+  modelSelector,
+  inputHeader
 }: {
   session: Session
   /** The empty draft owns the first send: it creates the session, then prompts. */
   onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
   /** Before session/new, the host owns the initial model selection. */
   modelSelector?: import("react").ReactNode
+  inputHeader?: import("react").ReactNode
 }) {
   const { t } = useTranslation()
   const [text, setText] = useState(() => drafts.get(session.id)?.text ?? "")
@@ -165,6 +167,13 @@ export function Composer({
 
   return (
     <div className="relative mx-auto w-full max-w-3xl px-6 pb-5" ref={inputAreaRef}>
+      {inputHeader && (
+        <div
+          data-chat-input-header
+          className="bg-sidebar dark:bg-foreground/3 relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl px-1.5 pt-1.5 pb-[27px]">
+          {inputHeader}
+        </div>
+      )}
       <PromptInputProvider
         value={text}
         onValueChange={setText}

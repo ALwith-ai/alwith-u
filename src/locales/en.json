@@ -23,6 +23,8 @@
     "retry": "Retry"
   },
   "actions": {
+    "more": "More actions",
+    "openFolder": "Open project folder",
     "copy": "Copy",
     "copied": "Copied",
     "cancel": "Cancel",
@@ -83,6 +85,11 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
+    "project": {
+      "chatCount_one": "{{count}} chat",
+      "chatCount_other": "{{count}} chats",
+      "loading": "Loading chats…"
+    },
     "draft": {
       "selectProject": "Select project",
       "newProject": "New project"
@@ -646,7 +653,6 @@
   },
   "chatWindow": {
     "open": "Open chat window",
-    "openInMain": "Open in main window",
     "shortcut": "Chat window shortcut",
     "shortcutSave": "Save shortcut",
     "shortcutOff": "Off"

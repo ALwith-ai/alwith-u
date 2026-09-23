@@ -1,5 +1,5 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { ArrowUpRightIcon, PlusIcon, XIcon } from "lucide-react"
+import { XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -34,6 +34,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)
   const [generation, setGeneration] = useState(0)
   const [ready, setReady] = useState(false)
+  const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const current = useRef({ selectedId, cwd })
   current.current = { selectedId, cwd }
   const connection = useApp(state => state.connection)
@@ -60,16 +61,18 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const hide = useCallback(async (): Promise<void> => {
     await getCurrentWebviewWindow().hide()
   }, [])
-  const returnToMain = useCallback(
-    (): Promise<void> =>
-      operation.run(async () => {
-        await requestChatSurface("main", { type: "return", transfer: await capture() })
-        await hide()
-        setSelectedId(null)
-        importDraft(DRAFT_SESSION_ID, null)
-        setGeneration(value => value + 1)
-      }),
-    [capture, hide, operation]
+  const newChat = useCallback(() => {
+    if (operation.busy) return
+    setSelectedId(null)
+    importDraft(DRAFT_SESSION_ID, null)
+    setGeneration(value => value + 1)
+  }, [operation])
+
+  const deleted = useCallback(
+    (sessionId: string) => {
+      if (current.current.selectedId === sessionId) newChat()
+    },
+    [newChat]
   )
 
   useEffect(() => {
@@ -80,12 +83,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       event.preventDefault()
       void hide().catch(report)
     })
-    const menu = win.listen("menu:new-chat", () => {
-      if (operation.busy) return
-      setSelectedId(null)
-      importDraft(DRAFT_SESSION_ID, null)
-      setGeneration(value => value + 1)
-    })
+    const menu = win.listen("menu:new-chat", newChat)
     const zoom = Promise.all([
       win.listen("menu:zoom-in", () => void zoomIn().catch(report)),
       win.listen("menu:zoom-out", () => void zoomOut().catch(report)),
@@ -147,7 +145,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       })
       client.disconnect()
     }
-  }, [capture, hide, operation, reconnect])
+  }, [capture, hide, newChat, operation, reconnect])
 
   useEffect(() => {
     if (focused && selectedId !== null && runState === "done") {
@@ -179,31 +177,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       className="bg-background text-foreground relative flex h-dvh flex-col overflow-hidden rounded-2xl border">
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
-        <span className="flex-1 text-sm font-medium" data-tauri-drag-region>
-          {t("app.name")}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title={t("sidebar.newChat")}
-          aria-label={t("sidebar.newChat")}
-          disabled={!ready}
-          onClick={() => {
-            setSelectedId(null)
-            importDraft(DRAFT_SESSION_ID, null)
-            setGeneration(value => value + 1)
-          }}>
-          <PlusIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title={t("chatWindow.openInMain")}
-          aria-label={t("chatWindow.openInMain")}
-          disabled={!ready}
-          onClick={() => void returnToMain().catch(report)}>
-          <ArrowUpRightIcon />
-        </Button>
+        <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -226,6 +200,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         {ready &&
           (selectedId === null ? (
             <DraftChat
+              headerTarget={headerTarget}
+              onNewChat={newChat}
               runOperation={operation.run}
               key={`draft-${generation}`}
               cwd={cwd}
@@ -235,7 +211,13 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               providerSnapshot={providers}
             />
           ) : session !== null ? (
-            <ChatView key={`${session.id}-${generation}`} session={session} />
+            <ChatView
+              key={`${session.id}-${generation}`}
+              session={session}
+              headerTarget={headerTarget}
+              onNewChat={newChat}
+              onDeleted={deleted}
+            />
           ) : null)}
       </div>
     </main>

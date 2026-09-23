@@ -36,7 +36,12 @@ async function until(predicate: () => boolean | Promise<boolean>, timeoutMs: num
 
 async function verifyHistory(client: CodexClient, directory: string, replies: Map<string, string>): Promise<void> {
   await client.listThreads({ reset: true })
+  const projectThreads = await client.listProjectThreads(directory)
+  if (projectThreads.some(thread => thread.cwd !== directory))
+    throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
+    if (!projectThreads.some(thread => thread.sessionId === id))
+      throw new Error(`Thread ${id} missing from project list`)
     if (!client.state.threads.some(thread => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)

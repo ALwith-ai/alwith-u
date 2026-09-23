@@ -27,6 +27,8 @@ test.serial("every English UI message has an explicit Simplified Chinese transla
 
   expect(resourceContract(zhCN)).toEqual(resourceContract(en))
   expect(resourceContract(chatLocales["zh-CN"])).toEqual(resourceContract(chatLocales.en))
+  expect(i18n.t("chat.project.chatCount", { count: 1 })).toBe("1 个会话")
+  expect(i18n.t("chat.project.chatCount", { count: 7 })).toBe("7 个会话")
 })
 
 test.serial("the Simplified Chinese activity sidebar uses translated labels", async () => {

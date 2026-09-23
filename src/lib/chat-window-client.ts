@@ -21,7 +21,9 @@ const METHODS = [
   "setConfig",
   "respond",
   "readRateLimits",
-  "fuzzyFileSearch"
+  "fuzzyFileSearch",
+  "renameSession",
+  "delete"
 ] as const
 type Method = (typeof METHODS)[number]
 type Request = { connectionId: string; id: string; method: Method; args: unknown[] }
@@ -242,6 +244,12 @@ export class RemoteChatClient extends CodexClient {
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
     return this.request("open", args)
+  }
+  override renameSession(...args: Parameters<CodexClient["renameSession"]>): Promise<void> {
+    return this.request("renameSession", args)
+  }
+  override delete(...args: Parameters<CodexClient["delete"]>): Promise<void> {
+    return this.request("delete", args)
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<void> {
     return this.request("prompt", args)

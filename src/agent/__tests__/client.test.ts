@@ -135,6 +135,48 @@ test("threads come from the agent and open() replays history", async () => {
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
+test("project query reads every page, deduplicates IDs and leaves sidebar pagination untouched", async () => {
+  const { client, fake } = await make()
+  await client.listThreads()
+  const before = client.state
+  const requests: Array<{ cwd?: string | null; cursor?: string | null }> = []
+  fake.listSessions.current = params => {
+    requests.push(params)
+    if (!params.cursor) return { sessions: [{ sessionId: "p1", cwd: "/tmp/project", title: "Old" }], nextCursor: "p2" }
+    if (params.cursor === "p2") return { sessions: [], nextCursor: "p3" }
+    return {
+      sessions: [
+        { sessionId: "p1", cwd: "/tmp/project", title: "Renamed" },
+        { sessionId: "p2", cwd: "/tmp/project", title: "Second" },
+        { sessionId: "foreign", cwd: "/tmp/other" },
+        { sessionId: "archived", cwd: "/tmp/project", _meta: { codex: { archived: true } } }
+      ]
+    }
+  }
+  const result = await client.listProjectThreads("/tmp/project")
+  expect(requests.map(request => [request.cwd, request.cursor])).toEqual([
+    ["/tmp/project", undefined],
+    ["/tmp/project", "p2"],
+    ["/tmp/project", "p3"]
+  ])
+  expect(result.map(thread => [thread.sessionId, thread.title])).toEqual([
+    ["p1", "Renamed"],
+    ["p2", "Second"]
+  ])
+  expect(client.state).toBe(before)
+})
+
+test("project query rejects failed or cyclic pagination instead of returning an incomplete total", async () => {
+  const { client, fake } = await make()
+  fake.listSessions.current = params => {
+    if (params.cursor) throw new Error("Page unavailable")
+    return { sessions: [{ sessionId: "p1", cwd: "/tmp/project" }], nextCursor: "again" }
+  }
+  await expect(client.listProjectThreads("/tmp/project")).rejects.toThrow("Internal error")
+  fake.listSessions.current = () => ({ sessions: [], nextCursor: "again" })
+  await expect(client.listProjectThreads("/tmp/project")).rejects.toThrow("repeated cursor")
+})
+
 test("a gap the client could not refill replays the whole session from the engine's record", async () => {
   const { client, port } = await make()
   await client.open("h1", "/tmp/one")

@@ -9,7 +9,6 @@ export type ChatTransfer = { sessionId: string | null; cwd: string | null; draft
 type SurfaceAction =
   | { type: "present"; transfer?: ChatTransfer }
   | { type: "release"; sessionId: string }
-  | { type: "return"; transfer: ChatTransfer }
   | { type: "markRead"; sessionId: string }
   | { type: "shortcut"; shortcut: string }
 type SurfaceRequest = { id: string; from: "main" | "chat" | "settings"; action: SurfaceAction }

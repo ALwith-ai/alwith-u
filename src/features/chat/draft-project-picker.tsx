@@ -10,6 +10,8 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
@@ -34,22 +36,22 @@ export function DraftProjectPicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-sm font-normal" />}>
+        render={<Button variant="ghost" size="sm" className="h-7 max-w-full gap-1.5 px-2 text-sm font-normal" />}>
         <FolderClosedIcon data-icon="inline-start" />
-        {cwd === null ? t("chat.draft.selectProject") : basename(cwd)}
+        <span className="truncate">{cwd === null ? t("chat.draft.selectProject") : basename(cwd)}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="start" className="w-72 overflow-hidden">
+      <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
             <div className="max-h-64 overflow-y-auto">
-              <DropdownMenuGroup>
+              <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map(path => (
-                  <DropdownMenuItem key={path} onClick={() => onChange(path)}>
+                  <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>
                     <FolderClosedIcon />
-                    {basename(path)}
-                  </DropdownMenuItem>
+                    <span className="truncate">{basename(path)}</span>
+                  </DropdownMenuRadioItem>
                 ))}
-              </DropdownMenuGroup>
+              </DropdownMenuRadioGroup>
             </div>
             <DropdownMenuSeparator />
           </>

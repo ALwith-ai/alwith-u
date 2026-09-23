@@ -11,6 +11,7 @@ import type { ThreadSummary } from "@/agent/client"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { DraftChat } from "@/features/chat/draft-chat"
+import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { PluginsPage } from "@/features/plugins/plugins-page"
 import { StoryPage } from "@/features/story/story-page"
 import { CommandPalette } from "@/features/palette/command-palette"
@@ -118,24 +119,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
       const stopSurface = await serveChatSurface(async action => {
         switch (action.type) {
-          case "return":
-            return operation.run(async () => {
-              const transfer = action.transfer
-              if (transfer.sessionId !== null) {
-                if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
-                await client.open(transfer.sessionId, transfer.cwd)
-              }
-              importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
-              setLastDirectory(transfer.cwd)
-              setView("chat")
-              setSelectedId(transfer.sessionId)
-              setSurfaceGeneration(value => value + 1)
-              const main = getCurrentWebviewWindow()
-              await main.unminimize()
-              await main.show()
-              await main.setFocus()
-              return null
-            })
           case "markRead":
             await markRead(action.sessionId)
             return null
@@ -165,7 +148,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
       void shortcut.dispose().catch(error => toast.error(describe(error)))
     }
-  }, [initialPreferences.chatWindowShortcut, operation])
+  }, [initialPreferences.chatWindowShortcut])
 
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.
@@ -340,14 +323,39 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch(error => toast.error(describe(error)))
     }
+    const newProjectChat = (): void => {
+      if (operation.busy) return
+      if (session !== null) chooseDraftFolder(session.cwd)
+      importDraft(DRAFT_SESSION_ID, null)
+      setSurfaceGeneration(value => value + 1)
+      newChat()
+    }
+    const deleted = (sessionId: string): void => {
+      setSelectedId(current => (current === sessionId ? null : current))
+    }
     if (session !== null)
-      return <ChatView key={`${session.id}-${surfaceGeneration}`} session={session} onOpenWindow={moveToWindow} />
+      return (
+        <ChatView
+          key={`${session.id}-${surfaceGeneration}`}
+          session={session}
+          projectMenu={<ProjectSessionPopover cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
+          onOpenWindow={moveToWindow}
+          onNewChat={newProjectChat}
+          onDeleted={deleted}
+        />
+      )
     return (
       <>
         {connectionNotice}
         <DraftChat
           key={`draft-${surfaceGeneration}`}
+          onNewChat={newProjectChat}
           cwd={lastDirectory}
+          projectMenu={
+            lastDirectory === null ? null : (
+              <ProjectSessionPopover cwd={lastDirectory} onSelect={select} onNewChat={newProjectChat} />
+            )
+          }
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onAuthRequired={() => void openSettingsWindow("provider")}

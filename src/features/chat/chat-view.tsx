@@ -1,5 +1,5 @@
-import { LockIcon, PictureInPicture2Icon } from "lucide-react"
-import { useRef } from "react"
+import { LockIcon } from "lucide-react"
+import { type ReactNode, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
@@ -10,19 +10,34 @@ import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
 import { client, useApp } from "@/lib/client"
 import { ActionCard } from "./action-card"
+import { ChatActionsMenu } from "./chat-actions-menu"
+import { ChatHeader } from "./chat-header"
 import { ChatBody } from "./chat-body"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
 import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
 import { ImageLightbox } from "./dialogs/image-lightbox"
-import { ProjectMenu } from "./open-in-editor"
 
 function isFormAction(action: PendingAction): action is FormAction {
   return action.kind === "elicitation" && isFormElicitation(action.params)
 }
 
-export function ChatView({ session, onOpenWindow }: { session: Session; onOpenWindow?: () => void }) {
+export function ChatView({
+  session,
+  onOpenWindow,
+  headerTarget,
+  projectMenu,
+  onNewChat,
+  onDeleted
+}: {
+  session: Session
+  onOpenWindow?: () => void
+  headerTarget?: HTMLElement | null
+  projectMenu?: ReactNode
+  onNewChat: () => void
+  onDeleted: (sessionId: string) => void
+}) {
   const { t } = useTranslation()
   const actions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === session.id)))
   // Form elicitations are answered one at a time in a modal; everything else stays inline.
@@ -36,25 +51,17 @@ export function ChatView({ session, onOpenWindow }: { session: Session; onOpenWi
   }
   return (
     <div ref={rootRef} className="flex h-full min-h-0 flex-col">
-      <header className="relative flex h-12 shrink-0 items-center gap-3 px-4" data-tauri-drag-region>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium" data-tauri-drag-region>
-            {session.title ?? t("sidebar.untitled")}
-          </div>
-          <ProjectMenu cwd={session.cwd} />
-        </div>
-        <ChatSearch rootRef={rootRef} />
-        {onOpenWindow && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title={t("chatWindow.open")}
-            aria-label={t("chatWindow.open")}
-            onClick={onOpenWindow}>
-            <PictureInPicture2Icon />
-          </Button>
-        )}
-      </header>
+      <ChatHeader target={headerTarget} title={session.title ?? t("sidebar.untitled")} project={projectMenu}>
+        <ChatActionsMenu
+          surface={headerTarget === undefined ? "main" : "floating"}
+          onOpenWindow={onOpenWindow}
+          session={session}
+          cwd={session.cwd}
+          onNewChat={onNewChat}
+          onDeleted={onDeleted}
+        />
+      </ChatHeader>
+      <ChatSearch rootRef={rootRef} sessionId={session.id} />
       {session.readOnly && (
         <div className="px-4 pb-2">
           <Alert>
