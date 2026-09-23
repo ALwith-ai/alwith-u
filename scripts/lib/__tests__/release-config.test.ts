@@ -49,6 +49,7 @@ test("every CI Bun installation uses the packageManager pin and checks toolchain
     for (const job of Object.values(workflow.jobs!)) {
       const steps = job.steps!
       const setup = steps.find(step => step.uses === "oven-sh/setup-bun@v2")
+      if (!setup && steps.some(step => step.uses === "actions/setup-python@v5")) continue
       expect(setup?.with?.["bun-version-file"]).toBe("package.json")
       expect(steps.some(step => step.run === "bun scripts/check-toolchain.ts")).toBe(true)
     }
@@ -129,4 +130,21 @@ test("Tauri keeps ASCII technical identifiers while displaying ALwith U", () => 
     "https://github.com/ALwith-ai/alwith-u/releases/latest/download/latest.json"
   ])
   expect(devConfig.productName).toBe("ALwith U Dev")
+})
+
+test("TOS mirroring runs only after the entire tagged release matrix succeeds", () => {
+  const job = releaseWorkflow()["upload-to-tos"]
+  expect(job).toBeDefined()
+  expect(job!.needs).toBe("release")
+  expect(job!.if).toBe("startsWith(github.ref, 'refs/tags/v')")
+  expect(job!.permissions).toEqual({ contents: "read" })
+  const download = job!.steps!.findIndex(step => step.name === "Download release assets")
+  const upload = job!.steps!.findIndex(
+    step =>
+      step.run ===
+      '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
+  )
+  expect(download).toBeGreaterThan(-1)
+  expect(upload).toBeGreaterThan(download)
+  expect(job!.steps!.find(step => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })

@@ -151,3 +151,39 @@ jobs:
         if: always() && runner.os == 'macOS' && env.ALWITH_SIGNING_DIR != ''
         shell: bash
         run: bash scripts/macos-signing.sh cleanup
+
+  upload-to-tos:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare TOS upload environment
+        run: |
+          python -m venv "$RUNNER_TEMP/tos-venv"
+          "$RUNNER_TEMP/tos-venv/bin/python" -m pip install --disable-pip-version-check "tos==2.9.2"
+      - name: Test TOS upload logic
+        run: '"$RUNNER_TEMP/tos-venv/bin/python" -B -m unittest discover -s scripts/__tests__ -p "test_*.py"'
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          --dir "$RUNNER_TEMP/tos-release"
+          --pattern '*.dmg' --pattern '*.exe' --pattern '*.msi'
+          --pattern '*.app.tar.gz' --pattern '*.sig'
+      - name: Mirror release assets to TOS
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+          TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+          TOS_ENDPOINT: ${{ secrets.TOS_ENDPOINT }}
+          TOS_REGION: ${{ secrets.TOS_REGION }}
+          TOS_BUCKET: ${{ secrets.TOS_BUCKET }}
+        run: '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
