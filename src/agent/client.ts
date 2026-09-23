@@ -148,6 +148,8 @@ export class CodexClient {
   private readonly modelListeners = new Set<SessionModelListener>()
   private readonly rateLimitListeners = new Set<(limits: RateLimitSnapshot) => void>()
   private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
+  /** The adapter rejects overlapping configuration writes to one session. */
+  private readonly configWrites = new Map<string, Promise<void>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
 
@@ -488,17 +490,31 @@ export class CodexClient {
   }
 
   async setConfig(id: string, configId: string, value: string | boolean): Promise<void> {
-    const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
-      "session/set_config_option",
-      typeof value === "boolean"
-        ? { sessionId: id, configId, type: "boolean", value }
-        : { sessionId: id, configId, type: "id", value }
+    const write = async (): Promise<void> => {
+      const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
+        "session/set_config_option",
+        typeof value === "boolean"
+          ? { sessionId: id, configId, type: "boolean", value }
+          : { sessionId: id, configId, type: "id", value }
+      )
+      this.publishSession({
+        ...this.sessions.get(id),
+        configOptions: response.configOptions
+      })
+      this.noteModel(this.sessions.get(id))
+    }
+    const previous = this.configWrites.get(id)
+    const pending = previous ? previous.catch(() => {}).then(write) : write()
+    this.configWrites.set(id, pending)
+    void pending.then(
+      () => {
+        if (this.configWrites.get(id) === pending) this.configWrites.delete(id)
+      },
+      () => {
+        if (this.configWrites.get(id) === pending) this.configWrites.delete(id)
+      }
     )
-    this.publishSession({
-      ...this.sessions.get(id),
-      configOptions: response.configOptions
-    })
-    this.noteModel(this.sessions.get(id))
+    return pending
   }
 
   /** Whether the agent can host gateway models in the per-session model option. */

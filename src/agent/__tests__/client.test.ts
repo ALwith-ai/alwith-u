@@ -217,6 +217,44 @@ test("host configured gateway models are identified from the session catalog and
   expect(fake.gateway.current).toBeNull()
 })
 
+test("model changes after restoring a session wait for the previous configuration change", async () => {
+  const { client, fake, port } = await make()
+  await registerGateway(port, {
+    id: "deepseek",
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/",
+    bearerToken: "test-only",
+    models: [{ id: "deepseek-flash" }],
+    config: {}
+  })
+  await client.open("h1", "/tmp/one")
+
+  let releaseFirst!: () => void
+  const firstBlocked = new Promise<void>(resolve => {
+    releaseFirst = resolve
+  })
+  let enteredFirst = false
+  fake.configDelay.current = async () => {
+    if (enteredFirst) return
+    enteredFirst = true
+    await firstBlocked
+  }
+
+  const first = client.setConfig("h1", "model", "deepseek-flash")
+  await until(() => enteredFirst)
+  const second = client.setConfig("h1", "model", "gpt-5.6-sol")
+  const results = Promise.allSettled([first, second])
+  await Bun.sleep(20)
+  releaseFirst()
+  expect(await results).toEqual([
+    { status: "fulfilled", value: undefined },
+    { status: "fulfilled", value: undefined }
+  ])
+  expect(fake.configChanges).toEqual(["deepseek-flash", "gpt-5.6-sol"])
+  const model = client.session("h1").configOptions.find(option => option.configId === "model")
+  expect(model?.currentValue).toBe("gpt-5.6-sol")
+})
+
 test("several gateways register under their own ids and can be removed one at a time", async () => {
   const { client, fake, port } = await make()
   await registerGateway(port, {

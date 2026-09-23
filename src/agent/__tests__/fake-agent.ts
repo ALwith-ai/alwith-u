@@ -12,6 +12,8 @@ export type FakeAgent = {
   gateways: Map<string, acp.SetProviderRequest>
   /** `_meta.alwith.model` hints seen on session/new, session/resume and session/fork. */
   modelHints: Map<string, string | null>
+  configDelay: { current: (() => Promise<void>) | null }
+  configChanges: string[]
   /** Names set through `_codex/session_rename`. */
   renamed: Map<string, string>
   /** File search queries the client sent (`_codex/fuzzy_file_search`). */
@@ -59,6 +61,9 @@ export function createFakeAgent(): FakeAgent {
   const gateway: FakeAgent["gateway"] = { current: null }
   const gateways: FakeAgent["gateways"] = new Map()
   const modelHints = new Map<string, string | null>()
+  const configDelay: FakeAgent["configDelay"] = { current: null }
+  const configChanges: string[] = []
+  const changingConfig = new Set<string>()
   const renamed = new Map<string, string>()
   const fileSearches: string[] = []
   let link: acp.AgentContext | null = null
@@ -193,6 +198,22 @@ export function createFakeAgent(): FakeAgent {
     })
     return { configOptions: optionsFor(hint) }
   })
+  app.onRequest("session/set_config_option", async ({ params }) => {
+    if (changingConfig.has(params.sessionId))
+      throw acp.RequestError.invalidRequest(
+        { sessionId: params.sessionId },
+        "Session lifecycle or configuration work is in progress"
+      )
+    changingConfig.add(params.sessionId)
+    try {
+      await configDelay.current?.()
+      if (params.configId !== "model" || typeof params.value !== "string") throw acp.RequestError.invalidParams()
+      configChanges.push(params.value)
+      return { configOptions: optionsFor(params.value) }
+    } finally {
+      changingConfig.delete(params.sessionId)
+    }
+  })
   app.onRequest("session/prompt", async ({ params, client }) => {
     const id = params.sessionId
     const text = params.prompt.map(block => (block.type === "text" ? block.text : "")).join("")
@@ -302,5 +323,17 @@ export function createFakeAgent(): FakeAgent {
     deleted.add(params.sessionId)
     return {}
   })
-  return { app, archived, deleted, gateway, gateways, modelHints, renamed, fileSearches, pushRateLimits }
+  return {
+    app,
+    archived,
+    deleted,
+    gateway,
+    gateways,
+    modelHints,
+    configDelay,
+    configChanges,
+    renamed,
+    fileSearches,
+    pushRateLimits
+  }
 }
