@@ -45,7 +45,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
-    "externalBin": ["binaries/alwith-runtime", "binaries/codex-acp-v2", "binaries/codex", "binaries/codex-code-mode-host"],
+    "externalBin": ["binaries/alwith-runtime", "binaries/bun", "binaries/codex-acp-v2", "binaries/codex", "binaries/codex-code-mode-host"],
     "resources": {
       "resources/licenses": "licenses",
       "resources/native": "native",

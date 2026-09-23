@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
+ *   binaries/bun-<triple>                                  the pinned official @oven/bun platform package
  *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
  *   binaries/codex-acp-v2-<triple>                          the ACP v2 adapter compiled into a standalone Bun executable
  *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
@@ -15,10 +16,14 @@ import { $ } from "bun"
 import { stageNative } from "@alwith/native/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
+import manifest from "../package.json"
+import { assertVersion, BUN_PACKAGES, toolchainVersions } from "./lib/toolchain"
 
 const root = resolve(import.meta.dirname, "..")
 const binaries = join(root, "src-tauri/binaries")
 const licenses = join(root, "src-tauri/resources/licenses")
+const versions = toolchainVersions(manifest)
+assertVersion("build Bun", Bun.version, versions.bun)
 
 type Target = { npm: string; bun: string; exe: string }
 const TARGETS: Record<string, Target> = {
@@ -67,6 +72,32 @@ const target = TARGETS[triple]
 if (!target) throw new Error(`Unsupported target triple ${triple}. Known: ${Object.keys(TARGETS).join(", ")}`)
 mkdirSync(binaries, { recursive: true })
 mkdirSync(licenses, { recursive: true })
+if (!existsSync(join(licenses, `bun-${versions.bun}.md`))) {
+  throw new Error(`Missing Bun ${versions.bun} licence notice; update resources/licenses with the version bump`)
+}
+const bunPackageName = BUN_PACKAGES[triple]
+if (!bunPackageName) throw new Error(`No Bun artifact configured for ${triple}`)
+const bunPackageDir = join(root, "node_modules", bunPackageName)
+if (!existsSync(bunPackageDir)) throw new Error(`Missing ${bunPackageName}; run bun install for ${triple}`)
+const bunPackage = JSON.parse(readFileSync(join(bunPackageDir, "package.json"), "utf8"))
+assertVersion("installed Bun package", bunPackage.version, versions.bun)
+const bunDestination = join(binaries, `bun-${triple}${target.exe}`)
+copyFileSync(join(bunPackageDir, "bin", `bun${target.exe}`), bunDestination)
+if (!target.exe) chmodSync(bunDestination, 0o755)
+if (triple.endsWith("apple-darwin")) {
+  const identity = process.env.APPLE_SIGNING_IDENTITY
+  if (identity) {
+    await $`codesign --force --timestamp --options runtime --entitlements ${join(root, "src-tauri/Entitlements.plist")} --sign ${identity} ${bunDestination}`
+  } else {
+    // The official npm binary can carry an invalid linker signature, just like compiled Bun apps.
+    await $`codesign --force --entitlements ${join(root, "src-tauri/Entitlements.plist")} --sign - ${bunDestination}`
+  }
+  await $`codesign --verify --strict ${bunDestination}`
+}
+if (triple === nativeTriple) {
+  assertVersion("staged Bun", (await $`${bunDestination} --version`.text()).trim(), versions.bun)
+}
+console.log(`bun ${versions.bun} -> ${bunDestination}`)
 const nativeLibrary = stageNative(triple, join(root, "src-tauri/resources/native"), licenses)
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify
@@ -77,12 +108,15 @@ console.log(`alwith-native -> ${nativeLibrary}`)
 
 const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8"))
 const codexVersion: string = codexPackage.version
+assertVersion("installed Codex package", codexVersion, versions.codex)
 const platformPackage = join(root, `node_modules/@openai/codex-${target.npm}`)
 if (!existsSync(platformPackage)) {
   throw new Error(
     `Missing ${platformPackage}. Install the platform package for ${triple}: bun add -d @openai/codex-${target.npm}@npm:@openai/codex@${codexVersion}-${target.npm}`
   )
 }
+const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "package.json"), "utf8"))
+assertVersion("installed Codex platform package", codexPlatformPackage.version, `${codexVersion}-${target.npm}`)
 const vendorTriple = NPM_VENDOR_TRIPLE[triple] ?? triple
 // Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar
 // next to the app executable, so both land side by side.
@@ -93,6 +127,10 @@ for (const name of ["codex", "codex-code-mode-host"]) {
   copyFileSync(source, destination)
   if (!target.exe) chmodSync(destination, 0o755)
   console.log(`${name} ${codexVersion} -> ${destination}`)
+}
+if (triple === nativeTriple) {
+  const codexDestination = join(binaries, `codex-${triple}${target.exe}`)
+  assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }
 
 const adapterPackage = JSON.parse(readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8"))

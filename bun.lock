@@ -80,6 +80,11 @@
         "@openai/codex-linux-x64": "npm:@openai/codex@0.154.0-linux-x64",
         "@openai/codex-win32-arm64": "npm:@openai/codex@0.154.0-win32-arm64",
         "@openai/codex-win32-x64": "npm:@openai/codex@0.154.0-win32-x64",
+        "@oven/bun-darwin-aarch64": "1.4.0",
+        "@oven/bun-linux-aarch64": "1.4.0",
+        "@oven/bun-linux-x64-baseline": "1.4.0",
+        "@oven/bun-windows-aarch64": "1.4.0",
+        "@oven/bun-windows-x64-baseline": "1.4.0",
       },
     },
   },
@@ -255,6 +260,16 @@
     "@openai/codex-win32-arm64": ["@openai/codex@0.154.0-win32-arm64", "", { "os": "win32", "cpu": "arm64" }, "sha512-CRUmZnE0Y/a8aLMrrA681EytOGaPaF659wJAiI4I3hsbQjaeYBSPV7PkCjy4Qn5LR/fmwIUORVH+6JaBNQL+tw=="],
 
     "@openai/codex-win32-x64": ["@openai/codex@0.154.0-win32-x64", "", { "os": "win32", "cpu": "x64" }, "sha512-Stg2KEJPIKVqPPR1wCverGOR4ey3RR3cvakR07w7FNKQUMzmHaOZomRsP2bR1qOT/67yHsks9rB+MCMfIWXcRA=="],
+
+    "@oven/bun-darwin-aarch64": ["@oven/bun-darwin-aarch64@1.4.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-GCpf8QuFLsyioVawP5HrMxA1ZRBlu6Hq9RNnSc3UTUWAzIxBso9trjoZczw1HdgpqSssFkszfIV2zmOzFTjhkw=="],
+
+    "@oven/bun-linux-aarch64": ["@oven/bun-linux-aarch64@1.4.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-Y5yAtCbHK6JjprXEtkdklDQFPADgs+CkfcliyY5g4JJ8baGHyQSrfpSkX3XVJ2C+aBLsdwNDdW+oczMsAwx6uA=="],
+
+    "@oven/bun-linux-x64-baseline": ["@oven/bun-linux-x64-baseline@1.4.0", "", { "os": "linux", "cpu": "x64" }, "sha512-bX4PG7rWFkBL9laVJP8ESdQxkngLUyUiDEgYKohY+WtGQ2n8GSlA/2S5o394eEnacjQ/WC8+gebali7KoNvEpw=="],
+
+    "@oven/bun-windows-aarch64": ["@oven/bun-windows-aarch64@1.4.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-FBAYaQpJBP0asgqzL6NFUfjdQqsV+kvTpJ/eWxPKj+RcDgIfPSuE8kvQuPYu5pa8u8JTujYMjmuyvHxVuQsInA=="],
+
+    "@oven/bun-windows-x64-baseline": ["@oven/bun-windows-x64-baseline@1.4.0", "", { "os": "win32", "cpu": "x64" }, "sha512-V/vxC+sMIZ+KnvkWyoOqP5nDavZh9naBjrQzjChJ1ACF43rBdoaZPWOL013jjcGQP+7YGDWrLr3JSNUrbmjfFg=="],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.148.0", "", { "os": "android", "cpu": "arm" }, "sha512-pHASv9g5pASxb7akHERZNSkrEqPhFaUix98o7d9hbTpolnnFWl7UiRrcMhCsV1+iVO4/cJwKsbKRJTFNs2tdBQ=="],
 

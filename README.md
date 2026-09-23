@@ -92,11 +92,11 @@ webview (React) ──alwith-runtime-v1 frames over Tauri events──▶ Rust r
 
 ## Develop
 
-Requires Bun 1.4+, Rust stable and the Tauri 2 prerequisites for your platform.
+Requires the exact Bun version in `package.json#packageManager`, Rust stable and the Tauri 2 prerequisites for your platform.
 
 ```sh
 bun install
-bun run stage        # stages native npm binaries, Runtime, Codex and licences; compiles the ACP adapter
+bun run stage        # stages native npm binaries, Bun, Runtime, Codex and licences; compiles the ACP adapter
 bun tauri dev
 ```
 
@@ -115,12 +115,11 @@ x64/arm64 (no Intel Mac). To bump either, change the version in `package.json` a
 
 `.github/workflows/ci.yml` runs typecheck, tests, lint, the web build and a macOS ARM64
 desktop compilation using public dependencies on every push.
-Tagging `v<version>` runs `release.yml`: six targets, sidecars staged from npm and the
-pinned Runtime release, bundles uploaded to a draft GitHub Release by `tauri-action`. Apple
-signing and notarisation use the `APPLE_*` secrets listed at the top of the workflow.
-The release matrix still describes six targets; unavailable Runtime targets currently
-fail explicitly rather than fetching private sources. Do not tag a full multi-platform
-release until their binary pins are populated.
+Tagging `v<version>` runs `release.yml`: macOS ARM64, Windows x64 and Windows ARM64,
+with sidecars staged from pinned npm packages and bundles uploaded to a draft GitHub
+Release by `tauri-action`. Apple signing and notarisation use the `APPLE_*` secrets
+in the workflow. See [bundled toolchain](docs/bundled-toolchain.md) for Bun and Codex
+version changes, packaging and validation.
 
 Updates: `createUpdaterArtifacts` signs every bundle with the minisign key whose public
 half sits in `tauri.conf.json` (`plugins.updater.pubkey`); the private key goes into the
@@ -165,6 +164,6 @@ before running this check; staging copies its release binary, not its source cod
 
 ## Licence
 
-Apache-2.0. Bundles the OpenAI Codex CLI (Apache-2.0) and
+Apache-2.0. Bundles Bun (MIT, with separately licensed embedded libraries), the OpenAI Codex CLI (Apache-2.0) and
 [codex-acp-v2](https://www.npmjs.com/package/@nyssance/codex-acp-v2) (Apache-2.0);
 their notices ship under `resources/licenses`.

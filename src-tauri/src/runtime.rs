@@ -71,24 +71,24 @@ fn engines_table() -> Result<String, String> {
     let mut engines =
         json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}});
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
-    // `bun` (`ALWITH_U_BUN` overrides the executable). U does not ship dsh yet; the story demo needs it.
+    // bundled Bun (`ALWITH_U_BUN` explicitly overrides it). Never discover Desktop's Bun through PATH.
     if let Ok(entry) = std::env::var("ALWITH_U_DSH_AGENT") {
         if !PathBuf::from(&entry).is_file() {
             return Err(format!("ALWITH_U_DSH_AGENT is not a file: {entry}"));
         }
-        let bun = match std::env::var("ALWITH_U_BUN") {
-            Ok(path) => PathBuf::from(path),
-            Err(_) => find_on_path("bun").ok_or("bun not found on PATH; set ALWITH_U_BUN")?,
+        let bun = match std::env::var_os("ALWITH_U_BUN") {
+            Some(path) => {
+                let path = PathBuf::from(path);
+                if !path.is_absolute() || !path.is_file() {
+                    return Err("ALWITH_U_BUN must be an absolute path to a file".into());
+                }
+                path
+            }
+            None => sidecar_path("bun")?,
         };
         engines["dsh"] = json!({"command": bun, "args": [entry]});
     }
     Ok(engines.to_string())
-}
-
-/// The Runtime launches engines by absolute path; resolve a bare executable name the way a shell would.
-fn find_on_path(name: &str) -> Option<PathBuf> {
-    let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
-    std::env::split_paths(&std::env::var_os("PATH")?).map(|dir| dir.join(&file)).find(|path| path.is_file())
 }
 
 /// Where the Runtime finds modules (`alwith-module.json` packages): `ALWITH_MODULES_DIR` when set, else this

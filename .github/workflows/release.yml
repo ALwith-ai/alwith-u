@@ -29,6 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -43,6 +46,12 @@ jobs:
           args: --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json
           uploadWorkflowArtifacts: true
           workflowArtifactNamePattern: alwith-u-[version]-[platform]-[arch]-[bundle]
+      - name: Verify packaged toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release/bundle/macos/ALwith U.app/Contents/MacOS"
+      - name: Verify built toolchain (Windows)
+        if: runner.os == 'Windows'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release"
 
   release-preflight:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -50,6 +59,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
       - name: Verify tag and package versions match
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -93,6 +105,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -121,3 +136,9 @@ jobs:
           updaterJsonPreferNsis: true
           releaseAssetNamePattern: alwith-u_[version]_[platform]_[arch][setup][ext]
           args: --target ${{ matrix.target }}
+      - name: Verify packaged toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release/bundle/macos/ALwith U.app/Contents/MacOS"
+      - name: Verify built toolchain (Windows)
+        if: runner.os == 'Windows'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release"

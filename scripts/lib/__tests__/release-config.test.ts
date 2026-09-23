@@ -7,6 +7,7 @@ const root = resolve(import.meta.dirname, "../../..")
 type Step = {
   name?: string
   uses?: string
+  run?: string
   with?: Record<string, unknown>
 }
 
@@ -41,6 +42,31 @@ const releaseTargets = [
   { target: "x86_64-pc-windows-msvc", runner: "windows-2025" },
   { target: "aarch64-pc-windows-msvc", runner: "windows-11-arm" }
 ]
+
+test("every CI Bun installation uses the packageManager pin and checks toolchain consistency", () => {
+  for (const path of [".github/workflows/ci.yml", ".github/workflows/release.yml"]) {
+    const workflow = Bun.YAML.parse(read(path)) as Workflow
+    for (const job of Object.values(workflow.jobs!)) {
+      const steps = job.steps!
+      const setup = steps.find(step => step.uses === "oven-sh/setup-bun@v2")
+      expect(setup?.with?.["bun-version-file"]).toBe("package.json")
+      expect(steps.some(step => step.run === "bun scripts/check-toolchain.ts")).toBe(true)
+    }
+  }
+})
+
+test("installers include Bun and the Codex executable pair with versioned Bun notices", () => {
+  const config = JSON.parse(read("src-tauri/tauri.conf.json")) as {
+    bundle: { externalBin: string[]; resources: Record<string, string> }
+  }
+  for (const binary of ["bun", "codex", "codex-code-mode-host", "codex-acp-v2", "alwith-runtime"]) {
+    expect(config.bundle.externalBin).toContain(`binaries/${binary}`)
+  }
+  expect(config.bundle.resources["resources/licenses"]).toBe("licenses")
+  const manifest = JSON.parse(read("package.json")) as { packageManager: string }
+  const version = manifest.packageManager.slice("bun@".length)
+  expect(read(`src-tauri/resources/licenses/bun-${version}.md`)).toContain(`bun-v${version}/LICENSE.md`)
+})
 
 test("manual runs build unsigned macOS and Windows workflow artifacts without creating a release", () => {
   const job = releaseWorkflow()["test-bundles"]
