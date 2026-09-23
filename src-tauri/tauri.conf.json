@@ -35,7 +35,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVENkIwRUNFMzFGQjk0NTEKUldSUmxQc3h6ZzVyWFI4SFdzZmlOZnoxVjd1MjFEeG1nWnhtcFk2OVZuNW9PcWwwV3FQQW1YQWYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUxRDY0MTkxMkUwNjI2NgpSV1JtWXVBU0dXUWRCVjVkQTNjU094b21wbnJOM2l4ZkZjOUFrY29vUjBHU2RmTkpJRDNRTm03OQo=",
       "endpoints": ["https://github.com/ALwith-ai/alwith-u/releases/latest/download/latest.json"]
     }
   },
