@@ -42,11 +42,14 @@ import {
 } from "@/components/ui/dialog"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ThreadSummary } from "@/agent/client"
 import { hasPluginStore, hasRename } from "@/agent/codex-extensions"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
+import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { client, useApp } from "@/lib/client"
@@ -194,6 +197,11 @@ export function ThreadSidebar({
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
   const threads = useApp(state => state.threads)
   const threadsCursor = useApp(state => state.threadsCursor)
+  const threadsLoaded = useApp(state => state.threadsLoaded)
+  const threadsLoading = useApp(state => state.threadsLoading)
+  const threadsError = useApp(state => state.threadsError)
+  const connection = useApp(state => state.connection)
+  const connectionError = useApp(state => state.connectionError)
   const archived = useApp(state => state.archivedThreads)
   const archivedLoaded = useApp(state => state.archivedLoaded)
   const archivedCursor = useApp(state => state.archivedCursor)
@@ -346,7 +354,37 @@ export function ThreadSidebar({
         ) : (
           <Pane viewportClassName="px-1 py-1">
             <NavigationStack>
-              {q !== "" && groups.length === 0 && archivedShown.length === 0 && (
+              {!threadsLoaded &&
+                threadsError === null &&
+                connection !== "failed" &&
+                (connection !== "disconnected" || connectionError === null) && (
+                  <div aria-busy="true" className="flex flex-col gap-0.5">
+                    {(["w-24", "w-32"] as const).map(width => (
+                      <div
+                        key={width}
+                        data-slot="project-skeleton-row"
+                        className="relative flex h-[var(--navigation-row-height)] w-full items-center gap-1 rounded-[10px] ps-1 pe-1.5 [corner-shape:superellipse(1.5)]">
+                        <NavigationLeading>
+                          <FolderClosedIcon className="text-foreground/40 size-3.5" />
+                        </NavigationLeading>
+                        <Skeleton className={cn("bg-foreground/12 h-3 rounded-sm", width)} />
+                        <Skeleton className="bg-foreground/12 ms-auto h-2.5 w-4 rounded-sm" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              {threadsError !== null && (
+                <div role="alert" className="text-muted-foreground flex flex-col items-start gap-2 px-3 py-4 text-sm">
+                  <span>{threadsError}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => report(client.listThreads({ reset: !threadsLoaded }))}>
+                    {t("actions.retry")}
+                  </Button>
+                </div>
+              )}
+              {threadsLoaded && threadsError === null && groups.length === 0 && archivedShown.length === 0 && (
                 <p className="text-muted-foreground px-3 py-6 text-center text-sm">{t("sidebar.noResults")}</p>
               )}
               {groups.map(([cwd, list]) => {
@@ -372,11 +410,12 @@ export function ThreadSidebar({
                   </NavigationGroup>
                 )
               })}
-              {threadsCursor !== null && q === "" && (
+              {threadsCursor !== null && threadsError === null && q === "" && (
                 <NavigationItemButton
                   className={`${MENU_HIGHLIGHT} text-muted-foreground`}
+                  disabled={threadsLoading}
                   onClick={() => report(client.listThreads())}>
-                  {t("sidebar.loadMore")}
+                  {threadsLoading ? <Spinner className="size-3.5" /> : t("sidebar.loadMore")}
                 </NavigationItemButton>
               )}
               <NavigationGroup

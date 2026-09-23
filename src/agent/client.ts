@@ -87,6 +87,8 @@ export type AppState = {
   threads: ThreadSummary[]
   threadsCursor: string | null
   threadsLoaded: boolean
+  threadsLoading: boolean
+  threadsError: string | null
   archivedThreads: ThreadSummary[]
   archivedCursor: string | null
   archivedLoaded: boolean
@@ -165,6 +167,8 @@ export class CodexClient {
       threads: [],
       threadsCursor: null,
       threadsLoaded: false,
+      threadsLoading: false,
+      threadsError: null,
       archivedThreads: [],
       archivedCursor: null,
       archivedLoaded: false,
@@ -369,24 +373,32 @@ export class CodexClient {
     const state = this.state
     const cursor = options.reset ? null : archived ? state.archivedCursor : state.threadsCursor
     if (!options.reset && (archived ? state.archivedLoaded : state.threadsLoaded) && cursor === null) return
+    if (!archived) this.store.setState({ threadsLoading: true, threadsError: null })
     const request: acp.ListSessionsRequest = {
       ...(cursor ? { cursor } : {}),
       ...(archived ? { _meta: { codex: { archived: true } } } : {})
     }
-    const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
-    const page = response.sessions.map(toSummary)
-    const nextCursor = response.nextCursor ?? null
-    this.store.setState(current => {
-      const previous = options.reset ? [] : archived ? current.archivedThreads : current.threads
-      const merged = [...previous.filter(thread => !page.some(item => item.sessionId === thread.sessionId)), ...page]
-      return archived
-        ? {
-            archivedThreads: merged,
-            archivedCursor: nextCursor,
-            archivedLoaded: true
-          }
-        : { threads: merged, threadsCursor: nextCursor, threadsLoaded: true }
-    })
+    try {
+      const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
+      const page = response.sessions.map(toSummary)
+      const nextCursor = response.nextCursor ?? null
+      this.store.setState(current => {
+        const previous = options.reset ? [] : archived ? current.archivedThreads : current.threads
+        const merged = [...previous.filter(thread => !page.some(item => item.sessionId === thread.sessionId)), ...page]
+        return archived
+          ? {
+              archivedThreads: merged,
+              archivedCursor: nextCursor,
+              archivedLoaded: true
+            }
+          : { threads: merged, threadsCursor: nextCursor, threadsLoaded: true }
+      })
+    } catch (error) {
+      if (!archived) this.store.setState({ threadsError: error instanceof Error ? error.message : String(error) })
+      throw error
+    } finally {
+      if (!archived) this.store.setState({ threadsLoading: false })
+    }
   }
 
   async newSession(cwd: string, model: string | null = null): Promise<string> {

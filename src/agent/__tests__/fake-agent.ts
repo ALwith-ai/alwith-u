@@ -13,6 +13,7 @@ export type FakeAgent = {
   /** `_meta.alwith.model` hints seen on session/new, session/resume and session/fork. */
   modelHints: Map<string, string | null>
   configDelay: { current: (() => Promise<void>) | null }
+  listResponse: { current: (() => Promise<acp.ListSessionsResponse>) | null }
   configChanges: string[]
   /** Names set through `_codex/session_rename`. */
   renamed: Map<string, string>
@@ -62,6 +63,7 @@ export function createFakeAgent(): FakeAgent {
   const gateways: FakeAgent["gateways"] = new Map()
   const modelHints = new Map<string, string | null>()
   const configDelay: FakeAgent["configDelay"] = { current: null }
+  const listResponse: FakeAgent["listResponse"] = { current: null }
   const configChanges: string[] = []
   const changingConfig = new Set<string>()
   const renamed = new Map<string, string>()
@@ -158,6 +160,7 @@ export function createFakeAgent(): FakeAgent {
     return { sessionId: id, configOptions: optionsFor(hint) }
   })
   app.onRequest("session/list", ({ params }) => {
+    if (listResponse.current) return listResponse.current()
     const wantArchived =
       typeof params._meta?.codex === "object" && (params._meta.codex as { archived?: boolean }).archived === true
     return {
@@ -331,6 +334,7 @@ export function createFakeAgent(): FakeAgent {
     gateways,
     modelHints,
     configDelay,
+    listResponse,
     configChanges,
     renamed,
     fileSearches,

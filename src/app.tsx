@@ -175,7 +175,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       // Providers join the model pickers before any thread opens, so a thread the user moved
       // to one of them resumes there.
       client.setGatewayModels(initialPreferences.sessionModels)
-      await applyProviders()
+      void applyProviders().catch((error: unknown) => toast.error(describe(error)))
       await client.listThreads({ reset: true })
       const threads = client.state.threads
       void info(
