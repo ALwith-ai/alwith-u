@@ -261,7 +261,7 @@ export function ThreadView({ session }: { session: Session }) {
       <div
         ref={setScrollRoot}
         data-chat-scroll
-        className="min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain"
+        className="min-h-0 flex-1 scrollbar-thin overflow-x-hidden overflow-y-auto overscroll-contain"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: 滚动容器需可聚焦才能用键盘滚动
         tabIndex={0}
         role="log"
