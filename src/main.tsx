@@ -1,4 +1,5 @@
 import { attachConsole, error as logError, info } from "@tauri-apps/plugin-log"
+import { isTauri } from "@tauri-apps/api/core"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
@@ -15,6 +16,7 @@ import { startPreferenceSync } from "@/lib/preference-sync"
 import { App } from "@/app"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
+import { useUpdaterStore } from "@/features/updater/store"
 import "./index.css"
 
 function describe(value: unknown): string {
@@ -46,6 +48,12 @@ async function bootstrap(): Promise<void> {
   await info("frontend booting")
   const preferences = await loadPreferences()
   await initI18n(preferences.language)
+  if (isTauri()) {
+    void useUpdaterStore
+      .getState()
+      .init()
+      .catch((error: unknown) => surfaceGlobalError(describe(error)))
+  }
   await hydrateZoom(preferences.zoomLevel)
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()

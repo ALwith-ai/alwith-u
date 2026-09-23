@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next"
+import { isTauri } from "@tauri-apps/api/core"
+import { useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -7,6 +9,13 @@ import { useSettingsAgent } from "@/lib/settings-bridge"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AboutSection() {
+  useEffect(() => {
+    if (!isTauri()) return
+    void useUpdaterStore
+      .getState()
+      .init(false)
+      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+  }, [])
   const { t } = useTranslation()
   const agent = useSettingsAgent()
   const state = useUpdaterStore(store => store.state)

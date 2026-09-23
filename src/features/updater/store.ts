@@ -1,7 +1,7 @@
 // Mirrors the Rust updater state machine into React. Checking and downloading are silent
 // (Rust downloads a hit straight away); the only prompt is the native relaunch question once
 // an update is ready, asked once per version. Ported from ALwith Desktop.
-import { invoke, isTauri } from "@tauri-apps/api/core"
+import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { ask } from "@tauri-apps/plugin-dialog"
 import i18n from "i18next"
@@ -36,9 +36,9 @@ export interface UpdaterIo {
 
 export interface UpdaterStore {
   state: UpdaterState
-  /** init runs once per webview: fetch the current state, then follow changes. */
+  /** Subscribe before fetching state; only the main webview automatically prompts. */
   initialized: boolean
-  init: () => Promise<void>
+  init: (autoPrompt?: boolean) => Promise<void>
   confirmInstallAndRelaunch: () => Promise<void>
 }
 
@@ -59,16 +59,26 @@ export function createUpdaterStore(io: UpdaterIo) {
   return create<UpdaterStore>()((set, get) => ({
     state: { type: "uninitialized" },
     initialized: false,
-    init: async () => {
+    init: async (autoPrompt = true) => {
       if (get().initialized) return
       set({ initialized: true })
-      const initial = await io.getState()
-      set({ state: initial })
-      await promptReadyUpdate(initial)
-      await io.onStateChange(state => {
-        set({ state })
-        void promptReadyUpdate(state)
-      })
+      let receivedEvent = false
+      let unsubscribe: (() => void) | undefined
+      try {
+        unsubscribe = await io.onStateChange(state => {
+          receivedEvent = true
+          set({ state })
+          if (autoPrompt) void promptReadyUpdate(state)
+        })
+        const initial = await io.getState()
+        // An event arriving during the request must not be overwritten by its snapshot.
+        if (!receivedEvent) set({ state: initial })
+      } catch (error) {
+        unsubscribe?.()
+        set({ initialized: false })
+        throw error
+      }
+      if (autoPrompt) await promptReadyUpdate(get().state)
     },
     confirmInstallAndRelaunch
   }))
@@ -89,6 +99,4 @@ const tauriIo: UpdaterIo = {
 
 export const useUpdaterStore = createUpdaterStore(tauriIo)
 
-// The relaunch prompt must fire even while the settings dialog is closed, so the webview
-// starts following the Rust state as soon as this module loads (the dialog imports it at boot).
-if (isTauri()) void useUpdaterStore.getState().init()
+// Initialization is explicit: main owns automatic prompts, settings only observes.

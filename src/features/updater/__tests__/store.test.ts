@@ -79,3 +79,49 @@ test("confirmInstallAndRelaunch surfaces install failures", async () => {
   }
   await expect(createUpdaterStore(io).getState().confirmInstallAndRelaunch()).rejects.toThrow("disk full")
 })
+
+test("an event received during the initial snapshot wins over stale state", async () => {
+  const { io, emit, calls } = fakeIo({ type: "idle" })
+  io.getState = async () => {
+    if (calls.listen) emit(ready)
+    return { type: "idle" }
+  }
+  const store = createUpdaterStore(io)
+  await store.getState().init()
+  expect(store.getState().state).toEqual(ready)
+  expect(calls.ask).toBe(1)
+})
+
+test("settings follows ready state without automatically prompting but can install manually", async () => {
+  const { io, emit, calls } = fakeIo(ready, true)
+  const store = createUpdaterStore(io)
+  await store.getState().init(false)
+  emit(ready)
+  expect(store.getState().state).toEqual(ready)
+  expect(calls.ask).toBe(0)
+  await store.getState().confirmInstallAndRelaunch()
+  expect(calls.install).toBe(1)
+})
+
+test("snapshot failure unsubscribes and permits initialization retry", async () => {
+  const { io, calls } = fakeIo({ type: "idle" })
+  let unsubscribed = 0
+  const listen = io.onStateChange
+  io.onStateChange = async handler => {
+    await listen(handler)
+    return () => {
+      unsubscribed += 1
+    }
+  }
+  io.getState = async () => {
+    throw new Error("IPC unavailable")
+  }
+  const store = createUpdaterStore(io)
+  await expect(store.getState().init()).rejects.toThrow("IPC unavailable")
+  expect(unsubscribed).toBe(1)
+  expect(store.getState().initialized).toBe(false)
+  io.getState = async () => ready
+  await store.getState().init()
+  expect(store.getState().state).toEqual(ready)
+  expect(calls.listen).toBe(2)
+})
