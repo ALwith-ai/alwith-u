@@ -8,7 +8,11 @@ export function projectActivity(
   streaming: boolean
 ): CodexActivityBlock {
   if (item.kind !== "tool") {
-    return { type: "thinking", id: item.id, thinking: textOf(item.content), isComplete: !streaming }
+    const thinking = textOf(item.content)
+    // The shared reasoning view removes a leading bold heading. Keep it as plain text
+    // when the heading is the entire summary, so the expanded view is not empty.
+    const headingOnly = /^\s*\*\*([^\n]*?)\*\*\s*$/.exec(thinking)
+    return { type: "thinking", id: item.id, thinking: headingOnly ? headingOnly[1] : thinking, isComplete: !streaming }
   }
   if (item.name === "subagent" || item.name === "collab") {
     return {

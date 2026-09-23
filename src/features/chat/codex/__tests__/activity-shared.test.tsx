@@ -139,6 +139,21 @@ test("thinking identity survives message upserts and virtualized unmounts", () =
   expect(restored.getByRole("button", { name: "Thought" }).getAttribute("aria-expanded")).toBe("false")
 })
 
+test("a heading-only reasoning summary stays visible when expanded", () => {
+  const item: MessageItem = {
+    id: crypto.randomUUID(),
+    kind: "thought",
+    at: 1,
+    replayed: true,
+    _meta: null,
+    echo: null,
+    content: [{ type: "text", text: "**Inspecting the repository**" }]
+  }
+  const view = mount(display(item))
+  fireEvent.click(view.getByRole("button", { name: "Thought" }))
+  expect(view.container.querySelector(".codex-reasoning-details")?.textContent).toBe("Inspecting the repository")
+})
+
 test("adding chat translations does not replace application strings", async () => {
   const instance = createInstance()
   await instance.init({
