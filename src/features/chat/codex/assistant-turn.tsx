@@ -3,14 +3,14 @@ import { memo } from "react"
 import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/assistant-message"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { useTranslation } from "react-i18next"
-import type { Terminal, TurnError } from "@alwith/api"
+import { isText, type Terminal, type TurnError } from "@alwith/api"
 import { codexTurnError } from "@/agent/codex-extensions"
 import { messageText, type Turn, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
 import { useChatActivityHost } from "./activity-host"
 import { EditedFilesCard } from "./edited-files-card"
-import { CodexMarkdownRenderer } from "./markdown-renderer"
 import { CodexPlan } from "./plan"
+import { AssistantContent } from "./assistant-content"
 
 function WorkEntryView({
   entry,
@@ -26,11 +26,7 @@ function WorkEntryView({
     case "activity":
       return <ActivityGroup items={entry.items} terminals={terminals} streaming={streaming} />
     case "text":
-      return (
-        <div className="codex-assistant-message">
-          <CodexMarkdownRenderer text={messageText(entry.item)} streaming={streaming} />
-        </div>
-      )
+      return <AssistantContent content={entry.item.content} messageId={entry.item.id} streaming={streaming} />
     case "plan":
       return <CodexPlan plan={entry.item.plan} />
     case "compaction":
@@ -75,7 +71,9 @@ function AssistantTurnImpl({
   const { t } = useTranslation()
   const host = useChatActivityHost()
   const finalText = turn.final.map(messageText).join("\n")
-  const hasFinal = finalText.trim().length > 0
+  const hasFinal = turn.final.some(message =>
+    message.content.some(block => !isText(block) || block.text.trim().length > 0)
+  )
   return (
     <ActivityHostProvider host={host}>
       <CodexAssistantTurn
@@ -89,9 +87,18 @@ function AssistantTurnImpl({
         ))}
         answer={
           hasFinal ? (
-            <div className="codex-assistant-message">
-              <CodexMarkdownRenderer text={finalText} streaming={active} />
-              {!active && <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />}
+            <div className="flex min-w-0 flex-col items-start gap-3">
+              {turn.final.map(message => (
+                <AssistantContent
+                  key={message.id}
+                  content={message.content}
+                  messageId={message.id}
+                  streaming={active}
+                />
+              ))}
+              {!active && finalText.trim().length > 0 && (
+                <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />
+              )}
             </div>
           ) : null
         }

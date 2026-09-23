@@ -138,6 +138,9 @@
     "image": {
       "view": "View image"
     },
+    "content": {
+      "unsupported": "Unsupported content: {{type}}"
+    },
     "tokens": {
       "openDetails": "Token usage",
       "input": "Input",

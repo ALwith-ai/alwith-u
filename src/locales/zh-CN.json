@@ -137,6 +137,9 @@
     "image": {
       "view": "查看图片"
     },
+    "content": {
+      "unsupported": "暂不支持的内容：{{type}}"
+    },
     "tokens": {
       "openDetails": "Token 用量",
       "input": "输入",

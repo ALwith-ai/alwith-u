@@ -85,3 +85,81 @@ test("compaction stays in work and a current-turn error is not repeated on earli
   expect(view.queryByRole("alert")).toBeNull()
   expect(view.getByText("Preserved answer")).toBeDefined()
 })
+
+test("final answer keeps text and image blocks in their original order", () => {
+  const session = feed(addPrompt(createSession("mixed-answer", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "final",
+    content: [
+      { type: "text", text: "Before" },
+      { type: "image", data: "aGVsbG8=", mimeType: "image/png" },
+      { type: "text", text: "After" }
+    ],
+    _meta: { codex: { phase: "final_answer" } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  const answer =
+    view.container.querySelector(".codex-final-answer") ?? view.container.querySelector(".codex-assistant-turn")
+  expect(answer?.querySelectorAll(".codex-assistant-message, img").length).toBe(3)
+  expect(
+    Array.from(
+      answer?.querySelectorAll(".codex-assistant-message, img") ?? [],
+      element => element.textContent || element.tagName
+    )
+  ).toEqual(["Before", "IMG", "After"])
+  expect(answer?.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
+  expect(view.getByRole("button", { name: "View image" })).toBeDefined()
+})
+
+test("an image-only final answer is visible", () => {
+  const session = feed(addPrompt(createSession("image-answer", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "final",
+    content: [{ type: "image", data: "aGVsbG8=", mimeType: "image/png" }],
+    _meta: { codex: { phase: "final_answer" } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.container.querySelector(".codex-assistant-turn img")?.getAttribute("src")).toBe(
+    "data:image/png;base64,aGVsbG8="
+  )
+})
+
+test("commentary keeps non-text content and unknown blocks are visible", () => {
+  const session = feed(addPrompt(createSession("mixed-commentary", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "comment",
+    content: [
+      { type: "text", text: "See" },
+      { type: "resource_link", uri: "file:///tmp/result.txt", name: "result.txt" },
+      { type: "future_block", value: 1 }
+    ],
+    _meta: { codex: { phase: "commentary" } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  const work = view.container.querySelector(".codex-work-body")
+  expect(work?.textContent).toContain("See")
+  expect(work?.textContent).toContain("result.txt")
+  expect(work?.textContent).toContain("Unsupported content: future_block")
+})
+
+test("embedded binary content can be downloaded from its payload", () => {
+  const session = feed(addPrompt(createSession("binary-answer", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "final",
+    content: [
+      {
+        type: "resource",
+        resource: { uri: "file:///tmp/result.bin", mimeType: "application/octet-stream", blob: "aGVsbG8=" }
+      }
+    ],
+    _meta: { codex: { phase: "final_answer" } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getByRole("link", { name: "file:///tmp/result.bin" }).getAttribute("href")).toBe(
+    "data:application/octet-stream;base64,aGVsbG8="
+  )
+})
