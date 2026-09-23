@@ -24,8 +24,8 @@ const CODEX_ANCHOR_TOP_OFFSET_PX = 64
 
 /**
  * Codex's turn anchoring: after a prompt the new turn is scrolled to the viewport top and
- * whatever height is missing below it is provided by a spacer, which only resets on the
- * next prompt.
+ * whatever height is missing below it is provided by a spacer. Streaming content consumes
+ * that space, and the remainder is cleared when the turn finishes.
  */
 export function codexAnchorPlan(input: {
   turnTopPx: number
@@ -65,6 +65,8 @@ export function ThreadView({ session }: { session: Session }) {
   const pinFrameRef = useRef<number | null>(null)
   const [spacerHeightPx, setSpacerHeightPx] = useState(0)
   const spacerHeightRef = useRef(0)
+  const anchorSpaceRef = useRef<{ element: HTMLElement; heightPx: number } | null>(null)
+  const anchorRequestRef = useRef(0)
   spacerHeightRef.current = spacerHeightPx
 
   const scrollToBottom = useCallback(() => {
@@ -120,9 +122,11 @@ export function ThreadView({ session }: { session: Session }) {
     if (scrollRoot === null) return
     const lastTurnKey = turns.at(-1)?.key
     if (lastTurnKey === undefined) return
+    const requestId = ++anchorRequestRef.current
     const measureAndAnchor = () =>
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
+          if (requestId !== anchorRequestRef.current) return
           const lastTurn = scrollRoot.querySelector<HTMLElement>(`[data-codex-turn="${CSS.escape(lastTurnKey)}"]`)
           if (lastTurn === null) return
           const turnTopPx =
@@ -133,8 +137,15 @@ export function ThreadView({ session }: { session: Session }) {
             viewportHeightPx: scrollRoot.clientHeight,
             spacerPx: spacerHeightRef.current
           })
+          anchorSpaceRef.current =
+            plan.spacerPx > 0
+              ? { element: lastTurn, heightPx: lastTurn.getBoundingClientRect().height + plan.spacerPx }
+              : null
           setSpacerHeightPx(plan.spacerPx)
-          requestAnimationFrame(() => scrollRoot.scrollTo({ top: plan.scrollTopPx, behavior: "instant" }))
+          requestAnimationFrame(() => {
+            if (requestId !== anchorRequestRef.current) return
+            scrollRoot.scrollTo({ top: plan.scrollTopPx, behavior: "instant" })
+          })
         })
       )
     const thread = threadRef.current
@@ -149,6 +160,14 @@ export function ThreadView({ session }: { session: Session }) {
     }
     measureAndAnchor()
   }, [scrollRoot, turns])
+
+  useEffect(() => {
+    if (running) return
+    anchorRequestRef.current++
+    anchorSpaceRef.current = null
+    spacerHeightRef.current = 0
+    setSpacerHeightPx(0)
+  }, [running])
 
   useEffect(() => {
     if (scrollRoot === null) return
@@ -178,7 +197,7 @@ export function ThreadView({ session }: { session: Session }) {
     // before React grows the content, so the toggle stays under the pointer.
     const releaseOnDisclosureToggle = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return
-      if (event.target.closest("button[aria-expanded]") === null) return
+      if (event.target.closest("[data-codex-disclosure]") === null) return
       atBottomRef.current = false
       setAtBottom(false)
     }
@@ -199,6 +218,15 @@ export function ThreadView({ session }: { session: Session }) {
     const content = scrollRoot.firstElementChild
     if (!(content instanceof HTMLElement)) throw new Error("Codex scroll content element is missing")
     const observer = new ResizeObserver(() => {
+      const anchorSpace = anchorSpaceRef.current
+      if (anchorSpace !== null) {
+        const remainingPx = Math.max(0, anchorSpace.heightPx - anchorSpace.element.getBoundingClientRect().height)
+        if (remainingPx < spacerHeightRef.current) {
+          spacerHeightRef.current = remainingPx
+          setSpacerHeightPx(remainingPx)
+          if (remainingPx === 0) anchorSpaceRef.current = null
+        }
+      }
       if (!atBottomRef.current) return
       schedulePin()
     })
@@ -222,6 +250,7 @@ export function ThreadView({ session }: { session: Session }) {
     previousLastRef.current = last === undefined ? null : { key: last.key, hasUser: last.user !== null }
     if (last === undefined || previous === null) return
     if (last.user !== null && !last.replayed && last.key !== previous.key) {
+      anchorSpaceRef.current = null
       spacerHeightRef.current = 0
       setSpacerHeightPx(0)
       anchorLastTurn()
@@ -240,7 +269,7 @@ export function ThreadView({ session }: { session: Session }) {
       <div
         data-virtualized-turn-content
         data-codex-turn={turn.key}
-        className={index === 0 ? "flex flex-col gap-4 pt-4" : "flex flex-col gap-4"}>
+        className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
         {turn.user !== null && <UserMessage item={turn.user} />}
         {hasAssistant && (
           <AssistantTurn
@@ -266,7 +295,7 @@ export function ThreadView({ session }: { session: Session }) {
         tabIndex={0}
         role="log"
         aria-label={t("chat.thread")}>
-        <div className="min-h-full w-full px-6">
+        <div className="min-h-full w-full px-5">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
             <VirtualizedTurnList
               ref={threadRef}
