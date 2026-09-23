@@ -116,11 +116,16 @@ jobs:
           workspaces: src-tauri
           key: ${{ matrix.target }}
       - run: bun install --frozen-lockfile
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: bash scripts/macos-signing.sh setup
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -142,3 +147,7 @@ jobs:
       - name: Verify built toolchain (Windows)
         if: runner.os == 'Windows'
         run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release"
+      - name: Clean up Apple signing certificate
+        if: always() && runner.os == 'macOS' && env.ALWITH_SIGNING_DIR != ''
+        shell: bash
+        run: bash scripts/macos-signing.sh cleanup

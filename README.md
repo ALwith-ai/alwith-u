@@ -121,6 +121,16 @@ Release by `tauri-action`. Apple signing and notarisation use the `APPLE_*` secr
 in the workflow. Bun and Codex versions are pinned in `package.json` and checked by
 `scripts/check-toolchain.ts`; `scripts/verify-bundled-toolchain.ts` validates the built toolchain.
 
+The macOS release job uses `scripts/macos-signing.sh setup/cleanup` to manage signing
+credentials. It imports the Apple certificate into a temporary keychain before
+staging and restores the keychain search list and cleans up afterwards, including on
+failure. Its password is generated per run; no additional secret is needed. Tauri
+handles application signing and notarisation directly. Gatekeeper and clean-Mac
+installation checks remain manual acceptance steps; there is no separate DMG
+notarisation step. Manual workflow runs remain unsigned test builds. Publish a draft
+only after all matrix jobs and manual acceptance checks pass; toolchain smoke tests
+run after the action uploads draft assets. Updater acceptance is a separate test.
+
 Updates: `createUpdaterArtifacts` signs every bundle with the minisign key whose public
 half sits in `tauri.conf.json` (`plugins.updater.pubkey`); the private key goes into the
 `TAURI_SIGNING_PRIVATE_KEY` secret. The app polls `releases/latest/download/latest.json`
