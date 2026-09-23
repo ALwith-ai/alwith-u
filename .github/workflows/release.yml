@@ -4,6 +4,11 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      tos_release_tag:
+        description: Existing draft release tag to retry TOS upload
+        required: false
+        type: string
   push:
     tags: ["v*"]
 
@@ -12,7 +17,7 @@ permissions:
 
 jobs:
   test-bundles:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''
     permissions:
       contents: read
     strategy:
@@ -153,11 +158,13 @@ jobs:
         run: bash scripts/macos-signing.sh cleanup
 
   upload-to-tos:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      always() && ((startsWith(github.ref, 'refs/tags/v') && needs.release.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.tos_release_tag != ''))
     needs: release
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -172,15 +179,20 @@ jobs:
       - name: Download release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
-          --dir "$RUNNER_TEMP/tos-release"
-          --pattern '*.dmg' --pattern '*.exe' --pattern '*.msi'
-          --pattern '*.app.tar.gz' --pattern '*.sig'
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          release_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
+            jq -rs --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .id] | if length == 1 then .[0] else error("release not found") end')
+          mkdir -p "$RUNNER_TEMP/tos-release"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" |
+            jq -rs '.[][] | select(.name | test("\\.(dmg|exe|msi|app\\.tar\\.gz)(\\.sig)?$")) | [.id, .name] | @tsv' |
+            while IFS=$'\t' read -r asset_id asset_name; do
+              gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$RUNNER_TEMP/tos-release/$asset_name"
+            done
       - name: Mirror release assets to TOS
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
           TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
           TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
           TOS_ENDPOINT: ${{ secrets.TOS_ENDPOINT }}

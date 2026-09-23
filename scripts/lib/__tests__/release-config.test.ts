@@ -75,7 +75,7 @@ test("manual runs build unsigned macOS and Windows workflow artifacts without cr
   const job = releaseWorkflow()["test-bundles"]
 
   expect(job).toBeDefined()
-  expect(job!.if).toBe("github.event_name == 'workflow_dispatch'")
+  expect(job!.if).toBe("github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''")
   expect(job!.permissions).toEqual({ contents: "read" })
   expect(job!.strategy?.matrix?.include).toEqual(releaseTargets)
 
@@ -132,12 +132,15 @@ test("Tauri keeps ASCII technical identifiers while displaying ALwith U", () => 
   expect(devConfig.productName).toBe("ALwith U Dev")
 })
 
-test("TOS mirroring runs only after the entire tagged release matrix succeeds", () => {
+test("TOS mirroring follows successful tagged builds and can retry a draft release manually", () => {
   const job = releaseWorkflow()["upload-to-tos"]
+  const testBundles = releaseWorkflow()["test-bundles"]
   expect(job).toBeDefined()
   expect(job!.needs).toBe("release")
-  expect(job!.if).toBe("startsWith(github.ref, 'refs/tags/v')")
-  expect(job!.permissions).toEqual({ contents: "read" })
+  expect(job!.if).toContain("needs.release.result == 'success'")
+  expect(job!.if).toContain("inputs.tos_release_tag != ''")
+  expect(testBundles.if).toContain("inputs.tos_release_tag == ''")
+  expect(job!.permissions).toEqual({ contents: "write" })
   const download = job!.steps!.findIndex(step => step.name === "Download release assets")
   const upload = job!.steps!.findIndex(
     step =>
@@ -145,6 +148,7 @@ test("TOS mirroring runs only after the entire tagged release matrix succeeds", 
       '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
   )
   expect(download).toBeGreaterThan(-1)
+  expect(job!.steps![download]?.run).toContain("releases/$release_id/assets")
   expect(upload).toBeGreaterThan(download)
   expect(job!.steps!.find(step => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })
