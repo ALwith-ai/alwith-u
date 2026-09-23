@@ -100,6 +100,18 @@ bun run stage        # stages native npm binaries, Bun, Runtime, Codex, adapter 
 bun tauri dev
 ```
 
+For the Fabric shortcuts, install Fabric (`uv tool install fabric`) and run:
+
+```sh
+fab tauri    # stage resources, then start the .dev Tauri instance
+fab check    # run the web and Rust gates
+fab build    # build the Tauri bundle
+fab format   # format Rust and frontend sources
+fab version  # update package.json, Cargo.toml, and Cargo.lock
+```
+
+Run staging and `fab check` after stopping the dev instance; both write resources that Tauri watches.
+
 `stage` takes the Runtime from the installed `@alwith/runtime` platform package (npm installs
 the one binary for your platform; `stageRuntime()` verifies its pinned SHA256 before copying).
 No GitHub token, download script or private checkout is involved. Local Runtime development
