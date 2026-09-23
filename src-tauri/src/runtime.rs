@@ -67,9 +67,21 @@ fn sidecar_path(name: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-fn engines_table() -> Result<String, String> {
-    let mut engines =
-        json!({"codex": {"command": sidecar_path("codex-acp-v2")?, "env": {"CODEX_PATH": sidecar_path("codex")?}}});
+fn engines_table(app: &AppHandle) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+    #[cfg(not(debug_assertions))]
+    let resources = app.path().resource_dir().map_err(|error| error.to_string())?;
+    let _ = app;
+    let adapter = resources.join("adapter/codex-acp-v2.mjs");
+    if !adapter.is_file() {
+        return Err(format!("ACP adapter missing at {}", adapter.display()));
+    }
+    let mut engines = json!({"codex": {
+        "command": sidecar_path("bun")?,
+        "args": ["--no-install", adapter],
+        "env": {"CODEX_PATH": sidecar_path("codex")?}
+    }});
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
     // bundled Bun (`ALWITH_U_BUN` explicitly overrides it). Never discover Desktop's Bun through PATH.
     if let Ok(entry) = std::env::var("ALWITH_U_DSH_AGENT") {
@@ -129,7 +141,7 @@ pub async fn runtime_start(
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
     command
         .args(["--listen", "stdio://"])
-        .env("ALWITH_RUNTIME_ENGINES", engines_table()?)
+        .env("ALWITH_RUNTIME_ENGINES", engines_table(&app)?)
         .env("ALWITH_RUNTIME_JOURNAL", journal)
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")

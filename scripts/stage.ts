@@ -3,14 +3,13 @@
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
  *   binaries/bun-<triple>                                  the pinned official @oven/bun platform package
  *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
- *   binaries/codex-acp-v2-<triple>                          the ACP v2 adapter compiled into a standalone Bun executable
+ *   resources/adapter/codex-acp-v2.mjs                     the adapter's self-contained JS bundle, run by bundled Bun
  *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
  * plus the licence notices shipped under resources/licenses.
  *
  * Usage: bun scripts/stage.ts [rust-target-triple]   (then TAURI_ENV_TARGET_TRIPLE, then the host)
  */
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { $ } from "bun"
 import { stageNative } from "@alwith/native/stage"
@@ -25,31 +24,26 @@ const licenses = join(root, "src-tauri/resources/licenses")
 const versions = toolchainVersions(manifest)
 assertVersion("build Bun", Bun.version, versions.bun)
 
-type Target = { npm: string; bun: string; exe: string }
+type Target = { npm: string; exe: string }
 const TARGETS: Record<string, Target> = {
   "aarch64-apple-darwin": {
     npm: "darwin-arm64",
-    bun: "bun-darwin-arm64",
     exe: ""
   },
   "x86_64-unknown-linux-gnu": {
     npm: "linux-x64",
-    bun: "bun-linux-x64",
     exe: ""
   },
   "aarch64-unknown-linux-gnu": {
     npm: "linux-arm64",
-    bun: "bun-linux-arm64",
     exe: ""
   },
   "x86_64-pc-windows-msvc": {
     npm: "win32-x64",
-    bun: "bun-windows-x64",
     exe: ".exe"
   },
   "aarch64-pc-windows-msvc": {
     npm: "win32-arm64",
-    bun: "bun-windows-arm64",
     exe: ".exe"
   }
 }
@@ -135,26 +129,18 @@ if (triple === nativeTriple) {
 
 const adapterPackage = JSON.parse(readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8"))
 const adapterEntry = join(root, "node_modules/@nyssance/codex-acp-v2/dist/index.js")
-const adapterDestination = join(binaries, `codex-acp-v2-${triple}${target.exe}`)
-// bun 1.4.2 leaves a ~58 MB `.<hash>-00000000.bun-build` temp file in the cwd of every
-// native-target compile; building inside a throwaway directory keeps them out of the repo.
-const compileDir = mkdtempSync(join(tmpdir(), "alwith-u-compile-"))
-try {
-  await $`bun build ${adapterEntry} --compile --minify --target=${target.bun} --outfile ${adapterDestination}`.cwd(
-    compileDir
+const adapterDirectory = join(root, "src-tauri/resources/adapter")
+mkdirSync(adapterDirectory, { recursive: true })
+const adapterDestination = join(adapterDirectory, "codex-acp-v2.mjs")
+// The published entry already bundles JS dependencies. CODEX_PATH supplies the native CLI;
+// .mjs fixes module semantics independently of the user's project package.json.
+copyFileSync(adapterEntry, adapterDestination)
+if (triple === nativeTriple) {
+  assertVersion(
+    "staged ACP adapter",
+    (await $`${bunDestination} --no-install ${adapterDestination} --version`.text()).trim(),
+    `@nyssance/codex-acp-v2 ${adapterPackage.version}`
   )
-} finally {
-  rmSync(compileDir, { recursive: true, force: true })
-}
-if (triple.endsWith("apple-darwin")) {
-  const identity = process.env.APPLE_SIGNING_IDENTITY
-  if (identity) {
-    await $`codesign --force --timestamp --options runtime --sign ${identity} ${adapterDestination}`
-  } else {
-    // Bun's linker signature may no longer match the completed Mach-O. macOS refuses to
-    // launch that sidecar even outside a hardened bundle, so restore a valid ad-hoc signature.
-    await $`codesign --force --sign - ${adapterDestination}`
-  }
 }
 console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
 

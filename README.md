@@ -66,8 +66,8 @@ OpenRouter. Claude is deliberately not offered.
 ## Architecture
 
 ```
-webview (React) ──alwith-runtime-v1 frames over Tauri events──▶ Rust relay ──stdio──▶ alwith-runtime ──ACP v2 stdio──▶ codex-acp-v2 ──▶ codex
-                                              (closed)                      (Bun executable)   (native)
+webview (React) ──alwith-runtime-v1 frames over Tauri events──▶ Rust relay ──stdio──▶ alwith-runtime ──ACP v2 stdio──▶ bun + codex-acp-v2.mjs ──▶ codex
+                                                                                  (closed)                        (bundled Bun + JS)       (native)
       Rust spawns alwith-runtime as a sidecar and relays frames both ways, 16 ms batches out
 ```
 
@@ -81,7 +81,7 @@ webview (React) ──alwith-runtime-v1 frames over Tauri events──▶ Rust r
 - Agent attach restores pending permissions through the shared agent API; tests use
   an in-process `AgentApp` and an in-memory fake Runtime.
 - `src-tauri/src/runtime.rs`: spawns `alwith-runtime --listen stdio://` with the engine table, relays stdin/stdout
-  (`codex` → `codex-acp-v2` with `CODEX_PATH`), waits for its `ready` line.
+  (`codex` → bundled `bun --no-install codex-acp-v2.mjs` with `CODEX_PATH`), waits for its `ready` line.
 - `src/features/chat/codex/`: the Codex desktop chat look (markdown renderer,
   activity rows, work section, edited-files card, virtualized turn list, stylesheet).
 - `src/features/chat/composer/`, `src/features/chat/dialogs/`: the input area and the
@@ -96,7 +96,7 @@ Requires the exact Bun version in `package.json#packageManager`, Rust stable and
 
 ```sh
 bun install
-bun run stage        # stages native npm binaries, Bun, Runtime, Codex and licences; compiles the ACP adapter
+bun run stage        # stages native npm binaries, Bun, Runtime, Codex, adapter JS and licences
 bun tauri dev
 ```
 
@@ -118,8 +118,8 @@ desktop compilation using public dependencies on every push.
 Tagging `v<version>` runs `release.yml`: macOS ARM64, Windows x64 and Windows ARM64,
 with sidecars staged from pinned npm packages and bundles uploaded to a draft GitHub
 Release by `tauri-action`. Apple signing and notarisation use the `APPLE_*` secrets
-in the workflow. See [bundled toolchain](docs/bundled-toolchain.md) for Bun and Codex
-version changes, packaging and validation.
+in the workflow. Bun and Codex versions are pinned in `package.json` and checked by
+`scripts/check-toolchain.ts`; `scripts/verify-bundled-toolchain.ts` validates the built toolchain.
 
 Updates: `createUpdaterArtifacts` signs every bundle with the minisign key whose public
 half sits in `tauri.conf.json` (`plugins.updater.pubkey`); the private key goes into the

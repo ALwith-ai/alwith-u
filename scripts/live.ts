@@ -8,7 +8,7 @@ import { WebSocketRuntimeClient } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 import { CodexClient } from "../src/agent/client"
 import { isText, type Session } from "@alwith/api"
-import { staged, startRuntime } from "./lib/runtime"
+import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
 function isNotice(item: Session["items"][number]): boolean {
   if (item.kind !== "assistant") return false
@@ -58,7 +58,7 @@ async function check(transport: "stdio" | "ws") {
     ? new WebSocketRuntimeClient(runtime.url, runtime.token)
     : new ProcessRuntimeClient({
         binary: staged("alwith-runtime"),
-        engines: { codex: { command: staged("codex-acp-v2"), env: { CODEX_PATH: staged("codex") } } },
+        engines: { codex: stagedCodexEngine() },
         journalRoot: join(directory, "journal")
       })
   console.log(`runtime: ${runtime?.url ?? "stdio"}`)
