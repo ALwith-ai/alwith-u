@@ -26,7 +26,8 @@ function themeBackgroundRGB(): [number, number, number] {
 }
 
 /**
- * Settings window: 720×800, fixed size, solid ground (Desktop keeps tool windows opaque).
+ * Settings window: the right content keeps Desktop's 520px width while the navigation
+ * sidebar grows to 240px, with a solid ground (Desktop keeps tool windows opaque).
  * Existing → shown and focused (its close is intercepted into hide); otherwise created.
  * On macOS it is attached as a child of the main window, so it floats over it and never
  * becomes its own Stage Manager stage.
@@ -46,7 +47,7 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
   const win = new WebviewWindow("settings", {
     url: `/settings.html?tab=${section ?? "general"}`,
     title: i18n.t("settings.title"),
-    width: 720,
+    width: 760,
     height: 800,
     resizable: false,
     maximizable: false,

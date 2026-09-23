@@ -1,3 +1,5 @@
+import { setTheme as setNativeTheme } from "@tauri-apps/api/app"
+import { isTauri } from "@tauri-apps/api/core"
 import * as React from "react"
 
 export type Theme = "dark" | "light" | "system"
@@ -56,6 +58,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.add(resolved)
       root.style.colorScheme = resolved
       setResolvedTheme(resolved)
+      if (isTauri()) {
+        void setNativeTheme(theme === "system" ? null : theme).catch((error: unknown) =>
+          console.error("Failed to set native theme", error)
+        )
+      }
     }
     apply()
     if (theme !== "system") return

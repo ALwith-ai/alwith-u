@@ -71,29 +71,32 @@ export function SettingsPage() {
   })()
 
   const sidebar = (
-    <NavigationStack className="px-2">
-      {SETTINGS_SECTIONS.map(id => {
-        const Icon = ICONS[id]
-        return (
-          <NavigationItemButton
-            key={id}
-            className={MENU_HIGHLIGHT}
-            active={id === section}
-            onClick={() => setSection(id)}>
-            <Icon />
-            <span>{t(`settings.${id}`)}</span>
-          </NavigationItemButton>
-        )
-      })}
-    </NavigationStack>
+    <>
+      <div className="px-4 pt-8 pb-8 text-base font-semibold">{t("settings.title")}</div>
+      <NavigationStack className="px-3">
+        {SETTINGS_SECTIONS.map(id => {
+          const Icon = ICONS[id]
+          return (
+            <NavigationItemButton
+              key={id}
+              className={MENU_HIGHLIGHT}
+              active={id === section}
+              onClick={() => setSection(id)}>
+              <Icon />
+              <span>{t(`settings.${id}`)}</span>
+            </NavigationItemButton>
+          )
+        })}
+      </NavigationStack>
+    </>
   )
 
   return (
     <AuxWindowShell
       title={t(`settings.${section}`)}
       sidebar={sidebar}
-      sidebarClassName="w-50 [--navigation-row-height:30px]">
-      <Pane viewportClassName="px-6 pb-6">{content}</Pane>
+      sidebarClassName="bg-muted w-60 [--navigation-row-height:36px]">
+      <Pane viewportClassName="px-6 pt-3 pb-6">{content}</Pane>
     </AuxWindowShell>
   )
 }

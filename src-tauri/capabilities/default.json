@@ -9,6 +9,7 @@
   ],
   "permissions": [
     "core:default",
+    "core:app:allow-set-app-theme",
     "core:window:allow-set-title",
     "core:window:allow-show",
     "core:window:allow-hide",

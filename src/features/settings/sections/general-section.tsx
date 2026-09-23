@@ -31,14 +31,14 @@ export function GeneralSection() {
   const activeEditor = apps.find(app => app.bundle_id === externalEditor) ?? apps[0]
   return (
     <SettingGroup>
-      <SettingRow title={t("settings.versionLabel")}>
-        <span className="text-muted-foreground text-sm">v{version}</span>
+      <SettingRow title={t("settings.versionLabel")} aligned>
+        <span className="text-muted-foreground block text-right text-sm">v{version}</span>
       </SettingRow>
       <Separator />
-      <SettingRow title={t("chatWindow.shortcut")}>
-        <div className="flex items-center gap-2">
+      <SettingRow title={t("chatWindow.shortcut")} aligned>
+        <div className="flex w-full items-center gap-2">
           <Input
-            className="w-40"
+            className="min-w-0 flex-1"
             aria-label={t("chatWindow.shortcut")}
             value={shortcut}
             placeholder={t("chatWindow.shortcutOff")}
@@ -47,7 +47,7 @@ export function GeneralSection() {
           />
           <Button
             variant="outline"
-            size="sm"
+            size="default"
             disabled={savingShortcut}
             onClick={() => {
               setSavingShortcut(true)
@@ -60,7 +60,7 @@ export function GeneralSection() {
         </div>
       </SettingRow>
       <Separator />
-      <SettingRow title={t("settings.language")}>
+      <SettingRow title={t("settings.language")} aligned>
         <Select
           value={i18n.language}
           onValueChange={value => {
@@ -68,7 +68,7 @@ export function GeneralSection() {
             void i18n.changeLanguage(value)
             void savePreference("language", value)
           }}>
-          <SelectTrigger id="language" className="w-48" aria-label={t("settings.language")}>
+          <SelectTrigger id="language" className="w-full" aria-label={t("settings.language")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -85,7 +85,7 @@ export function GeneralSection() {
       {apps.length > 0 && (
         <>
           <Separator />
-          <SettingRow title={t("settings.externalEditor")} desc={t("settings.externalEditorDesc")}>
+          <SettingRow title={t("settings.externalEditor")} desc={t("settings.externalEditorDesc")} aligned>
             <Select
               value={activeEditor?.bundle_id ?? ""}
               onValueChange={value => {
@@ -93,7 +93,7 @@ export function GeneralSection() {
                 setExternalEditor(value)
                 void savePreference("externalEditor", value)
               }}>
-              <SelectTrigger id="external-editor" className="w-48" aria-label={t("settings.externalEditor")}>
+              <SelectTrigger id="external-editor" className="w-full" aria-label={t("settings.externalEditor")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
