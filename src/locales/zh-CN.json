@@ -59,6 +59,7 @@
     "apiKeyTitle": "API 密钥"
   },
   "sidebar": {
+    "signOut": "退出登录",
     "story": "故事",
     "plugins": "插件",
     "activity": "活动",

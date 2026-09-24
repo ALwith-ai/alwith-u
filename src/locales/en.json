@@ -60,6 +60,7 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "signOut": "Sign out",
     "story": "Story",
     "plugins": "Plugins",
     "activity": "Activity",

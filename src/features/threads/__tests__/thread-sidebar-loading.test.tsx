@@ -25,6 +25,9 @@ function showSidebar() {
         selectedId={null}
         onSelect={() => {}}
         onNewChat={() => {}}
+        onNewProjectChat={() => {}}
+        onSearch={() => {}}
+        onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
       />

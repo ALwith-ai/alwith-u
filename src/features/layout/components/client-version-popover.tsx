@@ -1,25 +1,38 @@
 import { getVersion } from "@tauri-apps/api/app"
-import { isTauri } from "@tauri-apps/api/core"
-import { CircleHelpIcon } from "lucide-react"
+import { invoke, isTauri } from "@tauri-apps/api/core"
+import { TerminalIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover"
-import { useApp } from "@/lib/client"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-/** 右下角的轻量状态入口：版本从运行中的桌面客户端与 ACP 初始化结果分别读取。 */
+/** 右下角的轻量状态入口：读取客户端与 Runtime 实际使用的 Codex 可执行文件版本。 */
 export function ClientVersionPopover() {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
   const [clientVersion, setClientVersion] = useState<string | null>(null)
-  const cliVersion = useApp(state => state.agent?.info.version ?? null)
+  const [cliVersion, setCliVersion] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isTauri()) return
-    void getVersion().then(setClientVersion)
-  }, [])
+    if (!open || !isTauri()) return
+    let disposed = false
+    void Promise.all([getVersion(), invoke<string>("codex_version")])
+      .then(([client, cli]) => {
+        if (disposed) return
+        setClientVersion(client)
+        setCliVersion(cli)
+      })
+      .catch((error: unknown) => {
+        if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
+      })
+    return () => {
+      disposed = true
+    }
+  }, [open])
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
           <Button
@@ -30,10 +43,14 @@ export function ClientVersionPopover() {
             title={t("settings.about")}
           />
         }>
-        <CircleHelpIcon className="size-4" />
+        <TerminalIcon className="size-4" />
       </PopoverTrigger>
-      <PopoverContent side="top" align="end" sideOffset={4} className="w-64 gap-2">
-        <PopoverTitle>{t("settings.about")}</PopoverTitle>
+      <PopoverContent
+        side="top"
+        align="end"
+        sideOffset={4}
+        className="w-auto min-w-48 gap-2"
+        aria-label={t("settings.about")}>
         <div className="text-muted-foreground grid gap-1 text-xs">
           <span>{t("settings.version", { version: clientVersion === null ? "—" : `v${clientVersion}` })}</span>
           <span>{t("settings.codexVersion", { version: cliVersion ?? "—" })}</span>

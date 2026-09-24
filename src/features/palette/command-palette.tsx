@@ -2,6 +2,7 @@ import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, Su
 import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -47,51 +48,53 @@ export function CommandPalette({
       onOpenChange={onOpenChange}
       title={t("palette.actions")}
       description={t("palette.placeholder")}>
-      <CommandInput placeholder={t("palette.placeholder")} />
-      <CommandList>
-        <CommandEmpty>{t("sidebar.noResults")}</CommandEmpty>
-        <CommandGroup heading={t("palette.actions")}>
-          <CommandItem onSelect={() => run(onNewChat)}>
-            <PlusIcon />
-            {t("palette.newChat")}
-            <CommandShortcut>{displayShortcut("CmdOrCtrl+N")}</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}>
-            <SunMoonIcon />
-            {t("palette.toggleTheme")}
-          </CommandItem>
-          <CommandItem onSelect={() => run(onOpenSettings)}>
-            <SettingsIcon />
-            {t("palette.settings")}
-            <CommandShortcut>{displayShortcut("CmdOrCtrl+,")}</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={() => run(onOpenHotkeys)}>
-            <KeyboardIcon />
-            {t("palette.hotkeys")}
-            <CommandShortcut>{displayShortcut("CmdOrCtrl+/")}</CommandShortcut>
-          </CommandItem>
-          {pluginsAvailable && (
-            <CommandItem onSelect={() => run(onOpenPlugins)}>
-              <PuzzleIcon />
-              {t("palette.plugins")}
+      <Command>
+        <CommandInput placeholder={t("palette.placeholder")} />
+        <CommandList>
+          <CommandEmpty>{t("sidebar.noResults")}</CommandEmpty>
+          <CommandGroup heading={t("palette.actions")}>
+            <CommandItem onSelect={() => run(onNewChat)}>
+              <PlusIcon />
+              {t("palette.newChat")}
+              <CommandShortcut>{displayShortcut("CmdOrCtrl+N")}</CommandShortcut>
             </CommandItem>
-          )}
-        </CommandGroup>
-        {threads.length > 0 && (
-          <CommandGroup heading={t("palette.chats")}>
-            {threads.map(thread => (
-              <CommandItem
-                key={thread.sessionId}
-                value={`${thread.title ?? ""} ${thread.cwd} ${thread.sessionId}`}
-                onSelect={() => run(() => onSelect(thread))}>
-                <MessageSquareIcon />
-                <span className="truncate">{thread.title ?? t("sidebar.untitled")}</span>
-                <span className="text-muted-foreground ms-auto truncate text-xs">{basename(thread.cwd)}</span>
+            <CommandItem onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}>
+              <SunMoonIcon />
+              {t("palette.toggleTheme")}
+            </CommandItem>
+            <CommandItem onSelect={() => run(onOpenSettings)}>
+              <SettingsIcon />
+              {t("palette.settings")}
+              <CommandShortcut>{displayShortcut("CmdOrCtrl+,")}</CommandShortcut>
+            </CommandItem>
+            <CommandItem onSelect={() => run(onOpenHotkeys)}>
+              <KeyboardIcon />
+              {t("palette.hotkeys")}
+              <CommandShortcut>{displayShortcut("CmdOrCtrl+/")}</CommandShortcut>
+            </CommandItem>
+            {pluginsAvailable && (
+              <CommandItem onSelect={() => run(onOpenPlugins)}>
+                <PuzzleIcon />
+                {t("palette.plugins")}
               </CommandItem>
-            ))}
+            )}
           </CommandGroup>
-        )}
-      </CommandList>
+          {threads.length > 0 && (
+            <CommandGroup heading={t("palette.chats")}>
+              {threads.map(thread => (
+                <CommandItem
+                  key={thread.sessionId}
+                  value={`${thread.title ?? ""} ${thread.cwd} ${thread.sessionId}`}
+                  onSelect={() => run(() => onSelect(thread))}>
+                  <MessageSquareIcon />
+                  <span className="truncate">{thread.title ?? t("sidebar.untitled")}</span>
+                  <span className="text-muted-foreground ms-auto truncate text-xs">{basename(thread.cwd)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
     </CommandDialog>
   )
 }

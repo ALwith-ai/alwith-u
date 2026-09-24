@@ -375,6 +375,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           selectedId={selectedId}
           onSelect={select}
           onNewChat={newChat}
+          onSearch={() => setPaletteOpen(true)}
+          onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
           onNewProjectChat={cwd => {
             if (operation.busy) return
             chooseDraftFolder(cwd)
