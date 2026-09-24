@@ -2,6 +2,7 @@
 // and publishes state through a framework-agnostic zustand store.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
+import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import { createStore, type StoreApi } from "zustand/vanilla"
 import {
   isSelectOption,
@@ -154,6 +155,9 @@ export class CodexClient {
   private readonly configWrites = new Map<string, Promise<void>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
+  private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
+    this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
+  })
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
     this.openPort = openPort
@@ -187,9 +191,8 @@ export class CodexClient {
 
   private publishSession(session: Session): void {
     this.sessions.set(session)
-    this.store.setState(state => ({
-      sessions: { ...state.sessions, [session.id]: session }
-    }))
+    this.updates.enqueue(session.id, session)
+    this.updates.flush()
   }
 
   private live(): Agent {
@@ -291,6 +294,7 @@ export class CodexClient {
   private onClosed(agent: Agent): void {
     if (this.agent !== agent) return
     this.agent = null
+    this.updates.cancel()
     // The process is gone (or we let go of it): nothing pending can be answered any more.
     this.requests.release()
     const sessions: Record<string, Session> = {}
@@ -331,9 +335,17 @@ export class CodexClient {
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
     if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
     const session = this.sessions.accept(sessionId, update)
-    this.store.setState(state => ({
-      sessions: { ...state.sessions, [sessionId]: session }
-    }))
+    this.updates.enqueue(sessionId, session)
+    if (
+      !session.restoring &&
+      update.sessionUpdate !== "agent_message_chunk" &&
+      update.sessionUpdate !== "agent_thought_chunk" &&
+      update.sessionUpdate !== "terminal_output_chunk"
+    ) {
+      // Live lifecycle and configuration changes are observable immediately,
+      // together with all earlier chunks. A completion must never overtake its text.
+      this.updates.flush()
+    }
     if (update.sessionUpdate === "session_info_update") {
       const frame = update as acp.SessionInfoUpdate
       this.store.setState(state => ({
@@ -741,6 +753,7 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
+    this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)
     this.store.setState(state => {
