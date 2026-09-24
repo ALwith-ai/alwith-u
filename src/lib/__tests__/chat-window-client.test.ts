@@ -39,14 +39,6 @@ test("floating fork sends the source and turn to the owner and receives the new 
     expect(remote.session(child).attached).toBe(true)
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
     expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
-    fake.listSessions.current = () => ({
-      sessions: [source, child].map(sessionId => ({
-        sessionId,
-        cwd: "/tmp/floating",
-        _meta: { codex: { nativeSessionId: source, forkedFromId: sessionId === source ? null : source } }
-      }))
-    })
-    expect((await remote.listBranches(child)).map(thread => thread.sessionId)).toEqual([source, child])
     expect(port.started).toEqual(["codex"])
   } finally {
     remote.disconnect()

@@ -7,7 +7,7 @@ import { join } from "node:path"
 import { WebSocketRuntimeClient } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 import { CodexClient } from "../src/agent/client"
-import { codexTurnId } from "../src/agent/codex-extensions"
+import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
 import { isText, type Session } from "@alwith/api"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
@@ -46,7 +46,14 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
     if (!client.state.threads.some(thread => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
-    await until(() => client.session(id).items.some(item => item.kind === "user"), 10_000, "history updates")
+    // WebSocket history notifications can arrive after open resolves, in separate batches.
+    await until(
+      () =>
+        client.session(id).items.some(item => item.kind === "user") &&
+        assistantText(client.session(id)).trim() === original.trim(),
+      10_000,
+      `complete history replay for ${id}`
+    )
     const replayed = client.session(id)
     const users = replayed.items.filter(item => item.kind === "user").length
     if (users !== 1) throw new Error(`Expected one user message in ${id}, saw ${users}`)
@@ -135,6 +142,8 @@ async function check(transport: "stdio" | "ws") {
     const boundary = second.session(a).items.find(item => item.kind === "assistant" && !isNotice(item))
     const turnId = codexTurnId(boundary?._meta)
     if (turnId === null) throw new Error("Restored answer is missing its Codex turn id")
+    const originalTime = codexTurnStartedAt(boundary?._meta)
+    if (originalTime === null) throw new Error("Restored answer is missing its original turn time")
     await second.prompt(a, [{ type: "text", text: "Reply with exactly AFTER_FORK_BOUNDARY" }])
     await until(
       () => second!.session(a).state === "idle" && assistantText(second!.session(a)).includes("AFTER_FORK_BOUNDARY"),
@@ -146,7 +155,9 @@ async function check(transport: "stdio" | "ws") {
     const forked = await second.fork(a, directory, turnId)
     try {
       await until(
-        () => second!.session(forked).items.some(item => item.kind === "user"),
+        () =>
+          second!.session(forked).items.some(item => item.kind === "user") &&
+          assistantText(second!.session(forked)).trim() === replyA.trim(),
         10_000,
         "fork history updates"
       )
@@ -156,11 +167,17 @@ async function check(transport: "stdio" | "ws") {
       if (second.state.forkOrigins[forked]?.boundaryTurnId !== turnId)
         throw new Error("Fork did not identify the inherited turn boundary")
       if (
+        forkSession.items.some(
+          item => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime
+        )
+      )
+        throw new Error("Fork changed the original turn time")
+      if (
         forkSession.items.filter(item => item.kind === "user").length !== 1 ||
         assistantText(forkSession).trim() !== replyA.trim()
       )
         throw new Error("Fork did not stop at the selected answer")
-      const branches = await second.listBranches(a)
+      const branches = await second.listProjectThreads(directory)
       if (![a, forked].every(id => branches.some(thread => thread.sessionId === id)))
         throw new Error("Native branch index is missing the source or fork")
       if (branches.find(thread => thread.sessionId === forked)?.forkedFromId !== a)
@@ -209,7 +226,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      if (!(await second.listBranches(a)).some(thread => thread.sessionId === forked))
+      if (!(await second.listProjectThreads(directory)).some(thread => thread.sessionId === forked))
         throw new Error("Continued fork is missing from the persisted native list")
       await second.open(forked, directory)
       await until(
@@ -224,6 +241,12 @@ async function check(transport: "stdio" | "ws") {
         second.session(forked).title !== `${sourceTitle} (2)`
       )
         throw new Error("Fork origin or title changed after continuation and restart")
+      if (
+        second
+          .session(forked)
+          .items.some(item => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime)
+      )
+        throw new Error("Fork history time changed after restart")
       console.log(
         "fork: immediate persistence, counted title, inherited boundary, isolated continuation and restart verified"
       )

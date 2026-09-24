@@ -89,7 +89,6 @@
   "chat": {
     "branches": {
       "create": "Create chat branch",
-      "loading": "Loading branches…",
       "continuedFrom": "Continue from original chat",
       "sourceUnavailable": "Original chat unavailable"
     },

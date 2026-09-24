@@ -450,37 +450,6 @@ export class CodexClient {
     return this.listSessionIndex(cwd)
   }
 
-  /** Scan every page: branches can move to another project and need not be in the sidebar's first page. */
-  async listBranches(id: string): Promise<ThreadSummary[]> {
-    const [active, archived] = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
-    const threads = [...active, ...archived]
-    const source = threads.find(thread => thread.sessionId === id)
-    if (source?.forkedFromId === undefined) throw new Error("The agent did not return this chat's branch information")
-    // Codex 0.156.1 can assign a new native sessionId on fork. The parent edges are authoritative.
-    const adjacent = new Map<string, Set<string>>()
-    for (const thread of threads) {
-      if (thread.forkedFromId == null) continue
-      for (const [from, to] of [
-        [thread.sessionId, thread.forkedFromId],
-        [thread.forkedFromId, thread.sessionId]
-      ]) {
-        const neighbors = adjacent.get(from) ?? new Set<string>()
-        neighbors.add(to)
-        adjacent.set(from, neighbors)
-      }
-    }
-    const related = new Set([id])
-    const pending = [id]
-    for (const current of pending) {
-      for (const neighbor of adjacent.get(current) ?? []) {
-        if (related.has(neighbor)) continue
-        related.add(neighbor)
-        pending.push(neighbor)
-      }
-    }
-    return active.filter(thread => related.has(thread.sessionId))
-  }
-
   private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {
     const agent = this.live()
     const threads = new Map<string, ThreadSummary>()

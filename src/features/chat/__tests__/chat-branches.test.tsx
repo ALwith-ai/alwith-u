@@ -1,5 +1,5 @@
 import { act } from "react"
-import { createSession } from "@alwith/api"
+import { applyUpdate, createSession } from "@alwith/api"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, spyOn, test } from "bun:test"
 import { toast } from "sonner"
@@ -142,7 +142,8 @@ test("the inherited-history divider returns to the exact parent and stays before
         id: "answer",
         content: [{ type: "text" as const, text: "Kept" }],
         _meta: { codex: { turnId: "boundary" } },
-        timestamp: 1,
+        at: 1,
+        echo: null,
         replayed: true
       }
     ]
@@ -150,17 +151,20 @@ test("the inherited-history divider returns to the exact parent and stays before
   const turn = groupTurns(session)[0]
   await act(async () => {
     view.rerender(
-      <ChatBranchProvider session={source} onSelect={thread => selected.push(thread)}>
+      <ChatBranchProvider session={session} onSelect={thread => selected.push(thread)}>
         <ForkOriginDivider turn={turn} />
         <ForkOriginDivider turn={{ ...turn, items: [] }} />
       </ChatBranchProvider>
     )
   })
-  const button = await view.findByRole("button", { name: /Continue from original chat.*Original/ })
+  expect(read).not.toHaveBeenCalled()
+  const button = view.getByRole("button", { name: "Continue from original chat", exact: true })
+  expect(view.queryByText("Original")).toBeNull()
   expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
   await act(async () => {
     fireEvent.click(button)
   })
+  expect(read).toHaveBeenCalledWith("parent")
   expect(selected[0]?.sessionId).toBe("parent")
   await act(async () => {
     client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: null } } })
@@ -187,4 +191,40 @@ test("turn forks stay hidden when the adapter has no turn boundary support", asy
     </ChatBranchProvider>
   )
   expect(view.queryByRole("button", { name: "Create chat branch" })).toBeNull()
+})
+
+test("several user messages in one native turn place the origin only after its last UI batch", async () => {
+  const { groupTurns } = await import("../turns")
+  let session = { ...source, restoring: true }
+  for (const [index, turnId] of ["boundary", "boundary", "child"].entries()) {
+    session = applyUpdate(session, {
+      sessionUpdate: "user_message",
+      messageId: `u${index}`,
+      content: [{ type: "text", text: "prompt" }],
+      _meta: { codex: { turnId } }
+    })
+    session = applyUpdate(session, {
+      sessionUpdate: "agent_message",
+      messageId: `a${index}`,
+      content: [{ type: "text", text: "answer" }],
+      _meta: { codex: { turnId } }
+    })
+  }
+  client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: "boundary" } } })
+  const turns = groupTurns(session)
+  const view = render(
+    <ChatBranchProvider session={session} onSelect={() => {}}>
+      <ForkOriginDivider />
+      {turns.map(turn => (
+        <div key={turn.key} data-batch={turn.key}>
+          <ForkOriginDivider turn={turn} />
+        </div>
+      ))}
+    </ChatBranchProvider>
+  )
+  mounted.push(view)
+  expect(view.container.querySelectorAll("[data-fork-origin]")).toHaveLength(1)
+  expect(view.container.querySelector("[data-fork-origin]")?.parentElement?.getAttribute("data-batch")).toBe(
+    turns[1].key
+  )
 })

@@ -280,6 +280,14 @@ export function codexTurnId(meta: Record<string, unknown> | null | undefined): s
   return typeof id === "string" && id.length > 0 ? id : null
 }
 
+/** Original native turn start, in Unix milliseconds; never a replay arrival time. */
+export function codexTurnStartedAt(meta: Record<string, unknown> | null | undefined): number | null {
+  const codex = meta?.codex
+  if (typeof codex !== "object" || codex === null) return null
+  const value = (codex as { turnStartedAt?: unknown }).turnStartedAt
+  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 8.64e15 ? value : null
+}
+
 /** Single-boolean store selectors (a fresh object per call would re-render forever). */
 export function hasRename(agent: acp.InitializeResponse | null): boolean {
   return codexExtensionCapabilities(agent).rename

@@ -125,7 +125,7 @@ test("fork titles are saved immediately, collisions are skipped, and the boundar
   expect(fake.renamed.get(nested)).toBe("Review (5)")
 })
 
-test("branch lookup reads every page across projects and rejects partial or cyclic results", async () => {
+test("source lookup reads every page across projects and archived chats and rejects cyclic results", async () => {
   const { client, fake } = await make()
   const entry = (id: string, parent: string | null, cwd: string, archived = false) => ({
     sessionId: id,
@@ -144,13 +144,13 @@ test("branch lookup reads every page across projects and rejects partial or cycl
         }
       : { sessions: [entry("root", null, "/project"), entry("unrelated", null, "/project")], nextCursor: "next" }
   }
-  expect((await client.listBranches("root")).map(thread => thread.sessionId)).toEqual(["root", "branch", "sibling"])
+  expect((await client.readThreadSummary("branch"))?.cwd).toBe("/other")
   expect(requests).toContainEqual({ _meta: { codex: { archived: true } } })
   expect(requests).toContainEqual({ cursor: "next" })
-  expect((await client.listBranches("branch")).map(thread => thread.sessionId)).toEqual(["root", "branch", "sibling"])
+  expect((await client.readThreadSummary("archived-parent"))?.archived).toBe(true)
   expect(client.state.threads).toBe(before)
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "cycle" })
-  await expect(client.listBranches("root")).rejects.toThrow("repeated cursor")
+  await expect(client.readThreadSummary("root")).rejects.toThrow("repeated cursor")
 })
 
 test("a newly forked attached chat remains selectable before Codex lists it", async () => {
@@ -167,10 +167,9 @@ test("a newly forked attached chat remains selectable before Codex lists it", as
   const child = await client.fork(root, "/tmp/fork", "turn-1")
   await client.listThreads({ reset: true })
   expect(client.state.threads.some(thread => thread.sessionId === child)).toBe(true)
-  expect((await client.listBranches(child)).map(thread => thread.sessionId)).toEqual([root, child])
   expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(true)
   await client.delete(child)
-  expect((await client.listBranches(root)).map(thread => thread.sessionId)).toEqual([root])
+  expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(false)
 })
 
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
