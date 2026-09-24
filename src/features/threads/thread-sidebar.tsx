@@ -8,6 +8,8 @@ import {
   ActivityIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
   FolderClosedIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -50,6 +52,7 @@ import { NavigationItemButton } from "@/features/layout/components/navigation/na
 import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
 import { client, useApp } from "@/lib/client"
 import { runtimeClient } from "@/lib/runtime"
 import { basename } from "@/lib/path"
@@ -170,6 +173,7 @@ function ThreadHoverBody({ thread, onDelete }: { thread: ThreadSummary; onDelete
 }
 
 export function ThreadSidebar({
+  screen,
   selectedId,
   onSelect,
   onNewChat,
@@ -177,8 +181,10 @@ export function ThreadSidebar({
   onSearch,
   onOpenWindow,
   onOpenSettings,
-  onOpenPlugins
+  onOpenPlugins,
+  onSwitchScreen
 }: {
+  screen: MainScreen
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
@@ -187,6 +193,7 @@ export function ThreadSidebar({
   onOpenWindow: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
+  onSwitchScreen: () => void
 }) {
   const { t } = useTranslation()
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
@@ -285,7 +292,10 @@ export function ThreadSidebar({
           </Tooltip>
         </div>
         {pluginsAvailable && (
-          <NavigationItemButton className={`${MENU_HIGHLIGHT} gap-2 px-2`} onClick={onOpenPlugins}>
+          <NavigationItemButton
+            active={screen === "leading"}
+            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            onClick={onOpenPlugins}>
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
@@ -434,6 +444,17 @@ export function ThreadSidebar({
         )}
       </SidebarContent>
       <SidebarFooter className="shrink-0 pb-[var(--main-surface-block-gutter)]">
+        <Button
+          variant="ghost"
+          className={cn(
+            "hover:bg-foreground/5 h-10 w-full rounded-lg px-2",
+            screen === "main" ? "justify-start" : "justify-end"
+          )}
+          aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          onClick={onSwitchScreen}>
+          {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
+        </Button>
         <SidebarAccountMenu onOpenSettings={onOpenSettings} />
       </SidebarFooter>
       <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>

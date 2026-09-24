@@ -8,7 +8,7 @@ import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as preferences from "@/lib/preferences"
-import { MainSidebarLayout } from "../main-sidebar-layout"
+import { MainSidebarLayout, type MainScreen } from "../main-sidebar-layout"
 
 installDom()
 await initI18n("en")
@@ -44,15 +44,33 @@ function SidebarContent() {
   )
 }
 
-function setup(initialPinned = false) {
-  const view = render(
-    <MainSidebarLayout initialPinned={initialPinned} sidebar={<SidebarContent />}>
-      <main data-testid="chat">Chat</main>
-    </MainSidebarLayout>
+function ChatContent() {
+  const [draft, setDraft] = useState("")
+  return (
+    <main data-testid="chat">
+      <textarea aria-label="Draft" value={draft} onInput={event => setDraft(event.currentTarget.value)} />
+      <div data-testid="chat-scroll" style={{ overflow: "auto", height: 100 }}>
+        <div style={{ height: 1000 }}>History</div>
+      </div>
+    </main>
   )
+}
+
+function setup(initialPinned = false, initialScreen: MainScreen = "main") {
+  const layout = (screen: MainScreen) => (
+    <MainSidebarLayout
+      initialPinned={initialPinned}
+      screen={screen}
+      sidebar={<SidebarContent />}
+      leading={<main data-testid="plugins">Plugins</main>}
+      main={<ChatContent />}
+    />
+  )
+  const view = render(layout(initialScreen))
   return {
     ...view,
-    toggle: view.getByRole("switch", { name: "Pin sidebar" }),
+    showScreen: (screen: MainScreen) => view.rerender(layout(screen)),
+    toggle: view.getByRole("switch"),
     panel: must(view.container.querySelector<HTMLElement>(".main-sidebar-panel"), "sidebar panel"),
     viewport: must(view.container.querySelector<HTMLElement>(".main-sidebar-viewport"), "sidebar viewport"),
     shell: must(view.container.querySelector<HTMLElement>(".main-sidebar-shell"), "sidebar shell"),
@@ -232,4 +250,108 @@ test("rapid pin reversals keep the last choice and serialize preference writes",
     ["sidebarPinned", false],
     ["sidebarPinned", true]
   ])
+})
+
+test("leading screen starts with a docked right sidebar and ignores hover, outside clicks and Escape", async () => {
+  const view = setup(false, "leading")
+  expect(view.mode()).toBe("pinned")
+  expect(view.presentation()).toBe("docked")
+  expect(view.toggle.querySelector(".lucide-panel-right")).toBeTruthy()
+  expect(view.container.querySelector(".main-sidebar-edge")).toBeNull()
+  fireEvent.pointerOut(view.panel, { relatedTarget: view.getByTestId("plugins") })
+  fireEvent.keyDown(view.toggle, { key: "Escape" })
+  fireEvent.pointerDown(view.getByTestId("plugins"))
+  await afterCloseDelay()
+  expect(view.mode()).toBe("pinned")
+
+  await act(async () => fireEvent.click(view.toggle))
+  expect(view.mode()).toBe("hidden")
+  expect(view.presentation()).toBe("docked")
+  expect(view.toggle.querySelector(".lucide-panel-right-dashed")).toBeTruthy()
+  fireEvent.pointerOver(view.toggle)
+  fireEvent.pointerOver(view.shell)
+  await afterCloseDelay()
+  expect(view.mode()).toBe("hidden")
+  expect(view.panel.hasAttribute("inert")).toBe(true)
+  expect(save).not.toHaveBeenCalled()
+
+  await act(async () => fireEvent.click(view.toggle))
+  expect(view.mode()).toBe("pinned")
+  expect(view.panel.hasAttribute("inert")).toBe(false)
+  expect(save).not.toHaveBeenCalled()
+})
+
+test.each([false, true])(
+  "screen switches preserve the main preference (%p) and the independent right sidebar choice",
+  async pinned => {
+    const view = setup(pinned)
+    view.showScreen("leading")
+    expect(view.mode()).toBe("pinned")
+    await act(async () => fireEvent.click(view.toggle))
+    expect(view.mode()).toBe("hidden")
+    view.showScreen("main")
+    expect(view.mode()).toBe(pinned ? "pinned" : "hidden")
+    expect(view.toggle.getAttribute("aria-checked")).toBe(String(pinned))
+    view.showScreen("leading")
+    expect(view.mode()).toBe("hidden")
+    expect(view.toggle.querySelector(".lucide-panel-right-dashed")).toBeTruthy()
+    expect(save).not.toHaveBeenCalled()
+  }
+)
+
+test("entering the leading screen clears the hover timer and returning restores edge hover", async () => {
+  const view = setup()
+  fireEvent.pointerOver(view.toggle)
+  fireEvent.pointerOut(view.toggle, { relatedTarget: view.getByTestId("chat") })
+  view.showScreen("leading")
+  await afterCloseDelay()
+  expect(view.mode()).toBe("pinned")
+  view.showScreen("main")
+  expect(view.mode()).toBe("hidden")
+  const edge = must(view.container.querySelector(".main-sidebar-edge"), "left edge")
+  fireEvent.pointerOver(edge)
+  expect(view.mode()).toBe("floating")
+  fireEvent.pointerOut(edge, { relatedTarget: view.getByTestId("chat") })
+  await afterCloseDelay()
+  expect(view.mode()).toBe("hidden")
+  expect(save).not.toHaveBeenCalled()
+})
+
+test("switching screens keeps the same sidebar, chat draft and scroll nodes, with only the visible screen interactive", () => {
+  const view = setup(true)
+  const draft = view.getByRole("textbox", { name: "Draft" }) as HTMLTextAreaElement
+  const chatScroll = view.getByTestId("chat-scroll")
+  const sidebarScroll = view.getByTestId("list")
+  const mainPanel = must(view.container.querySelector('[data-screen-panel="main"]'), "main screen")
+  const leadingPanel = must(view.container.querySelector('[data-screen-panel="leading"]'), "leading screen")
+  fireEvent.input(draft, { target: { value: "Unsent draft" } })
+  expect(draft.value).toBe("Unsent draft")
+  chatScroll.scrollTop = 120
+  sidebarScroll.scrollTop = 180
+  fireEvent.click(view.getByRole("button", { name: "Count 0" }))
+
+  view.showScreen("leading")
+  expect(mainPanel.hasAttribute("inert")).toBe(true)
+  expect(mainPanel.getAttribute("aria-hidden")).toBe("true")
+  expect(leadingPanel.hasAttribute("inert")).toBe(false)
+  expect(view.queryByRole("textbox", { name: "Draft" })).toBeNull()
+  expect(view.getByRole("button", { name: "Count 1" })).toBeTruthy()
+  view.showScreen("main")
+  expect(view.getByRole("textbox", { name: "Draft" })).toBe(draft)
+  expect(draft.value).toBe("Unsent draft")
+  expect(view.getByTestId("chat-scroll")).toBe(chatScroll)
+  expect(chatScroll.scrollTop).toBe(120)
+  expect(view.getByTestId("list")).toBe(sidebarScroll)
+  expect(sidebarScroll.scrollTop).toBe(180)
+  expect(mainPanel.hasAttribute("inert")).toBe(false)
+  expect(leadingPanel.getAttribute("aria-hidden")).toBe("true")
+  expect(view.container.querySelector(".main-sidebar-panel")).toBe(view.panel)
+})
+
+test("returning to a collapsed main sidebar moves focus from its now hidden controls to the top switch", () => {
+  const view = setup(false, "leading")
+  act(() => view.getByRole("button", { name: "Count 0" }).focus())
+  view.showScreen("main")
+  expect(view.mode()).toBe("hidden")
+  expect(document.activeElement).toBe(view.toggle)
 })

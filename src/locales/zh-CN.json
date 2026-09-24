@@ -61,6 +61,11 @@
   "sidebar": {
     "pin": "固定侧边栏",
     "unpin": "收起侧边栏",
+    "toggleRight": "切换右侧边栏",
+    "showRight": "展开右侧边栏",
+    "hideRight": "收起右侧边栏",
+    "openLeading": "进入 -1 屏",
+    "backToMain": "返回主屏",
     "signOut": "退出登录",
     "story": "故事",
     "plugins": "插件",

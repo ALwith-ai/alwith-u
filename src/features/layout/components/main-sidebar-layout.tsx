@@ -1,5 +1,14 @@
-import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
-import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { PanelLeftDashedIcon, PanelLeftIcon, PanelRightDashedIcon, PanelRightIcon } from "lucide-react"
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -10,22 +19,33 @@ import { isMac } from "@/lib/platform"
 import { savePreference } from "@/lib/preferences"
 import { zoomStore } from "@/lib/zoom"
 
+export type MainScreen = "main" | "leading"
+
 export function MainSidebarLayout({
   initialPinned,
+  screen,
   sidebar,
+  leading,
+  main,
   children
 }: {
   initialPinned: boolean
+  screen: MainScreen
   sidebar: ReactNode
-  children: ReactNode
+  leading: ReactNode
+  main: ReactNode
+  children?: ReactNode
 }) {
   const { t } = useTranslation()
   const zoom = useStore(zoomStore, state => state.level)
   const [pinned, setPinned] = useState(initialPinned)
+  const [leadingSidebarOpen, setLeadingSidebarOpen] = useState(true)
   const [preview, setPreview] = useState(false)
   // Remember the exit style after the logical state has already become hidden.
   const [presentation, setPresentation] = useState<"docked" | "floating">(initialPinned ? "docked" : "floating")
-  const visible = pinned || preview
+  const mainActive = screen === "main"
+  const docked = mainActive ? pinned : leadingSidebarOpen
+  const visible = docked || (mainActive && preview)
   const panelId = useId()
   const panel = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
@@ -42,16 +62,16 @@ export function MainSidebarLayout({
 
   const closePreview = useCallback(() => {
     cancelClose()
-    if (pinned) return
+    if (!mainActive || pinned) return
     setPreview(false)
     if (panel.current?.contains(document.activeElement)) toggle.current?.focus({ preventScroll: true })
-  }, [cancelClose, pinned])
+  }, [cancelClose, mainActive, pinned])
 
   const scheduleClose = useCallback(() => {
     cancelClose()
-    if (!panel.current || pinned || pointerInside.current || overlays.current > 0) return
+    if (!panel.current || !mainActive || pinned || pointerInside.current || overlays.current > 0) return
     timer.current = setTimeout(closePreview, 200)
-  }, [cancelClose, closePreview, pinned])
+  }, [cancelClose, closePreview, mainActive, pinned])
 
   const retainOverlay = useCallback(() => {
     overlays.current += 1
@@ -65,6 +85,10 @@ export function MainSidebarLayout({
   const changePinned = useCallback(
     (next: boolean) => {
       cancelClose()
+      if (!mainActive) {
+        setLeadingSidebarOpen(next)
+        return
+      }
       setPresentation("docked")
       setPinned(next)
       setPreview(false)
@@ -75,13 +99,24 @@ export function MainSidebarLayout({
           toast.error(error instanceof Error ? error.message : String(error))
         })
     },
-    [cancelClose]
+    [cancelClose, mainActive]
   )
 
   useEffect(() => cancelClose, [cancelClose])
 
   useEffect(() => {
-    if (pinned || !preview) return
+    if (mainActive) return
+    cancelClose()
+    pointerInside.current = false
+    setPreview(false)
+  }, [mainActive, cancelClose])
+
+  useEffect(() => {
+    if (!visible && panel.current?.contains(document.activeElement)) toggle.current?.focus({ preventScroll: true })
+  }, [visible])
+
+  useEffect(() => {
+    if (!mainActive || pinned || !preview) return
     const onPointerDown = (event: PointerEvent) => {
       // React capture also sees events in this sidebar's portals, unlike DOM.contains().
       if (!insidePresses.current.has(event)) closePreview()
@@ -100,66 +135,99 @@ export function MainSidebarLayout({
       window.removeEventListener("keydown", onKeyDown)
       window.removeEventListener("blur", closePreview)
     }
-  }, [pinned, preview, closePreview])
+  }, [mainActive, pinned, preview, closePreview])
+
+  const enterSidebar = (event: ReactPointerEvent) => {
+    if (!mainActive || event.pointerType === "touch") return
+    pointerInside.current = true
+    cancelClose()
+    if (!pinned) setPresentation("floating")
+    setPreview(true)
+  }
+  const leaveSidebar = (event: ReactPointerEvent) => {
+    if (!mainActive || event.pointerType === "touch") return
+    pointerInside.current = false
+    scheduleClose()
+  }
+  const ToggleIcon = mainActive
+    ? pinned
+      ? PanelLeftIcon
+      : PanelLeftDashedIcon
+    : leadingSidebarOpen
+      ? PanelRightIcon
+      : PanelRightDashedIcon
 
   return (
     <SidebarProvider
-      open={pinned}
+      open={docked}
       onOpenChange={changePinned}
-      className="relative h-full"
-      data-sidebar-mode={pinned ? "pinned" : preview ? "floating" : "hidden"}
-      data-sidebar-presentation={presentation}
+      className="relative h-full overflow-clip"
+      data-main-screen={screen}
+      data-sidebar-mode={docked ? "pinned" : visible ? "floating" : "hidden"}
+      data-sidebar-presentation={mainActive ? presentation : "docked"}
       style={
         {
           "--main-sidebar-width": pinned ? "var(--sidebar-width)" : "0px",
+          "--leading-sidebar-width": leadingSidebarOpen ? "var(--sidebar-width)" : "0px",
+          "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
           "--sidebar-toggle-left": `${(isMac() ? 80 : 8) / zoom}px`,
           "--sidebar-control-scale": 1 / zoom
         } as CSSProperties
       }>
-      <SidebarOverlayContext.Provider value={retainOverlay}>
-        <div
-          className="main-sidebar-shell"
-          onPointerEnter={event => {
-            if (event.pointerType === "touch") return
-            pointerInside.current = true
-            cancelClose()
-            if (!pinned) setPresentation("floating")
-            setPreview(true)
-          }}
-          onPointerLeave={event => {
-            if (event.pointerType === "touch") return
-            pointerInside.current = false
-            scheduleClose()
-          }}
-          onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
-          onFocusCapture={cancelClose}
-          onBlurCapture={event => {
-            if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
-          }}>
-          <div className="main-sidebar-viewport">
-            <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
-              {sidebar}
-            </div>
-          </div>
-          {!pinned && <div className="main-sidebar-edge" aria-hidden="true" />}
-          <div className="main-sidebar-toggle">
-            <Button
-              ref={toggle}
-              variant="ghost"
-              size="icon-xs"
-              role="switch"
-              aria-label={t("sidebar.pin")}
-              aria-checked={pinned}
-              aria-expanded={visible}
-              aria-controls={panelId}
-              title={t(pinned ? "sidebar.unpin" : "sidebar.pin")}
-              className="text-sidebar-foreground"
-              onClick={() => changePinned(!pinned)}>
-              {pinned ? <PanelLeftIcon className="size-4" /> : <PanelLeftDashedIcon className="size-4" />}
-            </Button>
-          </div>
+      <div className="main-screen-track">
+        <div className="main-screen-leading" data-screen-panel="leading" inert={mainActive} aria-hidden={mainActive}>
+          {leading}
         </div>
-      </SidebarOverlayContext.Provider>
+        <SidebarOverlayContext.Provider value={retainOverlay}>
+          <div
+            className="main-sidebar-shell"
+            onPointerEnter={enterSidebar}
+            onPointerLeave={leaveSidebar}
+            onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
+            onFocusCapture={cancelClose}
+            onBlurCapture={event => {
+              if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
+            }}>
+            <div className="main-sidebar-viewport">
+              <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
+                {sidebar}
+              </div>
+            </div>
+            {mainActive && !pinned && <div className="main-sidebar-edge" aria-hidden="true" />}
+          </div>
+        </SidebarOverlayContext.Provider>
+        <div className="main-screen-content" data-screen-panel="main" inert={!mainActive} aria-hidden={!mainActive}>
+          {main}
+        </div>
+      </div>
+      <div
+        className="main-sidebar-toggle"
+        onPointerEnter={enterSidebar}
+        onPointerLeave={leaveSidebar}
+        onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
+        <Button
+          ref={toggle}
+          variant="ghost"
+          size="icon-xs"
+          role="switch"
+          aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
+          aria-checked={docked}
+          aria-expanded={visible}
+          aria-controls={panelId}
+          title={t(
+            mainActive
+              ? pinned
+                ? "sidebar.unpin"
+                : "sidebar.pin"
+              : leadingSidebarOpen
+                ? "sidebar.hideRight"
+                : "sidebar.showRight"
+          )}
+          className="text-sidebar-foreground"
+          onClick={() => changePinned(!docked)}>
+          <ToggleIcon className="size-4" />
+        </Button>
+      </div>
       {children}
     </SidebarProvider>
   )
