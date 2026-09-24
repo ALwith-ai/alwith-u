@@ -148,3 +148,47 @@ test("floating draft without a project has no empty menu", () => {
   const view = render(<ChatActionsMenu surface="floating" cwd={null} onNewChat={() => {}} />)
   expect(view.queryByRole("button", { name: "More actions" })).toBeNull()
 })
+
+test("floating menu opens a new project after New chat and keeps the action available on an empty draft", async () => {
+  let newChats = 0
+  let newProjects = 0
+  const actions = {
+    onNewChat: () => {
+      newChats++
+    },
+    onNewProject: () => {
+      newProjects++
+    }
+  }
+  const view = render(
+    <ChatActionsMenu
+      surface="floating"
+      session={createSession("project-menu", "/tmp/current")}
+      cwd="/tmp/current"
+      {...actions}
+    />
+  )
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+  })
+  expect(
+    view
+      .getAllByRole("menuitem")
+      .slice(0, 2)
+      .map(item => item.textContent)
+  ).toEqual(["New chat", "New project"])
+  await act(async () => {
+    fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+  })
+  expect(newProjects).toBe(1)
+  expect(newChats).toBe(0)
+  view.rerender(<ChatActionsMenu surface="floating" cwd={null} {...actions} />)
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+  })
+  expect(view.queryByRole("menuitem", { name: "New chat", exact: true })).toBeNull()
+  await act(async () => {
+    fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+  })
+  expect(newProjects).toBe(2)
+})

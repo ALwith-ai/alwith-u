@@ -33,7 +33,8 @@ export function DraftChat({
   runOperation,
   headerTarget,
   projectMenu,
-  onNewChat
+  onNewChat,
+  onNewProject
 }: {
   cwd: string | null
   onCwdChange: (cwd: string) => void
@@ -47,6 +48,7 @@ export function DraftChat({
   headerTarget?: HTMLElement | null
   projectMenu?: ReactNode
   onNewChat: () => void
+  onNewProject?: () => void
 }) {
   const { t } = useTranslation()
   const threads = useApp(state => state.threads)
@@ -110,6 +112,7 @@ export function DraftChat({
           onOpenWindow={onOpenWindow}
           cwd={cwd}
           onNewChat={onNewChat}
+          onNewProject={onNewProject}
         />
       </ChatHeader>
       <Empty className="flex-1">

@@ -1,5 +1,6 @@
 import {
   ArrowUpRightIcon,
+  FolderPlusIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PictureInPicture2Icon,
@@ -42,6 +43,7 @@ export function ChatActionsMenu({
   onOpenWindow,
   cwd,
   onNewChat,
+  onNewProject,
   onDeleted
 }: {
   session?: Session
@@ -49,6 +51,7 @@ export function ChatActionsMenu({
   onOpenWindow?: () => void
   cwd: string | null
   onNewChat: () => void
+  onNewProject?: () => void
   onDeleted?: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
@@ -86,8 +89,10 @@ export function ChatActionsMenu({
   const hasMessages = session !== undefined && session.items.length > 0
   const canOpenWindow = surface === "main" && onOpenWindow !== undefined && !session?.restoring
   const showNewChat = surface === "floating" && session !== undefined
+  const showNewProject = surface === "floating" && onNewProject !== undefined
+  const showCreationActions = showNewChat || showNewProject
   const showChatActions = canOpenWindow || (canMutate && canRename) || hasMessages
-  if (!session && cwd === null && !canOpenWindow) return null
+  if (!session && cwd === null && !canOpenWindow && !showNewProject) return null
   return (
     <>
       <DropdownMenu
@@ -111,21 +116,29 @@ export function ChatActionsMenu({
           align="end"
           className="max-w-[calc(100vw-2rem)] min-w-56"
           finalFocus={() => !skipMenuFocus.current}>
-          {showNewChat && (
+          {showCreationActions && (
             <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => {
-                  skipMenuFocus.current = true
-                  onNewChat()
-                }}>
-                <PlusIcon />
-                {t("sidebar.newChat")}
-              </DropdownMenuItem>
+              {showNewChat && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    skipMenuFocus.current = true
+                    onNewChat()
+                  }}>
+                  <PlusIcon />
+                  {t("sidebar.newChat")}
+                </DropdownMenuItem>
+              )}
+              {showNewProject && (
+                <DropdownMenuItem onClick={onNewProject}>
+                  <FolderPlusIcon />
+                  {t("chat.draft.newProject")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
           )}
           {showChatActions && (
             <>
-              {showNewChat && <DropdownMenuSeparator />}
+              {showCreationActions && <DropdownMenuSeparator />}
               <DropdownMenuGroup>
                 {canOpenWindow && (
                   <DropdownMenuItem
@@ -166,7 +179,7 @@ export function ChatActionsMenu({
               <ExternalEditorMenu editor={editor} separator={showChatActions} />
             ) : (
               <>
-                {session && <DropdownMenuSeparator />}
+                {(showCreationActions || showChatActions) && <DropdownMenuSeparator />}
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     className="group/path"

@@ -29,6 +29,7 @@ export function ChatView({
   headerTarget,
   projectMenu,
   onNewChat,
+  onNewProject,
   onDeleted
 }: {
   session: Session
@@ -36,6 +37,7 @@ export function ChatView({
   headerTarget?: HTMLElement | null
   projectMenu?: ReactNode
   onNewChat: () => void
+  onNewProject?: () => void
   onDeleted: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
@@ -58,6 +60,7 @@ export function ChatView({
           session={session}
           cwd={session.cwd}
           onNewChat={onNewChat}
+          onNewProject={onNewProject}
           onDeleted={onDeleted}
         />
       </ChatHeader>

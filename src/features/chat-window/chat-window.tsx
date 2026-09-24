@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ChatView } from "@/features/chat/chat-view"
 import { DraftChat, DRAFT_SESSION_ID } from "@/features/chat/draft-chat"
+import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { client, useApp, useSession } from "@/lib/client"
 import {
@@ -66,6 +67,19 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     setSelectedId(null)
     importDraft(DRAFT_SESSION_ID, null)
     setGeneration(value => value + 1)
+  }, [operation])
+
+  const newProject = useCallback(() => {
+    void operation
+      .run(async () => {
+        const directory = await chooseFolder(current.current.cwd)
+        if (directory === null) return
+        setCwd(directory)
+        setSelectedId(null)
+        importDraft(DRAFT_SESSION_ID, null)
+        setGeneration(value => value + 1)
+      })
+      .catch(report)
   }, [operation])
 
   const deleted = useCallback(
@@ -202,6 +216,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
             <DraftChat
               headerTarget={headerTarget}
               onNewChat={newChat}
+              onNewProject={newProject}
               runOperation={operation.run}
               key={`draft-${generation}`}
               cwd={cwd}
@@ -216,6 +231,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               session={session}
               headerTarget={headerTarget}
               onNewChat={newChat}
+              onNewProject={newProject}
               onDeleted={deleted}
             />
           ) : null)}
