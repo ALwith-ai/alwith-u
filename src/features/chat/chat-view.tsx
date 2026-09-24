@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { ChatBranchMenu, ChatBranchProvider } from "./chat-branches"
+import { ChatBranchProvider } from "./chat-branches"
 import type { PendingAction, ThreadSummary } from "@/agent/client"
 import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
@@ -58,7 +58,6 @@ export function ChatView({
     <ChatBranchProvider key={session.id} session={session} onSelect={onSelectThread}>
       <div ref={rootRef} className="flex h-full min-h-0 flex-col">
         <ChatHeader target={headerTarget} title={session.title ?? t("sidebar.untitled")} project={projectMenu}>
-          <ChatBranchMenu />
           <ChatActionsMenu
             surface={headerTarget === undefined ? "main" : "floating"}
             onOpenWindow={onOpenWindow}

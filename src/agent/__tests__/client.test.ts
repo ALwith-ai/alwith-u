@@ -91,8 +91,8 @@ test("fork sends the real turn boundary, keeps model hints and preserves replaye
     _meta: { codex: { lastTurnId: "turn-1" }, alwith: { model: "custom-model" } }
   })
   expect(client.state.threads.find(thread => thread.sessionId === forked)).toMatchObject({
-    title: "Original title",
-    nativeSessionId: source,
+    title: "Original title (2)",
+    nativeSessionId: forked,
     forkedFromId: source
   })
   expect(
@@ -103,6 +103,26 @@ test("fork sends the real turn boundary, keeps model hints and preserves replaye
   client.store.setState({ agent: { info: { name: "test", version: "1" }, protocolVersion: 2 } })
   await expect(client.fork(source, "/tmp/fork", "turn-1")).rejects.toThrow("does not support")
   expect(fake.forks).toHaveLength(1)
+})
+
+test("fork titles are saved immediately, collisions are skipped, and the boundary survives reopening", async () => {
+  const { client, fake } = await make()
+  const source = await client.newSession("/tmp/titles")
+  await client.renameSession(source, "Review")
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: "existing", cwd: "/tmp/titles", title: "Review (2)" }] })
+  const [first, second] = await Promise.all([
+    client.fork(source, "/tmp/titles", "t1"),
+    client.fork(source, "/tmp/titles", "t1")
+  ])
+  expect(fake.renamed.get(first)).toBe("Review (3)")
+  expect(fake.renamed.get(second)).toBe("Review (4)")
+  expect(client.session(source).title).toBe("Review")
+  expect(client.state.forkOrigins[first]).toEqual({ sourceId: source, boundaryTurnId: "t1" })
+  await client.close(first)
+  await client.open(first, "/tmp/titles")
+  expect(client.state.forkOrigins[first]).toEqual({ sourceId: source, boundaryTurnId: "t1" })
+  const nested = await client.fork(second, "/tmp/titles", "t1")
+  expect(fake.renamed.get(nested)).toBe("Review (5)")
 })
 
 test("branch lookup reads every page across projects and rejects partial or cyclic results", async () => {

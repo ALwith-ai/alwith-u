@@ -37,6 +37,8 @@ test("floating fork sends the source and turn to the owner and receives the new 
     expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
     expect(remote.state.threads.find(thread => thread.sessionId === child)?.forkedFromId).toBe(source)
     expect(remote.session(child).attached).toBe(true)
+    expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
+    expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
     fake.listSessions.current = () => ({
       sessions: [source, child].map(sessionId => ({
         sessionId,

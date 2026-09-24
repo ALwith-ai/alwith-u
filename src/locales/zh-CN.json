@@ -88,9 +88,9 @@
   "chat": {
     "branches": {
       "create": "创建聊天分支",
-      "label": "聊天分支",
-      "current": "当前",
-      "loading": "正在加载分支…"
+      "loading": "正在加载分支…",
+      "continuedFrom": "从原聊天继续",
+      "sourceUnavailable": "原会话不可用"
     },
     "project": {
       "chatCount_one": "{{count}} 个会话",

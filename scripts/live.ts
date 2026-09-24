@@ -141,6 +141,8 @@ async function check(transport: "stdio" | "ws") {
       120_000,
       "later source turn"
     )
+    const sourceTitle = `Fork title ${crypto.randomUUID()}`
+    await second.renameSession(a, sourceTitle)
     const forked = await second.fork(a, directory, turnId)
     try {
       await until(
@@ -149,6 +151,10 @@ async function check(transport: "stdio" | "ws") {
         "fork history updates"
       )
       const forkSession = second.session(forked)
+      if (forkSession.title !== `${sourceTitle} (2)` || second.session(a).title !== sourceTitle)
+        throw new Error("Fork did not persist a distinct inherited title")
+      if (second.state.forkOrigins[forked]?.boundaryTurnId !== turnId)
+        throw new Error("Fork did not identify the inherited turn boundary")
       if (
         forkSession.items.filter(item => item.kind === "user").length !== 1 ||
         assistantText(forkSession).trim() !== replyA.trim()
@@ -160,6 +166,22 @@ async function check(transport: "stdio" | "ws") {
       if (branches.find(thread => thread.sessionId === forked)?.forkedFromId !== a)
         throw new Error("Fork lineage does not point to the source")
       await second.close(forked)
+      // A fork must survive a full agent restart before the user sends anything in it.
+      second.disconnect()
+      await port.stop("codex")
+      await until(
+        async () => !(await port.agents()).some(agent => agent.agentId === "codex"),
+        10_000,
+        "new fork agent exit"
+      )
+      second = new CodexClient(async () => port, {
+        agentId: "codex",
+        launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+      })
+      await second.connect()
+      const immediatelySaved = await second.readThreadSummary(forked)
+      if (immediatelySaved?.title !== `${sourceTitle} (2)`)
+        throw new Error("Fork or title was not saved before the first child prompt")
       await second.open(forked, directory)
       await until(() => assistantText(second!.session(forked)).trim().length > 0, 10_000, "reopened fork updates")
       if (assistantText(second.session(forked)).trim() !== replyA.trim())
@@ -171,6 +193,7 @@ async function check(transport: "stdio" | "ws") {
         120_000,
         "fork continuation"
       )
+      await second.open(a, directory)
       if (assistantText(second.session(a)).includes("FORK_CONTINUED"))
         throw new Error("Fork response leaked into the source")
       await second.close(forked)
@@ -196,7 +219,14 @@ async function check(transport: "stdio" | "ws") {
       )
       if (!assistantText(second.session(forked)).includes("FORK_CONTINUED"))
         throw new Error("Fork continuation was not persisted across agent restart")
-      console.log("fork: inclusive boundary, native lineage, isolated continuation and fresh-agent discovery verified")
+      if (
+        second.state.forkOrigins[forked]?.boundaryTurnId !== turnId ||
+        second.session(forked).title !== `${sourceTitle} (2)`
+      )
+        throw new Error("Fork origin or title changed after continuation and restart")
+      console.log(
+        "fork: immediate persistence, counted title, inherited boundary, isolated continuation and restart verified"
+      )
     } finally {
       await second.delete(forked)
     }

@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
-import { ChatBranchMenu, ChatBranchProvider, ForkTurnButton } from "../chat-branches"
+import { ChatBranchProvider, ForkTurnButton, ForkOriginDivider } from "../chat-branches"
 import { installDom } from "../codex/__tests__/dom-environment"
 
 installDom()
@@ -41,7 +41,7 @@ function setup(select: (thread: ThreadSummary) => void) {
   const view = render(
     <ChatBranchProvider session={source} onSelect={select}>
       <ForkTurnButton turnId="real-turn" />
-      <ChatBranchMenu />
+      <ForkOriginDivider />
     </ChatBranchProvider>
   )
   mounted.push(view)
@@ -60,6 +60,8 @@ test("a completed reply forks its explicit turn once and navigates to the return
   const selected: ThreadSummary[] = []
   const view = setup(thread => selected.push(thread))
   const button = view.getByRole("button", { name: "Create chat branch" })
+  expect(button.classList.contains("codex-message-action")).toBe(true)
+  expect(view.queryByRole("button", { name: "Chat branches" })).toBeNull()
   await act(async () => {
     fireEvent.click(button)
   })
@@ -118,20 +120,58 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
   expect(selected).toEqual([])
 })
 
-test("the branch menu fetches related chats and switches by explicit id", async () => {
-  const list = spyOn(client, "listBranches").mockResolvedValue([forked])
-  restores.push(() => list.mockRestore())
+test("the inherited-history divider returns to the exact parent and stays before child turns", async () => {
+  const read = spyOn(client, "readThreadSummary").mockResolvedValue({
+    ...forked,
+    sessionId: "parent",
+    title: "Original"
+  })
+  restores.push(() => read.mockRestore())
+  client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: "boundary" } } })
   const selected: ThreadSummary[] = []
-  const view = setup(thread => selected.push(thread))
+  let view!: ReturnType<typeof setup>
   await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Chat branches" }))
+    view = setup(thread => selected.push(thread))
   })
-  const item = await view.findByRole("menuitem", { name: /New branch/ })
-  expect(list).toHaveBeenCalledWith("source")
+  const { groupTurns } = await import("../turns")
+  const session = {
+    ...source,
+    items: [
+      {
+        kind: "assistant" as const,
+        id: "answer",
+        content: [{ type: "text" as const, text: "Kept" }],
+        _meta: { codex: { turnId: "boundary" } },
+        timestamp: 1,
+        replayed: true
+      }
+    ]
+  }
+  const turn = groupTurns(session)[0]
   await act(async () => {
-    fireEvent.click(item)
+    view.rerender(
+      <ChatBranchProvider session={source} onSelect={thread => selected.push(thread)}>
+        <ForkOriginDivider turn={turn} />
+        <ForkOriginDivider turn={{ ...turn, items: [] }} />
+      </ChatBranchProvider>
+    )
   })
-  expect(selected).toEqual([forked])
+  const button = await view.findByRole("button", { name: /Continue from original chat.*Original/ })
+  expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
+  await act(async () => {
+    fireEvent.click(button)
+  })
+  expect(selected[0]?.sessionId).toBe("parent")
+  await act(async () => {
+    client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: null } } })
+    view.rerender(
+      <ChatBranchProvider session={source} onSelect={() => {}}>
+        <ForkOriginDivider />
+        <ForkOriginDivider turn={{ ...turn, items: [{ ...turn.items[0], _meta: null }] }} />
+      </ChatBranchProvider>
+    )
+  })
+  expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
 })
 
 test("turn forks stay hidden when the adapter has no turn boundary support", async () => {

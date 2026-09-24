@@ -1,5 +1,6 @@
 // The one ACP v2 client. Owns the connection, routes every update by session id,
 // and publishes state through a framework-agnostic zustand store.
+import { forkTitle } from "./fork-title"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
@@ -83,7 +84,11 @@ export type ClientOptions = {
   launch: Launch
 }
 
+export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
+
 export type AppState = {
+  /** In-memory projection of native fork/resume metadata; never a second persisted history. */
+  forkOrigins: Record<string, ForkOrigin>
   connection: ConnectionState
   connectionError: string | null
   agent: acp.InitializeResponse | null
@@ -169,6 +174,8 @@ export class CodexClient {
   private readonly modelListeners = new Set<SessionModelListener>()
   private readonly rateLimitListeners = new Set<(limits: RateLimitSnapshot) => void>()
   private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
+  /** Main and floating windows allocate counted titles through the same owner. */
+  private forkQueue: Promise<unknown> = Promise.resolve()
   /** The adapter rejects overlapping configuration writes to one session. */
   private readonly configWrites = new Map<string, Promise<void>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
@@ -186,6 +193,7 @@ export class CodexClient {
       connectionError: null,
       agent: null,
       sessions: {},
+      forkOrigins: {},
       threads: [],
       threadsCursor: null,
       threadsLoaded: false,
@@ -585,6 +593,7 @@ export class CodexClient {
         error: null
       })
       this.noteModel(this.sessions.get(id))
+      this.recordForkOrigin(id, response._meta)
     } catch (error) {
       this.publishSession({
         ...this.sessions.get(id),
@@ -728,9 +737,18 @@ export class CodexClient {
     }))
   }
 
-  async fork(id: string, cwd: string, lastTurnId?: string): Promise<string> {
+  fork(id: string, cwd: string, lastTurnId?: string): Promise<string> {
+    const pending = this.forkQueue.then(() => this.forkInternal(id, cwd, lastTurnId))
+    this.forkQueue = pending.catch(() => {})
+    return pending
+  }
+
+  private async forkInternal(id: string, cwd: string, lastTurnId?: string): Promise<string> {
     if (lastTurnId !== undefined && (!lastTurnId || !codexExtensionCapabilities(this.state.agent).forkAtTurn))
       throw new Error("The agent does not support forking at this turn")
+    const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
+    const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
+    const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
     const hint = modelHint(this.gatewayModels.get(id) ?? null)
     const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
       sessionId: id,
@@ -761,7 +779,43 @@ export class CodexClient {
         ...state.threads.filter(thread => thread.sessionId !== response.sessionId)
       ]
     }))
+    this.recordForkOrigin(response.sessionId, response._meta)
+    const title = sourceTitle ?? forked.title
+    if (title)
+      await this.renameSession(
+        response.sessionId,
+        forkTitle(
+          title,
+          known.flatMap(thread => (thread.title ? [thread.title] : []))
+        )
+      )
     return response.sessionId
+  }
+
+  private recordForkOrigin(id: string, meta: acp.SessionInfo["_meta"]): void {
+    const lineage = sessionLineage(meta)
+    const sourceId = lineage.forkedFromId
+    if (!sourceId) return
+    const codex = meta?.codex as Record<string, unknown>
+    const boundary = codex.forkedAtTurnId
+    if (boundary !== undefined && boundary !== null && (typeof boundary !== "string" || !boundary))
+      throw new Error("Invalid fork boundary from the agent")
+    this.store.setState(state => ({
+      forkOrigins: {
+        ...state.forkOrigins,
+        [id]: {
+          sourceId,
+          boundaryTurnId: typeof boundary === "string" ? boundary : null
+        }
+      }
+    }))
+  }
+
+  async readThreadSummary(id: string): Promise<ThreadSummary | null> {
+    const known = [...this.state.threads, ...this.state.archivedThreads].find(thread => thread.sessionId === id)
+    if (known) return known
+    const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
+    return indexes.flat().find(thread => thread.sessionId === id) ?? null
   }
 
   // ── Rename, account, rate limits, file search (codex-acp-v2 `_codex/*` extensions) ──
@@ -866,7 +920,8 @@ export class CodexClient {
     this.sessions.sessions.delete(id)
     this.store.setState(state => {
       const { [id]: _removed, ...sessions } = state.sessions
-      return { sessions }
+      const { [id]: _origin, ...forkOrigins } = state.forkOrigins
+      return { sessions, forkOrigins }
     })
   }
 }

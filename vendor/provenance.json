@@ -6,9 +6,9 @@
     "sha256": "0807623b26c2761db5662179e457213b2804f3a15c669f9b7872714efde2af8b"
   },
   {
-    "file": "codex-acp-v2-38e6fa7.tgz",
+    "file": "codex-acp-v2-82c6564.tgz",
     "source": "https://github.com/nyssance/codex-acp-v2",
-    "commit": "38e6fa779ccebf74cbf1ec24c9cd51618f6c0512",
-    "sha256": "88ed78607a259a2f1b56a7f4121d2bf3516412f1ef62ef0144fd244a9974ceec"
+    "commit": "82c6564ea51c34606c29b51c513f0a9a4f07836b",
+    "sha256": "66454d5d5d035dc5eef1ec2698bdc3891cae692079b0722e092bdf4566fa8196"
   }
 ]

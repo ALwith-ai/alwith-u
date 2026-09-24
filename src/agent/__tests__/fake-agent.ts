@@ -68,6 +68,7 @@ export function createFakeAgent(): FakeAgent {
   const gateways: FakeAgent["gateways"] = new Map()
   const modelHints = new Map<string, string | null>()
   const forks: acp.ForkSessionRequest[] = []
+  const origins = new Map<string, { nativeSessionId: string; forkedFromId: string; forkedAtTurnId: string | null }>()
   const configDelay: FakeAgent["configDelay"] = { current: null }
   const listSessions: FakeAgent["listSessions"] = { current: null }
   const configChanges: string[] = []
@@ -180,12 +181,14 @@ export function createFakeAgent(): FakeAgent {
     const id = sessionId()
     const hint = modelHintOf(params)
     modelHints.set(id, hint)
-    for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
-    return {
-      sessionId: id,
-      configOptions: optionsFor(hint),
-      _meta: { codex: { nativeSessionId: params.sessionId, forkedFromId: params.sessionId } }
+    const codex = {
+      nativeSessionId: id,
+      forkedFromId: params.sessionId,
+      forkedAtTurnId: (params._meta?.codex as { lastTurnId?: string })?.lastTurnId ?? null
     }
+    origins.set(id, codex)
+    for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
+    return { sessionId: id, configOptions: optionsFor(hint), _meta: { codex } }
   })
   app.onRequest("session/list", ({ params }) => {
     if (listSessions.current !== null) return listSessions.current(params)
@@ -208,6 +211,7 @@ export function createFakeAgent(): FakeAgent {
       ].filter(item => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
     }
   })
+  app.onRequest("session/close", () => ({}))
   app.onRequest("session/resume", async ({ params, client }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
@@ -228,7 +232,8 @@ export function createFakeAgent(): FakeAgent {
         content: [{ type: "text", text: `restored:${params.sessionId}` }]
       }
     })
-    return { configOptions: optionsFor(hint) }
+    const origin = origins.get(params.sessionId)
+    return { configOptions: optionsFor(hint), ...(origin ? { _meta: { codex: origin } } : {}) }
   })
   app.onRequest("session/set_config_option", async ({ params }) => {
     if (changingConfig.has(params.sessionId))
