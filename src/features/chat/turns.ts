@@ -56,9 +56,17 @@ function pushActivity(turn: Turn, item: MessageItem | ToolItem): void {
 }
 
 /** A tool and, after it, the steps it dispatched (Codex has none today; the shape is the protocol's). */
-function flatten(entry: TurnEntry, out: Item[]): void {
-  out.push(entry)
-  if (entry.kind === "tool") for (const child of entry.children) flatten(child, out)
+function flatten(entry: TurnEntry, out: Item[], tools: ReadonlyMap<string, ToolItem>): void {
+  if (entry.kind !== "tool") {
+    out.push(entry)
+    return
+  }
+  // The shared grouper clones tools to attach children. Compare/render the immutable
+  // session item, not that fresh tree wrapper, so untouched turns remain memoizable.
+  const item = tools.get(entry.id)
+  if (item === undefined) throw new Error(`Grouped tool is missing from the session: ${entry.id}`)
+  out.push(item)
+  for (const child of entry.children) flatten(child, out, tools)
 }
 
 function place(turn: Turn, item: Item): void {
@@ -96,9 +104,12 @@ function place(turn: Turn, item: Item): void {
  * one streams.
  */
 export function groupTurns(session: Session, previous: Turn[] = []): Turn[] {
+  const tools = new Map(
+    session.items.filter((item): item is ToolItem => item.kind === "tool").map(item => [item.id, item])
+  )
   const result: Turn[] = groupSession(session).map(grouped => {
     const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
-    for (const entry of grouped.entries) flatten(entry, items)
+    for (const entry of grouped.entries) flatten(entry, items, tools)
     const first = items[0]
     if (first === undefined) throw new Error("A turn without items")
     const turn: Turn = {
