@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test"
 import { CodexClient, type GatewayModel } from "../client"
 import { FakeHubPort } from "./fake-runtime-client"
-import { isSelectOption } from "@alwith/api"
+import { isSelectOption, textOf } from "@alwith/api"
 import { createFakeAgent } from "./fake-agent"
 import { must } from "@/lib/__tests__/must"
 
@@ -64,6 +64,81 @@ async function until(predicate: () => boolean) {
     await Bun.sleep(5)
   }
 }
+
+test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
+  const { client, fake } = await make()
+  const a = await client.newSession("/tmp/a")
+  const b = await client.newSession("/tmp/b")
+  let notifications = 0
+  const stop = client.store.subscribe(() => notifications++)
+  for (let i = 0; i < 400; i++) {
+    await fake.pushUpdate(i % 2 === 0 ? a : b, {
+      sessionUpdate: "agent_thought_chunk",
+      messageId: "thought",
+      content: { type: "text", text: `${i},` }
+    })
+  }
+  const expected = (parity: number) => Array.from({ length: 200 }, (_, i) => `${i * 2 + parity},`).join("")
+  await until(
+    () =>
+      client.state.sessions[b]?.items.some(item => item.kind === "thought" && textOf(item.content) === expected(1)) ===
+      true
+  )
+  stop()
+  for (const [id, parity] of [
+    [a, 0],
+    [b, 1]
+  ] as const) {
+    const item = client.state.sessions[id].items.find(item => item.kind === "thought")
+    expect(item?.kind === "thought" && textOf(item.content)).toBe(expected(parity))
+    expect(client.state.sessions[id]).toBe(client.session(id))
+  }
+  expect(notifications).toBeLessThan(40)
+})
+
+test("completion publishes pending chunks and disconnect cannot restore a stale attached session", async () => {
+  const { client, fake } = await make()
+  const id = await client.newSession("/tmp/a")
+  await fake.pushUpdate(id, { sessionUpdate: "state_update", state: "running" })
+  await fake.pushUpdate(id, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "answer",
+    content: { type: "text", text: "complete" }
+  })
+  await fake.pushUpdate(id, { sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" })
+  await until(() => client.session(id).state === "idle")
+  expect(client.state.sessions[id]).toBe(client.session(id))
+  expect(
+    client.state.sessions[id].items.some(item => item.kind === "assistant" && textOf(item.content) === "complete")
+  ).toBe(true)
+  await fake.pushUpdate(id, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "answer",
+    content: { type: "text", text: "!" }
+  })
+  client.disconnect()
+  await Bun.sleep(25)
+  expect(client.state.sessions[id].attached).toBe(false)
+})
+
+test("history replay batches complete upserts and publishes the full transcript before open resolves", async () => {
+  const { client, fake } = await make()
+  for (let i = 0; i < 400; i++) {
+    fake.replayUpdates.push({
+      sessionUpdate: "agent_message",
+      messageId: `history-${i}`,
+      content: [{ type: "text", text: `restored ${i}` }]
+    })
+  }
+  let notifications = 0
+  const stop = client.store.subscribe(() => notifications++)
+  await client.open("h1", "/tmp/one")
+  stop()
+  expect(client.state.sessions.h1.items).toHaveLength(402)
+  expect(client.state.sessions.h1.restoring).toBe(false)
+  expect(client.state.sessions.h1).toBe(client.session("h1"))
+  expect(notifications).toBeLessThan(40)
+})
 
 test("prompt acknowledgement is not completion; cancelling one session leaves the other running", async () => {
   const { client } = await make()

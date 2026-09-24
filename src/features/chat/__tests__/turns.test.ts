@@ -52,13 +52,28 @@ describe("groupTurns over @alwith/api", () => {
 
   test("untouched turns keep their object identity across updates; the streaming one does not", () => {
     let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "one" }], "l1")
-    session = feed(session, text("a", "1"), idle)
+    session = feed(
+      session,
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "t",
+        name: "exec_command",
+        kind: "execute",
+        status: "completed"
+      },
+      text("a", "1"),
+      idle
+    )
     session = addPrompt(session, [{ type: "text", text: "two" }], "l2")
     const before = groupTurns(session)
     session = feed(session, text("b", "2"))
     const after = groupTurns(session, before)
     expect(after[0]).toBe(before[0])
     expect(after[1]).not.toBe(before[1])
+    session = feed(session, { sessionUpdate: "tool_call_update", toolCallId: "t", rawOutput: "late output" })
+    const patched = groupTurns(session, after)
+    expect(patched[0]).not.toBe(after[0])
+    expect(patched[1]).toBe(after[1])
   })
 
   test("history that starts with the agent's words is a turn without a user", () => {

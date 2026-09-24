@@ -23,6 +23,8 @@ export type FakeAgent = {
   fileSearches: string[]
   /** Pushes a `_codex/rate_limits_updated` notification to the connected client. */
   pushRateLimits: (usedPercent: number) => Promise<void>
+  pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
+  replayUpdates: acp.SessionUpdate[]
 }
 
 function modelHintOf(params: { _meta?: unknown }): string | null {
@@ -70,6 +72,7 @@ export function createFakeAgent(): FakeAgent {
   const changingConfig = new Set<string>()
   const renamed = new Map<string, string>()
   const fileSearches: string[] = []
+  const replayUpdates: acp.SessionUpdate[] = []
   let link: acp.AgentContext | null = null
   const gatewayGroups = (): GatewayGroup[] =>
     [...gateways.entries()].map(([id, params]) => {
@@ -185,6 +188,7 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/resume", async ({ params, client }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
+    for (const update of replayUpdates) await client.notify("session/update", { sessionId: params.sessionId, update })
     await client.notify("session/update", {
       sessionId: params.sessionId,
       update: {
@@ -340,6 +344,11 @@ export function createFakeAgent(): FakeAgent {
     configChanges,
     renamed,
     fileSearches,
-    pushRateLimits
+    replayUpdates,
+    pushRateLimits,
+    pushUpdate: async (sessionId, update) => {
+      if (link === null) throw new Error("Fake agent is not connected")
+      await link.notify("session/update", { sessionId, update })
+    }
   }
 }

@@ -108,6 +108,7 @@ fab check    # run the web and Rust gates
 fab build    # build the Tauri bundle
 fab format   # format Rust and frontend sources
 fab version  # update package.json, Cargo.toml, and Cargo.lock
+fab upgrade  # alias: fab u; update Cargo/Bun dependencies within declared ranges
 fab toolchain # update Bun/Codex pins and bun.lock, then check and stage them
 ```
 

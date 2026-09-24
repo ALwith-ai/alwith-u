@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 
 from fabric import task
+from invoke import Context
 from invoke.exceptions import Exit
 
 
@@ -167,6 +168,21 @@ def check(_context: object) -> None:
 def build(_context: object) -> None:
     """Build the Tauri app using its existing staging hook."""
     run("bun", "run", "tauri", "build")
+
+
+@task(aliases=["u"])
+def upgrade(context: Context) -> None:
+    """Update dependencies within declared ranges and report newer releases."""
+    with context.cd(str(ROOT)):
+        with context.cd("src-tauri"):
+            context.run("cargo update")
+            # Report releases outside Cargo's declared ranges without upgrading them.
+            # Ignore external paths because cargo-outdated resolves a temporary copy.
+            if not context.run("command -v cargo-outdated", warn=True, hide=True).ok:
+                context.run("cargo install cargo-outdated")
+            context.run("cargo outdated --root-deps-only --workspace --ignore-external-rel", warn=True)
+        context.run("bun outdated")
+        context.run("bun update")
 
 
 @task(name="format", aliases=["f"])
