@@ -24,6 +24,7 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
@@ -213,6 +214,7 @@ export function ThreadSidebar({
     { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> }
   ]
   const [pendingDelete, setPendingDelete] = useState<ThreadSummary | null>(null)
+  useSidebarOverlay(pendingDelete !== null)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
   const groups = useMemo(() => {

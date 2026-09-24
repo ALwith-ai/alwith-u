@@ -2,6 +2,7 @@ import { LogOutIcon, SettingsIcon } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,8 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
   const { t } = useTranslation()
   const user = usePlatformAuth(state => state.user)
   const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+  useSidebarOverlay(open)
   if (!user) return null
 
   const displayName = user.nickname || user.login_email
@@ -32,7 +35,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
   )
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         render={
           <Button

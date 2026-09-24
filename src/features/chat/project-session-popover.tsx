@@ -3,6 +3,7 @@ import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ThreadSummary } from "@/agent/client"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
@@ -25,6 +26,7 @@ export function ProjectSessionPopover({
   trigger
 }: ProjectActions & { trigger?: ReactElement }) {
   const [open, setOpen] = useState(false)
+  useSidebarOverlay(open)
   const skipFocus = useRef(false)
   const popupRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)

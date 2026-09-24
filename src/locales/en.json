@@ -60,6 +60,8 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Collapse sidebar",
     "signOut": "Sign out",
     "story": "Story",
     "plugins": "Plugins",
