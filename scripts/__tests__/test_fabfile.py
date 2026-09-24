@@ -9,9 +9,58 @@ from pathlib import Path
 from unittest.mock import call, patch
 
 from invoke import Collection, Context, Program
-from invoke.exceptions import Exit
+from invoke.exceptions import Exit, UnexpectedExit
+from invoke.runners import Result
 
 from fabfile import ROOT, toolchain, update_toolchain_pins, update_version
+import fabfile
+
+
+class UpgradeTaskTests(unittest.TestCase):
+    def test_upgrade_and_alias_run_in_project_directories(self) -> None:
+        for name in ("upgrade", "u"):
+            with self.subTest(name=name):
+                commands = []
+
+                def record(context: Context, command: str, **options: object) -> Result:
+                    commands.append((context.cwd, command, options))
+                    return Result(exited=0)
+
+                with patch.object(Context, "run", record):
+                    Program(namespace=Collection.from_module(fabfile)).run(["fab", name], exit=False)
+                self.assertEqual(commands, [
+                    (str(ROOT / "src-tauri"), "cargo update", {}),
+                    (str(ROOT / "src-tauri"), "command -v cargo-outdated", {"warn": True, "hide": True}),
+                    (str(ROOT / "src-tauri"), "cargo outdated --root-deps-only --workspace --ignore-external-rel", {"warn": True}),
+                    (str(ROOT), "bun outdated", {}),
+                    (str(ROOT), "bun update", {}),
+                ])
+
+    def test_installs_missing_cargo_outdated(self) -> None:
+        commands = []
+
+        def record(context: Context, command: str, **options: object) -> Result:
+            commands.append(command)
+            return Result(exited=1 if command == "command -v cargo-outdated" else 0)
+
+        with patch.object(Context, "run", record):
+            Program(namespace=Collection.from_module(fabfile)).run(["fab", "upgrade"], exit=False)
+        self.assertIn("cargo install cargo-outdated", commands)
+        self.assertLess(commands.index("cargo install cargo-outdated"), commands.index(
+            "cargo outdated --root-deps-only --workspace --ignore-external-rel"
+        ))
+
+    def test_upgrade_stops_when_dependency_update_fails(self) -> None:
+        commands = []
+
+        def fail(context: Context, command: str, **options: object) -> Result:
+            commands.append(command)
+            raise UnexpectedExit(Result(command=command, exited=1))
+
+        with patch.object(Context, "run", fail):
+            with self.assertRaises(UnexpectedExit):
+                fabfile.upgrade(Context())
+        self.assertEqual(commands, ["cargo update"])
 
 
 class VersionTaskTests(unittest.TestCase):
