@@ -26,7 +26,8 @@ import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
-import { client } from "@/lib/client"
+import { hasPluginStore } from "@/agent/codex-extensions"
+import { client, useApp } from "@/lib/client"
 import { pluginsStore } from "./instance"
 
 /**
@@ -361,14 +362,17 @@ function InstalledTab() {
 }
 
 /** `cwd`: the selected project; repo-scoped skills and marketplaces are read from it. */
-export function PluginsPage({ cwd }: { cwd: string | null }) {
+export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, state => state.refresh)
+  const ready = useApp(state => state.connection === "ready" && hasPluginStore(state.agent))
 
   useEffect(() => {
+    // The screen arrow is available even before the engine has connected.
+    if (!active || !ready) return
     void refresh(cwd === null ? [] : [cwd])
     return client.onSkillsChanged(() => void refresh())
-  }, [refresh, cwd])
+  }, [active, ready, refresh, cwd])
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

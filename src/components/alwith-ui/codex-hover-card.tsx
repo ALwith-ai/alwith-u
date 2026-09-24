@@ -1,6 +1,7 @@
 import { PreviewCard } from "@base-ui/react/preview-card"
 import type { ReactElement, ReactNode } from "react"
 import "@/components/alwith-ui/codex-hover-card.css"
+import { useSidebarOverlay } from "./sidebar-overlay-context"
 
 type Position = Pick<PreviewCard.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">
 
@@ -21,6 +22,7 @@ export function CodexHoverCard({
   children: ReactNode
   unstyled?: boolean
 } & Position) {
+  useSidebarOverlay(open)
   return (
     <PreviewCard.Root open={open} onOpenChange={onOpenChange}>
       <PreviewCard.Trigger render={trigger} delay={700} closeDelay={100} />

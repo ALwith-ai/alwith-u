@@ -67,6 +67,27 @@ fn sidecar_path(name: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
+/// Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
+#[tauri::command]
+pub async fn codex_version() -> Result<String, String> {
+    let mut command = tokio::process::Command::new(sidecar_path("codex")?);
+    command.arg("--version").kill_on_drop(true).hide_console();
+    let output = tokio::time::timeout(Duration::from_secs(5), command.output())
+        .await
+        .map_err(|_| "Codex version check timed out")?
+        .map_err(|error| error.to_string())?;
+    if !output.status.success() {
+        return Err(format!("Codex version check failed: {}", output.status));
+    }
+    let stdout = String::from_utf8(output.stdout).map_err(|error| error.to_string())?;
+    stdout
+        .trim()
+        .strip_prefix("codex-cli ")
+        .filter(|version| !version.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| "Unexpected Codex version output".into())
+}
+
 fn engines_table(app: &AppHandle) -> Result<String, String> {
     #[cfg(debug_assertions)]
     let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");

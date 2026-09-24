@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarInset } from "@/components/ui/sidebar"
 import type { ThreadSummary } from "@/agent/client"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
@@ -17,6 +17,8 @@ import { StoryPage } from "@/features/story/story-page"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
+import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
+import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { selectThread } from "@/features/threads/select-thread"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { useProviders } from "@/lib/use-providers"
@@ -34,6 +36,7 @@ import { installChatShortcut } from "@/lib/chat-shortcut"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID } from "@/features/chat/draft-chat"
 import { useWindowFocus } from "@/lib/window-focus"
+import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 
@@ -54,18 +57,18 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const providerSnapshot = useProviders()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
-  // What the main area shows: the selected chat, or the skills and plugins store.
+  // Plugins live on the leading screen; the main chat stays mounted while it is offscreen.
   const [view, setView] = useState<"chat" | "plugins" | "story">("chat")
+  const [pluginsVisited, setPluginsVisited] = useState(false)
+  const openPlugins = useCallback(() => {
+    setPluginsVisited(true)
+    setView("plugins")
+  }, [])
   const session = useSession(selectedId)
-  const selectedRunState = useApp(state => (selectedId === null ? null : (state.runStates[selectedId]?.state ?? null)))
   const focused = useWindowFocus()
   const { busy, operation } = useSurfaceOperation()
 
-  // The selected chat is being looked at: `done` becomes `idle` for every client of this Runtime.
-  useEffect(() => {
-    if (focused && selectedId !== null && selectedRunState === "done")
-      void markRead(selectedId).catch((error: unknown) => toast.error(describe(error)))
-  }, [focused, selectedId, selectedRunState])
+  useReadVisibleSession(selectedId, focused && view === "chat")
 
   const select = useCallback(
     (thread: ThreadSummary) => {
@@ -106,7 +109,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [])
 
   const draftCreated = useCallback((id: string) => {
-    setView("chat")
     setSelectedId(id)
   }, [])
 
@@ -306,7 +308,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           </Alert>
         </div>
       ) : null
-    if (view === "plugins") return <PluginsPage cwd={session?.cwd ?? lastDirectory} />
     if (view === "story") return <StoryPage />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
     const moveToWindow = (): void => {
@@ -368,44 +369,66 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     )
   })()
 
+  const actionCards = globalActions.length > 0 && (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
+      {globalActions.map(action => (
+        <ActionCard key={action.id} action={action} />
+      ))}
+    </div>
+  )
+
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
-      <SidebarProvider className="h-full">
-        <ThreadSidebar
-          selectedId={selectedId}
-          onSelect={select}
-          onNewChat={newChat}
-          onNewProjectChat={cwd => {
-            if (operation.busy) return
-            chooseDraftFolder(cwd)
-            importDraft(DRAFT_SESSION_ID, null)
-            setSurfaceGeneration(value => value + 1)
-            newChat()
-          }}
-          onOpenSettings={() => void openSettingsWindow()}
-          onOpenPlugins={() => setView("plugins")}
-        />
-        <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
-          {globalActions.length > 0 && (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
-              {globalActions.map(action => (
-                <ActionCard key={action.id} action={action} />
-              ))}
-            </div>
-          )}
-          {main}
-        </SidebarInset>
+      <MainSidebarLayout
+        initialPinned={initialPreferences.sidebarPinned}
+        screen={view === "plugins" ? "leading" : "main"}
+        sidebar={
+          <ThreadSidebar
+            screen={view === "plugins" ? "leading" : "main"}
+            selectedId={view === "plugins" ? null : selectedId}
+            onSelect={select}
+            onNewChat={newChat}
+            onSearch={() => setPaletteOpen(true)}
+            onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
+            onNewProjectChat={cwd => {
+              if (operation.busy) return
+              chooseDraftFolder(cwd)
+              importDraft(DRAFT_SESSION_ID, null)
+              setSurfaceGeneration(value => value + 1)
+              newChat()
+            }}
+            onOpenSettings={() => void openSettingsWindow()}
+            onOpenPlugins={openPlugins}
+            onSwitchScreen={() => (view === "plugins" ? setView("chat") : openPlugins())}
+          />
+        }
+        leading={
+          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+            {view === "plugins" && actionCards}
+            {pluginsVisited && <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />}
+          </SidebarInset>
+        }
+        main={
+          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+            {view !== "plugins" && actionCards}
+            {main}
+          </SidebarInset>
+        }>
         <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
         <CommandPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           onNewChat={newChat}
           onOpenSettings={() => void openSettingsWindow()}
-          onOpenPlugins={() => setView("plugins")}
+          onOpenPlugins={openPlugins}
           onOpenHotkeys={() => setHotkeysOpen(true)}
           onSelect={select}
         />
-      </SidebarProvider>
+        <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+        <div className="absolute right-2 bottom-0 z-20">
+          <ClientVersionPopover />
+        </div>
+      </MainSidebarLayout>
     </div>
   )
 }

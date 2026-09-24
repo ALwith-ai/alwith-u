@@ -22,11 +22,16 @@ function showSidebar() {
   return render(
     <SidebarProvider>
       <ThreadSidebar
+        screen="main"
         selectedId={null}
         onSelect={() => {}}
         onNewChat={() => {}}
+        onNewProjectChat={() => {}}
+        onSearch={() => {}}
+        onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
+        onSwitchScreen={() => {}}
       />
     </SidebarProvider>
   )

@@ -7,6 +7,7 @@ import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/
 import { setProjectAppPreference } from "./project-app-preference"
 
 export type Preferences = {
+  sidebarPinned: boolean
   chatWindowShortcut?: string
   lastProjectDirectory: string | null
   language: string | null
@@ -33,7 +34,8 @@ export async function loadPreferences(): Promise<Preferences> {
     sessionModels,
     navigationSoundMode,
     navigationInstrument,
-    externalEditor
+    externalEditor,
+    sidebarPinned
   ] = await Promise.all([
     store.get<string>("lastProjectDirectory"),
     store.get<string>("language"),
@@ -41,9 +43,11 @@ export async function loadPreferences(): Promise<Preferences> {
     store.get<Record<string, string>>("sessionModels"),
     store.get<NavigationSoundMode>("navigationSoundMode"),
     store.get<NavigationInstrument>("navigationInstrument"),
-    store.get<string>("externalEditor")
+    store.get<string>("externalEditor"),
+    store.get<boolean>("sidebarPinned")
   ])
   return {
+    sidebarPinned: sidebarPinned ?? false,
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
     lastProjectDirectory: lastProjectDirectory ?? null,
     language: language ?? null,

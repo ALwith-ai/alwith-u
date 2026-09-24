@@ -60,6 +60,14 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Collapse sidebar",
+    "toggleRight": "Toggle right sidebar",
+    "showRight": "Show right sidebar",
+    "hideRight": "Hide right sidebar",
+    "openLeading": "Open -1 screen",
+    "backToMain": "Back to main screen",
+    "signOut": "Sign out",
     "story": "Story",
     "plugins": "Plugins",
     "activity": "Activity",

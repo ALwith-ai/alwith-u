@@ -8,23 +8,25 @@ import {
   ActivityIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
   FolderClosedIcon,
   FolderIcon,
   FolderOpenIcon,
   GitForkIcon,
   PencilIcon,
+  PictureInPicture2Icon,
   PlusIcon,
   PuzzleIcon,
   SearchIcon,
-  SettingsIcon,
-  Trash2Icon,
-  XIcon
+  Trash2Icon
 } from "lucide-react"
 import { motion } from "motion/react"
 import { useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
@@ -38,7 +40,6 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
@@ -51,6 +52,7 @@ import { NavigationItemButton } from "@/features/layout/components/navigation/na
 import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
 import { client, useApp } from "@/lib/client"
 import { runtimeClient } from "@/lib/runtime"
 import { basename } from "@/lib/path"
@@ -59,18 +61,9 @@ import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
 import { ActivityPanel } from "./activity-panel"
+import { SidebarAccountMenu } from "./sidebar-account-menu"
 import { type SidebarView, useThreadsUiStore } from "./store"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
-
-/** Same predicate as Desktop's sessions panel: title or cwd contains the query; the id too. */
-function matches(thread: ThreadSummary, query: string): boolean {
-  if (!query) return true
-  return (
-    (thread.title ?? "").toLowerCase().includes(query) ||
-    thread.cwd.toLowerCase().includes(query) ||
-    thread.sessionId.toLowerCase().includes(query)
-  )
-}
 
 function report(promise: Promise<unknown>) {
   promise.catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
@@ -204,19 +197,27 @@ function ThreadHoverBody({
 }
 
 export function ThreadSidebar({
+  screen,
   selectedId,
   onSelect,
   onNewChat,
   onNewProjectChat,
+  onSearch,
+  onOpenWindow,
   onOpenSettings,
-  onOpenPlugins
+  onOpenPlugins,
+  onSwitchScreen
 }: {
+  screen: MainScreen
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
   onNewProjectChat: (cwd: string) => void
+  onSearch: () => void
+  onOpenWindow: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
+  onSwitchScreen: () => void
 }) {
   const { t } = useTranslation()
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
@@ -244,23 +245,19 @@ export function ThreadSidebar({
     { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> }
   ]
   const [pendingDelete, setPendingDelete] = useState<ThreadSummary | null>(null)
+  useSidebarOverlay(pendingDelete !== null)
   const [archivedOpen, setArchivedOpen] = useState(false)
-  const [query, setQuery] = useState("")
-  const q = query.trim().toLowerCase()
 
   const groups = useMemo(() => {
     const byProject = new Map<string, ThreadSummary[]>()
-    const sorted = threads
-      .filter(thread => matches(thread, q))
-      .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
+    const sorted = [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
     for (const thread of sorted) {
       const list = byProject.get(thread.cwd)
       if (list) list.push(thread)
       else byProject.set(thread.cwd, [thread])
     }
     return [...byProject.entries()]
-  }, [threads, q])
-  const archivedShown = useMemo(() => archived.filter(thread => matches(thread, q)), [archived, q])
+  }, [threads])
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
 
@@ -278,12 +275,34 @@ export function ThreadSidebar({
     ))
 
   return (
-    <Sidebar collapsible="none" className="h-full border-e bg-transparent [--navigation-row-height:30px]">
-      <SidebarHeader className={cn(isMac() && "pt-9")} data-tauri-drag-region>
-        <div className="flex items-center gap-2 px-1">
+    <Sidebar collapsible="none" className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px]">
+      <SidebarHeader className={cn("shrink-0", isMac() && "pt-9")} data-tauri-drag-region>
+        <div className="flex items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
           </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label={t("sidebar.search")} onClick={onSearch}>
+                  <SearchIcon />
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {t("sidebar.search")} {displayShortcut("CmdOrCtrl+K")}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label={t("chatWindow.open")} onClick={onOpenWindow}>
+                  <PictureInPicture2Icon />
+                </Button>
+              }
+            />
+            <TooltipContent>{t("chatWindow.open")}</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -297,28 +316,18 @@ export function ThreadSidebar({
             </TooltipContent>
           </Tooltip>
         </div>
-        <InputGroup className="h-7">
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            placeholder={t("sidebar.search")}
-            aria-label={t("sidebar.search")}
-            onKeyDown={event => {
-              if (event.key === "Escape") setQuery("")
-            }}
-          />
-          {query !== "" && (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton aria-label={t("actions.close")} onClick={() => setQuery("")}>
-                <XIcon />
-              </InputGroupButton>
-            </InputGroupAddon>
-          )}
-        </InputGroup>
-        <div className="relative flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">
+        {pluginsAvailable && (
+          <NavigationItemButton
+            active={screen === "leading"}
+            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            onClick={onOpenPlugins}>
+            <PuzzleIcon />
+            <span>{t("sidebar.plugins")}</span>
+          </NavigationItemButton>
+        )}
+      </SidebarHeader>
+      <SidebarContent className="gap-0 overflow-hidden">
+        <div className="relative mx-2 flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">
           <div
             role="tablist"
             className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-[30px] w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
@@ -361,8 +370,6 @@ export function ThreadSidebar({
             })}
           </div>
         </div>
-      </SidebarHeader>
-      <SidebarContent className="overflow-hidden">
         {view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
@@ -398,7 +405,7 @@ export function ThreadSidebar({
                   </Button>
                 </div>
               )}
-              {threadsLoaded && threadsError === null && groups.length === 0 && archivedShown.length === 0 && (
+              {threadsLoaded && threadsError === null && groups.length === 0 && archived.length === 0 && (
                 <p className="text-muted-foreground px-3 py-6 text-center text-sm">{t("sidebar.noResults")}</p>
               )}
               {groups.map(([cwd, list]) => {
@@ -431,7 +438,7 @@ export function ThreadSidebar({
                   </NavigationGroup>
                 )
               })}
-              {threadsCursor !== null && threadsError === null && q === "" && (
+              {threadsCursor !== null && threadsError === null && (
                 <NavigationItemButton
                   className={`${MENU_HIGHLIGHT} text-muted-foreground`}
                   disabled={threadsLoading}
@@ -447,9 +454,9 @@ export function ThreadSidebar({
                 }}
                 leading={<ArchiveIcon className="text-foreground size-3.5 shrink-0" />}
                 label={t("sidebar.archived")}
-                count={archivedLoaded ? archivedShown.length : undefined}>
-                {rows(archivedShown)}
-                {archivedCursor !== null && q === "" && (
+                count={archivedLoaded ? archived.length : undefined}>
+                {rows(archived)}
+                {archivedCursor !== null && (
                   <NavigationItemButton
                     className={`${MENU_HIGHLIGHT} text-muted-foreground`}
                     onClick={() => report(client.listThreads({ archived: true }))}>
@@ -461,17 +468,19 @@ export function ThreadSidebar({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="[--navigation-row-height:30px]">
-        {pluginsAvailable && (
-          <NavigationItemButton className={MENU_HIGHLIGHT} onClick={onOpenPlugins}>
-            <PuzzleIcon />
-            <span>{t("sidebar.plugins")}</span>
-          </NavigationItemButton>
-        )}
-        <NavigationItemButton className={MENU_HIGHLIGHT} onClick={onOpenSettings}>
-          <SettingsIcon />
-          <span>{t("sidebar.settings")}</span>
-        </NavigationItemButton>
+      <SidebarFooter className="shrink-0 pb-[var(--main-surface-block-gutter)]">
+        <Button
+          variant="ghost"
+          className={cn(
+            "hover:bg-foreground/5 h-10 w-full rounded-lg px-2",
+            screen === "main" ? "justify-start" : "justify-end"
+          )}
+          aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          onClick={onSwitchScreen}>
+          {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
+        </Button>
+        <SidebarAccountMenu onOpenSettings={onOpenSettings} />
       </SidebarFooter>
       <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
         <DialogContent>

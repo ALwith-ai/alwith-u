@@ -88,6 +88,7 @@ pub fn run() {
             chat_window::plugin::resize_chat_window,
             runtime::runtime_start,
             runtime::runtime_send,
+            runtime::codex_version,
             providers::providers_read,
             providers::providers_save,
             providers::providers_save_custom,

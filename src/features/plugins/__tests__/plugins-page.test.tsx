@@ -68,7 +68,7 @@ test("plugin controls and skill scopes follow a language change without remounti
     busyIds: { "Installing example": "installing" },
     skills
   })
-  const view = render(<PluginsPage cwd={null} />)
+  const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByRole("tab", { name: "Marketplace" })).toBeDefined()
   expect(view.getByPlaceholderText("Search plugins")).toBeDefined()
   expect(view.getByRole("button", { name: "Installed", exact: true })).toBeDefined()
@@ -116,7 +116,7 @@ test("plugin controls and skill scopes follow a language change without remounti
 })
 
 test("empty plugin and skill lists have translated messages in both supported UI languages", async () => {
-  const view = render(<PluginsPage cwd={null} />)
+  const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByText("No plugins found")).toBeDefined()
   await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
   expect(view.getByText("No plugins installed")).toBeDefined()
