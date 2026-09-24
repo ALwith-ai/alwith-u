@@ -4,6 +4,7 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -43,7 +44,7 @@ export function DraftProjectPicker({
       <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
-            <div className="max-h-64 overflow-y-auto">
+            <Pane className="flex-none" viewportClassName="max-h-64">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map(path => (
                   <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>
@@ -52,7 +53,7 @@ export function DraftProjectPicker({
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
-            </div>
+            </Pane>
             <DropdownMenuSeparator />
           </>
         )}

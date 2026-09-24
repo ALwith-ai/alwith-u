@@ -3,6 +3,7 @@ import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ThreadSummary } from "@/agent/client"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
@@ -177,7 +178,11 @@ function ProjectContents({
           </span>
         </div>
       )}
-      <div ref={listRef} tabIndex={-1} className="max-h-70 min-h-0 overflow-y-auto outline-none">
+      <Pane
+        className="flex max-h-70 flex-auto flex-col"
+        viewportClassName="h-auto min-h-0"
+        viewportRef={listRef}
+        viewportProps={{ tabIndex: -1 }}>
         {(result === undefined || result.status === "loading") && (
           <p role="status" className="text-muted-foreground px-3 py-2 text-sm">
             {t("chat.project.loading")}
@@ -214,7 +219,7 @@ function ProjectContents({
               )}
             </Button>
           ))}
-      </div>
+      </Pane>
       {result?.status === "ready" && !expanded && result.threads.length > 5 && (
         <Button
           variant="ghost"
