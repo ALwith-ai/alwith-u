@@ -45,7 +45,7 @@ function PlatformLogin() {
     try {
       await action()
     } catch (error) {
-      const message = error instanceof Error ? error.message : ""
+      const message = error instanceof Error ? error.message : String(error)
       setError(
         message === "WAITLISTED"
           ? t("platformAuth.waitlisted")

@@ -39,6 +39,58 @@ async function setup(
 }
 const fresh = { access_token: "new-access", refresh_token: "new-refresh" }
 describe("ALwith account HTTP adapter", () => {
+  test("login rejection exposes the API's error detail through Error.message", async () => {
+    const { transport } = await setup(
+      async () => Response.json({ detail: "验证码错误或已过期。", status: 400 }, { status: 400 }),
+      async () => {
+        throw new Error("must not refresh")
+      }
+    )
+    const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch(error => error)
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toMatchObject({ message: "验证码错误或已过期。" })
+  })
+  test("unstructured error bodies never become user-facing details", async () => {
+    for (const body of [
+      "",
+      "<html>gateway error</html>",
+      '{"detail":42}',
+      '{"detail":"  "}',
+      '{"access_token":"secret"}'
+    ]) {
+      const { transport } = await setup(
+        async () => new Response(body, { status: 400 }),
+        async () => fresh
+      )
+      const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch(error => error)
+      expect(error).toBeInstanceOf(Error)
+      expect(error).toMatchObject({ message: "ALwith HTTP 400" })
+    }
+  })
+  test("sending a verification code accepts empty 200 and 204 responses", async () => {
+    for (const response of [
+      new Response(null, { status: 200, headers: { "Content-Length": "0" } }),
+      new Response(null, { status: 200 }),
+      new Response(null, { status: 204 })
+    ]) {
+      const { transport } = await setup(
+        async () => response,
+        async () => {
+          throw new Error("must not refresh")
+        }
+      )
+      await expect(
+        transport.request("/api/v1/auth/send-code", "POST", { email: "user@example.test", purpose: "LOGIN" }, false)
+      ).resolves.toBeUndefined()
+    }
+  })
+  test("nonempty malformed success responses still fail JSON parsing", async () => {
+    const { transport } = await setup(
+      async () => new Response("<html>upstream error</html>", { status: 200 }),
+      async () => fresh
+    )
+    await expect(transport.request("/api/v1/auth/send-code", "POST", {}, false)).rejects.toBeInstanceOf(SyntaxError)
+  })
   test("public login never sends saved credentials or refreshes on rejection", async () => {
     const { transport } = await setup(
       async (_url, init) => {

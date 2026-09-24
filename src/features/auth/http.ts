@@ -68,13 +68,22 @@ export function createAuthTransport(host: Host) {
       current(expected)
     }
     if (!response.ok) {
-      // Never expose/log credentials or arbitrary response bodies.
-      throw new Error(`ALwith HTTP ${response.status}`)
+      let detail: string | undefined
+      try {
+        const error: unknown = await response.json()
+        if (error && typeof error === "object" && "detail" in error && typeof error.detail === "string")
+          detail = error.detail.trim() || undefined
+      } catch {
+        // Error bodies may be empty or HTML. Only the API's detail field is user-facing.
+      }
+      current(expected)
+      throw new Error(detail ?? `ALwith HTTP ${response.status}`)
     }
-    if (response.status === 204) return undefined as T
-    const result = (await response.json()) as T
+    const text = await response.text()
     current(expected)
-    return result
+    // Void endpoints such as send-code can return 200 with an empty body.
+    if (!text) return undefined as T
+    return JSON.parse(text) as T
   }
   return {
     request,
