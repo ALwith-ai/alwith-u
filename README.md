@@ -108,7 +108,9 @@ fab check    # run the web and Rust gates
 fab build    # build the Tauri bundle
 fab format   # format Rust and frontend sources
 fab version  # update package.json, Cargo.toml, and Cargo.lock
+fab toolchain # update Bun/Codex pins and bun.lock, then check and stage them
 ```
+
 
 Run staging and `fab check` after stopping the dev instance; both write resources that Tauri watches.
 
