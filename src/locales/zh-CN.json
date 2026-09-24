@@ -86,6 +86,11 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "branches": {
+      "create": "创建聊天分支",
+      "continuedFrom": "从原聊天继续",
+      "sourceUnavailable": "原会话不可用"
+    },
     "project": {
       "chatCount_one": "{{count}} 个会话",
       "chatCount_other": "{{count}} 个会话",

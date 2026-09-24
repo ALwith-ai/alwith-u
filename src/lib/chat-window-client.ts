@@ -15,6 +15,8 @@ const CLOSED = "chat:client-closed"
 const METHODS = [
   "connect",
   "newSession",
+  "fork",
+  "readThreadSummary",
   "open",
   "prompt",
   "cancel",
@@ -241,6 +243,15 @@ export class RemoteChatClient extends CodexClient {
   }
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", args)
+  }
+  override readThreadSummary(
+    ...args: Parameters<CodexClient["readThreadSummary"]>
+  ): ReturnType<CodexClient["readThreadSummary"]> {
+    return this.request("readThreadSummary", args)
+  }
+
+  override fork(...args: Parameters<CodexClient["fork"]>): Promise<string> {
+    return this.request("fork", args)
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
     return this.request("open", args)

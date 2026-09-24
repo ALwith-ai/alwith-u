@@ -126,6 +126,25 @@ test("an image-only final answer is visible", () => {
   )
 })
 
+test("completed replies show the original batch time in the shared action bar", () => {
+  const session = feed(
+    { ...createSession("original-time", "/tmp"), restoring: true },
+    {
+      sessionUpdate: "agent_message",
+      messageId: "final",
+      content: [{ type: "text", text: "Answer" }],
+      _meta: { codex: { phase: "final_answer", turnStartedAt: new Date(2024, 0, 2, 3, 4).getTime() } }
+    }
+  )
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  expect(view.queryByTitle("2024-01-02 03:04")).toBeNull()
+  view.rerender(viewOf(session))
+  const label = view.getByTitle("2024-01-02 03:04")
+  expect(label.classList.contains("codex-user-time")).toBe(true)
+  expect(label.parentElement?.querySelector("button")?.getAttribute("aria-label")).toBe("Copy")
+})
+
 test("commentary keeps non-text content and unknown blocks are visible", () => {
   const session = feed(addPrompt(createSession("mixed-commentary", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
     sessionUpdate: "agent_message",

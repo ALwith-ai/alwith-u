@@ -21,7 +21,7 @@ import {
   XIcon
 } from "lucide-react"
 import { motion } from "motion/react"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
@@ -82,12 +82,14 @@ function ThreadRow({
   active,
   state,
   onSelect,
+  onForked,
   onDelete
 }: {
   thread: ThreadSummary
   active: boolean
   state?: RunState
   onSelect: () => void
+  onForked: (thread: ThreadSummary) => void
   onDelete: () => void
 }) {
   const { t, i18n } = useTranslation()
@@ -107,7 +109,7 @@ function ThreadRow({
       }}
       state={state}
       title={title}
-      hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} />}
+      hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} />}
       meta={
         thread.updatedAt !== null ? (
           <span className="text-muted-foreground shrink-0 text-xs">
@@ -128,10 +130,21 @@ function ThreadRow({
 }
 
 /** Desktop's `SessionHoverBody`: info card plus the row actions (rename / fork / archive / delete). */
-function ThreadHoverBody({ thread, onDelete }: { thread: ThreadSummary; onDelete: () => void }) {
+function ThreadHoverBody({
+  thread,
+  onDelete,
+  onForked
+}: {
+  thread: ThreadSummary
+  onDelete: () => void
+  onForked: (thread: ThreadSummary) => void
+}) {
   const { t } = useTranslation()
   const canRename = useApp(state => hasRename(state.agent))
   const [renaming, setRenaming] = useState(false)
+  const [forking, setForking] = useState(false)
+  const submitting = useRef(false)
+  const canFork = useApp(state => state.connection === "ready" && state.agent?.capabilities?.session?.fork != null)
   return (
     <ThreadInfoCard
       thread={thread}
@@ -156,14 +169,25 @@ function ThreadHoverBody({ thread, onDelete }: { thread: ThreadSummary; onDelete
               <HoverInfoAction
                 icon={<GitForkIcon />}
                 label={t("sidebar.fork")}
-                onClick={() =>
+                disabled={!canFork || forking}
+                onClick={() => {
+                  if (submitting.current) return
+                  submitting.current = true
+                  setForking(true)
                   report(
                     client
                       .fork(thread.sessionId, thread.cwd)
-                      .then(id => client.open(id, thread.cwd))
-                      .then(() => undefined)
+                      .then(id => {
+                        const forked = client.state.threads.find(item => item.sessionId === id)
+                        if (!forked) throw new Error("Forked chat is missing from the session list")
+                        onForked(forked)
+                      })
+                      .finally(() => {
+                        submitting.current = false
+                        setForking(false)
+                      })
                   )
-                }
+                }}
               />
               <HoverInfoAction
                 icon={<ArchiveIcon />}
@@ -248,6 +272,7 @@ export function ThreadSidebar({
         active={thread.sessionId === selectedId}
         state={stateOf(thread)}
         onSelect={() => onSelect(thread)}
+        onForked={onSelect}
         onDelete={() => setPendingDelete(thread)}
       />
     ))

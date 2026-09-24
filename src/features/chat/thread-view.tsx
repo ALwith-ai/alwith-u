@@ -1,3 +1,4 @@
+import { ForkOriginDivider } from "./chat-branches"
 import { ArrowDownIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
@@ -203,6 +204,7 @@ export function ThreadView({ session }: { session: Session }) {
         data-virtualized-turn-content
         data-codex-turn={turn.key}
         className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
+        {index === 0 && <ForkOriginDivider />}
         {turn.user !== null && <UserMessage item={turn.user} />}
         {hasAssistant && (
           <AssistantTurn
@@ -214,6 +216,7 @@ export function ThreadView({ session }: { session: Session }) {
             interrupted={!active && isLast && session.lastStopReason === "cancelled"}
           />
         )}
+        <ForkOriginDivider turn={turn} />
       </div>
     )
   }

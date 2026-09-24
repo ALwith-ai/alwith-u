@@ -87,6 +87,11 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
+    "branches": {
+      "create": "Create chat branch",
+      "continuedFrom": "Continue from original chat",
+      "sourceUnavailable": "Original chat unavailable"
+    },
     "project": {
       "chatCount_one": "{{count}} chat",
       "chatCount_other": "{{count}} chats",

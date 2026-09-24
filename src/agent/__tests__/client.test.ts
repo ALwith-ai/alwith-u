@@ -65,6 +65,113 @@ async function until(predicate: () => boolean) {
   }
 }
 
+test("fork sends the real turn boundary, keeps model hints and preserves replayed title and lineage", async () => {
+  const { client, fake, port } = await make()
+  await registerGateway(port, {
+    id: "gateway",
+    name: "Gateway",
+    baseUrl: "https://example.com/v1",
+    bearerToken: "test",
+    models: [{ id: "custom-model" }],
+    config: {}
+  })
+  const source = await client.newSession("/tmp/fork", "custom-model")
+  fake.replayUpdates.push(
+    { sessionUpdate: "session_info_update", title: "Original title" },
+    {
+      sessionUpdate: "agent_message",
+      messageId: "answer-item",
+      content: [{ type: "text", text: "Kept answer" }],
+      _meta: { codex: { turnId: "turn-1", phase: "final_answer" } }
+    }
+  )
+  const forked = await client.fork(source, "/tmp/fork", "turn-1")
+  expect(fake.forks[0]).toMatchObject({
+    sessionId: source,
+    _meta: { codex: { lastTurnId: "turn-1" }, alwith: { model: "custom-model" } }
+  })
+  expect(client.state.threads.find(thread => thread.sessionId === forked)).toMatchObject({
+    title: "Original title (2)",
+    nativeSessionId: forked,
+    forkedFromId: source
+  })
+  expect(
+    client.session(forked).items.some(item => item.kind === "assistant" && textOf(item.content) === "Kept answer")
+  ).toBe(true)
+  expect(client.session(source).items).toHaveLength(0)
+  expect(client.session(forked).items.every(item => item.replayed)).toBe(true)
+  client.store.setState({ agent: { info: { name: "test", version: "1" }, protocolVersion: 2 } })
+  await expect(client.fork(source, "/tmp/fork", "turn-1")).rejects.toThrow("does not support")
+  expect(fake.forks).toHaveLength(1)
+})
+
+test("fork titles are saved immediately, collisions are skipped, and the boundary survives reopening", async () => {
+  const { client, fake } = await make()
+  const source = await client.newSession("/tmp/titles")
+  await client.renameSession(source, "Review")
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: "existing", cwd: "/tmp/titles", title: "Review (2)" }] })
+  const [first, second] = await Promise.all([
+    client.fork(source, "/tmp/titles", "t1"),
+    client.fork(source, "/tmp/titles", "t1")
+  ])
+  expect(fake.renamed.get(first)).toBe("Review (3)")
+  expect(fake.renamed.get(second)).toBe("Review (4)")
+  expect(client.session(source).title).toBe("Review")
+  expect(client.state.forkOrigins[first]).toEqual({ sourceId: source, boundaryTurnId: "t1" })
+  await client.close(first)
+  await client.open(first, "/tmp/titles")
+  expect(client.state.forkOrigins[first]).toEqual({ sourceId: source, boundaryTurnId: "t1" })
+  const nested = await client.fork(second, "/tmp/titles", "t1")
+  expect(fake.renamed.get(nested)).toBe("Review (5)")
+})
+
+test("source lookup reads every page across projects and archived chats and rejects cyclic results", async () => {
+  const { client, fake } = await make()
+  const entry = (id: string, parent: string | null, cwd: string, archived = false) => ({
+    sessionId: id,
+    cwd,
+    _meta: { codex: { nativeSessionId: id, forkedFromId: parent, archived } }
+  })
+  const before = client.state.threads
+  const requests: unknown[] = []
+  fake.listSessions.current = request => {
+    requests.push(request)
+    if (request._meta) return { sessions: [entry("archived-parent", "root", "/old", true)] }
+    return request.cursor === "next"
+      ? {
+          sessions: [entry("branch", "archived-parent", "/other"), entry("sibling", "root", "/project")],
+          nextCursor: null
+        }
+      : { sessions: [entry("root", null, "/project"), entry("unrelated", null, "/project")], nextCursor: "next" }
+  }
+  expect((await client.readThreadSummary("branch"))?.cwd).toBe("/other")
+  expect(requests).toContainEqual({ _meta: { codex: { archived: true } } })
+  expect(requests).toContainEqual({ cursor: "next" })
+  expect((await client.readThreadSummary("archived-parent"))?.archived).toBe(true)
+  expect(client.state.threads).toBe(before)
+  fake.listSessions.current = () => ({ sessions: [], nextCursor: "cycle" })
+  await expect(client.readThreadSummary("root")).rejects.toThrow("repeated cursor")
+})
+
+test("a newly forked attached chat remains selectable before Codex lists it", async () => {
+  const { client, fake } = await make()
+  const root = await client.newSession("/tmp/fork")
+  fake.listSessions.current = request =>
+    request._meta
+      ? { sessions: [] }
+      : {
+          sessions: [
+            { sessionId: root, cwd: "/tmp/fork", _meta: { codex: { nativeSessionId: root, forkedFromId: null } } }
+          ]
+        }
+  const child = await client.fork(root, "/tmp/fork", "turn-1")
+  await client.listThreads({ reset: true })
+  expect(client.state.threads.some(thread => thread.sessionId === child)).toBe(true)
+  expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(true)
+  await client.delete(child)
+  expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(false)
+})
+
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
   const { client, fake } = await make()
   const a = await client.newSession("/tmp/a")

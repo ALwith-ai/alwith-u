@@ -4,13 +4,15 @@ import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/ass
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { useTranslation } from "react-i18next"
 import { isText, type Terminal, type TurnError } from "@alwith/api"
-import { codexTurnError } from "@/agent/codex-extensions"
+import { ForkTurnButton } from "../chat-branches"
+import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
 import { messageText, type Turn, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
 import { useChatActivityHost } from "./activity-host"
 import { EditedFilesCard } from "./edited-files-card"
 import { CodexPlan } from "./plan"
 import { AssistantContent } from "./assistant-content"
+import { formatTurnTime } from "./turn-time"
 
 function WorkEntryView({
   entry,
@@ -71,6 +73,7 @@ function AssistantTurnImpl({
   const { t } = useTranslation()
   const host = useChatActivityHost()
   const finalText = turn.final.map(messageText).join("\n")
+  const time = active ? null : formatTurnTime(turn)
   const hasFinal = turn.final.some(message =>
     message.content.some(block => !isText(block) || block.text.trim().length > 0)
   )
@@ -96,9 +99,24 @@ function AssistantTurnImpl({
                   streaming={active}
                 />
               ))}
-              {!active && finalText.trim().length > 0 && (
-                <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />
-              )}
+              {!active &&
+                (finalText.trim().length > 0 ? (
+                  <CodexMessageActions
+                    text={finalText}
+                    isMostRecentTurn={isLast}
+                    time={time}
+                    afterCopy={<ForkTurnButton turnId={codexTurnId(turn.final.at(-1)?._meta)} />}
+                  />
+                ) : (
+                  <div className="flex items-center gap-0.5">
+                    <ForkTurnButton turnId={codexTurnId(turn.final.at(-1)?._meta)} />
+                    {time && (
+                      <span className="codex-user-time ms-1" title={time.full}>
+                        {time.short}
+                      </span>
+                    )}
+                  </div>
+                ))}
             </div>
           ) : null
         }
