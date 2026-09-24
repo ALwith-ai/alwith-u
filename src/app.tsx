@@ -17,6 +17,7 @@ import { StoryPage } from "@/features/story/story-page"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
+import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { selectThread } from "@/features/threads/select-thread"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { useProviders } from "@/lib/use-providers"
@@ -369,7 +370,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
-      <SidebarProvider className="h-full">
+      <SidebarProvider className="relative h-full">
         <ThreadSidebar
           selectedId={selectedId}
           onSelect={select}
@@ -384,7 +385,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onOpenSettings={() => void openSettingsWindow()}
           onOpenPlugins={() => setView("plugins")}
         />
-        <SidebarInset className="bg-background flex h-full min-h-0 flex-col">
+        <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
           {globalActions.length > 0 && (
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
               {globalActions.map(action => (
@@ -404,6 +405,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onOpenHotkeys={() => setHotkeysOpen(true)}
           onSelect={select}
         />
+        <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+        <div className="absolute right-2 bottom-0 z-20">
+          <ClientVersionPopover />
+        </div>
       </SidebarProvider>
     </div>
   )

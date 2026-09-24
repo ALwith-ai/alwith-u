@@ -253,7 +253,7 @@ export function ThreadSidebar({
     ))
 
   return (
-    <Sidebar collapsible="none" className="h-full border-e bg-transparent [--navigation-row-height:30px]">
+    <Sidebar collapsible="none" className="h-full bg-transparent [--navigation-row-height:30px]">
       <SidebarHeader className={cn(isMac() && "pt-9")} data-tauri-drag-region>
         <div className="flex items-center gap-2 px-1">
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>

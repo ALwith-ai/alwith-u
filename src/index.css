@@ -85,6 +85,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* 主聊天浮板：与 Desktop 主屏保持同一套几何。边缘留给原生 backdrop，
+     卡片不依赖描边或阴影来从背景中跳出来。 */
+  --main-surface-gutter: 8px;
+  --main-surface-block-gutter: 32px;
+  --main-surface-radius: 14px;
 }
 
 .dark {
@@ -139,14 +144,32 @@
     background: transparent;
   }
 }
-/* Keep native glass visible while holding the sidebar close to its theme surface in both modes.
-   Unlayered rules beat the sidebar's bg-* utilities without !important. */
+/* 主浮板周围的底色与侧栏完全一致；浮板本身继续用 --background。 */
+[data-slot="sidebar-wrapper"],
 [data-slot="sidebar"] {
-  background-color: color-mix(in srgb, var(--sidebar) 90%, transparent);
+  background-color: var(--sidebar);
 }
 [data-slot="sidebar-inner"],
 [data-slot="sidebar-inner"] > div {
   background-color: transparent;
+}
+
+/* 主屏聊天是独立的实色浮板：左右各出 8px、上下各出 32px 缝，圆角 14px。
+   留缝沿用侧栏底色，因此侧栏和主板自然分层，而不是依靠分隔线。 */
+.main-chat-surface {
+  margin-inline: var(--main-surface-gutter);
+  margin-block: var(--main-surface-block-gutter);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--main-surface-radius);
+  background-color: var(--background);
+  box-shadow: none;
+}
+
+/* 主浮板上方 32px 留白同时是无控件的原生拖拽区。 */
+.main-chat-drag-region {
+  inset-inline-start: calc(var(--sidebar-width) + var(--main-surface-gutter));
+  inset-inline-end: var(--main-surface-gutter);
 }
 :root {
   --chat-font-size: 14px;
