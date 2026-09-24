@@ -1,5 +1,6 @@
 import { ArrowDownIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import type { Session } from "@alwith/api"
 import { AssistantTurn } from "./codex/assistant-turn"
@@ -15,10 +16,9 @@ import {
   type VirtualizedTurnListEntry
 } from "@alwith/module-chat/virtualized-turn-list"
 import { clearThread, publishThread } from "./lib/thread-registry"
+import { useThreadScroll } from "./lib/use-thread-scroll"
 import { groupTurns, type Turn } from "./turns"
 
-/** Scrolling down into this band while a turn streams re-engages following. */
-const CODEX_FOLLOW_ENGAGE_DISTANCE_PX = 160
 /** The anchored turn sits this far below the viewport top. */
 const CODEX_ANCHOR_TOP_OFFSET_PX = 64
 
@@ -49,39 +49,22 @@ function useStableTurns(session: Session): Turn[] {
 export function ThreadView({ session }: { session: Session }) {
   const { t } = useTranslation()
   const turns = useStableTurns(session)
+  const lastTurnKey = turns.at(-1)?.key
   const running = session.state !== "idle"
   const entries = useMemo<VirtualizedTurnListEntry[]>(() => turns.map(turn => ({ turnKey: turn.key })), [turns])
   const railItems = useMemo(() => toNavigationRailItems(turns, session.turnUsage), [turns, session.turnUsage])
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
   const threadRef = useRef<VirtualizedTurnListApi>(null)
-  const atBottomRef = useRef(true)
-  const [atBottom, setAtBottom] = useState(true)
-  const streamingRef = useRef(false)
-  streamingRef.current = running
-  const previousScrollTopRef = useRef(0)
-  // The scroll event of a programmatic pin arrives later, when the content has grown again;
-  // its distance would read as a user scrolling up. Remember the value to recognise the echo.
-  const programmaticScrollTopRef = useRef(Number.NaN)
-  const pinFrameRef = useRef<number | null>(null)
   const [spacerHeightPx, setSpacerHeightPx] = useState(0)
   const spacerHeightRef = useRef(0)
-  const anchorSpaceRef = useRef<{ element: HTMLElement; heightPx: number } | null>(null)
-  const anchorRequestRef = useRef(0)
+  const anchorSpaceRef = useRef<{ element: HTMLElement; heightPx: number; keepTop: boolean } | null>(null)
   spacerHeightRef.current = spacerHeightPx
-
-  const scrollToBottom = useCallback(() => {
-    if (scrollRoot === null) return
-    scrollRoot.scrollTo({ behavior: "instant", top: scrollRoot.scrollHeight })
-    programmaticScrollTopRef.current = scrollRoot.scrollTop
-    atBottomRef.current = true
-    setAtBottom(true)
-  }, [scrollRoot])
-
-  // Jumping to a message releases following; the virtual window mounts the turn first.
-  const stopFollowing = useCallback(() => {
-    atBottomRef.current = false
-    setAtBottom(false)
+  const releaseTurnAnchor = useCallback(() => {
+    if (anchorSpaceRef.current !== null) anchorSpaceRef.current.keepTop = false
   }, [])
+
+  const { isFollowing, scrollToBottom, stopFollowing, schedulePin, contentResized, beginLocate, cancelLocation } =
+    useThreadScroll(scrollRoot, running, releaseTurnAnchor)
   // Search uses the same release-before-reveal lifecycle as message navigation.
   useEffect(() => {
     publishThread({ sessionId: session.id, turns, api: threadRef.current, beforeReveal: stopFollowing })
@@ -97,36 +80,17 @@ export function ThreadView({ session }: { session: Session }) {
     )
   }, [])
 
-  // One pin per frame: turn batches, the content observer and the spacer transition would
-  // otherwise each force a synchronous layout inside the same chunk.
-  const schedulePin = useCallback(() => {
-    if (scrollRoot === null || pinFrameRef.current !== null) return
-    pinFrameRef.current = requestAnimationFrame(() => {
-      pinFrameRef.current = null
-      if (!atBottomRef.current) return
-      scrollRoot.scrollTop = scrollRoot.scrollHeight
-      programmaticScrollTopRef.current = scrollRoot.scrollTop
-    })
-  }, [scrollRoot])
-  useEffect(
-    () => () => {
-      if (pinFrameRef.current !== null) cancelAnimationFrame(pinFrameRef.current)
-      pinFrameRef.current = null
-    },
-    []
-  )
-
   // Anchor the last turn at the viewport top, growing the spacer when the content is too
   // short to scroll there. The virtual window has to mount the turn first (scrollToKey).
   const anchorLastTurn = useCallback(() => {
     if (scrollRoot === null) return
     const lastTurnKey = turns.at(-1)?.key
     if (lastTurnKey === undefined) return
-    const requestId = ++anchorRequestRef.current
+    const location = beginLocate(true)
     const measureAndAnchor = () =>
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          if (requestId !== anchorRequestRef.current) return
+          if (!location.isCurrent()) return
           const lastTurn = scrollRoot.querySelector<HTMLElement>(`[data-codex-turn="${CSS.escape(lastTurnKey)}"]`)
           if (lastTurn === null) return
           const turnTopPx =
@@ -139,104 +103,73 @@ export function ThreadView({ session }: { session: Session }) {
           })
           anchorSpaceRef.current =
             plan.spacerPx > 0
-              ? { element: lastTurn, heightPx: lastTurn.getBoundingClientRect().height + plan.spacerPx }
+              ? { element: lastTurn, heightPx: lastTurn.getBoundingClientRect().height + plan.spacerPx, keepTop: true }
               : null
           setSpacerHeightPx(plan.spacerPx)
           requestAnimationFrame(() => {
-            if (requestId !== anchorRequestRef.current) return
-            scrollRoot.scrollTo({ top: plan.scrollTopPx, behavior: "instant" })
+            if (!location.isCurrent()) return
+            location.finish(plan.scrollTopPx)
           })
         })
       )
     const thread = threadRef.current
-    if (thread !== null) {
-      // scrollToKey throws synchronously while the layout is not ready yet; measure directly then.
-      try {
-        void thread.scrollToKey(lastTurnKey, undefined, { align: "top" }).then(measureAndAnchor)
-        return
-      } catch {
-        // fall through
-      }
-    }
-    measureAndAnchor()
-  }, [scrollRoot, turns])
+    if (thread === null) throw new Error("Codex virtual thread is not mounted")
+    void thread.scrollToKey(lastTurnKey, undefined, { align: "top" }).then(() => {
+      if (location.isCurrent()) measureAndAnchor()
+    })
+  }, [beginLocate, scrollRoot, turns])
 
   useEffect(() => {
     if (running) return
-    anchorRequestRef.current++
+    cancelLocation()
     anchorSpaceRef.current = null
     spacerHeightRef.current = 0
     setSpacerHeightPx(0)
-  }, [running])
+  }, [cancelLocation, running])
 
+  // Observe the measured list and latest turn, excluding the spacer we resize.
+  // Consume space before paint so neither the browser nor follow sees the
+  // temporary extra height between an answer growing and its spacer shrinking.
   useEffect(() => {
     if (scrollRoot === null) return
-    const updateAtBottom = () => {
-      const scrollTop = scrollRoot.scrollTop
-      const distancePx = scrollRoot.scrollHeight - scrollRoot.clientHeight - scrollTop
-      const previousScrollTop = previousScrollTopRef.current
-      previousScrollTopRef.current = scrollTop
-      if (scrollTop === programmaticScrollTopRef.current) {
-        programmaticScrollTopRef.current = Number.NaN
-        return
-      }
-      const scrolledUp = scrollTop < previousScrollTop
-      // Idle: the plain 24px rule. Streaming: once following, only scrolling up releases;
-      // when released, scrolling down into the engage band re-attaches and pins.
-      const nextAtBottom = streamingRef.current
-        ? atBottomRef.current
-          ? !scrolledUp || distancePx <= 24
-          : !scrolledUp && distancePx <= CODEX_FOLLOW_ENGAGE_DISTANCE_PX
-        : distancePx <= 24
-      if (atBottomRef.current === nextAtBottom) return
-      atBottomRef.current = nextAtBottom
-      setAtBottom(nextAtBottom)
-      if (nextAtBottom) schedulePin()
-    }
-    // Toggling a disclosure (work section, command output, edited files) releases following
-    // before React grows the content, so the toggle stays under the pointer.
-    const releaseOnDisclosureToggle = (event: MouseEvent) => {
-      if (!(event.target instanceof Element)) return
-      if (event.target.closest("[data-codex-disclosure]") === null) return
-      atBottomRef.current = false
-      setAtBottom(false)
-    }
-    scrollRoot.addEventListener("scroll", updateAtBottom, { passive: true })
-    scrollRoot.addEventListener("click", releaseOnDisclosureToggle, { capture: true })
-    updateAtBottom()
-    return () => {
-      scrollRoot.removeEventListener("scroll", updateAtBottom)
-      scrollRoot.removeEventListener("click", releaseOnDisclosureToggle, { capture: true })
-    }
-  }, [schedulePin, scrollRoot])
-
-  // While following, any content growth (measured turn heights, late images, the spacer
-  // transition) pins again. Declared after the scroll sync so a restored position has
-  // already cleared the ref before the observer's first callback.
-  useEffect(() => {
-    if (scrollRoot === null) return
-    const content = scrollRoot.firstElementChild
-    if (!(content instanceof HTMLElement)) throw new Error("Codex scroll content element is missing")
+    const content = scrollRoot.querySelector<HTMLElement>("[data-codex-thread]")
+    if (content === null) throw new Error("Codex scroll content element is missing")
     const observer = new ResizeObserver(() => {
       const anchorSpace = anchorSpaceRef.current
+      let anchorTop: number | null = null
       if (anchorSpace !== null) {
         const remainingPx = Math.max(0, anchorSpace.heightPx - anchorSpace.element.getBoundingClientRect().height)
-        if (remainingPx < spacerHeightRef.current) {
+        // While still anchored, replacing the loading indicator with the first
+        // Markdown block can shrink the turn. Keep its top steady in both directions;
+        // a user disclosure releases following, and must not recreate empty space.
+        if (remainingPx !== spacerHeightRef.current && (remainingPx < spacerHeightRef.current || anchorSpace.keepTop)) {
           spacerHeightRef.current = remainingPx
-          setSpacerHeightPx(remainingPx)
+          flushSync(() => setSpacerHeightPx(remainingPx))
           if (remainingPx === 0) anchorSpaceRef.current = null
         }
+        if (remainingPx > 0 && anchorSpace.keepTop) {
+          anchorTop =
+            scrollRoot.scrollTop +
+            anchorSpace.element.getBoundingClientRect().top -
+            scrollRoot.getBoundingClientRect().top -
+            CODEX_ANCHOR_TOP_OFFSET_PX
+        }
       }
-      if (!atBottomRef.current) return
-      schedulePin()
+      contentResized(anchorTop)
     })
     observer.observe(content)
+    observer.observe(scrollRoot)
+    if (lastTurnKey !== undefined) {
+      const lastTurn = scrollRoot.querySelector<HTMLElement>(`[data-codex-turn="${CSS.escape(lastTurnKey)}"]`)
+      if (lastTurn === null) throw new Error("Latest Codex turn is not mounted")
+      observer.observe(lastTurn)
+    }
     return () => observer.disconnect()
-  }, [schedulePin, scrollRoot])
+  }, [contentResized, lastTurnKey, scrollRoot])
 
   useEffect(() => {
     if (session.items.length === 0) return
-    if (atBottomRef.current) schedulePin()
+    schedulePin()
   }, [schedulePin, session.items])
 
   // Mounted per session (ChatView is keyed), so the spacer and the turn memory start empty;
@@ -291,6 +224,7 @@ export function ThreadView({ session }: { session: Session }) {
         ref={setScrollRoot}
         data-chat-scroll
         className="min-h-0 flex-1 scrollbar-thin overflow-x-hidden overflow-y-auto overscroll-contain"
+        style={{ overflowAnchor: "none" }}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: 滚动容器需可聚焦才能用键盘滚动
         tabIndex={0}
         role="log"
@@ -304,11 +238,7 @@ export function ThreadView({ session }: { session: Session }) {
               scrollElement={scrollRoot}
               sessionKey={session.id}
             />
-            <div
-              aria-hidden="true"
-              className="shrink-0"
-              style={{ height: spacerHeightPx, transition: "height 0.5s cubic-bezier(0.25, 1, 0.5, 1)" }}
-            />
+            <div aria-hidden="true" data-turn-anchor-spacer className="shrink-0" style={{ height: spacerHeightPx }} />
             <div aria-hidden="true" className="h-6 shrink-0" />
           </div>
         </div>
@@ -322,8 +252,8 @@ export function ThreadView({ session }: { session: Session }) {
       />
       <button
         type="button"
-        className={atBottom ? "codex-scroll-to-bottom codex-scroll-to-bottom-hidden" : "codex-scroll-to-bottom"}
-        tabIndex={atBottom ? -1 : undefined}
+        className={isFollowing ? "codex-scroll-to-bottom codex-scroll-to-bottom-hidden" : "codex-scroll-to-bottom"}
+        tabIndex={isFollowing ? -1 : undefined}
         onClick={scrollToBottom}
         aria-label={t("chat.scrollToBottom")}>
         {running ? (
