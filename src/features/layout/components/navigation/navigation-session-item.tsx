@@ -11,6 +11,11 @@ import type { RunState } from "@/lib/run-state"
 import { cn } from "@/lib/utils"
 
 const NavigationHoverCardPinContext = createContext<(pinned: boolean) => void>(() => {})
+const NavigationHoverCardCloseContext = createContext<() => void>(() => {})
+
+export function useNavigationHoverCardClose(): () => void {
+  return useContext(NavigationHoverCardCloseContext)
+}
 
 export function useNavigationHoverCardPin(): (pinned: boolean) => void {
   return useContext(NavigationHoverCardPinContext)
@@ -108,9 +113,15 @@ function NavigationSessionHoverCard({ row, children }: { row: React.ReactElement
   const [pinned, setPinned] = useState(false)
   return (
     <NavigationHoverCardPinContext.Provider value={setPinned}>
-      <CodexHoverCard open={hovering || pinned} onOpenChange={setHovering} trigger={row}>
-        {children}
-      </CodexHoverCard>
+      <NavigationHoverCardCloseContext.Provider
+        value={() => {
+          setHovering(false)
+          setPinned(false)
+        }}>
+        <CodexHoverCard open={hovering || pinned} onOpenChange={setHovering} trigger={row}>
+          {children}
+        </CodexHoverCard>
+      </NavigationHoverCardCloseContext.Provider>
     </NavigationHoverCardPinContext.Provider>
   )
 }

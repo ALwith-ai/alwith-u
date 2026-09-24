@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { TRAILING_GROUP, TrailingSlot, TrailingSwap } from "@/components/alwith-ui/trailing-swap"
@@ -16,6 +16,7 @@ export function NavigationGroup({
   active = false,
   actions,
   headerChildren,
+  wrapHeader,
   onHeaderClick,
   children
 }: {
@@ -28,6 +29,7 @@ export function NavigationGroup({
   active?: boolean
   actions?: ReactNode
   headerChildren?: ReactNode
+  wrapHeader?: (header: ReactElement) => ReactNode
   onHeaderClick?: () => void
   children: ReactNode
 }) {
@@ -58,33 +60,35 @@ export function NavigationGroup({
     </>
   )
 
+  const header =
+    headerChildren == null ? (
+      <div
+        data-active={active ? "" : undefined}
+        title={tooltip}
+        className={cn(rowClassName, MENU_HIGHLIGHT)}
+        onClick={toggle}
+        onKeyDown={event => {
+          if (event.target !== event.currentTarget) return
+          if (event.key !== "Enter" && event.key !== " ") return
+          event.preventDefault()
+          toggle()
+        }}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={typeof label === "string" ? label : tooltip}
+          className="focus-visible:outline-ring absolute inset-0 rounded-[10px] outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+        />
+        {rowContent}
+      </div>
+    ) : (
+      <div data-active={active ? "" : undefined} className={rowClassName}>
+        {rowContent}
+      </div>
+    )
   return (
     <div className="text-[#1a1c1f] dark:text-white">
-      {headerChildren == null ? (
-        <div
-          data-active={active ? "" : undefined}
-          title={tooltip}
-          className={cn(rowClassName, MENU_HIGHLIGHT)}
-          onClick={toggle}
-          onKeyDown={event => {
-            if (event.target !== event.currentTarget) return
-            if (event.key !== "Enter" && event.key !== " ") return
-            event.preventDefault()
-            toggle()
-          }}>
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-label={typeof label === "string" ? label : tooltip}
-            className="focus-visible:outline-ring absolute inset-0 rounded-[10px] outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-          />
-          {rowContent}
-        </div>
-      ) : (
-        <div data-active={active ? "" : undefined} className={rowClassName}>
-          {rowContent}
-        </div>
-      )}
+      {wrapHeader === undefined ? header : wrapHeader(header)}
       {open && <NavigationStack className="mt-0.5">{children}</NavigationStack>}
     </div>
   )

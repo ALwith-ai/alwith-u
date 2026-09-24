@@ -41,7 +41,7 @@ export function CodexHoverCard({
             {unstyled ? (
               children
             ) : (
-              <div className="flex w-fit max-w-[min(20rem,calc(100vw-16px))] min-w-56 flex-col gap-1 px-2 py-1.5 break-words whitespace-normal">
+              <div className="flex w-fit max-w-[min(20rem,calc(100vw-16px))] min-w-56 flex-col px-0 py-1 break-words whitespace-normal">
                 {children}
               </div>
             )}

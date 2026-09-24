@@ -374,6 +374,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           selectedId={selectedId}
           onSelect={select}
           onNewChat={newChat}
+          onNewProjectChat={cwd => {
+            if (operation.busy) return
+            chooseDraftFolder(cwd)
+            importDraft(DRAFT_SESSION_ID, null)
+            setSurfaceGeneration(value => value + 1)
+            newChat()
+          }}
           onOpenSettings={() => void openSettingsWindow()}
           onOpenPlugins={() => setView("plugins")}
         />

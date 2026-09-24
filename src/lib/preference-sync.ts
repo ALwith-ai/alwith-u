@@ -7,6 +7,7 @@ import { navigationSoundStore } from "@/features/chat/codex/navigation-sound-sto
 import i18n, { isLanguageCode } from "@/lib/i18n"
 import { PREFERENCES_CHANGED, type PreferenceChange } from "@/lib/preferences"
 import { zoomStore } from "@/lib/zoom"
+import { setProjectAppPreference } from "./project-app-preference"
 
 export function startPreferenceSync(): Promise<() => void> {
   return listen<PreferenceChange>(PREFERENCES_CHANGED, async event => {
@@ -14,6 +15,9 @@ export function startPreferenceSync(): Promise<() => void> {
     if (event.payload.window === getCurrentWebviewWindow().label) return
     const change = event.payload
     switch (change.key) {
+      case "externalEditor":
+        if (change.value === null || typeof change.value === "string") setProjectAppPreference(change.value)
+        return
       case "language": {
         const language = change.value
         if (typeof language === "string" && isLanguageCode(language)) await i18n.changeLanguage(language)

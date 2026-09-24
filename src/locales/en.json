@@ -25,6 +25,8 @@
   "actions": {
     "more": "More actions",
     "openFolder": "Open project folder",
+    "openProjectWith": "Open project with {{app}}",
+    "projectAppUnavailable": "The preferred app is unavailable. Choose another app in settings.",
     "copy": "Copy",
     "copied": "Copied",
     "cancel": "Cancel",

@@ -1,7 +1,5 @@
-import { openPath } from "@tauri-apps/plugin-opener"
 import {
   ArrowUpRightIcon,
-  FolderOpenIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PictureInPicture2Icon,
@@ -34,7 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { client, useApp } from "@/lib/client"
-import { ExternalEditorMenu, useProjectApps } from "./open-in-editor"
+import { ExternalEditorMenu, ProjectAppIcon, useProjectApps } from "./open-in-editor"
 import { openChatSearch } from "./dialogs/chat-search"
 
 /** Shared by main and floating chats. Mutations always address the displayed session. */
@@ -57,7 +55,7 @@ export function ChatActionsMenu({
   const canRename = useApp(state => hasRename(state.agent))
   const connected = useApp(state => state.connection === "ready")
   // Keep the apps outside the popup lifecycle, including on the empty main chat.
-  const editor = useProjectApps(surface === "main" ? cwd : null)
+  const editor = useProjectApps(cwd)
   const [dialog, setDialog] = useState<"rename" | "delete" | null>(null)
   const [name, setName] = useState("")
   const [pending, setPending] = useState(false)
@@ -102,6 +100,7 @@ export function ChatActionsMenu({
               ref={trigger}
               variant="ghost"
               size="icon-sm"
+              className="hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8 transition-colors duration-150 ease-out"
               aria-label={t("actions.more")}
               title={t("actions.more")}
             />
@@ -172,9 +171,9 @@ export function ChatActionsMenu({
                   <DropdownMenuItem
                     className="group/path"
                     aria-label={t("actions.openFolder")}
-                    title={cwd}
-                    onClick={() => void openPath(cwd).catch(report)}>
-                    <FolderOpenIcon />
+                    title={editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd}
+                    onClick={() => void editor.openPreferred().catch(report)}>
+                    <ProjectAppIcon app={editor.active} />
                     <OverflowMarquee className="flex-1">{cwd}</OverflowMarquee>
                     <ArrowUpRightIcon
                       aria-hidden="true"

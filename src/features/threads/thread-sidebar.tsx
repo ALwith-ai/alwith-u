@@ -43,6 +43,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/compone
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ThreadSummary } from "@/agent/client"
 import { hasPluginStore, hasRename } from "@/agent/codex-extensions"
+import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
@@ -168,7 +169,7 @@ function ThreadHoverBody({ thread, onDelete }: { thread: ThreadSummary; onDelete
               />
             </>
           )}
-          <HoverInfoAction icon={<Trash2Icon />} label={t("sidebar.delete")} onClick={onDelete} />
+          <HoverInfoAction variant="destructive" icon={<Trash2Icon />} label={t("sidebar.delete")} onClick={onDelete} />
         </>
       }
     />
@@ -179,12 +180,14 @@ export function ThreadSidebar({
   selectedId,
   onSelect,
   onNewChat,
+  onNewProjectChat,
   onOpenSettings,
   onOpenPlugins
 }: {
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
+  onNewProjectChat: (cwd: string) => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
 }) {
@@ -341,9 +344,16 @@ export function ThreadSidebar({
                   // 双层:组(项目,可折叠)→ 组内会话。受控折叠,展开态进共享 store。
                   <NavigationGroup
                     key={cwd}
+                    wrapHeader={header => (
+                      <ProjectSessionPopover
+                        cwd={cwd}
+                        trigger={header}
+                        onSelect={onSelect}
+                        onNewChat={() => onNewProjectChat(cwd)}
+                      />
+                    )}
                     open={isOpen}
                     onOpenChange={open => setProjectOpen(new Map(projectOpen).set(cwd, open))}
-                    tooltip={cwd}
                     leading={
                       // 项目(工作区)分组显文件夹图标:展开=打开、折叠=关闭。
                       isOpen ? (

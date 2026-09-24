@@ -24,6 +24,8 @@
   "actions": {
     "more": "更多操作",
     "openFolder": "打开项目文件夹",
+    "openProjectWith": "用 {{app}} 打开项目",
+    "projectAppUnavailable": "设置中的应用不可用，请重新选择打开项目的应用。",
     "copy": "复制",
     "copied": "已复制",
     "cancel": "取消",

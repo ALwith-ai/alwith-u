@@ -25,14 +25,15 @@ export function SettingRow({
   return (
     <div
       className={cn(
-        "items-start gap-4 py-3",
+        "gap-4 py-3",
+        desc ? "items-start" : "items-center",
         aligned ? "grid grid-cols-[minmax(0,1fr)_16rem]" : "flex justify-between"
       )}>
       <div className="min-w-0">
         <div className="text-sm">{title}</div>
         {desc && <div className="text-muted-foreground mt-0.5 text-xs">{desc}</div>}
       </div>
-      {children && <div className={cn("pt-0.5", aligned ? "min-w-0" : "shrink-0")}>{children}</div>}
+      {children && <div className={cn(desc && "pt-0.5", aligned ? "min-w-0" : "shrink-0")}>{children}</div>}
     </div>
   )
 }

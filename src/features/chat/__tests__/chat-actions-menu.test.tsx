@@ -4,7 +4,9 @@ import { ChatSearch } from "../dialogs/chat-search"
 import { threadRegistry } from "../lib/thread-registry"
 import { applyUpdate, createSession } from "@alwith/api"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
-import { expect, spyOn, test } from "bun:test"
+import { afterAll, expect, spyOn, test } from "bun:test"
+import * as projectApps from "../open-in-editor"
+import { must } from "@/lib/__tests__/must"
 import * as opener from "@tauri-apps/plugin-opener"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -13,6 +15,14 @@ import { installDom } from "../codex/__tests__/dom-environment"
 
 installDom()
 await initI18n("en")
+const apps = spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+  apps: [],
+  active: undefined,
+  openWith: () => {},
+  refresh: () => {},
+  openPreferred: () => opener.openPath(must(cwd, "project directory"))
+}))
+afterAll(() => apps.mockRestore())
 
 test("draft menu hides session actions and opens the project directory itself", async () => {
   const open = spyOn(opener, "openPath").mockResolvedValue()

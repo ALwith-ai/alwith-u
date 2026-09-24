@@ -92,22 +92,26 @@ export function HoverInfoAction({
   icon,
   label,
   trailing,
-  onClick
+  onClick,
+  variant = "default"
 }: {
   icon: ReactNode
   label: ReactNode
   /** 右侧附加(如「移动到组」的 ▾)。 */
   trailing?: ReactNode
   onClick?: () => void
+  variant?: "default" | "destructive"
 }) {
   return (
     <button
       data-slot="hover-info-card-action"
+      data-variant={variant}
       type="button"
       onClick={onClick}
       className={cn(
         "text-foreground hover:bg-foreground/5 active:bg-foreground/10 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm",
-        "[&_svg]:text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0"
+        "[&_svg]:size-4 [&_svg]:shrink-0",
+        variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground"
       )}>
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>

@@ -4,13 +4,19 @@
 // title into Desktop's inline input (Enter commits, Escape cancels, blur commits).
 import { formatDistanceToNowStrict } from "date-fns"
 import { enUS, zhCN } from "date-fns/locale"
-import { ClockIcon, FolderClosedIcon, MessageSquareIcon } from "lucide-react"
+import { ClockIcon, MessageSquareIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import type { ThreadSummary } from "@/agent/client"
 import { HoverInfoCard, type HoverInfoRow } from "@/components/alwith-ui/hover-info-card"
-import { useNavigationHoverCardPin } from "@/features/layout/components/navigation/navigation-session-item"
+import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import { Separator } from "@/components/ui/separator"
+import {
+  useNavigationHoverCardPin,
+  useNavigationHoverCardClose
+} from "@/features/layout/components/navigation/navigation-session-item"
+import { ProjectPathAction } from "./project-path-action"
 
 const DATE_FNS_LOCALES = { en: enUS, "zh-CN": zhCN } as const
 
@@ -35,6 +41,7 @@ export function ThreadInfoCard({
 }) {
   const { t, i18n } = useTranslation()
   const pin = useNavigationHoverCardPin()
+  const close = useNavigationHoverCardClose()
   useEffect(() => {
     pin(renaming)
   }, [renaming, pin])
@@ -51,7 +58,7 @@ export function ThreadInfoCard({
     : thread.updatedAt !== null
       ? relativeTime(thread.updatedAt, i18n.language)
       : null
-  const details: HoverInfoRow[] = [{ icon: <FolderClosedIcon className="size-3.5" />, text: thread.cwd }]
+  const details: HoverInfoRow[] = []
   if (time !== null) details.push({ icon: <ClockIcon className="size-3.5" />, text: time })
   return (
     <HoverInfoCard
@@ -71,12 +78,22 @@ export function ThreadInfoCard({
             onBlur={event => commit(event.target.value)}
           />
         ) : (
-          (thread.title ?? t("sidebar.untitled"))
+          <OverflowMarquee className="block">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
         )
       }
       titleIcon={<MessageSquareIcon className="size-3.5" />}
       details={details}
-      actions={actions}
+      actions={
+        <>
+          <ProjectPathAction cwd={thread.cwd} onOpened={close} appearance="session" />
+          {actions !== undefined && (
+            <>
+              <Separator />
+              {actions}
+            </>
+          )}
+        </>
+      }
     />
   )
 }

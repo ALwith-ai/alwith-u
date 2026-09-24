@@ -4,6 +4,7 @@ import { emit } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LazyStore } from "@tauri-apps/plugin-store"
 import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/codex/navigation-instruments"
+import { setProjectAppPreference } from "./project-app-preference"
 
 export type Preferences = {
   chatWindowShortcut?: string
@@ -62,6 +63,7 @@ export async function savePreference<K extends keyof Preferences>(key: K, value:
   if (value === null) await store.delete(key)
   else await store.set(key, value)
   await store.save()
+  if (key === "externalEditor") setProjectAppPreference(value as Preferences["externalEditor"])
   const change: PreferenceChange = { key, value, window: getCurrentWebviewWindow().label }
   await emit(PREFERENCES_CHANGED, change)
 }
