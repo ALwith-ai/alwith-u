@@ -23,6 +23,36 @@ function eventBus(): ChatEvents {
   }
 }
 
+test("floating fork sends the source and turn to the owner and receives the new session", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const source = await remote.newSession("/tmp/floating")
+    const child = await remote.fork(source, "/tmp/floating", "turn-1")
+    expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
+    expect(remote.state.threads.find(thread => thread.sessionId === child)?.forkedFromId).toBe(source)
+    expect(remote.session(child).attached).toBe(true)
+    fake.listSessions.current = () => ({
+      sessions: [source, child].map(sessionId => ({
+        sessionId,
+        cwd: "/tmp/floating",
+        _meta: { codex: { nativeSessionId: source, forkedFromId: sessionId === source ? null : source } }
+      }))
+    })
+    expect((await remote.listBranches(child)).map(thread => thread.sessionId)).toEqual([source, child])
+    expect(port.started).toEqual(["codex"])
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("chat window operates the existing client without starting or attaching a second agent", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

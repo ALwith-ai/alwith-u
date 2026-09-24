@@ -92,6 +92,7 @@ export function HoverInfoAction({
   icon,
   label,
   trailing,
+  disabled,
   onClick,
   variant = "default"
 }: {
@@ -99,6 +100,7 @@ export function HoverInfoAction({
   label: ReactNode
   /** 右侧附加(如「移动到组」的 ▾)。 */
   trailing?: ReactNode
+  disabled?: boolean
   onClick?: () => void
   variant?: "default" | "destructive"
 }) {
@@ -107,9 +109,10 @@ export function HoverInfoAction({
       data-slot="hover-info-card-action"
       data-variant={variant}
       type="button"
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        "text-foreground hover:bg-foreground/5 active:bg-foreground/10 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm",
+        "text-foreground hover:bg-foreground/5 active:bg-foreground/10 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm disabled:pointer-events-none disabled:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground"
       )}>

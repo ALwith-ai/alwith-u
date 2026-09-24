@@ -4,7 +4,8 @@ import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/ass
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { useTranslation } from "react-i18next"
 import { isText, type Terminal, type TurnError } from "@alwith/api"
-import { codexTurnError } from "@/agent/codex-extensions"
+import { ForkTurnButton } from "../chat-branches"
+import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
 import { messageText, type Turn, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
 import { useChatActivityHost } from "./activity-host"
@@ -96,9 +97,16 @@ function AssistantTurnImpl({
                   streaming={active}
                 />
               ))}
-              {!active && finalText.trim().length > 0 && (
-                <CodexMessageActions text={finalText} isMostRecentTurn={isLast} />
-              )}
+              {!active &&
+                (finalText.trim().length > 0 ? (
+                  <CodexMessageActions
+                    text={finalText}
+                    isMostRecentTurn={isLast}
+                    afterCopy={<ForkTurnButton turnId={codexTurnId(turn.final.at(-1)?._meta)} />}
+                  />
+                ) : (
+                  <ForkTurnButton turnId={codexTurnId(turn.final.at(-1)?._meta)} />
+                ))}
             </div>
           ) : null
         }

@@ -3,6 +3,7 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { Agent, Agents, type RuntimeClient, type SessionRunState } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
+import { codexExtensionCapabilities } from "./codex-extensions"
 import { createStore, type StoreApi } from "zustand/vanilla"
 import {
   isSelectOption,
@@ -48,6 +49,8 @@ export type ThreadSummary = {
   title: string | null
   updatedAt: string | null
   archived: boolean
+  nativeSessionId?: string
+  forkedFromId?: string | null
 }
 
 /** 一条等用户回答的请求,就是待办簿里的那条(`id` 是簿子的键)。 */
@@ -109,8 +112,23 @@ function toSummary(info: acp.SessionInfo): ThreadSummary {
     cwd: info.cwd,
     title: info.title ?? null,
     updatedAt: info.updatedAt ?? null,
+    ...sessionLineage(info._meta),
     archived
   }
+}
+
+function sessionLineage(meta: acp.SessionInfo["_meta"]): Pick<ThreadSummary, "nativeSessionId" | "forkedFromId"> {
+  const codex = meta?.codex
+  if (typeof codex !== "object" || codex === null) return {}
+  const { nativeSessionId, forkedFromId } = codex as Record<string, unknown>
+  if (nativeSessionId === undefined && forkedFromId === undefined) return {}
+  if (
+    typeof nativeSessionId !== "string" ||
+    !nativeSessionId ||
+    (forkedFromId !== null && typeof forkedFromId !== "string")
+  )
+    throw new Error("Invalid session lineage from the agent")
+  return { nativeSessionId, forkedFromId }
 }
 
 /** `_meta.alwith.model`: open the thread on that gateway model (codex-acp-v2 catalog mode). */
@@ -395,7 +413,13 @@ export class CodexClient {
       const page = response.sessions.map(toSummary)
       const nextCursor = response.nextCursor ?? null
       this.store.setState(current => {
-        const previous = options.reset ? [] : archived ? current.archivedThreads : current.threads
+        const previous = options.reset
+          ? archived
+            ? []
+            : this.liveForks()
+          : archived
+            ? current.archivedThreads
+            : current.threads
         const merged = [...previous.filter(thread => !page.some(item => item.sessionId === thread.sessionId)), ...page]
         return archived
           ? {
@@ -415,18 +439,55 @@ export class CodexClient {
 
   /** Read a complete project index without changing the sidebar's pagination or persisting history. */
   async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
+    return this.listSessionIndex(cwd)
+  }
+
+  /** Scan every page: branches can move to another project and need not be in the sidebar's first page. */
+  async listBranches(id: string): Promise<ThreadSummary[]> {
+    const [active, archived] = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
+    const threads = [...active, ...archived]
+    const source = threads.find(thread => thread.sessionId === id)
+    if (source?.forkedFromId === undefined) throw new Error("The agent did not return this chat's branch information")
+    // Codex 0.156.1 can assign a new native sessionId on fork. The parent edges are authoritative.
+    const adjacent = new Map<string, Set<string>>()
+    for (const thread of threads) {
+      if (thread.forkedFromId == null) continue
+      for (const [from, to] of [
+        [thread.sessionId, thread.forkedFromId],
+        [thread.forkedFromId, thread.sessionId]
+      ]) {
+        const neighbors = adjacent.get(from) ?? new Set<string>()
+        neighbors.add(to)
+        adjacent.set(from, neighbors)
+      }
+    }
+    const related = new Set([id])
+    const pending = [id]
+    for (const current of pending) {
+      for (const neighbor of adjacent.get(current) ?? []) {
+        if (related.has(neighbor)) continue
+        related.add(neighbor)
+        pending.push(neighbor)
+      }
+    }
+    return active.filter(thread => related.has(thread.sessionId))
+  }
+
+  private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {
     const agent = this.live()
     const threads = new Map<string, ThreadSummary>()
     const cursors = new Set<string>()
     let cursor: string | undefined
     do {
       const response = await agent.request<acp.ListSessionsResponse>("session/list", {
-        cwd,
+        ...(cwd === undefined ? {} : { cwd }),
+        ...(archived ? { _meta: { codex: { archived: true } } } : {}),
         ...(cursor === undefined ? {} : { cursor })
       })
       for (const info of response.sessions) {
         const thread = toSummary(info)
-        if (thread.cwd === cwd && !thread.archived) threads.set(thread.sessionId, thread)
+        if ((cwd === undefined || thread.cwd === cwd) && thread.archived === archived)
+          threads.set(thread.sessionId, thread)
       }
       cursor = response.nextCursor ?? undefined
       if (cursor !== undefined) {
@@ -434,7 +495,24 @@ export class CodexClient {
         cursors.add(cursor)
       }
     } while (cursor !== undefined)
+    if (!archived) {
+      // Codex can read a just-forked thread before it includes it in thread/list.
+      // Keep the native fork response visible while that thread is attached; this is not a persisted index.
+      for (const thread of this.liveForks(cwd)) {
+        if (!threads.has(thread.sessionId)) threads.set(thread.sessionId, thread)
+      }
+    }
     return [...threads.values()]
+  }
+
+  private liveForks(cwd?: string): ThreadSummary[] {
+    return this.state.threads.filter(
+      thread =>
+        !thread.archived &&
+        thread.forkedFromId != null &&
+        this.state.sessions[thread.sessionId]?.attached &&
+        (cwd === undefined || thread.cwd === cwd)
+    )
   }
 
   async newSession(cwd: string, model: string | null = null): Promise<string> {
@@ -650,15 +728,20 @@ export class CodexClient {
     }))
   }
 
-  async fork(id: string, cwd: string): Promise<string> {
+  async fork(id: string, cwd: string, lastTurnId?: string): Promise<string> {
+    if (lastTurnId !== undefined && (!lastTurnId || !codexExtensionCapabilities(this.state.agent).forkAtTurn))
+      throw new Error("The agent does not support forking at this turn")
+    const hint = modelHint(this.gatewayModels.get(id) ?? null)
     const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
       sessionId: id,
       cwd,
-      ...modelHint(this.gatewayModels.get(id) ?? null)
+      _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
     })
     const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)
     this.publishSession({
       ...forked,
+      // Fork history arrives before its new session id is returned, so it cannot beginReplay in advance.
+      items: forked.items.map(item => ({ ...item, replayed: true })),
       cwd,
       attached: true,
       restoring: false,
@@ -670,11 +753,12 @@ export class CodexClient {
         {
           sessionId: response.sessionId,
           cwd,
-          title: null,
+          title: forked.title,
           updatedAt: new Date().toISOString(),
-          archived: false
+          archived: false,
+          ...sessionLineage(response._meta)
         },
-        ...state.threads
+        ...state.threads.filter(thread => thread.sessionId !== response.sessionId)
       ]
     }))
     return response.sessionId

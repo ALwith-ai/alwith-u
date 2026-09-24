@@ -7,6 +7,7 @@ import { join } from "node:path"
 import { WebSocketRuntimeClient } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 import { CodexClient } from "../src/agent/client"
+import { codexTurnId } from "../src/agent/codex-extensions"
 import { isText, type Session } from "@alwith/api"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
@@ -45,6 +46,7 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
     if (!client.state.threads.some(thread => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
+    await until(() => client.session(id).items.some(item => item.kind === "user"), 10_000, "history updates")
     const replayed = client.session(id)
     const users = replayed.items.filter(item => item.kind === "user").length
     if (users !== 1) throw new Error(`Expected one user message in ${id}, saw ${users}`)
@@ -130,6 +132,74 @@ async function check(transport: "stdio" | "ws") {
     await second.connect()
     await verifyHistory(second, directory, replies)
     console.log("fresh agent: native history matches live transcripts")
+    const boundary = second.session(a).items.find(item => item.kind === "assistant" && !isNotice(item))
+    const turnId = codexTurnId(boundary?._meta)
+    if (turnId === null) throw new Error("Restored answer is missing its Codex turn id")
+    await second.prompt(a, [{ type: "text", text: "Reply with exactly AFTER_FORK_BOUNDARY" }])
+    await until(
+      () => second!.session(a).state === "idle" && assistantText(second!.session(a)).includes("AFTER_FORK_BOUNDARY"),
+      120_000,
+      "later source turn"
+    )
+    const forked = await second.fork(a, directory, turnId)
+    try {
+      await until(
+        () => second!.session(forked).items.some(item => item.kind === "user"),
+        10_000,
+        "fork history updates"
+      )
+      const forkSession = second.session(forked)
+      if (
+        forkSession.items.filter(item => item.kind === "user").length !== 1 ||
+        assistantText(forkSession).trim() !== replyA.trim()
+      )
+        throw new Error("Fork did not stop at the selected answer")
+      const branches = await second.listBranches(a)
+      if (![a, forked].every(id => branches.some(thread => thread.sessionId === id)))
+        throw new Error("Native branch index is missing the source or fork")
+      if (branches.find(thread => thread.sessionId === forked)?.forkedFromId !== a)
+        throw new Error("Fork lineage does not point to the source")
+      await second.close(forked)
+      await second.open(forked, directory)
+      await until(() => assistantText(second!.session(forked)).trim().length > 0, 10_000, "reopened fork updates")
+      if (assistantText(second.session(forked)).trim() !== replyA.trim())
+        throw new Error("Fork history changed after reopening")
+      await second.prompt(forked, [{ type: "text", text: "Reply with exactly FORK_CONTINUED" }])
+      await until(
+        () =>
+          second!.session(forked).state === "idle" && assistantText(second!.session(forked)).includes("FORK_CONTINUED"),
+        120_000,
+        "fork continuation"
+      )
+      if (assistantText(second.session(a)).includes("FORK_CONTINUED"))
+        throw new Error("Fork response leaked into the source")
+      await second.close(forked)
+      second.disconnect()
+      await port.stop("codex")
+      await until(
+        async () => !(await port.agents()).some(agent => agent.agentId === "codex"),
+        10_000,
+        "fork agent exit"
+      )
+      second = new CodexClient(async () => port, {
+        agentId: "codex",
+        launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+      })
+      await second.connect()
+      if (!(await second.listBranches(a)).some(thread => thread.sessionId === forked))
+        throw new Error("Continued fork is missing from the persisted native list")
+      await second.open(forked, directory)
+      await until(
+        () => assistantText(second!.session(forked)).includes("FORK_CONTINUED"),
+        10_000,
+        "persisted fork updates"
+      )
+      if (!assistantText(second.session(forked)).includes("FORK_CONTINUED"))
+        throw new Error("Fork continuation was not persisted across agent restart")
+      console.log("fork: inclusive boundary, native lineage, isolated continuation and fresh-agent discovery verified")
+    } finally {
+      await second.delete(forked)
+    }
     const events = await port.sessionEvents(a)
     if (events.length === 0) throw new Error("the Runtime journal has no frames for session A")
     console.log(`journal: ${events.length} frames for A, last sequence ${events.at(-1)!.sequence}`)

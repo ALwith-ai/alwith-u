@@ -232,6 +232,15 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
+              onSelectThread={thread => {
+                void operation
+                  .run(async () => {
+                    await client.open(thread.sessionId, thread.cwd)
+                    setCwd(thread.cwd)
+                    setSelectedId(thread.sessionId)
+                  })
+                  .catch(report)
+              }}
               onDeleted={deleted}
             />
           ) : null)}

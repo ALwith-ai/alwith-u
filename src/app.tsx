@@ -339,6 +339,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           key={`${session.id}-${surfaceGeneration}`}
           session={session}
           projectMenu={<ProjectSessionPopover cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
+          onSelectThread={select}
           onOpenWindow={moveToWindow}
           onNewChat={newProjectChat}
           onDeleted={deleted}

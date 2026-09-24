@@ -86,6 +86,12 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "branches": {
+      "create": "创建聊天分支",
+      "label": "聊天分支",
+      "current": "当前",
+      "loading": "正在加载分支…"
+    },
     "project": {
       "chatCount_one": "{{count}} 个会话",
       "chatCount_other": "{{count}} 个会话",

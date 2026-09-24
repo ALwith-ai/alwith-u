@@ -5,7 +5,8 @@ import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import type { PendingAction } from "@/agent/client"
+import { ChatBranchMenu, ChatBranchProvider } from "./chat-branches"
+import type { PendingAction, ThreadSummary } from "@/agent/client"
 import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
 import { client, useApp } from "@/lib/client"
@@ -30,9 +31,11 @@ export function ChatView({
   projectMenu,
   onNewChat,
   onNewProject,
-  onDeleted
+  onDeleted,
+  onSelectThread
 }: {
   session: Session
+  onSelectThread?: (thread: ThreadSummary) => void
   onOpenWindow?: () => void
   headerTarget?: HTMLElement | null
   projectMenu?: ReactNode
@@ -52,45 +55,48 @@ export function ChatView({
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
-      <ChatHeader target={headerTarget} title={session.title ?? t("sidebar.untitled")} project={projectMenu}>
-        <ChatActionsMenu
-          surface={headerTarget === undefined ? "main" : "floating"}
-          onOpenWindow={onOpenWindow}
-          session={session}
-          cwd={session.cwd}
-          onNewChat={onNewChat}
-          onNewProject={onNewProject}
-          onDeleted={onDeleted}
-        />
-      </ChatHeader>
-      <ChatSearch rootRef={rootRef} sessionId={session.id} />
-      {session.readOnly && (
-        <div className="px-4 pb-2">
-          <Alert>
-            <LockIcon />
-            <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
-            <AlertDescription className="flex flex-wrap items-center gap-2">
-              {t("chat.readOnly.description")}
-              <Button size="sm" variant="outline" onClick={reopen}>
-                {t("chat.readOnly.retry")}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      <ChatBody session={session} />
-      {inline.length > 0 && (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
-          {inline.map(action => (
-            <ActionCard key={action.id} action={action} />
-          ))}
-        </div>
-      )}
-      <Composer session={session} />
-      {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
-      <DiffModal />
-      <ImageLightbox />
-    </div>
+    <ChatBranchProvider key={session.id} session={session} onSelect={onSelectThread}>
+      <div ref={rootRef} className="flex h-full min-h-0 flex-col">
+        <ChatHeader target={headerTarget} title={session.title ?? t("sidebar.untitled")} project={projectMenu}>
+          <ChatBranchMenu />
+          <ChatActionsMenu
+            surface={headerTarget === undefined ? "main" : "floating"}
+            onOpenWindow={onOpenWindow}
+            session={session}
+            cwd={session.cwd}
+            onNewChat={onNewChat}
+            onNewProject={onNewProject}
+            onDeleted={onDeleted}
+          />
+        </ChatHeader>
+        <ChatSearch rootRef={rootRef} sessionId={session.id} />
+        {session.readOnly && (
+          <div className="px-4 pb-2">
+            <Alert>
+              <LockIcon />
+              <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center gap-2">
+                {t("chat.readOnly.description")}
+                <Button size="sm" variant="outline" onClick={reopen}>
+                  {t("chat.readOnly.retry")}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        <ChatBody session={session} />
+        {inline.length > 0 && (
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
+            {inline.map(action => (
+              <ActionCard key={action.id} action={action} />
+            ))}
+          </div>
+        )}
+        <Composer session={session} />
+        {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
+        <DiffModal />
+        <ImageLightbox />
+      </div>
+    </ChatBranchProvider>
   )
 }

@@ -15,6 +15,8 @@ const CLOSED = "chat:client-closed"
 const METHODS = [
   "connect",
   "newSession",
+  "fork",
+  "listBranches",
   "open",
   "prompt",
   "cancel",
@@ -241,6 +243,12 @@ export class RemoteChatClient extends CodexClient {
   }
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", args)
+  }
+  override fork(...args: Parameters<CodexClient["fork"]>): Promise<string> {
+    return this.request("fork", args)
+  }
+  override listBranches(...args: Parameters<CodexClient["listBranches"]>): ReturnType<CodexClient["listBranches"]> {
+    return this.request("listBranches", args)
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
     return this.request("open", args)

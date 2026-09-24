@@ -12,6 +12,7 @@ export type FakeAgent = {
   gateways: Map<string, acp.SetProviderRequest>
   /** `_meta.alwith.model` hints seen on session/new, session/resume and session/fork. */
   modelHints: Map<string, string | null>
+  forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
   listSessions: {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
@@ -66,6 +67,7 @@ export function createFakeAgent(): FakeAgent {
   const gateway: FakeAgent["gateway"] = { current: null }
   const gateways: FakeAgent["gateways"] = new Map()
   const modelHints = new Map<string, string | null>()
+  const forks: acp.ForkSessionRequest[] = []
   const configDelay: FakeAgent["configDelay"] = { current: null }
   const listSessions: FakeAgent["listSessions"] = { current: null }
   const configChanges: string[] = []
@@ -89,8 +91,17 @@ export function createFakeAgent(): FakeAgent {
       protocolVersion: 2,
       info: { name: "fake-codex", version: "1" },
       capabilities: {
+        session: { fork: {} },
         _meta: {
-          codex: { archive: true, providerCatalog: true, rename: true, account: true, fuzzyFileSearch: true }
+          codex: {
+            forkAtTurn: true,
+            sessionLineage: true,
+            archive: true,
+            providerCatalog: true,
+            rename: true,
+            account: true,
+            fuzzyFileSearch: true
+          }
         }
       },
       authMethods: [{ type: "agent", methodId: "chat-gpt", name: "ChatGPT" }]
@@ -163,6 +174,18 @@ export function createFakeAgent(): FakeAgent {
     const id = sessionId()
     modelHints.set(id, hint)
     return { sessionId: id, configOptions: optionsFor(hint) }
+  })
+  app.onRequest("session/fork", async ({ params, client }) => {
+    forks.push(params)
+    const id = sessionId()
+    const hint = modelHintOf(params)
+    modelHints.set(id, hint)
+    for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
+    return {
+      sessionId: id,
+      configOptions: optionsFor(hint),
+      _meta: { codex: { nativeSessionId: params.sessionId, forkedFromId: params.sessionId } }
+    }
   })
   app.onRequest("session/list", ({ params }) => {
     if (listSessions.current !== null) return listSessions.current(params)
@@ -339,6 +362,7 @@ export function createFakeAgent(): FakeAgent {
     gateway,
     gateways,
     modelHints,
+    forks,
     configDelay,
     listSessions,
     configChanges,

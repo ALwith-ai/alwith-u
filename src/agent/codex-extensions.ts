@@ -250,6 +250,8 @@ export type FuzzyFileSearchSessionUpdated = { sessionId: string; query: string; 
 
 /** What the adapter advertised under `capabilities._meta.codex`. */
 export type CodexExtensionCapabilities = {
+  forkAtTurn: boolean
+  sessionLineage: boolean
   skills: boolean
   plugins: boolean
   rename: boolean
@@ -261,12 +263,21 @@ export function codexExtensionCapabilities(agent: acp.InitializeResponse | null)
   const codex = agent?.capabilities?._meta?.codex
   const flags = typeof codex === "object" && codex !== null ? (codex as Record<string, unknown>) : {}
   return {
+    forkAtTurn: flags.forkAtTurn === true,
+    sessionLineage: flags.sessionLineage === true,
     skills: flags.skills === true,
     plugins: flags.plugins === true,
     rename: flags.rename === true,
     account: flags.account === true,
     fuzzyFileSearch: flags.fuzzyFileSearch === true
   }
+}
+
+export function codexTurnId(meta: Record<string, unknown> | null | undefined): string | null {
+  const codex = meta?.codex
+  if (typeof codex !== "object" || codex === null) return null
+  const id = (codex as { turnId?: unknown }).turnId
+  return typeof id === "string" && id.length > 0 ? id : null
 }
 
 /** Single-boolean store selectors (a fresh object per call would re-render forever). */

@@ -87,6 +87,12 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
+    "branches": {
+      "create": "Create chat branch",
+      "label": "Chat branches",
+      "current": "Current",
+      "loading": "Loading branches…"
+    },
     "project": {
       "chatCount_one": "{{count}} chat",
       "chatCount_other": "{{count}} chats",
