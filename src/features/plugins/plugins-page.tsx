@@ -72,7 +72,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
   const unavailable = plugin.availability !== "AVAILABLE" || plugin.installPolicy === "NOT_AVAILABLE"
   if (installing) {
     return (
-      <Button size="sm" variant="outline" disabled className="w-20">
+      <Button size="sm" variant="outline" disabled className="w-20" aria-label={t("plugins.card.installing")}>
         <Spinner />
       </Button>
     )
@@ -80,7 +80,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
   if (installed) {
     return (
       <Button size="sm" variant="outline" disabled className="w-20">
-        {t("plugins.installed")}
+        {t("plugins.sections.installed")}
       </Button>
     )
   }
@@ -90,9 +90,9 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
       variant="outline"
       className="w-20"
       disabled={unavailable}
-      title={unavailable ? t("plugins.unavailable") : undefined}
+      title={unavailable ? t("plugins.disabledReason.unknown") : undefined}
       onClick={() => void install({ plugin, marketplace })}>
-      {t("plugins.install")}
+      {t("plugins.card.install")}
     </Button>
   )
 }
@@ -159,11 +159,11 @@ function MarketplaceTab() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder={t("plugins.searchPlaceholder")} />
+        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder={t("plugins.search")} />
         {loading && <Spinner className="text-muted-foreground shrink-0" />}
         <Button size="sm" variant="outline" disabled={loading} onClick={() => void upgrade()}>
           <CircleArrowUpIcon data-icon="inline-start" />
-          {t("plugins.upgrade")}
+          {t("plugins.marketplace.upgradeAll")}
         </Button>
       </div>
       <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ function MarketplaceTab() {
           onKeyDown={e => {
             if (e.key === "Enter") submitSource()
           }}
-          placeholder={t("plugins.marketplaceSourcePlaceholder")}
+          placeholder={t("plugins.marketplace.sourcePlaceholder")}
         />
         <Button size="sm" variant="outline" disabled={loading || source.trim() === ""} onClick={submitSource}>
           <PlusIcon data-icon="inline-start" />
@@ -205,7 +205,14 @@ function MarketplaceTab() {
                   {marketplace.path !== null && (
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        render={<Button variant="ghost" size="icon-xs" className="text-muted-foreground ms-auto" />}>
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-muted-foreground ms-auto"
+                            aria-label={t("plugins.pageActions")}
+                          />
+                        }>
                         <MoreVerticalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="min-w-[140px]">
@@ -213,7 +220,7 @@ function MarketplaceTab() {
                           className="text-destructive"
                           onClick={() => void removeMarketplace(marketplace.name)}>
                           <Trash2Icon className="me-2 size-3.5" />
-                          {t("plugins.removeMarketplace")}
+                          {t("plugins.marketplace.remove")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -253,7 +260,7 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
         <div className="mb-0.5 flex items-center gap-1.5">
           <PanelItemTitle className="w-auto min-w-0">{title}</PanelItemTitle>
           <Badge variant="secondary" className="shrink-0 text-[10px]">
-            {t(`plugins.scope.${skill.scope}`)}
+            {t(`plugins.skills.scope.${skill.scope}`)}
           </Badge>
         </div>
         <ItemDescription className="line-clamp-1" title={description}>
@@ -264,7 +271,11 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
         </ItemDescription>
       </ItemContent>
       <ItemActions>
-        <Switch checked={skill.enabled} onCheckedChange={checked => void setSkillEnabled(skill, checked)} />
+        <Switch
+          checked={skill.enabled}
+          aria-label={t(skill.enabled ? "plugins.skills.disable" : "plugins.skills.enable")}
+          onCheckedChange={checked => void setSkillEnabled(skill, checked)}
+        />
       </ItemActions>
     </PanelItem>
   )
@@ -281,9 +292,9 @@ function InstalledTab() {
     <Pane>
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-1">
-          <h2 className="text-muted-foreground px-2 text-xs font-medium">{t("plugins.plugins")}</h2>
+          <h2 className="text-muted-foreground px-2 text-xs font-medium">{t("plugins.headings.plugins")}</h2>
           {installed.length === 0 ? (
-            <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.noPlugins")}</p>
+            <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.sections.installedEmpty")}</p>
           ) : (
             <PanelList className="grid grid-cols-2 gap-2">
               {installed.map(({ plugin, marketplace }) => (
@@ -296,11 +307,18 @@ function InstalledTab() {
                       {plugin.id in busyIds && <Spinner className="text-muted-foreground size-3.5" />}
                       {/* Codex has no plugin enable request; the state is shown, not switched. */}
                       <Badge variant={plugin.enabled ? "secondary" : "outline"} className="text-[10px]">
-                        {t(plugin.enabled ? "plugins.enabled" : "plugins.disabled")}
+                        {t(plugin.enabled ? "plugins.card.enabledStatus" : "plugins.card.disabledStatus")}
                       </Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger
-                          render={<Button variant="ghost" size="icon-xs" className="text-muted-foreground" />}>
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-muted-foreground"
+                              aria-label={t("plugins.card.moreActions")}
+                            />
+                          }>
                           <MoreVerticalIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="min-w-[140px]">
@@ -309,7 +327,7 @@ function InstalledTab() {
                             disabled={plugin.id in busyIds}
                             onClick={() => void uninstall(plugin)}>
                             <Trash2Icon className="me-2 size-3.5" />
-                            {t("plugins.uninstall")}
+                            {t("plugins.card.uninstall")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -321,14 +339,14 @@ function InstalledTab() {
           )}
         </section>
         <section className="flex flex-col gap-1">
-          <h2 className="text-muted-foreground px-2 text-xs font-medium">{t("plugins.skills")}</h2>
+          <h2 className="text-muted-foreground px-2 text-xs font-medium">{t("plugins.headings.skills")}</h2>
           {skillErrors.map(error => (
             <p key={error.path} className="text-destructive px-2 text-xs">
               {error.path}: {error.message}
             </p>
           ))}
           {skills.length === 0 ? (
-            <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.noSkills")}</p>
+            <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.skills.empty")}</p>
           ) : (
             <PanelList className="grid grid-cols-2 gap-2">
               {skills.map(skill => (
@@ -358,15 +376,15 @@ export function PluginsPage({ cwd }: { cwd: string | null }) {
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>
           <Badge variant="secondary" className="text-[10px] normal-case">
-            BETA
+            {t("plugins.beta")}
           </Badge>
         </div>
       </div>
       <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
         <Tabs defaultValue="marketplace" className="flex min-h-0 flex-1 flex-col gap-4">
           <TabsList>
-            <TabsTrigger value="marketplace">{t("plugins.marketplace")}</TabsTrigger>
-            <TabsTrigger value="installed">{t("plugins.installedTab")}</TabsTrigger>
+            <TabsTrigger value="marketplace">{t("plugins.headings.marketplace")}</TabsTrigger>
+            <TabsTrigger value="installed">{t("plugins.sections.installed")}</TabsTrigger>
           </TabsList>
           <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
             <MarketplaceTab />

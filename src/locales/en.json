@@ -404,6 +404,7 @@
   },
   "plugins": {
     "title": "Plugins",
+    "beta": "BETA",
     "subtitle": "Work with Codex across your favorite tools",
     "search": "Search plugins",
     "manage": "Manage",
@@ -412,6 +413,7 @@
     "sections": {
       "featured": "Recommended",
       "installed": "Installed",
+      "installedEmpty": "No plugins installed",
       "showLess": "Show less",
       "seeMore": "See more",
       "seeMoreDescription": "See {{pluginNames}}, and more"
@@ -518,6 +520,12 @@
     },
     "skills": {
       "search": "Search skills",
+      "scope": {
+        "user": "User",
+        "repo": "Project",
+        "system": "System",
+        "admin": "Admin"
+      },
       "empty": "No skills found",
       "installed": "Installed",
       "loading": "Loading skills…",

@@ -403,6 +403,7 @@
   },
   "plugins": {
     "title": "插件",
+    "beta": "测试版",
     "subtitle": "在你常用的工具中使用 Codex",
     "search": "搜索插件",
     "manage": "管理",
@@ -411,6 +412,7 @@
     "sections": {
       "featured": "推荐",
       "installed": "已安装",
+      "installedEmpty": "尚未安装插件",
       "showLess": "收起",
       "seeMore": "查看更多",
       "seeMoreDescription": "查看{{pluginNames}}等更多"
@@ -517,6 +519,12 @@
     },
     "skills": {
       "search": "搜索技能",
+      "scope": {
+        "user": "用户",
+        "repo": "项目",
+        "system": "系统",
+        "admin": "管理员"
+      },
       "empty": "找不到技能",
       "installed": "已安装",
       "loading": "正在加载技能…",
