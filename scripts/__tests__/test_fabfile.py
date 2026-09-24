@@ -1,8 +1,17 @@
+import io
+import json
+import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr
+from urllib.error import URLError
 from pathlib import Path
+from unittest.mock import call, patch
 
-from fabfile import update_version
+from invoke import Collection, Context, Program
+from invoke.exceptions import Exit
+
+from fabfile import ROOT, toolchain, update_toolchain_pins, update_version
 
 
 class VersionTaskTests(unittest.TestCase):
@@ -50,6 +59,196 @@ class VersionTaskTests(unittest.TestCase):
                 update_version(root, "0.2.0")
             self.assertEqual(package.read_text(), '{"version": "0.1.1"}\n')
 
+
+class ToolchainTaskTests(unittest.TestCase):
+    def test_cli_reports_invalid_version_without_traceback(self) -> None:
+        stderr = io.StringIO()
+        with patch("builtins.input", side_effect=["invalid", ""]), redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as failure:
+                Program(namespace=Collection(toolchain)).run(["fab", "toolchain"])
+        self.assertEqual(failure.exception.code, 1)
+        self.assertIn("Bun version must be an exact X.Y.Z version", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_rejects_wrong_local_bun_before_changing_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = (ROOT / "package.json").read_text()
+            package.write_text(original)
+            (root / "src-tauri/resources/licenses").mkdir(parents=True)
+            (root / "src-tauri/resources/licenses/bun-9.8.7.md").write_text("license")
+
+            with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["9.8.7", ""]), \
+                    patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands:
+                process.return_value.stdout = "1.4.0\n"
+                with self.assertRaisesRegex(Exit, "Bun 9.8.7"):
+                    toolchain(Context())
+                commands.assert_not_called()
+            self.assertEqual(package.read_text(), original)
+
+    def test_downloads_missing_versioned_bun_license_before_updating_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = (ROOT / "package.json").read_text()
+            package.write_text(original)
+
+            with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["9.8.7", ""]), \
+                    patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands, \
+                    patch("urllib.request.urlopen") as fetch:
+                process.return_value.stdout = "9.8.7\n"
+                fetch.return_value.__enter__.return_value.read.return_value = b"Bun 9.8.7 license\n"
+                toolchain(Context())
+                fetch.assert_called_once_with(
+                    "https://raw.githubusercontent.com/oven-sh/bun/bun-v9.8.7/LICENSE.md", timeout=15
+                )
+                self.assertEqual(commands.call_count, 3)
+            self.assertEqual(json.loads(package.read_text())["packageManager"], "bun@9.8.7")
+            self.assertEqual(
+                (root / "src-tauri/resources/licenses/bun-9.8.7.md").read_text(),
+                "Source: https://github.com/oven-sh/bun/blob/bun-v9.8.7/LICENSE.md\n\nBun 9.8.7 license\n",
+            )
+
+    def test_download_failure_keeps_manifest_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = (ROOT / "package.json").read_text()
+            package.write_text(original)
+
+            with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["9.8.7", ""]), \
+                    patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands, \
+                    patch("urllib.request.urlopen", side_effect=URLError("offline")):
+                process.return_value.stdout = "9.8.7\n"
+                with self.assertRaisesRegex(Exit, "Bun 9.8.7 licence"):
+                    toolchain(Context())
+                commands.assert_not_called()
+            self.assertEqual(package.read_text(), original)
+            self.assertFalse((root / "src-tauri/resources/licenses/bun-9.8.7.md").exists())
+
+    def test_empty_download_keeps_manifest_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = (ROOT / "package.json").read_text()
+            package.write_text(original)
+
+            with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["9.8.7", ""]), \
+                    patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands, \
+                    patch("urllib.request.urlopen", return_value=io.BytesIO(b"")):
+                process.return_value.stdout = "9.8.7\n"
+                with self.assertRaisesRegex(Exit, "Empty Bun 9.8.7 licence"):
+                    toolchain(Context())
+                commands.assert_not_called()
+            self.assertEqual(package.read_text(), original)
+
+    def test_same_versions_retry_install_check_and_stage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = (ROOT / "package.json").read_text()
+            package.write_text(original)
+            bun_version = json.loads(original)["packageManager"].removeprefix("bun@")
+            licenses = root / "src-tauri/resources/licenses"
+            licenses.mkdir(parents=True)
+            (licenses / f"bun-{bun_version}.md").write_text("license")
+
+            with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["", ""]), \
+                    patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands, \
+                    patch("urllib.request.urlopen") as fetch:
+                process.return_value.stdout = f"{bun_version}\n"
+                toolchain(Context())
+                fetch.assert_not_called()
+                commands.assert_has_calls([
+                    call("bun", "install"),
+                    call("bun", "scripts/check-toolchain.ts"),
+                    call("bun", "run", "stage"),
+                ])
+                self.assertEqual(commands.call_count, 3)
+            self.assertEqual(package.read_text(), original)
+            self.assertEqual((licenses / f"bun-{bun_version}.md").read_text(), "license")
+
+    def test_failed_install_can_retry_same_versions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            package.write_text((ROOT / "package.json").read_text())
+            licenses = root / "src-tauri/resources/licenses"
+            licenses.mkdir(parents=True)
+            (licenses / "bun-9.8.7.md").write_text("license")
+
+            with patch("fabfile.ROOT", root), patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands:
+                process.return_value.stdout = "9.8.7\n"
+                commands.side_effect = subprocess.CalledProcessError(1, ["bun", "install"])
+                with patch("builtins.input", side_effect=["9.8.7", "8.7.6"]):
+                    with self.assertRaisesRegex(Exit, "Dependency install failed"):
+                        toolchain(Context())
+
+                self.assertEqual(json.loads(package.read_text())["packageManager"], "bun@9.8.7")
+                self.assertEqual(json.loads(package.read_text())["devDependencies"]["@openai/codex"], "8.7.6")
+                commands.reset_mock(side_effect=True)
+                with patch("builtins.input", side_effect=["", ""]):
+                    toolchain(Context())
+                commands.assert_has_calls([
+                    call("bun", "install"),
+                    call("bun", "scripts/check-toolchain.ts"),
+                    call("bun", "run", "stage"),
+                ])
+                self.assertEqual(commands.call_count, 3)
+
+    def test_updates_bun_and_codex_pins_without_changing_other_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            package.write_text(json.dumps({
+                "packageManager": "bun@1.4.0",
+                "dependencies": {"@alwith/runtime": "0.1.4"},
+                "devDependencies": {"@openai/codex": "0.154.0"},
+                "optionalDependencies": {
+                    "@oven/bun-darwin-aarch64": "1.4.0",
+                    "@oven/bun-linux-aarch64": "1.4.0",
+                    "@oven/bun-linux-x64-baseline": "1.4.0",
+                    "@oven/bun-windows-x64-baseline": "1.4.0",
+                    "@oven/bun-windows-aarch64": "1.4.0",
+                    "@openai/codex-darwin-arm64": "npm:@openai/codex@0.154.0-darwin-arm64",
+                    "@openai/codex-linux-arm64": "npm:@openai/codex@0.154.0-linux-arm64",
+                    "@openai/codex-linux-x64": "npm:@openai/codex@0.154.0-linux-x64",
+                    "@openai/codex-win32-x64": "npm:@openai/codex@0.154.0-win32-x64",
+                    "@openai/codex-win32-arm64": "npm:@openai/codex@0.154.0-win32-arm64",
+                    "unrelated": "3.0.0",
+                },
+            }, indent=2) + "\n")
+
+            changed = update_toolchain_pins(root, "1.4.1", "0.155.0")
+
+            manifest = json.loads(package.read_text())
+            self.assertTrue(changed)
+            self.assertEqual(manifest["packageManager"], "bun@1.4.1")
+            self.assertEqual(manifest["devDependencies"]["@openai/codex"], "0.155.0")
+            self.assertEqual(manifest["optionalDependencies"]["@oven/bun-darwin-aarch64"], "1.4.1")
+            self.assertEqual(manifest["optionalDependencies"]["@oven/bun-linux-aarch64"], "1.4.1")
+            self.assertEqual(manifest["optionalDependencies"]["@openai/codex-darwin-arm64"], "npm:@openai/codex@0.155.0-darwin-arm64")
+            self.assertEqual(manifest["optionalDependencies"]["@openai/codex-linux-arm64"], "npm:@openai/codex@0.155.0-linux-arm64")
+            self.assertEqual(manifest["optionalDependencies"]["unrelated"], "3.0.0")
+            self.assertEqual(manifest["dependencies"]["@alwith/runtime"], "0.1.4")
+
+    def test_rejects_invalid_or_incomplete_pins_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            original = json.dumps({
+                "packageManager": "bun@1.4.0",
+                "devDependencies": {"@openai/codex": "0.154.0"},
+                "optionalDependencies": {"@oven/bun-darwin-aarch64": "1.4.0"},
+            }) + "\n"
+            package.write_text(original)
+
+            with self.assertRaisesRegex(ValueError, "version"):
+                update_toolchain_pins(root, "latest", "0.155.0")
+            with self.assertRaisesRegex(ValueError, "platform"):
+                update_toolchain_pins(root, "1.4.1", "0.155.0")
+            self.assertEqual(package.read_text(), original)
 
 if __name__ == "__main__":
     unittest.main()

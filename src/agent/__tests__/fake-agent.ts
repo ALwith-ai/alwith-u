@@ -13,7 +13,9 @@ export type FakeAgent = {
   /** `_meta.alwith.model` hints seen on session/new, session/resume and session/fork. */
   modelHints: Map<string, string | null>
   configDelay: { current: (() => Promise<void>) | null }
-  listSessions: { current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse) | null }
+  listSessions: {
+    current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
+  }
   configChanges: string[]
   /** Names set through `_codex/session_rename`. */
   renamed: Map<string, string>

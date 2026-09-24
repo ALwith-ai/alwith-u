@@ -1,6 +1,30 @@
 @import "@alwith/module-chat/styles.css";
 
 /* U-only chat adaptations; common Desktop geometry lives in @alwith/chat. */
+.codex-assistant-turn :is(
+  .codex-markdown-table-scroller,
+  .codex-markdown-code-placeholder,
+  .codex-markdown-code-container,
+  .codex-markdown-math-block,
+  .codex-activity-group-body,
+  .codex-activity-details,
+  .codex-command-output,
+  .codex-reasoning-details
+) {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+}
+
 .codex-edited-file-path {
   display: inline-flex;
   align-items: center;

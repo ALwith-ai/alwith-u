@@ -177,6 +177,36 @@ test("project query rejects failed or cyclic pagination instead of returning an 
   await expect(client.listProjectThreads("/tmp/project")).rejects.toThrow("repeated cursor")
 })
 
+test("thread loading reports failure and clears it after retry", async () => {
+  const { client, fake } = await make()
+  let answer: ((value: { sessions: [] }) => void) | null = null
+  let attempts = 0
+  fake.listSessions.current = async () => {
+    attempts += 1
+    if (attempts === 1) throw new Error("list unavailable")
+    return await new Promise<{ sessions: [] }>(resolve => {
+      answer = resolve
+    })
+  }
+
+  await expect(client.listThreads({ reset: true })).rejects.toThrow("Internal error")
+  expect(client.state.threadsLoaded).toBe(false)
+  expect(client.state.threadsLoading).toBe(false)
+  expect(client.state.threadsError).toContain("Internal error")
+
+  const retry = client.listThreads({ reset: true })
+  expect(client.state.threadsLoading).toBe(true)
+  expect(client.state.threadsError).toBeNull()
+  await until(() => answer !== null)
+  const respond = answer as ((value: { sessions: [] }) => void) | null
+  if (respond === null) throw new Error("The retry did not reach the agent")
+  respond({ sessions: [] })
+  await retry
+  expect(client.state.threadsLoaded).toBe(true)
+  expect(client.state.threadsLoading).toBe(false)
+  expect(client.state.threads).toEqual([])
+})
+
 test("a gap the client could not refill replays the whole session from the engine's record", async () => {
   const { client, port } = await make()
   await client.open("h1", "/tmp/one")
