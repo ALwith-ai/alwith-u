@@ -4,12 +4,14 @@
  * Desktop's navigation primitives (`NavigationGroup` / `NavigationSessionItem`); row
  * actions live in the hover card, the row's trailing slot only ever shows the stop button.
  */
+import type { ReactNode } from "react"
 import {
   ActivityIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  BlocksIcon,
   FolderClosedIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -198,6 +200,7 @@ function ThreadHoverBody({
 
 export function ThreadSidebar({
   screen,
+  leadingPage,
   selectedId,
   onSelect,
   onNewChat,
@@ -206,9 +209,12 @@ export function ThreadSidebar({
   onOpenWindow,
   onOpenSettings,
   onOpenPlugins,
+  onOpenExtensions,
+  extensionNavigation,
   onSwitchScreen
 }: {
   screen: MainScreen
+  leadingPage: "plugins" | "extensions"
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
@@ -217,6 +223,8 @@ export function ThreadSidebar({
   onOpenWindow: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
+  extensionNavigation?: ReactNode
+  onOpenExtensions: () => void
   onSwitchScreen: () => void
 }) {
   const { t } = useTranslation()
@@ -318,13 +326,21 @@ export function ThreadSidebar({
         </div>
         {pluginsAvailable && (
           <NavigationItemButton
-            active={screen === "leading"}
+            active={screen === "leading" && leadingPage === "plugins"}
             className={`${MENU_HIGHLIGHT} gap-2 px-2`}
             onClick={onOpenPlugins}>
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
         )}
+        <NavigationItemButton
+          active={screen === "leading" && leadingPage === "extensions"}
+          className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+          onClick={onOpenExtensions}>
+          <BlocksIcon />
+          <span>{t("sidebar.extensions")}</span>
+        </NavigationItemButton>
+        {extensionNavigation}
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-hidden">
         <div className="relative mx-2 flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">

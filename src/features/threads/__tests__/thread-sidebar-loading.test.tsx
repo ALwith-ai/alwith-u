@@ -23,6 +23,7 @@ function showSidebar() {
     <SidebarProvider>
       <ThreadSidebar
         screen="main"
+        leadingPage="plugins"
         selectedId={null}
         onSelect={() => {}}
         onNewChat={() => {}}
@@ -31,6 +32,7 @@ function showSidebar() {
         onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
+        onOpenExtensions={() => {}}
         onSwitchScreen={() => {}}
       />
     </SidebarProvider>

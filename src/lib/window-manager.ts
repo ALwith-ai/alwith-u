@@ -5,8 +5,15 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
-export type SettingsSection = "general" | "appearance" | "account" | "provider" | "about"
-export const SETTINGS_SECTIONS: SettingsSection[] = ["general", "appearance", "account", "provider", "about"]
+export type SettingsSection = "general" | "appearance" | "account" | "provider" | "extensions" | "about"
+export const SETTINGS_SECTIONS: SettingsSection[] = [
+  "general",
+  "appearance",
+  "account",
+  "provider",
+  "extensions",
+  "about"
+]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"
 
 const IS_WINDOWS = /Win/.test(navigator.platform)

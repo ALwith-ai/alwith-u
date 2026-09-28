@@ -16,6 +16,8 @@ import { hasPluginStore } from "@/agent/codex-extensions"
 import { useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { displayShortcut } from "@/lib/shortcut-formatter"
+import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
+import { openSettingsWindow } from "@/lib/window-manager"
 
 export function CommandPalette({
   open,
@@ -24,6 +26,7 @@ export function CommandPalette({
   onOpenSettings,
   onOpenPlugins,
   onOpenHotkeys,
+  onOpenExtension,
   onSelect
 }: {
   open: boolean
@@ -32,9 +35,11 @@ export function CommandPalette({
   onOpenSettings: () => void
   onOpenPlugins: () => void
   onOpenHotkeys: () => void
+  onOpenExtension: (id: string) => void
   onSelect: (thread: ThreadSummary) => void
 }) {
   const { t } = useTranslation()
+  const { host: extensions } = useExtensions()
   const { resolvedTheme, setTheme } = useTheme()
   const threads = useApp(state => state.threads)
   const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
@@ -78,6 +83,43 @@ export function CommandPalette({
                 {t("palette.plugins")}
               </CommandItem>
             )}
+          </CommandGroup>
+          <CommandGroup heading={t("settings.extensions")}>
+            <CommandItem
+              onSelect={() =>
+                run(() => {
+                  void openSettingsWindow("extensions").catch(reportExtensionError)
+                })
+              }>
+              <SettingsIcon />
+              {t("extensions.manage")}
+            </CommandItem>
+            {extensions.commands.map(command => (
+              <CommandItem
+                key={command.id}
+                value={`extension-command ${command.id} ${command.title}`}
+                onSelect={() =>
+                  run(() => {
+                    void Promise.resolve()
+                      .then(() => command.run())
+                      .catch(reportExtensionError)
+                  })
+                }>
+                <PuzzleIcon />
+                {command.title}
+              </CommandItem>
+            ))}
+            {extensions.views
+              .filter(view => view.kind === "surfaces")
+              .map(view => (
+                <CommandItem
+                  key={view.id}
+                  value={`extension-surface ${view.id} ${view.title}`}
+                  onSelect={() => run(() => onOpenExtension(view.id))}>
+                  <PuzzleIcon />
+                  {view.title}
+                </CommandItem>
+              ))}
           </CommandGroup>
           {threads.length > 0 && (
             <CommandGroup heading={t("palette.chats")}>

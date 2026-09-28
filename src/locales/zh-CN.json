@@ -69,6 +69,7 @@
     "signOut": "退出登录",
     "story": "故事",
     "plugins": "插件",
+    "extensions": "扩展",
     "activity": "活动",
     "background": "后台",
     "newChat": "新聊天",
@@ -277,6 +278,7 @@
     "always": "始终"
   },
   "settings": {
+    "extensions": "应用扩展",
     "general": "通用",
     "versionLabel": "版本",
     "accountDesc": "登录状态由 Codex 保存在本机。",
@@ -678,5 +680,37 @@
     "shortcut": "聊天浮窗快捷键",
     "shortcutSave": "保存快捷键",
     "shortcutOff": "关闭"
+  },
+  "extensions": {
+    "outlets": {
+      "topBar": "扩展工具栏",
+      "navigation": "扩展导航",
+      "statusBar": "扩展状态栏",
+      "settingsPages": "扩展设置栏目"
+    },
+    "targetUnavailable": "{{name}}：目标不可用",
+    "search": "搜索扩展",
+    "moreActions": "{{name}}的更多操作",
+    "loading": "正在加载扩展…",
+    "noMatches": "未找到匹配的扩展。",
+    "description": "扩展应用页面、命令和设置；与 Codex 插件独立。仅安装你信任的扩展。",
+    "install": "从本地目录安装",
+    "empty": "尚未安装应用扩展。",
+    "manage": "管理应用扩展",
+    "enable": "启用 {{name}}",
+    "update": "从目录更新",
+    "uninstall": "卸载",
+    "uninstallConfirm": "卸载 {{name}}？扩展数据将保留。",
+    "cancel": "取消操作",
+    "stopping": "等待 {{count}} 个窗口停止扩展",
+    "back": "返回聊天",
+    "unavailable": "扩展页面当前不可用",
+    "status": {
+      "inactive": "未运行",
+      "activating": "正在启动",
+      "active": "运行中",
+      "deactivating": "正在停止",
+      "failed": "运行失败"
+    }
   }
 }
