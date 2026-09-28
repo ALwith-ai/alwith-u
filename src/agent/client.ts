@@ -577,9 +577,9 @@ export class CodexClient {
     const session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
-    // The user's message goes on screen now. Codex reports it back as a `user_message`
-    // once the turn starts and the fold adopts that id; an agent that never reports
-    // (alwith-cli) leaves the local copy as is.
+    // The user's message goes on screen now. The agent reports it back as a `user_message`
+    // once the turn starts (Codex; alwith-cli since 2.9.65) and the fold adopts that id; an
+    // agent that never reports leaves the local copy as is.
     this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
     await this.live().request("session/prompt", { sessionId: id, prompt })
