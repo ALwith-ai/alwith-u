@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 import urllib.request
 from pathlib import Path
 
@@ -131,6 +132,36 @@ def check_toolchain_prerequisites(root: Path, bun_version: str) -> None:
         file.write(f"Source: {source_url}\n\n{content}")
 
 
+def check_tauri_versions(root: Path) -> None:
+    """Require installed Tauri NPM packages to match their resolved Rust minors."""
+    manifest = json.loads((root / "package.json").read_text())
+    npm_dependencies = manifest.get("dependencies", {}) | manifest.get("devDependencies", {})
+    npm_packages = [
+        name
+        for name in npm_dependencies
+        if name == "@tauri-apps/api" or name.startswith("@tauri-apps/plugin-")
+    ]
+    cargo_lock = tomllib.loads((root / "src-tauri/Cargo.lock").read_text())
+    cargo_packages = cargo_lock.get("package", [])
+    mismatches = []
+
+    for npm_name in npm_packages:
+        crate_name = "tauri" if npm_name == "@tauri-apps/api" else f"tauri-{npm_name.removeprefix('@tauri-apps/')}"
+        rust_versions = [package["version"] for package in cargo_packages if package["name"] == crate_name]
+        if len(rust_versions) != 1:
+            raise ValueError(f"Expected one resolved {crate_name} package, found {len(rust_versions)}")
+        npm_manifest = json.loads((root / "node_modules" / npm_name / "package.json").read_text())
+        npm_version = npm_manifest["version"]
+        rust_version = rust_versions[0]
+        if not SEMVER.fullmatch(npm_version) or not SEMVER.fullmatch(rust_version):
+            raise ValueError(f"Invalid resolved Tauri version: {crate_name} {rust_version}, {npm_name} {npm_version}")
+        if npm_version.split(".")[:2] != rust_version.split(".")[:2]:
+            mismatches.append(f"{crate_name} (v{rust_version}) : {npm_name} (v{npm_version})")
+
+    if mismatches:
+        raise ValueError("Found version mismatched Tauri packages:\n" + "\n".join(mismatches))
+
+
 @task
 def tauri(_context: object) -> None:
     """Stage resources before starting the dev instance."""
@@ -183,6 +214,10 @@ def upgrade(context: Context) -> None:
             context.run("cargo outdated --root-deps-only --workspace --ignore-external-rel", warn=True)
         context.run("bun outdated")
         context.run("bun update")
+        try:
+            check_tauri_versions(ROOT)
+        except (KeyError, OSError, ValueError) as error:
+            raise Exit(f"Tauri version check failed: {error}", code=1) from None
 
 
 @task(name="format", aliases=["f"])

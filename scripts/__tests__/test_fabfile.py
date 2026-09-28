@@ -17,6 +17,39 @@ import fabfile
 
 
 class UpgradeTaskTests(unittest.TestCase):
+    def test_upgrade_rejects_mismatched_tauri_package_minors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "src-tauri").mkdir()
+            (root / "src-tauri/Cargo.lock").write_text(
+                '[[package]]\nname = "tauri-plugin-http"\nversion = "2.7.0"\n'
+            )
+            (root / "package.json").write_text(json.dumps({
+                "dependencies": {"@tauri-apps/plugin-http": "^2.6.1"},
+            }))
+            npm_manifest = root / "node_modules/@tauri-apps/plugin-http/package.json"
+            npm_manifest.parent.mkdir(parents=True)
+            npm_manifest.write_text('{"version": "2.6.1"}\n')
+
+            commands = []
+
+            def record(context: Context, command: str, **options: object) -> Result:
+                commands.append(command)
+                return Result(exited=0)
+
+            with patch("fabfile.ROOT", root), patch.object(Context, "run", record):
+                with self.assertRaisesRegex(
+                    Exit,
+                    r"tauri-plugin-http \(v2\.7\.0\) : @tauri-apps/plugin-http \(v2\.6\.1\)",
+                ):
+                    fabfile.upgrade(Context())
+                self.assertEqual(commands[-1], "bun update")
+
+                npm_manifest.write_text('{"version": "2.7.3"}\n')
+                commands.clear()
+                fabfile.upgrade(Context())
+                self.assertEqual(commands[-1], "bun update")
+
     def test_upgrade_and_alias_run_in_project_directories(self) -> None:
         for name in ("upgrade", "u"):
             with self.subTest(name=name):

@@ -17,7 +17,7 @@
         "@tauri-apps/api": "^2.11.1",
         "@tauri-apps/plugin-dialog": "^2.7.3",
         "@tauri-apps/plugin-global-shortcut": "^2.3.2",
-        "@tauri-apps/plugin-http": "^2.6.1",
+        "@tauri-apps/plugin-http": "^2.7.0",
         "@tauri-apps/plugin-log": "^2.9.2",
         "@tauri-apps/plugin-notification": "^2.4.0",
         "@tauri-apps/plugin-opener": "^2.5.5",
@@ -519,7 +519,7 @@
 
     "@tauri-apps/plugin-global-shortcut": ["@tauri-apps/plugin-global-shortcut@2.3.2", "", { "dependencies": { "@tauri-apps/api": "^2.11.0" } }, "sha512-UReHNXrLvpEjylE4jb4oCYiy96uRykPUthoCQCmRXYrd5hs5X9DrW+qOn7GLW57EJN4tdK8bgK5twBTz2NOxzA=="],
 
-    "@tauri-apps/plugin-http": ["@tauri-apps/plugin-http@2.6.1", "", { "dependencies": { "@tauri-apps/api": "^2.11.0" } }, "sha512-9gtfe6eOaVKofASoMZ4Ph8E6vDYnpUTbMXrLt4FkXPzC5+O+wnGqJ9fz2koSPYcQt10bb3cx5qHkU0AU1l8tcQ=="],
+    "@tauri-apps/plugin-http": ["@tauri-apps/plugin-http@2.7.0", "", { "dependencies": { "@tauri-apps/api": "^2.12.0" } }, "sha512-sddZpYeqONDQn2lYobLG1aw0+swN0k4GLNruqAZ8nnHKo38FBaxyf9AFd3+KAVDZHCKQEZDpSn5Tnfq7+f3vKA=="],
 
     "@tauri-apps/plugin-log": ["@tauri-apps/plugin-log@2.9.2", "", { "dependencies": { "@tauri-apps/api": "^2.11.0" } }, "sha512-QC2uTQyC+4269xawGXzVLDzIvMB2JwzZHd1lg3ltXtXqrauwikqlbNt6Tm3H++1RN0gPtcvp4cBc5bF6u/DUnw=="],
 
@@ -1304,6 +1304,8 @@
     "@tailwindcss/oxide-wasm32-wasi/@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" }, "bundled": true }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
     "@tailwindcss/oxide-wasm32-wasi/tslib": ["tslib@2.8.1", "", { "bundled": true }, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "@tauri-apps/plugin-http/@tauri-apps/api": ["@tauri-apps/api@2.12.0", "", {}, "sha512-fUSxFX8VABYe9W9K5ROdEaKVkNUFRcMSRofjruvaxztXA+I0XnQHcYHF8m/a6iExRUxsUf0HsFWhPBuH9IgzJw=="],
 
     "body-parser/content-type": ["content-type@2.1.0", "", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
 
