@@ -4,17 +4,35 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/age
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
+import { client } from "@/lib/client"
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
 
 installDom()
 const initialState = pluginsStore.getState()
+const initialAppState = client.state
 
 beforeEach(async () => {
   await initI18n("en")
   pluginsStore.setState({ ...initialState, refresh: async () => {} }, true)
+  client.store.setState({
+    connection: "ready",
+    agent: { protocolVersion: 2, capabilities: { _meta: { codex: { plugins: true, skills: true } } } }
+  })
 })
-afterEach(() => pluginsStore.setState(initialState, true))
+afterEach(() => {
+  pluginsStore.setState(initialState, true)
+  client.store.setState(initialAppState, true)
+})
+
+test("until Codex is connected the catalogs are loading, not empty", async () => {
+  client.store.setState({ connection: "connecting", agent: null })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.queryByText("No plugins found")).toBeNull()
+  await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
+  expect(view.queryByText("No plugins installed")).toBeNull()
+  expect(view.queryByText("No skills found")).toBeNull()
+})
 
 function plugin(id: string, installed = false): PluginSummary {
   return {

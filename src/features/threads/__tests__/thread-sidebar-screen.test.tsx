@@ -16,9 +16,8 @@ afterEach(() => {
 })
 
 test("footer arrows switch screens, plugins are selected only on the leading screen, and new chat returns to main", async () => {
-  client.store.setState({
-    agent: { protocolVersion: 2, capabilities: { _meta: { codex: { plugins: true } } } }
-  })
+  // The plugins entry is fixed navigation: it does not wait for the engine to connect.
+  client.store.setState({ connection: "connecting", agent: null })
   function Harness() {
     const [screen, setScreen] = useState<MainScreen>("main")
     return (
