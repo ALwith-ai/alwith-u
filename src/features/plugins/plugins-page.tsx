@@ -4,7 +4,7 @@ import { convertFileSrc } from "@tauri-apps/api/core"
 // the install / installing / installed action button. Data is Codex's own catalog
 // (`_codex/plugin_*`, `_codex/skills_*`); Desktop's registry fetch, zip download progress
 // and version-diff "update" state have no counterpart here and are dropped.
-import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, PuzzleIcon, SparklesIcon, Trash2Icon } from "lucide-react"
+import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, SparklesIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
@@ -29,6 +29,7 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/age
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { client, useApp } from "@/lib/client"
 import { pluginsStore } from "./instance"
+import { PluginIcon } from "./plugin-icon"
 
 /**
  * Codex skills ship their icon as a file under ~/.codex (`interface.iconSmall`); the remote
@@ -41,15 +42,14 @@ function skillIconSrc(skill: SkillMetadata): string | null {
 }
 
 /** Icon box: 40 (size-10) outside, 20 (size-5) inside; an image when the catalog has one. */
-function IconBox({ src, fallback }: { src: string | null; fallback: "plugin" | "skill" }) {
-  const Fallback = fallback === "plugin" ? PuzzleIcon : SparklesIcon
+function SkillIconBox({ src }: { src: string | null }) {
   return (
     <ItemMedia>
       <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-sm">
         {src ? (
           <img src={src} alt="" className="size-8 rounded-sm object-cover" />
         ) : (
-          <Fallback className="text-muted-foreground size-5" />
+          <SparklesIcon className="text-muted-foreground size-5" />
         )}
       </div>
     </ItemMedia>
@@ -113,7 +113,11 @@ function PluginRow({
   const meta = [developer, version ? `v${version}` : null].filter(Boolean).join(" · ")
   return (
     <PanelItem className="rounded-md">
-      <IconBox src={plugin.interface?.composerIconUrl ?? null} fallback="plugin" />
+      <ItemMedia>
+        <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-sm">
+          <PluginIcon name={plugin.name} />
+        </div>
+      </ItemMedia>
       <ItemContent className="min-w-0">
         <PanelItemTitle className="mb-0.5">{pluginTitle(plugin)}</PanelItemTitle>
         <ItemDescription className="line-clamp-1" title={description}>
@@ -256,7 +260,7 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
   const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description
   return (
     <PanelItem className="rounded-md">
-      <IconBox src={skillIconSrc(skill)} fallback="skill" />
+      <SkillIconBox src={skillIconSrc(skill)} />
       <ItemContent className="min-w-0">
         <div className="mb-0.5 flex items-center gap-1.5">
           <PanelItemTitle className="w-auto min-w-0">{title}</PanelItemTitle>
