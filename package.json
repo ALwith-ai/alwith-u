@@ -74,7 +74,7 @@
     "@alwith/native": "0.1.1",
     "@biomejs/biome": "^2.5.14",
     "@happy-dom/global-registrator": "^20.14.5",
-    "@nyssance/codex-acp-v2": "0.7.0",
+    "@nyssance/codex-acp-v2": "0.7.1",
     "@openai/codex": "0.158.0",
     "@tauri-apps/cli": "^3.0.0-alpha.3",
     "@testing-library/dom": "^10.4.2",
