@@ -238,13 +238,19 @@ test("history replay batches complete upserts and publishes the full transcript 
     })
   }
   let notifications = 0
-  const stop = client.store.subscribe(() => notifications++)
+  let publishedWhileRestoring = 0
+  const stop = client.store.subscribe(state => {
+    notifications++
+    if (state.sessions.h1?.restoring && state.sessions.h1.items.length > 0) publishedWhileRestoring++
+  })
   await client.open("h1", "/tmp/one")
   stop()
   expect(client.state.sessions.h1.items).toHaveLength(402)
   expect(client.state.sessions.h1.restoring).toBe(false)
   expect(client.state.sessions.h1).toBe(client.session("h1"))
-  expect(notifications).toBeLessThan(40)
+  // Replayed frames fold silently; only the finished transcript is published.
+  expect(publishedWhileRestoring).toBe(0)
+  expect(notifications).toBeLessThan(10)
 })
 
 test("prompt acknowledgement is not completion; cancelling one session leaves the other running", async () => {

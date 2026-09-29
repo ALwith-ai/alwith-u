@@ -181,7 +181,15 @@ pub async fn runtime_start(
     app.state::<crate::providers::Providers>().reset().await;
     let identity = Arc::downgrade(&client);
     tauri::async_runtime::spawn(async move {
-        while let Some(event) = events.recv().await {
+        // Every emit is one script evaluation on the app's main thread. A session replay
+        // arrives as thousands of frames within milliseconds; forwarding them one event
+        // each stalls the whole app, so a burst is drained here and delivered as one
+        // `LINES_EVENT` payload, in order, which the webview folds in a single task.
+        'events: while let Some(first) = events.recv().await {
+            let mut burst = vec![first];
+            while let Ok(event) = events.try_recv() {
+                burst.push(event);
+            }
             let Some(client) = identity.upgrade() else {
                 break;
             };
@@ -189,36 +197,42 @@ pub async fn runtime_start(
             if !state.owns(&client) {
                 break;
             }
-            match event {
-                ClientEvent::Closed { reason } => {
-                    log::info!("alwith-runtime exited: {reason}");
-                    state.client.lock().unwrap().take();
-                    let _ = app.emit(EXIT_EVENT, json!({"code":null,"signal":null}));
-                    break;
-                }
-                // Wire diagnostics belong to the native host. Private configuration frames
-                // never enter a webview, including when using an older distributed Runtime.
-                ClientEvent::Runtime(alwith_api::RuntimeEvent::Wire { .. }) => {}
-                ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. }) if private_request(line) => {}
-                ClientEvent::Runtime(event) => {
-                    let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
-                    if matches!(&event, alwith_api::RuntimeEvent::Exit { .. }) {
-                        app.state::<crate::providers::Providers>().reset().await;
+            let mut lines = Vec::with_capacity(burst.len());
+            for event in burst {
+                match event {
+                    ClientEvent::Closed { reason } => {
+                        if !lines.is_empty() {
+                            let _ = app.emit(LINES_EVENT, std::mem::take(&mut lines));
+                        }
+                        log::info!("alwith-runtime exited: {reason}");
+                        state.client.lock().unwrap().take();
+                        let _ = app.emit(EXIT_EVENT, json!({"code":null,"signal":null}));
+                        break 'events;
                     }
-                    if retry {
-                        crate::providers::schedule_apply(&app);
+                    // Wire diagnostics belong to the native host. Private configuration frames
+                    // never enter a webview, including when using an older distributed Runtime.
+                    ClientEvent::Runtime(alwith_api::RuntimeEvent::Wire { .. }) => {}
+                    ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
+                        if private_request(line) => {}
+                    ClientEvent::Runtime(event) => {
+                        let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
+                        if matches!(&event, alwith_api::RuntimeEvent::Exit { .. }) {
+                            app.state::<crate::providers::Providers>().reset().await;
+                        }
+                        if retry {
+                            crate::providers::schedule_apply(&app);
+                        }
+                        let value = serde_json::to_value(event).expect("serialize Runtime event");
+                        lines.push(value.to_string());
                     }
-                    let value = serde_json::to_value(event).expect("serialize Runtime event");
-                    let _ = app.emit(LINES_EVENT, vec![value.to_string()]);
+                    // The webview SDK performs its own sequence check and reports unrecoverable
+                    // gaps to its consumers. Prompt it to reconcile its journal cursor now.
+                    ClientEvent::Gap { .. } => lines.push(json!({"type":"lagged"}).to_string()),
+                    ClientEvent::Other(value) => lines.push(value.to_string()),
                 }
-                // The webview SDK performs its own sequence check and reports unrecoverable
-                // gaps to its consumers. Prompt it to reconcile its journal cursor now.
-                ClientEvent::Gap { .. } => {
-                    let _ = app.emit(LINES_EVENT, vec![json!({"type":"lagged"}).to_string()]);
-                }
-                ClientEvent::Other(value) => {
-                    let _ = app.emit(LINES_EVENT, vec![value.to_string()]);
-                }
+            }
+            if !lines.is_empty() {
+                let _ = app.emit(LINES_EVENT, lines);
             }
         }
     });

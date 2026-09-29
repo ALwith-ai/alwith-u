@@ -361,16 +361,19 @@ export class CodexClient {
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
     if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
     const session = this.sessions.accept(sessionId, update)
-    this.updates.enqueue(sessionId, session)
-    if (
-      !session.restoring &&
-      update.sessionUpdate !== "agent_message_chunk" &&
-      update.sessionUpdate !== "agent_thought_chunk" &&
-      update.sessionUpdate !== "terminal_output_chunk"
-    ) {
-      // Live lifecycle and configuration changes are observable immediately,
-      // together with all earlier chunks. A completion must never overtake its text.
-      this.updates.flush()
+    // A replay folds silently: `replay()` publishes the finished transcript once the
+    // resume answers, so nothing schedules a render per replayed frame.
+    if (!session.restoring) {
+      this.updates.enqueue(sessionId, session)
+      if (
+        update.sessionUpdate !== "agent_message_chunk" &&
+        update.sessionUpdate !== "agent_thought_chunk" &&
+        update.sessionUpdate !== "terminal_output_chunk"
+      ) {
+        // Live lifecycle and configuration changes are observable immediately,
+        // together with all earlier chunks. A completion must never overtake its text.
+        this.updates.flush()
+      }
     }
     if (update.sessionUpdate === "session_info_update") {
       const frame = update as acp.SessionInfoUpdate
