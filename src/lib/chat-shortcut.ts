@@ -1,4 +1,4 @@
-import { register, unregister } from "@tauri-apps/plugin-global-shortcut"
+import { isRegistered, register, unregister } from "@tauri-apps/plugin-global-shortcut"
 import { savePreference } from "./preferences"
 
 export type ShortcutHost = {
@@ -43,12 +43,18 @@ export function createChatShortcut(
 }
 
 export function installChatShortcut(open: () => void): ReturnType<typeof createChatShortcut> {
+  let hasRegistered = false
   return createChatShortcut(
     {
-      register: (shortcut, callback) =>
-        register(shortcut, event => {
+      register: async (shortcut, callback): Promise<void> => {
+        // Native registrations survive reloads; reclaim the old page's key only on startup.
+        // Later changes may use an alias of the active key and must not replace it early.
+        if (!hasRegistered && (await isRegistered(shortcut))) await unregister(shortcut)
+        await register(shortcut, event => {
           if (event.state === "Pressed") callback()
-        }),
+        })
+        hasRegistered = true
+      },
       unregister,
       save: shortcut => savePreference("chatWindowShortcut", shortcut)
     },
