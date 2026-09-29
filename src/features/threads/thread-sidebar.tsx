@@ -45,7 +45,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ThreadSummary } from "@/agent/client"
-import { hasPluginStore, hasRename } from "@/agent/codex-extensions"
+import { hasRename } from "@/agent/codex-extensions"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
@@ -220,7 +220,6 @@ export function ThreadSidebar({
   onSwitchScreen: () => void
 }) {
   const { t } = useTranslation()
-  const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
   const threads = useApp(state => state.threads)
   const threadsCursor = useApp(state => state.threadsCursor)
   const threadsLoaded = useApp(state => state.threadsLoaded)
@@ -316,15 +315,13 @@ export function ThreadSidebar({
             </TooltipContent>
           </Tooltip>
         </div>
-        {pluginsAvailable && (
-          <NavigationItemButton
-            active={screen === "leading"}
-            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-            onClick={onOpenPlugins}>
-            <PuzzleIcon />
-            <span>{t("sidebar.plugins")}</span>
-          </NavigationItemButton>
-        )}
+        <NavigationItemButton
+          active={screen === "leading"}
+          className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+          onClick={onOpenPlugins}>
+          <PuzzleIcon />
+          <span>{t("sidebar.plugins")}</span>
+        </NavigationItemButton>
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-hidden">
         <div className="relative mx-2 flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">

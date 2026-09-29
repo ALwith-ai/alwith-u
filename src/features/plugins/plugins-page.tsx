@@ -137,12 +137,18 @@ function matchesPlugin(plugin: PluginSummary, q: string): boolean {
   return haystack.some(text => text.toLowerCase().includes(q))
 }
 
+/** Catalog data comes from Codex: until the engine is connected the page is loading. */
+function usePluginsReady(): boolean {
+  return useApp(state => state.connection === "ready" && hasPluginStore(state.agent))
+}
+
 function MarketplaceTab() {
   const { t } = useTranslation()
+  const ready = usePluginsReady()
   const marketplaces = useStore(pluginsStore, state => state.marketplaces)
   const loadErrors = useStore(pluginsStore, state => state.marketplaceLoadErrors)
   const featuredIds = useStore(pluginsStore, state => state.featuredPluginIds)
-  const loading = useStore(pluginsStore, state => state.loading)
+  const loading = useStore(pluginsStore, state => state.loading) || !ready
   const addMarketplace = useStore(pluginsStore, state => state.addMarketplace)
   const removeMarketplace = useStore(pluginsStore, state => state.removeMarketplace)
   const upgrade = useStore(pluginsStore, state => state.upgradeAll)
@@ -284,6 +290,7 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
 
 function InstalledTab() {
   const { t } = useTranslation()
+  const ready = usePluginsReady()
   const installed = useStore(pluginsStore, state => state.installed)
   const busyIds = useStore(pluginsStore, state => state.busyIds)
   const uninstall = useStore(pluginsStore, state => state.uninstall)
@@ -294,7 +301,9 @@ function InstalledTab() {
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-1">
           <h2 className="text-muted-foreground px-2 text-xs font-medium">{t("plugins.headings.plugins")}</h2>
-          {installed.length === 0 ? (
+          {!ready ? (
+            <Spinner className="text-muted-foreground mx-2 my-4" />
+          ) : installed.length === 0 ? (
             <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.sections.installedEmpty")}</p>
           ) : (
             <PanelList className="grid grid-cols-2 gap-2">
@@ -346,7 +355,9 @@ function InstalledTab() {
               {error.path}: {error.message}
             </p>
           ))}
-          {skills.length === 0 ? (
+          {!ready ? (
+            <Spinner className="text-muted-foreground mx-2 my-4" />
+          ) : skills.length === 0 ? (
             <p className="text-muted-foreground px-2 py-4 text-sm">{t("plugins.skills.empty")}</p>
           ) : (
             <PanelList className="grid grid-cols-2 gap-2">
@@ -365,7 +376,7 @@ function InstalledTab() {
 export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, state => state.refresh)
-  const ready = useApp(state => state.connection === "ready" && hasPluginStore(state.agent))
+  const ready = usePluginsReady()
 
   useEffect(() => {
     // The screen arrow is available even before the engine has connected.

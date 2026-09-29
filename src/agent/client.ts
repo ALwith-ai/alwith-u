@@ -361,16 +361,19 @@ export class CodexClient {
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
     if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
     const session = this.sessions.accept(sessionId, update)
-    this.updates.enqueue(sessionId, session)
-    if (
-      !session.restoring &&
-      update.sessionUpdate !== "agent_message_chunk" &&
-      update.sessionUpdate !== "agent_thought_chunk" &&
-      update.sessionUpdate !== "terminal_output_chunk"
-    ) {
-      // Live lifecycle and configuration changes are observable immediately,
-      // together with all earlier chunks. A completion must never overtake its text.
-      this.updates.flush()
+    // A replay folds silently: `replay()` publishes the finished transcript once the
+    // resume answers, so nothing schedules a render per replayed frame.
+    if (!session.restoring) {
+      this.updates.enqueue(sessionId, session)
+      if (
+        update.sessionUpdate !== "agent_message_chunk" &&
+        update.sessionUpdate !== "agent_thought_chunk" &&
+        update.sessionUpdate !== "terminal_output_chunk"
+      ) {
+        // Live lifecycle and configuration changes are observable immediately,
+        // together with all earlier chunks. A completion must never overtake its text.
+        this.updates.flush()
+      }
     }
     if (update.sessionUpdate === "session_info_update") {
       const frame = update as acp.SessionInfoUpdate
@@ -577,12 +580,16 @@ export class CodexClient {
     const session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
-    // The user's message goes on screen now. Codex reports it back as a `user_message`
-    // once the turn starts and the fold adopts that id; an agent that never reports
-    // (alwith-cli) leaves the local copy as is.
-    this.sessions.addPrompt(id, prompt)
+    // The user's message goes on screen now, under a local id. The receipt says which id the
+    // agent inserted it under (codex-acp-v2 mints it and hands it to Codex as
+    // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
+    // the later `user_message` echo or its text, so an unclaimed copy would stay a second
+    // message. Echo and receipt may arrive in either order.
+    const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
-    await this.live().request("session/prompt", { sessionId: id, prompt })
+    const response = await this.live().request<acp.PromptResponse>("session/prompt", { sessionId: id, prompt })
+    this.sessions.acknowledgePrompt(id, localId, response.messageId)
+    this.publishSession(this.sessions.get(id))
   }
 
   async cancel(id: string): Promise<void> {

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
+  "$schema": "https://schema.tauri.app/config/3.0.0-alpha.3",
   "productName": "ALwith U",
   "mainBinaryName": "alwith-u",
   "version": "../package.json",
@@ -11,7 +11,6 @@
     "beforeBuildCommand": "bun run stage && bun run build"
   },
   "app": {
-    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",

@@ -238,13 +238,19 @@ test("history replay batches complete upserts and publishes the full transcript 
     })
   }
   let notifications = 0
-  const stop = client.store.subscribe(() => notifications++)
+  let publishedWhileRestoring = 0
+  const stop = client.store.subscribe(state => {
+    notifications++
+    if (state.sessions.h1?.restoring && state.sessions.h1.items.length > 0) publishedWhileRestoring++
+  })
   await client.open("h1", "/tmp/one")
   stop()
   expect(client.state.sessions.h1.items).toHaveLength(402)
   expect(client.state.sessions.h1.restoring).toBe(false)
   expect(client.state.sessions.h1).toBe(client.session("h1"))
-  expect(notifications).toBeLessThan(40)
+  // Replayed frames fold silently; only the finished transcript is published.
+  expect(publishedWhileRestoring).toBe(0)
+  expect(notifications).toBeLessThan(10)
 })
 
 test("prompt acknowledgement is not completion; cancelling one session leaves the other running", async () => {
@@ -574,13 +580,16 @@ test("rename, account, rate limits and file search pass through the adapter's _c
   expect(found.files.map(file => file.path)).toEqual(["src/agent/client.ts"])
 })
 
-test("the user's message is on screen before Codex reports it, and the report only claims the id", async () => {
+test("the user's message is on screen before Codex reports it; the receipt claims it, the echo adopts it", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/a")
   const sending = client.prompt(id, [{ type: "text", text: "shown at once" }])
   const local = client.session(id).items.find(item => item.kind === "user")
   expect(local?.kind === "user" ? local.echo : null).toBe("pending")
   await sending
+  const claimed = client.session(id).items.find(item => item.kind === "user")
+  expect(claimed?.id).toBe("u")
+  expect(claimed?.kind === "user" ? claimed.echo : null).toMatch(/^(acknowledged|adopted)$/)
   await until(() => client.session(id).state === "idle")
   const users = client.session(id).items.filter(item => item.kind === "user")
   expect(users).toHaveLength(1)

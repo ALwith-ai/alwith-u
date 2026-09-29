@@ -11,7 +11,7 @@ name = "alwith_u_lib"
 crate-type = ["rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "3.0.0-alpha.2", features = [] }
 
 [features]
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
@@ -19,28 +19,31 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 [dependencies]
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 tempfile = "3"
-tauri-plugin-hasgard = { version = "0.4.1", optional = true }
-libloading = "0.8"
+tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }
+libloading = "0.9"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
-tauri-plugin-dialog = "2"
-tauri-plugin-global-shortcut = "2"
-tauri-plugin-log = "2"
-tauri-plugin-http = "2"
-tauri-plugin-os = "2"
-tauri-plugin-notification = "2"
-tauri-plugin-opener = "2"
-tauri-plugin-shell = "2"
-tauri-plugin-store = "2"
-tauri-plugin-process = "2"
-tauri-plugin-single-instance = "2"
-tauri-plugin-updater = "2"
-tauri-plugin-window-state = "2"
+# reqwest 0.13 把 TLS feature 从 `rustls-tls` 改名为 `rustls`。
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+# Tauri 3:runtime 是独立 crate,`macos-private-api` 必须开在 runtime crate 上(它会连带开到 tauri)。
+tauri = { version = "3.0.0-alpha.3", features = ["protocol-asset"] }
+tauri-runtime-wry = { version = "3.0.0-alpha.3", features = ["macos-private-api"] }
+tauri-plugin-dialog = "3.0.0-alpha.1"
+tauri-plugin-global-shortcut = "3.0.0-alpha.1"
+tauri-plugin-log = "3.0.0-alpha.1"
+tauri-plugin-http = "3.0.0-alpha.1"
+tauri-plugin-os = "3.0.0-alpha.1"
+tauri-plugin-notification = "3.0.0-alpha.1"
+tauri-plugin-opener = "3.0.0-alpha.1"
+tauri-plugin-shell = "3.0.0-alpha.1"
+tauri-plugin-store = "3.0.0-alpha.1"
+tauri-plugin-process = "3.0.0-alpha.1"
+tauri-plugin-single-instance = "3.0.0-alpha.1"
+tauri-plugin-updater = "3.0.0-alpha.1"
+tauri-plugin-window-state = "3.0.0-alpha.1"
 base64 = "0.23"
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 semver = "1"
 sys-locale = "0.3"
 tokio = { version = "1", features = ["sync", "time"] }
@@ -49,9 +52,20 @@ uuid = { version = "1", features = ["v4"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
-# Same reviewed revision as Desktop's nonactivating chat panel implementation.
-tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", rev = "a3122e894383aa068ec5365a42994e3ac94ba1b6" }
+# Desktop 同一份 Tauri 3 适配快照(上游 a3122e894383aa068ec5365a42994e3ac94ba1b6,见 patches/tauri-nspanel/MIGRATION.md)。
+tauri-nspanel = { path = "patches/tauri-nspanel" }
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics"] }
+
+# 第三方适配快照不是自有 workspace 成员,避免随 workspace 格式化;根包自动加入 workspace。
+[workspace]
+resolver = "3"
+exclude = ["patches/tauri-nspanel"]
+
+# 官方 alpha.1 插件对 tauri alpha.3 缺 `Manager` import 的编译修复,与 Desktop 同源;
+# 上游合入(dialog #3655、updater #3653)并发版后删掉。
+[patch.crates-io]
+tauri-plugin-dialog = { path = "patches/tauri-plugin-dialog" }
+tauri-plugin-updater = { path = "patches/tauri-plugin-updater" }
 
 [profile.dev]
 debug = "line-tables-only"

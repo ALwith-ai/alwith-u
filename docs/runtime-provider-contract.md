@@ -24,7 +24,7 @@ The settings page owns custom-provider names, base URLs and Desktop-compatible m
 
 ## Dependencies and verification
 
-`vendor/provenance.json` records the source commits and SHA-256 of the two local package artifacts. These packages are installed through the lockfile; no npm publication is implied. The installed package supplies the Rust SDK at `node_modules/@alwith/api/rust`. Runtime staging defaults to the checksum-verified npm platform package; sibling builds require explicit opt-in. The earlier verification below used an explicitly selected Runtime `7ea6a52`.
+`@alwith/api` and `@nyssance/codex-acp-v2` are installed from npm at exact versions (`package.json`, verified by the lockfile integrity hashes); the earlier vendored tarballs and `vendor/provenance.json` are gone. The installed package supplies the Rust SDK at `node_modules/@alwith/api/rust`. Runtime staging defaults to the checksum-verified npm platform package; sibling builds require explicit opt-in. The earlier verification below used an explicitly selected Runtime `7ea6a52`.
 
 Verified on macOS arm64: 101 frontend tests, 33 Rust tests, typecheck, lint, knip, clippy and a Tauri debug app build. The real Codex live suite passed over both stdio and WebSocket, including concurrent conversations, reattach, fresh-agent replay and Runtime state queries.
 
@@ -38,7 +38,7 @@ For native tests, create an empty temporary `CODEX_HOME` directory before launch
 
 ## Current artifact verification (2026-09-19)
 
-The previous pinned SDK tarball omitted `rust/`, breaking the current Cargo path dependency. The package is now built from API commit `85219966c62c1e806b872c2dfafa5654223c076c`, includes the Rust distribution, and fixes process-exit notification after failed Node/Bun spawn. Its source and SHA-256 are pinned in `vendor/provenance.json`; no npm publication or sibling source dependency was added.
+The previous pinned SDK tarball omitted `rust/`, breaking the current Cargo path dependency. Since `@alwith/api` 0.1.7 the npm package includes the Rust distribution; U now consumes the npm release directly (0.2.1 at the time of writing), and no sibling source dependency exists.
 
 Typecheck, frontend tests, lint, knip, frontend build and the macOS debug bundle passed with this artifact. Standard staging used npm Runtime 0.1.4, Codex 0.154.0 and adapter 0.6.0 from the pinned 440a542 artifact. The live stdio and WebSocket tests each completed two short paid Codex replies, verified concurrent session isolation, reattachment and native history replay after restarting the same engine. Both Runtime processes exited.
 
