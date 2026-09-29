@@ -9,6 +9,8 @@ import urllib.request
 from pathlib import Path
 
 from fabric import task
+from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
 from invoke import Context
 from invoke.exceptions import Exit
 
@@ -183,6 +185,30 @@ def upgrade(context: Context) -> None:
             context.run("cargo outdated --root-deps-only --workspace --ignore-external-rel", warn=True)
         context.run("bun outdated")
         context.run("bun update")
+
+
+@task
+def clean(context: Context) -> None:
+    """Remove build output: unused Rust artifacts, the whole target directory, or empty directories."""
+    mode = inquirer.select(
+        "How to clean:",
+        [
+            Choice("sweep", "cargo sweep (artifacts untouched for 30 days or from uninstalled toolchains)"),
+            Choice("full", "cargo clean (whole target directory; next build recompiles everything)"),
+            Choice("dirs", "empty directories only"),
+        ],
+    ).execute()
+    with context.cd(str(ROOT)):
+        if mode == "sweep":
+            if not context.run("command -v cargo-sweep", warn=True, hide=True).ok:
+                context.run("cargo install cargo-sweep")
+            with context.cd("src-tauri"):
+                context.run("cargo sweep --installed")
+                context.run("cargo sweep --time 30")
+        elif mode == "full":
+            with context.cd("src-tauri"):
+                context.run("cargo clean")
+        context.run("find . -type d -empty -print -delete")
 
 
 @task(name="format", aliases=["f"])
