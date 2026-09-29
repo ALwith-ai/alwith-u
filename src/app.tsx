@@ -44,6 +44,8 @@ import { ExtensionPage, ExtensionMount } from "@/features/extensions/extension-v
 import { useExtensions, reportExtensionError } from "@/features/extensions/runtime"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 
+import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
+
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -398,94 +400,96 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
-      <MainSidebarLayout
-        initialPinned={initialPreferences.sidebarPinned}
-        screen={leading ? "leading" : "main"}
-        sidebar={
-          <ThreadSidebar
-            screen={leading ? "leading" : "main"}
-            leadingPage={leadingPage}
-            selectedId={leading ? null : selectedId}
-            onSelect={select}
+      <WallpaperBackground onError={reportExtensionError}>
+        <MainSidebarLayout
+          initialPinned={initialPreferences.sidebarPinned}
+          screen={leading ? "leading" : "main"}
+          sidebar={
+            <ThreadSidebar
+              screen={leading ? "leading" : "main"}
+              leadingPage={leadingPage}
+              selectedId={leading ? null : selectedId}
+              onSelect={select}
+              onNewChat={newChat}
+              onSearch={() => setPaletteOpen(true)}
+              onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
+              onNewProjectChat={cwd => {
+                if (operation.busy) return
+                chooseDraftFolder(cwd)
+                importDraft(DRAFT_SESSION_ID, null)
+                setSurfaceGeneration(value => value + 1)
+                newChat()
+              }}
+              onOpenSettings={() => void openSettingsWindow()}
+              onOpenPlugins={openPlugins}
+              onOpenExtensions={openExtensions}
+              extensionNavigation={
+                <ExtensionActions
+                  host={extensions}
+                  placement="navigation"
+                  activeView={view === "extension" ? extensionView : null}
+                  onOpenSurface={openExtension}
+                  onError={reportExtensionError}
+                />
+              }
+              onSwitchScreen={() => {
+                if (leading) setView("chat")
+                else if (leadingPage === "extensions") openExtensions()
+                else openPlugins()
+              }}
+            />
+          }
+          leading={
+            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+              {leading && actionCards}
+              {pluginsVisited && (
+                <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+                  <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
+                </div>
+              )}
+              {leadingPage === "extensions" && (
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <div className="mx-auto w-full max-w-5xl px-6 py-8">
+                    <ExtensionsSection />
+                  </div>
+                </div>
+              )}
+            </SidebarInset>
+          }
+          main={
+            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+              {!leading && actionCards}
+              {main}
+            </SidebarInset>
+          }>
+          <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
             onNewChat={newChat}
-            onSearch={() => setPaletteOpen(true)}
-            onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
-            onNewProjectChat={cwd => {
-              if (operation.busy) return
-              chooseDraftFolder(cwd)
-              importDraft(DRAFT_SESSION_ID, null)
-              setSurfaceGeneration(value => value + 1)
-              newChat()
-            }}
             onOpenSettings={() => void openSettingsWindow()}
             onOpenPlugins={openPlugins}
-            onOpenExtensions={openExtensions}
-            extensionNavigation={
-              <ExtensionActions
-                host={extensions}
-                placement="navigation"
-                activeView={view === "extension" ? extensionView : null}
-                onOpenSurface={openExtension}
-                onError={reportExtensionError}
-              />
-            }
-            onSwitchScreen={() => {
-              if (leading) setView("chat")
-              else if (leadingPage === "extensions") openExtensions()
-              else openPlugins()
-            }}
+            onOpenHotkeys={() => setHotkeysOpen(true)}
+            onOpenExtension={openExtension}
+            onSelect={select}
           />
-        }
-        leading={
-          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
-            {leading && actionCards}
-            {pluginsVisited && (
-              <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
-              </div>
-            )}
-            {leadingPage === "extensions" && (
-              <div className="min-h-0 flex-1 overflow-auto">
-                <div className="mx-auto w-full max-w-5xl px-6 py-8">
-                  <ExtensionsSection />
-                </div>
-              </div>
-            )}
-          </SidebarInset>
-        }
-        main={
-          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
-            {!leading && actionCards}
-            {main}
-          </SidebarInset>
-        }>
-        <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
-        <CommandPalette
-          open={paletteOpen}
-          onOpenChange={setPaletteOpen}
-          onNewChat={newChat}
-          onOpenSettings={() => void openSettingsWindow()}
-          onOpenPlugins={openPlugins}
-          onOpenHotkeys={() => setHotkeysOpen(true)}
-          onOpenExtension={openExtension}
-          onSelect={select}
-        />
-        <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
-        <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
-          <ExtensionActions
-            host={extensions}
-            placement="topBar"
-            onOpenSurface={openExtension}
-            onError={reportExtensionError}
-          />
-        </div>
-        <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
-          <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
-        </div>
-        <div className="absolute right-2 bottom-0 z-20">
-          <ClientVersionPopover />
-        </div>
-      </MainSidebarLayout>
+          <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+          <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
+            <ExtensionActions
+              host={extensions}
+              placement="topBar"
+              onOpenSurface={openExtension}
+              onError={reportExtensionError}
+            />
+          </div>
+          <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
+            <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+          </div>
+          <div className="absolute right-2 bottom-0 z-20">
+            <ClientVersionPopover />
+          </div>
+        </MainSidebarLayout>
+      </WallpaperBackground>
     </div>
   )
 }

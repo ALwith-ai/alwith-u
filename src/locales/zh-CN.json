@@ -682,6 +682,12 @@
     "shortcutOff": "关闭"
   },
   "extensions": {
+    "details": {
+      "label": "{{name}}的详细信息",
+      "version": "版本",
+      "author": "作者",
+      "homepage": "作者主页"
+    },
     "outlets": {
       "topBar": "扩展工具栏",
       "navigation": "扩展导航",

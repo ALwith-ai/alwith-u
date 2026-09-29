@@ -386,3 +386,28 @@ body,
   opacity: 1;
   transition-duration: 0.1s;
 }
+
+/* Only the main application shell consumes extension wallpaper requests. */
+.wallpaper-shell {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  overflow: clip;
+}
+.wallpaper-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+[data-wallpaper="active"] [data-slot="sidebar-wrapper"] {
+  background: transparent;
+}
+[data-wallpaper="active"] [data-slot="sidebar"] {
+  background: color-mix(in srgb, var(--sidebar) 80%, transparent);
+}
+[data-wallpaper="active"] .main-chat-surface {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+}

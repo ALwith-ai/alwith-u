@@ -683,6 +683,12 @@
     "shortcutOff": "Off"
   },
   "extensions": {
+    "details": {
+      "label": "Details for {{name}}",
+      "version": "Version",
+      "author": "Author",
+      "homepage": "Author website"
+    },
     "outlets": {
       "topBar": "Extension toolbar",
       "navigation": "Extension navigation",

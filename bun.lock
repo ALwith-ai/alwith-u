@@ -9,7 +9,7 @@
         "@alwith/api": "0.1.6",
         "@alwith/module-auth": "0.1.0",
         "@alwith/module-chat": "0.1.4",
-        "@alwith/module-extension": "./vendor/alwith-module-extension-0.1.3.tgz",
+        "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-99c62bfd.tgz",
         "@alwith/runtime": "0.1.4",
         "@base-ui/react": "^1.8.0",
         "@fontsource-variable/inter": "^5.3.0",
@@ -89,6 +89,9 @@
       },
     },
   },
+  "overrides": {
+    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-99c62bfd.tgz",
+  },
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.4.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-/eufudw+aFY1LKLolT6yFE6UMmYRl7fMJ/DEONSIyR6wI3slHWITBsANRGqXEY8FRzqUxwh7QEaGiZHcJPVThg=="],
 
@@ -98,7 +101,7 @@
 
     "@alwith/module-chat": ["@alwith/module-chat@0.1.4", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-1Sny47PVjLIxvk3qiGLkxxvK2+IEwDb3iUAi5CJGTJLcdH8wg625ZGl004L6riCmJ6NFk3WqbYVG549cydaQuA=="],
 
-    "@alwith/module-extension": ["@alwith/module-extension@./vendor/alwith-module-extension-0.1.3.tgz", { "dependencies": { "@babel/parser": "^7.28.0", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^2.11.1", "@tauri-apps/plugin-http": "^2.7.0", "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-vORe2JujW6TqeFfE6E/wrP+Xy580ume9G/BdD4hnSxP+gWEnz3KlQsOac9V8Ahykkp7waFqGSZGohOuoUF+V+A=="],
+    "@alwith/module-extension": ["@alwith/module-extension@vendor/alwith-module-extension-0.1.0-99c62bfd.tgz", { "dependencies": { "@babel/parser": "^7.28.0", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^2.11.1", "@tauri-apps/plugin-http": "^2.7.0", "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-JJ+vK9ng2grJl9FlOfbEwTGbBWcbjQRmsu24rom+Um7+tTC98forIbfMq04KvEXYfhkd8uJ49oYHMNillm4t8w=="],
 
     "@alwith/native": ["@alwith/native@0.1.1", "", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.1", "@alwith/native-linux-arm64": "0.1.1", "@alwith/native-linux-x64": "0.1.1", "@alwith/native-win32-arm64": "0.1.1", "@alwith/native-win32-x64": "0.1.1" } }, "sha512-RltgTjpl+NlOPVGyV/ZGA9QMtVvHB90RdU0F6/STG0JUarA5U2ocw3Fydt9GyDAHNtqmCBKVgZZcVB7Pu6yv2w=="],
 

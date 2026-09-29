@@ -14,17 +14,15 @@ beforeEach(async () => {
 })
 
 test("a failed extension view shows a local error and retry recreates its content", async () => {
-  const host = new ExtensionHost({ apiVersion: "0.1.3", capabilities: {}, contributions: { surfaces: "1.0.0" } })
+  const host = new ExtensionHost({ apiVersion: "0.1.0", capabilities: {}, contributions: { surfaces: "1.0.0" } })
   const manifest: ExtensionManifest = {
-    manifestVersion: 2,
+    manifestVersion: 3,
     id: "broken",
     name: "Broken",
     version: "1.0.0",
     entry: "main.js",
-    engines: { extension: "^0.1.3" },
-    capabilities: { required: {}, optional: {} },
-    contributions: { required: { surfaces: "^1.0.0" }, optional: {} },
-    externals: [],
+    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    hosts: {},
     dataSchemaVersion: 1
   }
   let broken = true

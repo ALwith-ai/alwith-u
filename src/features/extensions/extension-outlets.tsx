@@ -1,41 +1,32 @@
-import type { ActionPlacement, ContributionIcon, ContributionAlignment } from "@alwith/module-extension"
+import type { ActionPlacement, ContributionAlignment } from "@alwith/module-extension"
 import type { HostSnapshot, ViewContribution, ActionContribution } from "@alwith/module-extension/host"
 import { resolveActionTarget, sortContributions } from "@alwith/module-extension/host"
-import {
-  BlocksIcon,
-  ChartNoAxesColumnIcon,
-  ClockIcon,
-  GlobeIcon,
-  PanelsTopLeftIcon,
-  PlayIcon,
-  SettingsIcon
-} from "lucide-react"
+import { EXTENSION_ICONS } from "./extension-icons"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 
-const ICONS: Record<ContributionIcon, typeof BlocksIcon> = {
-  blocks: BlocksIcon,
-  play: PlayIcon,
-  panel: PanelsTopLeftIcon,
-  settings: SettingsIcon,
-  clock: ClockIcon,
-  chart: ChartNoAxesColumnIcon,
-  globe: GlobeIcon
-}
 const ALIGNMENTS = ["left", "center", "right"] as const
 const ALIGNMENT_CLASSES: Record<ContributionAlignment, string> = {
   left: "justify-self-start",
   center: "justify-self-center",
   right: "justify-self-end"
 }
-function BarGroup({ alignment, children }: { alignment: ContributionAlignment; children: ReactNode }): ReactElement {
+function BarGroup({
+  alignment,
+  children,
+  className = ""
+}: {
+  alignment: ContributionAlignment
+  children: ReactNode
+  className?: string
+}): ReactElement {
   return (
     <div
       data-extension-alignment={alignment}
-      className={`pointer-events-auto flex max-w-full min-w-0 items-center gap-2 overflow-x-auto ${ALIGNMENT_CLASSES[alignment]}`}>
+      className={`pointer-events-auto flex max-w-full min-w-0 items-center gap-2 overflow-x-auto ${ALIGNMENT_CLASSES[alignment]} ${className}`}>
       {children}
     </div>
   )
@@ -61,7 +52,7 @@ export function ExtensionActions({
     const target = resolveActionTarget(host, action)
     const available = target !== undefined
     const active = target?.type === "surface" && target.view.id === activeView
-    const Icon = ICONS[action.icon ?? "blocks"]
+    const Icon = EXTENSION_ICONS[action.icon ?? "blocks"]
     const run = (): void => {
       void Promise.resolve()
         .then(() => {
@@ -132,11 +123,14 @@ export function ExtensionStatusBar({
       dir="ltr"
       className="pointer-events-none grid h-8 w-full min-w-0 grid-cols-3 items-center gap-3 text-xs">
       {ALIGNMENTS.map(alignment => (
-        <BarGroup key={alignment} alignment={alignment}>
+        <BarGroup key={alignment} alignment={alignment} className="overflow-y-hidden">
           {items
             .filter(view => (view.alignment ?? "left") === alignment)
             .map(view => (
-              <section key={view.id} aria-label={view.title} className="max-h-7 max-w-64 shrink-0 overflow-auto">
+              <section
+                key={view.id}
+                aria-label={view.title}
+                className="max-h-7 max-w-64 shrink-0 overflow-x-auto overflow-y-hidden">
                 {renderView(view)}
               </section>
             ))}
@@ -161,7 +155,7 @@ export function ExtensionSettingsNavigation({
   return (
     <nav aria-label={t("extensions.outlets.settingsPages")} className="border-border mt-3 space-y-0.5 border-t pt-3">
       {pages.map(view => {
-        const Icon = ICONS[view.icon ?? "settings"]
+        const Icon = EXTENSION_ICONS[view.icon ?? "settings"]
         return (
           <NavigationItemButton
             key={view.id}

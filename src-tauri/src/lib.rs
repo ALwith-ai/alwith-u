@@ -1,4 +1,6 @@
+mod appearance;
 mod auth;
+mod bundled_extensions;
 mod chat_window;
 mod installed_apps;
 mod menu;
@@ -35,6 +37,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(alwith_extension::plugin::init())
+        .plugin(appearance::wallpaper::plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -84,6 +87,10 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(tauri::generate_handler![
+            bundled_extensions::extension_bundles,
+            appearance::wallpaper::wallpaper_list,
+            appearance::wallpaper::wallpaper_import,
+            appearance::wallpaper::wallpaper_remove,
             auth::refresh_tokens,
             chat_window::plugin::present_chat_window,
             chat_window::plugin::resize_chat_window,

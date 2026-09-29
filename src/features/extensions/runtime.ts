@@ -16,6 +16,15 @@ import * as reactDom from "react-dom/client"
 import { useEffect, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
+import { invoke } from "@tauri-apps/api/core"
+import { getCurrentWindow } from "@tauri-apps/api/window"
+import i18n from "@/lib/i18n"
+import { version as hostVersion } from "../../../package.json"
+import * as extensionUi from "./ui"
+import { createHostCapabilities } from "./capabilities"
+import { ensureBundledExtensions, type BundledExtension } from "./bundled"
+
+let startup: Promise<void> | undefined
 let runtime: ExtensionRuntime | undefined
 
 export function reportExtensionError(error: unknown): void {
@@ -30,16 +39,21 @@ export function reportExtensionError(error: unknown): void {
 
 function getRuntime(): ExtensionRuntime {
   runtime ??= createTauriExtensionRuntime({
-    apiVersion: "0.1.3",
+    apiVersion: sdk.extensionApiVersion,
+    host: { id: "alwith-u", version: hostVersion },
     capabilities: {
+      ...createHostCapabilities(id => {
+        if (!runtime) throw new Error("Extension runtime is not initialized")
+        return runtime.snapshot().native?.installations.find(item => item.id === id)
+      }, reportExtensionError),
       [sdk.httpCapability.id]: createTauriHttp({
         allowUrl: url =>
           ["https://api.alwith.ai", "https://api-dev.alwith.ai"].includes(url.origin) &&
           url.pathname.startsWith("/service/")
       }),
-      [sdk.notificationsCapability.id]: createTauriNotifications(),
+      [sdk.notificationsCapability.id]: createTauriNotifications({ language: () => i18n.language }),
       [sdk.externalLinksCapability.id]: createTauriExternalLinks({ allowUrl: () => true }),
-      [sdk.dialogsCapability.id]: createTauriDialogs()
+      [sdk.dialogsCapability.id]: createTauriDialogs({ language: () => i18n.language })
     },
     contributions: {
       commands: "1.0.0",
@@ -51,6 +65,7 @@ function getRuntime(): ExtensionRuntime {
       settingsPages: "1.0.0"
     },
     evaluate: createCommonJsEvaluator({
+      "@alwith/u-extension-ui": extensionUi,
       "@alwith/module-extension": sdk,
       "@alwith/module-extension/dom": dom,
       "@alwith/module-extension/react": { mountReact },
@@ -69,7 +84,11 @@ export function useExtensions() {
   const state = useSyncExternalStore(current.subscribe, current.snapshot, current.snapshot)
   const host = useHostSnapshot(current.host)
   useEffect(() => {
-    void current.start().catch(reportExtensionError)
+    startup ??= current.start().then(async () => {
+      if (getCurrentWindow().label === "main")
+        await ensureBundledExtensions(current, await invoke<BundledExtension[]>("extension_bundles"))
+    })
+    void startup.catch(reportExtensionError)
     const refresh = (): void => {
       void current.refresh().catch(reportExtensionError)
     }
