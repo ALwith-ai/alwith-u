@@ -47,7 +47,7 @@ pub async fn resize_chat_window(
     super::resize::resize(&window, direction, x, y, width, height).await
 }
 
-pub fn init() -> TauriPlugin<tauri::Wry> {
+pub fn init() -> TauriPlugin<tauri::DynRuntime> {
     Builder::new("chat-window")
         .setup(|app, _| {
             #[cfg(target_os = "macos")]

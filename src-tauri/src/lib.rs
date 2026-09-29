@@ -12,6 +12,7 @@ use tauri::{Emitter, Manager};
 
 pub fn run() {
     let builder = tauri::Builder::default()
+        .runtime(tauri_runtime_wry::Wry::default())
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.

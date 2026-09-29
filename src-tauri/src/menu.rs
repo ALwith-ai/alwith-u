@@ -120,7 +120,7 @@ fn t(key: &str, lang: &str) -> &'static str {
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::DynRuntime>> {
     let lang = detect_locale(app);
 
     #[cfg(target_os = "macos")]
