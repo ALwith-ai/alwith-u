@@ -231,17 +231,10 @@
   inset-inline-start: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
 }
 
-/* Keep toolbar groups clear of native controls; empty space remains draggable. */
+/* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
 .main-extension-toolbar {
-  left: max(
-    calc(var(--main-sidebar-width) + 12px),
-    calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale))
-  );
-  right: 12px;
-  transition: left var(--sidebar-resize-duration) ease-in-out;
-}
-[data-main-screen="leading"] .main-extension-toolbar {
   left: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+  right: 12px;
 }
 
 /* Extension status widgets occupy the visible content gutter, clear of either sidebar. */

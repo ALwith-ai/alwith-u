@@ -130,7 +130,7 @@ test("settings columns select full pages and show unavailable after withdrawal",
   expect(ui.getByText("Extension page unavailable")).toBeTruthy()
 })
 
-test("top bar partitions left/center/right and sorts each side while legacy actions stay right", () => {
+test("top bar defaults to left while preserving explicit center/right and sorting", () => {
   const host = snapshot()
   const action = host.actions[1]
   if (!action) throw new Error("Missing fixture")
@@ -146,9 +146,9 @@ test("top bar partitions left/center/right and sorts each side while legacy acti
     Array.from(ui.container.querySelectorAll(`[data-extension-alignment="${side}"] button`), item =>
       item.getAttribute("aria-label")
     )
-  expect(labels("left")).toEqual(["Left first", "Left last"])
+  expect(labels("left")).toEqual(["Left first", "Legacy", "Left last"])
   expect(labels("center")).toEqual(["Center"])
-  expect(labels("right")).toEqual(["Legacy", "Right"])
+  expect(labels("right")).toEqual(["Right"])
 })
 test("status bar partitions widgets and preserves the legacy left default", () => {
   const ui = render(
@@ -165,4 +165,23 @@ test("status bar partitions widgets and preserves the legacy left default", () =
   expect(ui.container.querySelector('[data-extension-alignment="left"]')?.textContent).toBe("demo/legacydemo/left-last")
   expect(ui.container.querySelector('[data-extension-alignment="center"]')?.textContent).toBe("demo/center")
   expect(ui.container.querySelector('[data-extension-alignment="right"]')?.textContent).toBe("demo/right")
+})
+
+test("business ribbon entries render distinct Lucide icons on the left", () => {
+  const host = snapshot()
+  const action = host.actions[1]
+  if (!action) throw new Error("Missing fixture")
+  const icons = [
+    ["bar-chart-3", "lucide-chart-column"],
+    ["file-text", "lucide-file-text"],
+    ["book-open", "lucide-book-open"],
+    ["shield-check", "lucide-shield-check"]
+  ] as const
+  host.actions = icons.map(([icon]) => ({ ...action, id: `demo/${icon}`, title: icon, icon }))
+  const ui = render(<ExtensionActions host={host} placement="topBar" onOpenSurface={() => {}} onError={() => {}} />)
+  for (const [name, svgClass] of icons) {
+    const button = ui.getByRole("button", { name })
+    expect(button.closest("[data-extension-alignment]")?.getAttribute("data-extension-alignment")).toBe("left")
+    expect(button.querySelector(`svg.${svgClass}`)).not.toBeNull()
+  }
 })

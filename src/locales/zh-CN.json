@@ -682,6 +682,7 @@
     "shortcutOff": "关闭"
   },
   "extensions": {
+    "legacyConflict": "已安装同名扩展，请先卸载后再导入 Desktop 版本。",
     "details": {
       "label": "{{name}}的详细信息",
       "version": "版本",

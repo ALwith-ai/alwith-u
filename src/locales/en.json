@@ -683,6 +683,7 @@
     "shortcutOff": "Off"
   },
   "extensions": {
+    "legacyConflict": "An extension with this ID is already installed. Uninstall it before importing the Desktop version.",
     "details": {
       "label": "Details for {{name}}",
       "version": "Version",

@@ -3,6 +3,7 @@ mod auth;
 mod bundled_extensions;
 mod chat_window;
 mod installed_apps;
+mod legacy_extensions;
 mod menu;
 mod native;
 mod providers;
@@ -48,6 +49,8 @@ pub fn run() {
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
         .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat", "settings"]).build())
+        .manage(legacy_extensions::files::LegacyFiles::default())
+        .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default());
 
     #[cfg(feature = "hasgard-testing")]
@@ -90,6 +93,14 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             bundled_extensions::extension_bundles,
+            legacy_extensions::importer::extension_prepare_install,
+            legacy_extensions::importer::legacy_stage_import,
+            legacy_extensions::importer::legacy_take_initial_data,
+            legacy_extensions::importer::legacy_ack_initial_data,
+            legacy_extensions::http::legacy_http,
+            legacy_extensions::files::legacy_file,
+            legacy_extensions::files::legacy_directories,
+            legacy_extensions::files::legacy_pick_directory,
             appearance::wallpaper::wallpaper_list,
             appearance::wallpaper::wallpaper_import,
             appearance::wallpaper::wallpaper_remove,

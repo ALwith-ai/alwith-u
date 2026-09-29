@@ -1,6 +1,6 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
@@ -43,6 +43,8 @@ import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/exte
 import { ExtensionPage, ExtensionMount } from "@/features/extensions/extension-view"
 import { useExtensions, reportExtensionError } from "@/features/extensions/runtime"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
+import { connectLegacyNavigation } from "@/features/extensions/legacy/navigation"
+import { assertLegacySkills, requiredLegacySkills } from "@/features/extensions/legacy/skills"
 
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 
@@ -84,6 +86,35 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("extensions")
   }, [])
   const session = useSession(selectedId)
+  const legacySession = useRef(session)
+  legacySession.current = session
+  useEffect(
+    () =>
+      connectLegacyNavigation({
+        currentSession: () => {
+          const selected = legacySession.current
+          return selected?.attached
+            ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id }
+            : null
+        },
+        openView: openExtension,
+        send: async (id, text) => {
+          const required = requiredLegacySkills(text)
+          if (required.length) {
+            const target = client.state.sessions[id]
+            if (!target?.attached || target.readOnly)
+              throw new Error("已绑定会话当前不可写，请重新打开会话后再操作扩展")
+            const catalog = await client.listSkills([target.cwd], true)
+            assertLegacySkills(
+              required,
+              catalog.data.flatMap(entry => entry.skills)
+            )
+          }
+          await client.prompt(id, [{ type: "text", text }])
+        }
+      }),
+    [openExtension]
+  )
   const focused = useWindowFocus()
   const { busy, operation } = useSurfaceOperation()
 

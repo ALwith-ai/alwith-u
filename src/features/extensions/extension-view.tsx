@@ -33,7 +33,7 @@ export function ExtensionViewContent({
     [view, onError]
   )
   return (
-    <div className="min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {failed && (
         <div role="alert" className="flex min-w-0 items-center gap-2 text-sm">
           <span className="truncate" title={String(failure.error)}>
@@ -44,7 +44,7 @@ export function ExtensionViewContent({
           </Button>
         </div>
       )}
-      <div ref={setContainer} className="min-h-0 flex-1" />
+      <div ref={setContainer} className="flex min-h-0 min-w-0 flex-1 flex-col" />
       {view && !failed && <ExtensionView host={host} id={id} container={container} onError={handleError} />}
     </div>
   )
@@ -53,7 +53,7 @@ export function ExtensionViewContent({
 export function ExtensionPage({ id, onClose }: { id: string; onClose(): void }): ReactElement {
   const { t } = useTranslation()
   const { host } = useExtensions()
-  const view = host.views.find(item => item.id === id && item.kind === "surfaces")
+  const view = host.views.find(item => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 pt-12">
       <div className="flex items-center justify-between gap-4">

@@ -20,6 +20,8 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri"] }
 tempfile = "3"
+cap-std = "4"
+sha2 = "0.10"
 tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }
 libloading = "0.9"
 log = "0.4"

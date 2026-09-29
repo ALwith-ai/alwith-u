@@ -96,7 +96,7 @@ export function ExtensionActions({
       className="pointer-events-none grid w-full min-w-0 grid-cols-3 items-center gap-3">
       {ALIGNMENTS.map(alignment => (
         <BarGroup key={alignment} alignment={alignment}>
-          {actions.filter(action => (action.alignment ?? "right") === alignment).map(renderAction)}
+          {actions.filter(action => (action.alignment ?? "left") === alignment).map(renderAction)}
         </BarGroup>
       ))}
     </div>
