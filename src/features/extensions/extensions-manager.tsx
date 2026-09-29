@@ -176,7 +176,7 @@ export function ExtensionsManager({
                       side="bottom"
                       sideOffset={8}
                       align="start"
-                      className="bg-popover text-popover-foreground border-border [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover block max-w-[min(24rem,calc(100vw-2rem))] space-y-3 rounded-lg border p-4 leading-relaxed break-words shadow-md [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b">
+                      className="bg-popover text-popover-foreground border-border [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border p-4 leading-relaxed break-words shadow-md [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b">
                       <p className="text-sm font-medium">{name}</p>
                       {description && <p className="text-muted-foreground whitespace-pre-wrap">{description}</p>}
                       <dl className="border-border [&>dt]:text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t pt-3">
