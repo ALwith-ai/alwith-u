@@ -2,12 +2,16 @@ import { parseManifest } from "@alwith/module-extension"
 import { expect, test } from "bun:test"
 import type { RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Installation, Request } from "@alwith/module-extension/tauri"
-import rawManifest from "../../../../src-tauri/resources/extensions/alwith-static-wallpaper/manifest.json"
 import { ensureBundledExtension } from "../bundled"
 
-const manifest = parseManifest(rawManifest)
+const manifest = parseManifest({
+  id: "host-notes",
+  name: "Test extension",
+  version: "1.0.0",
+  dependencies: { "@alwith/module-extension": "^0.1.0" }
+})
 
-const bundle = { id: manifest.id, version: manifest.version, source: "bundled:alwith-u", path: "/bundled/wallpaper" }
+const bundle = { id: manifest.id, version: manifest.version, source: "bundled:alwith-u", path: "/bundled/host-notes" }
 function installation(version: string, enabled: boolean): Installation {
   return {
     id: manifest.id,

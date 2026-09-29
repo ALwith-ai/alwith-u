@@ -158,15 +158,16 @@ test("plugin icons use the same local Figma asset in marketplace and installed l
   }
   pluginsStore.setState({ marketplaces: [marketplace], installed: [{ plugin: entry, marketplace }] })
   const view = render(<PluginsPage cwd={null} active />)
-  const image = must(view.container.querySelector("img"), "plugin icon")
-  expect(image.getAttribute("src")).toBe("/plugin-icons/ladybug.svg")
-  expect(image.getAttribute("alt")).toBe("")
+  const image = must(view.container.querySelector("svg:has(use)"), "plugin icon")
+  const definition = must(view.container.querySelector("#plugin-ladybug"), "shared plugin definition")
+  expect(view.container.querySelectorAll("symbol")).toHaveLength(65)
+  expect(definition.closest('[role="tabpanel"]')).toBeNull()
+  const href = must(image.querySelector("use"), "plugin symbol").getAttribute("href")
+  expect(href).toEndWith("#plugin-ladybug")
+  expect(image.getAttribute("aria-hidden")).toBe("true")
   await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
-  expect(must(view.container.querySelector("img"), "installed plugin icon").getAttribute("src")).toBe(
-    "/plugin-icons/ladybug.svg"
-  )
+  expect(must(view.container.querySelector("use"), "installed plugin icon").getAttribute("href")).toBe(href)
+  expect(view.container.querySelector("#plugin-ladybug")).toBe(definition)
   await act(async () => i18n.changeLanguage("zh-CN"))
-  expect(must(view.container.querySelector("img"), "localized plugin icon").getAttribute("src")).toBe(
-    "/plugin-icons/ladybug.svg"
-  )
+  expect(must(view.container.querySelector("use"), "localized plugin icon").getAttribute("href")).toBe(href)
 })

@@ -1,4 +1,21 @@
+/// <reference types="vite/client" />
 import type { ReactNode } from "react"
+import sprite from "./plugin-icons.svg?raw"
+
+/** Mount once outside the tab panels: WebKit loses gradients through external SVG use. */
+export function PluginIconDefinitions(): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width={0}
+      height={0}
+      className="pointer-events-none absolute"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Static repository SVG, never plugin or user content.
+      dangerouslySetInnerHTML={{ __html: sprite }}
+    />
+  )
+}
 
 // Keep this ordered pool stable: changing its membership remaps existing plugin names.
 const ICON_NAMES = [
@@ -73,9 +90,13 @@ const ICON_NAMES = [
 export function pluginIconSrc(name: string): string {
   let hash = 0
   for (const character of name) hash = (hash * 31 + character.charCodeAt(0)) % 997
-  return `/plugin-icons/${ICON_NAMES[hash % ICON_NAMES.length]}.svg`
+  return `#plugin-${ICON_NAMES[hash % ICON_NAMES.length]}`
 }
 
 export function PluginIcon({ name }: { name: string }): ReactNode {
-  return <img src={pluginIconSrc(name)} alt="" width={36} height={36} className="size-9 shrink-0" />
+  return (
+    <svg aria-hidden="true" focusable="false" width={36} height={36} viewBox="0 0 36 36" className="size-9 shrink-0">
+      <use href={pluginIconSrc(name)} />
+    </svg>
+  )
 }

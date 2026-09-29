@@ -29,7 +29,7 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/age
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { client, useApp } from "@/lib/client"
 import { pluginsStore } from "./instance"
-import { PluginIcon } from "./plugin-icon"
+import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
 
 /**
  * Codex skills ship their icon as a file under ~/.codex (`interface.iconSmall`); the remote
@@ -391,6 +391,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <PluginIconDefinitions />
       <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>

@@ -4,11 +4,15 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { ResourceScope } from "@alwith/module-extension/host"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { initI18n } from "@/lib/i18n"
-import rawManifest from "../../../../src-tauri/resources/extensions/alwith-static-wallpaper/manifest.json"
 import { createWallpaperCapability } from "../capabilities/wallpaper"
 import { wallpaperController } from "@/features/appearance/wallpaper/controller"
 
-const manifest = parseManifest(rawManifest)
+const manifest = parseManifest({
+  id: "wallpaper-client",
+  name: "Test extension",
+  version: "1.0.0",
+  dependencies: { "@alwith/module-extension": "^0.1.0" }
+})
 
 installDom()
 test("wallpaper dialogs receive the current app language through the native boundary", async (): Promise<void> => {
