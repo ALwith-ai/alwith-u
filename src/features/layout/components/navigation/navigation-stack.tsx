@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 type NavigationStackProps = ({ as?: "div" } & ComponentProps<"div">) | ({ as: "ul" } & ComponentProps<"ul">)
 
-/** 导航栏唯一纵向排列容器：所有同级行之间固定保留 2px 间距。 */
+/** Shared vertical navigation container with a fixed 2px gap between all sibling rows. */
 export function NavigationStack(props: NavigationStackProps) {
   if (props.as === "ul") {
     const { as: _as, className, ...listProps } = props

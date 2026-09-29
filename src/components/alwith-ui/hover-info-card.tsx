@@ -1,12 +1,12 @@
 /**
- * HoverInfoCard —— 悬停浮窗的**统一内容排版**。会话行(左导航 / Collection / Activity /
- * 会话列)与聊天区轮次刻度尺共用同一张卡:标题一行,正文可选,其下若干「图标 + 一行字」。
+ * HoverInfoCard provides a shared content layout for hover cards. Session rows (left navigation / Collection / Activity /
+ * session columns) and the chat turn ruler share a one-line title, optional body, and rows of an icon plus one line of text.
  *
- * 收口的是排版,不是数据:各处自己决定标题写什么、出几行;间距、字号、图标轨宽只在这里定义一次。
+ * Only layout is shared: callers choose titles and row counts; spacing, font sizes, and icon column widths are defined here.
  *
- * `actions` —— 行操作从行尾 ⋯ 挪进来(2026-07-27 用户定)。**做成一列带图标带文字的菜单项,
- * 不是一排图标钮**:各处动作数量差很多(会话列 3 个、Collection 会话行 5 个),图标排一多就挤,
- * 而且「移动到组」和「移出组」这类语义靠图标根本区分不开。行尾那格让给 ✕(停止会话)。
+ * `actions` moved here from the row's trailing ellipsis menu (user decision, 2026-07-27). Render a vertical list of icons with labels,
+ * not a row of icon buttons: action counts vary (3 in session columns, 5 in Collection session rows), making icon rows crowded.
+ * Icons alone cannot distinguish actions such as "Move to group" and "Remove from group". The trailing slot is reserved for ✕ (stop session).
  */
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
@@ -29,7 +29,7 @@ export function HoverInfoCard({
   body?: ReactNode
   rows?: HoverInfoRow[]
   details?: HoverInfoRow[]
-  /** 行操作区(卡片底部,与信息之间一条分隔线);没有就不渲染分隔线。 */
+  /** Actions at the bottom of the card, separated from the information by a divider; omit the divider when no actions exist. */
   actions?: ReactNode
 }) {
   return (
@@ -73,8 +73,8 @@ export function HoverInfoCard({
 
 function HoverInfoRows({ rows }: { rows?: HoverInfoRow[] }) {
   return rows?.map((row, index) => (
-    // 行本身没有稳定 id(纯展示),顺序即身份
-    // biome-ignore lint/suspicious/noArrayIndexKey: 静态展示行,顺序固定且不重排
+    // These presentation-only rows have no stable IDs; their order defines their identity.
+    // biome-ignore lint/suspicious/noArrayIndexKey: Static presentation rows have a fixed order and are never reordered.
     <div key={index} data-slot="hover-info-card-row" className="text-muted-foreground flex items-start gap-1.5 text-xs">
       <span data-slot="hover-info-card-icon" className="flex h-5 w-4 shrink-0 items-center justify-center">
         {row.icon}
@@ -85,8 +85,8 @@ function HoverInfoRows({ rows }: { rows?: HoverInfoRow[] }) {
 }
 
 /**
- * 浮板底部的一个动作项 —— 排版对齐 DropdownMenuItem(h-8 / gap-2 / svg size-4),
- * 但它不在菜单里,所以是普通按钮:卡片本身已经是浮层,再套一层菜单只会让关闭时机打架。
+ * An action at the bottom of the card, matching DropdownMenuItem layout (h-8 / gap-2 / svg size-4).
+ * Use a regular button: the card is already a floating layer, and nesting a menu would create conflicting dismissal behavior.
  */
 export function HoverInfoAction({
   icon,
@@ -98,7 +98,7 @@ export function HoverInfoAction({
 }: {
   icon: ReactNode
   label: ReactNode
-  /** 右侧附加(如「移动到组」的 ▾)。 */
+  /** Optional trailing content, such as the ▾ for "Move to group". */
   trailing?: ReactNode
   disabled?: boolean
   onClick?: () => void

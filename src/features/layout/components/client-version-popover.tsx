@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-/** 右下角的轻量状态入口：读取客户端与 Runtime 实际使用的 Codex 可执行文件版本。 */
+/** Lightweight status entry at the bottom right, showing the client version and the Codex executable version actually used by Runtime. */
 export function ClientVersionPopover() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)

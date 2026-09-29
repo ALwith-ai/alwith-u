@@ -1,17 +1,17 @@
 /**
- * 侧栏「一行被指到 / 被选中」的底色 —— 全侧栏共用这一份。
+ * Shared sidebar background for hovered and selected rows.
  *
- * 用半透明叠加而不是 `bg-accent` 这类实色 token:玻璃底板撤掉后,行背后直接是毛玻璃 + 壁纸,
- * 实色压上去像贴了张纸;低透明度的 foreground 叠加是「把底下压暗/提亮一点」,壁纸纹理仍透得过来,
- * 亮暗主题自动反向。这是本项目「禁止自造半透明」的一处明确例外(2026-07-26 用户指定)。
+ * Use a translucent overlay instead of solid tokens such as `bg-accent`: with the glass panel removed, rows sit directly over frosted glass and wallpaper.
+ * A solid fill looks like pasted paper; a low-opacity foreground overlay darkens or lightens the background while preserving the wallpaper texture.
+ * Light and dark themes invert this automatically. This is an explicit exception to the project's ban on custom translucency (user decision, 2026-07-26).
  *
- * 两个常量差别**只在属性写法**:shadcn `Item` 用 `data-[active=true]`,shadcn `Sidebar`
- * 的菜单按钮用 `data-active` / `active:`。数值必须一致 —— 上面菜单与下面列表 hover 观感不同
- * 就是各写各的造成的(2026-07-26 用户指出)。Tailwind 只认字面量,所以不能拼接复用。
+ * The constants differ only in attribute syntax: shadcn `Item` uses `data-[active=true]`, while shadcn `Sidebar`
+ * menu buttons use `data-active` / `active:`. Values must match; defining them independently caused inconsistent hover styles
+ * between the upper menu and lower list (user feedback, 2026-07-26). Tailwind requires literal classes, so they cannot be composed dynamically.
  */
 
-/** Codex list token: hover 8%，选中 5%；hover 比静态选中更强。 */
+/** Codex list token: 8% on hover, 5% when selected; hover is stronger than static selection. */
 export const ROW_HIGHLIGHT = "hover:bg-foreground/8 data-[active=true]:bg-foreground/5"
 
-/** 导航菜单按钮。 */
+/** Navigation menu buttons. */
 export const MENU_HIGHLIGHT = "hover:bg-foreground/8 data-active:bg-foreground/5"

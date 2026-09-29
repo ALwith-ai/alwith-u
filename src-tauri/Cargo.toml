@@ -25,9 +25,9 @@ libloading = "0.9"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# reqwest 0.13 把 TLS feature 从 `rustls-tls` 改名为 `rustls`。
+# reqwest 0.13 renamed the TLS feature from `rustls-tls` to `rustls`.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-# Tauri 3:runtime 是独立 crate,`macos-private-api` 必须开在 runtime crate 上(它会连带开到 tauri)。
+# Tauri 3: runtime is a separate crate; enable `macos-private-api` on the runtime crate (which also enables it on tauri).
 tauri = { version = "3.0.0-alpha.3", features = ["protocol-asset"] }
 tauri-runtime-wry = { version = "3.0.0-alpha.3", features = ["macos-private-api"] }
 tauri-plugin-dialog = "3.0.0-alpha.1"
@@ -55,17 +55,17 @@ uuid = { version = "1", features = ["v4"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
-# Desktop 同一份 Tauri 3 适配快照(上游 a3122e894383aa068ec5365a42994e3ac94ba1b6,见 patches/tauri-nspanel/MIGRATION.md)。
+# Same Tauri 3 adaptation snapshot as Desktop (upstream a3122e894383aa068ec5365a42994e3ac94ba1b6; see patches/tauri-nspanel/MIGRATION.md).
 tauri-nspanel = { path = "patches/tauri-nspanel" }
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics"] }
 
-# 第三方适配快照不是自有 workspace 成员,避免随 workspace 格式化;根包自动加入 workspace。
+# Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
 exclude = ["patches/tauri-nspanel"]
 
-# 官方 alpha.1 插件对 tauri alpha.3 缺 `Manager` import 的编译修复,与 Desktop 同源;
-# 上游合入(dialog #3655、updater #3653)并发版后删掉。
+# Fix the missing `Manager` import in the official alpha.1 plugins when compiling against tauri alpha.3; shared with Desktop.
+# Remove once the upstream fixes (dialog #3655, updater #3653) are merged and released.
 [patch.crates-io]
 tauri-plugin-dialog = { path = "patches/tauri-plugin-dialog" }
 tauri-plugin-updater = { path = "patches/tauri-plugin-updater" }

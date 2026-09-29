@@ -16,14 +16,14 @@
     "rules": {
       "preset": "recommended",
       "style": {
-        // 组件各自的 CSS 只按尾元素比特异性(.a li > button 与 .b button)会被判为"后者可能不生效",
-        // 但两者从不命中同一元素;这条规则在按组件分文件的样式里几乎全是误报(与 Desktop 同一决定)
+        // Comparing only the trailing selectors in component CSS (.a li > button vs .b button) flags the latter as potentially ineffective,
+        // even though they never match the same element. This rule mostly produces false positives in per-component styles (same decision as Desktop).
         "noDescendingSpecificity": "off"
       },
       "a11y": {
-        // SVG 均为三方或装饰图标,可访问名在使用边界的按钮/img 上提供
+        // SVGs are third-party or decorative icons; accessible names are provided by the containing button/img.
         "noSvgWithoutTitle": "off",
-        // Biome 无法区分 hover/拖拽/阻止冒泡与键盘可激活交互;真正的键盘缺失由 useKeyWithClickEvents 检查
+        // Biome cannot distinguish hover/drag/propagation handlers from keyboard-activatable interactions; useKeyWithClickEvents checks missing keyboard support.
         "noStaticElementInteractions": "off",
         "noLabelWithoutControl": {
           "level": "error",

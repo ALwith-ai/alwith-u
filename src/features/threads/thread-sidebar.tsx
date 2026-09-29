@@ -239,14 +239,14 @@ export function ThreadSidebar({
   const archivedLoaded = useApp(state => state.archivedLoaded)
   const archivedCursor = useApp(state => state.archivedCursor)
   const runStates = useApp(state => state.runStates)
-  // 展开态放共享内存 store(Desktop 同款):应用运行期间保留,重启即清空。
+  // Keep expansion state in the shared in-memory store, as in Desktop; preserve it while the app runs and reset it on restart.
   const projectOpen = useThreadsUiStore(s => s.projectOpen)
   const setProjectOpen = useThreadsUiStore(s => s.setProjectOpen)
-  // 侧栏面板(Desktop 的 activeNavigationItem):会话列表 / 活动。
+  // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
   const view = useThreadsUiStore(s => s.view)
   const setView = useThreadsUiStore(s => s.setView)
-  // 标签组:与导航图标按钮共用 30px 行高和 hover,不带外层底板;
-  // 选中 = 胶囊内 icon + 文字,未选中 = 纯 icon(Desktop atlas-layout 的那组,减到两项)。
+  // Tabs share the navigation icon buttons' 30px row height and hover styles, without an outer background panel.
+  // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const tabs: { key: SidebarView; title: string; icon: React.ReactNode }[] = [
     { key: "sessions", title: t("sidebar.chats"), icon: <FolderIcon /> },
     { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> }
@@ -424,7 +424,7 @@ export function ThreadSidebar({
               {groups.map(([cwd, list]) => {
                 const isOpen = projectOpen.get(cwd) ?? false
                 return (
-                  // 双层:组(项目,可折叠)→ 组内会话。受控折叠,展开态进共享 store。
+                  // Two levels: collapsible project groups, then their sessions. Expansion is controlled by the shared store.
                   <NavigationGroup
                     key={cwd}
                     wrapHeader={header => (
@@ -438,7 +438,7 @@ export function ThreadSidebar({
                     open={isOpen}
                     onOpenChange={open => setProjectOpen(new Map(projectOpen).set(cwd, open))}
                     leading={
-                      // 项目(工作区)分组显文件夹图标:展开=打开、折叠=关闭。
+                      // Project (workspace) groups use an open folder icon when expanded and a closed folder icon when collapsed.
                       isOpen ? (
                         <FolderOpenIcon className="text-foreground size-3.5 shrink-0" />
                       ) : (

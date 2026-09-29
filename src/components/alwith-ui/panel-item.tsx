@@ -1,12 +1,12 @@
 /**
- * 侧栏面板列表项的公共封装。
+ * Shared wrapper for sidebar panel list items.
  *
- * sessions / extensions / plugins / search 四个面板的列表项反复手调的公共量
- * ——尺寸(size="xs")、横向内缩(px-2.5)、hover、圆角、标题单行截断——全收口到这里,
- * 以后「四个面板一起改」= 改这一个文件。媒体 / 动作 / 描述等内容槽各面板自己 compose。
+ * Centralizes the common list-item settings previously tuned separately in the sessions / extensions / plugins / search panels:
+ * size="xs", horizontal padding (px-2.5), hover styles, rounded corners, and single-line title truncation.
+ * Updating all four panels now means editing this file. Each panel composes its own media / actions / description slots.
  *
- * 透传 shadcn Item 的子部件(ItemMedia/ItemContent/ItemActions/ItemDescription/ItemTitle),
- * 特殊标题(如 search 文件头的 name+dir 同行)用裸 ItemTitle 自己拼;普通单行截断用 PanelItemTitle。
+ * Re-exports shadcn Item subcomponents (ItemMedia/ItemContent/ItemActions/ItemDescription/ItemTitle).
+ * Compose special titles, such as a search file header with name and directory on one line, with ItemTitle; use PanelItemTitle for standard truncation.
  */
 
 import type { ComponentProps } from "react"
@@ -15,15 +15,15 @@ import { ROW_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { cn } from "@/lib/utils"
 
-/** 列表容器:横向留 px-2 小边距(跟面板标题对齐),不紧贴窗口边。 */
+/** List container with px-2 horizontal margins, aligned with panel headings and inset from the window edge. */
 function PanelList({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("flex flex-col px-2", className)} {...props} />
 }
 
 /**
- * 列表项:扁平 shadcn Item,默认 size="xs" + hover。size 可覆盖。
- * 传 active 高亮选中态——对齐导航项目的选中态:
- * 选中与 hover 同 bg-accent,靠 text-accent-foreground + font-medium 区分。
+ * List item: a flat shadcn Item with size="xs" and hover styles by default. The size can be overridden.
+ * Pass active to highlight selection, matching navigation item selection:
+ * selection and hover share bg-accent, with text-accent-foreground and font-medium distinguishing selection.
  */
 function PanelItem({ className, size = "xs", active, ...props }: ComponentProps<typeof Item> & { active?: boolean }) {
   return (
@@ -31,9 +31,9 @@ function PanelItem({ className, size = "xs", active, ...props }: ComponentProps<
       size={size}
       data-active={active}
       className={cn(
-        // 圆角走 Item 基类的 rounded-md:侧栏没有玻璃底板后,hover/选中底色是浮在窗底上的
-        // 一块独立高亮,直角通铺会看着像切断的色条(2026-07-26 用户指正,对齐 Codex)。
-        // 底色数值在 surface-highlight.ts 一处定义,与侧栏菜单按钮共用。
+        // Use the Item base class's rounded-md: without the sidebar glass panel, hover/selection appears as a standalone highlight
+        // over the window background; a full-width square strip would look cut off (user correction, 2026-07-26, matching Codex).
+        // Background values are defined once in surface-highlight.ts and shared with sidebar menu buttons.
         ROW_HIGHLIGHT,
         "data-[active=true]:font-medium",
         className
@@ -44,14 +44,14 @@ function PanelItem({ className, size = "xs", active, ...props }: ComponentProps<
 }
 
 /**
- * 普通标题:ItemTitle + 内层单行省略。
+ * Standard title: ItemTitle with an inner single-line ellipsis.
  *
- * **悬停走马灯**:鼠标进来时量一次,文字真的超出才滑动 —— 滑到刚好露出末尾就停(位移 =
- * 溢出量),移开滑回。速度恒定,所以标题越长滑得越久,不会长短标题一样快。
+ * Hover marquee: measure on pointer entry and scroll only if text overflows, stopping as soon as the end is visible (distance =
+ * overflow amount). Scroll back on pointer leave. Constant speed means longer titles take longer to scroll.
  *
- * 没用 `react-fast-marquee` 之类:那类库是**连续循环**跑马灯,靠复制内容拼接实现无缝,
- * 用在被截断的标题上会看到「标题标题标题」。要的是 Finder / Spotify 那种「露出末尾再回来」,
- * 语义不同,套不上。
+ * Libraries such as `react-fast-marquee` loop continuously by duplicating content for seamless scrolling,
+ * which would show repeated titles in a truncated heading. We need Finder / Spotify behavior: reveal the end, then return.
+ * Those looping libraries do not match this behavior.
  */
 function PanelItemTitle({ className, children, ...props }: ComponentProps<typeof ItemTitle>) {
   return (
@@ -62,7 +62,7 @@ function PanelItemTitle({ className, children, ...props }: ComponentProps<typeof
 }
 
 export {
-  // 裸 Item:不要默认 hover 的特例(如 sessions 组头),自己 compose
+  // Bare Item: compose special cases without default hover styles, such as session group headers.
   Item,
   ItemActions,
   ItemContent,

@@ -228,7 +228,7 @@ export function ThreadView({ session }: { session: Session }) {
         data-chat-scroll
         className="min-h-0 flex-1 scrollbar-thin overflow-x-hidden overflow-y-auto overscroll-contain"
         style={{ overflowAnchor: "none" }}
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: 滚动容器需可聚焦才能用键盘滚动
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll container must be focusable to support keyboard scrolling.
         tabIndex={0}
         role="log"
         aria-label={t("chat.thread")}>

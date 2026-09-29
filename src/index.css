@@ -86,8 +86,8 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --sidebar-floating-shadow: oklch(0 0 0 / 16%);
-  /* 主聊天浮板：与 Desktop 主屏保持同一套几何。边缘留给原生 backdrop，
-     卡片不依赖描边或阴影来从背景中跳出来。 */
+  /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
+     the card does not rely on borders or shadows to stand out from the background. */
   --main-surface-gutter: 8px;
   --main-surface-block-gutter: 32px;
   --main-surface-radius: 14px;
@@ -146,14 +146,14 @@
     background: transparent;
   }
 }
-/* 与 Desktop 一致：常驻导航和主浮板周围直接透出原生 vibrancy。 */
+/* Match Desktop: native vibrancy shows through around the persistent navigation and main panel. */
 [data-slot="sidebar-wrapper"] {
   background-color: transparent;
 }
 [data-slot="sidebar"] {
   background-color: transparent;
 }
-/* 悬浮导航覆盖聊天区时使用独立 surface，维持内容可读性。 */
+/* Give floating navigation its own surface when it overlays chat, keeping content readable. */
 [data-sidebar-presentation="floating"] [data-slot="sidebar"] {
   background-color: var(--background);
 }
@@ -162,8 +162,8 @@
   background-color: transparent;
 }
 
-/* 主屏聊天是独立的实色浮板：左右各出 8px、上下各出 32px 缝，圆角 14px。
-   留缝沿用侧栏底色，因此侧栏和主板自然分层，而不是依靠分隔线。 */
+/* Main chat uses a separate solid panel with 8px side gaps, 32px top/bottom gaps, and a 14px corner radius.
+   Gaps retain the sidebar background, naturally separating the layers without divider lines. */
 .main-chat-surface {
   width: auto;
   min-width: 0;
@@ -176,7 +176,7 @@
   box-shadow: none;
 }
 
-/* 主浮板上方 32px 留白同时是无控件的原生拖拽区。 */
+/* The 32px gap above the main panel also serves as a native drag region without controls. */
 [data-sidebar-presentation] {
   --sidebar-resize-duration: 200ms;
   --sidebar-fade-duration: 150ms;

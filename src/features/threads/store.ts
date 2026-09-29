@@ -8,13 +8,13 @@ import { create } from "zustand"
 export type SidebarView = "sessions" | "activity"
 
 interface ThreadsUiState {
-  /** 当前侧栏面板:会话列表 / 活动。 */
+  /** Current sidebar panel: session list or activity. */
   view: SidebarView
   setView: (view: SidebarView) => void
-  /** Projects 展开态仅存进程内存;应用重启即清空。 */
+  /** Project expansion state lives only in process memory and resets on app restart. */
   projectOpen: Map<string, boolean>
   setProjectOpen: (next: Map<string, boolean>) => void
-  /** Activity 面板折叠的分组(前台 / 后台)。切走再回来保持,重启后清空。 */
+  /** Collapsed Activity groups (foreground / background); preserved across panel switches, reset on restart. */
   activityCollapsedGroups: ReadonlySet<string>
   setActivityCollapsedGroups: (next: ReadonlySet<string>) => void
 }

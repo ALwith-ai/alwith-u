@@ -309,9 +309,9 @@ export function hasPluginStore(agent: acp.InitializeResponse | null): boolean {
 }
 
 /**
- * 一轮失败时界面要说的话。协议只给 `stopReason`,详情在 idle 帧的 `_meta` 里,
- * 每家芯放法不同 —— codex 放 `_meta.codex.error`。`@alwith/api` 原样交出 `_meta`,
- * 这里把它读成 codex 的那一份。
+ * User-facing details for a failed turn. The protocol only provides `stopReason`; details live in the idle frame's `_meta`.
+ * Each backend uses its own location; Codex uses `_meta.codex.error`. `@alwith/api` passes `_meta` through unchanged,
+ * and this function reads the Codex-specific payload.
  */
 export type CodexTurnError = {
   message: string

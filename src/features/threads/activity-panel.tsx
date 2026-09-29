@@ -1,14 +1,14 @@
 /**
- * ActivityPanel —— ALwith Desktop 的「Activity」面板:Runtime 运行态注册表里的活跃会话,
- * 层级视图(主 agent 行 + 其下在跑的 subagent 子行)。
+ * ActivityPanel adapts ALwith Desktop's Activity panel: active sessions from Runtime's run-state registry,
+ * shown hierarchically with a main agent row and running subagent rows beneath it.
  *
- * - 主 agent 行 = 会话(与会话列同一行控件),**按时间正序**——正序稳定不跳行
- *   (先来的在上、新会话追加在底;注意力靠灯色表达即可);
- * - subagent 子行 = Runtime 从 ACP 流量解析的在跑任务(终局即移除)——回答「这条会话
- *   黄了半天到底在忙什么 / 还欠几个后台任务没回来」;
- * - **按宿主分组**:前台 = 正在看的那条(不显示组头并始终平铺)→ 后台(其余运行会话)。
- *   点行打开,行尾 ✕ 停止(Runtime 按会话反查 agent 收进程)。
- * 本仓单窗口、无 ALwith.dev:Desktop 的窗口徽标、执行租约(dev 组)、无主行不存在。
+ * - Main agent row = session (using the same row component as session columns), in ascending chronological order for stable positioning:
+ *   older sessions stay above new sessions appended at the bottom; state colors provide the attention cue.
+ * - Subagent rows = running tasks parsed by Runtime from ACP traffic and removed on completion, showing what a long-running session
+ *   is doing and which background tasks remain outstanding.
+ * - Group by host: foreground is the currently viewed session (always flat, with no group header), followed by background running sessions.
+ *   Click a row to open it; the trailing ✕ stops it (Runtime finds the agent by session and terminates the process).
+ * This app has one window and no ALwith.dev: Desktop's window badges, execution leases (dev group), and ownerless rows are omitted.
  */
 import { ActivityIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
@@ -59,9 +59,9 @@ export function ActivityPanel({
   const runStates = useApp(state => state.runStates)
   const threads = useApp(state => state.threads)
 
-  // 排序键 = 线程的最近更新时间,**正序**(先来的在上,新会话追加在底,像日志一样长);
-  // Desktop 用磁盘会话表的创建时间,Codex 的线程列表只给 updatedAt,是最接近的一份;
-  // 列表里还没有的会话排最底。
+  // Sort by the thread's most recent update time in ascending order: older entries first, new sessions appended like a log.
+  // Desktop uses creation time from its on-disk session table; Codex's thread list only exposes updatedAt, the closest available value.
+  // Sessions absent from the list sort last.
   const updatedAt = useMemo(
     () =>
       new Map(
@@ -69,7 +69,7 @@ export function ActivityPanel({
       ),
     [threads]
   )
-  // 不做本地可见性过滤:Runtime 的 runStates 就是「此刻真有 agent 在跑」的权威表。
+  // Do not filter by local visibility: Runtime's runStates is the authoritative registry of agents currently running.
   const rows = useMemo(
     () =>
       Object.values(runStates)
@@ -78,7 +78,7 @@ export function ActivityPanel({
     [runStates, threads, updatedAt]
   )
 
-  // 前台的事实源是"是否真占着可见 Chat 位":本仓单窗口,即当前选中的会话。
+  // Foreground means occupying the visible Chat slot: in this single-window app, that is the selected session.
   const groups = useMemo(() => {
     const byKey = new Map<string, typeof rows>()
     for (const row of rows) {
@@ -89,25 +89,25 @@ export function ActivityPanel({
     }
     return (
       ["foreground", "background"]
-        // 「后台」组头**常驻**,没有任务显示 0 条——它是一个固定的去处,不该有任务才出现;
-        // 前台组空则不渲染
+        // Keep the Background header visible even with zero tasks: it is a permanent destination, not a section that appears only when tasks exist.
+        // Omit the foreground group when empty.
         .filter(key => byKey.has(key) || key === "background")
         .map(key => ({
           key,
           label: key === "background" ? t("sidebar.background") : t("sidebar.foreground"),
-          // 后台:tailwind 固定橙(Inbox 蓝 / 随聊绿 / 后台橙,Desktop 2026-08-10 定)
+          // Background uses fixed Tailwind orange (Inbox blue / casual chat green / Background orange; Desktop decision, 2026-08-10).
           icon: key === "background" ? <ActivityIcon className="size-3.5 shrink-0 text-orange-500" /> : undefined,
           rows: byKey.get(key) ?? []
         }))
     )
   }, [rows, selectedId, t])
-  // 折叠态仅存进程内存:切走 Activity 再回来保持,重启后清空。
+  // Collapsed state lives only in process memory: it survives leaving Activity and returning, but resets on restart.
   const collapsedGroups = useThreadsUiStore(s => s.activityCollapsedGroups)
   const setCollapsedGroups = useThreadsUiStore(s => s.setActivityCollapsedGroups)
-  // ⌘1~9 与序号提示按**分组后的展平顺序**(用户看到的顺序)
+  // Cmd+1 through Cmd+9 and numeric hints follow the flattened group order visible to the user.
   const flatRows = groups.flatMap(group => group.rows)
 
-  // ⌘1~9 跳到第 N 行(正序;数字提示也只标前 9 条)
+  // Cmd+1 through Cmd+9 jump to the Nth row in ascending order; number hints appear only on the first nine rows.
   const cmdHeld = useCmdHeld()
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -181,7 +181,7 @@ function ActivityRow({
   thread: ThreadSummary
   state: RunState
   active: boolean
-  /** Runtime 解析的在跑 subagent 任务(缩进子行;终局即从推送里消失)。 */
+  /** Running subagent tasks parsed by Runtime, rendered as indented children and removed from updates on completion. */
   tasks: SessionTask[]
   onOpen: () => void
   hint?: React.ReactNode
@@ -207,13 +207,13 @@ function ActivityRow({
         title={title}
         hint={hint}
         actions={
-          /* 行尾一颗 ✕ = 停止,与会话列同一颗控件。停止 = Runtime 按会话反查 agent 收进程;
-             这个面板里每一行都给。 */
+          /* The trailing ✕ stops the session, using the same control as session columns. Runtime finds the agent by session and terminates its process;
+             every row in this panel gets this control. */
           <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(thread.sessionId))} />
         }
       />
-      {/* subagent 子行:缩进对齐标题列(行 11px 内缩 + 图标 16 + 缝 8 = 35px),
-          恒黄脉动(Runtime 只保留未终局的),回答"主 agent 在忙什么" */}
+      {/* Subagent rows align with the title column (11px row inset + 16px icon + 8px gap = 35px).
+          They always pulse yellow because Runtime only retains nonterminal tasks, showing what the main agent is doing. */}
       {tasks.map(task => (
         <div
           key={task.id}

@@ -54,7 +54,7 @@ export type ThreadSummary = {
   forkedFromId?: string | null
 }
 
-/** 一条等用户回答的请求,就是待办簿里的那条(`id` 是簿子的键)。 */
+/** A request awaiting the user's answer, stored in the pending-request ledger under its `id`. */
 export type PendingAction =
   | {
       id: string
@@ -163,7 +163,7 @@ export class CodexClient {
    * tool — so the other two judgments stay unset.
    */
   private readonly sessions = new SessionStore({ toolContent: "replace" })
-  /** agent 发来等用户回答的请求(权限、问卷);答复、Stop 时的 cancelled、agent 的撤回都在里面。 */
+  /** Agent requests awaiting user input (permissions, questionnaires), including answers, cancellation on Stop, and agent withdrawals. */
   private readonly requests = new AgentRequests((id, result, error) => void this.agent?.respond(id, result, error))
   private agent: Agent | null = null
   private agents: Agents<Launch> | null = null

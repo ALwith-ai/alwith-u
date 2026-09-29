@@ -1,5 +1,5 @@
-//! 将落在旧 Space 的系统输入法候选窗关联到当前聊天面板。
-//! AppKit 兼容处理与移除条件见 docs/fallbacks.md。
+//! Attach system IME candidate windows left in an old Space to the current chat panel.
+//! See docs/fallbacks.md for this AppKit compatibility workaround and its removal criteria.
 
 use std::cell::{Cell, RefCell};
 
@@ -26,10 +26,10 @@ impl CandidateBinding {
     }
 
     fn detach(&self) {
-        // 系统可能已回收或重新托管候选窗；只撤销仍由我们持有的父子关系。
+        // The system may have reclaimed or reparented the candidate window; detach only relationships we still own.
         if self.is_our_child() {
             self.parent.removeChildWindow(&self.candidate);
-            // addChildWindow 会自动改写层级和 IgnoresCycle，交回系统时恢复原值。
+            // addChildWindow changes the level and IgnoresCycle; restore their original values when returning control to the system.
             self.candidate.setLevel(self.original_level);
             self.candidate.setCollectionBehavior(self.original_behavior);
             log::debug!(
@@ -56,7 +56,7 @@ impl Drop for UpdateGuard {
 
 fn with_bindings(action: impl FnOnce(&mut Vec<CandidateBinding>)) {
     MainThreadMarker::new().expect("IME candidate ownership requires the main thread");
-    // AppKit 的父子窗口操作可能同步发出通知，嵌套通知由外层这次更新处理。
+    // AppKit parent/child window operations may post notifications synchronously; this outer update handles nested notifications.
     if UPDATING.replace(true) {
         return;
     }
@@ -68,7 +68,7 @@ pub(super) fn install() {
     MainThreadMarker::new().expect("IME candidate observer requires the main thread");
     let mut builder = ClassBuilder::new(c"AlwithImeCandidateObserver", NSObject::class())
         .expect("IME candidate observer must be installed once");
-    // SAFETY: selector 与回调签名一致；观察者保留到应用退出，通知只操作主线程 AppKit 对象。
+    // SAFETY: The selector matches the callback signature; the observer lives until app exit and only accesses AppKit objects on the main thread.
     unsafe {
         builder.add_method(sel!(updateOverlayCandidates:), notification as extern "C-unwind" fn(_, _, _));
         builder.add_method(sel!(closeOverlayCandidates:), window_will_close as extern "C-unwind" fn(_, _, _));
@@ -101,7 +101,7 @@ extern "C-unwind" fn notification(_observer: &AnyObject, _selector: Sel, _notifi
 }
 
 extern "C-unwind" fn window_will_close(_observer: &AnyObject, _selector: Sel, notification: *const NSNotification) {
-    // SAFETY: NSWindowWillCloseNotification 的 object 是即将关闭的窗口，回调期间有效。
+    // SAFETY: NSWindowWillCloseNotification's object is the closing window and remains valid during the callback.
     let window: *const NSWindow = unsafe { msg_send![&*notification, object] };
     assert!(!window.is_null(), "Window close notification must identify its window");
     with_bindings(|bindings| {
@@ -131,7 +131,7 @@ fn input_panel(application: &NSApplication) -> Option<Retained<NSWindow>> {
     if !window.isKeyWindow() || !window.isVisible() || !window.isKindOfClass(super::RawDesktopChatPanel::class()) {
         return None;
     }
-    // 焦点切换期间允许没有输入上下文；不为视图惰性创建或激活新的 context。
+    // An input context may be absent during focus changes; do not lazily create or activate a new context for the view.
     let context = NSTextInputContext::currentInputContext(application.mtm())?;
     let client = context.client();
     let responder = window.firstResponder()?;
@@ -157,9 +157,9 @@ pub(super) fn update() {
             keep
         });
         let Some(parent) = input else { return };
-        // macOS 26.5 实测的 ViewBridge 候选窗类型；isKindOfClass 同时识别系统 KVO 子类。
-        // 类可在首次使用输入法时才加载。只匹配已知类型，不用层级/尺寸猜测其他系统窗口。
-        // 这是平台兼容处理，非公开的“取得候选窗”API；边界与移除条件登记在 docs/fallbacks.md。
+        // ViewBridge candidate window type verified on macOS 26.5; isKindOfClass also recognizes system KVO subclasses.
+        // The class may load only when the IME is first used. Match known types only; do not infer other system windows from levels or dimensions.
+        // This is a platform compatibility workaround, not a public candidate-window API; its scope and removal criteria are in docs/fallbacks.md.
         let Some(candidate_class) = AnyClass::get(c"NSPanel.ViewBridge.rendezvous") else { return };
         for candidate in application.windows().iter() {
             if !candidate.isKindOfClass(candidate_class)
@@ -178,7 +178,7 @@ pub(super) fn update() {
                 candidate,
                 parent: parent.clone(),
             };
-            // SAFETY: 两个窗口均在当前进程且主线程持有，候选窗没有父窗口，不会形成父子环。
+            // SAFETY: Both windows belong to this process and are held on the main thread; the candidate has no parent, so no parent/child cycle can form.
             unsafe { parent.addChildWindow_ordered(&binding.candidate, NSWindowOrderingMode::Above) };
             log::debug!("[overlay-ime] attached candidate={} parent={}", binding.window_number, parent.windowNumber());
             bindings.push(binding);

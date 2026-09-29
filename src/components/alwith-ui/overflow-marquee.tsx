@@ -1,12 +1,12 @@
 import { type ComponentProps, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
-/** 走马灯速度(px/s)。跟 macOS Finder 一个量级。 */
+/** Marquee speed in px/s, comparable to macOS Finder. */
 const MARQUEE_SPEED = 45
-/** 溢出不到这么多像素就不滚，避免短距离晃动。 */
+/** Do not scroll below this overflow threshold, avoiding jitter over short distances. */
 const MARQUEE_MIN_OVERFLOW = 8
 
-/** 单行内容仅在真实溢出时悬停滚到末尾。 */
+/** On hover, scroll a single line to its end only when it actually overflows. */
 export function OverflowMarquee({ className, children, onMouseEnter, onMouseLeave, ...props }: ComponentProps<"span">) {
   const textRef = useRef<HTMLSpanElement | null>(null)
   const [translation, setTranslation] = useState(0)

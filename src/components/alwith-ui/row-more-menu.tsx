@@ -1,14 +1,14 @@
 /**
- * RowMoreMenu —— 行/组头 hover ⋯ 菜单的统一触发钮 + 容器:
- * size-5 触发钮(贴 TrailingSwap 的 w-5 中线)+ size-3.5 ⋯ 图标 + min-w-[160px] 内容。
- * 菜单项直接用 DropdownMenuItem 内置排版(gap-2 / svg size-4),别再手写 me-2/size。
- * Collection 行、Collection 组头、Sessions 行共用;新增行级菜单一律走这里。
+ * RowMoreMenu provides a shared trigger and container for the ellipsis menu shown on row/group-header hover:
+ * a size-5 trigger (aligned with TrailingSwap's w-5 centerline), a size-3.5 ellipsis icon, and min-w-[160px] content.
+ * Use DropdownMenuItem's built-in layout (gap-2 / svg size-4); do not add manual me-2/size styles.
+ * Shared by Collection rows, Collection group headers, and Sessions rows; all new row menus should use this component.
  */
 import { SquareIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 
-/** 行尾图标钮的共同外形:与 ⋯ 同一个 size-5 中线槽(TrailingSwap 的 w-5)。 */
+/** Shared trailing icon-button shape: the same size-5 centered slot as the ellipsis (TrailingSwap's w-5). */
 function RowIconButton({ title, onPress, children }: { title: string; onPress: () => void; children: ReactNode }) {
   return (
     <Button
@@ -26,11 +26,11 @@ function RowIconButton({ title, onPress, children }: { title: string; onPress: (
 }
 
 /**
- * 行尾**停止**钮 —— 方块,不是 ✕。
+ * Trailing stop button: a square, not ✕.
  *
- * 语义是停止不是释放(2026-07-27 用户定「绿灯灭」):releaseSession 只是本窗不再持有、
- * agent 继续跑,点完灯还亮着,那不是用户期待的事。只在会话真的活着时给这颗钮 ——
- * 不活的磁盘会话没有可停的东西,那格照旧显示时间。
+ * The action must stop, not release (user requested "turn off the green light", 2026-07-27): releaseSession only releases this window's reference;
+ * the agent keeps running and its light stays on, contrary to user expectations. Show this button only while the session is actually live.
+ * Inactive sessions on disk have nothing to stop; keep displaying the time in that slot.
  */
 export function RowStopButton({ title, onStop }: { title: string; onStop: () => void }) {
   return (

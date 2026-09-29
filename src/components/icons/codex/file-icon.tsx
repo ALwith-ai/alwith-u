@@ -134,7 +134,7 @@ export function CodexFileIcon({ path, className }: { path: string; className?: s
       aria-hidden="true"
       className={className}
       style={{ color: resolvedTheme === "dark" ? icon.dark : icon.light }}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: 渲染内置图标集的可信本地 SVG,不是用户内容
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Renders trusted local SVGs from the bundled icon set, not user content.
       dangerouslySetInnerHTML={{ __html: icon.body }}
     />
   )

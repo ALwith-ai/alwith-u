@@ -4,12 +4,12 @@ import { RUN_STATE_COLOR, RUN_STATE_TEXT, type RunState } from "@/lib/run-state"
 import { cn } from "@/lib/utils"
 
 /**
- * SessionStateDot —— 会话运行态灯,词表色表(@/lib/run-state)的圆点渲染。
- * 未连接(无运行态 = 历史/未在 Runtime 活跃的会话)**不显灯**:只有活跃会话才有态,
- * 历史行不该挂灰点(Sessions / Collection / Active 三栏一致)。
- * 位置约定:会话行统一放**行首**(左侧,与图标同一根轨);定位方式由调用方容器决定。
+ * SessionStateDot renders a session state indicator using the vocabulary and colors from @/lib/run-state.
+ * Disconnected sessions (no run state: historical sessions or sessions not active in Runtime) show no dot; only active sessions have a state.
+ * Historical rows must not display a gray dot, consistently across Sessions / Collection / Active.
+ * Place the dot at the start of each session row, on the left and aligned with icons; the caller controls positioning.
  *
- * @param pulse working 态是否脉动(默认 true)。静态图例(如 navigator 的过滤 chip)传 false 关掉。
+ * @param pulse Whether the working state pulses (default true). Pass false for static legends such as navigator filter chips.
  */
 export function SessionStateDot({
   state,
@@ -20,15 +20,15 @@ export function SessionStateDot({
   className?: string
   pulse?: boolean
 }) {
-  // 未连接 / 未运行:无态即不渲染灰点(历史会话行保持干净)。
+  // Disconnected / not running: no state means no gray dot, keeping historical session rows clean.
   if (state === undefined) return null
   const color = RUN_STATE_COLOR[state]
-  // working 运行态:黄色 ldrs ping(径向脉冲)替代原来的 animate-pulse 圆点。
-  // pulse=false 的静态图例(navigator 过滤 chip 等)仍走普通黄点,不动画。
+  // Working state: a yellow ldrs ping (radial pulse) replaces the previous animate-pulse dot.
+  // Static legends with pulse=false, such as navigator filter chips, retain a plain yellow dot without animation.
   if (state === "running" && pulse) {
-    // running:统一观感(不跟调用方 size 变)——固定 6px 实心中心 + 26px ldrs ping 外圈脉冲。
-    // ldrs ping 本身只有向外扩散的环、没有实心中心,中心自己补;中心太大会盖住脉冲,故固定小。
-    // 中心与环同色(currentColor ← text-yellow-500,单一取色)。
+    // Running: use a fixed 6px solid center and 26px ldrs ping ring for a consistent appearance, independent of the caller's size.
+    // ldrs ping only provides expanding rings, so add a solid center. Keep it small to avoid covering the pulse.
+    // Center and ring share one color source (currentColor from text-yellow-500).
     return (
       <span
         className={cn(

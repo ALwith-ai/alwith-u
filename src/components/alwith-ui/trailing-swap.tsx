@@ -1,21 +1,21 @@
 /**
- * 行尾区几何契约的唯一实现(纯 CSS,无 absolute)。GroupHeader 与 SessionItem 共用,
- * 三个概念,别在调用方手拼几何:
+ * Shared trailing-area geometry for GroupHeader and SessionItem (pure CSS, no absolute positioning).
+ * Three concepts keep callers from assembling their own geometry:
  *
- * 1. `TRAILING_GROUP` —— 宿主行容器挂的 group 类(tailwind 变体要静态字面量)。
- * 2. `TrailingSlot` —— 最右的 w-5 中线槽:与 icon 按钮(size-5)同宽、内容居中,
- *    灯 / 计数 / ⋯ 图标全部压同一根竖直中线;超宽内容(计数 106)围绕中线对称外溢。
- * 3. `TrailingSwap` —— 常显内容正常占位，hover 操作用 absolute 覆盖在同一右缘；
- *    操作层不参与尺寸计算，display 直接切换，不经过子按钮的 transition-all；菜单开着
- *    (data-popup-open)时操作保持显示、内容保持隐藏；操作区点击不冒泡到行。
+ * 1. `TRAILING_GROUP`: group class on the host row container (Tailwind variants require static literals).
+ * 2. `TrailingSlot`: the rightmost w-5 centered slot, matching icon-button width (size-5) with centered content.
+ *    Dots, counts, and ellipsis icons share a vertical centerline; wide content such as count 106 overflows symmetrically.
+ * 3. `TrailingSwap`: the default content stays in normal flow; hover actions are absolutely positioned over the same right edge.
+ *    Actions do not affect sizing. Toggle display directly, bypassing child buttons' transition-all; while the menu is open
+ *    (data-popup-open), actions remain visible and default content stays hidden. Action clicks do not bubble to the row.
  */
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-/** 宿主行容器必须挂的 group 类(与下方 group-hover/trailing 变体配对)。 */
+/** Required group class on the host row container, paired with the group-hover/trailing variants below. */
 export const TRAILING_GROUP = "group/trailing"
 
-/** 最右 w-5 中线槽:内容与 icon 按钮图标同轴;空 children = 占位保轨(位置恒定不抖)。 */
+/** Rightmost w-5 centered slot, aligned with icon-button glyphs; empty children reserve the slot to prevent shifting. */
 export function TrailingSlot({ children, className }: { children?: ReactNode; className?: string }) {
   return (
     <span className={cn("flex w-5 shrink-0 items-center justify-center whitespace-nowrap", className)}>{children}</span>
@@ -27,9 +27,9 @@ export function TrailingSwap({
   actions,
   className
 }: {
-  /** 常显层(灯 / 时间 / 计数);建议最右单元用 TrailingSlot 包住压中线。 */
+  /** Default layer (dot / time / count); wrap the rightmost element in TrailingSlot to align its center. */
   content?: ReactNode
-  /** hover 层(⋯ / ✕ 等 icon 按钮);换位、防叠影、stopPropagation 都归本控件。 */
+  /** Hover layer (ellipsis / ✕ icon buttons); this component owns swapping, overlap prevention, and stopPropagation. */
   actions?: ReactNode
   className?: string
 }) {

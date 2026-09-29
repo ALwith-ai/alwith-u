@@ -1,22 +1,22 @@
 /**
- * 无装饰窗自绘 resize 边缘。macOS 上 tao 0.35.3 的 drag_resize_window(即前端
- * startResizeDragging)直接返回 NotSupported(tao-0.35.3/src/platform_impl/macos/window.rs:963),
- * 系统只在 borderless+Resizable 窗贴边极窄的原生判定带里能缩放——所以 macOS 由本组件
- * pointer capture 跟手,逐帧调 resize_window_edge 原子换框(min/max 钳制在 Rust 侧);
- * 其余平台 startResizeDragging 可用,原样交给系统。
- * 命中区:四边 8px(再宽会盖住贴边内容的点击,如聊天区右缘滚动条)、四角 16px;
- * 只缩放整个窗口,不承担 pane 分栏调整。
- * chat 窗 完整/迷你形态共用。
+ * Custom resize edges for undecorated windows. On macOS, tao 0.35.3's drag_resize_window (the frontend's
+ * startResizeDragging) returns NotSupported (tao-0.35.3/src/platform_impl/macos/window.rs:963).
+ * Native resizing only works within a very narrow edge hit area on borderless+Resizable windows, so on macOS this component
+ * tracks the pointer with pointer capture and calls resize_window_edge each frame to update bounds atomically (Rust clamps min/max sizes).
+ * Other platforms support startResizeDragging and delegate directly to the system.
+ * Hit areas: 8px on each edge (wider areas would intercept nearby controls, such as the chat scrollbar) and 16px at each corner.
+ * Resizes the entire window only; does not resize split panes.
+ * Shared by full and mini chat windows.
  */
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { platform } from "@tauri-apps/plugin-os"
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef } from "react"
 import { invoke } from "@tauri-apps/api/core"
 
-// @tauri-apps/api 未导出 ResizeDirection 类型,从方法签名反推
+// @tauri-apps/api does not export ResizeDirection; infer it from the method signature.
 type ResizeDirection = Parameters<ReturnType<typeof getCurrentWindow>["startResizeDragging"]>[0]
 
-// 每个 WebView 一条队列；完整/迷你形态卸载重挂也必须等上一轮已发送的尺寸请求完成。
+// One queue per WebView; remounting between full and mini modes must still wait for the previous in-flight resize request.
 let pendingResize = Promise.resolve()
 
 function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HTMLDivElement>): () => void {
@@ -65,7 +65,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
   const onCancel = (pointer: PointerEvent) => {
     if (pointer.pointerId === pointerId) finish(true)
   }
-  // 必须在任何 await 之前监听结束事件，否则快速松手会留下持续修改窗框的监听。
+  // Register end-event listeners before any await, or a quick release could leave listeners that keep changing window bounds.
   const options = { signal: listeners.signal }
   window.addEventListener("pointermove", onMove, options)
   window.addEventListener("pointerup", onUp, options)
@@ -89,7 +89,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
       const north = direction.includes("North")
       const east = direction.includes("East")
       const south = direction.includes("South")
-      // 命令在飞时仅保留最新坐标；正常松手提交尾帧，取消或被新拖拽替代时丢弃未发送目标。
+      // Keep only the latest coordinates while a command is in flight; release flushes the final frame, while cancellation or a new drag discards unsent targets.
       while (!cancelled) {
         if (movement.latest === null) {
           if (ended) return
@@ -101,7 +101,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
         }
         const point = movement.latest
         movement.latest = null
-        // 屏幕绝对坐标不受窗框每帧变化影响；尺寸请求串行完成后才采样下一轮起始窗框。
+        // Absolute screen coordinates remain stable as bounds change each frame; sample the next starting bounds only after serialized resize requests finish.
         const dx = Math.round((point.x - startX) * scaleFactor)
         const dy = Math.round((point.y - startY) * scaleFactor)
         await invoke("resize_chat_window", {

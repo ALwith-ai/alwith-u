@@ -1,11 +1,11 @@
 /**
- * Pane — 统一的可滚动面板区域。
+ * Pane provides a shared scrollable panel area.
  *
- * 基于 Base UI ScrollArea 基元(跟 shadcn ui/scroll-area 同一套、同 data-slot,共用全局 auto-hide CSS):
- * 自动隐藏滚动条(滚动/hover 才浮现)、不渲染横向条、撑满父容器。各面板滚动区直接用 `<Pane>`。
+ * Built on the Base UI ScrollArea primitives (same primitives and data-slot as shadcn ui/scroll-area, sharing global auto-hide CSS).
+ * Scrollbars appear only on scroll/hover; no horizontal bar is rendered, and the panel fills its parent. Use `<Pane>` for panel scroll areas.
  *
- * 直接用基元(而非 ui/scroll-area 包装)是为了把 `viewportRef` / `onScroll` 透传到真正滚动的
- * Viewport —— 聊天区要拿滚动元素做「自动滚到底 / 回到底部」,简单包装拿不到。
+ * Using the primitives directly, instead of the ui/scroll-area wrapper, lets `viewportRef` / `onScroll` reach the actual scrolling
+ * Viewport. Chat needs that element for automatic scrolling and jumping to the bottom; a simple wrapper does not expose it.
  */
 
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
@@ -13,12 +13,12 @@ import type { ComponentProps, Ref, UIEventHandler } from "react"
 import { cn } from "@/lib/utils"
 
 interface PaneProps extends Omit<ComponentProps<typeof ScrollAreaPrimitive.Root>, "onScroll"> {
-  /** 拿到真正滚动的 Viewport 元素(聊天区做 scrollIntoView / scrollTop 检测用)。 */
+  /** Access the actual Viewport element for chat's scrollIntoView / scrollTop checks. */
   viewportRef?: Ref<HTMLDivElement>
-  /** Viewport 的滚动事件。 */
+  /** The Viewport's scroll event handler. */
   onScroll?: UIEventHandler<HTMLDivElement>
   viewportClassName?: string
-  /** 透传到 Viewport 的额外属性(data-* 等,如 ChatSearch 找滚动元素的 data-chat-scroll)。 */
+  /** Extra attributes forwarded to the Viewport, such as data-chat-scroll used by ChatSearch to locate the scrolling element. */
   viewportProps?: ComponentProps<"div"> & { [key: `data-${string}`]: string }
 }
 

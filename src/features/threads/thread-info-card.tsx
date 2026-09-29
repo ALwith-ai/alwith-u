@@ -20,7 +20,7 @@ import { ProjectPathAction } from "./project-path-action"
 
 const DATE_FNS_LOCALES = { en: enUS, "zh-CN": zhCN } as const
 
-/** Strict short distance, no "ago" suffix: "3 days" / "3 天", like Desktop's session rows. */
+/** Strict short distance, no "ago" suffix (e.g. "3 days" or its localized equivalent), like Desktop's session rows. */
 export function relativeTime(iso: string, language: string): string {
   const locale = language === "zh-CN" ? DATE_FNS_LOCALES["zh-CN"] : DATE_FNS_LOCALES.en
   return formatDistanceToNowStrict(new Date(iso), { locale })
