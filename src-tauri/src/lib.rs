@@ -45,7 +45,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
-        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat"]).build())
+        // Settings has a fixed logical size; cached physical sizes must not override it.
+        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat", "settings"]).build())
         .manage(runtime::RuntimeState::default());
 
     #[cfg(feature = "hasgard-testing")]
