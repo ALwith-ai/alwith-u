@@ -251,10 +251,15 @@ export function createFakeAgent(): FakeAgent {
       changingConfig.delete(params.sessionId)
     }
   })
+  // Receipt ids per session: the first prompt is "u" (the tests name it), later ones "u2", "u3"…
+  const promptSequence = new Map<string, number>()
   app.onRequest("session/prompt", async ({ params, client }) => {
     const id = params.sessionId
     const text = params.prompt.map(block => (block.type === "text" ? block.text : "")).join("")
-    if (active.has(id)) return { _meta: { codex: { steered: "turn" } } }
+    const sequence = (promptSequence.get(id) ?? 0) + 1
+    promptSequence.set(id, sequence)
+    const messageId = sequence === 1 ? "u" : `u${sequence}`
+    if (active.has(id)) return { messageId, _meta: { codex: { steered: "turn" } } }
     const controller = new AbortController()
     active.set(id, controller)
     const emit = (update: acp.SessionUpdate) => client.notify("session/update", { sessionId: id, update })
@@ -263,7 +268,7 @@ export function createFakeAgent(): FakeAgent {
       try {
         await emit({
           sessionUpdate: "user_message",
-          messageId: "u",
+          messageId,
           content: [{ type: "text", text }]
         })
         if (text === "permission") {
@@ -343,7 +348,7 @@ export function createFakeAgent(): FakeAgent {
         active.delete(id)
       }
     })()
-    return {}
+    return { messageId }
   })
   app.onNotification("session/cancel", ({ params }) => {
     active.get(params.sessionId)?.abort()

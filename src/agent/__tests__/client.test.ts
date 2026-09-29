@@ -574,13 +574,16 @@ test("rename, account, rate limits and file search pass through the adapter's _c
   expect(found.files.map(file => file.path)).toEqual(["src/agent/client.ts"])
 })
 
-test("the user's message is on screen before Codex reports it, and the report only claims the id", async () => {
+test("the user's message is on screen before Codex reports it; the receipt claims it, the echo adopts it", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/a")
   const sending = client.prompt(id, [{ type: "text", text: "shown at once" }])
   const local = client.session(id).items.find(item => item.kind === "user")
   expect(local?.kind === "user" ? local.echo : null).toBe("pending")
   await sending
+  const claimed = client.session(id).items.find(item => item.kind === "user")
+  expect(claimed?.id).toBe("u")
+  expect(claimed?.kind === "user" ? claimed.echo : null).toMatch(/^(acknowledged|adopted)$/)
   await until(() => client.session(id).state === "idle")
   const users = client.session(id).items.filter(item => item.kind === "user")
   expect(users).toHaveLength(1)

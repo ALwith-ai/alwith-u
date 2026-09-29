@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
 import { groupTurns } from "../turns"
 import { must } from "@/lib/__tests__/must"
 
@@ -16,10 +16,22 @@ function feed(session: Session, ...updates: unknown[]): Session {
   return updates.reduce<Session>((current, update) => applyUpdate(current, update as never), session)
 }
 
+/**
+ * A prompt the agent has taken: on screen under a local id, claimed by the receipt, then echoed
+ * as `user_message` — only an echoed prompt owns the output that streams after it.
+ */
+function sent(session: Session, text: string, localId: string, messageId: string): Session {
+  const content = [{ type: "text" as const, text }]
+  const claimed = acknowledgePrompt(addPrompt(session, content, localId), localId, messageId)
+  return feed(claimed, { sessionUpdate: "user_message", messageId, content })
+}
+
 describe("groupTurns over @alwith/api", () => {
-  test("a local prompt starts the turn on screen before Codex reports it; the echo keeps the key", () => {
+  test("a local prompt starts the turn on screen; the receipt renames it, the echo keeps the key", () => {
     let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
     expect(groupTurns(session).map(turn => turn.key)).toEqual(["turn:user:local"])
+    session = acknowledgePrompt(session, "local", "u-1")
+    expect(groupTurns(session).map(turn => turn.key)).toEqual(["turn:user:u-1"])
     session = feed(session, { sessionUpdate: "user_message", messageId: "u-1", content: [] })
     const [turn] = groupTurns(session)
     expect(turn?.key).toBe("turn:user:u-1")
@@ -27,7 +39,7 @@ describe("groupTurns over @alwith/api", () => {
   })
 
   test("final answer vs commentary is Codex's phase; usage-free structure otherwise comes from the package", () => {
-    let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
+    let session = sent(createSession("s", "/"), "go", "local", "u")
     session = feed(
       session,
       text("c", "thinking aloud", { codex: { phase: "commentary" } }),
@@ -41,7 +53,7 @@ describe("groupTurns over @alwith/api", () => {
   })
 
   test("endedAt is the idle frame while a finished turn, the latest arrival while it runs", () => {
-    let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
+    let session = sent(createSession("s", "/"), "go", "local", "u")
     session = feed(session, text("a", "…"))
     const running = groupTurns(session)[0]
     expect(running.endedAt).toBe(must(running.items.at(-1), "the running item").at)
@@ -51,7 +63,7 @@ describe("groupTurns over @alwith/api", () => {
   })
 
   test("untouched turns keep their object identity across updates; the streaming one does not", () => {
-    let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "one" }], "l1")
+    let session = sent(createSession("s", "/"), "one", "l1", "u1")
     session = feed(
       session,
       {
@@ -64,7 +76,7 @@ describe("groupTurns over @alwith/api", () => {
       text("a", "1"),
       idle
     )
-    session = addPrompt(session, [{ type: "text", text: "two" }], "l2")
+    session = sent(session, "two", "l2", "u2")
     const before = groupTurns(session)
     session = feed(session, text("b", "2"))
     const after = groupTurns(session, before)
