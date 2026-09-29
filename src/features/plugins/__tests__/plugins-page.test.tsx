@@ -147,3 +147,26 @@ test("empty plugin and skill lists have translated messages in both supported UI
   await act(async () => fireEvent.click(view.getByRole("tab", { name: "市场" })))
   expect(view.getByText("未找到插件")).toBeDefined()
 })
+
+test("plugin icons use the same local Figma asset in marketplace and installed lists", async (): Promise<void> => {
+  const entry = plugin("alpha", true)
+  const marketplace: PluginMarketplaceEntry = {
+    name: "Example catalog",
+    path: "/catalog/marketplace.json",
+    interface: null,
+    plugins: [entry]
+  }
+  pluginsStore.setState({ marketplaces: [marketplace], installed: [{ plugin: entry, marketplace }] })
+  const view = render(<PluginsPage cwd={null} active />)
+  const image = must(view.container.querySelector("img"), "plugin icon")
+  expect(image.getAttribute("src")).toBe("/plugin-icons/ladybug.svg")
+  expect(image.getAttribute("alt")).toBe("")
+  await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
+  expect(must(view.container.querySelector("img"), "installed plugin icon").getAttribute("src")).toBe(
+    "/plugin-icons/ladybug.svg"
+  )
+  await act(async () => i18n.changeLanguage("zh-CN"))
+  expect(must(view.container.querySelector("img"), "localized plugin icon").getAttribute("src")).toBe(
+    "/plugin-icons/ladybug.svg"
+  )
+})

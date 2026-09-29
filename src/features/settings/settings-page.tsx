@@ -3,7 +3,7 @@
 // `settings-change-tab` event; closing the window hides it so reopening is instant.
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { listen } from "@tauri-apps/api/event"
-import { ContrastIcon, CpuIcon, InfoIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
+import { BlocksIcon, ContrastIcon, CpuIcon, InfoIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
@@ -17,12 +17,17 @@ import { AppearanceSection } from "./sections/appearance-section"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
 import { AccountSection } from "./sections/account-section"
+import { ExtensionsSection } from "@/features/extensions/extensions-section"
+import { ExtensionMount } from "@/features/extensions/extension-view"
+import { ExtensionSettingsNavigation, ExtensionSettingsContent } from "@/features/extensions/extension-outlets"
+import { useExtensions } from "@/features/extensions/runtime"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,
   general: SlidersHorizontalIcon,
   appearance: ContrastIcon,
   provider: CpuIcon,
+  extensions: BlocksIcon,
   about: InfoIcon
 }
 
@@ -31,6 +36,8 @@ function isSection(value: string | null): value is SettingsSection {
 }
 
 export function SettingsPage() {
+  const { host } = useExtensions()
+  const [extensionSection, setExtensionSection] = useState<string | null>(null)
   const { t } = useTranslation()
   const [section, setSection] = useState<SettingsSection>(() => {
     const tab = new URLSearchParams(window.location.search).get("tab")
@@ -39,7 +46,10 @@ export function SettingsPage() {
 
   useEffect(() => {
     const stop = listen<string>(SETTINGS_CHANGE_TAB, event => {
-      if (isSection(event.payload)) setSection(event.payload)
+      if (isSection(event.payload)) {
+        setSection(event.payload)
+        setExtensionSection(null)
+      }
     })
     return () => void stop.then(fn => fn())
   }, [])
@@ -55,45 +65,65 @@ export function SettingsPage() {
     return () => void stop.then(fn => fn())
   }, [])
 
-  const content = (() => {
-    switch (section) {
-      case "account":
-        return <AccountSection />
-      case "general":
-        return <GeneralSection />
-      case "appearance":
-        return <AppearanceSection />
-      case "provider":
-        return <ProviderSection />
-      case "about":
-        return <AboutSection />
-    }
-  })()
+  const content =
+    extensionSection !== null ? (
+      <ExtensionSettingsContent
+        id={extensionSection}
+        views={host.views}
+        renderView={view => <ExtensionMount key={view.id} id={view.id} />}
+      />
+    ) : (
+      (() => {
+        switch (section) {
+          case "account":
+            return <AccountSection />
+          case "general":
+            return <GeneralSection />
+          case "appearance":
+            return <AppearanceSection />
+          case "provider":
+            return <ProviderSection />
+          case "about":
+            return <AboutSection />
+          case "extensions":
+            return <ExtensionsSection />
+        }
+      })()
+    )
 
   const sidebar = (
     <>
       <div className="px-4 pt-8 pb-8 text-base font-semibold">{t("settings.title")}</div>
-      <NavigationStack className="px-3">
+      <NavigationStack className="min-h-0 overflow-y-auto px-3 pb-4">
         {SETTINGS_SECTIONS.map(id => {
           const Icon = ICONS[id]
           return (
             <NavigationItemButton
               key={id}
               className={MENU_HIGHLIGHT}
-              active={id === section}
-              onClick={() => setSection(id)}>
+              active={extensionSection === null && id === section}
+              onClick={() => {
+                setSection(id)
+                setExtensionSection(null)
+              }}>
               <Icon />
               <span>{t(`settings.${id}`)}</span>
             </NavigationItemButton>
           )
         })}
+        <ExtensionSettingsNavigation views={host.views} activeId={extensionSection} onSelect={setExtensionSection} />
       </NavigationStack>
     </>
   )
 
   return (
     <AuxWindowShell
-      title={t(`settings.${section}`)}
+      title={
+        extensionSection === null
+          ? t(`settings.${section}`)
+          : (host.views.find(view => view.id === extensionSection && view.kind === "settingsPages")?.title ??
+            t("extensions.unavailable"))
+      }
       sidebar={sidebar}
       sidebarClassName="bg-muted w-60 [--navigation-row-height:36px]">
       <Pane viewportClassName="px-6 pt-3 pb-6">{content}</Pane>

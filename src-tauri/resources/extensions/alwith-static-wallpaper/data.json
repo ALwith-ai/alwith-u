@@ -1,0 +1,8 @@
+{
+  "source": "builtin",
+  "id": "mist",
+  "visible": false,
+  "fit": "cover",
+  "brightness": 100,
+  "blur": 0
+}

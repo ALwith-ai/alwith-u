@@ -1,4 +1,6 @@
+mod appearance;
 mod auth;
+mod bundled_extensions;
 mod chat_window;
 mod installed_apps;
 mod menu;
@@ -35,6 +37,8 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(alwith_extension::plugin::init())
+        .plugin(appearance::wallpaper::plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -42,7 +46,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
-        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat"]).build())
+        // Settings has a fixed logical size; cached physical sizes must not override it.
+        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat", "settings"]).build())
         .manage(runtime::RuntimeState::default());
 
     #[cfg(feature = "hasgard-testing")]
@@ -84,6 +89,10 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(tauri::generate_handler![
+            bundled_extensions::extension_bundles,
+            appearance::wallpaper::wallpaper_list,
+            appearance::wallpaper::wallpaper_import,
+            appearance::wallpaper::wallpaper_remove,
             auth::refresh_tokens,
             chat_window::plugin::present_chat_window,
             chat_window::plugin::resize_chat_window,

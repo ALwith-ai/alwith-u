@@ -225,6 +225,30 @@
   inset-inline-start: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
 }
 
+/* Keep toolbar groups clear of native controls; empty space remains draggable. */
+.main-extension-toolbar {
+  left: max(
+    calc(var(--main-sidebar-width) + 12px),
+    calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale))
+  );
+  right: 12px;
+  transition: left var(--sidebar-resize-duration) ease-in-out;
+}
+[data-main-screen="leading"] .main-extension-toolbar {
+  left: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+}
+
+/* Extension status widgets occupy the visible content gutter, clear of either sidebar. */
+.main-extension-status {
+  inset-inline-start: calc(var(--main-sidebar-width) + 12px);
+  inset-inline-end: 96px;
+  transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
+}
+[data-main-screen="leading"] .main-extension-status {
+  inset-inline-start: 12px;
+  inset-inline-end: max(calc(var(--leading-sidebar-width) + 12px), 96px);
+}
+
 /* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */
 .main-sidebar-shell {
   position: relative;
@@ -361,4 +385,29 @@ body,
 [data-slot="scroll-area-scrollbar"][data-scrolling] {
   opacity: 1;
   transition-duration: 0.1s;
+}
+
+/* Only the main application shell consumes extension wallpaper requests. */
+.wallpaper-shell {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  overflow: clip;
+}
+.wallpaper-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+[data-wallpaper="active"] [data-slot="sidebar-wrapper"] {
+  background: transparent;
+}
+[data-wallpaper="active"] [data-slot="sidebar"] {
+  background: color-mix(in srgb, var(--sidebar) 80%, transparent);
+}
+[data-wallpaper="active"] .main-chat-surface {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
 }

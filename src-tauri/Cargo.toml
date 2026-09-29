@@ -18,6 +18,7 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
+alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri"] }
 tempfile = "3"
 tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }
 libloading = "0.9"
@@ -32,7 +33,8 @@ tauri-runtime-wry = { version = "3.0.0-alpha.3", features = ["macos-private-api"
 tauri-plugin-dialog = "3.0.0-alpha.1"
 tauri-plugin-global-shortcut = "3.0.0-alpha.1"
 tauri-plugin-log = "3.0.0-alpha.1"
-tauri-plugin-http = "3.0.0-alpha.1"
+# Extensions share this transport with the host; never attach a shared cookie jar.
+tauri-plugin-http = { version = "3.0.0-alpha.1", default-features = false, features = ["rustls-tls", "http2", "charset", "system-proxy"] }
 tauri-plugin-os = "3.0.0-alpha.1"
 tauri-plugin-notification = "3.0.0-alpha.1"
 tauri-plugin-opener = "3.0.0-alpha.1"
@@ -42,6 +44,7 @@ tauri-plugin-process = "3.0.0-alpha.1"
 tauri-plugin-single-instance = "3.0.0-alpha.1"
 tauri-plugin-updater = "3.0.0-alpha.1"
 tauri-plugin-window-state = "3.0.0-alpha.1"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 base64 = "0.23"
 minisign-verify = "0.3"
 semver = "1"

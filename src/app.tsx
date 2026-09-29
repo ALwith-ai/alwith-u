@@ -39,12 +39,19 @@ import { useWindowFocus } from "@/lib/window-focus"
 import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
+import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
+import { ExtensionPage, ExtensionMount } from "@/features/extensions/extension-view"
+import { useExtensions, reportExtensionError } from "@/features/extensions/runtime"
+import { ExtensionsSection } from "@/features/extensions/extensions-section"
+
+import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
+  const { host: extensions } = useExtensions()
   const { t } = useTranslation()
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
@@ -57,12 +64,24 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const providerSnapshot = useProviders()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
-  // Plugins live on the leading screen; the main chat stays mounted while it is offscreen.
-  const [view, setView] = useState<"chat" | "plugins" | "story">("chat")
+  // Management pages share the leading screen; the offscreen chat stays mounted.
+  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "story" | "extension">("chat")
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")
+  const leading = view === "plugins" || view === "extensions"
+  const [extensionView, setExtensionView] = useState<string | null>(null)
+  const openExtension = useCallback((id: string): void => {
+    setExtensionView(id)
+    setView("extension")
+  }, [])
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
     setPluginsVisited(true)
+    setLeadingPage("plugins")
     setView("plugins")
+  }, [])
+  const openExtensions = useCallback(() => {
+    setLeadingPage("extensions")
+    setView("extensions")
   }, [])
   const session = useSession(selectedId)
   const focused = useWindowFocus()
@@ -309,6 +328,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         </div>
       ) : null
     if (view === "story") return <StoryPage />
+    if (view === "extension" && extensionView !== null)
+      return <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
     const moveToWindow = (): void => {
       void operation
@@ -379,56 +400,96 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
-      <MainSidebarLayout
-        initialPinned={initialPreferences.sidebarPinned}
-        screen={view === "plugins" ? "leading" : "main"}
-        sidebar={
-          <ThreadSidebar
-            screen={view === "plugins" ? "leading" : "main"}
-            selectedId={view === "plugins" ? null : selectedId}
-            onSelect={select}
+      <WallpaperBackground onError={reportExtensionError}>
+        <MainSidebarLayout
+          initialPinned={initialPreferences.sidebarPinned}
+          screen={leading ? "leading" : "main"}
+          sidebar={
+            <ThreadSidebar
+              screen={leading ? "leading" : "main"}
+              leadingPage={leadingPage}
+              selectedId={leading ? null : selectedId}
+              onSelect={select}
+              onNewChat={newChat}
+              onSearch={() => setPaletteOpen(true)}
+              onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
+              onNewProjectChat={cwd => {
+                if (operation.busy) return
+                chooseDraftFolder(cwd)
+                importDraft(DRAFT_SESSION_ID, null)
+                setSurfaceGeneration(value => value + 1)
+                newChat()
+              }}
+              onOpenSettings={() => void openSettingsWindow()}
+              onOpenPlugins={openPlugins}
+              onOpenExtensions={openExtensions}
+              extensionNavigation={
+                <ExtensionActions
+                  host={extensions}
+                  placement="navigation"
+                  activeView={view === "extension" ? extensionView : null}
+                  onOpenSurface={openExtension}
+                  onError={reportExtensionError}
+                />
+              }
+              onSwitchScreen={() => {
+                if (leading) setView("chat")
+                else if (leadingPage === "extensions") openExtensions()
+                else openPlugins()
+              }}
+            />
+          }
+          leading={
+            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+              {leading && actionCards}
+              {pluginsVisited && (
+                <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+                  <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
+                </div>
+              )}
+              {leadingPage === "extensions" && (
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <div className="mx-auto w-full max-w-5xl px-6 py-8">
+                    <ExtensionsSection />
+                  </div>
+                </div>
+              )}
+            </SidebarInset>
+          }
+          main={
+            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+              {!leading && actionCards}
+              {main}
+            </SidebarInset>
+          }>
+          <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
             onNewChat={newChat}
-            onSearch={() => setPaletteOpen(true)}
-            onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
-            onNewProjectChat={cwd => {
-              if (operation.busy) return
-              chooseDraftFolder(cwd)
-              importDraft(DRAFT_SESSION_ID, null)
-              setSurfaceGeneration(value => value + 1)
-              newChat()
-            }}
             onOpenSettings={() => void openSettingsWindow()}
             onOpenPlugins={openPlugins}
-            onSwitchScreen={() => (view === "plugins" ? setView("chat") : openPlugins())}
+            onOpenHotkeys={() => setHotkeysOpen(true)}
+            onOpenExtension={openExtension}
+            onSelect={select}
           />
-        }
-        leading={
-          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
-            {view === "plugins" && actionCards}
-            {pluginsVisited && <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />}
-          </SidebarInset>
-        }
-        main={
-          <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
-            {view !== "plugins" && actionCards}
-            {main}
-          </SidebarInset>
-        }>
-        <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
-        <CommandPalette
-          open={paletteOpen}
-          onOpenChange={setPaletteOpen}
-          onNewChat={newChat}
-          onOpenSettings={() => void openSettingsWindow()}
-          onOpenPlugins={openPlugins}
-          onOpenHotkeys={() => setHotkeysOpen(true)}
-          onSelect={select}
-        />
-        <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
-        <div className="absolute right-2 bottom-0 z-20">
-          <ClientVersionPopover />
-        </div>
-      </MainSidebarLayout>
+          <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+          <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
+            <ExtensionActions
+              host={extensions}
+              placement="topBar"
+              onOpenSurface={openExtension}
+              onError={reportExtensionError}
+            />
+          </div>
+          <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
+            <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+          </div>
+          <div className="absolute right-2 bottom-0 z-20">
+            <ClientVersionPopover />
+          </div>
+        </MainSidebarLayout>
+      </WallpaperBackground>
     </div>
   )
 }

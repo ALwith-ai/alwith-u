@@ -70,6 +70,7 @@
     "signOut": "Sign out",
     "story": "Story",
     "plugins": "Plugins",
+    "extensions": "Extensions",
     "activity": "Activity",
     "background": "Background",
     "newChat": "New chat",
@@ -278,6 +279,7 @@
     "always": "always"
   },
   "settings": {
+    "extensions": "App extensions",
     "general": "General",
     "versionLabel": "Version",
     "accountDesc": "Codex keeps the login on this machine.",
@@ -679,5 +681,43 @@
     "shortcut": "Chat window shortcut",
     "shortcutSave": "Save shortcut",
     "shortcutOff": "Off"
+  },
+  "extensions": {
+    "details": {
+      "label": "Details for {{name}}",
+      "version": "Version",
+      "author": "Author",
+      "homepage": "Author website"
+    },
+    "outlets": {
+      "topBar": "Extension toolbar",
+      "navigation": "Extension navigation",
+      "statusBar": "Extension status bar",
+      "settingsPages": "Extension settings pages"
+    },
+    "targetUnavailable": "{{name}}: target unavailable",
+    "search": "Search extensions",
+    "moreActions": "More actions for {{name}}",
+    "loading": "Loading extensions…",
+    "noMatches": "No matching extensions.",
+    "description": "Extend app pages, commands and settings independently of Codex plugins. Install extensions you trust.",
+    "install": "Install from folder",
+    "empty": "No app extensions installed.",
+    "manage": "Manage app extensions",
+    "enable": "Enable {{name}}",
+    "update": "Update from folder",
+    "uninstall": "Uninstall",
+    "uninstallConfirm": "Uninstall {{name}}? Extension data will be retained.",
+    "cancel": "Cancel operation",
+    "stopping": "Waiting for {{count}} windows to stop",
+    "back": "Back to chat",
+    "unavailable": "Extension page unavailable",
+    "status": {
+      "inactive": "Inactive",
+      "activating": "Starting",
+      "active": "Running",
+      "deactivating": "Stopping",
+      "failed": "Failed"
+    }
   }
 }
