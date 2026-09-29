@@ -146,10 +146,16 @@
     background: transparent;
   }
 }
-/* 主浮板周围的底色与侧栏完全一致；浮板本身继续用 --background。 */
-[data-slot="sidebar-wrapper"],
+/* 与 Desktop 一致：常驻导航和主浮板周围直接透出原生 vibrancy。 */
+[data-slot="sidebar-wrapper"] {
+  background-color: transparent;
+}
 [data-slot="sidebar"] {
-  background-color: var(--sidebar);
+  background-color: transparent;
+}
+/* 悬浮导航覆盖聊天区时使用独立 surface，维持内容可读性。 */
+[data-sidebar-presentation="floating"] [data-slot="sidebar"] {
+  background-color: var(--background);
 }
 [data-slot="sidebar-inner"],
 [data-slot="sidebar-inner"] > div {
