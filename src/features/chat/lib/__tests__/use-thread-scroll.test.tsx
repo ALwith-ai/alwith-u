@@ -40,8 +40,11 @@ function settle() {
   expect(frames.size).toBe(0)
 }
 function setup(top = 800, running = true, roundPixels = false) {
+  const scrollArea = document.createElement("div")
+  scrollArea.setAttribute("data-slot", "scroll-area")
   const root = document.createElement("div")
-  document.body.append(root)
+  scrollArea.append(root)
+  document.body.append(scrollArea)
   let height = 1400
   let position = top
   Object.defineProperties(root, {
@@ -64,6 +67,7 @@ function setup(top = 800, running = true, roundPixels = false) {
   const hook = renderHook(() => useThreadScroll(root, running, releaseTurnAnchor))
   return {
     root,
+    scrollArea,
     result: hook.result,
     unmount: hook.unmount,
     resize(value: number) {
@@ -273,6 +277,27 @@ test("scrollbar dragging owns the viewport until pointer release", () => {
   act(() => window.dispatchEvent(new PointerEvent("pointerup")))
   settle()
   expect(view.root.scrollTop).toBe(800)
+})
+
+test("overlay scrollbar dragging pauses following until a downward release near the bottom", () => {
+  const view = setup()
+  const scrollbar = document.createElement("div")
+  scrollbar.setAttribute("data-slot", "scroll-area-scrollbar")
+  scrollbar.setAttribute("data-orientation", "vertical")
+  const thumb = document.createElement("div")
+  scrollbar.append(thumb)
+  view.scrollArea.append(scrollbar)
+  act(() => thumb.dispatchEvent(new PointerEvent("pointerdown", { button: 0, bubbles: true })))
+  expect(view.result.current.isFollowing).toBe(false)
+  view.scroll(400)
+  view.scroll(750)
+  act(() => view.result.current.contentResized())
+  settle()
+  expect(view.root.scrollTop).toBe(750)
+  act(() => window.dispatchEvent(new PointerEvent("pointerup")))
+  settle()
+  expect(view.root.scrollTop).toBe(800)
+  expect(view.result.current.isFollowing).toBe(true)
 })
 
 test("wheel scrolling inside an output block does not release viewport following", () => {

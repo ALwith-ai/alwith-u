@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import type { Session } from "@alwith/api"
+import { Pane } from "@/components/alwith-ui/pane"
 import { AssistantTurn } from "./codex/assistant-turn"
 import {
   type NavigationRailItem,
@@ -106,7 +107,8 @@ export function ThreadView({ session }: { session: Session }) {
             plan.spacerPx > 0
               ? { element: lastTurn, heightPx: lastTurn.getBoundingClientRect().height + plan.spacerPx, keepTop: true }
               : null
-          setSpacerHeightPx(plan.spacerPx)
+          // Commit the extra scroll range before positioning; a frame alone does not guarantee a React commit.
+          flushSync(() => setSpacerHeightPx(plan.spacerPx))
           requestAnimationFrame(() => {
             if (!location.isCurrent()) return
             location.finish(plan.scrollTopPx)
@@ -223,15 +225,16 @@ export function ThreadView({ session }: { session: Session }) {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" data-stream-style="codexUI">
-      <div
-        ref={setScrollRoot}
-        data-chat-scroll
-        className="min-h-0 flex-1 scrollbar-thin overflow-x-hidden overflow-y-auto overscroll-contain"
-        style={{ overflowAnchor: "none" }}
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll container must be focusable to support keyboard scrolling.
-        tabIndex={0}
-        role="log"
-        aria-label={t("chat.thread")}>
+      <Pane
+        viewportRef={setScrollRoot}
+        viewportClassName="overflow-x-hidden overscroll-contain"
+        viewportProps={{
+          "data-chat-scroll": "",
+          style: { overflowAnchor: "none" },
+          tabIndex: 0,
+          role: "log",
+          "aria-label": t("chat.thread")
+        }}>
         <div className="min-h-full w-full px-5">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
             <VirtualizedTurnList
@@ -245,7 +248,7 @@ export function ThreadView({ session }: { session: Session }) {
             <div aria-hidden="true" className="h-6 shrink-0" />
           </div>
         </div>
-      </div>
+      </Pane>
       <ThreadUserMessageNavigationRail
         items={railItems}
         scrollRoot={scrollRoot}

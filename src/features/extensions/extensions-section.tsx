@@ -7,8 +7,9 @@ import { ExtensionMount } from "./extension-view"
 import { reportExtensionError, useExtensions } from "./runtime"
 import { convertLegacyExtension, type PreparedLegacyImport } from "./legacy/import"
 import { LEGACY_SOURCE } from "./legacy/profiles"
+import { waitForLegacyUninstall } from "./legacy/uninstall"
 
-export function ExtensionsSection() {
+export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string): void }) {
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)
@@ -54,14 +55,30 @@ export function ExtensionsSection() {
       state={state}
       host={host}
       busy={busy}
+      onOpenSurface={onOpenSurface}
       onInstall={id => run(() => install(id))}
       onRequest={request => run(() => runtime.request(request))}
       onUninstall={(id, name) =>
         run(async () => {
           if (
             await ask(t("extensions.uninstallConfirm", { name }), { title: t("settings.extensions"), kind: "warning" })
-          )
+          ) {
+            const legacy =
+              runtime.snapshot().native?.installations.find(item => item.id === id)?.source === LEGACY_SOURCE
             await runtime.request({ type: "beginTransition", id, action: "uninstall" })
+            await waitForLegacyUninstall({
+              state: () => {
+                const native = runtime.snapshot().native
+                if (!native) throw new Error("扩展安装状态不可用")
+                return {
+                  installed: native.installations.some(item => item.id === id),
+                  pending: native.pending.some(item => item.id === id)
+                }
+              },
+              subscribe: runtime.subscribe,
+              cleanup: () => invoke(legacy ? "legacy_cleanup_import" : "extension_cleanup_grants", { extensionId: id })
+            })
+          }
         })
       }
       renderSettings={view => <ExtensionMount id={view.id} />}

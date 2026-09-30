@@ -2,6 +2,7 @@ mod appearance;
 mod auth;
 mod bundled_extensions;
 mod chat_window;
+mod extension_capabilities;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -97,7 +98,13 @@ pub fn run() {
             legacy_extensions::importer::legacy_stage_import,
             legacy_extensions::importer::legacy_take_initial_data,
             legacy_extensions::importer::legacy_ack_initial_data,
+            legacy_extensions::importer::legacy_cleanup_import,
             legacy_extensions::http::legacy_http,
+            legacy_extensions::http::extension_http,
+            extension_capabilities::extension_cleanup_grants,
+            legacy_extensions::files::extension_file,
+            legacy_extensions::files::extension_directories,
+            legacy_extensions::files::extension_pick_directory,
             legacy_extensions::files::legacy_file,
             legacy_extensions::files::legacy_directories,
             legacy_extensions::files::legacy_pick_directory,

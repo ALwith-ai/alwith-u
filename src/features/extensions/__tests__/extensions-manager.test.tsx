@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test } from "bun:test"
-import type { HostSnapshot, RuntimeSnapshot } from "@alwith/module-extension/host"
+import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import type { Installation, Request } from "@alwith/module-extension/tauri"
 import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -55,12 +55,17 @@ function state(): RuntimeSnapshot & { native: NonNullable<RuntimeSnapshot["nativ
     }
   }
 }
-function setup(snapshot: RuntimeSnapshot = state(), busy = false) {
+function setup(
+  snapshot: RuntimeSnapshot = state(),
+  busy = false,
+  contributions: HostSnapshot = host,
+  navigation = true
+) {
   const actions: unknown[] = []
   const view = render(
     <ExtensionsManager
       state={snapshot}
-      host={host}
+      host={contributions}
       busy={busy}
       onInstall={(id?: string): void => {
         actions.push({ install: id ?? null })
@@ -71,11 +76,87 @@ function setup(snapshot: RuntimeSnapshot = state(), busy = false) {
       onUninstall={(id: string, name: string): void => {
         actions.push({ uninstall: id, name })
       }}
+      onOpenSurface={
+        navigation
+          ? (id: string): void => {
+              actions.push({ surface: id })
+            }
+          : undefined
+      }
       renderSettings={() => null}
     />
   )
   return { ...view, actions }
 }
+
+function surface(extensionId: string, id: string, title: string): ViewContribution {
+  return { extensionId, id, title, kind: "surfaces", mount: () => () => {} }
+}
+
+test("extension menu opens only its own contributed surface with the exact view identity", async (): Promise<void> => {
+  const contributions: HostSnapshot = {
+    ...host,
+    views: [
+      surface("alpha", "alpha/vivarium-notes", "个人笔记"),
+      surface("beta", "beta/vivarium-timer", "Timer workspace"),
+      { ...surface("alpha", "alpha/preferences", "Preferences"), kind: "settings" }
+    ]
+  }
+  const view = setup(state(), false, contributions)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  expect(view.queryByRole("menuitem", { name: "Timer workspace" })).toBeNull()
+  expect(view.queryByRole("menuitem", { name: "Preferences" })).toBeNull()
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "个人笔记" })))
+  expect(view.actions).toEqual([{ surface: "alpha/vivarium-notes" }])
+})
+
+test("bundled extensions expose contributed pages without update or uninstall actions", async (): Promise<void> => {
+  const snapshot = state()
+  const item = installation("alpha", "Alpha Notes")
+  item.source = "bundled:alwith-u"
+  snapshot.native.installations[0] = item
+  const view = setup(snapshot, false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] })
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  expect(view.queryByRole("menuitem", { name: "Update from folder" })).toBeNull()
+  expect(view.queryByRole("menuitem", { name: "Uninstall" })).toBeNull()
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Notes workspace" })))
+  expect(view.actions).toEqual([{ surface: "alpha/page" }])
+})
+
+test.each(["disabled", "error"])("%s extensions cannot open retained surface contributions", async reason => {
+  const snapshot = state()
+  const item = installation("alpha", "Alpha Notes")
+  snapshot.native.installations[0] = item
+  if (reason === "disabled") item.enabled = false
+  else snapshot.errors.alpha = "Activation failed"
+  const view = setup(snapshot, false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] })
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  const page = view.getByRole("menuitem", { name: "Notes workspace" })
+  expect(page.getAttribute("aria-disabled")).toBe("true")
+  await act(async () => fireEvent.click(page))
+  expect(view.actions).toEqual([])
+})
+
+test.each(["busy", "pending"])("%s extensions cannot open their surface menu", async reason => {
+  const snapshot = state()
+  if (reason === "pending") snapshot.native.pending = [{ id: "alpha", action: "disable", waitingInstances: 1 }]
+  const view = setup(snapshot, reason === "busy", {
+    ...host,
+    views: [surface("alpha", "alpha/page", "Notes workspace")]
+  })
+  const trigger = view.getByRole("button", { name: "More actions for Alpha Notes" }) as HTMLButtonElement
+  expect(trigger.disabled).toBe(true)
+  await act(async () => fireEvent.click(trigger))
+  expect(view.queryByRole("menuitem", { name: "Notes workspace" })).toBeNull()
+  expect(view.actions).toEqual([])
+})
+
+test("settings windows omit surface navigation when no host callback is provided", async (): Promise<void> => {
+  const view = setup(state(), false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] }, false)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  expect(view.queryByRole("menuitem", { name: "Notes workspace" })).toBeNull()
+  expect(view.getByRole("menuitem", { name: "Uninstall" })).toBeTruthy()
+})
 
 test("extension manager shows installed data directly, searches and supports local installation", async () => {
   const view = setup()
