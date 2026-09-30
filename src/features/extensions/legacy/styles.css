@@ -1,0 +1,6 @@
+/* Desktop reserves 76px for its surface card rail; U already supplies its own page container. */
+.alwith-legacy.legacy-vivarium > .bi-viv-panel,
+.alwith-legacy.legacy-vivarium > .yup-viv-panel {
+  /* biome-ignore lint/complexity/noImportantStyles: Override the legacy extension's inline Desktop rail inset. */
+  left: 16px !important;
+}

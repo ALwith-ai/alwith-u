@@ -1,4 +1,14 @@
 import type { Dispose, Json } from "@alwith/module-extension"
+import {
+  createBinaryFetch,
+  createBinaryHttp,
+  createScopedFileOperations,
+  type CapabilityBinding,
+  type NativeFileRequest,
+  type NativeFileResponse
+} from "@alwith/module-extension/host"
+import type { LegacyStorage } from "@alwith/module-extension/legacy"
+import { unsupportedLegacyCommand, validateLegacyExport } from "./adapters"
 
 export interface LegacySession {
   id: string
@@ -7,6 +17,7 @@ export interface LegacySession {
 }
 
 export interface BridgeDependencies {
+  binding: CapabilityBinding
   native<T>(command: string, args: Record<string, unknown>): Promise<T>
   session(): LegacySession | null
   send(id: string, text: string): Promise<void>
@@ -24,11 +35,6 @@ interface DirectoryGrant {
   scope: string
   path: string
 }
-type FileResult =
-  | { type: "read"; body: number[] }
-  | { type: "list"; entries: { name: string; isFile: boolean; isDirectory: boolean }[] }
-  | { type: "stat"; exists: boolean; size: number; mtime: number | null; isFile: boolean; isDirectory: boolean }
-  | { type: "ok" }
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("无效的旧扩展调用参数")
@@ -43,12 +49,30 @@ function string(value: unknown): string {
 function normalizedPath(value: string): string {
   const result = value.replaceAll("\\", "/")
   if (result.includes("\0") || result.split("/").includes("..")) throw new Error("扩展文件路径不能越过授权目录")
-  return result.replace(/\/+/g, "/").replace(/\/$/, "")
+  const normalized = result
+    .split("/")
+    .filter(part => part !== ".")
+    .join("/")
+    .replace(/\/+/g, "/")
+  return normalized === "/" ? normalized : normalized.replace(/\/$/, "")
 }
 
 /** This bridge translates a finite, reviewed Desktop API surface; native code rechecks every grant. */
 export function createLegacyBridge(extensionId: string, dependencies: BridgeDependencies) {
+  const commonOptions = {
+    native: dependencies.native,
+    commands: {
+      file: "legacy_file",
+      pickDirectory: "legacy_pick_directory",
+      directories: "legacy_directories",
+      http: "legacy_http"
+    }
+  }
+  const files = createScopedFileOperations(dependencies.binding, commonOptions)
+  const fetch = createBinaryFetch(createBinaryHttp(dependencies.binding, commonOptions))
   const home = `/__alwith_legacy/${extensionId}`
+  const directory = `.alwith/extensions/${extensionId}`
+  let storage: LegacyStorage | undefined
   let target: LegacySession | null = null
   let exportDirectory: DirectoryGrant | null = null
   const exported = new Map<string, string>()
@@ -60,16 +84,78 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
   }
   const locate = async (raw: string): Promise<{ scope?: string; path: string }> => {
     const path = normalizedPath(raw)
-    if (path === home || path.startsWith(`${home}/`)) return { path: path.slice(home.length + 1) || "." }
-    const directories = await native<DirectoryGrant[]>("legacy_directories")
+    if (path === home || path.startsWith(`${home}/`) || (!path.startsWith("/") && !path.includes(":"))) {
+      const relative = path === home ? "." : path.startsWith(`${home}/`) ? path.slice(home.length + 1) : path
+      if (relative === directory) return { path: "." }
+      if (relative.startsWith(`${directory}/`)) return { path: relative.slice(directory.length + 1) }
+      if (relative === ".alwith" || relative.startsWith(".alwith/"))
+        throw new Error("不能访问其他扩展或 Desktop 的私有数据")
+      return { path: relative || "." }
+    }
+    const directories = await files.directories()
     const grant = directories
-      .filter(item => path === normalizedPath(item.path) || path.startsWith(`${normalizedPath(item.path)}/`))
+      .filter(
+        item =>
+          path === normalizedPath(item.path) ||
+          path.startsWith(normalizedPath(item.path) === "/" ? "/" : `${normalizedPath(item.path)}/`)
+      )
       .sort((a, b) => b.path.length - a.path.length)[0]
     if (!grant) throw new Error("此目录尚未授权，请在扩展中重新选择目录")
-    return { scope: grant.scope, path: path.slice(normalizedPath(grant.path).length + 1) || "." }
+    return { scope: grant.scope, path: path.slice(normalizedPath(grant.path).length).replace(/^\//, "") || "." }
   }
-  const file = async (operation: string, path: string, extra: Record<string, unknown> = {}): Promise<FileResult> =>
-    native("legacy_file", { request: { operation, ...(await locate(path)), ...extra } })
+  const file = async (
+    operation: string,
+    path: string,
+    extra: Record<string, unknown> = {}
+  ): Promise<NativeFileResponse> => {
+    const location = await locate(path)
+    if (!location.scope && location.path === "data.json") {
+      if (!storage) throw new Error("扩展配置存储尚未绑定或已关闭")
+      if (operation === "write") {
+        const body = extra.body as number[]
+        if (body.length > 8 * 1024 * 1024) throw new Error("扩展配置超过 8 MiB")
+        const value: Json = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(body)))
+        await storage.write(value)
+        return { type: "ok" }
+      }
+      const value = await storage.read()
+      const exists = await storage.exists()
+      if (operation === "stat")
+        return {
+          type: "stat",
+          exists,
+          size: exists ? new TextEncoder().encode(JSON.stringify(value)).length : 0,
+          mtime: null,
+          isFile: true,
+          isDirectory: false
+        }
+      if (operation === "read") {
+        if (!exists) throw new Error("文件不存在：data.json")
+        return { type: "read", body: Array.from(new TextEncoder().encode(JSON.stringify(value))) }
+      }
+      throw new Error("配置文件仅支持读取和写入，请使用 saveData 更新配置")
+    }
+    const result = await files.file({ operation, ...location, ...extra } as NativeFileRequest)
+    if (
+      !location.scope &&
+      location.path === "." &&
+      result.type === "list" &&
+      storage &&
+      (await storage.exists()) &&
+      !result.entries.some(entry => entry.name === "data.json")
+    ) {
+      result.entries.push({ name: "data.json", isFile: true, isDirectory: false })
+    }
+    return result
+  }
+
+  const exportPath = (path: string): string => {
+    const normalized = normalizedPath(path)
+    if (!normalized || normalized === "." || normalized.startsWith("/") || normalized.includes(":"))
+      throw new Error("导出路径必须位于授权目录内")
+    validateLegacyExport(extensionId, normalized)
+    return normalized
+  }
 
   const captureChatContext = (): void => {
     dependencies.check()
@@ -86,8 +172,14 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
   const requireExportDirectory = async (): Promise<DirectoryGrant> => {
     const session = requireTarget()
     if (exportDirectory) return exportDirectory
+    const grants = await files.directories()
+    const existing = grants.find(grant => normalizedPath(grant.path) === normalizedPath(session.cwd))
+    if (existing) {
+      exportDirectory = existing
+      return existing
+    }
     dependencies.notify("请选择当前会话的工作目录，用于保存分析文件", 6000)
-    const chosen = await native<DirectoryGrant | null>("legacy_pick_directory")
+    const chosen = await files.pickDirectory()
     if (!chosen) throw new Error("已取消分析文件目录选择")
     if (normalizedPath(chosen.path) !== normalizedPath(session.cwd)) {
       throw new Error("请选择已绑定会话的工作目录，确保 AI 可以读取分析文件")
@@ -96,6 +188,14 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     return chosen
   }
   return {
+    bindStorage(value: LegacyStorage): Dispose {
+      dependencies.check()
+      if (storage) throw new Error("扩展配置存储已绑定")
+      storage = value
+      return () => {
+        if (storage === value) storage = undefined
+      }
+    },
     primary: dependencies.primary,
     language: dependencies.language,
     notify: dependencies.notify,
@@ -111,24 +211,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     },
     loadInitialData: (): Promise<Json | null> => native("legacy_take_initial_data"),
     acknowledgeInitialData: (): Promise<void> => native("legacy_ack_initial_data"),
-    async fetch(input: string, init?: RequestInit): Promise<Response> {
-      dependencies.check()
-      const request = new Request(input, init)
-      request.signal.throwIfAborted()
-      const headers = Object.fromEntries(request.headers)
-      const body = request.body ? Array.from(new Uint8Array(await request.arrayBuffer())) : undefined
-      const result = await native<{ status: number; url: string; headers: Record<string, string>; body: number[] }>(
-        "legacy_http",
-        { request: { url: request.url, method: request.method, headers, body } }
-      )
-      request.signal.throwIfAborted()
-      const response = new Response([101, 204, 205, 304].includes(result.status) ? null : new Uint8Array(result.body), {
-        status: result.status,
-        headers: result.headers
-      })
-      Object.defineProperty(response, "url", { value: result.url })
-      return response
-    },
+    fetch,
     async sendMessage(text: string): Promise<void> {
       dependencies.check()
       const session = requireTarget()
@@ -139,28 +222,27 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     },
     vault: {
       async write(path: string, data: string): Promise<void> {
-        if (!/^etms-review-[a-zA-Z0-9._-]+\.json$/.test(path)) throw new Error("无效的 ETMS 分析文件名")
+        path = exportPath(path)
         const directory = await requireExportDirectory()
-        await native("legacy_file", {
-          request: {
-            operation: "write",
-            scope: directory.scope,
-            path,
-            body: Array.from(new TextEncoder().encode(data))
-          }
+        await files.file({
+          operation: "write",
+          scope: directory.scope,
+          path,
+          body: Array.from(new TextEncoder().encode(data))
         })
         exported.set(path, `${normalizedPath(directory.path)}/${path}`)
       },
       async remove(path: string): Promise<void> {
-        if (!/^etms-review-[a-zA-Z0-9._-]+\.json$/.test(path)) throw new Error("无效的 ETMS 分析文件名")
+        path = exportPath(path)
         const directory = await requireExportDirectory()
-        await native("legacy_file", { request: { operation: "remove", scope: directory.scope, path } })
+        await files.file({ operation: "remove", scope: directory.scope, path })
         exported.delete(path)
       }
     },
     async invoke(command: string, args: unknown = {}, options?: unknown): Promise<unknown> {
       dependencies.check()
-      if (command === "list_sessions") throw new Error("会话归档暂不支持，其他知识库功能可用")
+      const unavailable = unsupportedLegacyCommand(extensionId, command)
+      if (unavailable) throw new Error(unavailable)
       if (command === "alwith-u:legacy-is-primary") return dependencies.primary
       if (command === "plugin:path|resolve_directory") {
         if (object(args).directory !== 21) throw new Error("不支持访问 Desktop 的应用数据目录")
@@ -172,11 +254,11 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
         return normalizedPath(paths.map(string).join("/"))
       }
       if (command === "alwith-u:legacy-workspaces") {
-        const directories = await native<DirectoryGrant[]>("legacy_directories")
+        const directories = await files.directories()
         return directories.map(item => item.path)
       }
       if (command === "plugin:dialog|open") {
-        const result = await native<DirectoryGrant | null>("legacy_pick_directory")
+        const result = await files.pickDirectory()
         return result?.path ?? null
       }
       if (command === "plugin:fs|write_text_file") {

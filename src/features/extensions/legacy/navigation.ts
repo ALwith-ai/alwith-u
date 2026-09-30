@@ -3,7 +3,7 @@ import type { LegacySession } from "./bridge"
 interface LegacyNavigation {
   currentSession(): LegacySession | null
   openView(id: string): void
-  send(sessionId: string, text: string): Promise<void>
+  send(sessionId: string, text: string, requiredSkills: string[]): Promise<void>
 }
 
 let navigation: LegacyNavigation | undefined

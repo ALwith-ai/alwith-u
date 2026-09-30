@@ -1,11 +1,15 @@
 import { expect, test } from "bun:test"
-import { requiredLegacySkills, assertLegacySkills } from "../skills"
+import { assertLegacySkills } from "../skills"
+import { legacyMessageSkills } from "../adapters"
 
 test("business prompts require enabled Codex skills and reject Desktop's old catalog", () => {
-  const names = requiredLegacySkills("按 yup-kb skill §6 分析，参考 bi-monthly-report skill")
-  expect(names).toEqual(["bi-monthly-report", "yup-kb"])
+  const names = legacyMessageSkills("yup-kb", "按 yup-kb skill §6 分析，参考 bi-monthly-report skill")
+  expect(names).toEqual(["yup-kb"])
   expect(() =>
-    assertLegacySkills(names, [{ name: "yup-kb", enabled: true, path: "/home/.codex/skills/yup-kb/SKILL.md" }])
+    assertLegacySkills(
+      ["bi-monthly-report"],
+      [{ name: "yup-kb", enabled: true, path: "/home/.codex/skills/yup-kb/SKILL.md" }]
+    )
   ).toThrow("bi-monthly-report")
   expect(() =>
     assertLegacySkills(["yup-kb"], [{ name: "yup-kb", enabled: false, path: "/home/.codex/skills/yup-kb/SKILL.md" }])
@@ -16,5 +20,9 @@ test("business prompts require enabled Codex skills and reject Desktop's old cat
   expect(() =>
     assertLegacySkills(["yup-kb"], [{ name: "yup-kb", enabled: true, path: "/home/.codex/skills/yup-kb/SKILL.md" }])
   ).not.toThrow()
-  expect(requiredLegacySkills("analyze this data")).toEqual([])
+  expect(legacyMessageSkills("yup-kb", "analyze this data")).toEqual([])
+})
+
+test("generic extensions do not inherit business skill requirements", () => {
+  expect(legacyMessageSkills("other", "yup-kb skill")).toEqual([])
 })

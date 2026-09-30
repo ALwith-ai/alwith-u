@@ -1,49 +1,47 @@
 import { describe, expect, test } from "bun:test"
-import { convertLegacyExtension, convertLegacyManifest, patchLegacySource } from "../import"
+import { convertLegacyExtension, patchLegacySource } from "../import"
 import { legacyProfile } from "../profiles"
 
-describe("finite legacy extension import", () => {
-  test("preserves business version, maps icons and omits empty or loader metadata", () => {
-    const manifest = convertLegacyManifest({
-      id: "yup-kb",
-      name: "YUP 知识库",
-      version: "2.20.0",
-      author: "",
-      authorUrl: "  ",
-      description: "知识库",
-      updateUrl: "https://example.com/loader",
-      minAppVersion: "26.6.18"
-    })
-    expect(manifest).toEqual({
+describe("generic import with optional host adapters", () => {
+  test("imports a new local identity and module resources without executing source", async () => {
+    const manifest = {
       manifestVersion: 3,
-      id: "yup-kb",
-      name: "YUP 知识库",
-      version: "2.20.0",
-      description: "知识库",
-      icon: "lucide:globe",
+      id: "generic-reader",
+      name: "Reader",
+      version: "1.0.0",
       entry: "main.js",
-      dependencies: { "@alwith/module-extension": "^0.1.2" },
+      dependencies: { "@alwith/module-extension": "^0.1.4" },
       hosts: { "alwith-u": ">=0.1.1" },
       dataSchemaVersion: 1
+    }
+    const source = "throw new Error('must not run during import')"
+    const converted = await convertLegacyExtension({
+      ticket: "generic",
+      manifest: { id: "generic-reader", name: "Reader", version: "1.0.0", minAppVersion: "26.6.18" },
+      convertedManifest: manifest,
+      source,
+      styles: "",
+      modules: { "assets/defaults.json": '{"title":"Demo"}' }
     })
-    expect(convertLegacyManifest({ id: "bi-metrics", name: "BI", version: "2.36.2" }).icon).toBe("lucide:chart")
-    expect(convertLegacyManifest({ id: "etms-strategy-review", name: "ETMS", version: "0.1.0" }).icon).toBe(
-      "lucide:settings"
-    )
+    expect(converted.manifest).toEqual(manifest)
+    expect(converted.main).toContain(source)
+    expect(converted.main).toContain("assets/defaults.json")
+    expect(patchLegacySource("generic-reader", source)).toBe(source)
   })
 
-  test("rejects unknown identities, incomplete manifests and unreviewed executable bytes", async () => {
-    expect(() => convertLegacyManifest({ id: "unknown", name: "Other", version: "1.0.0" })).toThrow("不支持")
-    expect(() => convertLegacyManifest({ id: "yup-kb", name: "YUP", version: "latest" })).toThrow("版本")
-    expect(() => convertLegacyManifest({ id: "yup-kb", name: " ", version: "1.0.0" })).toThrow("名称")
+  test("known adapters never bypass their source match and native identity is preserved", async () => {
+    const prepared = {
+      ticket: "test",
+      manifest: { id: "yup-kb", name: "YUP", version: "2.20.0" },
+      convertedManifest: { id: "yup-kb" },
+      source: "unreviewed()",
+      styles: "",
+      modules: {}
+    }
+    await expect(convertLegacyExtension(prepared)).rejects.toThrow("已审核版本")
     await expect(
-      convertLegacyExtension({
-        ticket: "test",
-        manifest: { id: "yup-kb", name: "YUP", version: "2.20.0" },
-        source: "throw new Error('must not run')",
-        styles: ""
-      })
-    ).rejects.toThrow("已审核版本")
+      convertLegacyExtension({ ...prepared, manifest: { id: "generic" }, convertedManifest: { id: "other" } })
+    ).rejects.toThrow("ID")
   })
 
   test("patches only exact reviewed sections and removes session and Desktop discovery paths", () => {

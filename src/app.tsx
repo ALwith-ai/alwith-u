@@ -44,7 +44,7 @@ import { ExtensionPage, ExtensionMount } from "@/features/extensions/extension-v
 import { useExtensions, reportExtensionError } from "@/features/extensions/runtime"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { connectLegacyNavigation } from "@/features/extensions/legacy/navigation"
-import { assertLegacySkills, requiredLegacySkills } from "@/features/extensions/legacy/skills"
+import { assertLegacySkills } from "@/features/extensions/legacy/skills"
 
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 
@@ -69,10 +69,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // Management pages share the leading screen; the offscreen chat stays mounted.
   const [view, setView] = useState<"chat" | "plugins" | "extensions" | "story" | "extension">("chat")
   const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")
-  const leading = view === "plugins" || view === "extensions"
+  const leading = view === "plugins" || view === "extensions" || view === "extension"
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback((id: string): void => {
     setExtensionView(id)
+    setLeadingPage("extensions")
     setView("extension")
   }, [])
   const [pluginsVisited, setPluginsVisited] = useState(false)
@@ -98,8 +99,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             : null
         },
         openView: openExtension,
-        send: async (id, text) => {
-          const required = requiredLegacySkills(text)
+        send: async (id, text, required) => {
           if (required.length) {
             const target = client.state.sessions[id]
             if (!target?.attached || target.readOnly)
@@ -359,8 +359,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         </div>
       ) : null
     if (view === "story") return <StoryPage />
-    if (view === "extension" && extensionView !== null)
-      return <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
     const moveToWindow = (): void => {
       void operation
@@ -478,13 +476,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                   <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
                 </div>
               )}
-              {leadingPage === "extensions" && (
+              {view === "extension" && extensionView !== null ? (
+                <ExtensionPage id={extensionView} onClose={openExtensions} />
+              ) : leadingPage === "extensions" ? (
                 <div className="min-h-0 flex-1 overflow-auto">
                   <div className="mx-auto w-full max-w-5xl px-6 py-8">
-                    <ExtensionsSection />
+                    <ExtensionsSection onOpenSurface={openExtension} />
                   </div>
                 </div>
-              )}
+              ) : null}
             </SidebarInset>
           }
           main={

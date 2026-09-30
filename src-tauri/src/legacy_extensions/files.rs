@@ -1,21 +1,19 @@
 use std::{
     collections::BTreeMap,
     fs,
-    io::{Read, Write},
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
     sync::Mutex,
-    time::UNIX_EPOCH,
 };
 
-use cap_std::{
-    ambient_authority,
-    fs::{Dir, OpenOptions},
-};
+use alwith_extension::filesystem::{FileEntry, FileOperation, FileRequest, FileResponse, perform_file};
+#[cfg(test)]
+use alwith_extension::filesystem::{MAX_BYTES, read_scoped};
+pub(super) use alwith_extension::filesystem::{open_scope, scoped_path};
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
-use super::{MAX_BYTES, require_installation};
+use super::require_installation;
 
 #[derive(Default)]
 pub struct LegacyFiles {
@@ -29,176 +27,6 @@ pub struct DirectoryGrant {
 }
 
 type Grants = BTreeMap<String, Vec<DirectoryGrant>>;
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FileOperation {
-    Read,
-    Write,
-    Mkdir,
-    Remove,
-    List,
-    Stat,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct FileRequest {
-    operation: FileOperation,
-    scope: Option<String>,
-    path: String,
-    body: Option<Vec<u8>>,
-    #[serde(default)]
-    recursive: bool,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FileEntry {
-    name: String,
-    is_file: bool,
-    is_directory: bool,
-}
-
-#[derive(Serialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
-pub enum FileResponse {
-    Read { body: Vec<u8> },
-    List { entries: Vec<FileEntry> },
-    Stat { exists: bool, size: u64, mtime: Option<u64>, is_file: bool, is_directory: bool },
-    Ok,
-}
-
-fn open_scope(root: &Path) -> Result<Dir, String> {
-    let canonical = fs::canonicalize(root).map_err(|error| format!("Open authorized directory: {error}"))?;
-    if canonical != root || fs::symlink_metadata(root).map_err(|error| error.to_string())?.file_type().is_symlink() {
-        return Err("Authorized directory was moved or replaced by a symbolic link; select it again".into());
-    }
-    Dir::open_ambient_dir(canonical, ambient_authority()).map_err(|error| format!("Open authorized directory: {error}"))
-}
-
-fn scoped_path(directory: &Dir, value: &str) -> Result<PathBuf, String> {
-    // Reject Windows separators on every platform so grants cannot change meaning on migration.
-    if value.contains('\\') || value.contains('\0') || value.contains(':') {
-        return Err("Legacy file paths must be relative paths inside the authorized directory".into());
-    }
-    let mut path = PathBuf::new();
-    for part in Path::new(value).components() {
-        match part {
-            Component::Normal(name) => path.push(name),
-            Component::CurDir => continue,
-            _ => return Err("Legacy file paths cannot leave the authorized directory".into()),
-        }
-        match directory.symlink_metadata(&path) {
-            Ok(metadata) if metadata.file_type().is_symlink() => {
-                return Err("Legacy file paths cannot contain symbolic links".into());
-            }
-            Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => return Err(format!("Inspect legacy file path: {error}")),
-        }
-    }
-    if path.as_os_str().is_empty() {
-        path.push(".");
-    }
-    Ok(path)
-}
-
-fn read_scoped(root: &Path, path: &str) -> Result<Vec<u8>, String> {
-    let directory = open_scope(root)?;
-    let path = scoped_path(&directory, path)?;
-    let file = directory.open(path).map_err(|error| format!("Open legacy file: {error}"))?;
-    let metadata = file.metadata().map_err(|error| format!("Inspect legacy file: {error}"))?;
-    if !metadata.is_file() {
-        return Err("Legacy reads require a regular file".into());
-    }
-    if metadata.len() > MAX_BYTES as u64 {
-        return Err("Legacy file exceeds 64 MiB".into());
-    }
-    let mut body = Vec::new();
-    file.take(MAX_BYTES as u64 + 1).read_to_end(&mut body).map_err(|error| format!("Read legacy file: {error}"))?;
-    if body.len() > MAX_BYTES {
-        return Err("Legacy file exceeds 64 MiB".into());
-    }
-    Ok(body)
-}
-
-fn perform_file(root: &Path, request: FileRequest) -> Result<FileResponse, String> {
-    let directory = open_scope(root)?;
-    let path = scoped_path(&directory, &request.path)?;
-    match request.operation {
-        FileOperation::Read => Ok(FileResponse::Read { body: read_scoped(root, &request.path)? }),
-        FileOperation::Write => {
-            let body = request.body.ok_or("Legacy write requires binary body")?;
-            if body.len() > MAX_BYTES {
-                return Err("Legacy file exceeds 64 MiB".into());
-            }
-            let mut options = OpenOptions::new();
-            options.write(true).create(true).truncate(true);
-            let mut file = directory
-                .open_with(&path, &options)
-                .map_err(|error| format!("Open legacy file for writing: {error}"))?;
-            file.write_all(&body).map_err(|error| format!("Write legacy file: {error}"))?;
-            Ok(FileResponse::Ok)
-        }
-        FileOperation::Mkdir => {
-            let result = if request.recursive { directory.create_dir_all(&path) } else { directory.create_dir(&path) };
-            result.map_err(|error| format!("Create legacy directory: {error}"))?;
-            Ok(FileResponse::Ok)
-        }
-        FileOperation::Remove => {
-            if path == Path::new(".") {
-                return Err("Cannot remove an authorized directory root".into());
-            }
-            let metadata =
-                directory.symlink_metadata(&path).map_err(|error| format!("Inspect legacy removal target: {error}"))?;
-            let result = if metadata.is_dir() {
-                if request.recursive { directory.remove_dir_all(&path) } else { directory.remove_dir(&path) }
-            } else {
-                directory.remove_file(&path)
-            };
-            result.map_err(|error| format!("Remove legacy file: {error}"))?;
-            Ok(FileResponse::Ok)
-        }
-        FileOperation::List => {
-            let mut entries = directory
-                .read_dir(&path)
-                .map_err(|error| format!("List legacy directory: {error}"))?
-                .map(|entry| {
-                    let entry = entry.map_err(|error| format!("Read legacy directory entry: {error}"))?;
-                    let kind = entry.file_type().map_err(|error| format!("Inspect legacy directory entry: {error}"))?;
-                    Ok(FileEntry {
-                        name: entry
-                            .file_name()
-                            .into_string()
-                            .map_err(|_| "Legacy directory entry is not valid UTF-8")?,
-                        is_file: kind.is_file(),
-                        is_directory: kind.is_dir(),
-                    })
-                })
-                .collect::<Result<Vec<_>, String>>()?;
-            entries.sort_by(|a, b| a.name.cmp(&b.name));
-            Ok(FileResponse::List { entries })
-        }
-        FileOperation::Stat => match directory.metadata(&path) {
-            Ok(metadata) => Ok(FileResponse::Stat {
-                exists: true,
-                size: metadata.len(),
-                mtime: metadata
-                    .modified()
-                    .ok()
-                    .and_then(|time| time.into_std().duration_since(UNIX_EPOCH).ok())
-                    .and_then(|duration| u64::try_from(duration.as_millis()).ok()),
-                is_file: metadata.is_file(),
-                is_directory: metadata.is_dir(),
-            }),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                Ok(FileResponse::Stat { exists: false, size: 0, mtime: None, is_file: false, is_directory: false })
-            }
-            Err(error) => Err(format!("Inspect legacy file: {error}")),
-        },
-    }
-}
 
 fn grant_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(app.path().app_data_dir().map_err(|error| error.to_string())?.join("legacy-directory-grants.json"))
@@ -222,7 +50,18 @@ fn write_grants(path: &Path, grants: &Grants) -> Result<(), String> {
     Ok(())
 }
 
-fn resolve_root(app: &tauri::AppHandle, extension_id: &str, scope: Option<&str>) -> Result<PathBuf, String> {
+fn existing_private_root(root: &Path, extension_id: &str) -> Result<PathBuf, String> {
+    let directory = open_scope(root)?;
+    let nested = scoped_path(&directory, &format!(".alwith/extensions/{extension_id}"))?;
+    match directory.metadata(&nested) {
+        Ok(metadata) if metadata.is_dir() => Ok(root.join(nested)),
+        Ok(_) => Err("Previous legacy private root is not a directory".into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(root.into()),
+        Err(error) => Err(format!("Inspect previous legacy private root: {error}")),
+    }
+}
+
+pub(super) fn resolve_root(app: &tauri::AppHandle, extension_id: &str, scope: Option<&str>) -> Result<PathBuf, String> {
     if let Some(scope) = scope {
         let grants = read_grants(&grant_path(app)?)?;
         return resolve_granted_root(&grants, extension_id, scope);
@@ -233,7 +72,12 @@ fn resolve_root(app: &tauri::AppHandle, extension_id: &str, scope: Option<&str>)
     let directory = open_scope(&app_root)?;
     let relative = scoped_path(&directory, &format!("legacy-extension-files/{extension_id}"))?;
     directory.create_dir_all(&relative).map_err(|error| format!("Create legacy private directory: {error}"))?;
-    Ok(app_root.join(relative))
+    let root = app_root.join(relative);
+    let selected = existing_private_root(&root, extension_id)?;
+    if selected != root {
+        super::importer::seed_previous_root(&root, &selected, extension_id)?;
+    }
+    Ok(selected)
 }
 
 fn resolve_granted_root(grants: &Grants, extension_id: &str, scope: &str) -> Result<PathBuf, String> {
@@ -244,42 +88,185 @@ fn resolve_granted_root(grants: &Grants, extension_id: &str, scope: &str) -> Res
     Ok(PathBuf::from(&grant.path))
 }
 
+fn perform_private_file(
+    root: &Path, request: FileRequest, files: &BTreeMap<String, Vec<u8>>,
+) -> Result<FileResponse, String> {
+    let directory = open_scope(root)?;
+    let path = scoped_path(&directory, &request.path)?;
+    let name = path.to_str().ok_or("Invalid legacy path")?;
+    let exists = directory.try_exists(&path).map_err(|e| e.to_string())?;
+    let prefix = if name == "." { String::new() } else { format!("{name}/") };
+    let mut package_entries = BTreeMap::new();
+    for resource in files.keys().filter_map(|resource| resource.strip_prefix(&prefix)) {
+        let (child, is_directory) = resource.split_once('/').map_or((resource, false), |(child, _)| (child, true));
+        package_entries
+            .insert(child.to_owned(), FileEntry { name: child.into(), is_file: !is_directory, is_directory });
+    }
+    if matches!(request.operation, FileOperation::List) && (!package_entries.is_empty() || exists) {
+        if exists {
+            let FileResponse::List { entries } = perform_file(root, request)? else { unreachable!() };
+            // Private data takes precedence over package resources at the same path.
+            for entry in entries {
+                package_entries.insert(entry.name.clone(), entry);
+            }
+        }
+        return Ok(FileResponse::List { entries: package_entries.into_values().collect() });
+    }
+    if !exists {
+        match request.operation {
+            FileOperation::Read => {
+                if let Some(body) = files.get(name) {
+                    return Ok(FileResponse::Read { body: body.clone() });
+                }
+            }
+            FileOperation::Stat => {
+                if let Some(body) = files.get(name) {
+                    return Ok(FileResponse::Stat {
+                        exists: true,
+                        size: body.len() as u64,
+                        mtime: None,
+                        is_file: true,
+                        is_directory: false,
+                    });
+                }
+                if !package_entries.is_empty() {
+                    return Ok(FileResponse::Stat {
+                        exists: true,
+                        size: 0,
+                        mtime: None,
+                        is_file: false,
+                        is_directory: true,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    perform_file(root, request)
+}
+
+pub(crate) fn clear_grants(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+    let state = app.state::<LegacyFiles>();
+    let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
+    let path = grant_path(app)?;
+    let mut grants = read_grants(&path)?;
+    grants.remove(extension_id);
+    write_grants(&path, &grants)
+}
+
+fn require_file_installation(window: &tauri::Window, extension_id: &str, legacy_only: bool) -> Result<bool, String> {
+    if legacy_only {
+        require_installation(window, extension_id)?;
+        return Ok(true);
+    }
+    let installation = crate::extension_capabilities::require_installation(window, extension_id)?;
+    let legacy = installation.source == "legacy:alwith-u";
+    if legacy {
+        super::importer::require_legacy_installation(window.app_handle(), extension_id)?;
+    }
+    Ok(legacy)
+}
+
+fn create_modern_private_root(app_root: &Path, extension_id: &str) -> Result<PathBuf, String> {
+    fs::create_dir_all(app_root).map_err(|error| format!("Create extension data root: {error}"))?;
+    let app_root = fs::canonicalize(app_root).map_err(|error| error.to_string())?;
+    let directory = open_scope(&app_root)?;
+    let relative = scoped_path(&directory, &format!("extension-files/{extension_id}"))?;
+    directory.create_dir_all(&relative).map_err(|error| format!("Create extension private directory: {error}"))?;
+    Ok(app_root.join(relative))
+}
+
+fn validate_common_file(root: &Path, request: &FileRequest) -> Result<(), String> {
+    if request.scope.is_none() {
+        let directory = open_scope(root)?;
+        let path = scoped_path(&directory, &request.path)?;
+        if path
+            .components()
+            .next()
+            .is_some_and(|part| part.as_os_str().to_string_lossy().eq_ignore_ascii_case("data.json"))
+        {
+            return Err("data.json is managed by extension context.data".into());
+        }
+    }
+    Ok(())
+}
+
+async fn file_command(
+    window: tauri::Window, extension_id: String, request: FileRequest, legacy_only: bool,
+) -> Result<FileResponse, String> {
+    require_file_installation(&window, &extension_id, legacy_only)?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<LegacyFiles>();
+        let _guard = state.lock.lock().map_err(|_| "Extension file state is poisoned")?;
+        let legacy = require_file_installation(&window, &extension_id, legacy_only)?;
+        let root = if legacy || request.scope.is_some() {
+            resolve_root(&app, &extension_id, request.scope.as_deref())?
+        } else {
+            create_modern_private_root(&app.path().app_data_dir().map_err(|error| error.to_string())?, &extension_id)?
+        };
+        if !legacy_only {
+            validate_common_file(&root, &request)?;
+        }
+        if legacy
+            && request.scope.is_none()
+            && matches!(request.operation, FileOperation::Read | FileOperation::Stat | FileOperation::List)
+        {
+            super::importer::migrate_initial_files(&app, &extension_id, &root)?;
+            let files = super::importer::package_files(&app, &extension_id)?;
+            return perform_private_file(&root, request, &files);
+        }
+        perform_file(&root, request)
+    })
+    .await
+    .map_err(|error| format!("Extension file task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn extension_file(
+    window: tauri::Window, extension_id: String, request: FileRequest,
+) -> Result<FileResponse, String> {
+    file_command(window, extension_id, request, false).await
+}
+
 #[tauri::command]
 pub async fn legacy_file(
     window: tauri::Window, extension_id: String, request: FileRequest,
 ) -> Result<FileResponse, String> {
-    require_installation(&window, &extension_id)?;
-    let app = window.app_handle().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<LegacyFiles>();
-        let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
-        let root = resolve_root(&app, &extension_id, request.scope.as_deref())?;
-        perform_file(&root, request)
-    })
-    .await
-    .map_err(|error| format!("Legacy file task failed: {error}"))?
+    file_command(window, extension_id, request, true).await
 }
 
-#[tauri::command]
-pub async fn legacy_directories(window: tauri::Window, extension_id: String) -> Result<Vec<DirectoryGrant>, String> {
-    require_installation(&window, &extension_id)?;
+async fn directories_command(
+    window: tauri::Window, extension_id: String, legacy_only: bool,
+) -> Result<Vec<DirectoryGrant>, String> {
+    require_file_installation(&window, &extension_id, legacy_only)?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<LegacyFiles>();
-        let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
+        let _guard = state.lock.lock().map_err(|_| "Extension file state is poisoned")?;
+        require_file_installation(&window, &extension_id, legacy_only)?;
         let mut grants = read_grants(&grant_path(&app)?)?;
         // Retain inaccessible grants in storage so a disconnected volume is not silently revoked.
         Ok(grants.remove(&extension_id).unwrap_or_default())
     })
     .await
-    .map_err(|error| format!("Legacy directories task failed: {error}"))?
+    .map_err(|error| format!("Extension directories task failed: {error}"))?
 }
 
 #[tauri::command]
-pub async fn legacy_pick_directory(
-    window: tauri::Window, extension_id: String,
+pub async fn extension_directories(window: tauri::Window, extension_id: String) -> Result<Vec<DirectoryGrant>, String> {
+    directories_command(window, extension_id, false).await
+}
+
+#[tauri::command]
+pub async fn legacy_directories(window: tauri::Window, extension_id: String) -> Result<Vec<DirectoryGrant>, String> {
+    directories_command(window, extension_id, true).await
+}
+
+async fn pick_directory_command(
+    window: tauri::Window, extension_id: String, legacy_only: bool,
 ) -> Result<Option<DirectoryGrant>, String> {
-    require_installation(&window, &extension_id)?;
+    require_file_installation(&window, &extension_id, legacy_only)?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let Some(path) = app
@@ -294,10 +281,10 @@ pub async fn legacy_pick_directory(
         let path = path.into_path().map_err(|error| format!("Selected directory is not a local path: {error}"))?;
         let path = fs::canonicalize(path).map_err(|error| format!("Resolve selected directory: {error}"))?;
         open_scope(&path)?;
-        // Recheck after user interaction: an extension may have been disabled while the dialog was open.
-        require_installation(&window, &extension_id)?;
         let state = app.state::<LegacyFiles>();
-        let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
+        let _guard = state.lock.lock().map_err(|_| "Extension file state is poisoned")?;
+        // Recheck after user interaction: the extension may now be disabled or uninstalled.
+        require_file_installation(&window, &extension_id, legacy_only)?;
         let registry_path = grant_path(&app)?;
         let mut registry = read_grants(&registry_path)?;
         let grants = registry.entry(extension_id).or_default();
@@ -311,7 +298,21 @@ pub async fn legacy_pick_directory(
         Ok(Some(grant))
     })
     .await
-    .map_err(|error| format!("Legacy directory picker failed: {error}"))?
+    .map_err(|error| format!("Extension directory picker failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn extension_pick_directory(
+    window: tauri::Window, extension_id: String,
+) -> Result<Option<DirectoryGrant>, String> {
+    pick_directory_command(window, extension_id, false).await
+}
+
+#[tauri::command]
+pub async fn legacy_pick_directory(
+    window: tauri::Window, extension_id: String,
+) -> Result<Option<DirectoryGrant>, String> {
+    pick_directory_command(window, extension_id, true).await
 }
 
 #[cfg(test)]
@@ -322,6 +323,85 @@ mod tests {
         FileRequest { operation, scope: None, path: path.into(), body: None, recursive: false }
     }
 
+    #[test]
+    fn modern_private_roots_are_isolated_from_legacy_and_other_extensions() {
+        let temp = tempfile::tempdir().unwrap();
+        let first = create_modern_private_root(temp.path(), "first").unwrap();
+        let second = create_modern_private_root(temp.path(), "second").unwrap();
+        assert_eq!(first, fs::canonicalize(temp.path()).unwrap().join("extension-files/first"));
+        assert_ne!(first, second);
+        assert!(first.is_dir() && second.is_dir());
+        assert!(!temp.path().join("legacy-extension-files").exists());
+        assert!(create_modern_private_root(temp.path(), "../escape").is_err());
+    }
+
+    #[test]
+    fn common_private_files_cannot_replace_managed_configuration() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(temp.path()).unwrap();
+        for path in ["data.json", "./data.json", "././data.json", "DATA.JSON", "./Data.Json"] {
+            assert!(validate_common_file(&root, &request(FileOperation::Write, path)).is_err());
+        }
+        assert!(validate_common_file(&root, &request(FileOperation::Write, "notes.json")).is_ok());
+        let mut selected = request(FileOperation::Read, "data.json");
+        selected.scope = Some("selected-directory".into());
+        assert!(validate_common_file(&root, &selected).is_ok());
+    }
+
+    #[test]
+    fn existing_nested_private_edits_remain_authoritative() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(dir.path()).unwrap();
+        let nested = root.join(".alwith/extensions/yup-kb");
+        assert_eq!(existing_private_root(&root, "yup-kb").unwrap(), root);
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(root.join("workspaces.json"), b"[1]").unwrap();
+        fs::write(nested.join("workspaces.json"), b"[2]").unwrap();
+        let selected = existing_private_root(&root, "yup-kb").unwrap();
+        assert_eq!(selected, nested);
+        assert_eq!(read_scoped(&selected, "workspaces.json").unwrap(), b"[2]");
+    }
+    #[cfg(unix)]
+    #[test]
+    fn existing_nested_private_root_rejects_symlink_ancestors() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(dir.path()).unwrap();
+        std::os::unix::fs::symlink("/tmp", root.join(".alwith")).unwrap();
+        assert!(existing_private_root(&root, "yup-kb").is_err());
+    }
+    #[test]
+    fn package_resources_are_readable_and_listed_with_private_overrides() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(dir.path()).unwrap();
+        let files =
+            BTreeMap::from([("assets/image.png".into(), vec![0, 128, 255]), ("constants.json".into(), b"{}".to_vec())]);
+        let FileResponse::Read { body } =
+            perform_private_file(&root, request(FileOperation::Read, "assets/image.png"), &files).unwrap()
+        else {
+            panic!("read");
+        };
+        assert_eq!(body, [0, 128, 255]);
+        let FileResponse::Stat { exists, is_directory, .. } =
+            perform_private_file(&root, request(FileOperation::Stat, "assets"), &files).unwrap()
+        else {
+            panic!("stat");
+        };
+        assert!(exists && is_directory);
+        let FileResponse::List { entries } =
+            perform_private_file(&root, request(FileOperation::List, "."), &files).unwrap()
+        else {
+            panic!("list");
+        };
+        assert_eq!(entries.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["assets", "constants.json"]);
+        fs::write(root.join("constants.json"), b"private").unwrap();
+        let FileResponse::Read { body } =
+            perform_private_file(&root, request(FileOperation::Read, "constants.json"), &files).unwrap()
+        else {
+            panic!("read");
+        };
+        assert_eq!(body, b"private");
+        assert!(perform_private_file(&root, request(FileOperation::Read, "../constants.json"), &files).is_err());
+    }
     #[test]
     fn file_operations_preserve_bytes_and_report_real_metadata() {
         let temp = tempfile::tempdir().unwrap();

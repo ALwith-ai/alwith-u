@@ -3,7 +3,7 @@
     "id": "bi-metrics",
     "icon": "lucide:chart",
     "sourceSha256": "150bded59b67c05b1f18c5ee34af6733230cb6a5cadd5e85abe1716e049e5805",
-    "patchedSha256": "30577a326630047ed062b345eba382101020c001e19e4f87f0b8ceb6e2fee656",
+    "patchedSha256": "2eeb6cac67585145a9cfa84a5ad65cb7105b13569bd49694d5b61b3463e499d1",
     "url": "https://bi-api.finture.id/api/ext/bi-metrics/main.js",
     "patches": [
       {
@@ -17,8 +17,26 @@
       {
         "before": "    var min = this.settings.refresh_minutes;",
         "after": "    if (!this._uPrimary) return;\n    var min = this.settings.refresh_minutes;"
+      },
+      {
+        "before": "    leaf.setViewState({\n      type: DETAIL_VIEW_TYPE,",
+        "after": "    leaf._uReady = leaf.setViewState({\n      type: DETAIL_VIEW_TYPE,"
+      },
+      {
+        "before": "  if (!leaf) return;\n  // setHtml 闭包：每次被调时再解 leaf.view（此时 setViewState 已落定）；",
+        "after": "  if (!leaf) return;\n  // U awaits the detail lifecycle before a fast response can replace its loading state.\n  if (leaf._uReady) await leaf._uReady;\n  // setHtml 闭包：每次被调时再解 leaf.view（此时 setViewState 已落定）；"
       }
-    ]
+    ],
+    "networkHosts": [
+      "bi-api.finture.id"
+    ],
+    "dataFiles": [],
+    "requiredSkills": [
+      "bi-add-metric",
+      "bi-monthly-report"
+    ],
+    "exportFilePattern": null,
+    "unsupportedCommands": {}
   },
   {
     "id": "yup-kb",
@@ -75,7 +93,21 @@
         "before": "    // Step 4: upload linked sessions\n    // linkedSessionDirs stores full absolute paths to .jsonl files,\n    // e.g. /Users/x/.alwith/projects/-Users-x-Desktop-test/uuid.jsonl\n    cb({ phase: \"sessions\" });\n    var sessionsFolderId = null;\n    var sessionsEnsured = false;\n    for (var si = 0; si < ws.linkedSessionDirs.length; si++) {\n      var sessionPath = ws.linkedSessionDirs[si];\n      if (!sessionPath || !sessionPath.endsWith(\".jsonl\")) continue;\n      var sParts = sessionPath.replace(/\\\\/g, \"/\").split(\"/\");\n      var sFileName = sParts[sParts.length - 1];\n      var sUuid = sFileName.replace(/\\.jsonl$/i, \"\");\n      var sDirPath = sParts.slice(0, -1).join(\"/\");\n      var isPrivate = false;\n      try { isPrivate = await _fileExists(sDirPath + \"/\" + sUuid + \".private\"); } catch (_e) {}\n      if (isPrivate) continue;\n      var rawC;\n      try { rawC = await _fsReadTextFile(sessionPath); } catch (_e) { continue; }\n      var filteredSes = _filterJsonlForArchive(rawC);\n      if (!filteredSes.kept) continue;\n      var sesSha;\n      try { sesSha = await _sha256Hex(filteredSes.jsonl); } catch (_e) { continue; }\n      var sesKey = \"sessions/\" + sFileName; // cache key always uses UUID filename\n      var sesCached = ws.uploadedFiles[sesKey];\n      if (sesCached && sesCached.sha === sesSha) continue;\n\n      // Build a human-readable display name from session content\n      var sesDisplayName = sFileName;\n      try {\n        var sesLines = rawC.split(\"\\n\");\n        var sesDate = \"\";\n        var sesTitle = \"\";\n        for (var sli = 0; sli < Math.min(sesLines.length, 10); sli++) {\n          var sln = sesLines[sli].trim();\n          if (!sln) continue;\n          var sobj = JSON.parse(sln);\n          if (!sesDate && sobj && sobj.timestamp) {\n            sesDate = new Date(sobj.timestamp).toISOString().slice(0, 10);\n          }\n          if (!sesTitle && sobj && sobj.type === \"user\" && sobj.message) {\n            var sc = sobj.message.content;\n            if (typeof sc === \"string\" && sc.trim()) {\n              sesTitle = sc.trim().replace(/[\\r\\n\\s]+/g, \" \").replace(/[/\\\\:*?\"<>|]/g, \"\");\n              if (sesTitle.length > 40) sesTitle = sesTitle.slice(0, 40);\n            }\n          }\n          if (sesDate && sesTitle) break;\n        }\n        if (sesTitle) sesDisplayName = (sesDate ? sesDate + \"_\" : \"\") + sesTitle + \".jsonl\";\n      } catch (_e) {}\n\n      if (!sessionsEnsured) {\n        try {\n          var sfr = await fetch(base + \"/api/v1/folders/ensure\", {\n            method: \"POST\",\n            headers: { \"Authorization\": \"Bearer \" + token, \"Content-Type\": \"application/json\" },\n            body: JSON.stringify({ projectId: ws.yupProjectId, parentId: ws.yupWorkspaceFolderId, relativePath: \"sessions\" })\n          });\n          if (sfr.ok) sessionsFolderId = (await sfr.json()).data;\n        } catch (_e) {}\n        sessionsEnsured = true;\n      }\n\n      var sesBlob = new Blob([filteredSes.jsonl], { type: \"application/octet-stream\" });\n      var sesFd = new FormData();\n      sesFd.append(\"file\", sesBlob, sesDisplayName);\n      var sesResp;\n      if (sesCached && sesCached.fileId) {\n        sesResp = await fetch(base + \"/api/v1/files/\" + sesCached.fileId + \"/upload-version\", {\n          method: \"POST\", headers: { \"Authorization\": \"Bearer \" + token }, body: sesFd\n        });\n        if (sesResp.status === 404) sesCached = null;\n      }\n      if (!sesCached || !sesCached.fileId) {\n        sesResp = await fetch(\n          base + \"/api/v1/files/upload?projectId=\" + ws.yupProjectId +\n          (sessionsFolderId ? \"&folderId=\" + sessionsFolderId : \"\") +\n          \"&name=\" + encodeURIComponent(sesDisplayName),\n          { method: \"POST\", headers: { \"Authorization\": \"Bearer \" + token }, body: sesFd }\n        );\n      }\n      if (sesResp && sesResp.ok) {\n        var sesJ = await sesResp.json();\n        ws.uploadedFiles[sesKey] = { sha: sesSha, fileId: sesJ && sesJ.data && sesJ.data.fileId, mtime: Date.now() };\n      }\n    }\n\n",
         "after": "    // U uploads local files only; conversation archival is unavailable.\n\n"
       }
-    ]
+    ],
+    "networkHosts": [
+      "bi-api.finture.id",
+      "yup-knowledge-server.finture.id"
+    ],
+    "dataFiles": [
+      "workspaces.json"
+    ],
+    "requiredSkills": [
+      "yup-kb"
+    ],
+    "exportFilePattern": null,
+    "unsupportedCommands": {
+      "list_sessions": "会话归档暂不支持，其他知识库功能可用"
+    }
   },
   {
     "id": "etms-strategy-review",
@@ -83,6 +115,18 @@
     "sourceSha256": "b5b12392592e26463fb63dca4b37cd57883b9c3f17a9415fb537c5afae909758",
     "patchedSha256": "b5b12392592e26463fb63dca4b37cd57883b9c3f17a9415fb537c5afae909758",
     "url": "https://bi-api.finture.id/api/ext/etms-strategy-review/main.js",
-    "patches": []
+    "patches": [],
+    "networkHosts": [
+      "martech-auth-qa02.finture.id",
+      "martech-auth-test.finture.id",
+      "martech-etms-test.finture.id",
+      "finture-intranet-api.finture.id"
+    ],
+    "dataFiles": [],
+    "requiredSkills": [
+      "etms-strategy-review"
+    ],
+    "exportFilePattern": "^etms-review-[a-zA-Z0-9._-]+\\.json$",
+    "unsupportedCommands": {}
   }
 ]

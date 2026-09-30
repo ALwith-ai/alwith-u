@@ -10,8 +10,5 @@ fn require_installation(window: &tauri::Window, extension_id: &str) -> Result<()
     if !matches!(window.label(), "main" | "settings") {
         return Err("Only extension host windows can use legacy extension capabilities".into());
     }
-    if !matches!(extension_id, "bi-metrics" | "yup-kb" | "etms-strategy-review") {
-        return Err("This legacy extension is not certified".into());
-    }
     importer::require_legacy_installation(window.app_handle(), extension_id)
 }

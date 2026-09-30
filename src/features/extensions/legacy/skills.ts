@@ -1,9 +1,3 @@
-const BUSINESS_SKILLS = ["bi-add-metric", "bi-monthly-report", "yup-kb", "etms-strategy-review"]
-
-export function requiredLegacySkills(text: string): string[] {
-  return BUSINESS_SKILLS.filter(name => text.includes(`${name} skill`))
-}
-
 /** Presence is a prerequisite; business skills must separately adopt U's data contract. */
 export function assertLegacySkills(
   required: string[],
@@ -17,6 +11,6 @@ export function assertLegacySkills(
   )
   if (missing.length)
     throw new Error(
-      `缺少已启用的 Codex 业务技能：${missing.join("、")}。请通过插件/技能目录安装适用于 alwith-u 的版本；Desktop 原版技能的数据路径不兼容。`
+      `此操作依赖尚未就绪的 Codex 业务技能：${missing.join("、")}。旧技能的数据路径不兼容；当前兼容范围不包含该 AI 功能。`
     )
 }

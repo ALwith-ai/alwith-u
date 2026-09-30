@@ -1,5 +1,6 @@
 import { parseManifestIcon, resolveManifestText } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
+import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
 import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useId, useState, type ReactNode } from "react"
@@ -34,6 +35,7 @@ interface ExtensionsManagerProps {
   onInstall(id?: string): void
   onRequest(request: Request): void
   onUninstall(id: string, name: string): void
+  onOpenSurface?(id: string): void
   renderSettings(view: ViewContribution): ReactNode
 }
 
@@ -65,6 +67,7 @@ export function ExtensionsManager({
   onInstall,
   onRequest,
   onUninstall,
+  onOpenSurface,
   renderSettings
 }: ExtensionsManagerProps) {
   const { t, i18n } = useTranslation()
@@ -123,6 +126,9 @@ export function ExtensionsManager({
             const pending = state.native?.pending.find(value => value.id === item.id)
             const error = state.errors[item.id]
             const blocked = unavailable || Boolean(pending)
+            const surfaces = onOpenSurface
+              ? sortContributions(host.views.filter(view => view.extensionId === item.id && view.kind === "surfaces"))
+              : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
                 <PanelItem className="group/extension rounded-md py-3">
@@ -212,7 +218,7 @@ export function ExtensionsManager({
                         )
                       }
                     />
-                    {(actions.update || actions.uninstall) && (
+                    {(surfaces.length > 0 || actions.update || actions.uninstall) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -227,6 +233,18 @@ export function ExtensionsManager({
                           <MoreVerticalIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-max min-w-[140px] whitespace-nowrap">
+                          {surfaces.map(view => {
+                            const Icon = EXTENSION_ICONS[view.icon ?? "blocks"]
+                            return (
+                              <DropdownMenuItem
+                                key={view.id}
+                                disabled={blocked || !item.enabled || Boolean(error)}
+                                onClick={() => onOpenSurface?.(view.id)}>
+                                <Icon />
+                                {view.title}
+                              </DropdownMenuItem>
+                            )
+                          })}
                           {actions.update && (
                             <DropdownMenuItem disabled={blocked} onClick={() => onInstall(item.id)}>
                               <CircleArrowUpIcon />

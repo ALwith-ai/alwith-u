@@ -23,6 +23,7 @@ import i18n from "@/lib/i18n"
 import { version as hostVersion } from "../../../package.json"
 import * as extensionUi from "./ui"
 import { createHostCapabilities } from "./capabilities"
+import { commonCapabilities } from "./capabilities/common"
 import { ensureBundledExtensions, type BundledExtension } from "./bundled"
 import { createLegacyHost } from "./legacy/host"
 
@@ -44,6 +45,7 @@ function getRuntime(): ExtensionRuntime {
     apiVersion: sdk.extensionApiVersion,
     host: { id: "alwith-u", version: hostVersion },
     capabilities: {
+      ...commonCapabilities,
       [legacy.legacyHostCapability.id]: createLegacyHost(id =>
         runtime?.snapshot().native?.installations.find(item => item.id === id)
       ),
