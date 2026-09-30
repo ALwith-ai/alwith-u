@@ -1,6 +1,6 @@
 @import "@alwith/module-chat/styles.css";
 
-/* U-only chat adaptations; common Desktop geometry lives in @alwith/chat. */
+/* Match Desktop's native scrollbar auto-hide within chat; the main viewport uses Pane. */
 .codex-assistant-turn :is(
   .codex-markdown-table-scroller,
   .codex-markdown-code-placeholder,
@@ -11,12 +11,18 @@
   .codex-command-output,
   .codex-reasoning-details
 ) {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
-
   &::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 0;
+    height: 0;
+  }
+
+  &:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   &::-webkit-scrollbar-thumb {

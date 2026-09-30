@@ -1,5 +1,5 @@
 import { applyUpdate, createSession } from "@alwith/api"
-import { render } from "@testing-library/react"
+import { act, render } from "@testing-library/react"
 import { expect, mock, test } from "bun:test"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
@@ -12,7 +12,7 @@ const { ChatBody } = await import("../chat-body")
 await initI18n("en")
 navigationSoundStore.setState({ soundMode: "none" })
 
-test("shows restored messages before session/resume finishes", () => {
+test("shows restored messages before session/resume finishes", async () => {
   const initial = createSession("history-1", "/tmp/project")
   const restoring = applyUpdate(
     { ...initial, restoring: true, attached: false },
@@ -31,4 +31,6 @@ test("shows restored messages before session/resume finishes", () => {
 
   expect(view.getByText("Earlier question")).toBeDefined()
   expect(view.queryByText("Open this chat")).toBeNull()
+  // Pane queues its initial measurement; flush it before this file releases its DOM.
+  await act(async () => {})
 })

@@ -144,6 +144,9 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
     let draggingScrollbar = false
     let scrollbarMovedDown = false
     let touchY: number | null = null
+    // Pane's overlay scrollbar is a sibling of the viewport, so its gestures do not bubble through root.
+    const scrollArea = root.closest<HTMLElement>('[data-slot="scroll-area"]')
+    const pointerRoot = scrollArea ?? root
     const input = (direction: number) => {
       disclosureHeight.current = null
       if ((direction < 0 || mode.current === "locating") && root.scrollHeight > root.clientHeight) stopFollowing()
@@ -193,7 +196,13 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
       else if (["ArrowDown", "PageDown", "End", " "].includes(event.key)) input(1)
     }
     const onPointerDown = (event: PointerEvent) => {
-      draggingScrollbar = event.target === root && event.button === 0 && root.scrollHeight > root.clientHeight
+      const scrollbar =
+        event.target instanceof Element
+          ? event.target.closest('[data-slot="scroll-area-scrollbar"][data-orientation="vertical"]')
+          : null
+      const ownsScrollbar = scrollbar !== null && scrollbar.closest('[data-slot="scroll-area"]') === scrollArea
+      draggingScrollbar =
+        (event.target === root || ownsScrollbar) && event.button === 0 && root.scrollHeight > root.clientHeight
       scrollbarMovedDown = false
       if (draggingScrollbar) stopFollowing()
     }
@@ -220,7 +229,7 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
     root.addEventListener("touchstart", onTouchStart, { passive: true })
     root.addEventListener("touchmove", onTouchMove, { passive: true })
     root.addEventListener("keydown", onKeyDown)
-    root.addEventListener("pointerdown", onPointerDown)
+    pointerRoot.addEventListener("pointerdown", onPointerDown, { capture: true })
     window.addEventListener("pointerup", onPointerUp)
     window.addEventListener("pointercancel", onPointerCancel)
     root.addEventListener("click", onDisclosure, { capture: true })
@@ -232,7 +241,7 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
       root.removeEventListener("touchstart", onTouchStart)
       root.removeEventListener("touchmove", onTouchMove)
       root.removeEventListener("keydown", onKeyDown)
-      root.removeEventListener("pointerdown", onPointerDown)
+      pointerRoot.removeEventListener("pointerdown", onPointerDown, { capture: true })
       window.removeEventListener("pointerup", onPointerUp)
       window.removeEventListener("pointercancel", onPointerCancel)
       root.removeEventListener("click", onDisclosure, { capture: true })
