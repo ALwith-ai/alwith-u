@@ -8,11 +8,8 @@ This client is Apache-2.0; the separately maintained runtime client package has 
 the agent process, the ALwith Runtime, ships as the closed `alwith-runtime` binary and is
 reached through its documented stdio or WebSocket protocol.
 
-## WorkBuddy 产品方向
-
-ALwith U 是聊天型 WorkBuddy，也是完整参考应用。用户通过编程 Agent 写自己的 UI、增加业务能力；ALwith 提供成熟 CLI、闭源 Runtime、完整聊天、统一账号（含宠物）和统一移动端。QA、Gamepad、alwith.dev 是能力，Board 是另一种同级应用。
-
-职责、用户流程与验收见 [WorkBuddy 目标](docs/workbuddy.md)，后续见 [实施计划](docs/plans/2026-09-13-restructure.md)。这是目标，下面的功能列表描述当前 U，不代表目标全部实现。用户应用不强制继承 U 或使用 shadcn。
+ALwith U is also a complete reference application: it shows how a chat app is assembled on the
+ALwith Runtime. Apps built the same way need not inherit U's code or use shadcn.
 
 Not affiliated with or endorsed by OpenAI.
 

@@ -1,26 +1,26 @@
-# 聊天分支
+# Chat branches
 
-已完成回复的操作区提供“创建聊天分支”：保留该回复所属 Codex turn 及之前的历史，创建独立聊天并打开。主窗和浮窗顶部不展示分叉入口。继承历史末尾展示来源分隔线，“从原聊天继续”按钮返回源会话。侧栏原有“分叉”入口也会打开新聊天。主窗口和浮动聊天窗口共用主窗口拥有的 ACP 客户端。
+The action bar of a finished reply offers "Create chat branch": it keeps the history up to and including the Codex turn that reply belongs to, creates an independent chat and opens it. The headers of the main window and the floating window show no fork entry. The end of the inherited history shows a source divider, and its "Continue in original chat" button returns to the source session. The sidebar's existing "Fork" entry also opens the new chat. The main window and the floating chat window share the ACP client owned by the main window.
 
-同一个原生轮次包含多条用户消息时，可能对应多个显示批次；来源分隔线只放在该轮次最后一个显示批次之后。回复操作区在分叉按钮右侧显示该轮开始时间，沿用 Desktop 的格式：今天显示时分，其他日期显示月日和时分，悬停显示完整年月日和时分。历史时间来自 ACP `_meta.codex.turnStartedAt`（Unix 毫秒）；缺失时不以回放到达时间冒充历史时间。
+When one native turn contains several user messages it can map to several display batches; the source divider goes only after the last display batch of that turn. The reply action bar shows the turn's start time to the right of the fork button, in Desktop's format: hours and minutes for today, month, day, hours and minutes for other dates, and the full date and time on hover. History times come from ACP `_meta.codex.turnStartedAt` (Unix milliseconds); when it is missing, the replay arrival time is never passed off as the history time.
 
-## 协议
+## Protocol
 
-- U 使用 `session/fork`，通过 `_meta.codex.lastTurnId` 传入边界；省略表示整个聊天。仅在适配器声明 `forkAtTurn` 能力、回复包含 `_meta.codex.turnId` 时展示回复分叉入口。
-- 消息 ID 与 turn ID 不同。实时更新与历史回放都由适配器提供原始 turn ID，UI 不按消息序号猜测。
-- 适配器声明 `sessionLineage`，在新建、恢复、分叉响应及会话列表中返回 `_meta.codex.{nativeSessionId, forkedFromId}`。
-- Codex 0.156.1 的真实分叉会生成不同的 `Thread.sessionId`，不能按其类型注释将它当作共同的树 ID。U 通过 `forkedFromId` 返回直接来源会话，不再加载关联分支列表。
-- 聊天和分支关系仍由 Codex 持有，U 不保存第二套会话库。
-- Codex 0.156.1 的 `thread/list` 会排除预览为空的分支，即使已经续聊。适配器在首页只读扫描 Codex 原生 rollout 的 `session_meta`，以 `forked_from_id` 发现分支，并通过 `thread/read` 确认摘要后补入列表；同时补齐原生列表在分支卸载后可能省略的父分支信息。兼容逻辑位于适配器，遵循归档和项目范围，不写 Codex 文件、不保存第二套索引。因此重启后分支仍能出现在会话列表中。
+- U uses `session/fork` and passes the boundary in `_meta.codex.lastTurnId`; omitting it means the whole chat. The reply fork entry is shown only when the adapter declares the `forkAtTurn` capability and the reply carries `_meta.codex.turnId`.
+- Message IDs and turn IDs differ. The adapter supplies the original turn ID for both live updates and history replay; the UI never guesses from message order.
+- The adapter declares `sessionLineage` and returns `_meta.codex.{nativeSessionId, forkedFromId}` in new, resume and fork responses and in session listings.
+- A real fork in Codex 0.156.1 produces a different `Thread.sessionId`, so despite its type annotation it cannot serve as a shared tree ID. U gets the direct source session from `forkedFromId` and no longer loads a list of related branches.
+- Chats and their branch relations stay owned by Codex; U keeps no second session store.
+- Codex 0.156.1's `thread/list` excludes branches whose preview is empty, even after the chat continued. On the first page the adapter reads the `session_meta` of Codex's native rollouts, discovers branches by `forked_from_id`, confirms their summaries through `thread/read` and adds them to the list; it also fills in parent information the native listing can omit once a branch is unloaded. This compatibility logic lives in the adapter, respects archive and project scope, writes no Codex files and keeps no second index, so branches still appear in the session list after a restart.
 
-## 发行与验证
+## Release and verification
 
-适配器功能分支从 `440a5427` 创建，U 功能分支从本地 `main` 创建。适配器包从 npm 安装（`@nyssance/codex-acp-v2`，`package.json` 钉精确版本），不再本地 vendor。
+The adapter feature branch was created from `440a5427` and the U feature branch from local `main`. The adapter package is installed from npm (`@nyssance/codex-acp-v2`, pinned to an exact version in `package.json`) and is no longer vendored locally.
 
-自动化测试覆盖参数透传、轮次元数据、源会话跨页、跨项目和归档查找、重复点击、失败重试、离开原聊天后的异步结果，以及浮动窗口转发。`bun run test:live` 通过 Runtime 的 stdio 和 WebSocket 分别检查指定回复分叉、不包含后续消息、原生父子关系、重新打开分支、独立续聊，以及全新适配器进程下的分支发现和历史恢复。
+Automated tests cover parameter pass-through, turn metadata, source sessions across pages, lookups across projects and archives, repeated clicks, retry after failure, asynchronous results after leaving the original chat, and forwarding from the floating window. `bun run test:live` checks, over both the Runtime's stdio and WebSocket transports, forking at a chosen reply, exclusion of later messages, native parent and child relations, reopening a branch, continuing it independently, and branch discovery and history restore under a fresh adapter process.
 
-## 创建时机、标题与来源
+## Creation timing, title and source
 
-点击分叉立即创建并持久化 Codex 会话，不等待新输入；这与 Desktop 发送前不落盘的草稿语义不同。标题继承源标题，并按 `(2)`、`(3)` 递增；同名已有会话会被跳过，已带计数的源标题继续递增，不叠加两组括号。标题写入 Codex 原生会话名，主窗和浮窗通过同一拥有者串行处理分叉，避免同时分叉重名。
+Clicking fork creates and persists the Codex session immediately, without waiting for new input; this differs from Desktop's draft semantics, which write nothing before the first send. The title inherits the source title and increments as `(2)`, `(3)`; titles already taken are skipped, and a source title that already carries a counter keeps incrementing rather than stacking two sets of parentheses. The title is written as the Codex native session name, and the main and floating windows serialize forks through one owner so simultaneous forks do not collide on a name.
 
-分叉/恢复响应的 `_meta.codex.forkedAtTurnId` 来自父子原生历史共同的最后一个 turn ID。U 只在内存投影中持有来源，分隔线放在该轮历史之后，子会话新增消息不会移动分隔线；重启后从适配器重新恢复。分隔线只展示“从原聊天继续”，不附加源标题，也不预读来源会话。点击时优先使用已有会话摘要，缺失时再查询原生列表以获取跳转目录；源会话不可用或读取失败时通过提示反馈，可再次点击重试。
+The fork and resume responses' `_meta.codex.forkedAtTurnId` is the last turn ID shared by the parent and child native histories. U holds the source only in its in-memory projection and places the divider after that turn's history; new messages in the child session never move it, and after a restart it is restored from the adapter. The divider shows only "Continue in original chat", without the source title, and does not prefetch the source session. On click it prefers an existing session summary and queries the native list for the target directory only when that is missing; when the source session is unavailable or fails to load, a notice says so and the click can be retried.

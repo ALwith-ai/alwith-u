@@ -1,44 +1,32 @@
-# U 的闭源依赖分发
+# Distribution of U's closed-source dependencies
 
-U 源码可公开；Auth 等私有实现不随源码公开，也不需要私有仓权限。
+U's source can be public. Private implementations such as Auth are not published with it, and building U needs no access to private repositories.
 
-| 层 | U 使用什么 | 是否需要私有源码 |
+| Layer | What U uses | Needs private source |
 | --- | --- | --- |
-| 前端 API、聊天、账号接口 | npm 的 `@alwith/api`、`@alwith/module-chat`、`@alwith/module-auth` | 否 |
-| 原生 Auth 刷新、应用发现 | `@alwith/native` 自动选择平台动态库 | 否 |
-| Tauri | `src-tauri/src/native.rs` 的薄 C ABI 桥接 | 否；不含 Auth 实现 |
-| Agent 托管 | 固定版本 Runtime 二进制 | 否 |
+| Frontend API, chat, account interface | `@alwith/api`, `@alwith/module-chat`, `@alwith/module-auth` from npm | No |
+| Native Auth refresh, app discovery | `@alwith/native`, which picks the platform dynamic library | No |
+| Tauri | The thin C ABI bridge in `src-tauri/src/native.rs` | No; it holds no Auth implementation |
+| Agent hosting | A pinned Runtime binary | No |
 
-`bun install` 安装依赖，`bun run stage` 校验、复制原生产物及许可，
-`bun run tauri build` 使用相同 staging 链。跨架构构建先执行
-`bun install --os='*' --cpu='*'`，再传目标 triple。
+`bun install` installs the dependencies, `bun run stage` verifies and copies the native artifacts and their licences, and `bun run tauri build` uses the same staging chain. For a cross-architecture build run `bun install --os='*' --cpu='*'` first, then pass the target triple.
 
-原生库由私有 alwith-modules 仓的 CI 生成：macOS、Windows、Linux 各有
-arm64 / x64 产物。平台包只包含动态库、artifact.json 和许可声明；不含
-Auth Rust 源码。`@alwith/native` 的构建脚本不在 WebView 中运行。
+The native libraries are produced by the CI of the private alwith-modules repository, with arm64 and x64 artifacts for macOS, Windows and Linux. A platform package contains only the dynamic library, `artifact.json` and licence notices; no Auth Rust source. The build scripts of `@alwith/native` never run in the WebView.
 
-## 不变的行为
+## Unchanged behaviour
 
-- Auth 与 Runtime 分开，不新增常驻进程。
-- 刷新仍由共享 Rust 实现合并；同一应用的窗口共用刷新状态。
-- U 和 Desktop 各自保留原有 JSON 凭据；不迁移、不共享 token 文件。
-- npm 发布账号与最终用户 ALwith 登录无关。
-- 桌面动态库不是移动端产物，不能声称已经支持 iOS / Android。
+- Auth stays separate from the Runtime; no new resident process.
+- Refresh is still coalesced by the shared Rust implementation; windows of one app share refresh state.
+- U and Desktop each keep their own JSON credentials; token files are neither migrated nor shared.
+- The npm publishing account has nothing to do with end users' ALwith login.
+- The desktop dynamic libraries are not mobile artifacts; iOS and Android support cannot be claimed.
 
-## 验收边界
+## Acceptance boundary
 
-本地 Cargo 编译通过不等于分发完成。最终检查必须在独立目录使用公开
-npm 和可匿名下载的 Runtime，不能复制本机 binaries、node_modules 或私有仓。
-每个平台以实际 CI 结果为准；签名、公证及真实账号联调另行验收。
+A passing local Cargo build does not mean distribution is done. The final check must run in a separate directory using public npm and an anonymously downloadable Runtime, without copying local binaries, `node_modules` or private repositories. Each platform is judged by its actual CI result; signing, notarisation and integration with real accounts are accepted separately.
 
-## 当前发行范围（2026-09-16）
+## Current release scope (2026-09-16)
 
-- 原生库与 Runtime 都是 npm 平台包(`@alwith/native`、`@alwith/runtime`,各自五个平台:
-  macOS arm64、Linux x64/arm64、Windows x64/arm64,不出 Intel Mac),由各自仓库的 CI 经
-  trusted publishing 发布,版本号与仓库 tag 一致。
-- 构建时 `stageNative()` / `stageRuntime()` 校验平台包里钉的 SHA256 再拷进资源与 sidecar;
-  不读取 GitHub token,不向私有仓请求文件,不隐式借用相邻仓(`RUNTIME_SOURCE=sibling`、
-  `RUNTIME_PATH` 是显式的开发覆盖)。
-- macOS ARM64 隔离目录验证：公开依赖安装、完整 staging、TypeScript 检查、
-  前端测试、lint、前端 build 和 Tauri Release 编译通过。主工作区共 101 项
-  Bun 测试、28 项 Rust 测试通过；不代表真实账号端到端联调或公证完成。
+- The native libraries and the Runtime are both npm platform packages (`@alwith/native`, `@alwith/runtime`, five platforms each: macOS arm64, Linux x64/arm64, Windows x64/arm64, no Intel Mac), published by each repository's CI through trusted publishing with versions matching the repository tag.
+- At build time `stageNative()` / `stageRuntime()` verify the SHA256 pinned in the platform package before copying into resources and sidecars. No GitHub token is read, no file is requested from a private repository, and no neighbouring checkout is borrowed implicitly (`RUNTIME_SOURCE=sibling` and `RUNTIME_PATH` are explicit development overrides).
+- Verified in an isolated macOS ARM64 directory: public dependency install, full staging, TypeScript checks, frontend tests, lint, frontend build and the Tauri release compile pass. The main workspace passes 101 Bun tests and 28 Rust tests. This does not mean end-to-end integration with real accounts or notarisation is done.

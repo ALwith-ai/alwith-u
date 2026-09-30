@@ -1,5 +1,5 @@
-# 全仓文本一律 LF,在 checkout 层成立,不依赖各人的 core.autocrlf。
-# Windows 构建机按 core.autocrlf 检出成 CRLF 时,脚本里写死 `\n` 的解析当场失配,
-# 而且同一份仓库在两个平台打出内容不同的包,产物不可复现(Desktop 2026-08-04 实撞)。
-# text=auto 让 git 自动判文本/二进制,二进制资产不受影响。
+# All text is LF, enforced at checkout, independent of anyone's core.autocrlf.
+# A Windows build machine checking out CRLF breaks parsers that hard-code `\n` in scripts,
+# and the same repository then builds different bundles on two platforms (hit in Desktop on
+# 2026-08-04). text=auto lets git tell text from binary, so binary assets are unaffected.
 * text=auto eol=lf

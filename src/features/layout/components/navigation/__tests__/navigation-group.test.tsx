@@ -12,7 +12,7 @@ afterEach(() => {
 })
 
 describe("NavigationGroup", () => {
-  test("使用导航自有折叠交互且不渲染箭头槽", () => {
+  test("uses the navigation's own collapse interaction and renders no chevron slot", () => {
     const onOpenChange = mock(() => {})
     const screen = render(
       <NavigationGroup open={false} onOpenChange={onOpenChange} label="Project" active>
@@ -46,7 +46,7 @@ describe("NavigationGroup", () => {
     expect(onOpenChange).toHaveBeenCalledWith(true)
   })
 
-  test("展开内容统一使用导航纵向栈并保留所有 2px 间隙", () => {
+  test("renders expanded content in the navigation's vertical stack and keeps every 2px gap", () => {
     const screen = render(
       <NavigationGroup open onOpenChange={() => {}} label="Project">
         <div>Session</div>

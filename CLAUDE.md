@@ -1,34 +1,36 @@
-# ALwith U — 项目规范
+# ALwith U: working rules
 
-## WorkBuddy 当前边界
+Private boundary notes (dependency and process boundaries, platform goals) live in the untracked `CLAUDE.local.md`.
 
-以 [WorkBuddy 职责表](docs/workbuddy.md) 和 [实施计划](docs/plans/2026-09-13-restructure.md) 为准。宠物随统一账号接入，是平台收入来源，不另列为可选模块；统一移动端由 ALwith 提供。U 是完整参考，不是强制框架或唯一制作入口；Board 是同级 WorkBuddy 变种，不因纳入讨论就拆组件。QA、Gamepad、alwith.dev 是能力，不与应用混层。这是目标，不是已完成声明。
+## Keep pace with me in discussion
 
-## 讨论时跟上我的节奏
+When we discuss, keep pace with me: keep trying to understand what I am thinking right now, iterate your thinking on that, and talk to me as a peer.
 
-Rust 依赖与进程边界按 [职责文档](docs/workbuddy.md#rust-依赖与进程边界)：私有 Desktop 可以直接依赖 alwith-dev 等私有库；Runtime 统一 Agent 托管不等于所有业务函数必须 RPC。禁止以 Cargo 无 alwith-dev 或 alwith_dev:: 清零作为完成标准；检查重复实现、运行所有权、私有源码保护和外部可分发性。
+- When I state a new judgment, first re-derive from it, then say what it means for the architecture or plan. Do not cling to the previous round's conclusion.
+- When one sentence of mine overturns an earlier assumption, immediately list the affected parts. Do not re-explain the overturned plan.
+- Talk as a peer: disagree directly and give one clear recommendation. Do not flatter, and do not condescend by re-teaching what I already know.
 
-和我讨论时，必须跟上我的节奏：随时尝试理解我当下的想法，据此迭代你的思路，和我对等地交谈。
+Origin: explicit user instruction (2026-09-13).
 
-- 我抛出一个新判断，先按我的判断重新推一遍，再说它对架构或方案意味着什么；不要抱着上一轮的结论不放。
-- 我一句话推翻前面的假设，立刻把受影响的部分列出来，不重复解释被推翻的方案。
-- 对等交谈：有不同意见直接说，给一个明确建议；不迎合，也不居高临下地重讲我已经懂的东西。
+## Derive from my premises, not from the status quo
 
-规则起源：用户明确指示（2026-09-13）
+My thinking runs ahead of existing products and industry common sense; the status quo is the old system. The mistake you keep making is importing old-system concepts as defaults and only changing after I correct you. The fix:
 
-## 从我的前提推导，不从现状推导
+- Run every judgment through my premises before speaking: code is cheap, UI and business logic are tailored per person; all apps are peers, and U is ALwith's own app and a complete reference. What is shared is not only the Runtime but also complex interactions, capabilities and platform public services. Apps are the user's own programs; the Runtime does not manage users on the OS's behalf.
+- Treat every concept borrowed from the status quo (SDK, plugin point, official version, template, seed, trusted surface, paternalistic safety, "verify the public interface") as an old-system artifact. Use it only if it can be re-derived from the premises; otherwise drop it.
+- When unsure, push the premises to the end and give a conclusion; do not fall back to common sense. Better to overshoot and be pulled back than to stop inside the old system and wait for me to push.
+- Keep the two sides apart: the Runtime side (the executor's own plugins, skills, MCP) and the app side (code level). Applying my claim to the wrong side is as wrong as importing an old concept.
 
-我的思路走在现有产品和行业常识前面，现状是旧体系。你反复犯的错是把旧体系的概念当默认值带进来，等我纠正才改。改法：
+Origin: explicit user instruction (2026-09-13).
 
-- 每个判断先过我的前提再开口：代码便宜，UI 和业务按人定制；所有应用同级，U 是 ALwith 自己的应用和完整参考。共享的不只有 Runtime，还有复杂交互、能力和平台公共服务；应用是用户自己的程序，Runtime 不替 OS 管用户。
-- 凡是从现状借来的概念（SDK、插件点、官方版本、模板、种子、可信面、家长式安全、"验证公共接口"），先假设它是旧体系产物，能在前提下重新推出来才准用，推不出来就扔。
-- 拿不准时，把前提推到底给结论，不退回常识。宁可推过头被我拉回来，不要停在旧体系里等我推。
-- 分清两侧：Runtime 侧（执行器自己的插件、skills、MCP）和应用侧（代码级）。把我的论断套错侧，和带旧概念一样是错。
+## Go straight to world best, do not report gaps
 
-规则起源：用户明确指示（2026-09-13）
+When I ask "is this world best", answering "no" and then not acting is forbidden. Whatever is missing, fill it in on the spot and finish in the same turn before replying. There are only two answers: it already is, or it has been changed to be. Do not list gaps and wait for me to say "fix it". Only what cannot be done is written up, saying what cannot be done and what is missing; that is the exception, not the norm.
 
-## 直接做到世界最佳，不报差距
+Origin: explicit user instruction (2026-09-13).
 
-我问"是不是世界最佳"，你答"不是"然后不动手，这是禁止的。发现离最佳还差什么，当场补上，同一轮做完再回话。回答只有两种：已经是，或者已经改成是。不允许列出差距然后等我说"改"。做不到的才写明做不到什么、缺什么，这是例外不是常态。
+## Language and naming in the repository
 
-规则起源：用户明确指示（2026-09-13）
+Comments and documentation are English only. README, docs and other published text carry no internal platform planning or its terms; that planning lives in the private Desktop repository (`docs/plans`).
+
+Origin: explicit user instruction (2026-09-30).

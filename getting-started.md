@@ -1,75 +1,75 @@
 # ALwith U
 
-支持平台：
+Supported platforms:
 
-- macOS 13 及以上，仅支持 Apple Silicon。
-- Windows 10 1809 及以上，支持 x64 和 ARM64。
+- macOS 13 or later, Apple Silicon only.
+- Windows 10 1809 or later, x64 and ARM64.
 
-## 安装环境
+## Set up the environment
 
 ### macOS
 
-安装 [Homebrew]
+Install [Homebrew]
 
 ```shell
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-安装 [Rust]
+Install [Rust]
 
 ```shell
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-安装项目指定的 [Bun 1.4.2]
+Install the project's pinned [Bun 1.4.2]
 
 ```shell
 curl -fsSL https://bun.com/install | bash -s "bun-v1.4.2"
 ```
 
-安装 [uv]
+Install [uv]
 
 ```shell
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-完成后重新打开终端。
+Open a new terminal afterwards.
 
 ### Windows
 
-1. 安装 [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)，勾选 **Desktop development with C++**。
-2. 确认已安装 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)。
-3. 使用 PowerShell 执行下面的命令。
+1. Install [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **Desktop development with C++** selected.
+2. Make sure the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) is installed.
+3. Run the commands below in PowerShell.
 
-安装 [Rust]
+Install [Rust]
 
 ```powershell
 winget install --id Rustlang.Rustup
 ```
 
-安装项目指定的 [Bun 1.4.2]
+Install the project's pinned [Bun 1.4.2]
 
 ```powershell
 iex "& {$(irm https://bun.com/install.ps1)} -Version 1.4.2"
 ```
 
-安装 [uv]
+Install [uv]
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-完成后重新打开 PowerShell。不要在 WSL 中启动本项目。
+Open a new PowerShell afterwards. Do not start this project from WSL.
 
-### 安装 Fabric
+### Install Fabric
 
-用 [uv] 安装 [Python]
+Install [Python] with [uv]
 
 ```shell
 uv python install
 ```
 
-安装 [uv] 工具
+Install the [uv] tools
 
 ```shell
 uv tool install ruff
@@ -79,37 +79,37 @@ uv tool install ruff
 uv tool install fabric --with InquirerPy --with rich
 ```
 
-## 开发
+## Develop
 
-拉取源码并安装依赖：
+Clone the source and install dependencies:
 
 ```shell
 bun install
 ```
 
-使用 Fabric 启动开发版：
+Start the development build with Fabric:
 
 ```shell
 fab tauri
 ```
 
-首次编译 Rust 依赖需要一些时间。
+The first build of the Rust dependencies takes a while.
 
-## 构建和检查
+## Build and check
 
 ```shell
-fab build   # 构建安装包
-fab check   # 执行前端和 Rust 的完整检查
-fab format  # 格式化 Rust 和前端源码
+fab build   # build the installer
+fab check   # run the full frontend and Rust checks
+fab format  # format Rust and frontend sources
 ```
 
-查看全部 Fabric 命令：
+List every Fabric command:
 
 ```shell
 fab -l
 ```
 
-[Homebrew]: https://brew.sh/zh-cn/
+[Homebrew]: https://brew.sh/
 [Rust]: https://www.rust-lang.org/
 [Bun 1.4.2]: https://bun.com/
 [Python]: https://www.python.org/

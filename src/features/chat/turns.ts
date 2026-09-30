@@ -2,7 +2,7 @@
 // (reasoning, tools, plans, commentary) and the final answer.
 //
 // The grouping itself — which items belong to which turn, when a turn started and
-// ended, its usage — is `turns()` from @alwith/api; every WorkBuddy needs that and
+// ended, its usage — is `turns()` from @alwith/api; every app needs that and
 // it is the same for all of them. What is ours is the Codex dialect on top: which
 // assistant messages are the final answer versus commentary (`_meta.codex.phase`),
 // what counts as an edit, and stable keys so memoised turn components survive streaming.

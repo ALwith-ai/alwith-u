@@ -11,3 +11,4 @@ src-tauri/target/
 src-tauri/gen/schemas/
 *.bun-build
 test-results.xml
+CLAUDE.local.md

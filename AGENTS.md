@@ -1,9 +1,5 @@
 # ALwith U
 
-## WorkBuddy 产品目标
-
-平台职责以 [docs/workbuddy.md](docs/workbuddy.md) 为准。用户只定制 UI 和业务能力；CLI、Runtime、完整聊天、统一账号（含宠物）与统一移动端由 ALwith 提供。QA、Gamepad、alwith.dev 是能力，U、Board、Desktop 是同级应用。目标不等于全部已实现，本仓 UI 规则不限制用户应用的技术选型。
-
 Always answer the user in Chinese.
 
 ## Product
@@ -50,6 +46,8 @@ Always answer the user in Chinese.
 ## Code
 
 - Bun for everything: `bun add`, `bun run`, `bunx`. No npm, pnpm or yarn.
+- Comments and documentation are English only. README, docs and other published text carry no
+  internal platform planning or its terms; that planning belongs in the private Desktop repository.
 - Keep `src/core` and `src/agent` free of React, Tauri and DOM assumptions.
 - shadcn components only; never edit `src/components/ui/`. Add missing ones with
   `bunx --bun shadcn@latest add <name>`.

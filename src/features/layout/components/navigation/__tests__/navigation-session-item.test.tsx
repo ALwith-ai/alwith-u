@@ -16,7 +16,7 @@ afterEach(() => {
 })
 
 describe("NavigationSessionItem", () => {
-  test("统一使用 Codex 导航会话行几何", () => {
+  test("uses the Codex navigation session row geometry", () => {
     const screen = render(<NavigationSessionItem title="Session" />)
 
     expect(screen.getAllByText("Session")).toHaveLength(1)

@@ -1,73 +1,73 @@
-# Desktop 业务扩展兼容
+# Compatibility with Desktop business extensions
 
-## 本次范围
+## Scope
 
-U 使用公共包 `@alwith/module-extension` 0.1.3 的可选 `legacy` 入口，为以下业务代码快照提供兼容适配：
+U uses the optional `legacy` entry of the public package `@alwith/module-extension` 0.1.3 to adapt the following business code snapshots:
 
-| 扩展 | 核查时的安装版本 | 源码 SHA-256 前缀 |
+| Extension | Installed version when reviewed | Source SHA-256 prefix |
 | --- | --- | --- |
 | bi-metrics | 2.36.2 | 150bded59b67 |
 | yup-kb | 2.20.0 | 53536c9c1af6 |
 | etms-strategy-review | 0.1.0 | b5b12392592e |
 
-完整摘要及精确补丁见 `src/features/extensions/legacy/profiles.json`。兼容依据是业务代码摘要，旧清单版本号不能保证远程代码没有变化。代码与已审核快照不同会拒绝导入，需要重新审查兼容配置。
+The full digests and exact patches are in `src/features/extensions/legacy/profiles.json`. Compatibility is keyed to the business code digest; an old manifest version number cannot guarantee that the remote code is unchanged. Code that differs from the reviewed snapshot is refused on import and needs a new compatibility review.
 
-没有修改 `alwith-desktop`、`@nyssance/codex-acp-v2`，没有读取 Codex 的内部会话文件或新增会话存储。
+`alwith-desktop` and `@nyssance/codex-acp-v2` were not modified, Codex's internal session files are not read, and no session store was added.
 
-**这不是三个扩展全部业务功能已通过真实联调的声明。** 页面、SDK、网络和文件适配已实现；YUP 会话归档明确暂缓，AI 功能还依赖适用于 U 的业务 skills。
+**This is not a claim that every business feature of the three extensions has passed real integration.** Page, SDK, network and file adaptation are implemented; YUP session archiving is explicitly deferred, and the AI features also depend on business skills adapted for U.
 
-## 导入和更新
+## Import and update
 
-1. 打开 U 的扩展管理页，点击「从本地目录安装」。新旧扩展共用这个入口。
-2. 选择旧扩展目录，例如 `~/.alwith/extensions/bi-metrics`。
-3. 宿主读取清单自动分流：声明 `manifestVersion` 或 `dependencies` 的目录按新版校验；两者都没有且包含非空 `minAppVersion` 的目录作为旧格式候选。新版校验失败直接报错，不降级。旧格式再识别完整业务包或已知远程加载器；对于加载器，仅从固定 HTTPS 地址取得业务代码并核对摘要，不执行原加载器。
-4. 原生端校验转换结果、暂存标准包并授权安装。首次安装自动启用；更新沿用原有启用状态。
-5. 顶部栏按钮默认靠左，保留业务扩展声明的柱状图、文档、书本和盾牌图标，点击打开业务工作区；扩展内部多个页面映射为工作区标签页。设置页面出现在 U 设置栏目，也可以由扩展直接打开。
+1. Open U's extension manager and click "Install from local folder". New and old extensions share this entry.
+2. Choose the old extension's folder, for example `~/.alwith/extensions/bi-metrics`.
+3. The host reads the manifest and routes it: a folder declaring `manifestVersion` or `dependencies` is validated as the new format; a folder with neither and a non-empty `minAppVersion` is a legacy candidate. A failed new-format validation is an error, never a downgrade. Legacy folders are then recognised as a complete business package or a known remote loader; for a loader, the business code is fetched only from a fixed HTTPS address and checked against its digest, and the original loader never runs.
+4. The native side validates the converted result, stages the standard package and authorises the install. A first install is enabled automatically; an update keeps the existing enabled state.
+5. Toolbar buttons default to the left and keep the chart, document, book and shield icons the extensions declare; clicking one opens the business workspace, and the extension's internal pages map to workspace tabs. Settings pages appear in U's settings sections and can also be opened by the extension directly.
 
-「从目录更新」也通过同一个目录选择和格式识别流程，并在转换或下载前核对扩展 ID。网络不可用、摘要不匹配、同名非兼容扩展冲突均会明确报错，不静默替换。
+"Update from folder" goes through the same folder selection and format recognition and checks the extension ID before converting or downloading. An unavailable network, a digest mismatch or a conflicting incompatible extension of the same name is reported explicitly and never replaced silently.
 
-安装包只包含 `manifest.json`、`main.js`、`styles.css`。源码以数据形式嵌入标准入口，避免将 Browserify 的内部模块错误地视为宿主依赖。
+The installed package contains only `manifest.json`, `main.js` and `styles.css`. The source is embedded as data in the standard entry, so Browserify's internal modules are not mistaken for host dependencies.
 
-## 公共包和宿主分工
+## Public package and host responsibilities
 
-| 层 | 职责 |
+| Layer | Responsibility |
 | --- | --- |
-| 公共包 `./legacy` | Plugin/Component、ItemView/WorkspaceLeaf、设置控件、Modal/Notice、DOM 辅助方法、旧 requestUrl 语义、资源清理 |
-| U 的导入器 | 固定业务快照、旧清单转换、经过核对的源码补丁、初始配置迁移 |
-| U 的原生桥接 | 业务 HTTPS 请求、二进制/multipart、私有文件空间、目录授权、安装来源和包摘要校验 |
-| U 的页面与聊天适配 | 页面导航、明确会话 ID、调用现有 Runtime/ACP 客户端、Codex skills 依赖检查 |
+| Public package `./legacy` | Plugin/Component, ItemView/WorkspaceLeaf, settings controls, Modal/Notice, DOM helpers, legacy requestUrl semantics, resource cleanup |
+| U's importer | Pinned business snapshots, legacy manifest conversion, reviewed source patches, initial configuration migration |
+| U's native bridge | Business HTTPS requests, binary and multipart bodies, private file space, folder grants, install source and package digest checks |
+| U's page and chat adaptation | Page navigation, explicit session IDs, calls into the existing Runtime/ACP client, Codex skill dependency checks |
 
-同一套公共运行时负责安装、启停和更新。没有另建旧扩展运行时。兼容 facade 负责 API 映射和生命周期，不是执行不可信 JavaScript 的安全沙箱；只安装信任的扩展。
+One public runtime handles install, enable, disable and update; no separate legacy extension runtime was built. The compatibility facade maps APIs and lifecycles; it is not a security sandbox for untrusted JavaScript, so install only extensions you trust.
 
-## 配置与文件
+## Configuration and files
 
-- `data.json` 中的配置独立迁入公共包数据存储。原始目录不写入。配置先持久化，再确认清除中转副本；并发首次迁移通过现有数据修订检查处理。
-- YUP 的 `workspaces.json` 复制到 U 的私有文件空间，不覆盖 U 已有文件，也不自动授权文件中记载的路径。
-- 旧 Home 路径在兼容层中是虚拟路径，实际文件位于 U 应用数据目录的 `legacy-extension-files/<id>/`。不会写回 Desktop 的 `~/.alwith`。
-- 用户选择的目录记录到 U 应用数据目录的 `legacy-directory-grants.json`。后续读写需要同一扩展的有效授权；路径越界和符号链接越界被拒绝。
-- 兼容包证书按扩展 ID 和包修订保存在 `legacy-imports.json`。暂存新版本不会使正在使用的旧版本失效。
-- ETMS 导出要求选择已绑定会话的工作目录，提示词中的导出文件名转换为绝对路径。文件名受限为该扩展的分析 bundle。
+- Configuration in `data.json` is migrated into the public package's data store on its own. The original folder is never written. Configuration is persisted first, then the transit copy is cleared once confirmed; concurrent first migrations are handled by the existing data revision check.
+- YUP's `workspaces.json` is copied into U's private file space without overwriting files U already has, and paths recorded in it are not granted automatically.
+- Old home paths are virtual inside the compatibility layer; the real files live in `legacy-extension-files/<id>/` under U's app data directory. Nothing is written back to Desktop's `~/.alwith`.
+- Folders the user chooses are recorded in `legacy-directory-grants.json` under U's app data directory. Later reads and writes need a valid grant for the same extension; path escapes and symlink escapes are refused.
+- Compatibility package certificates are stored per extension ID and package revision in `legacy-imports.json`. Staging a new version does not invalidate the version in use.
+- ETMS export requires choosing the working directory of the bound session, and export file names in prompts are turned into absolute paths. File names are limited to that extension's analysis bundle.
 
-HTTP 请求仅允许代码中已审核的业务服务域名。显式 Bearer 头和 multipart 数据保留，不继承宿主的 Cookie，不自动跨域重定向。请求与响应上限为 64 MiB。
+HTTP requests are allowed only to business service domains reviewed in code. Explicit Bearer headers and multipart data are kept, host cookies are not inherited, and cross-origin redirects are not followed automatically. Requests and responses are capped at 64 MiB.
 
-## 聊天与 skills 边界
+## Chat and skill boundary
 
-业务按钮第一次操作时捕获已打开的可用会话 ID。异步请求完成后仍发送到该 ID，不根据届时选中的聊天推断目的地。本次实现保守地在一次扩展激活期间固定目标；切换目标需要停用再启用扩展，并在新会话中重新操作。捕获目标时会显示提示。
+The first time a business button is used, it captures the ID of an open usable session. Asynchronous requests still go to that ID when they finish; the destination is never inferred from whichever chat is selected by then. This implementation conservatively fixes the target for one extension activation; changing it means disabling and re-enabling the extension and acting again in the new session. A notice is shown when the target is captured.
 
-AI 请求发送前通过 Codex 的 `skills_list` 检查提示词引用的业务技能是否启用。当前涉及 `bi-add-metric`、`bi-monthly-report`、`yup-kb`、`etms-strategy-review`。缺失或禁用时不发送分析请求，并提示通过现有插件/技能目录安装 U 适配版本。
+Before an AI request is sent, Codex's `skills_list` is used to check that the business skills the prompt references are enabled. Currently these are `bi-add-metric`, `bi-monthly-report`, `yup-kb` and `etms-strategy-review`. When one is missing or disabled, the analysis request is not sent and a notice says to install the U-adapted version through the existing plugin and skill catalog.
 
-**技能存在检查不等于技能业务兼容认证。** Desktop 原版技能硬编码读取 `~/.alwith/extensions/*/data.json`，YUP 还使用旧位置的 `current.json` 和 `tree-dirty.flag`。直接复制、改名或把原 SKILL 文本放入提示词均不足以适配。配套 Codex skills 仍需定义 U 的凭据、文件上下文和业务请求契约；本次没有自动安装或重写 Codex 技能目录。
+**A skill presence check is not a certification of business compatibility.** Desktop's original skills hard-code reads of `~/.alwith/extensions/*/data.json`, and YUP also uses `current.json` and `tree-dirty.flag` in the old location. Copying, renaming or pasting the original SKILL text into prompts is not enough to adapt them. The companion Codex skills still need to define U's credentials, file context and business request contract; this work did not install or rewrite any Codex skill folder.
 
-## 明确暂缓的功能
+## Explicitly deferred features
 
-YUP 的会话自动归档、手动归档、工作区关联会话上传已禁用并显示说明。本地工作区文件同步保留。没有返回假空历史，也没有以 `session/resume` 冒充只读历史导出。
+YUP's automatic session archiving, manual archiving and workspace-linked session upload are disabled with an explanation. Local workspace file sync is kept. No fake empty history is returned, and `session/resume` is not passed off as a read-only history export.
 
-BI 原有的 Desktop skill 自动下载写入逻辑停用。技能由 Codex 插件/技能体系管理。原生宿主仅提供已实现的能力，未知旧命令明确报错。
+BI's original automatic download and write of Desktop skills is disabled; skills are managed by Codex's plugin and skill system. The native host offers only the capabilities that are implemented, and unknown legacy commands are reported as errors.
 
-## 验证边界
+## Verification boundary
 
-自动检查覆盖公共 SDK 生命周期、设置页挂载、配置迁移和订阅、二进制/multipart、路径与授权、标准包安装和来源证书、显式会话路由、技能依赖判断。
+Automated checks cover the public SDK lifecycle, settings page mounting, configuration migration and subscriptions, binary and multipart bodies, paths and grants, standard package installation and source certificates, explicit session routing and skill dependency decisions.
 
-三个真实业务代码快照另在受控 DOM 和假 HTTP 下执行了未登录、已登录场景的加载、设置页、工作区挂载和卸载。该验证没有调用真实登录服务。
+The three real business code snapshots were additionally run under a controlled DOM and fake HTTP, signed out and signed in: loading, settings pages, workspace mounting and unloading. That run did not call the real login service.
 
-交付前仍需要真实账号联调：登录、真实报表/图表、iframe 交互、知识库上传下载、ETMS 审核以及配套 U skills 的 AI 闭环。自动化通过不能替代这些业务验收。
+Real account integration is still required before delivery: login, real reports and charts, iframe interaction, knowledge base upload and download, ETMS review, and the AI loop with the companion U skills. Passing automation cannot replace this business acceptance.
