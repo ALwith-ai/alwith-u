@@ -1,7 +1,9 @@
 // Headless check of the story wiring: the staged Runtime loads the story module from node_modules,
 // resolves a dsh launch through `agent/launch`, U-style app-owned agent start, one prompt, then the
 // ledger must hold that prompt with its session provenance. Without DEEPSEEK_API_KEY the model call
-// fails and the check still passes: the mirror runs before the model answers.
+// fails and the check still passes: the mirror runs before the model answers. With a key it runs two
+// real turns and `/compact`, and also requires prose in the ledger and a note whose sources are
+// ledger entries. The module is taken from ALWITH_MODULES_DIR (default: this checkout's node_modules).
 //   ALWITH_U_DSH_AGENT=../dsh-agent/src/main.ts bun scripts/story-smoke.ts
 import assert from "node:assert/strict"
 import { mkdtempSync } from "node:fs"
@@ -20,14 +22,17 @@ const port = new ProcessRuntimeClient({
   binary: join(root_dir, "src-tauri/binaries/alwith-runtime-aarch64-apple-darwin"),
   engines: { dsh: { command: process.execPath, args: [resolve(dshAgent)] } },
   journalRoot: join(scratch, "journal"),
-  env: { ALWITH_MODULES_DIR: join(root_dir, "node_modules"), ALWITH_DSH_SESSIONS_ROOT: join(scratch, "sessions") },
+  env: {
+    ALWITH_MODULES_DIR: process.env.ALWITH_MODULES_DIR ?? join(root_dir, "node_modules"),
+    ALWITH_DSH_SESSIONS_ROOT: join(scratch, "sessions")
+  },
   stderr: "ignore"
 })
 const watchdog = setTimeout(() => {
   console.error("story smoke timed out")
   port.kill()
   process.exit(2)
-}, 90_000)
+}, 600_000)
 try {
   const modules = await port.request<Array<{ name: string; alive: boolean }>>("modules")
   assert.ok(
@@ -64,26 +69,59 @@ try {
   const agent = new Agent(port, agentId, "dsh", initialized)
   await agent.listen()
   const { sessionId } = await agent.request<{ sessionId: string }>("session/new", { cwd: root, mcpServers: [] })
+  const live = process.env.DEEPSEEK_API_KEY !== undefined
+  const idle: Array<() => void> = []
+  agent.onNotification((method, params) => {
+    const update = (params as { sessionId?: string; update?: { sessionUpdate?: string; state?: string } }).update
+    if (method === "session/update" && update?.sessionUpdate === "state_update" && update.state === "idle")
+      idle.shift()?.()
+  })
+  /** ACP v2: the prompt response is acceptance; the turn ends with a running → idle state_update. */
+  const turn = async (text: string): Promise<string> => {
+    const ended = new Promise<void>(resolve => idle.push(resolve))
+    try {
+      await agent.request("session/prompt", { sessionId, prompt: [{ type: "text", text }] })
+    } catch (error) {
+      idle.pop()
+      return `model call failed: ${String(error).split("\n")[0]}`
+    }
+    await ended
+    return "answered"
+  }
   const text = "Open with one sentence about the fog."
-  const outcome = await agent.request("session/prompt", { sessionId, prompt: [{ type: "text", text }] }).then(
-    () => "answered",
-    error => `model call failed: ${String(error).split("\n")[0]}`
-  )
+  const outcome = await turn(text)
+  if (live) {
+    assert.equal(outcome, "answered", "the model answers when a key is present")
+    assert.equal(await turn("Continue with one sentence about a ship arriving."), "answered")
+    assert.equal(await turn("/compact"), "answered")
+  }
   await new Promise(resolve => setTimeout(resolve, 1500))
-  const ledger = await call<Array<{ kind: string; text: string; source?: { sessionId: string } }>>("ledger/read", {})
+  type Entry = { seq: number; kind: string; text: string; source?: { sessionId: string } }
+  const ledger = await call<Entry[]>("ledger/read", {})
   const input = ledger.find(entry => entry.kind === "input")
   assert.ok(
     input !== undefined && input.text === text && input.source?.sessionId === sessionId,
     "prompt mirrored into the ledger with its session"
   )
   assert.ok(changed.includes("ledger"), "ledger change broadcast as a module event")
+  const notes = await call<Array<{ sourceSeqs: number[]; text: string }>>("note/list", {})
+  if (live) {
+    assert.ok(ledger.filter(entry => entry.kind === "prose").length >= 2, "both answers mirrored as prose")
+    assert.ok(notes.length >= 1, "the compaction summary became a note")
+    const seqs = new Set(ledger.map(entry => entry.seq))
+    assert.ok(
+      notes[0].sourceSeqs.length > 0 && notes[0].sourceSeqs.every(seq => seqs.has(seq)),
+      "note sources are ledger entries"
+    )
+  }
   await agent.stop()
   console.log(
     JSON.stringify({
       ok: true,
+      live,
       outcome,
-      ledger: ledger.length,
-      prose: ledger.filter(entry => entry.kind === "prose").length
+      ledger: ledger.map(entry => `${entry.seq}:${entry.kind}`),
+      notes: notes.map(note => ({ sources: note.sourceSeqs, chars: note.text.length }))
     })
   )
 } finally {

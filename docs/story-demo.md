@@ -6,32 +6,33 @@ agent runs. Development only: U does not ship dsh or the story module yet.
 
 ## What runs
 
-- `@alwith/module-story` (a `file:` dependency on `../alwith-modules/modules/alwith-story`) is loaded by
-  the Runtime from U's `node_modules` in debug builds (`ALWITH_MODULES_DIR` overrides the directory).
+- The story module (`alwith-modules/modules/alwith-story`) is not a dependency of U; installs must not need a
+  sibling checkout. The Runtime loads it from whatever `ALWITH_MODULES_DIR` points at (debug builds default to
+  U's `node_modules`, where it is absent unless staged there).
 - The `dsh` engine is added to the Runtime's engine table when `ALWITH_U_DSH_AGENT` names a dsh-agent
   entry; it runs with `bun` from `PATH` (`ALWITH_U_BUN` overrides).
 - The page asks the module for the launch (`agent/launch`), which injects the module's endpoint, the story
-  root and the bundled dsh preset; U starts and drives the agent itself, as with any agent.
+  root and the bundled dsh preset; U starts and drives the agent itself, as with any agent. Its sidebar and
+  palette entries are currently hidden; the source is kept for reactivation.
 
-## Run
+## Stage the module
 
 ```sh
-# once: the module binary the manifest points at (bin/ is git-ignored)
+modules=$(mktemp -d)/modules && mkdir -p "$modules/@alwith/module-story/bin"
 (cd ../alwith-modules && cargo build --release -p alwith-story \
-  && cp target/release/alwith-story modules/alwith-story/bin/alwith-story-aarch64-apple-darwin)
-rm -rf node_modules/@alwith/module-story && bun install   # file: deps are snapshots; refresh after a rebuild
-
-DEEPSEEK_API_KEY=… ALWITH_U_DSH_AGENT=../dsh-agent/src/main.ts bun run dev:tauri
+  && cp -R modules/alwith-story/{alwith-module.json,package.json,dsh-preset} "$modules/@alwith/module-story/" \
+  && cp target/release/alwith-story "$modules/@alwith/module-story/bin/alwith-story-aarch64-apple-darwin")
 ```
 
-Then Story in the sidebar (shown only when the module is alive): Open a root, edit and save the frame,
-Start agent, prompt. Every input and every piece of prose lands in the ledger with its session
-provenance; `/compact` forces a compaction whose summary becomes a note that names its ledger sources.
-The demo grants nothing: the sandbox is read-only and every permission request is rejected.
-
-Headless check of the same wiring without the UI (passes without a model key; the mirror runs before the
-model answers):
+## Headless check
 
 ```sh
-ALWITH_U_DSH_AGENT=../dsh-agent/src/main.ts bun scripts/story-smoke.ts
+ALWITH_MODULES_DIR=$modules ALWITH_U_DSH_AGENT=../dsh-agent/src/main.ts bun scripts/story-smoke.ts
 ```
+
+Without `DEEPSEEK_API_KEY` it checks the wiring only: the module loads, the launch carries the preset, and the
+prompt is mirrored into the ledger with its session (the mirror runs before the model answers). With a key it
+also runs two real turns and `/compact`, and requires the answers as prose in the ledger and the compaction
+summary as a note whose sources are ledger entries. Every model failure shows up in the dsh session log as an
+`assistant/attempt` with the provider's error; a turn that fails still ends idle, so the ledger assertions are
+what catch it.
