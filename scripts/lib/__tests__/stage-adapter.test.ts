@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { join } from "node:path"
-import { copyFileSync, mkdtempSync, rmSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
@@ -11,7 +11,7 @@ const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
   "win32-arm64": "aarch64-pc-windows-msvc"
 }
 
-test("the staged JS adapter runs with bundled Bun outside node_modules", () => {
+test("the staged toolchain runs with explicit resources outside the executable directory", () => {
   const triple = HOST_TRIPLES[`${process.platform}-${process.arch}`]
   if (triple === undefined) return
 
@@ -34,8 +34,49 @@ test("the staged JS adapter runs with bundled Bun outside node_modules", () => {
     )
     expect(adapter.exitCode, adapter.stderr.toString()).toBe(0)
     expect(adapter.stdout.toString()).toMatch(/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+\s*$/)
+
+    const binaries = join(directory, "bin")
+    const resources = join(directory, "staged resources")
+    mkdirSync(binaries)
+    mkdirSync(join(resources, "adapter"), { recursive: true })
+    copyFileSync(entry, join(resources, "adapter/codex-acp-v2.mjs"))
+    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
+      copyFileSync(
+        join(import.meta.dir, `../../../src-tauri/binaries/${name}-${triple}${suffix}`),
+        join(binaries, `${name}${suffix}`)
+      )
+    }
+    const verification = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries, resources], {
+      cwd: join(import.meta.dir, "../../.."),
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 90_000
+    })
+    expect(verification.exitCode, verification.stderr.toString()).toBe(0)
+    expect(verification.stdout.toString()).toContain("ACP initialized")
+
+    const packagedResources = process.platform === "darwin" ? join(directory, "Resources") : binaries
+    mkdirSync(join(packagedResources, "adapter"), { recursive: true })
+    copyFileSync(entry, join(packagedResources, "adapter/codex-acp-v2.mjs"))
+    const packaged = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries], {
+      cwd: join(import.meta.dir, "../../.."),
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 90_000
+    })
+    expect(packaged.exitCode, packaged.stderr.toString()).toBe(0)
+    expect(packaged.stdout.toString()).toContain("ACP initialized")
+
+    // An explicit missing resource must fail even when the default packaged resource exists.
+    const missing = Bun.spawnSync(
+      [process.execPath, "scripts/verify-bundled-toolchain.ts", binaries, join(directory, "missing resources")],
+      { cwd: join(import.meta.dir, "../../.."), stdout: "pipe", stderr: "pipe", timeout: 15_000 }
+    )
+    expect(missing.exitCode).not.toBe(0)
+    expect(missing.stderr.toString()).toContain("ENOENT")
+    expect(missing.stderr.toString()).toContain("missing resources")
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
   // Staging includes native version probes and macOS signature checks.
-}, 60_000)
+}, 240_000)

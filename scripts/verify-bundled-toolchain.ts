@@ -1,4 +1,4 @@
-// Run on the target OS after Tauri builds; paths refer to the packaged executable directory.
+// Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
 import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -8,9 +8,15 @@ import { assertVersion, toolchainVersions } from "./lib/toolchain"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 
 const argument = process.argv[2]
-if (!argument) throw new Error("Usage: bun scripts/verify-bundled-toolchain.ts <packaged executable directory>")
+if (!argument)
+  throw new Error("Usage: bun scripts/verify-bundled-toolchain.ts <executable directory> [resource directory]")
 const directory = resolve(argument)
-const resources = process.platform === "darwin" ? resolve(directory, "../Resources") : directory
+// The Windows build output contains sidecars, while NSIS bundles resources from the staging directory.
+const resources = process.argv[3]
+  ? resolve(process.argv[3])
+  : process.platform === "darwin"
+    ? resolve(directory, "../Resources")
+    : directory
 const suffix = process.platform === "win32" ? ".exe" : ""
 const versions = toolchainVersions(manifest)
 const codexHome = mkdtempSync(join(tmpdir(), "alwith-u 工具链-"))
