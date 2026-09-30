@@ -17,7 +17,13 @@ from invoke.exceptions import Exit
 
 
 ROOT = Path(__file__).resolve().parent
-SEMVER = re.compile(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?")
+SEMVER_NUMBER = r"(?:0|[1-9][0-9]*)"
+SEMVER_PRERELEASE = rf"(?:{SEMVER_NUMBER}|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+SEMVER = re.compile(
+    rf"{SEMVER_NUMBER}\.{SEMVER_NUMBER}\.{SEMVER_NUMBER}"
+    rf"(?:-{SEMVER_PRERELEASE}(?:\.{SEMVER_PRERELEASE})*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
 PIN_VERSION = re.compile(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)")
 BUN_PLATFORM_PACKAGES = (
     "@oven/bun-darwin-aarch64",
@@ -62,11 +68,33 @@ def update_version(root: Path, new_version: str) -> None:
         raise ValueError("package.json and Cargo.toml versions differ")
     if lock_match.group(0).split('version = "', 1)[1].split('"', 1)[0] != old_version:
         raise ValueError("package.json and Cargo.lock versions differ")
+    if new_version == old_version:
+        return
 
     package["version"] = new_version
-    package_path.write_text(json.dumps(package, indent=2, ensure_ascii=False) + "\n")
-    cargo_path.write_text(cargo_pattern.sub(lambda match: f"{match.group(1)}{new_version}{match.group(2)}", cargo, count=1))
-    lock_path.write_text(lock_pattern.sub(lambda match: f"{match.group(1)}{new_version}{match.group(2)}", lock, count=1))
+    updated = {
+        package_path: json.dumps(package, indent=2, ensure_ascii=False) + "\n",
+        cargo_path: cargo_pattern.sub(lambda match: f"{match.group(1)}{new_version}{match.group(2)}", cargo, count=1),
+        lock_path: lock_pattern.sub(lambda match: f"{match.group(1)}{new_version}{match.group(2)}", lock, count=1),
+    }
+    originals = {path: path.read_bytes() for path in updated}
+    attempted: list[Path] = []
+    try:
+        for path, content in updated.items():
+            # A failed write may already have truncated the file; include it in rollback.
+            attempted.append(path)
+            path.write_text(content)
+    except (OSError, KeyboardInterrupt) as error:
+        failures: list[str] = []
+        for path in reversed(attempted):
+            try:
+                if path.read_bytes() != originals[path]:
+                    path.write_bytes(originals[path])
+            except OSError as rollback_error:
+                failures.append(f"{path}: {rollback_error}")
+        if failures:
+            raise RuntimeError("Version update failed; could not restore " + "; ".join(failures)) from error
+        raise
 
 
 def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> bool:
@@ -256,12 +284,15 @@ def format_code(_context: object) -> None:
 @task(name="version", aliases=["v"])
 def version(_context: object) -> None:
     """Set the app version in package.json and both Cargo manifests."""
-    current = json.loads((ROOT / "package.json").read_text())["version"]
-    new_version = input(f"New version [{current}]: ").strip()
-    if not new_version or new_version == current:
+    try:
+        current = json.loads((ROOT / "package.json").read_text())["version"]
+        new_version = input(f"New version [{current}]: ").strip() or current
+        update_version(ROOT, new_version)
+    except (ValueError, RuntimeError, OSError) as error:
+        raise Exit(f"Version update failed: {error}", code=1) from None
+    if new_version == current:
         print("Version unchanged")
         return
-    update_version(ROOT, new_version)
     print(f"Version updated: {current} → {new_version}")
 
 

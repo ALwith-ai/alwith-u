@@ -6,6 +6,7 @@ import unittest
 from contextlib import redirect_stderr
 from urllib.error import URLError
 from pathlib import Path
+from typing import IO
 from unittest.mock import call, patch
 
 from invoke import Collection, Context, Program
@@ -97,6 +98,128 @@ class UpgradeTaskTests(unittest.TestCase):
 
 
 class VersionTaskTests(unittest.TestCase):
+    def test_cli_reports_invalid_input_without_traceback_or_file_changes(self) -> None:
+        for task_name in ["v", "version"]:
+            for answer in ["invalid", "v0.1.2", "0.1.2-01"]:
+                with self.subTest(task=task_name, answer=answer), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    contents = self.fixture(root)
+                    stderr = io.StringIO()
+                    with patch("fabfile.ROOT", root), patch("builtins.input", return_value=answer), redirect_stderr(stderr):
+                        with self.assertRaises(SystemExit) as failure:
+                            Program(namespace=Collection.from_module(fabfile)).run(["fab", task_name])
+                    self.assertEqual(failure.exception.code, 1)
+                    self.assertEqual(stderr.getvalue().strip(), f"Version update failed: Expected a SemVer version, got {answer!r}")
+                    self.assertEqual({path: path.read_bytes() for path in contents}, contents)
+
+    def fixture(self, root: Path) -> dict[Path, bytes]:
+        (root / "src-tauri").mkdir()
+        contents = {
+            root / "package.json": b'{"version": "0.1.1", "other": "keep"}\n',
+            root / "src-tauri/Cargo.toml": b'[package]\nname = "alwith-u"\nversion = "0.1.1"\n',
+            root / "src-tauri/Cargo.lock": (
+                b'[[package]]\nname = "alwith-u"\nversion = "0.1.1"\n\n'
+                b'[[package]]\nname = "other"\nversion = "1.0.0"\n'
+            ),
+        }
+        for path, content in contents.items():
+            path.write_bytes(content)
+        return contents
+
+    def test_rejects_invalid_semver_identifiers_without_changing_any_file(self) -> None:
+        for version in [
+            "0.1.2-01", "0.1.2-alpha..1", "0.1.2+build..1", "0.1.2-", "0.1.2+",
+            "0.1.2-.alpha", "0.1.2+build.", "01.1.2", "0.1.2\n", "0.1.2٣", "v0.1.2",
+        ]:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                contents = self.fixture(Path(directory))
+                with self.assertRaisesRegex(ValueError, "SemVer"):
+                    update_version(Path(directory), version)
+                self.assertEqual({path: path.read_bytes() for path in contents}, contents)
+
+    def test_accepts_valid_semver_including_prerelease_and_build_metadata(self) -> None:
+        for version in ["0.1.2", "1.0.0-0", "1.0.0-alpha.1", "1.0.0-01a", "1.0.0+001", "1.0.0-rc.1+build.42"]:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.fixture(root)
+                update_version(root, version)
+                self.assertEqual(json.loads((root / "package.json").read_text())["version"], version)
+                self.assertIn(f'version = "{version}"', (root / "src-tauri/Cargo.toml").read_text())
+                self.assertIn(f'name = "alwith-u"\nversion = "{version}"', (root / "src-tauri/Cargo.lock").read_text())
+
+    def test_restores_every_attempted_file_after_partial_write_and_allows_retry(self) -> None:
+        for failed_name in ["package.json", "src-tauri/Cargo.toml", "src-tauri/Cargo.lock"]:
+            with self.subTest(file=failed_name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                contents = self.fixture(root)
+                original_open = Path.open
+                failed = False
+
+                def fail_open(path: Path, mode: str = "r", *args: object, **kwargs: object) -> IO[str] | IO[bytes]:
+                    nonlocal failed
+                    if path == root / failed_name and "w" in mode and not failed:
+                        failed = True
+                        with original_open(path, "wb") as stream:
+                            stream.write(b"partial")
+                        raise OSError("simulated partial write")
+                    return original_open(path, mode, *args, **kwargs)
+
+                with patch.object(Path, "open", fail_open):
+                    with self.assertRaisesRegex(OSError, "simulated partial write"):
+                        update_version(root, "0.1.2")
+                self.assertEqual({path: path.read_bytes() for path in contents}, contents)
+                update_version(root, "0.1.2")
+                self.assertEqual(json.loads((root / "package.json").read_text())["version"], "0.1.2")
+
+    def test_reports_rollback_failure_and_still_restores_other_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contents = self.fixture(root)
+            original_open = Path.open
+            failed = False
+
+            def fail_open(path: Path, mode: str = "r", *args: object, **kwargs: object) -> IO[str] | IO[bytes]:
+                nonlocal failed
+                if "w" in mode:
+                    if path == root / "src-tauri/Cargo.lock" and not failed:
+                        failed = True
+                        raise OSError("initial write failure")
+                    if failed and path == root / "src-tauri/Cargo.toml":
+                        raise OSError("rollback write failure")
+                return original_open(path, mode, *args, **kwargs)
+
+            with patch.object(Path, "open", fail_open):
+                with self.assertRaisesRegex(RuntimeError, "Cargo.toml") as failure:
+                    update_version(root, "0.1.2")
+            self.assertIn("rollback write failure", str(failure.exception))
+            self.assertEqual(str(failure.exception.__cause__), "initial write failure")
+            for filename in ["package.json", "src-tauri/Cargo.lock"]:
+                self.assertEqual((root / filename).read_bytes(), contents[root / filename])
+            self.assertIn('version = "0.1.2"', (root / "src-tauri/Cargo.toml").read_text())
+
+    def test_unchanged_cli_input_still_checks_all_manifest_versions(self) -> None:
+        for answer in ["", "0.1.1"]:
+            for filename in ["src-tauri/Cargo.toml", "src-tauri/Cargo.lock"]:
+                with self.subTest(answer=answer, file=filename), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    contents = self.fixture(root)
+                    path = root / filename
+                    path.write_bytes(contents[path].replace(b"0.1.1", b"0.1.0"))
+                    contents[path] = path.read_bytes()
+                    with patch("fabfile.ROOT", root), patch("builtins.input", return_value=answer):
+                        with self.assertRaisesRegex(Exit, "versions differ"):
+                            fabfile.version(Context())
+                    self.assertEqual({path: path.read_bytes() for path in contents}, contents)
+
+    def test_unchanged_version_does_not_rewrite_manifests(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contents = self.fixture(root)
+            before = {path: path.stat().st_mtime_ns for path in contents}
+            update_version(root, "0.1.1")
+            self.assertEqual({path: path.read_bytes() for path in contents}, contents)
+            self.assertEqual({path: path.stat().st_mtime_ns for path in contents}, before)
+
     def test_updates_only_app_version_across_manifests(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
