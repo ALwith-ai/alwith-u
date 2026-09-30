@@ -35,7 +35,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUxRDY0MTkxMkUwNjI2NgpSV1JtWXVBU0dXUWRCVjVkQTNjU094b21wbnJOM2l4ZkZjOUFrY29vUjBHU2RmTkpJRDNRTm03OQo=",
-      "endpoints": ["https://github.com/ALwith-ai/alwith-u/releases/latest/download/latest.json"]
+      "endpoints": ["https://api.alwith.ai/service/api/v1/open-source-versions/alwith-u/update/{{target}}-{{arch}}/{{current_version}}"]
     }
   },
   "bundle": {

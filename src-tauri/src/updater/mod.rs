@@ -1,5 +1,5 @@
-//! Auto-updater, ported from ALwith Desktop. Releases come from GitHub: tauri-action writes
-//! `latest.json` next to the bundles and `tauri-plugin-updater` reads it. The service owns the
+//! Auto-updater, ported from ALwith Desktop. The ALwith open-source version service supplies
+//! signed update metadata to `tauri-plugin-updater`. The service owns the
 //! state machine; the plugin only checks, downloads and installs. A downloaded archive survives
 //! restarts on disk and is re-verified (minisign + remote identity) before it is offered again.
 

@@ -8,6 +8,7 @@ type Step = {
   name?: string
   uses?: string
   run?: string
+  env?: Record<string, string>
   with?: Record<string, unknown>
 }
 
@@ -127,7 +128,7 @@ test("Tauri keeps ASCII technical identifiers while displaying ALwith U", () => 
   expect(config.app?.windows?.[0]?.title).toBe("ALwith U")
   expect(config.bundle?.publisher).toBe("alwith.ai")
   expect(config.plugins?.updater?.endpoints).toEqual([
-    "https://github.com/ALwith-ai/alwith-u/releases/latest/download/latest.json"
+    "https://api.alwith.ai/service/api/v1/open-source-versions/alwith-u/update/{{target}}-{{arch}}/{{current_version}}"
   ])
   expect(devConfig.productName).toBe("ALwith U Dev")
 })
@@ -150,5 +151,12 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   expect(download).toBeGreaterThan(-1)
   expect(job!.steps![download]?.run).toContain("releases/$release_id/assets")
   expect(upload).toBeGreaterThan(download)
+  const register = job!.steps!.findIndex(step => step.name === "Register release artifacts")
+  expect(register).toBeGreaterThan(upload)
+  expect(job!.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
+  expect(job!.steps![register]?.env).toMatchObject({
+    API_BASE: "${{ vars.API_BASE || secrets.API_BASE }}",
+    CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"
+  })
   expect(job!.steps!.find(step => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })
