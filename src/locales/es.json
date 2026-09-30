@@ -1,0 +1,105 @@
+{
+  "actions": {
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "retry": "Reintentar",
+    "stop": "Detener",
+    "activity": "Actividad",
+    "submit": "Enviar",
+    "open": "Abrir",
+    "reveal": "Mostrar en el gestor de archivos"
+  },
+  "connection": {
+    "reconnect": "Reconectar",
+    "apiKeyTitle": "Clave de API"
+  },
+  "sidebar": {
+    "newChat": "Nuevo chat",
+    "untitled": "Nuevo chat",
+    "unarchive": "Restaurar",
+    "delete": "Eliminar",
+    "search": "Buscar chats",
+    "stop": "Detener",
+    "settings": "Configuración"
+  },
+  "welcome": {
+    "chooseFolder": "Elegir carpeta"
+  },
+  "chat": {
+    "thinking": "Pensando",
+    "interrupted": "Detenido",
+    "commands": "Comandos",
+    "input": {
+      "image": "Imagen",
+      "removeAttachment": "Quitar adjunto",
+      "imageTooLargeTitle": "Los archivos adjuntos de imagen son demasiado grandes",
+      "imageTooLargeDesc": "El tamaño total de las imágenes no debe superar {{mb}} MB. Quite algunas imágenes e inténtelo de nuevo.",
+      "unsupportedAttachmentTitle": "Solo se admiten archivos adjuntos de imagen",
+      "unsupportedAttachmentDesc": "Los archivos que no son imágenes no se pueden enviar al modelo y se han ignorado"
+    },
+    "model": {
+      "model": "Modelo",
+      "switchModel": "Cambiar modelo",
+      "switchPermissionMode": "Cambiar modo de permisos"
+    },
+    "tokens": {
+      "openDetails": "Uso de tokens",
+      "input": "Entrada",
+      "output": "Salida",
+      "cachedRead": "Lectura en caché",
+      "cachedWrite": "Escritura en caché",
+      "cacheHitRate": "Aciertos de caché",
+      "context": "Ventana de contexto"
+    },
+    "tool": {
+      "running": "En ejecución",
+      "stopped": "Detenido",
+      "failed": "Con error",
+      "output": "Salida",
+      "input": "Entrada"
+    }
+  },
+  "composer": {
+    "mode": "Permisos",
+    "model": "Modelo"
+  },
+  "approval": {
+    "answerOther": "Otro"
+  },
+  "settings": {
+    "title": "Configuración",
+    "appearance": "Apariencia",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "language": "Idioma",
+    "about": "Acerca de"
+  },
+  "provider": {
+    "apiKey": "Clave de API",
+    "model": "Modelo",
+    "restoreButton": "Restaurar"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "¿Reiniciar para actualizar?",
+    "relaunchConfirmDesc": "La aplicación se cerrará y reiniciará para aplicar la actualización.",
+    "relaunchNow": "Reiniciar ahora",
+    "relaunchLater": "Actualizar más tarde",
+    "install": "Haga clic para instalar y reiniciar"
+  },
+  "plugins": {
+    "skills": "Habilidades",
+    "uninstall": "Desinstalar"
+  },
+  "palette": {
+    "actions": "Acciones",
+    "newChat": "Nuevo chat",
+    "settings": "Abrir ajustes"
+  },
+  "time": {
+    "today": "Hoy",
+    "yesterday": "Ayer"
+  }
+}

@@ -1,0 +1,108 @@
+@import "@alwith/module-chat/styles.css";
+
+/* Match Desktop's native scrollbar auto-hide within chat; the main viewport uses Pane. */
+.codex-assistant-turn :is(
+  .codex-markdown-table-scroller,
+  .codex-markdown-code-placeholder,
+  .codex-markdown-code-container,
+  .codex-markdown-math-block,
+  .codex-activity-group-body,
+  .codex-activity-details,
+  .codex-command-output,
+  .codex-reasoning-details
+) {
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  &:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+}
+
+.codex-edited-file-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.codex-edited-file-icon {
+  flex: 0 0 auto;
+}
+
+.codex-edited-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codex-user-image {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--codex-bg-tertiary, rgb(0 0 0 / 4%));
+}
+
+/* ── Codex desktop composer (ALwith Desktop theme.css) ──
+ * Light: 90% input ground + 16px blur; dark: opaque. The edge is a 0.5px stroke plus two
+ * low-alpha shadows, not a 1px border. */
+
+:root {
+  --chat-input-line-height: calc(var(--chat-font-size) + 6px);
+  --chat-input-max-height: 18rem;
+  --chat-input-bg-color: oklch(1 0 0);
+  --chat-input-placeholder-color: oklch(0.53 0.011 100);
+}
+
+.dark {
+  --chat-input-bg-color: oklch(0.27 0.005 75);
+  --chat-input-placeholder-color: oklch(0.68 0.009 85);
+}
+
+@theme inline {
+  --color-chat-input-bg: var(--chat-input-bg-color);
+  --color-chat-input-placeholder: var(--chat-input-placeholder-color);
+}
+
+.codex-composer-surface {
+  border-width: 0;
+  border-radius: 25px;
+  background: color-mix(in oklab, var(--chat-input-bg-color) 90%, transparent);
+  box-shadow:
+    0 0 0 0.5px color-mix(in oklab, var(--foreground) 12%, transparent),
+    0 3px 7.5px rgb(0 0 0 / 4%),
+    0 0 20px rgb(0 0 0 / 5%);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.dark .codex-composer-surface {
+  background: var(--chat-input-bg-color);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

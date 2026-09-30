@@ -1,0 +1,212 @@
+# Manual runs build unsigned installers as workflow artifacts. Version tags create
+# a signed, notarised draft release with Tauri updater metadata.
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tos_release_tag:
+        description: Existing draft release tag to retry TOS upload and artifact registration
+        required: false
+        type: string
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test-bundles:
+    if: github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-15
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2025
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v1
+        with:
+          tauriScript: bun run tauri
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json
+          uploadWorkflowArtifacts: true
+          workflowArtifactNamePattern: alwith-u-[version]-[platform]-[arch]-[bundle]
+      - name: Verify packaged toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release/bundle/macos/ALwith U.app/Contents/MacOS"
+      - name: Verify built toolchain with staged resources (Windows)
+        if: runner.os == 'Windows'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release" "src-tauri/resources"
+
+  release-preflight:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
+      - name: Verify tag and package versions match
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          bun -e 'const version = (await Bun.file("package.json").json()).version;
+          const tag = process.env.RELEASE_TAG;
+          if (tag !== `v${version}`) throw new Error(`Release tag ${tag} does not match package version v${version}`)'
+      - name: Verify release signing secrets
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: >-
+          bun -e 'const required = ["APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD",
+          "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID",
+          "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"];
+          const missing = required.filter(name => !process.env[name]);
+          if (missing.length) throw new Error(`Missing release secrets: ${missing.join(", ")}`)'
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release-preflight
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-15
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2025
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: bash scripts/macos-signing.sh setup
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tauriScript: bun run tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: ALwith U ${{ github.ref_name }}
+          releaseDraft: true
+          generateReleaseNotes: true
+          updaterJsonPreferNsis: true
+          releaseAssetNamePattern: alwith-u_[version]_[platform]_[arch][setup][ext]
+          args: --target ${{ matrix.target }}
+      - name: Verify packaged toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release/bundle/macos/ALwith U.app/Contents/MacOS"
+      - name: Verify built toolchain with staged resources (Windows)
+        if: runner.os == 'Windows'
+        run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release" "src-tauri/resources"
+      - name: Clean up Apple signing certificate
+        if: always() && runner.os == 'macOS' && env.ALWITH_SIGNING_DIR != ''
+        shell: bash
+        run: bash scripts/macos-signing.sh cleanup
+
+  upload-to-tos:
+    if: >-
+      always() && ((startsWith(github.ref, 'refs/tags/v') && needs.release.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.tos_release_tag != ''))
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun scripts/check-toolchain.ts
+      - run: bun install --frozen-lockfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare TOS upload environment
+        run: |
+          python -m venv "$RUNNER_TEMP/tos-venv"
+          "$RUNNER_TEMP/tos-venv/bin/python" -m pip install --disable-pip-version-check "tos==2.9.2"
+      - name: Test TOS upload logic
+        run: '"$RUNNER_TEMP/tos-venv/bin/python" -B -m unittest discover -s scripts/__tests__ -p "test_upload_to_tos.py"'
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          release_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
+            jq -rs --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .id] | if length == 1 then .[0] else error("release not found") end')
+          mkdir -p "$RUNNER_TEMP/tos-release"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" |
+            jq -rs '.[][] | select(.name | test("\\.(dmg|exe|msi|app\\.tar\\.gz)(\\.sig)?$")) | [.id, .name] | @tsv' |
+            while IFS=$'\t' read -r asset_id asset_name; do
+              gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$RUNNER_TEMP/tos-release/$asset_name"
+            done
+      - name: Mirror release assets to TOS
+        env:
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+          TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+          TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+          TOS_ENDPOINT: ${{ secrets.TOS_ENDPOINT }}
+          TOS_REGION: ${{ secrets.TOS_REGION }}
+          TOS_BUCKET: ${{ secrets.TOS_BUCKET }}
+        run: '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
+      - name: Register release artifacts
+        env:
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+          API_BASE: ${{ vars.API_BASE || secrets.API_BASE }}
+          CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}
+        run: bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"

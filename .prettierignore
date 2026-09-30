@@ -1,0 +1,22 @@
+# Package Managers
+bun.lock
+**/*.svg
+
+# Folder
+.vscode
+dist
+docs
+node_modules
+src-tauri
+src/components/ui
+vendor
+
+# Upstream Codex sources kept in their original formatting for diffing against upstream
+src/features/chat/codex/markdown-renderer.tsx
+src/features/chat/codex/markdown-rules.ts
+src/features/chat/codex/styles.css
+
+**/*.html
+# Markdown tables are hand-aligned for CJK; prettier's CJK width handling reflows them into pure doc churn
+**/*.md
+package.json

@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!!**/dist", "!**/*.svg", "!src/components/ui"]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // Comparing only the trailing selectors in component CSS (.a li > button vs .b button) flags the latter as potentially ineffective,
+        // even though they never match the same element. This rule mostly produces false positives in per-component styles (same decision as Desktop).
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        // SVGs are third-party or decorative icons; accessible names are provided by the containing button/img.
+        "noSvgWithoutTitle": "off",
+        // Biome cannot distinguish hover/drag/propagation handlers from keyboard-activatable interactions; useKeyWithClickEvents checks missing keyboard support.
+        "noStaticElementInteractions": "off",
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": ["Checkbox", "Input", "RadioGroupItem", "Select", "Slider", "Switch", "Textarea"]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

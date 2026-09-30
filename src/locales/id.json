@@ -1,0 +1,101 @@
+{
+  "actions": {
+    "copy": "Salin",
+    "copied": "Disalin",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "retry": "Coba lagi",
+    "stop": "Hentikan",
+    "activity": "Aktivitas",
+    "submit": "Kirim",
+    "open": "Buka",
+    "reveal": "Tampilkan di Manajer File"
+  },
+  "connection": {
+    "reconnect": "Hubungkan kembali"
+  },
+  "sidebar": {
+    "plugins": "Plugin",
+    "newChat": "Obrolan baru",
+    "chats": "Obrolan",
+    "untitled": "Obrolan baru",
+    "unarchive": "Pulihkan",
+    "delete": "Hapus",
+    "search": "Cari Obrolan…",
+    "stop": "Hentikan",
+    "settings": "Pengaturan"
+  },
+  "welcome": {
+    "chooseFolder": "Pilih folder"
+  },
+  "chat": {
+    "thinking": "Berpikir",
+    "interrupted": "Berhenti",
+    "commands": "Perintah",
+    "input": {
+      "image": "Gambar",
+      "removeAttachment": "Hapus lampiran",
+      "imageTooLargeTitle": "Lampiran gambar terlalu besar",
+      "imageTooLargeDesc": "Total ukuran gambar tidak boleh melebihi {{mb}}MB. Hapus beberapa gambar lalu coba lagi.",
+      "unsupportedAttachmentTitle": "Hanya lampiran gambar yang didukung",
+      "unsupportedAttachmentDesc": "File non-gambar tidak bisa dikirim ke model dan telah diabaikan"
+    },
+    "model": {
+      "switchModel": "Ganti model",
+      "switchPermissionMode": "Ganti mode izin"
+    },
+    "tokens": {
+      "openDetails": "Penggunaan token",
+      "cachedRead": "Pembacaan cache",
+      "cachedWrite": "Penulisan cache",
+      "context": "Jendela konteks"
+    },
+    "tool": {
+      "running": "Berjalan",
+      "stopped": "Berhenti",
+      "failed": "Gagal"
+    }
+  },
+  "composer": {
+    "mode": "Izin"
+  },
+  "approval": {
+    "answerOther": "Lainnya"
+  },
+  "settings": {
+    "general": "Umum",
+    "title": "Pengaturan",
+    "appearance": "Tampilan",
+    "theme": "Tema",
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "language": "Bahasa",
+    "about": "Tentang"
+  },
+  "provider": {
+    "restoreButton": "Pulihkan"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "Luncurkan ulang untuk memperbarui?",
+    "relaunchConfirmDesc": "Aplikasi akan ditutup dan dimulai ulang untuk menerapkan pembaruan.",
+    "relaunchNow": "Luncurkan ulang sekarang",
+    "relaunchLater": "Perbarui nanti",
+    "install": "Klik untuk memasang dan memulai ulang"
+  },
+  "plugins": {
+    "title": "Plugin",
+    "plugins": "Plugin",
+    "skills": "Skill",
+    "uninstall": "Hapus instalasi"
+  },
+  "palette": {
+    "actions": "Tindakan",
+    "chats": "Obrolan",
+    "newChat": "Obrolan baru",
+    "settings": "Buka pengaturan"
+  },
+  "time": {
+    "today": "Hari ini",
+    "yesterday": "Kemarin"
+  }
+}

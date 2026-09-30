@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.DS_Store
+src-tauri/binaries/
+src-tauri/resources/native/
+src-tauri/resources/adapter/
+src-tauri/resources/licenses/alwith-native/
+src-tauri/resources/licenses/alwith-runtime/
+src-tauri/target/
+src-tauri/gen/schemas/
+*.bun-build
+test-results.xml
+CLAUDE.local.md

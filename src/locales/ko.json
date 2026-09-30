@@ -1,0 +1,110 @@
+{
+  "actions": {
+    "copy": "복사",
+    "copied": "복사됨",
+    "cancel": "취소",
+    "close": "닫기",
+    "retry": "다시 시도",
+    "stop": "중지",
+    "activity": "활동",
+    "submit": "제출",
+    "open": "열기",
+    "reveal": "파일 관리자에서 보기"
+  },
+  "connection": {
+    "reconnect": "다시 연결"
+  },
+  "sidebar": {
+    "plugins": "플러그인",
+    "newChat": "새 채팅",
+    "chats": "채팅",
+    "untitled": "새 채팅",
+    "unarchive": "복원",
+    "delete": "삭제",
+    "search": "채팅 검색",
+    "stop": "중지",
+    "settings": "설정"
+  },
+  "welcome": {
+    "chooseFolder": "폴더 선택"
+  },
+  "chat": {
+    "thinking": "생각 중",
+    "interrupted": "중지됨",
+    "commands": "명령",
+    "input": {
+      "image": "이미지",
+      "removeAttachment": "첨부 제거",
+      "imageTooLargeTitle": "이미지 첨부 파일이 너무 큽니다",
+      "imageTooLargeDesc": "전체 이미지 크기는 {{mb}}MB를 초과할 수 없습니다. 일부 이미지를 제거한 후 다시 시도하세요.",
+      "unsupportedAttachmentTitle": "이미지 첨부 파일만 지원",
+      "unsupportedAttachmentDesc": "이미지가 아닌 파일은 모델에 전송할 수 없으므로 무시되었습니다"
+    },
+    "model": {
+      "model": "모델",
+      "switchModel": "모델 전환",
+      "switchPermissionMode": "권한 모드 전환"
+    },
+    "tokens": {
+      "openDetails": "토큰 사용량",
+      "input": "입력",
+      "output": "출력",
+      "cachedRead": "캐시 읽기",
+      "cachedWrite": "캐시 쓰기",
+      "cacheHitRate": "캐시 적중",
+      "total": "합계",
+      "context": "컨텍스트 창"
+    },
+    "tool": {
+      "running": "실행 중",
+      "stopped": "중지됨",
+      "failed": "실패",
+      "output": "출력",
+      "input": "입력"
+    }
+  },
+  "composer": {
+    "mode": "권한",
+    "model": "모델"
+  },
+  "approval": {
+    "answerOther": "기타"
+  },
+  "settings": {
+    "general": "일반",
+    "title": "설정",
+    "appearance": "모양",
+    "theme": "테마",
+    "themeLight": "라이트 모드",
+    "themeDark": "다크 모드",
+    "language": "언어",
+    "about": "정보"
+  },
+  "provider": {
+    "model": "모델",
+    "restoreButton": "복원"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "업데이트를 위해 다시 시작할까요?",
+    "relaunchConfirmDesc": "업데이트를 적용하기 위해 앱이 닫히고 다시 시작됩니다.",
+    "relaunchNow": "지금 다시 시작",
+    "relaunchLater": "나중에 업데이트",
+    "install": "클릭하여 설치 및 재시작"
+  },
+  "plugins": {
+    "title": "플러그인",
+    "plugins": "플러그인",
+    "skills": "스킬",
+    "uninstall": "제거"
+  },
+  "palette": {
+    "actions": "액션",
+    "chats": "채팅",
+    "newChat": "새 채팅",
+    "settings": "설정 열기"
+  },
+  "time": {
+    "today": "오늘",
+    "yesterday": "어제"
+  }
+}

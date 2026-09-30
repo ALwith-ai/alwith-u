@@ -1,0 +1,105 @@
+{
+  "actions": {
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "retry": "Wiederholen",
+    "stop": "Stopp",
+    "activity": "Aktivität",
+    "submit": "Senden",
+    "open": "Öffnen",
+    "reveal": "Im Dateimanager anzeigen"
+  },
+  "connection": {
+    "reconnect": "Erneut verbinden",
+    "apiKeyTitle": "API-Schlüssel"
+  },
+  "sidebar": {
+    "newChat": "Neuer Chat",
+    "untitled": "Neuer Chat",
+    "unarchive": "Wiederherstellen",
+    "delete": "Löschen",
+    "search": "Chats suchen",
+    "stop": "Stopp",
+    "settings": "Einstellungen"
+  },
+  "welcome": {
+    "chooseFolder": "Ordner wählen"
+  },
+  "chat": {
+    "thinking": "Denkt nach",
+    "interrupted": "Gestoppt",
+    "commands": "Befehle",
+    "input": {
+      "image": "Bild",
+      "removeAttachment": "Anhang entfernen",
+      "imageTooLargeTitle": "Bild-Anhänge zu groß",
+      "imageTooLargeDesc": "Die Gesamtgröße der Bilder darf {{mb}} MB nicht überschreiten. Entfernen Sie einige Bilder und versuchen Sie es erneut.",
+      "unsupportedAttachmentTitle": "Nur Bild-Anhänge werden unterstützt",
+      "unsupportedAttachmentDesc": "Nicht-Bild-Dateien können nicht an das Modell gesendet werden und wurden ignoriert"
+    },
+    "model": {
+      "model": "Modell",
+      "switchModel": "Modell wechseln",
+      "switchPermissionMode": "Berechtigungsmodus wechseln"
+    },
+    "tokens": {
+      "openDetails": "Token-Nutzung",
+      "input": "Eingabe",
+      "output": "Ausgabe",
+      "cachedRead": "Cache-Lesen",
+      "cachedWrite": "Cache-Schreiben",
+      "cacheHitRate": "Cache-Treffer",
+      "total": "Gesamt",
+      "context": "Kontextfenster"
+    },
+    "tool": {
+      "running": "Wird ausgeführt",
+      "stopped": "Gestoppt",
+      "failed": "Fehlgeschlagen",
+      "output": "Ausgabe",
+      "input": "Eingabe"
+    }
+  },
+  "composer": {
+    "mode": "Berechtigungen",
+    "model": "Modell"
+  },
+  "approval": {
+    "answerOther": "Andere"
+  },
+  "settings": {
+    "general": "Allgemein",
+    "title": "Einstellungen",
+    "appearance": "Darstellung",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "language": "Sprache",
+    "about": "Über"
+  },
+  "provider": {
+    "apiKey": "API-Schlüssel",
+    "model": "Modell",
+    "restoreButton": "Wiederherstellen"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "Neu starten zum Aktualisieren?",
+    "relaunchConfirmDesc": "Die App wird geschlossen und neu gestartet, um das Update anzuwenden.",
+    "relaunchNow": "Jetzt neu starten",
+    "relaunchLater": "Später aktualisieren",
+    "install": "Zum Installieren und Neustarten klicken"
+  },
+  "plugins": {
+    "uninstall": "Deinstallieren"
+  },
+  "palette": {
+    "actions": "Aktionen",
+    "newChat": "Neuer Chat",
+    "settings": "Einstellungen öffnen"
+  },
+  "time": {
+    "today": "Heute",
+    "yesterday": "Gestern"
+  }
+}

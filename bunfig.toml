@@ -1,0 +1,12 @@
+# 默认源走 npmmirror:本机到 registry.npmjs.org 的下行只有 ~100 KB/s(2026-09-04 实测:
+# vitest 的 2.2 MB manifest 要 21 s,react 的 5.6 MB 直接 60 s 超时),而 bun update 要刷新
+# 全部依赖的 manifest,一次 fab u 卡好几分钟。npmmirror 同步实测与 npmjs 的 latest 一致,
+# 快 30 倍以上。@alwith 公开源在下面的 scopes 里单独指定,优先级高于这里,不受影响。
+[install]
+registry = "https://registry.npmmirror.com"
+
+[install.scopes]
+"@alwith" = { url = "https://registry.npmjs.org" }
+
+[test]
+preload = ["./scripts/test-react.ts"]

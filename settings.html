@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ALwith U</title>
+    <style>
+      /* Opaque tool window (ALwith Desktop keeps auxiliary windows solid); the theme
+         class below picks the ground before the first paint. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+      .dark body {
+        background: #262626;
+      }
+    </style>
+    <script>
+      try {
+        var theme = localStorage.getItem("theme")
+        var dark = theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)
+        document.documentElement.classList.add(dark ? "dark" : "light")
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/settings-main.tsx"></script>
+  </body>
+</html>

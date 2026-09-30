@@ -1,0 +1,111 @@
+{
+  "actions": {
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "retry": "Повторить",
+    "stop": "Остановить",
+    "activity": "Активность",
+    "submit": "Отправить",
+    "open": "Открыть",
+    "reveal": "Показать в файловом менеджере"
+  },
+  "connection": {
+    "reconnect": "Переподключить",
+    "apiKeyTitle": "API-ключ"
+  },
+  "sidebar": {
+    "plugins": "Плагины",
+    "newChat": "Новый чат",
+    "chats": "Чаты",
+    "untitled": "Новый чат",
+    "unarchive": "Восстановить",
+    "delete": "Удалить",
+    "search": "Поиск чатов",
+    "stop": "Остановить",
+    "settings": "Настройки"
+  },
+  "welcome": {
+    "chooseFolder": "Выбрать папку"
+  },
+  "chat": {
+    "thinking": "Думаю",
+    "interrupted": "Остановлено",
+    "commands": "Команды",
+    "input": {
+      "image": "Изображение",
+      "removeAttachment": "Удалить вложение",
+      "imageTooLargeTitle": "Вложения изображений слишком большие",
+      "imageTooLargeDesc": "Общий размер изображений не должен превышать {{mb}} МБ. Удалите часть изображений и повторите попытку.",
+      "unsupportedAttachmentTitle": "Поддерживаются только вложения изображений",
+      "unsupportedAttachmentDesc": "Файлы, не являющиеся изображениями, нельзя отправить модели, поэтому они проигнорированы"
+    },
+    "model": {
+      "model": "Модель",
+      "switchModel": "Переключить модель",
+      "switchPermissionMode": "Переключить режим разрешений"
+    },
+    "tokens": {
+      "openDetails": "Использование токенов",
+      "input": "Входные данные",
+      "output": "Выходные токены",
+      "cachedRead": "Чтение из кеша",
+      "cachedWrite": "Запись в кеш",
+      "cacheHitRate": "Попадание в кеш",
+      "total": "Итого"
+    },
+    "tool": {
+      "running": "Выполняется",
+      "stopped": "Остановлено",
+      "failed": "Ошибка",
+      "output": "Вывод",
+      "input": "Ввод"
+    }
+  },
+  "composer": {
+    "mode": "Разрешения",
+    "model": "Модель"
+  },
+  "approval": {
+    "answerOther": "Другое"
+  },
+  "settings": {
+    "general": "Общие",
+    "title": "Настройки",
+    "appearance": "Внешний вид",
+    "theme": "Тема",
+    "themeLight": "Светлая",
+    "themeDark": "Темный",
+    "language": "Язык",
+    "about": "О программе"
+  },
+  "provider": {
+    "apiKey": "API-ключ",
+    "model": "Модель",
+    "restoreButton": "Восстановить"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "Перезапустить для обновления?",
+    "relaunchConfirmDesc": "Приложение закроется и перезапустится, чтобы применить обновление.",
+    "relaunchNow": "Перезапустить сейчас",
+    "relaunchLater": "Обновить позже",
+    "install": "Нажмите, чтобы установить и перезапустить"
+  },
+  "plugins": {
+    "title": "Плагины",
+    "plugins": "Плагины",
+    "skills": "Навыки",
+    "uninstall": "Удалить"
+  },
+  "palette": {
+    "actions": "Действия",
+    "chats": "Чаты",
+    "newChat": "Новый чат",
+    "settings": "Открыть настройки"
+  },
+  "time": {
+    "today": "Сегодня",
+    "yesterday": "Вчера"
+  }
+}

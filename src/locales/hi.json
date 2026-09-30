@@ -1,0 +1,109 @@
+{
+  "actions": {
+    "copy": "कॉपी करें",
+    "copied": "कॉपी किया गया",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "retry": "फिर से कोशिश करें",
+    "stop": "रोकें",
+    "activity": "गतिविधि",
+    "submit": "सबमिट करें",
+    "open": "खोलें",
+    "reveal": "फ़ाइल मैनेजर में दिखाएँ"
+  },
+  "connection": {
+    "reconnect": "फिर से कनेक्ट करें"
+  },
+  "sidebar": {
+    "plugins": "प्लगइन्स",
+    "newChat": "नई चैट",
+    "chats": "चैट",
+    "untitled": "नई चैट",
+    "unarchive": "रीस्टोर करें",
+    "delete": "हटाएं",
+    "search": "चैट खोजें",
+    "stop": "रोकें",
+    "settings": "सेटिंग्स"
+  },
+  "welcome": {
+    "chooseFolder": "फ़ोल्डर चुनें"
+  },
+  "chat": {
+    "thinking": "सोच रहा है",
+    "interrupted": "रोका गया",
+    "commands": "कमांड",
+    "input": {
+      "image": "छवि",
+      "removeAttachment": "अनुलग्नक हटाएं",
+      "imageTooLargeTitle": "इमेज अटैचमेंट बहुत बड़े हैं",
+      "imageTooLargeDesc": "कुल इमेज साइज़ {{mb}}MB से अधिक नहीं होना चाहिए। कुछ इमेज हटाएँ और पुनः प्रयास करें।",
+      "unsupportedAttachmentTitle": "केवल इमेज अटैचमेंट समर्थित",
+      "unsupportedAttachmentDesc": "गैर-इमेज फ़ाइलें मॉडल को नहीं भेजी जा सकतीं और उन्हें अनदेखा कर दिया गया है"
+    },
+    "model": {
+      "model": "मॉडल",
+      "switchModel": "मॉडल बदलें",
+      "switchPermissionMode": "अनुमति मोड बदलें"
+    },
+    "tokens": {
+      "openDetails": "टोकन इस्तेमाल",
+      "input": "इनपुट",
+      "output": "आउटपुट",
+      "cachedRead": "कैश पढ़ना",
+      "cachedWrite": "कैश लिखना",
+      "cacheHitRate": "कैश हिट",
+      "total": "कुल"
+    },
+    "tool": {
+      "running": "चल रहा है",
+      "stopped": "रोका गया",
+      "failed": "फेल हुआ",
+      "output": "आउटपुट",
+      "input": "इनपुट"
+    }
+  },
+  "composer": {
+    "mode": "अनुमतियाँ",
+    "model": "मॉडल"
+  },
+  "approval": {
+    "answerOther": "अन्य"
+  },
+  "settings": {
+    "general": "सामान्य",
+    "title": "सेटिंग्स",
+    "appearance": "दिखावट",
+    "theme": "थीम",
+    "themeLight": "लाइट",
+    "themeDark": "गहरा",
+    "language": "भाषा",
+    "about": "के बारे में"
+  },
+  "provider": {
+    "model": "मॉडल",
+    "restoreButton": "पुनर्स्थापित करें"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "अपडेट के लिए फिर से लॉन्च करें?",
+    "relaunchConfirmDesc": "अपडेट लागू करने के लिए ऐप बंद होकर पुनः आरंभ होगा।",
+    "relaunchNow": "अभी फिर से लॉन्च करें",
+    "relaunchLater": "बाद में अपडेट करें",
+    "install": "इंस्टॉल करने और पुनरारंभ करने के लिए क्लिक करें"
+  },
+  "plugins": {
+    "title": "प्लगइन्स",
+    "plugins": "प्लगइन्स",
+    "skills": "स्किल्स",
+    "uninstall": "अनइंस्टॉल करें"
+  },
+  "palette": {
+    "actions": "क्रियाएँ",
+    "chats": "चैट",
+    "newChat": "नई चैट",
+    "settings": "सेटिंग्स खोलें"
+  },
+  "time": {
+    "today": "आज",
+    "yesterday": "कल"
+  }
+}

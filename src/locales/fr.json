@@ -1,0 +1,105 @@
+{
+  "actions": {
+    "copy": "Copier",
+    "copied": "Copié",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "retry": "Réessayer",
+    "stop": "Arrêter",
+    "activity": "Activité",
+    "submit": "Envoyer",
+    "open": "Ouvrir",
+    "reveal": "Afficher dans le gestionnaire de fichiers"
+  },
+  "connection": {
+    "reconnect": "Reconnecter",
+    "apiKeyTitle": "Clé API"
+  },
+  "sidebar": {
+    "newChat": "Nouveau chat",
+    "chats": "Discussions",
+    "untitled": "Nouveau chat",
+    "unarchive": "Restaurer",
+    "delete": "Supprimer",
+    "search": "Rechercher dans les chats…",
+    "stop": "Arrêter",
+    "settings": "Paramètres"
+  },
+  "welcome": {
+    "chooseFolder": "Choisir un dossier"
+  },
+  "chat": {
+    "thinking": "Réflexion",
+    "interrupted": "Arrêté",
+    "commands": "Commandes",
+    "input": {
+      "removeAttachment": "Supprimer la pièce jointe",
+      "imageTooLargeTitle": "Pièces jointes image trop volumineuses",
+      "imageTooLargeDesc": "La taille totale des images ne doit pas dépasser {{mb}} Mo. Supprimez des images et réessayez.",
+      "unsupportedAttachmentTitle": "Seules les pièces jointes image sont prises en charge",
+      "unsupportedAttachmentDesc": "Les fichiers non image ne peuvent pas être envoyés au modèle et ont été ignorés"
+    },
+    "model": {
+      "model": "Modèle",
+      "switchModel": "Changer de modèle",
+      "switchPermissionMode": "Changer le mode de permission"
+    },
+    "tokens": {
+      "openDetails": "Utilisation des tokens",
+      "input": "Entrée",
+      "output": "Sorties",
+      "cachedRead": "Lecture en cache",
+      "cachedWrite": "Écriture en cache",
+      "cacheHitRate": "Hit cache",
+      "context": "Fenêtre de contexte"
+    },
+    "tool": {
+      "running": "En cours",
+      "stopped": "Arrêté",
+      "failed": "Échec",
+      "output": "Sortie",
+      "input": "Entrée"
+    }
+  },
+  "composer": {
+    "model": "Modèle"
+  },
+  "approval": {
+    "answerOther": "Autre"
+  },
+  "settings": {
+    "general": "Général",
+    "title": "Paramètres",
+    "appearance": "Apparence",
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "language": "Langue",
+    "about": "À propos"
+  },
+  "provider": {
+    "apiKey": "Clé API",
+    "model": "Modèle",
+    "restoreButton": "Restaurer"
+  },
+  "updater": {
+    "relaunchConfirmTitle": "Relancer pour mettre à jour ?",
+    "relaunchConfirmDesc": "L'application va se fermer et redémarrer pour appliquer la mise à jour.",
+    "relaunchNow": "Relancer maintenant",
+    "relaunchLater": "Mettre à jour plus tard",
+    "install": "Cliquez pour installer et redémarrer"
+  },
+  "plugins": {
+    "skills": "Compétences",
+    "uninstall": "Désinstaller"
+  },
+  "palette": {
+    "chats": "Discussions",
+    "newChat": "Nouveau chat",
+    "settings": "Ouvrir les paramètres"
+  },
+  "time": {
+    "today": "Aujourd’hui",
+    "yesterday": "Hier"
+  }
+}

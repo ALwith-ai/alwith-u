@@ -1,0 +1,5 @@
+# All text is LF, enforced at checkout, independent of anyone's core.autocrlf.
+# A Windows build machine checking out CRLF breaks parsers that hard-code `\n` in scripts,
+# and the same repository then builds different bundles on two platforms (hit in Desktop on
+# 2026-08-04). text=auto lets git tell text from binary, so binary assets are unaffected.
+* text=auto eol=lf

@@ -1,0 +1,412 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "diff2html/bundles/css/diff2html.min.css";
+@import "./features/chat/codex/styles.css";
+
+@source "../node_modules/@alwith/module-chat/dist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Inter Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: #f5f6f7;
+  --sidebar-foreground: #1a1c1f;
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-floating-shadow: oklch(0 0 0 / 16%);
+  /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
+     the card does not rely on borders or shadows to stand out from the background. */
+  --main-surface-gutter: 8px;
+  --main-surface-block-gutter: 32px;
+  --main-surface-radius: 14px;
+}
+
+.dark {
+  --background: #181818;
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: #3a3a3a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-floating-shadow: oklch(0 0 0 / 32%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Glass: html+body are transparent so the window's native vibrancy shows through (ALwith
+     Desktop's App.css). The shadcn sidebar containers are cleared the same way; the chat pane
+     paints bg-background itself. */
+  html,
+  body {
+    background: transparent;
+  }
+}
+/* Match Desktop: native vibrancy shows through around the persistent navigation and main panel. */
+[data-slot="sidebar-wrapper"] {
+  background-color: transparent;
+}
+[data-slot="sidebar"] {
+  background-color: transparent;
+}
+/* Give floating navigation its own surface when it overlays chat, keeping content readable. */
+[data-sidebar-presentation="floating"] [data-slot="sidebar"] {
+  background-color: var(--background);
+}
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-inner"] > div {
+  background-color: transparent;
+}
+
+/* Main chat uses a separate solid panel with 8px side gaps, 32px top/bottom gaps, and a 14px corner radius.
+   Gaps retain the sidebar background, naturally separating the layers without divider lines. */
+.main-chat-surface {
+  width: auto;
+  min-width: 0;
+  margin-inline: var(--main-surface-gutter);
+  margin-block: var(--main-surface-block-gutter);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--main-surface-radius);
+  background-color: var(--background);
+  box-shadow: none;
+}
+
+/* The 32px gap above the main panel also serves as a native drag region without controls. */
+[data-sidebar-presentation] {
+  --sidebar-resize-duration: 200ms;
+  --sidebar-fade-duration: 150ms;
+  --screen-slide-duration: 240ms;
+}
+/* One shared navigation panel sits between the two screens; all three stay mounted. */
+.main-screen-track {
+  display: flex;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  transform: translateX(calc(-100% + var(--leading-sidebar-width)));
+  transition: transform var(--screen-slide-duration) ease-in-out;
+}
+[data-main-screen="leading"] .main-screen-track {
+  transform: translateX(0);
+}
+.main-screen-leading,
+.main-screen-content {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  transition:
+    width var(--sidebar-resize-duration) ease-in-out,
+    visibility 0s linear var(--screen-slide-duration);
+}
+.main-screen-leading {
+  width: calc(100% - var(--leading-sidebar-width));
+}
+.main-screen-content {
+  width: calc(100% - var(--main-sidebar-width));
+}
+[data-screen-panel][aria-hidden="true"] {
+  visibility: hidden;
+}
+[data-screen-panel][aria-hidden="false"] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.main-chat-drag-region {
+  inset-inline-start: max(
+    calc(var(--main-sidebar-width) + var(--main-surface-gutter)),
+    calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale))
+  );
+  inset-inline-end: var(--main-surface-gutter);
+  transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
+}
+[data-main-screen="leading"] .main-chat-drag-region {
+  inset-inline-start: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+}
+
+/* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
+.main-extension-toolbar {
+  left: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+  right: 12px;
+}
+
+/* Extension status widgets occupy the visible content gutter, clear of either sidebar. */
+.main-extension-status {
+  inset-inline-start: calc(var(--main-sidebar-width) + 12px);
+  inset-inline-end: 96px;
+  transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
+}
+[data-main-screen="leading"] .main-extension-status {
+  inset-inline-start: 12px;
+  inset-inline-end: max(calc(var(--leading-sidebar-width) + 12px), 96px);
+}
+
+/* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */
+.main-sidebar-shell {
+  position: relative;
+  z-index: 30;
+  flex-shrink: 0;
+  width: var(--active-sidebar-width);
+  height: 100%;
+  transition: width var(--sidebar-resize-duration) ease-in-out;
+}
+/* Clip a full-width sidebar instead of squeezing its contents during resize. */
+.main-sidebar-viewport {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--active-sidebar-width);
+  overflow: clip;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition:
+    width var(--sidebar-resize-duration) ease-in-out,
+    opacity 0s linear var(--sidebar-resize-duration),
+    transform 0s linear var(--sidebar-resize-duration),
+    visibility 0s linear var(--sidebar-resize-duration);
+}
+.main-sidebar-panel {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+}
+[data-sidebar-mode="hidden"] .main-sidebar-viewport {
+  pointer-events: none;
+}
+[data-sidebar-presentation="floating"] .main-sidebar-viewport {
+  inset-block: var(--main-surface-block-gutter);
+  overflow: visible;
+  border-radius: var(--main-surface-radius);
+  /* Reset the invisible clip only after fade-out so the next pin can grow from zero. */
+  transition:
+    width 0s linear var(--sidebar-fade-duration),
+    opacity var(--sidebar-fade-duration) ease-out,
+    transform var(--sidebar-fade-duration) ease-out,
+    visibility 0s linear var(--sidebar-fade-duration);
+}
+[data-sidebar-presentation="floating"] .main-sidebar-panel {
+  overflow: clip;
+  border-radius: inherit;
+}
+/* Paint only beyond the right edge; the top/bottom gutters receive no shadow. */
+[data-sidebar-presentation="floating"] .main-sidebar-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 8px 0 24px -8px var(--sidebar-floating-shadow);
+  clip-path: inset(0 -32px 0 100%);
+  pointer-events: none;
+}
+[data-sidebar-presentation="floating"] [data-slot="sidebar-header"] {
+  padding-top: 8px;
+}
+[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
+  padding-bottom: 8px;
+}
+[data-sidebar-mode="floating"] .main-sidebar-viewport {
+  width: var(--sidebar-width);
+}
+[data-sidebar-mode="pinned"] .main-sidebar-viewport,
+[data-sidebar-mode="floating"] .main-sidebar-viewport {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition-delay: 0s;
+}
+.main-sidebar-edge {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+}
+.main-sidebar-toggle {
+  position: absolute;
+  top: calc(4px * var(--sidebar-control-scale));
+  left: var(--sidebar-toggle-left);
+  z-index: 31;
+  transform: scale(var(--sidebar-control-scale));
+  transform-origin: top left;
+}
+/* Pin/preview state is conveyed by ARIA; only pointer hover paints this control. */
+.main-sidebar-toggle [data-slot="button"] {
+  background-color: transparent;
+}
+.main-sidebar-toggle [data-slot="button"]:hover {
+  background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .main-screen-track,
+  .main-screen-leading,
+  .main-screen-content,
+  .main-sidebar-shell,
+  [data-sidebar-presentation] .main-sidebar-viewport,
+  .main-chat-drag-region {
+    transition: none;
+  }
+}
+:root {
+  --chat-font-size: 14px;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+[data-tauri-drag-region] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* From ALwith Desktop `styles/global-utilities.css`: Pane (Base UI ScrollArea) hides the native
+   scrollbar and shows its own overlay one only while hovering or scrolling (macOS style). */
+[data-slot="scroll-area-viewport"] {
+  scrollbar-width: none;
+}
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar {
+  display: none;
+}
+[data-slot="scroll-area-scrollbar"] {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+[data-slot="scroll-area-scrollbar"][data-hovering],
+[data-slot="scroll-area-scrollbar"][data-scrolling] {
+  opacity: 1;
+  transition-duration: 0.1s;
+}
+
+/* Only the main application shell consumes extension wallpaper requests. */
+.wallpaper-shell {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  overflow: clip;
+}
+.wallpaper-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+[data-wallpaper="active"] [data-slot="sidebar-wrapper"] {
+  background: transparent;
+}
+[data-wallpaper="active"] [data-slot="sidebar"] {
+  background: color-mix(in srgb, var(--sidebar) 80%, transparent);
+}
+[data-wallpaper="active"] .main-chat-surface {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+}

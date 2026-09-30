@@ -1,0 +1,95 @@
+[data-slot="codex-hover-card"] [data-slot="hover-info-card"],
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-summary"] {
+  gap: 0;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-title-row"] {
+  min-height: 32px;
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-title"] {
+  color: inherit;
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-body"] {
+  padding-inline: 12px;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-row"] {
+  align-items: center;
+  color: inherit;
+  font-size: 14px;
+  min-height: 32px;
+  gap: 8px;
+  padding-inline: 12px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-details"],
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-actions"] {
+  border-color: var(--border);
+  border-top-style: solid;
+  border-top-width: 1px;
+  gap: 0;
+  padding-top: 0;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-actions"] {
+  margin-inline: 0;
+  gap: 0;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-separator"] {
+  display: none;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"] {
+  height: 32px;
+  gap: 8px;
+  padding-inline: 12px;
+  border-radius: 0;
+  color: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"] svg,
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-row"] svg,
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-title-row"] svg {
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  width: 16px;
+  height: 16px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-icon"] > * {
+  width: 16px;
+  height: 16px;
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"]:hover {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"]:active {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"][data-variant="destructive"] {
+  color: var(--destructive);
+}
+
+[data-slot="codex-hover-card"] [data-slot="hover-info-card-action"][data-variant="destructive"] svg {
+  color: inherit;
+}
