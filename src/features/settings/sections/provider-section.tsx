@@ -1,11 +1,12 @@
 // Model providers, reduced from ALwith Desktop's API tab: compact provider pills choose one
 // configuration panel. A saved key puts that provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
-import { ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Input } from "@/components/ui/input"
@@ -35,7 +36,7 @@ import {
   saveProviderKey,
   testProvider
 } from "@/lib/providers"
-import { SettingGroup, SettingLabel } from "./shared"
+import { SettingGroup } from "./shared"
 import { CodexProviderSection } from "./codex-provider-section"
 
 function describe(error: unknown): string {
@@ -142,13 +143,11 @@ export function ProviderSection() {
   }, [snapshot, activeId, activeBuiltIn, activeCustom])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8">
       <CodexProviderSection />
       {snapshot?.status === "pending" && <p className="text-muted-foreground text-sm">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-destructive text-sm">{snapshot.error}</p>}
       <SettingGroup>
-        <SettingLabel>{t("provider.label")}</SettingLabel>
-        <p className="text-muted-foreground pt-2 text-xs">{t("provider.testDescription")}</p>
         {snapshot && (
           <>
             <ProviderTabs
@@ -158,7 +157,6 @@ export function ProviderSection() {
               onSelect={setActiveId}
               onAdd={() => setActiveId("new")}
             />
-            <Separator />
             {PROVIDERS.map(provider => (
               <div key={provider.id} hidden={activeId !== provider.id}>
                 <ProviderRow
@@ -217,42 +215,45 @@ export function ProviderTabs({
 }) {
   const { t } = useTranslation()
   return (
-    <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
-      {PROVIDERS.map(provider => {
-        const Logo = provider.logo
-        const configured = keys[provider.id] !== undefined
-        return (
+    <div>
+      <h2 className="text-muted-foreground ms-1 text-sm">{t("provider.label")}</h2>
+      <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
+        {PROVIDERS.map(provider => {
+          const Logo = provider.logo
+          const configured = keys[provider.id] !== undefined
+          return (
+            <ProviderTab
+              key={provider.id}
+              id={provider.id}
+              name={provider.name}
+              active={activeId === provider.id}
+              configured={configured}
+              icon={<Logo className="size-5 shrink-0" />}
+              onClick={() => onSelect(provider.id)}
+            />
+          )
+        })}
+        {customProviders.map(provider => (
           <ProviderTab
             key={provider.id}
             id={provider.id}
             name={provider.name}
             active={activeId === provider.id}
-            configured={configured}
-            icon={<Logo className="size-5 shrink-0" />}
+            configured
+            icon={<ServerIcon className="size-5 shrink-0" />}
             onClick={() => onSelect(provider.id)}
           />
-        )
-      })}
-      {customProviders.map(provider => (
-        <ProviderTab
-          key={provider.id}
-          id={provider.id}
-          name={provider.name}
-          active={activeId === provider.id}
-          configured
-          icon={<ServerIcon className="size-5 shrink-0" />}
-          onClick={() => onSelect(provider.id)}
-        />
-      ))}
-      <Button
-        type="button"
-        variant="outline"
-        aria-pressed={activeId === "new"}
-        onClick={onAdd}
-        className={cn("h-9 w-full justify-start gap-2 rounded-full px-4", activeId === "new" && "bg-accent")}>
-        <PlusIcon className="size-4 shrink-0" />
-        <span className="truncate">{t("provider.addCustom")}</span>
-      </Button>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          aria-pressed={activeId === "new"}
+          onClick={onAdd}
+          className={cn("h-9 w-full justify-start gap-2 rounded-full px-4", activeId === "new" && "bg-accent")}>
+          <PlusIcon className="size-4 shrink-0" />
+          <span className="truncate">{t("provider.customButton")}</span>
+        </Button>
+      </div>
     </div>
   )
 }
@@ -295,11 +296,50 @@ function ProviderTab({
 function TestFeedback({ result }: { result: ProviderTestResult }) {
   const { t } = useTranslation()
   return (
-    <p className={result.ok ? "text-muted-foreground mt-1 text-xs" : "text-destructive mt-1 text-xs"}>
+    <p role="status" className={result.ok ? "text-muted-foreground text-xs" : "text-destructive text-xs"}>
       {result.ok
         ? t("provider.testSuccess", { latency: result.latencyMs ?? 0 })
         : `${t(`provider.testErrors.${result.code}`)}${result.status ? ` (HTTP ${result.status})` : ""}`}
     </p>
+  )
+}
+
+function ProviderActions({
+  busy,
+  canTest,
+  onTest,
+  onRemove,
+  result,
+  children
+}: {
+  busy: boolean
+  canTest: boolean
+  onTest?: () => void
+  onRemove?: () => void
+  result?: ProviderTestResult
+  children: ReactNode
+}): ReactNode {
+  const { t } = useTranslation()
+  return (
+    <div className="space-y-3 border-t pt-4">
+      {result && <TestFeedback result={result} />}
+      {onTest && <p className="text-muted-foreground text-xs leading-relaxed">{t("provider.testDescription")}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        {onRemove && (
+          <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={busy} onClick={onRemove}>
+            {t("provider.remove")}
+          </Button>
+        )}
+        <div className="ms-auto flex flex-wrap items-center gap-2">
+          {onTest && (
+            <Button size="sm" variant="outline" disabled={busy || !canTest} onClick={onTest}>
+              {t("provider.testButton")}
+            </Button>
+          )}
+          {children}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -363,11 +403,11 @@ export function ProviderRow({
   }
 
   return (
-    <div className="flex flex-col gap-3 py-3">
-      <div className="flex items-center gap-3">
+    <div className="space-y-5 rounded-xl border p-4">
+      <div className="flex flex-wrap items-center gap-3">
         <Logo className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="text-sm">{provider.name}</div>
+          <h3 className="text-sm font-medium">{provider.name}</h3>
           <div className="text-muted-foreground mt-0.5 text-xs">
             {configured
               ? t("provider.active", { name: provider.name, count: provider.models.length })
@@ -391,77 +431,79 @@ export function ProviderRow({
           </Select>
         )}
       </div>
-      <Field>
-        <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
-        <InputGroup>
-          <InputGroupInput
-            id={inputId}
-            type={showKey ? "text" : "password"}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={configured ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
-            value={apiKey}
-            onChange={event => setApiKey(event.target.value)}
-            onKeyDown={event => {
-              if (event.key === "Enter" && canSave) submit()
-            }}
-          />
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
-              onClick={() => setShowKey(value => !value)}>
-              {showKey ? <EyeIcon /> : <EyeOffIcon />}
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
-        {keyUrl !== null && (
-          <FieldDescription>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
-              onClick={() => void openExternal(keyUrl)}>
-              {t("provider.getKey", { name: provider.name })}
-              <ExternalLinkIcon className="size-3" aria-hidden="true" />
-            </button>
-          </FieldDescription>
-        )}
-      </Field>
-      <Field>
-        <FieldLabel htmlFor={`${provider.id}-base-url`}>{t("provider.baseUrl")}</FieldLabel>
-        <InputGroup>
-          <InputGroupInput
-            id={`${provider.id}-base-url`}
-            type="url"
-            spellCheck={false}
-            placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
-            value={baseUrl}
-            onChange={event => setBaseUrl(event.target.value)}
-          />
-        </InputGroup>
-        <FieldDescription>{t("provider.baseUrlDescription")}</FieldDescription>
-      </Field>
-      <div className="flex items-center justify-end gap-2">
-        {testResult && !canSave && <TestFeedback result={testResult} />}
-        {configured && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => void persist(null)}>
-            {t("provider.remove")}
-          </Button>
-        )}
-        {configured && onTest && (
-          <Button size="sm" variant="outline" disabled={busy || canSave} onClick={onTest}>
-            {t("provider.testButton")}
-          </Button>
-        )}
+      <Separator />
+      <section className="space-y-4" aria-labelledby={`${provider.id}-connection`}>
+        <h4 id={`${provider.id}-connection`} className="text-sm font-medium">
+          {t("provider.connectionSettings")}
+        </h4>
+        <Field className="gap-2">
+          <FieldLabel htmlFor={`${provider.id}-base-url`}>{t("provider.baseUrl")}</FieldLabel>
+          <InputGroup>
+            <InputGroupInput
+              id={`${provider.id}-base-url`}
+              type="url"
+              spellCheck={false}
+              placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
+              value={baseUrl}
+              onChange={event => setBaseUrl(event.target.value)}
+            />
+          </InputGroup>
+          <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
+        </Field>
+        <Field className="gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
+            {keyUrl !== null && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="text-muted-foreground h-auto p-0 text-xs"
+                onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}>
+                {t("provider.getKey", { name: provider.name })}
+                <ExternalLinkIcon className="size-3" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+          <InputGroup>
+            <InputGroupInput
+              id={inputId}
+              type={showKey ? "text" : "password"}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={configured ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
+              value={apiKey}
+              onChange={event => setApiKey(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === "Enter" && canSave) submit()
+              }}
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
+                onClick={() => setShowKey(value => !value)}>
+                {showKey ? <EyeIcon /> : <EyeOffIcon />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </Field>
+      </section>
+      <ProviderActions
+        busy={busy}
+        canTest={!canSave}
+        onTest={configured ? onTest : undefined}
+        onRemove={configured ? () => void persist(null) : undefined}
+        result={!canSave ? testResult : undefined}>
         <Button size="sm" disabled={!canSave} onClick={submit}>
           {busy && <Spinner data-icon="inline-start" />}
           {t("provider.saveButton")}
         </Button>
-      </div>
+      </ProviderActions>
     </div>
   )
 }
 
-function CustomProviderEditor({
+export function CustomProviderEditor({
   provider,
   revision,
   busy,
@@ -484,6 +526,9 @@ function CustomProviderEditor({
   const [name, setName] = useState(provider?.name ?? "")
   const [baseUrl, setBaseUrl] = useState(provider?.baseUrl ?? "")
   const [apiKey, setApiKey] = useState("")
+  const [showKey, setShowKey] = useState(false)
+  const [modelsOpen, setModelsOpen] = useState(provider === null)
+  const [previewModels, setPreviewModels] = useState(provider?.models ?? [])
   const [modelsJson, setModelsJson] = useState(
     provider ? JSON.stringify(provider.models, null, 2) : '[\n  { "label": "My Model", "api_id": "model-id" }\n]'
   )
@@ -500,6 +545,19 @@ function CustomProviderEditor({
     apiKey.trim() !== "" ||
     modelsJson !== JSON.stringify(provider.models, null, 2)
 
+  const changeModelsOpen = (open: boolean): void => {
+    if (!open) {
+      try {
+        setPreviewModels(parseCustomModels(modelsJson))
+        setModelsError(null)
+      } catch (error) {
+        setModelsError(describe(error))
+        return
+      }
+    }
+    setModelsOpen(open)
+  }
+
   const submit = async () => {
     let models: CustomProvider["models"]
     try {
@@ -507,6 +565,7 @@ function CustomProviderEditor({
       setModelsError(null)
     } catch (error) {
       setModelsError(describe(error))
+      setModelsOpen(true)
       return
     }
     const saved = await onSave(revision, {
@@ -520,25 +579,25 @@ function CustomProviderEditor({
   }
 
   return (
-    <div className="flex flex-col gap-5 py-4">
+    <div className="space-y-5 rounded-xl border p-4">
       <div className="flex items-center gap-3">
         <ServerIcon className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{provider?.name || t("provider.addCustom")}</div>
+          <h3 className="text-sm font-medium break-words">{provider?.name || t("provider.addCustom")}</h3>
           <div className="text-muted-foreground mt-0.5 text-xs">{t("provider.customDescription")}</div>
         </div>
-        {provider && onRemove && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={onRemove}>
-            {t("provider.remove")}
-          </Button>
-        )}
+        {provider && <span className="text-muted-foreground shrink-0 text-xs">{t("provider.configured")}</span>}
       </div>
-      <div className="grid gap-4">
-        <Field>
+      <Separator />
+      <section className="space-y-4" aria-labelledby={`${id}-connection`}>
+        <h4 id={`${id}-connection`} className="text-sm font-medium">
+          {t("provider.connectionSettings")}
+        </h4>
+        <Field className="gap-2">
           <FieldLabel htmlFor={nameInputId}>{t("provider.name")}</FieldLabel>
           <Input id={nameInputId} value={name} onChange={event => setName(event.target.value)} />
         </Field>
-        <Field>
+        <Field className="gap-2">
           <FieldLabel htmlFor={urlInputId}>{t("provider.baseUrl")}</FieldLabel>
           <Input
             id={urlInputId}
@@ -548,39 +607,80 @@ function CustomProviderEditor({
             onChange={event => setBaseUrl(event.target.value)}
           />
         </Field>
-        <Field>
+        <Field className="gap-2">
           <FieldLabel htmlFor={keyInputId}>{t("provider.apiKey")}</FieldLabel>
-          <Input
-            id={keyInputId}
-            type="password"
-            autoComplete="off"
-            placeholder={provider ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
-            value={apiKey}
-            onChange={event => setApiKey(event.target.value)}
-          />
+          <InputGroup>
+            <InputGroupInput
+              id={keyInputId}
+              type={showKey ? "text" : "password"}
+              autoComplete="off"
+              placeholder={provider ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
+              value={apiKey}
+              onChange={event => setApiKey(event.target.value)}
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
+                onClick={() => setShowKey(value => !value)}>
+                {showKey ? <EyeIcon /> : <EyeOffIcon />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
         </Field>
-        <Field data-invalid={modelsError !== null}>
-          <FieldLabel htmlFor={modelsInputId}>{t("provider.modelsJson")}</FieldLabel>
-          <Textarea
-            id={modelsInputId}
-            className="min-h-44 font-mono text-xs"
-            value={modelsJson}
-            onChange={event => {
-              setModelsJson(event.target.value)
-              setModelsError(null)
-            }}
-          />
-          <FieldDescription>{modelsError ?? t("provider.modelsJsonDescription")}</FieldDescription>
-        </Field>
-      </div>
-      <div className="flex items-center justify-end gap-2">
-        {testResult && !dirty && <TestFeedback result={testResult} />}
-        {provider && onTest && (
-          <Button variant="outline" disabled={busy || dirty} onClick={onTest}>
-            {t("provider.testButton")}
-          </Button>
+      </section>
+      <Separator />
+      <Collapsible open={modelsOpen} onOpenChange={changeModelsOpen} className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-sm font-medium">{t("provider.models")}</h4>
+          <CollapsibleTrigger render={<Button variant="ghost" size="sm" />}>
+            {t(modelsOpen ? "provider.previewModels" : "provider.editModels")}
+            <ChevronDownIcon className={cn("size-4", modelsOpen && "rotate-180")} />
+          </CollapsibleTrigger>
+        </div>
+        {!modelsOpen && (
+          <ul className="bg-muted/40 divide-y rounded-lg px-3">
+            {previewModels.map(model => (
+              <li
+                key={model.api_id}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
+                <span className="break-all">{model.label}</span>
+                <span className="text-muted-foreground font-mono text-xs break-all">{model.api_id}</span>
+              </li>
+            ))}
+          </ul>
         )}
+        <CollapsibleContent>
+          <Field className="gap-2" data-invalid={modelsError !== null}>
+            <FieldLabel htmlFor={modelsInputId}>{t("provider.modelsJson")}</FieldLabel>
+            <Textarea
+              id={modelsInputId}
+              aria-invalid={modelsError !== null}
+              aria-describedby={`${modelsInputId}-description`}
+              spellCheck={false}
+              className="min-h-44 font-mono text-xs"
+              value={modelsJson}
+              onChange={event => {
+                setModelsJson(event.target.value)
+                setModelsError(null)
+              }}
+            />
+            <FieldDescription
+              id={`${modelsInputId}-description`}
+              className={cn("text-xs", modelsError && "text-destructive")}
+              role={modelsError ? "alert" : undefined}>
+              {modelsError ?? t("provider.modelsJsonDescription")}
+            </FieldDescription>
+          </Field>
+        </CollapsibleContent>
+      </Collapsible>
+      <ProviderActions
+        busy={busy}
+        canTest={!dirty}
+        onTest={provider ? onTest : undefined}
+        onRemove={provider ? onRemove : undefined}
+        result={!dirty ? testResult : undefined}>
         <Button
+          size="sm"
           disabled={
             busy || !dirty || name.trim() === "" || baseUrl.trim() === "" || (!provider && apiKey.trim() === "")
           }
@@ -588,7 +688,7 @@ function CustomProviderEditor({
           {busy && <Spinner data-icon="inline-start" />}
           {t("provider.saveButton")}
         </Button>
-      </div>
+      </ProviderActions>
     </div>
   )
 }

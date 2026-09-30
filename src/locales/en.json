@@ -361,7 +361,12 @@
   "provider": {
     "pending": "Settings saved. Changes apply when active chats finish.",
     "label": "Model providers",
-    "active": "{{count}} models of {{name}} appear in every chat's model picker. Each chat picks its own model.",
+    "active": "{{count}} models available. Select them in each chat's model picker.",
+    "configured": "Configured",
+    "connectionSettings": "Connection settings",
+    "models": "Available models",
+    "editModels": "Edit JSON",
+    "previewModels": "Preview models",
     "inactive": "Not configured.",
     "modelUnavailable": "Configure this model's provider or select another model.",
     "catalogUnavailable": "The connected agent does not support provider models.",
@@ -385,6 +390,7 @@
       "invalid_response": "The endpoint did not return a valid Responses API result"
     },
     "addCustom": "Add custom provider",
+    "customButton": "Custom",
     "editCustom": "Edit custom provider",
     "customDescription": "Configure an OpenAI Responses API-compatible endpoint and its models.",
     "name": "Provider name",

@@ -360,7 +360,12 @@
   "provider": {
     "pending": "设置已保存，将在运行中的对话结束后生效。",
     "label": "模型提供方",
-    "active": "{{name}} 的 {{count}} 个模型已出现在每个聊天的模型选择器里,每条聊天各自选。",
+    "active": "已提供 {{count}} 个模型，可在各聊天中选择。",
+    "configured": "已配置",
+    "connectionSettings": "连接设置",
+    "models": "可用模型",
+    "editModels": "编辑 JSON",
+    "previewModels": "预览模型",
     "inactive": "未配置。",
     "modelUnavailable": "请配置此模型的供应商，或选择其他模型。",
     "catalogUnavailable": "当前连接的 Agent 不支持供应商模型。",
@@ -384,6 +389,7 @@
       "invalid_response": "接口未返回有效的 Responses API 结果"
     },
     "addCustom": "添加自定义供应商",
+    "customButton": "自定义",
     "editCustom": "编辑自定义供应商",
     "customDescription": "配置兼容 OpenAI Responses API 的接口及模型。",
     "name": "供应商名称",
