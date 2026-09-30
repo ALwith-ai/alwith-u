@@ -1,10 +1,11 @@
 // Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs"
+import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import manifest from "../package.json"
 import { assertVersion, toolchainVersions } from "./lib/toolchain"
+import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 
 const argument = process.argv[2]
@@ -34,51 +35,39 @@ function run(name: string, args: string[]): string {
   return result.stdout.trim()
 }
 
-try {
-  for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
-    if (!existsSync(join(directory, `${name}${suffix}`))) throw new Error(`Packaged sidecar missing: ${name}`)
-  }
-  assertVersion("packaged Bun", run("bun", ["--version"]), versions.bun)
-  assertVersion("packaged Codex", run("codex", ["--version"]), `codex-cli ${versions.codex}`)
-  if (process.platform === "darwin") {
-    const signature = spawnSync("/usr/bin/codesign", ["--verify", "--strict", join(directory, "bun")], {
-      encoding: "utf8",
-      timeout: 15_000
-    })
-    if (signature.error) throw signature.error
-    if (signature.status !== 0) throw new Error(`Packaged Bun signature is invalid: ${signature.stderr}`)
-  }
-  // Exercise JS execution too: --version alone does not exercise JavaScriptCore in a signed bundle.
-  assertVersion(
-    "packaged Bun JS",
-    run("bun", ["--eval", "console.log(Array.from({length: 10000}, (_, i) => i).reduce((a, b) => a + b, 0))"]),
-    "49995000"
-  )
-  const adapter = join(codexHome, "codex-acp-v2.mjs")
-  copyFileSync(join(resources, "adapter/codex-acp-v2.mjs"), adapter)
-  const adapterVersion = run("bun", ["--no-install", adapter, "--version"])
-  if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+$/.test(adapterVersion)) {
-    throw new Error(`Unexpected packaged adapter version: ${adapterVersion}`)
-  }
-  await checkInitialize(adapter)
-  console.log(`Packaged toolchain works without PATH: Bun ${versions.bun}, Codex ${versions.codex}, ${adapterVersion}`)
-} finally {
-  rmSync(codexHome, { recursive: true, force: true })
-}
-
-async function deadline<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("Packaged Runtime check timed out")), timeoutMs)
+const adapterVersion = await withCleanup(
+  async () => {
+    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
+      if (!existsSync(join(directory, `${name}${suffix}`))) throw new Error(`Packaged sidecar missing: ${name}`)
+    }
+    assertVersion("packaged Bun", run("bun", ["--version"]), versions.bun)
+    assertVersion("packaged Codex", run("codex", ["--version"]), `codex-cli ${versions.codex}`)
+    if (process.platform === "darwin") {
+      const signature = spawnSync("/usr/bin/codesign", ["--verify", "--strict", join(directory, "bun")], {
+        encoding: "utf8",
+        timeout: 15_000
       })
-    ])
-  } finally {
-    clearTimeout(timer)
-  }
-}
+      if (signature.error) throw signature.error
+      if (signature.status !== 0) throw new Error(`Packaged Bun signature is invalid: ${signature.stderr}`)
+    }
+    // Exercise JS execution too: --version alone does not exercise JavaScriptCore in a signed bundle.
+    assertVersion(
+      "packaged Bun JS",
+      run("bun", ["--eval", "console.log(Array.from({length: 10000}, (_, i) => i).reduce((a, b) => a + b, 0))"]),
+      "49995000"
+    )
+    const adapter = join(codexHome, "codex-acp-v2.mjs")
+    copyFileSync(join(resources, "adapter/codex-acp-v2.mjs"), adapter)
+    const adapterVersion = run("bun", ["--no-install", adapter, "--version"])
+    if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+$/.test(adapterVersion)) {
+      throw new Error(`Unexpected packaged adapter version: ${adapterVersion}`)
+    }
+    await checkInitialize(adapter)
+    return adapterVersion
+  },
+  () => removeTemporaryDirectory(codexHome)
+)
+console.log(`Packaged toolchain works without PATH: Bun ${versions.bun}, Codex ${versions.codex}, ${adapterVersion}`)
 
 async function checkInitialize(adapter: string): Promise<void> {
   const runtime = new ProcessRuntimeClient({
@@ -93,25 +82,22 @@ async function checkInitialize(adapter: string): Promise<void> {
     journalRoot: join(codexHome, "journal"),
     env: { PATH: "", NODE_PATH: "", CODEX_HOME: codexHome, ALWITH_MODULES_DIR: codexHome }
   })
-  const exited = new Promise<void>(resolveExit => runtime.onProcessExit(() => resolveExit()))
+  const exited = Promise.withResolvers<void>()
+  const unsubscribe = runtime.onProcessExit(() => exited.resolve())
+  let started = false
   try {
-    await deadline(runtime.start("codex", { engine: "codex" }), 30_000)
-    const response = await deadline(runtime.initialize("codex"), 30_000)
-    const info = (response as { info?: { name?: string } }).info
-    if (info?.name !== "@nyssance/codex-acp-v2") throw new Error("Packaged adapter did not initialize")
-    console.log("Packaged Runtime → Bun → isolated JS adapter → Codex: ACP initialized")
+    await withCleanup(
+      async () => {
+        await deadline(runtime.start("codex", { engine: "codex" }), 30_000)
+        started = true
+        const response = await deadline(runtime.initialize("codex"), 30_000)
+        const info = (response as { info?: { name?: string } }).info
+        if (info?.name !== "@nyssance/codex-acp-v2") throw new Error("Packaged adapter did not initialize")
+        console.log("Packaged Runtime → Bun → isolated JS adapter → Codex: ACP initialized")
+      },
+      () => stopRuntime(runtime, exited.promise, started)
+    )
   } finally {
-    await stopRuntime(runtime, exited)
-  }
-}
-
-async function stopRuntime(runtime: ProcessRuntimeClient, exited: Promise<void>): Promise<void> {
-  runtime.close()
-  try {
-    await deadline(exited, 10_000)
-  } catch (error) {
-    runtime.kill()
-    await deadline(exited, 10_000)
-    throw error
+    unsubscribe()
   }
 }
