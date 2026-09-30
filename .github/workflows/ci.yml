@@ -41,10 +41,12 @@ jobs:
           bun-version-file: package.json
       - run: bun scripts/check-toolchain.ts
       - uses: dtolnay/rust-toolchain@stable
+      # Cargo resolves alwith-api from node_modules/@alwith/api/rust, so the npm
+      # install must precede anything that reads the Cargo manifest.
+      - run: bun install --frozen-lockfile
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - run: bun install --frozen-lockfile
       - run: bun run stage
       - run: bun run build
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
