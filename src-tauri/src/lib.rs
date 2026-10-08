@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod codex_launcher;
+
 mod appearance;
 mod auth;
 mod bundled_extensions;

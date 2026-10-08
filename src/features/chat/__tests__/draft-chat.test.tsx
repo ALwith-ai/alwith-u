@@ -214,6 +214,234 @@ test("a first message sent outside the composer opens the conversation and prese
   }
 })
 
+test.each(["success", "failure", "unmount", "directory-change"] as const)(
+  "preparation blocks submission through %s without losing or misrouting input",
+  async outcome => {
+    const { fake, real, restore } = await environment()
+    let release: (() => void) | undefined
+    fake.newSessionDelay.current = cwd =>
+      cwd === "/tmp/slow-start"
+        ? new Promise<void>((resolve, reject) => {
+            release = () => (outcome === "failure" ? reject(new Error("Preparation failed")) : resolve())
+          })
+        : Promise.resolve()
+    const prompt = spyOn(client, "prompt")
+    const props = {
+      owner: "main" as const,
+      onCwdChange: () => {},
+      onCreated: () => {},
+      onSendingChange: () => {},
+      onAuthRequired: () => {},
+      onNewChat: () => {},
+      providerSnapshot: providers
+    }
+    const view = render(<DraftChat {...props} cwd="/tmp/slow-start" />)
+    try {
+      await waitFor(() => expect(release).toBeDefined())
+      const input = view.getByRole("textbox") as HTMLTextAreaElement
+      expect(input.disabled).toBe(false)
+      await act(async () => {
+        fireEvent.focusIn(input)
+        fireEvent.input(input, { target: { value: "send after preparation" } })
+        fireEvent.keyUp(input, { key: "n" })
+      })
+      expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
+      expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("true")
+      expect(view.getByRole("button", { name: "Send" }).querySelector(".animate-spin")).not.toBeNull()
+      await act(async () => {
+        fireEvent.click(view.getByRole("button", { name: "Send" }))
+        fireEvent.keyDown(input, { key: "Enter", code: "Enter" })
+        fireEvent.submit(must(input.form, "composer form"))
+      })
+      expect(prompt).not.toHaveBeenCalled()
+      expect(input.value).toBe("send after preparation")
+      expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
+      if (outcome === "unmount") await act(async () => view.unmount())
+      if (outcome === "directory-change") view.rerender(<DraftChat {...props} cwd="/tmp/other-project" />)
+      await act(async () => must(release, "initial preparation")())
+      if (outcome === "success") {
+        await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
+        expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
+        expect(view.getByRole("button", { name: "Send" }).querySelector(".animate-spin")).toBeNull()
+        expect(prompt).not.toHaveBeenCalled()
+        expect(input.value).toBe("send after preparation")
+        await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+        await waitFor(() => expect(prompt).toHaveBeenCalledTimes(1))
+        const id = must(prompt.mock.calls[0], "sent prompt")[0]
+        expect(id).not.toBe(DRAFT_SESSION_ID)
+        expect(real.session(id).cwd).toBe("/tmp/slow-start")
+        expect(real.session(id).items.some(item => item.kind === "user")).toBe(true)
+        await waitFor(() => expect(input.value).toBe(""))
+        expect(view.getByRole("textbox")).toBe(input)
+      } else {
+        if (outcome === "failure") {
+          await waitFor(() => expect(view.getByRole("button", { name: "Retry" })).toBeTruthy())
+          expect(view.getByRole("status").textContent).toContain("Internal error")
+        }
+        if (outcome === "directory-change")
+          await waitFor(() => expect(view.getByRole("button", { name: "other-project" })).toBeTruthy())
+        expect(prompt).not.toHaveBeenCalled()
+        if (outcome !== "unmount") {
+          expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("send after preparation")
+          await waitFor(() =>
+            expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(outcome === "failure")
+          )
+          expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
+        }
+      }
+    } finally {
+      release?.()
+      await act(async () => view.unmount())
+      restore()
+    }
+  }
+)
+
+test("sending after default-directory resolution keeps the submitted conversation selected", async () => {
+  const { fake, real, restore } = await environment()
+  let accept!: () => void
+  const receipt = new Promise<void>(resolve => {
+    accept = resolve
+  })
+  spyOn(client, "prompt").mockImplementation(async (...args) => {
+    await real.prompt(...args)
+    await receipt
+  })
+  let release: (() => void) | undefined
+  fake.newSessionDelay.current = () =>
+    new Promise(resolve => {
+      release = resolve
+    })
+  importDraft(DRAFT_SESSION_ID, { text: "first launch", mentions: [], attachments: [], modelId: null })
+  let selected: string | null = null
+  function Surface() {
+    const [cwd, setCwd] = useState<string | null>(null)
+    const [id, setId] = useState<string | null>(null)
+    const [sendingId, setSendingId] = useState<string | null>(null)
+    const draft = useApp(state => id === null || Boolean(state.draftSessions[id]))
+    if (id && !draft && sendingId !== id) return <div data-testid="submitted">{id}</div>
+    return (
+      <DraftChat
+        owner="main"
+        cwd={cwd}
+        onCwdChange={setCwd}
+        onCreated={value => {
+          selected = value
+          setId(value)
+        }}
+        onSendingChange={(value, sending) => setSendingId(sending ? value : null)}
+        onAuthRequired={() => {}}
+        onNewChat={() => {}}
+        providerSnapshot={providers}
+      />
+    )
+  }
+  const view = render(<Surface />)
+  try {
+    await waitFor(() => expect(release).toBeDefined())
+    fake.newSessionDelay.current = null
+    await act(async () => must(release, "default preparation")())
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(real.state.threads).toHaveLength(1))
+    await waitFor(() => expect(view.queryByRole("status")).toBeNull())
+    expect(fake.modelHints.size).toBe(1)
+    expect(Object.keys(real.state.draftSessions)).toHaveLength(0)
+    await act(async () => accept())
+    await waitFor(() =>
+      expect(view.getByTestId("submitted").textContent).toBe(must<string>(selected, "selected conversation"))
+    )
+    expect(fake.modelHints.size).toBe(1)
+    expect(Object.keys(real.state.draftSessions)).toHaveLength(0)
+    expect(real.session(must<string>(selected, "submitted session")).items.some(item => item.kind === "user")).toBe(
+      true
+    )
+  } finally {
+    release?.()
+    accept()
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test("the composer stays visible while initial providers and the native draft are loading", async () => {
+  const { fake, real, restore } = await environment()
+  importDraft(DRAFT_SESSION_ID, { text: "saved input", mentions: [], attachments: [], modelId: null })
+  let release: (() => void) | undefined
+  fake.newSessionDelay.current = () =>
+    new Promise(resolve => {
+      release = resolve
+    })
+  const props = {
+    owner: "main" as const,
+    cwd: "/tmp/initial-project",
+    onCwdChange: () => {},
+    onCreated: () => {},
+    onSendingChange: () => {},
+    onAuthRequired: () => {},
+    onNewChat: () => {}
+  }
+  const view = render(<DraftChat {...props} providerSnapshot={null} />)
+  try {
+    const input = view.getByRole("textbox") as HTMLTextAreaElement
+    expect(input.value).toBe("saved input")
+    expect(input.disabled).toBe(false)
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
+    expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("true")
+    expect(view.queryByTestId("model-trigger")).toBeNull()
+    expect(Object.keys(real.state.sessions)).toHaveLength(0)
+    view.rerender(<DraftChat {...props} providerSnapshot={providers} />)
+    await waitFor(() => expect(release).toBeDefined())
+    expect(view.getByRole("textbox")).toBe(input)
+    expect(input.disabled).toBe(false)
+    await act(async () => must(release, "initial session creation")())
+    await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
+    expect(view.getByRole("textbox")).toBe(input)
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("saved input")
+    expect(view.getByTestId("model-trigger").textContent).toContain("GPT-5.6 Sol")
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
+    expect(Object.keys(real.state.sessions)).toHaveLength(1)
+    expect(real.state.threads).toHaveLength(0)
+  } finally {
+    release?.()
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test("initial preparation failure keeps the composer visible and retry preserves its draft", async () => {
+  const { restore } = await environment()
+  importDraft(DRAFT_SESSION_ID, { text: "retry input", mentions: [], attachments: [], modelId: null })
+  const failure = spyOn(client, "prepareDraft").mockRejectedValueOnce(new Error("Preparation failed"))
+  const view = render(
+    <DraftChat
+      owner="main"
+      cwd="/tmp/retry"
+      onCwdChange={() => {}}
+      onCreated={() => {}}
+      onSendingChange={() => {}}
+      onAuthRequired={() => {}}
+      onNewChat={() => {}}
+      providerSnapshot={providers}
+    />
+  )
+  try {
+    await waitFor(() => expect(view.getByText("Preparation failed")).toBeTruthy())
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("retry input")
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).disabled).toBe(false)
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
+    expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Retry" })))
+    await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("retry input")
+    expect(view.queryByText("Preparation failed")).toBeNull()
+  } finally {
+    await act(async () => view.unmount())
+    failure.mockRestore()
+    restore()
+  }
+})
+
 test("new chat prepares once under StrictMode and exposes the real model before sending", async () => {
   const { fake, real, restore } = await environment()
   let selected: string | null = null
@@ -406,6 +634,87 @@ test("a failed project change preserves the real draft and leaves the project pi
     await waitFor(() => expect(selected).not.toBe(original))
     expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/recovered-project")
     expect(fake.deleted.has(original)).toBe(true)
+  } finally {
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test("deleting a sent conversation does not resurrect startup placeholder input", async () => {
+  const { fake, real, restore } = await environment()
+  let release: (() => void) | undefined
+  fake.newSessionDelay.current = () =>
+    new Promise<void>(resolve => {
+      release = resolve
+    })
+  const props = {
+    owner: "main" as const,
+    cwd: "/tmp/review-draft",
+    onCwdChange: () => {},
+    onCreated: () => {},
+    onSendingChange: () => {},
+    onAuthRequired: () => {},
+    onNewChat: () => {},
+    providerSnapshot: providers
+  }
+  let view = render(<DraftChat {...props} />)
+  try {
+    await waitFor(() => expect(release).toBeDefined())
+    const input = view.getByRole("textbox") as HTMLTextAreaElement
+    await act(async () => {
+      fireEvent.input(input, { target: { value: "already sent text" } })
+      fireEvent.keyUp(input, { key: "t" })
+    })
+    fake.newSessionDelay.current = null
+    await act(async () => must(release, "prepare")())
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
+    const id = must(Object.keys(real.state.draftSessions)[0], "draft")
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(real.state.draftSessions[id]).toBeUndefined())
+    await waitFor(() => expect(input.value).toBe(""))
+    await act(async () => view.unmount())
+    await act(async () => real.delete(id))
+    view = render(<DraftChat {...props} />)
+    await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("")
+  } finally {
+    release?.()
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test("switching writable conversations enables sending only for the selected conversation input", async () => {
+  const { real, restore } = await environment()
+  await real.connect()
+  const first = await real.newSession("/tmp/first-conversation")
+  const second = await real.newSession("/tmp/second-conversation")
+  function Surface({ id }: { id: string }) {
+    const session = must(useSession(id), "selected conversation")
+    return <Composer key={id} session={session} />
+  }
+  const view = render(<Surface id={first} />)
+  try {
+    await act(async () => {
+      fireEvent.input(view.getByRole("textbox"), { target: { value: "first draft" } })
+      fireEvent.keyUp(view.getByRole("textbox"), { key: "t" })
+    })
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
+    view.rerender(<Surface id={second} />)
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("")
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
+    await act(async () => {
+      fireEvent.input(view.getByRole("textbox"), { target: { value: "second message" } })
+      fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+    })
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(real.session(second).items.some(item => item.kind === "user")).toBe(true))
+    expect(real.session(first).items.some(item => item.kind === "user")).toBe(false)
+    view.rerender(<Surface id={first} />)
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("first draft")
+    expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
+    expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
   } finally {
     await act(async () => view.unmount())
     restore()

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { join } from "node:path"
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
@@ -22,6 +22,9 @@ test("the staged toolchain runs with explicit resources outside the executable d
     timeout: 45_000
   })
   expect(stage.exitCode, stage.stderr.toString()).toBe(0)
+  expect(readFileSync(join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-acp-v2.mjs"))).toEqual(
+    readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/dist/index.js"))
+  )
 
   const suffix = process.platform === "win32" ? ".exe" : ""
   const directory = mkdtempSync(join(tmpdir(), "alwith-u 适配器-"))
@@ -40,7 +43,11 @@ test("the staged toolchain runs with explicit resources outside the executable d
     mkdirSync(binaries)
     mkdirSync(join(resources, "adapter"), { recursive: true })
     copyFileSync(entry, join(resources, "adapter/codex-acp-v2.mjs"))
-    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
+    copyFileSync(
+      join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-bootstrap.mjs"),
+      join(resources, "adapter/codex-bootstrap.mjs")
+    )
+    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime", "alwith-codex-launcher"]) {
       copyFileSync(
         join(import.meta.dir, `../../../src-tauri/binaries/${name}-${triple}${suffix}`),
         join(binaries, `${name}${suffix}`)
@@ -58,6 +65,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
     const packagedResources = process.platform === "darwin" ? join(directory, "Resources") : binaries
     mkdirSync(join(packagedResources, "adapter"), { recursive: true })
     copyFileSync(entry, join(packagedResources, "adapter/codex-acp-v2.mjs"))
+    copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), join(packagedResources, "adapter/codex-bootstrap.mjs"))
     const packaged = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries], {
       cwd: join(import.meta.dir, "../../.."),
       stdout: "pipe",

@@ -3,6 +3,8 @@
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
  *   binaries/bun-<triple>                                  the pinned official @oven/bun platform package
  *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
+ *   binaries/alwith-codex-launcher-<triple>              U-owned CODEX_PATH proxy
+ *   resources/adapter/codex-bootstrap.mjs                U-owned local catalog startup
  *   resources/adapter/codex-acp-v2.mjs                     the adapter's self-contained JS bundle, run by bundled Bun
  *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
  * plus the licence notices shipped under resources/licenses.
@@ -132,9 +134,26 @@ const adapterEntry = join(root, "node_modules/@nyssance/codex-acp-v2/dist/index.
 const adapterDirectory = join(root, "src-tauri/resources/adapter")
 mkdirSync(adapterDirectory, { recursive: true })
 const adapterDestination = join(adapterDirectory, "codex-acp-v2.mjs")
-// The published entry already bundles JS dependencies. CODEX_PATH supplies the native CLI;
-// .mjs fixes module semantics independently of the user's project package.json.
+// Preserve the published adapter byte-for-byte. U's cache bootstrap is a separate resource.
 copyFileSync(adapterEntry, adapterDestination)
+const bootstrapBuild = await Bun.build({
+  entrypoints: [join(root, "scripts/codex-bootstrap.ts")],
+  target: "bun",
+  format: "esm"
+})
+if (!bootstrapBuild.success) throw new AggregateError(bootstrapBuild.logs, "Codex bootstrap bundling failed")
+await Bun.write(join(adapterDirectory, "codex-bootstrap.mjs"), bootstrapBuild.outputs[0]!)
+
+// A small std-only proxy avoids bundling another copy of the Bun runtime.
+const launcherDestination = join(binaries, `alwith-codex-launcher-${triple}${target.exe}`)
+await $`rustc --edition=2024 --crate-name alwith_codex_launcher --target ${triple} -C opt-level=s -C strip=symbols ${join(root, "src-tauri/src/codex_launcher.rs")} -o ${launcherDestination}`
+if (triple.endsWith("apple-darwin")) {
+  const identity = process.env.APPLE_SIGNING_IDENTITY
+  if (identity) await $`codesign --force --timestamp --options runtime --sign ${identity} ${launcherDestination}`
+  else await $`codesign --force --sign - ${launcherDestination}`
+  await $`codesign --verify --strict ${launcherDestination}`
+}
+console.log(`alwith-codex-launcher -> ${launcherDestination}`)
 if (triple === nativeTriple) {
   assertVersion(
     "staged ACP adapter",

@@ -116,7 +116,6 @@
     "draft": {
       "selectProject": "Select project",
       "newProject": "New project",
-      "preparing": "Preparing conversation…",
       "configureProvider": "Configure provider"
     },
     "openIn": "Open in",

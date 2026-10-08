@@ -61,7 +61,7 @@ test("installers include Bun and the Codex executable pair with versioned Bun no
   const config = JSON.parse(read("src-tauri/tauri.conf.json")) as {
     bundle: { externalBin: string[]; resources: Record<string, string> }
   }
-  for (const binary of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
+  for (const binary of ["bun", "codex", "codex-code-mode-host", "alwith-runtime", "alwith-codex-launcher"]) {
     expect(config.bundle.externalBin).toContain(`binaries/${binary}`)
   }
   expect(config.bundle.externalBin).not.toContain("binaries/codex-acp-v2")

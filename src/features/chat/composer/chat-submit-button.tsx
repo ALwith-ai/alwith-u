@@ -37,6 +37,7 @@ export function ChatSubmitButton({
         <PromptInputSubmit
           aria-label={active ? t("actions.steer") : t("actions.send")}
           disabled={disabled}
+          aria-busy={sending}
           status={sending ? "submitted" : "ready"}
         />
       </div>

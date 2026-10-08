@@ -76,10 +76,15 @@ export function Composer({
   onSubmit,
   modelSelector,
   inputHeader,
-  disabled = false
+  disabled = false,
+  preparing = false,
+  allowPendingInput = false
 }: {
   session: Session
   disabled?: boolean
+  preparing?: boolean
+  /** Draft input stays editable while session preparation blocks submission. */
+  allowPendingInput?: boolean
   /** The draft surface owns the transition after the first prompt is accepted. */
   onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
   /** Before session/new, the host owns the initial model selection. */
@@ -97,7 +102,8 @@ export function Composer({
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
   const active = session.state !== "idle"
-  const ready = !disabled && session.attached && !session.restoring && !session.readOnly
+  const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
+  const inputReady = !session.readOnly && (allowPendingInput || ready)
 
   useEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
@@ -106,10 +112,10 @@ export function Composer({
   const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
   const searchFiles = useMemo(
     () =>
-      fileSearchAvailable
+      fileSearchAvailable && ready
         ? async (query: string) => (await client.fuzzyFileSearch({ query, roots: [session.cwd] })).files
         : undefined,
-    [fileSearchAvailable, session.cwd]
+    [fileSearchAvailable, ready, session.cwd]
   )
   const addMention = useCallback((path: string) => {
     setMentions(current => (current.includes(path) ? current : [...current, path]))
@@ -195,6 +201,12 @@ export function Composer({
           accept={IMAGE_TYPES.join(",")}
           onError={onAttachmentError}
           onSubmit={submit}
+          onSubmitCapture={event => {
+            if (!ready || sending) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+          }}
           className="relative z-10">
           <PromptInputHeader>
             <MentionChips
@@ -208,7 +220,7 @@ export function Composer({
               className="min-h-10"
               ref={textareaRef}
               rows={2}
-              disabled={!ready}
+              disabled={!inputReady}
               placeholder={active ? t("chat.steerPlaceholder") : t("chat.placeholder")}
               aria-label={t("chat.placeholder")}
             />
@@ -222,7 +234,7 @@ export function Composer({
                   onOpenChange={setSlashMenuOpen}
                   disabled={!ready || session.commands.length === 0}
                 />
-                <AttachImageButton disabled={!ready} />
+                <AttachImageButton disabled={!inputReady} />
                 <PermissionModeSelect sessionId={session.id} options={session.configOptions} disabled={!ready} />
               </div>
               <PromptInputTools className="w-full min-w-0 items-center justify-end gap-1">
@@ -230,7 +242,7 @@ export function Composer({
                 {modelSelector ?? (
                   <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
                 )}
-                <ChatSubmitButton active={active} sending={sending} ready={ready} onStop={stop} />
+                <ChatSubmitButton active={active} sending={sending || preparing} ready={ready} onStop={stop} />
               </PromptInputTools>
             </div>
           </PromptInputFooter>
