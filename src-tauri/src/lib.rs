@@ -4,6 +4,7 @@ mod codex_launcher;
 mod appearance;
 mod auth;
 mod bundled_extensions;
+mod chat_files;
 mod chat_window;
 mod draft_directory;
 mod extension_capabilities;
@@ -98,6 +99,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             draft_directory::draft_directory,
+            chat_files::chat_save_file,
+            chat_files::chat_read_image,
             bundled_extensions::extension_bundles,
             legacy_extensions::importer::extension_prepare_install,
             legacy_extensions::importer::legacy_stage_import,

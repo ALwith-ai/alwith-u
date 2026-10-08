@@ -1,12 +1,11 @@
 import { type ContentBlock, ContentBlock as ContentBlockGuard } from "@agentclientprotocol/sdk/experimental/v2"
-import { useActivityHost } from "@alwith/module-chat/activity-host"
+import { isEmbeddedResource, isResourceLink } from "@alwith/api"
 import type { ReactElement } from "react"
 import { useTranslation } from "react-i18next"
-import { openImageLightbox } from "../dialogs/image-lightbox"
 import { CodexMarkdownRenderer } from "./markdown-renderer"
+import { ResourceContent } from "./resource-content"
 
 function AssistantContentBlock({ block, streaming }: { block: ContentBlock; streaming: boolean }): ReactElement | null {
-  const host = useActivityHost()
   const { t } = useTranslation()
   if (ContentBlockGuard.isText(block)) {
     if (block.text.length === 0) return null
@@ -16,34 +15,12 @@ function AssistantContentBlock({ block, streaming }: { block: ContentBlock; stre
       </div>
     )
   }
-  if (ContentBlockGuard.isImage(block)) {
-    const src = `data:${block.mimeType};base64,${block.data}`
-    return (
-      <button type="button" aria-label={t("chat.image.view")} onClick={() => openImageLightbox(src)}>
-        <img src={src} className="max-h-64 rounded" alt="" />
-      </button>
-    )
-  }
+  if (ContentBlockGuard.isImage(block)) return <ResourceContent block={block} />
   if (ContentBlockGuard.isAudio(block))
     // ACP audio blocks do not carry captions or a transcript.
     // biome-ignore lint/a11y/useMediaCaption: The protocol supplies audio data only.
     return <audio controls src={`data:${block.mimeType};base64,${block.data}`} />
-  if (ContentBlockGuard.isResourceLink(block))
-    return (
-      <button type="button" onClick={() => host.openLink(block.uri)}>
-        {block.title ?? block.name}
-      </button>
-    )
-  if (ContentBlockGuard.isResource(block)) {
-    const resource = block.resource
-    return "text" in resource ? (
-      <pre className="overflow-x-auto whitespace-pre-wrap">{resource.text}</pre>
-    ) : (
-      <a href={`data:${resource.mimeType ?? "application/octet-stream"};base64,${resource.blob}`} download>
-        {resource.uri}
-      </a>
-    )
-  }
+  if (isResourceLink(block) || isEmbeddedResource(block)) return <ResourceContent block={block} />
   return <div className="text-muted-foreground">{t("chat.content.unsupported", { type: block.type })}</div>
 }
 

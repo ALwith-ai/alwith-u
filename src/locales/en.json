@@ -170,6 +170,7 @@
       "view": "View image"
     },
     "content": {
+      "download": "Download {{name}}",
       "unsupported": "Unsupported content: {{type}}"
     },
     "tokens": {

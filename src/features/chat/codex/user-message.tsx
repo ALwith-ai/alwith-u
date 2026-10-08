@@ -1,25 +1,27 @@
 import { isEmbeddedResource, isImage, isResourceLink, type MessageItem } from "@alwith/api"
-import { CodexUserMessage, type MessageMention } from "@alwith/module-chat/user-message"
+import { CodexUserMessage } from "@alwith/module-chat/user-message"
 import { memo } from "react"
-import { basename } from "@/lib/path"
 import { messageText } from "../turns"
 import { useChatActivityHost } from "./activity-host"
+import { ResourceContent } from "./resource-content"
 
 export const UserMessage = memo(function UserMessage({ item }: { item: MessageItem }) {
   const host = useChatActivityHost()
   const text = messageText(item)
   const images = item.content.filter(isImage)
-  const mentions: MessageMention[] = item.content.flatMap((block, index) => {
-    if (isResourceLink(block))
-      return [{ key: `${index}:${block.uri}`, label: block.title ?? block.name, title: block.title ?? block.name }]
-    if (isEmbeddedResource(block)) {
-      const uri = (block.resource as { uri?: unknown }).uri
-      if (typeof uri === "string") return [{ key: `${index}:${uri}`, label: basename(uri), title: basename(uri) }]
-    }
-    return []
-  })
-  if (text.length === 0 && images.length === 0 && mentions.length === 0) return null
+  const resources = item.content.filter(block => isResourceLink(block) || isEmbeddedResource(block))
+  if (text.length === 0 && images.length === 0 && resources.length === 0) return null
   return (
-    <CodexUserMessage host={host} message={item} text={text} images={images} mentions={mentions} messageTime={null} />
+    <div data-content-search-unit-key={item.id}>
+      {resources.length > 0 && (
+        <div className="codex-user-mentions">
+          {resources.map((block, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: ACP resource blocks have no IDs; their positions identify them.
+            <ResourceContent key={`${item.id}:${index}`} block={block} />
+          ))}
+        </div>
+      )}
+      <CodexUserMessage host={host} message={item} text={text} images={images} mentions={[]} messageTime={null} />
+    </div>
   )
 })

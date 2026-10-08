@@ -170,6 +170,7 @@
       "view": "查看图片"
     },
     "content": {
+      "download": "下载 {{name}}",
       "unsupported": "暂不支持的内容：{{type}}"
     },
     "tokens": {
