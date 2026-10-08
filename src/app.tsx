@@ -28,6 +28,7 @@ import { PluginsPage } from "@/features/plugins/plugins-page"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { selectThread } from "@/features/threads/select-thread"
+import { openVibemonCenter, updateMainPetSurface } from "@/features/vibemon/main-host"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { installChatShortcut } from "@/lib/chat-shortcut"
 import { openChatWindow, releaseChatWindow, serveChatSurface, setChatWindowHostReady } from "@/lib/chat-window"
@@ -113,6 +114,17 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [openExtension]
   )
   const focused = useWindowFocus()
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const window = getCurrentWebviewWindow()
+      const visible = (focused || (await window.isVisible())) && !(await window.isMinimized())
+      if (!cancelled) await updateMainPetSurface(selectedId, visible && view === "chat")
+    })().catch(error => toast.error(describe(error)))
+    return () => {
+      cancelled = true
+    }
+  }, [selectedId, focused, view])
   const { busy, operation } = useSurfaceOperation()
 
   useReadVisibleSession(selectedId, focused && view === "chat")
@@ -438,6 +450,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onSelect={select}
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}
+              onOpenVibemon={() => void openVibemonCenter().catch(error => toast.error(describe(error)))}
               onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
               onNewProjectChat={cwd => {
                 if (operation.busy) return

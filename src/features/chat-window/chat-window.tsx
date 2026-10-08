@@ -1,5 +1,5 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { XIcon } from "lucide-react"
+import { PawPrintIcon, XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -15,6 +15,13 @@ import {
   requestChatSurface,
   serveChatSurface
 } from "@/lib/chat-window"
+import {
+  collapseChatToPet,
+  registerPetSurface,
+  restorePetAfterChat,
+  suspendPetForChat
+} from "@/features/vibemon/window-client"
+import { usePlatformAuth } from "@/features/auth/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
 import { useProviders } from "@/lib/use-providers"
@@ -58,8 +65,12 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     }
   }, [])
 
-  const hide = useCallback(async (): Promise<void> => {
+  const hide = useCallback(async (restore = true): Promise<void> => {
     await getCurrentWebviewWindow().hide()
+    if (usePlatformAuth.getState().user !== null) {
+      await registerPetSurface("chat", current.current.selectedId, false)
+      if (restore) await restorePetAfterChat()
+    }
   }, [])
   const newChat = useCallback(() => {
     if (operation.busy) return
@@ -119,17 +130,22 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                   await client.open(transfer.sessionId, transfer.cwd)
                 }
                 importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
+                current.current = { selectedId: transfer.sessionId, cwd: transfer.cwd }
                 setCwd(transfer.cwd)
                 setSelectedId(transfer.sessionId)
                 setGeneration(value => value + 1)
               }
               await presentChatWindow()
+              if (usePlatformAuth.getState().user !== null) {
+                await registerPetSurface("chat", current.current.selectedId, true)
+                await suspendPetForChat()
+              }
               return null
             }
             case "release": {
               if (current.current.selectedId !== action.sessionId) return null
               const transfer = await capture()
-              await hide()
+              await hide(false)
               setSelectedId(null)
               setGeneration(value => value + 1)
               return transfer
@@ -159,6 +175,23 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       client.disconnect()
     }
   }, [capture, hide, newChat, operation, reconnect])
+
+  useEffect(() => {
+    const window = getCurrentWebviewWindow()
+    let disposed = false
+    const refresh = async () => {
+      const visible = (await window.isVisible()) && !(await window.isMinimized())
+      if (!disposed && usePlatformAuth.getState().user !== null) await registerPetSurface("chat", selectedId, visible)
+    }
+    void refresh().catch(report)
+    const stop = window.onFocusChanged(() => {
+      void refresh().catch(report)
+    })
+    return () => {
+      disposed = true
+      void stop.then(unlisten => unlisten())
+    }
+  }, [selectedId])
 
   useEffect(() => {
     if (focused && selectedId !== null && runState === "done") {
@@ -191,6 +224,13 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Vibémon"
+          onClick={() => void collapseChatToPet(current.current.selectedId).catch(report)}>
+          <PawPrintIcon />
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"

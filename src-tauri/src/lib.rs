@@ -10,6 +10,7 @@ mod native;
 mod providers;
 mod runtime;
 mod updater;
+mod vibemon;
 mod window;
 
 use tauri::{Emitter, Manager};
@@ -49,7 +50,11 @@ pub fn run() {
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
-        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat", "settings"]).build())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon", "vibemon-center"])
+                .build(),
+        )
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default());
@@ -59,6 +64,10 @@ pub fn run() {
 
     builder
         .on_menu_event(|app, event| {
+            if event.id().0 == "vibemon-close" {
+                let _ = app.emit_to("main", "vibemon:close", ());
+                return;
+            }
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
@@ -112,6 +121,10 @@ pub fn run() {
             appearance::wallpaper::wallpaper_import,
             appearance::wallpaper::wallpaper_remove,
             auth::refresh_tokens,
+            vibemon::vibemon_window,
+            vibemon::vibemon_resource,
+            vibemon::vibemon_download,
+            vibemon::vibemon_claim,
             chat_window::plugin::present_chat_window,
             chat_window::plugin::resize_chat_window,
             runtime::runtime_start,

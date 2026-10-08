@@ -22,6 +22,8 @@ export function bootstrapAuxWindow(opts: {
   component: ComponentType<{ preferences: Preferences }>
   logTag: string
   toaster?: boolean
+  setup?: () => Promise<void>
+  transparent?: boolean
 }): void {
   const Component = opts.component
   async function bootstrap() {
@@ -38,6 +40,11 @@ export function bootstrapAuxWindow(opts: {
     hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
     void startPreferenceSync()
     await initPlatformAuth()
+    await opts.setup?.()
+    if (opts.transparent) {
+      document.documentElement.style.background = "transparent"
+      document.body.style.background = "transparent"
+    }
     const root = document.getElementById("root")
     if (!root) throw new Error("the window page has no #root")
     createRoot(root).render(

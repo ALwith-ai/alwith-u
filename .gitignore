@@ -12,3 +12,9 @@ src-tauri/gen/schemas/
 *.bun-build
 test-results.xml
 CLAUDE.local.md
+
+# Assets staged from the private pet package.
+/public/vibemon/
+/public/card-draw/
+/public/assets/fonts/GrowYear.woff2
+/public/assets/fonts/Outfit-Variable.woff2

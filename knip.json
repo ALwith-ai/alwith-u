@@ -5,7 +5,10 @@
     "src/chat-main.tsx",
     "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "src/vibemon-main.tsx",
+    "src/vibemon-bubble-main.tsx",
+    "src/vibemon-center-main.tsx"
   ],
   "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.ts"],
   "ignore": ["src/components/ui/**"],

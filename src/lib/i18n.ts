@@ -1,3 +1,4 @@
+import { vibemonLocales } from "@alwith/module-vibemon/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
@@ -52,8 +53,8 @@ function systemLanguage(): LanguageCode {
 export function initI18n(language: string | null): Promise<unknown> {
   return i18n.use(initReactI18next).init({
     resources: {
-      en: { translation: en, alwithChat: chatLocales.en },
-      "zh-CN": { translation: zhCN, alwithChat: chatLocales["zh-CN"] }
+      en: { translation: en, alwithChat: chatLocales.en, ...vibemonLocales.en },
+      "zh-CN": { translation: zhCN, alwithChat: chatLocales["zh-CN"], ...vibemonLocales["zh-CN"] }
     },
     lng: language !== null && isLanguageCode(language) ? language : systemLanguage(),
     fallbackLng: "en",

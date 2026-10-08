@@ -733,5 +733,11 @@
       "deactivating": "Stopping",
       "failed": "Failed"
     }
+  },
+  "pet": {
+    "show": "Show desktop pet",
+    "hide": "Close desktop pet",
+    "selectFirst": "Select a pet from the equip page first",
+    "unavailable": "Desktop pets are supported on macOS and Windows"
   }
 }

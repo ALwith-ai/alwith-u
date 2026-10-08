@@ -29,6 +29,9 @@ export default defineConfig({
       input: {
         main: path.resolve(import.meta.dirname, "index.html"),
         chat: path.resolve(import.meta.dirname, "chat.html"),
+        vibemon: path.resolve(import.meta.dirname, "vibemon.html"),
+        vibemonCenter: path.resolve(import.meta.dirname, "vibemon-center.html"),
+        vibemonBubble: path.resolve(import.meta.dirname, "vibemon-bubble.html"),
         settings: path.resolve(import.meta.dirname, "settings.html")
       }
     },

@@ -38,6 +38,7 @@ import type {
   SkillsListResponse
 } from "./codex-extensions"
 import { codexExtensionCapabilities } from "./codex-extensions"
+import { setRunStateSource } from "./run-state-source"
 import { forkTitle } from "./fork-title"
 
 /**
@@ -362,9 +363,10 @@ export class CodexClient {
   }
 
   /** Runtime run-state snapshot (broadcast on every change). */
-  applyRunStates(sessions: SessionRunState[]): void {
+  applyRunStates(sessions: SessionRunState[], source: "snapshot" | "event" = "event"): void {
     const runStates: Record<string, SessionRunState> = {}
     for (const session of sessions) runStates[session.sessionId] = session
+    setRunStateSource(runStates, source)
     this.store.setState({ runStates })
   }
 
@@ -666,7 +668,10 @@ export class CodexClient {
       option !== undefined &&
       isSelectOption(option) &&
       option.options.some(
-        group => "groupId" in group && group.groupId !== NATIVE_MODEL_GROUP.id && group.options.some(model => model.value === modelId)
+        group =>
+          "groupId" in group &&
+          group.groupId !== NATIVE_MODEL_GROUP.id &&
+          group.options.some(model => model.value === modelId)
       )
     if (isGateway) this.gatewayModels.set(session.id, modelId)
     else this.gatewayModels.delete(session.id)

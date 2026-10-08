@@ -733,5 +733,11 @@
       "deactivating": "正在停止",
       "failed": "运行失败"
     }
+  },
+  "pet": {
+    "show": "显示桌宠",
+    "hide": "关闭桌宠",
+    "selectFirst": "请先在装配页选择桌宠",
+    "unavailable": "桌宠窗口支持 macOS 和 Windows"
   }
 }

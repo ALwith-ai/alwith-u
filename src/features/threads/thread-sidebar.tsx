@@ -16,6 +16,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   GitForkIcon,
+  PawPrintIcon,
   PencilIcon,
   PictureInPicture2Icon,
   PlusIcon,
@@ -208,6 +209,7 @@ export function ThreadSidebar({
   onNewProjectChat,
   onSearch,
   onOpenWindow,
+  onOpenVibemon,
   onOpenSettings,
   onOpenPlugins,
   onOpenExtensions,
@@ -222,6 +224,7 @@ export function ThreadSidebar({
   onNewProjectChat: (cwd: string) => void
   onSearch: () => void
   onOpenWindow: () => void
+  onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
   extensionNavigation?: ReactNode
@@ -301,6 +304,18 @@ export function ThreadSidebar({
               {t("sidebar.search")} {displayShortcut("CmdOrCtrl+K")}
             </TooltipContent>
           </Tooltip>
+          {onOpenVibemon && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" aria-label="Vibémon" onClick={onOpenVibemon}>
+                    <PawPrintIcon />
+                  </Button>
+                }
+              />
+              <TooltipContent>Vibémon</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger
               render={

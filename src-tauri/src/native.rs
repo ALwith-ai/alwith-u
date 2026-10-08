@@ -15,6 +15,7 @@ struct Functions {
     call: Call,
     free: Free,
 }
+#[derive(Clone)]
 pub struct Native(Arc<Functions>);
 
 fn error(message: impl ToString) -> Value {
@@ -22,6 +23,20 @@ fn error(message: impl ToString) -> Value {
 }
 
 impl Native {
+    /// Window operations use AppKit's UI thread; auth and discovery remain blocking-worker calls.
+    pub fn call_on_ui(&self, method: &str, params: Value) -> Result<Value, Value> {
+        let request = CString::new(json!({"method": method, "params": params}).to_string()).map_err(error)?;
+        // SAFETY: same C ABI contract as call(); the host retains the library and live handles.
+        unsafe {
+            let pointer = (self.0.call)(request.as_ptr());
+            if pointer.is_null() {
+                return Err(error("native library returned a null response"));
+            }
+            let result = serde_json::from_slice::<Result<Value, Value>>(CStr::from_ptr(pointer).to_bytes());
+            (self.0.free)(pointer);
+            result.map_err(|_| error("invalid native ABI response"))?
+        }
+    }
     pub fn load(app: &tauri::AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
         let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native");

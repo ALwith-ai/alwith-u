@@ -7,9 +7,10 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^1.5.1",
         "@alwith/api": "^0.2.2",
-        "@alwith/module-auth": "^0.1.0",
+        "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz",
         "@alwith/module-chat": "^0.1.6",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
+        "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.0-43b47bd282f0.tgz",
         "@alwith/runtime": "^0.1.7",
         "@base-ui/react": "^1.8.0",
         "@fontsource-variable/inter": "^5.3.0",
@@ -55,7 +56,7 @@
         "zustand": "^5.0.15",
       },
       "devDependencies": {
-        "@alwith/native": "^0.1.1",
+        "@alwith/native": "file:vendor/alwith-native-0.1.2.tgz",
         "@biomejs/biome": "^2.5.14",
         "@happy-dom/global-registrator": "^20.14.5",
         "@nyssance/codex-acp-v2": "^0.7.4",
@@ -90,30 +91,26 @@
     },
   },
   "overrides": {
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
+    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.2-157b60525610.tgz",
   },
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.5.1", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-1.5.1.tgz", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-nSUIrC1fOR9+ppKfx9KdwjBBND2sAPzFHo4yVQrGbXZHnayUYpwL8CDVR5LSxbapY/oKMOzNP0wvwfyx3PS2KA=="],
 
     "@alwith/api": ["@alwith/api@0.2.2", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.5.1", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-aUh0JctcG6Qfc1Fa+zYJvKdNgwbyaTmyC3cpmmKa8H8XqcvgI7rMq5jOaR1i4uHzqi166cF0twNJbIIhf6t87A=="],
 
-    "@alwith/module-auth": ["@alwith/module-auth@0.1.0", "", {}, "sha512-XwDyzwlSnJcRuKoxaoEhAIDADYbwdmfl5wAnU2XwxQR8X8arMC/fD9XUoKW4Vdce17Bz7ARGpVbCtMf1sGhTrw=="],
+    "@alwith/module-auth": ["@alwith/module-auth@vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz", {}, "sha512-meUhrcqmnlmAz65AroiTOJNqfRy06OQt3NkMoUIjHSFa5WzkWtJKt8YlztndNQi6Vr+XhOpNsQw9iihUgly/9A=="],
 
     "@alwith/module-chat": ["@alwith/module-chat@0.1.6", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-DgNz/R19dkag/OjaLDiaMKaue9lU/FOYNMSO4F/IR3PjhFcAmCz/3YeFbarfpNWAfSIyHHpQcjYYYnCYQMaM3A=="],
 
     "@alwith/module-extension": ["@alwith/module-extension@vendor/alwith-module-extension-0.1.6.tgz", { "dependencies": { "@babel/parser": "^7.28.0", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.2", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-nh13sdoaKh9bIEU3JEQlhIEt5RMTa/WQFej/uxo9AdjhWyJEJsfkTS0HQgVYoLS7/yM271MBI45IvkPD81AAJA=="],
 
-    "@alwith/native": ["@alwith/native@0.1.1", "", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.1", "@alwith/native-linux-arm64": "0.1.1", "@alwith/native-linux-x64": "0.1.1", "@alwith/native-win32-arm64": "0.1.1", "@alwith/native-win32-x64": "0.1.1" } }, "sha512-RltgTjpl+NlOPVGyV/ZGA9QMtVvHB90RdU0F6/STG0JUarA5U2ocw3Fydt9GyDAHNtqmCBKVgZZcVB7Pu6yv2w=="],
+    "@alwith/module-vibemon": ["@alwith/module-vibemon@vendor/alwith-module-vibemon-0.1.0-43b47bd282f0.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "@alwith/module-auth": "^0.1.1", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-+qGyabg0bulW83pWoY8tElKZulwyppKQX2FhiswJtHE3UDac7v5uqIL0JzTcodMm61s6AUY5I3FHEgW/dYc/tw=="],
 
-    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@0.1.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-I1nXMrGSpjfxWD/4U/23oqN2chHS3XK/9XgiHi80q+V3M2vZgNdwIO1KXz87ACIgZ6i0VfY9OMZCUoQMPrWuDQ=="],
+    "@alwith/native": ["@alwith/native@vendor/alwith-native-0.1.2.tgz", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.2", "@alwith/native-linux-arm64": "0.1.2", "@alwith/native-linux-x64": "0.1.2", "@alwith/native-win32-arm64": "0.1.2", "@alwith/native-win32-x64": "0.1.2" } }, "sha512-z0pQf4QlakzShUlH2VblxJGb7aJ79ur/GktX3YMzkHDctAvpmWNQDuEPz9iBWkuRCZhHDgr/SwTExYLMADS4rw=="],
 
-    "@alwith/native-linux-arm64": ["@alwith/native-linux-arm64@0.1.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-6tPN25rcfgm1rHcmGAa+yB1GAaOjidNflFpJXmg3y272BAcGMZ+bT00W1ovPrSOzKK9xiTMKwzag3LdXxhH1tA=="],
-
-    "@alwith/native-linux-x64": ["@alwith/native-linux-x64@0.1.1", "", { "os": "linux", "cpu": "x64" }, "sha512-d9XpPeNpEc+KS+j8b81vNlWsGTNnjM+rWG+euEQAKhNFYktzUKekb+K5x4uoyPX6M3zr2ErUEeztGURUh3obpg=="],
-
-    "@alwith/native-win32-arm64": ["@alwith/native-win32-arm64@0.1.1", "", { "os": "win32", "cpu": "arm64" }, "sha512-gHTVStMucf9Wolx43Uo7PkJaBIcMtXxK7IxnVzmvacMoWit/6E5DCjF0Um+IiaoNWbsoJA2rGYGkrSuXEMEd6Q=="],
-
-    "@alwith/native-win32-x64": ["@alwith/native-win32-x64@0.1.1", "", { "os": "win32", "cpu": "x64" }, "sha512-TfCy4Y1WW8xwSGhvQ1A4d8Trwf8mhdf5M3crPDC59j0En1TLt6zB34rW3uBYeAn8WDmeJpwQcd29eaAV8E0/ww=="],
+    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@vendor/alwith-native-darwin-arm64-0.1.2-157b60525610.tgz", {}, "sha512-Nmkp6xt2WUBuQPYholghH32tXPhfKcjlDpR5FCqED2Uzk0RXvz+pG8qGg6UNbzru5Fm/cKoENXtVifB7PxhPKw=="],
 
     "@alwith/runtime": ["@alwith/runtime@0.1.7", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.1.7", "@alwith/runtime-linux-arm64": "0.1.7", "@alwith/runtime-linux-x64": "0.1.7", "@alwith/runtime-win32-arm64": "0.1.7", "@alwith/runtime-win32-x64": "0.1.7" } }, "sha512-THDQrC6yVLn7t93anCBM2mcT72xW5HIlAqYtY77HD2K/XjA8GxycbuJk8PCBDeC06cWWK3kYQlEULf7CcUXj3g=="],
 
