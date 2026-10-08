@@ -8,7 +8,7 @@
         "@agentclientprotocol/sdk": "^1.5.1",
         "@alwith/api": "^0.2.2",
         "@alwith/module-auth": "^0.1.0",
-        "@alwith/module-chat": "^0.1.6",
+        "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.7-chat-history.tgz",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
         "@alwith/runtime": "^0.1.7",
         "@base-ui/react": "^1.8.0",
@@ -99,7 +99,7 @@
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.0", "", {}, "sha512-XwDyzwlSnJcRuKoxaoEhAIDADYbwdmfl5wAnU2XwxQR8X8arMC/fD9XUoKW4Vdce17Bz7ARGpVbCtMf1sGhTrw=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.1.6", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-DgNz/R19dkag/OjaLDiaMKaue9lU/FOYNMSO4F/IR3PjhFcAmCz/3YeFbarfpNWAfSIyHHpQcjYYYnCYQMaM3A=="],
+    "@alwith/module-chat": ["@alwith/module-chat@vendor/alwith-module-chat-0.1.7-chat-history.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-1TNxMUi8ZQoaQW6hYYtmx/znHoX4ROdfxuYsdI9frpLW8Rnr1aA7pyka/iKG68m1uSpf69YyzItFGBgYgCtpew=="],
 
     "@alwith/module-extension": ["@alwith/module-extension@vendor/alwith-module-extension-0.1.6.tgz", { "dependencies": { "@babel/parser": "^7.28.0", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.2", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-nh13sdoaKh9bIEU3JEQlhIEt5RMTa/WQFej/uxo9AdjhWyJEJsfkTS0HQgVYoLS7/yM271MBI45IvkPD81AAJA=="],
 

@@ -25,7 +25,7 @@
     "@agentclientprotocol/sdk": "^1.5.1",
     "@alwith/api": "^0.2.2",
     "@alwith/module-auth": "^0.1.0",
-    "@alwith/module-chat": "^0.1.6",
+    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.7-chat-history.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
     "@alwith/runtime": "^0.1.7",
     "@base-ui/react": "^1.8.0",

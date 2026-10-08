@@ -112,6 +112,7 @@ test("image results retain the application's lightbox action", () => {
     content: [{ type: "content", content: { type: "image", data: "aGVsbG8=", mimeType: "image/png" } }]
   })
   const view = mount(display(item))
+  fireEvent.click(view.getByRole("button", { name: "Read files" }))
   const picture = must(view.container.querySelector("img"), "the attached picture")
   fireEvent.click(must(picture.closest("button"), "the picture button"))
   expect(openedImages.at(-1)).toBe("data:image/png;base64,aGVsbG8=")
