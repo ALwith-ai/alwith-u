@@ -9,7 +9,7 @@ import { type BooleanOption, isBooleanOption, isGroupedSelect, isSelectOption, t
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { client } from "@/lib/client"
+import { client, useApp } from "@/lib/client"
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import { flattenSelectOptions } from "./permission-mode-select"
 
@@ -33,6 +33,7 @@ export function ModelSelectGroup({
   disabled: boolean
 }) {
   const { t } = useTranslation()
+  const switching = useApp(state => Boolean(state.configPending[sessionId]))
   const model = options.find(option => option.category === "model" && isSelectOption(option)) as
     SelectOption | undefined
   const effort = options.find(option => option.category === "thought_level" && isSelectOption(option)) as
@@ -63,7 +64,8 @@ export function ModelSelectGroup({
   const models = model ? flattenSelectOptions(model).map(item => toModel(item)) : []
   return (
     <ModelSelect
-      disabled={disabled}
+      disabled={disabled || switching}
+      switching={switching}
       value={{ api_id: model?.currentValue ?? "", label }}
       models={models}
       showModelList={Boolean(model)}

@@ -75,10 +75,12 @@ export function Composer({
   session,
   onSubmit,
   modelSelector,
-  inputHeader
+  inputHeader,
+  disabled = false
 }: {
   session: Session
-  /** The empty draft owns the first send: it creates the session, then prompts. */
+  disabled?: boolean
+  /** The draft surface owns the transition after the first prompt is accepted. */
   onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
   /** Before session/new, the host owns the initial model selection. */
   modelSelector?: import("react").ReactNode
@@ -95,7 +97,7 @@ export function Composer({
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
   const active = session.state !== "idle"
-  const ready = session.attached && !session.restoring && !session.readOnly
+  const ready = !disabled && session.attached && !session.restoring && !session.readOnly
 
   useEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })

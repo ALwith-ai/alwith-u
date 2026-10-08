@@ -115,7 +115,9 @@
     },
     "draft": {
       "selectProject": "选择项目",
-      "newProject": "新建项目"
+      "newProject": "新建项目",
+      "preparing": "正在准备会话…",
+      "configureProvider": "配置服务商"
     },
     "openIn": "用以下应用打开",
     "thread": "聊天",

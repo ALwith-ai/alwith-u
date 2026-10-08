@@ -58,6 +58,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
@@ -84,6 +85,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("extensions")
   }, [])
   const session = useSession(selectedId)
+  const draftSessions = useApp(state => state.draftSessions)
   const legacySession = useRef(session)
   legacySession.current = session
   useEffect(
@@ -124,9 +126,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void operation
         .run(() =>
           selectThread(thread, {
-            connect: () => client.connect(),
+            connect: async () => {
+              await client.connect()
+              if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
+            },
             unarchive: id => client.unarchive(id),
-            release: releaseChatWindow,
+            release: async id => {
+              const transfer = await releaseChatWindow(id)
+              await client.transferDraft(id, "main")
+              return transfer
+            },
             importDraft,
             open: (id, cwd) => client.open(id, cwd),
             show: id => {
@@ -142,17 +151,24 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  // "New chat" returns to the empty draft, as in Desktop; the session is created on the
-  // first send (DraftChat), never by opening a folder dialog here.
   const newChat = useCallback(() => {
     if (operation.busy) return
-    setView("chat")
-    setSelectedId(null)
+    void operation
+      .run(async () => {
+        const directory = legacySession.current?.cwd
+        await client.discardDraft("main")
+        if (directory) setLastDirectory(directory)
+        importDraft(DRAFT_SESSION_ID, null)
+        setSurfaceGeneration(value => value + 1)
+        setView("chat")
+        setSelectedId(null)
+      })
+      .catch((error: unknown) => toast.error(describe(error)))
   }, [operation])
 
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
-    void savePreference("lastProjectDirectory", directory)
+    void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
 
   const draftCreated = useCallback((id: string) => {
@@ -371,17 +387,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch(error => toast.error(describe(error)))
     }
-    const newProjectChat = (): void => {
-      if (operation.busy) return
-      if (session !== null) chooseDraftFolder(session.cwd)
-      importDraft(DRAFT_SESSION_ID, null)
-      setSurfaceGeneration(value => value + 1)
-      newChat()
-    }
+    const newProjectChat = newChat
+
     const deleted = (sessionId: string): void => {
       setSelectedId(current => (current === sessionId ? null : current))
     }
-    if (session !== null)
+    if (session !== null && !draftSessions[session.id] && submittingDraftId !== session.id)
       return (
         <ChatView
           key={`${session.id}-${surfaceGeneration}`}
@@ -397,6 +408,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <>
         {connectionNotice}
         <DraftChat
+          owner="main"
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
@@ -407,6 +419,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
+          onSendingChange={(id, sending) =>
+            setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+          }
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
           runOperation={operation.run}

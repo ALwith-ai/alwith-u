@@ -2,6 +2,7 @@ mod appearance;
 mod auth;
 mod bundled_extensions;
 mod chat_window;
+mod draft_directory;
 mod extension_capabilities;
 mod installed_apps;
 mod legacy_extensions;
@@ -93,6 +94,7 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(tauri::generate_handler![
+            draft_directory::draft_directory,
             bundled_extensions::extension_bundles,
             legacy_extensions::importer::extension_prepare_install,
             legacy_extensions::importer::legacy_stage_import,

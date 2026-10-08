@@ -202,3 +202,29 @@ test("a failed state delivery is reported and later updates restore a full snaps
     owner.disconnect()
   }
 })
+
+test("draft handoff keeps its model and only the new owner can discard it", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const id = await owner.prepareDraft("main", "/tmp/draft-handoff")
+    await owner.setConfig(id, "model", "chosen-model")
+    await remote.transferDraft(id, "chat")
+    await owner.discardDraft("main")
+    expect(remote.state.draftSessions[id]).toBe("chat")
+    expect(await remote.prepareDraft("chat", "/tmp/draft-handoff")).toBe(id)
+    expect(remote.session(id).configOptions[0]?.currentValue).toBe("chosen-model")
+    await remote.discardDraft("chat")
+    expect(fake.deleted.has(id)).toBe(true)
+    expect(owner.state.sessions[id]).toBeUndefined()
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})

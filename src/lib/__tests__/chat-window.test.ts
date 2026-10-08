@@ -1,5 +1,7 @@
-import { expect, mock, test } from "bun:test"
+import { afterAll, expect, spyOn, test } from "bun:test"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
+import * as eventApi from "@tauri-apps/api/event"
+import * as windowApi from "@tauri-apps/api/webviewWindow"
 
 type Handler = (event: Event<unknown>) => void | Promise<void>
 
@@ -21,14 +23,16 @@ async function dispatch(listeners: Iterable<Handler>, event: string, payload: un
 const listen = async <T>(event: EventName, handler: EventCallback<T>): Promise<() => void> =>
   addListener(globalListeners, event, handler as Handler)
 
-const emitTo = async (target: string, event: string, payload?: unknown): Promise<void> => {
+const emitTo: typeof eventApi.emitTo = async (target, event, payload): Promise<void> => {
+  if (typeof target !== "string") throw new Error("Expected a window label")
   await dispatch(globalListeners.get(event) ?? [], event, payload)
   await dispatch(windowListeners.get(target)?.get(event) ?? [], event, payload)
 }
 
-mock.module("@tauri-apps/api/event", () => ({ emitTo, listen }))
-mock.module("@tauri-apps/api/webviewWindow", () => ({
-  getCurrentWebviewWindow: () => {
+const mocks = [
+  spyOn(eventApi, "emitTo").mockImplementation(emitTo),
+  spyOn(eventApi, "listen").mockImplementation(listen),
+  spyOn(windowApi, "getCurrentWebviewWindow").mockImplementation(() => {
     const label = currentLabel
     return {
       label,
@@ -37,20 +41,12 @@ mock.module("@tauri-apps/api/webviewWindow", () => ({
         windowListeners.set(label, listeners)
         return addListener(listeners, event, handler as Handler)
       }
-    }
-  },
-  WebviewWindow: class {
-    readonly label: string
-
-    constructor(label: string) {
-      this.label = label
-    }
-
-    static async getByLabel(): Promise<null> {
-      return null
-    }
-  }
-}))
+    } as windowApi.WebviewWindow
+  })
+]
+afterAll(() => {
+  for (const mock of mocks) mock.mockRestore()
+})
 
 const { requestChatSurface, serveChatSurface } = await import("../chat-window")
 

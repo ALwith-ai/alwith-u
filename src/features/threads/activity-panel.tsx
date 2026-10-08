@@ -59,6 +59,7 @@ export function ActivityPanel({
   const { t } = useTranslation()
   const runStates = useApp(state => state.runStates)
   const threads = useApp(state => state.threads)
+  const draftSessions = useApp(state => state.draftSessions)
 
   // Sort by the thread's most recent update time in ascending order: older entries first, new sessions appended like a log.
   // Desktop uses creation time from its on-disk session table; Codex's thread list only exposes updatedAt, the closest available value.
@@ -70,13 +71,14 @@ export function ActivityPanel({
       ),
     [threads]
   )
-  // Do not filter by local visibility: Runtime's runStates is the authoritative registry of agents currently running.
+  // Exclude only unsent drafts; Runtime remains authoritative for every conversation's activity.
   const rows = useMemo(
     () =>
       Object.values(runStates)
+        .filter(record => !draftSessions[record.sessionId])
         .map(record => ({ sid: record.sessionId, record, thread: threadOf(threads, record) }))
         .sort((a, b) => (updatedAt.get(a.sid) ?? Infinity) - (updatedAt.get(b.sid) ?? Infinity)),
-    [runStates, threads, updatedAt]
+    [runStates, threads, updatedAt, draftSessions]
   )
 
   // Foreground means occupying the visible Chat slot: in this single-window app, that is the selected session.
