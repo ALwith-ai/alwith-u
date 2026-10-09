@@ -52,7 +52,7 @@ pub fn run() {
         // Settings has a fixed logical size; cached physical sizes must not override it.
         .plugin(
             tauri_plugin_window_state::Builder::new()
-                .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon", "vibemon-center"])
+                .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon"])
                 .build(),
         )
         .manage(legacy_extensions::files::LegacyFiles::default())

@@ -735,6 +735,8 @@
     }
   },
   "pet": {
+    "enable": "Enable Vibemon",
+    "disable": "Disable Vibemon",
     "show": "Show desktop pet",
     "hide": "Close desktop pet",
     "selectFirst": "Select a pet from the equip page first",

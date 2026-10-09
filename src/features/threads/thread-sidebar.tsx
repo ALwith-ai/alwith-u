@@ -217,7 +217,7 @@ export function ThreadSidebar({
   onSwitchScreen
 }: {
   screen: MainScreen
-  leadingPage: "plugins" | "extensions"
+  leadingPage: "plugins" | "extensions" | "vibemon"
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
@@ -304,18 +304,6 @@ export function ThreadSidebar({
               {t("sidebar.search")} {displayShortcut("CmdOrCtrl+K")}
             </TooltipContent>
           </Tooltip>
-          {onOpenVibemon && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button variant="ghost" size="icon-sm" aria-label="Vibémon" onClick={onOpenVibemon}>
-                    <PawPrintIcon />
-                  </Button>
-                }
-              />
-              <TooltipContent>Vibémon</TooltipContent>
-            </Tooltip>
-          )}
           <Tooltip>
             <TooltipTrigger
               render={
@@ -353,6 +341,15 @@ export function ThreadSidebar({
           <BlocksIcon />
           <span>{t("sidebar.extensions")}</span>
         </NavigationItemButton>
+        {onOpenVibemon && (
+          <NavigationItemButton
+            active={screen === "leading" && leadingPage === "vibemon"}
+            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            onClick={onOpenVibemon}>
+            <PawPrintIcon />
+            <span>Vibemon</span>
+          </NavigationItemButton>
+        )}
         {extensionNavigation}
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-hidden">

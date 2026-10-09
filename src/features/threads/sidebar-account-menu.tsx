@@ -1,4 +1,4 @@
-import { LogOutIcon, SettingsIcon } from "lucide-react"
+import { LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -15,12 +15,14 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
+import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
 
 export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { t } = useTranslation()
   const user = usePlatformAuth(state => state.user)
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
+  const vibemon = useVibemonControl()
   useSidebarOverlay(open)
   if (!user) return null
 
@@ -54,6 +56,13 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             <span className="min-w-0 truncate">{displayName}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="mx-0 my-2" />
+          <DropdownMenuItem
+            disabled={busy || vibemon.disabled}
+            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            onClick={() => void vibemon.toggle()}>
+            <PawPrintIcon className="text-muted-foreground" />
+            {t(vibemon.enabled ? "pet.disable" : "pet.enable")}
+          </DropdownMenuItem>
           <DropdownMenuItem className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5" onClick={onOpenSettings}>
             <SettingsIcon className="text-muted-foreground" />
             {t("sidebar.settings")}

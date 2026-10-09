@@ -5,7 +5,7 @@ use std::path::{Component, PathBuf};
 use tauri::{Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 fn allowed(window: &WebviewWindow) -> Result<(), String> {
-    if !matches!(window.label(), "main" | "vibemon-center" | "vibemon" | "bubble-menu-vibemon") {
+    if !matches!(window.label(), "main" | "vibemon" | "bubble-menu-vibemon") {
         return Err("This window cannot use Vibemon".into());
     }
     Ok(())
@@ -75,7 +75,7 @@ pub async fn vibemon_resource(
     window: WebviewWindow, action: String, path: String, bytes: Option<String>, destination: Option<String>,
 ) -> Result<Value, String> {
     allowed(&window)?;
-    if action != "read" && !matches!(window.label(), "main" | "vibemon-center") {
+    if action != "read" && window.label() != "main" {
         return Err("Only an asset host can write Vibemon resources".into());
     }
     let file = resource_path(&window, &path)?;
@@ -124,7 +124,7 @@ pub async fn vibemon_resource(
 #[tauri::command]
 pub async fn vibemon_download(window: WebviewWindow, url: String) -> Result<String, String> {
     allowed(&window)?;
-    if !matches!(window.label(), "main" | "vibemon-center") {
+    if window.label() != "main" {
         return Err("Only an asset host can download resources".into());
     }
     let url = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
@@ -176,42 +176,34 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
     allowed(&window)?;
     let app = window.app_handle();
     match action.as_str() {
-        "create-center" | "create-pet" | "create-bubble" => {
+        "create-pet" | "create-bubble" => {
             if window.label() != "main" {
                 return Err("Only main creates Vibemon windows".into());
             }
-            if !cfg!(any(target_os = "macos", target_os = "windows")) && action != "create-center" {
+            if !cfg!(any(target_os = "macos", target_os = "windows")) {
                 return Err("Vibemon native windows are not supported on Linux".into());
             }
             let (label, url, width, height) = match action.as_str() {
-                "create-center" => ("vibemon-center", "vibemon-center.html", 1120., 740.),
                 "create-pet" => ("vibemon", "vibemon.html", 200., 200.),
                 _ => ("bubble-menu-vibemon", "vibemon-bubble.html", 320., 220.),
             };
-            if let Some(existing) = app.get_webview_window(label) {
-                if label == "vibemon-center" {
-                    existing.show().map_err(|e| e.to_string())?;
-                    existing.set_focus().map_err(|e| e.to_string())?;
-                }
+            if app.get_webview_window(label).is_some() {
                 return Ok(json!(false));
             }
-            let center = label == "vibemon-center";
             let created = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
                 .title("Vibémon")
                 .inner_size(width, height)
-                .decorations(center)
-                .transparent(!center)
-                .visible(center)
-                .focused(center)
-                .resizable(center)
-                .always_on_top(!center)
-                .skip_taskbar(!center)
-                .shadow(center)
+                .decorations(false)
+                .transparent(true)
+                .visible(false)
+                .focused(false)
+                .resizable(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .shadow(false)
                 .build()
                 .map_err(|e| e.to_string())?;
-            if !center {
-                native(&created, "prepare", None, Value::Null).await?;
-            }
+            native(&created, "prepare", None, Value::Null).await?;
             Ok(json!(true))
         }
         "ready" => {
@@ -320,7 +312,11 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if window.label() != "vibemon" {
                 return Err("Only pet has this menu".into());
             }
-            let item = tauri::menu::MenuItem::with_id(app, "vibemon-close", "Close pet", true, None::<&str>)
+            let label = payload["closeLabel"]
+                .as_str()
+                .filter(|label| !label.trim().is_empty())
+                .ok_or("Missing pet menu label")?;
+            let item = tauri::menu::MenuItem::with_id(app, "vibemon-close", label, true, None::<&str>)
                 .map_err(|e| e.to_string())?;
             let menu = tauri::menu::Menu::with_items(app, &[&item]).map_err(|e| e.to_string())?;
             window.popup_menu(&menu).map_err(|e| e.to_string())?;

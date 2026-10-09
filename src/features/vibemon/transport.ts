@@ -52,7 +52,7 @@ export async function servePetRequests(handler: (request: PetRequest) => Promise
       let value: unknown = null
       let error: string | null = null
       try {
-        if (!["main", "chat", "vibemon", "vibemon-center", "bubble-menu-vibemon"].includes(request.from))
+        if (!["main", "chat", "vibemon", "bubble-menu-vibemon"].includes(request.from))
           throw new Error("Invalid Vibemon sender")
         if (Date.now() >= request.deadline || request.scope !== petScope()) throw new Error("Vibemon request expired")
         value = await handler(request)

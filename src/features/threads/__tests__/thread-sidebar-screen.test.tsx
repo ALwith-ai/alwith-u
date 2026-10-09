@@ -133,3 +133,53 @@ test("extensions sit below plugins, select their own leading page and remain ava
   await act(async () => fireEvent.click(extensions))
   expect(extensions.getAttribute("aria-current")).toBe("page")
 })
+
+test("Vibemon sits below extensions and selects its own leading page without an agent connection", async () => {
+  client.store.setState({ connection: "disconnected", agent: null })
+  function Harness() {
+    const [screen, setScreen] = useState<MainScreen>("main")
+    const [page, setPage] = useState<"plugins" | "extensions" | "vibemon">("plugins")
+    const open = (next: typeof page) => {
+      setPage(next)
+      setScreen("leading")
+    }
+    return (
+      <MainSidebarLayout
+        initialPinned
+        screen={screen}
+        leading={<main>{page}</main>}
+        main={<main>Chat content</main>}
+        sidebar={
+          <ThreadSidebar
+            screen={screen}
+            leadingPage={page}
+            selectedId={null}
+            onSelect={() => setScreen("main")}
+            onNewChat={() => setScreen("main")}
+            onNewProjectChat={() => {}}
+            onSearch={() => {}}
+            onOpenWindow={() => {}}
+            onOpenSettings={() => {}}
+            onOpenPlugins={() => open("plugins")}
+            onOpenExtensions={() => open("extensions")}
+            onOpenVibemon={() => open("vibemon")}
+            onSwitchScreen={() => setScreen(screen === "main" ? "leading" : "main")}
+          />
+        }
+      />
+    )
+  }
+  const view = render(<Harness />)
+  const vibemon = view.getByRole("button", { name: "Vibemon" })
+  const extensions = view.getByRole("button", { name: "Extensions" })
+  expect(extensions.nextElementSibling).toBe(vibemon)
+  expect(vibemon.closest('[data-slot="sidebar-header"]')).not.toBeNull()
+  await act(async () => fireEvent.click(vibemon))
+  expect(vibemon.getAttribute("aria-current")).toBe("page")
+  expect(extensions.hasAttribute("aria-current")).toBe(false)
+  expect(view.container.querySelector('[data-screen-panel="main"]')?.getAttribute("aria-hidden")).toBe("true")
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Back to main screen" })))
+  expect(vibemon.hasAttribute("aria-current")).toBe(false)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Open -1 screen" })))
+  expect(vibemon.getAttribute("aria-current")).toBe("page")
+})

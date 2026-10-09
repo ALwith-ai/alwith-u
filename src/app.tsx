@@ -28,7 +28,8 @@ import { PluginsPage } from "@/features/plugins/plugins-page"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { selectThread } from "@/features/threads/select-thread"
-import { openVibemonCenter, updateMainPetSurface } from "@/features/vibemon/main-host"
+import { updateMainPetSurface } from "@/features/vibemon/main-host"
+import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { installChatShortcut } from "@/lib/chat-shortcut"
 import { openChatWindow, releaseChatWindow, serveChatSurface, setChatWindowHostReady } from "@/lib/chat-window"
@@ -65,9 +66,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // Management pages share the leading screen; the offscreen chat stays mounted.
-  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "story" | "extension">("chat")
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")
-  const leading = view === "plugins" || view === "extensions" || view === "extension"
+  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "story" | "extension">("chat")
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon">("plugins")
+  const leading = view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension"
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback((id: string): void => {
     setExtensionView(id)
@@ -83,6 +84,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const openExtensions = useCallback(() => {
     setLeadingPage("extensions")
     setView("extensions")
+  }, [])
+  const [vibemonVisited, setVibemonVisited] = useState(false)
+  const openVibemon = useCallback(() => {
+    setVibemonVisited(true)
+    setLeadingPage("vibemon")
+    setView("vibemon")
   }, [])
   const session = useSession(selectedId)
   const legacySession = useRef(session)
@@ -450,7 +457,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onSelect={select}
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}
-              onOpenVibemon={() => void openVibemonCenter().catch(error => toast.error(describe(error)))}
+              onOpenVibemon={openVibemon}
               onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
               onNewProjectChat={cwd => {
                 if (operation.busy) return
@@ -474,6 +481,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onSwitchScreen={() => {
                 if (leading) setView("chat")
                 else if (leadingPage === "extensions") openExtensions()
+                else if (leadingPage === "vibemon") openVibemon()
                 else openPlugins()
               }}
             />
@@ -484,6 +492,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               {pluginsVisited && (
                 <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
                   <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
+                </div>
+              )}
+              {vibemonVisited && (
+                <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+                  <VibemonCenter />
                 </div>
               )}
               {view === "extension" && extensionView !== null ? (

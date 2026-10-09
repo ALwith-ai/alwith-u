@@ -1,9 +1,4 @@
-import {
-  configureVibemon,
-  initializeSettings,
-  observeResourceSync,
-  type ResourceSyncStatus
-} from "@alwith/module-vibemon"
+import { configureVibemon, initializeSettings } from "@alwith/module-vibemon"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { toast } from "sonner"
@@ -39,20 +34,6 @@ export async function bootstrapVibemonWindow(): Promise<void> {
   })
   await initializeSettings()
   const window = getCurrentWebviewWindow()
-  if (window.label === "vibemon-center") {
-    let updates = 0
-    await listen<ResourceSyncStatus>("vibemon:sync-state", ({ payload }) => {
-      updates++
-      observeResourceSync(payload)
-    })
-    const baseline = updates
-    const status = await requestPet<ResourceSyncStatus>("sync-state")
-    if (updates === baseline) observeResourceSync(status)
-    await window.onCloseRequested(event => {
-      event.preventDefault()
-      void window.hide().catch(console.error)
-    })
-  }
   if (window.label === "bubble-menu-vibemon") {
     await window.onFocusChanged(({ payload }) => {
       if (!payload) void petWindowCall("bubble-close").catch(console.error)

@@ -735,6 +735,8 @@
     }
   },
   "pet": {
+    "enable": "开启 Vibemon",
+    "disable": "关闭 Vibemon",
     "show": "显示桌宠",
     "hide": "关闭桌宠",
     "selectFirst": "请先在装配页选择桌宠",

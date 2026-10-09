@@ -1,9 +1,11 @@
 import type { PetWindowHost } from "@alwith/module-vibemon"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
+import i18n from "@/lib/i18n"
 import { requestPet } from "./transport"
 
 export function petWindowCall<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  if (action === "menu") payload = { ...payload, closeLabel: i18n.t("pet.hide") }
   return invoke<T>("vibemon_window", { action, payload })
 }
 export function createPetWindowClient(): PetWindowHost {

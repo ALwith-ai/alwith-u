@@ -7,8 +7,7 @@
     "src/**/*.test.{ts,tsx}",
     "scripts/**/*.ts",
     "src/vibemon-main.tsx",
-    "src/vibemon-bubble-main.tsx",
-    "src/vibemon-center-main.tsx"
+    "src/vibemon-bubble-main.tsx"
   ],
   "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.ts"],
   "ignore": ["src/components/ui/**"],

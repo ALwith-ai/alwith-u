@@ -4,8 +4,7 @@
   "description": "Pet assets and overlays without an agent connection",
   "windows": [
     "vibemon",
-    "bubble-menu-vibemon",
-    "vibemon-center"
+    "bubble-menu-vibemon"
   ],
   "permissions": [
     "core:default",

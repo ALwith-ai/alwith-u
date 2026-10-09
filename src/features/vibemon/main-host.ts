@@ -5,8 +5,6 @@ import {
   refreshSettings,
   updateVibemonState,
   syncVibemonResources,
-  resourceSyncStatus,
-  subscribeResourceSync,
   type PetBinding,
   type PetWindowHost
 } from "@alwith/module-vibemon"
@@ -29,17 +27,11 @@ import { createPetWindowClient, petWindowCall } from "./window-client"
 
 const report = (failure: unknown) => toast.error(failure instanceof Error ? failure.message : String(failure))
 let initialized: Promise<void> | null = null
-let openCenter: (() => Promise<void>) | null = null
 let setMainSurface: ((value: PetSurface) => Promise<void>) | null = null
 
 export function initializeVibemonMain(): Promise<void> {
   initialized ??= start()
   return initialized
-}
-export async function openVibemonCenter(): Promise<void> {
-  await initializeVibemonMain()
-  if (openCenter === null) throw new Error("Vibemon host unavailable")
-  await openCenter()
 }
 export async function updateMainPetSurface(sessionId: string | null, visible: boolean): Promise<void> {
   await initializeVibemonMain()
@@ -173,11 +165,6 @@ async function start() {
     onError: report
   })
   await initializeSettings()
-  openCenter = () =>
-    serialize(async () => {
-      petScope()
-      await petWindowCall("create-center")
-    })
   async function handle(request: PetRequest) {
     const payload = request.payload as {
       binding: PetBinding
@@ -193,8 +180,6 @@ async function start() {
       case "sync-resources":
         void syncVibemonResources()
         return null
-      case "sync-state":
-        return resourceSyncStatus()
       case "inspect":
         await owner.refresh()
         return owner.snapshot()
@@ -240,9 +225,6 @@ async function start() {
     }
   }
   await servePetRequests(handle)
-  subscribeResourceSync(status => {
-    void emitTo("vibemon-center", "vibemon:sync-state", status).catch(console.error)
-  })
   owner.subscribe(value => {
     for (const label of ["vibemon", "bubble-menu-vibemon"])
       void emitTo(label, "vibemon:observation", value).catch(console.error)
@@ -267,8 +249,6 @@ async function start() {
       owner.invalidate()
       void serialize(async () => {
         await petWindowCall("destroy-pet")
-        const center = await WebviewWindow.getByLabel("vibemon-center")
-        if (center !== null) await center.destroy()
         await restore()
       }).catch(report)
     }
