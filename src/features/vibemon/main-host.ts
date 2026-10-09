@@ -5,6 +5,7 @@ import {
   refreshSettings,
   updateVibemonState,
   syncVibemonResources,
+  sameBinding,
   type PetBinding,
   type PetWindowHost
 } from "@alwith/module-vibemon"
@@ -54,8 +55,14 @@ async function start() {
       }),
     prompt: (id, content) => client.prompt(id, content),
     respond: (token, answer) => client.respond(token, answer),
-    async openChat(id) {
-      if (id === null) await openChatWindow()
+    async openChat(id, windowLabel) {
+      if (windowLabel === "main") {
+        const main = await WebviewWindow.getByLabel("main")
+        if (main === null) throw new Error("Main window unavailable")
+        await main.show()
+        await main.unminimize()
+        await main.setFocus()
+      } else if (id === null || (await WebviewWindow.getByLabel("chat")) !== null) await openChatWindow()
       else {
         const session = client.state.sessions[id]
         if (session === undefined) throw new Error("Open this conversation from the thread list")
@@ -196,6 +203,28 @@ async function start() {
         return owner.answer(payload.binding, payload.requestId, payload.token, payload.optionId)
       case "open-chat":
         return owner.openChat(payload.binding)
+      case "activate":
+        return owner.activate()
+      case "select-session":
+        if (payload.sessionId === null) throw new Error("Choose a conversation")
+        return owner.select(payload.binding, payload.sessionId)
+      case "bubble-interact":
+      case "dismiss-result": {
+        await owner.refresh()
+        const value = owner.snapshot()
+        if (value === null || !sameBinding(value.binding, payload.binding))
+          throw new Error("The pet conversation changed")
+        if (
+          request.action === "dismiss-result" &&
+          (value.prompt !== null || (value.state !== "done" && value.state !== "idle"))
+        )
+          return
+        await command(
+          request.action === "bubble-interact" ? "bubble-interact" : "bubble-close",
+          (await getVibemonState()).pet
+        )
+        return
+      }
       case "surface": {
         if (payload.label !== request.from || !["main", "chat"].includes(payload.label))
           throw new Error("Invalid conversation surface")
@@ -218,8 +247,11 @@ async function start() {
       case "collapse": {
         if (request.from !== "chat") throw new Error("Only chat can collapse to a pet")
         return serialize(async () => {
+          owner.requireSurface("chat", payload.sessionId)
           await owner.collapse(payload.sessionId)
           if ((await ensurePet()) !== "shown") throw new Error("Desktop pets are unavailable on this platform")
+          if (Date.now() >= request.deadline || request.scope !== petScope()) throw new Error("Vibemon request expired")
+          owner.requireSurface("chat", payload.sessionId)
           const chat = await WebviewWindow.getByLabel("chat")
           if (chat === null) throw new Error("Chat window unavailable")
           await chat.hide()

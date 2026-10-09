@@ -1,5 +1,5 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { PawPrintIcon, XIcon } from "lucide-react"
+import { XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -15,12 +15,7 @@ import {
   requestChatSurface,
   serveChatSurface
 } from "@/lib/chat-window"
-import {
-  collapseChatToPet,
-  registerPetSurface,
-  restorePetAfterChat,
-  suspendPetForChat
-} from "@/features/vibemon/window-client"
+import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
 import { usePlatformAuth } from "@/features/auth/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
@@ -30,6 +25,7 @@ import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
 import { resetZoom, zoomIn, zoomOut } from "@/lib/zoom"
 import { WindowResizeEdges } from "./window-resize-edges"
+import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
 
 function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))
@@ -224,13 +220,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Vibémon"
-          onClick={() => void collapseChatToPet(current.current.selectedId).catch(report)}>
-          <PawPrintIcon />
-        </Button>
+        <ChatWindowPetButton sessionId={selectedId} />
         <Button
           variant="ghost"
           size="icon-sm"

@@ -1,7 +1,8 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { isText } from "@alwith/api"
-import { sameBinding, type PetBinding, type PetObservation } from "@alwith/module-vibemon"
+import { isText, isToolCallSubject } from "@alwith/api"
+import { sameBinding, type PetBinding, type PetObservation, type PetSessionChoice } from "@alwith/module-vibemon"
 import type { AppState } from "@/agent/client"
+import { petAnswer, petPrompt } from "./pet-prompt"
 
 export interface PetSessionOwner {
   state(): AppState
@@ -10,8 +11,8 @@ export interface PetSessionOwner {
   agentForSession(id: string): Promise<string | null>
   claim(requestId: string, binding: PetBinding, owner: string): Promise<boolean>
   prompt(id: string, content: acp.ContentBlock[]): Promise<void>
-  respond(token: string, answer: acp.RequestPermissionResponse): void
-  openChat(id: string | null): Promise<void>
+  respond(token: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse): void
+  openChat(id: string | null, windowLabel: "main" | "chat"): Promise<void>
 }
 export type PetSurface = { sessionId: string | null; visible: boolean }
 
@@ -33,6 +34,23 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
   const listeners = new Set<(value: PetObservation | null) => void>()
   function target(): string | null {
     return manual ?? surfaces.chat.sessionId ?? surfaces.main.sessionId
+  }
+  function candidates(state: AppState): PetSessionChoice[] {
+    const choices: PetSessionChoice[] = []
+    for (const windowLabel of ["main", "chat"] as const) {
+      const id = surfaces[windowLabel].sessionId
+      if (id === null) continue
+      const run = state.runStates[id]
+      if (run === undefined) continue
+      const session = state.sessions[id]
+      choices.push({
+        sessionId: id,
+        title: session?.title ?? run.title,
+        cwd: session?.cwd ?? run.cwd ?? "",
+        windowLabel
+      })
+    }
+    return choices
   }
   function publish(value: PetObservation | null) {
     snapshot = value
@@ -63,29 +81,36 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       incarnation = crypto.randomUUID()
       incarnations.set(id, incarnation)
     }
-    const nextSignature = `${epoch}/${id}/${incarnation}/${run.owner}/${run.executionId}`
+    const windowLabel = surfaces.chat.sessionId === id ? "chat" : "main"
+    const nextSignature = `${epoch}/${id}/${incarnation}/${run.owner}/${run.executionId}/${windowLabel}`
     const changed = signature !== nextSignature
     if (changed) {
       signature = nextSignature
       bindingRevision++
     }
-    const action = state.actions.find(item => item.sessionId === id)
-    const prompt =
-      action?.kind === "permission"
-        ? {
-            token: action.id,
-            title: action.params.title,
-            options: action.params.options.map(option => ({ id: option.optionId, label: option.name }))
-          }
-        : null
+    const action =
+      state.actions.find(item => item.sessionId === id && item.kind === "permission") ??
+      state.actions.find(item => item.sessionId === id)
+    const subject = action?.kind === "permission" ? action.params.subject : null
+    const tool = subject != null && isToolCallSubject(subject) ? subject.toolCall : null
+    const storedTool =
+      tool === null ? undefined : session?.items.find(item => item.id === tool.toolCallId && item.kind === "tool")
+    const prompt = petPrompt(
+      action,
+      tool?.rawInput !== undefined ? tool.rawInput : storedTool?.kind === "tool" ? storedTool.rawInput : undefined
+    )
     const last = session?.items.findLast(item => item.kind === "assistant")
     const reply =
       last?.kind === "assistant"
-        ? last.content
-            .filter(isText)
-            .map(block => block.text)
-            .join("")
+        ? {
+            messageId: last.id,
+            text: last.content
+              .filter(isText)
+              .map(block => block.text)
+              .join("")
+          }
         : null
+    const user = session?.items.findLast(item => item.kind === "user")
     publish({
       binding: { connectionEpoch: epoch, agentId: agent ?? owner.agentId, sessionId: id, incarnation, bindingRevision },
       source: changed ? "snapshot" : owner.source(),
@@ -93,6 +118,9 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       state: run.state,
       since: run.since,
       title: session?.title ?? run.title,
+      cwd: session?.cwd ?? run.cwd ?? "",
+      windowLabel,
+      candidates: candidates(state),
       owner: run.owner,
       executionId: run.executionId,
       executionRole: run.executionRole,
@@ -105,6 +133,17 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       surfaceVisible: Object.values(surfaces).some(surface => surface.visible && surface.sessionId === id),
       error: session?.error?.stopReason ?? null,
       reply,
+      userMessage:
+        user?.kind === "user"
+          ? {
+              messageId: user.id,
+              text: user.content
+                .filter(isText)
+                .map(block => block.text)
+                .join(""),
+              timestamp: user.at
+            }
+          : null,
       prompt
     })
   }
@@ -154,6 +193,18 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       manual = sessionId
       return refresh()
     },
+    requireSurface(label: "main" | "chat", sessionId: string | null) {
+      if (!surfaces[label].visible || surfaces[label].sessionId !== sessionId)
+        throw new Error("The conversation window changed during pet presentation")
+    },
+    async select(binding: PetBinding, sessionId: string) {
+      await refresh()
+      requireBinding(binding)
+      if (!candidates(owner.state()).some(item => item.sessionId === sessionId))
+        throw new Error("The conversation is no longer current")
+      manual = sessionId
+      await refresh()
+    },
     invalidate() {
       sequence++
       epoch = crypto.randomUUID()
@@ -179,15 +230,21 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       const action = owner.state().actions.find(item => item.id === token && item.sessionId === binding.sessionId)
       if (
         value.prompt?.token !== token ||
-        action?.kind !== "permission" ||
-        !action.params.options.some(option => option.optionId === optionId)
+        action === undefined ||
+        !value.prompt.options.some(option => option.id === optionId)
       )
         throw new Error("This permission request expired or changed")
-      owner.respond(token, { outcome: { outcome: "selected", optionId } })
+      owner.respond(token, petAnswer(action, optionId))
     },
     async openChat(binding: PetBinding | null) {
-      if (binding !== null) requireBinding(binding)
-      await owner.openChat(binding?.sessionId ?? null)
+      await refresh()
+      const value = binding === null ? null : requireBinding(binding)
+      if (value !== null && surfaces[value.windowLabel].sessionId !== value.binding.sessionId)
+        throw new Error("The conversation is no longer current; choose it from the thread list")
+      await owner.openChat(binding?.sessionId ?? null, value?.windowLabel ?? "chat")
+    },
+    async activate() {
+      await owner.openChat(null, "chat")
     }
   }
 }

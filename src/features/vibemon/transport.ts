@@ -8,7 +8,8 @@ export function petScope(): string {
   if (user === null) throw new Error("Sign in to use Vibemon")
   return `${new URL(API_BASE_URL).host}/${user.user_uuid}`
 }
-export async function requestPet<T>(action: string, payload: unknown = null): Promise<T> {
+export async function requestPet<T>(action: string, payload: unknown = null, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted()
   const id = crypto.randomUUID()
   const current = getCurrentWebviewWindow()
   let resolve!: (value: T) => void
@@ -25,13 +26,16 @@ export async function requestPet<T>(action: string, payload: unknown = null): Pr
       else resolve(response.value)
     }
   )
+  const abort = () => reject(new Error("Vibemon operation cancelled"))
+  signal?.addEventListener("abort", abort, { once: true })
   const deadline = Date.now() + 20_000
   const timer = setTimeout(
     () => reject(new Error("Vibemon request timed out; check the conversation before retrying")),
     20_000
   )
   try {
-    await emitTo("main", "vibemon:request", {
+    signal?.throwIfAborted()
+    const emitted = emitTo("main", "vibemon:request", {
       id,
       from: current.label,
       scope: petScope(),
@@ -39,8 +43,10 @@ export async function requestPet<T>(action: string, payload: unknown = null): Pr
       action,
       payload
     } satisfies PetRequest)
-    return await result
+    const [, value] = await Promise.all([emitted, result])
+    return value
   } finally {
+    signal?.removeEventListener("abort", abort)
     clearTimeout(timer)
     stop()
   }

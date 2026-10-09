@@ -261,12 +261,18 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             let x = payload["x"].as_f64().ok_or("Missing x")? as i32;
             let y = payload["y"].as_f64().ok_or("Missing y")? as i32;
             #[cfg(target_os = "windows")]
-            native(&window, "move", None, json!({"x":x,"y":y})).await?;
+            {
+                let child = match app.get_webview_window("bubble-menu-vibemon") {
+                    Some(bubble) if bubble.is_visible().map_err(|e| e.to_string())? => Some(bubble),
+                    _ => None,
+                };
+                native(&window, "move", child, json!({"x":x,"y":y})).await?;
+            }
             #[cfg(not(target_os = "windows"))]
             window.set_position(PhysicalPosition::new(x, y)).map_err(|e| e.to_string())?;
             Ok(Value::Null)
         }
-        "present" | "hide" | "drag" | "sound" => {
+        "present" | "hide" | "drag" | "sound" | "focus" => {
             if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon") {
                 return Err("Invalid overlay caller".into());
             }
@@ -300,11 +306,24 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if !(160. ..=640.).contains(&width) || !(32. ..=600.).contains(&height) {
                 return Err("Invalid bubble dimensions".into());
             }
-            window.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
             if window.is_visible().map_err(|e| e.to_string())? {
-                native(&window, "bubble", app.get_webview_window("vibemon"), Value::Null).await?;
+                native(&window, "bubble", app.get_webview_window("vibemon"), json!({"width":width,"height":height}))
+                    .await?;
+            } else {
+                window.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
             }
             Ok(Value::Null)
+        }
+        "bubble-blur" => {
+            if window.label() != "bubble-menu-vibemon" {
+                return Err("Only bubble may set its background".into());
+            }
+            let enabled = payload["enabled"].as_bool().ok_or("Missing pet blur state")?;
+            let radius = payload["radius"].as_u64().ok_or("Missing pet blur radius")?;
+            if !(1..=20).contains(&radius) || enabled != payload["path"].is_array() {
+                return Err("Invalid pet backdrop".into());
+            }
+            native(&window, "blur", None, json!({"radius":radius,"path":payload["path"]})).await
         }
         "bubble-close" => {
             if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon" | "main") {

@@ -6,7 +6,7 @@ import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
 import { requestPet } from "./transport"
 import { createPetSessionClient } from "./session-client"
-import { createPetWindowClient, petWindowCall } from "./window-client"
+import { createPetWindowClient } from "./window-client"
 
 export async function bootstrapVibemonWindow(): Promise<void> {
   if (usePlatformAuth.getState().isLoading)
@@ -35,9 +35,6 @@ export async function bootstrapVibemonWindow(): Promise<void> {
   await initializeSettings()
   const window = getCurrentWebviewWindow()
   if (window.label === "bubble-menu-vibemon") {
-    await window.onFocusChanged(({ payload }) => {
-      if (!payload) void petWindowCall("bubble-close").catch(console.error)
-    })
     await listen("vibemon:dismiss", () => document.dispatchEvent(new Event("vibemon:dismiss")))
   }
   addEventListener(
