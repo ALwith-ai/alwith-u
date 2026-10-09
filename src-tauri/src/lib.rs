@@ -8,6 +8,10 @@ mod chat_files;
 mod chat_window;
 mod draft_directory;
 mod extension_capabilities;
+#[cfg(target_os = "macos")]
+mod extension_cli;
+#[cfg(target_os = "macos")]
+mod extension_control;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -18,6 +22,43 @@ mod updater;
 mod window;
 
 use tauri::{Emitter, Manager};
+
+fn application_context() -> tauri::Context {
+    tauri::generate_context!()
+}
+
+fn extension_cli_args(mut args: impl Iterator<Item = std::ffi::OsString>) -> Result<Option<Vec<String>>, String> {
+    if args.next().is_none_or(|arg| arg != "extension") {
+        return Ok(None);
+    }
+    let mut parsed = vec!["extension".into()];
+    for arg in args {
+        parsed.push(arg.into_string().map_err(|_| "Extension CLI arguments must be UTF-8".to_string())?);
+    }
+    Ok(Some(parsed))
+}
+
+/// Dispatch script commands before Tauri starts or joins the GUI instance.
+pub fn run_extension_cli() -> Option<i32> {
+    let args = match extension_cli_args(std::env::args_os().skip(1)) {
+        Ok(Some(args)) => args,
+        Ok(None) => return None,
+        Err(error) => {
+            eprintln!("{error}");
+            return Some(2);
+        }
+    };
+    #[cfg(target_os = "macos")]
+    {
+        let context = application_context();
+        Some(extension_cli::run(&args, &context.config().identifier))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        eprintln!("Extension CLI installation is currently supported on macOS only");
+        Some(2)
+    }
+}
 
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -74,6 +115,14 @@ pub fn run() {
         .setup(|app| {
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
+            #[cfg(target_os = "macos")]
+            {
+                let control = extension_control::ExtensionControl::start(app.handle()).unwrap_or_else(|error| {
+                    log::error!("Extension CLI control is unavailable: {error}");
+                    extension_control::ExtensionControl::failed(error)
+                });
+                app.manage(control);
+            }
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // The window is transparent; macOS paints the sidebar glass behind it (ALwith
             // Desktop's native_window_effects). Panels that must stay opaque paint their own
@@ -98,6 +147,14 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(target_os = "macos")]
+            extension_control::extension_control_next,
+            #[cfg(target_os = "macos")]
+            extension_control::extension_control_complete,
+            #[cfg(target_os = "macos")]
+            extension_control::extension_control_unavailable,
+            #[cfg(target_os = "macos")]
+            extension_control::extension_control_status,
             draft_directory::draft_directory,
             chat_files::chat_save_file,
             chat_files::chat_read_image,
@@ -137,7 +194,7 @@ pub fn run() {
             installed_apps::read_apps_info,
             installed_apps::open_path_in_app
         ])
-        .build(tauri::generate_context!())
+        .build(application_context())
         .expect("error while building ALwith U")
         .run(|app, event| match event {
             // U's main window owns the application lifetime. A hidden settings window must
@@ -148,6 +205,8 @@ pub fn run() {
             // Runtime belongs to the application. All quit paths converge here; shutdown is
             // synchronous so the async runtime cannot tear down before its children leave.
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                #[cfg(target_os = "macos")]
+                app.state::<extension_control::ExtensionControl>().stop();
                 app.state::<runtime::RuntimeState>().shutdown();
             }
             _ => {}

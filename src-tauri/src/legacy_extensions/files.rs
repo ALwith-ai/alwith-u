@@ -145,13 +145,23 @@ fn perform_private_file(
     perform_file(root, request)
 }
 
-pub(crate) fn clear_grants(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+pub(super) fn with_file_lock<T>(
+    app: &tauri::AppHandle, operation: impl FnOnce() -> Result<T, String>,
+) -> Result<T, String> {
     let state = app.state::<LegacyFiles>();
     let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
+    operation()
+}
+
+pub(super) fn clear_grants_locked(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
     let path = grant_path(app)?;
     let mut grants = read_grants(&path)?;
     grants.remove(extension_id);
     write_grants(&path, &grants)
+}
+
+pub(crate) fn clear_grants(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+    with_file_lock(app, || clear_grants_locked(app, extension_id))
 }
 
 fn require_file_installation(window: &tauri::Window, extension_id: &str, legacy_only: bool) -> Result<bool, String> {

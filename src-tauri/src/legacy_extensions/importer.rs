@@ -109,7 +109,7 @@ fn relative_path(value: &str) -> Result<&Path, String> {
     Ok(Path::new(value))
 }
 
-fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, PackageFiles), String> {
+fn snapshot_package(root: &Path) -> Result<PackageFiles, String> {
     fn collect(root: &Path, path: &Path, files: &mut PackageFiles, size: &mut usize) -> Result<(), String> {
         let relative = path.strip_prefix(root).map_err(|e| e.to_string())?;
         if relative.components().count() > 64 {
@@ -141,6 +141,11 @@ fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, P
     }
     let mut files = PackageFiles::new();
     collect(root, root, &mut files, &mut 0)?;
+    Ok(files)
+}
+
+fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, PackageFiles), String> {
+    let mut files = snapshot_package(root)?;
     let mut data = PackageFiles::new();
     for name in data_names.iter().map(String::as_str).chain(["data.json"]) {
         relative_path(name)?;
@@ -286,8 +291,17 @@ fn require_main(window: &tauri::Window) -> Result<(), String> {
 #[derive(Serialize)]
 #[serde(tag = "format", rename_all = "camelCase")]
 pub enum PreparedInstall {
-    Current { path: String, id: String },
+    Current { path: String, id: String, version: String, digest: String },
     Legacy { prepared: PreparedImport },
+}
+
+impl PreparedInstall {
+    pub(crate) fn id(&self) -> Result<&str, String> {
+        match self {
+            Self::Current { id, .. } => Ok(id),
+            Self::Legacy { prepared } => prepared.manifest["id"].as_str().ok_or_else(|| "Missing prepared ID".into()),
+        }
+    }
 }
 
 fn is_legacy_manifest(manifest: &Value) -> Result<bool, String> {
@@ -334,20 +348,40 @@ pub async fn extension_prepare_install(
     let Some(selected) = selected else {
         return Ok(None);
     };
-    let directory = selected.into_path().map_err(|e| e.to_string())?.canonicalize().map_err(|e| e.to_string())?;
+    let directory = selected.into_path().map_err(|e| e.to_string())?;
+    prepare_install_from_directory(&window, &directory, expected_id.as_deref()).await.map(Some)
+}
+
+/// The caller owns native authorization: a folder picker or an authenticated local CLI request.
+pub(crate) async fn prepare_install_from_directory(
+    window: &tauri::Window, directory: &Path, expected_id: Option<&str>,
+) -> Result<PreparedInstall, String> {
+    require_main(window)?;
+    let app = window.app_handle().clone();
+    let directory = directory.canonicalize().map_err(|e| e.to_string())?;
     let manifest: Value = serde_json::from_slice(&read_regular(&directory.join("manifest.json"), 128 * 1024)?)
         .map_err(|e| format!("Invalid extension manifest: {e}"))?;
     let id = manifest.get("id").and_then(Value::as_str).ok_or("Extension manifest has no id")?;
-    if expected_id.as_deref().is_some_and(|expected| expected != id) {
+    if expected_id.is_some_and(|expected| expected != id) {
         return Err("所选目录不是正在更新的扩展".into());
     }
     if !is_legacy_manifest(&manifest)? {
+        // Pin the same bytes the installer will consume; changes after preparation fail the digest check.
+        let package_files = snapshot_package(&directory)?;
+        let snapshot_manifest: Value =
+            serde_json::from_slice(package_files.get("manifest.json").ok_or("Manifest disappeared")?)
+                .map_err(|e| e.to_string())?;
+        if snapshot_manifest != manifest {
+            return Err("Extension manifest changed during import".into());
+        }
         alwith_extension::plugin::grant_install(&app, window.label(), &directory, "local")
             .map_err(|e| e.to_string())?;
-        return Ok(Some(PreparedInstall::Current {
+        return Ok(PreparedInstall::Current {
             path: directory.to_str().ok_or("Invalid extension directory path")?.into(),
             id: id.into(),
-        }));
+            version: manifest["version"].as_str().ok_or("Extension version missing")?.into(),
+            digest: package_revision(&package_files),
+        });
     }
     let p = profile(id)?;
     // Validate metadata now as well as on staging, before downloading anything.
@@ -419,7 +453,7 @@ pub async fn extension_prepare_install(
         prepared.ticket.clone(),
         ImportTicket { window: window.label().into(), prepared: prepared.clone(), initial_data, files, data_files },
     );
-    Ok(Some(PreparedInstall::Legacy { prepared }))
+    Ok(PreparedInstall::Legacy { prepared })
 }
 
 fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String> {
@@ -500,6 +534,7 @@ pub struct StagedImport {
     id: String,
     version: String,
     source: String,
+    digest: String,
 }
 #[tauri::command]
 pub fn legacy_stage_import(
@@ -550,7 +585,7 @@ pub fn legacy_stage_import(
     let registry_path = registry_path(window.app_handle())?;
     let mut registry = read_registry(&registry_path)?;
     let revision = package_revision(&files);
-    registry.entry(id.into()).or_default().entry(revision).or_insert(certificate);
+    registry.entry(id.into()).or_default().entry(revision.clone()).or_insert(certificate);
     save_registry(&registry_path, &registry)?;
     alwith_extension::plugin::grant_install(window.app_handle(), window.label(), staging.path(), SOURCE)
         .map_err(|e| e.to_string())?;
@@ -559,6 +594,7 @@ pub fn legacy_stage_import(
         id: id.into(),
         version: manifest["version"].as_str().ok_or("Invalid legacy version")?.into(),
         source: SOURCE.into(),
+        digest: revision,
     };
     state.staging.lock().map_err(|_| "Legacy staging lock poisoned")?.push(staging);
     Ok(result)
@@ -658,14 +694,42 @@ pub fn legacy_cleanup_import(window: tauri::Window, extension_id: String) -> Res
     {
         return Err("Legacy cleanup requires a completed uninstall".into());
     }
-    let state = window.state::<LegacyImports>();
+    cleanup_import_records(window.app_handle(), &extension_id)
+}
+
+pub(crate) fn cleanup_import_records(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+    let state = app.state::<LegacyImports>();
     let _guard = state.registry_lock.lock().map_err(|_| "Legacy registry lock poisoned")?;
-    let path = registry_path(window.app_handle())?;
+    let path = registry_path(app)?;
     let mut registry = read_registry(&path)?;
-    registry.remove(&extension_id);
+    registry.remove(extension_id);
     save_registry(&path, &registry)?;
     drop(_guard);
-    super::files::clear_grants(window.app_handle(), &extension_id)
+    super::files::clear_grants(app, extension_id)
+}
+
+/// Follow file -> registry -> SDK order used by file migration and staged imports.
+pub(crate) fn cleanup_uninstalled(
+    app: &tauri::AppHandle, extension_id: &str, purge: bool, cleanup_files: impl FnOnce() -> Result<(), String>,
+) -> Result<(), String> {
+    super::files::with_file_lock(app, || {
+        let state = app.state::<LegacyImports>();
+        let _guard = state.registry_lock.lock().map_err(|_| "Legacy registry lock poisoned")?;
+        alwith_extension::plugin::cleanup_uninstalled(app, extension_id, purge, || {
+            let cleanup = (|| -> Result<(), String> {
+                if purge {
+                    let path = registry_path(app)?;
+                    let mut registry = read_registry(&path)?;
+                    registry.remove(extension_id);
+                    save_registry(&path, &registry)?;
+                    cleanup_files()?;
+                }
+                super::files::clear_grants_locked(app, extension_id)
+            })();
+            cleanup.map_err(|message| alwith_extension::ServiceError { code: "cleanupFailed".into(), message })
+        })
+        .map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]

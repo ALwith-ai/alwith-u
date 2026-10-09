@@ -2,8 +2,8 @@
   {
     "id": "bi-metrics",
     "icon": "lucide:chart",
-    "sourceSha256": "150bded59b67c05b1f18c5ee34af6733230cb6a5cadd5e85abe1716e049e5805",
-    "patchedSha256": "2eeb6cac67585145a9cfa84a5ad65cb7105b13569bd49694d5b61b3463e499d1",
+    "sourceSha256": "c249f69677d127cb629ccebede3ed0f36762bf22e58c1420c1364dadea55d537",
+    "patchedSha256": "7b4bf54df623c11e6a73d763a8a91497bfa68bde38c1af827f30d847ebdee505",
     "url": "https://bi-api.finture.id/api/ext/bi-metrics/main.js",
     "patches": [
       {
