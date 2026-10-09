@@ -5,6 +5,7 @@ import { LazyStore } from "@tauri-apps/plugin-store"
 import { API_BASE_URL, platformApiRequest, usePlatformAuth } from "./store"
 
 const store = new LazyStore("vibemon.json")
+let writes = Promise.resolve()
 const CHANGED = "vibemon:assets-changed"
 const decode = (value: string) => Uint8Array.from(atob(value), character => character.charCodeAt(0))
 function encode(bytes: Uint8Array): string {
@@ -28,11 +29,24 @@ export function createPlatformPetAssets() {
   const listeners = new Set<() => void>()
   const storage = {
     get: <T>(key: string) => store.get<T>(key),
-    async set(key: string, value: unknown) {
-      await store.set(key, value)
-      await store.save()
-      await emit(CHANGED)
-      for (const listener of listeners) listener()
+    set(key: string, value: unknown) {
+      const write = writes
+        .catch(() => {})
+        .then(async () => {
+          const previous = await store.get(key)
+          await store.set(key, value)
+          try {
+            await store.save()
+          } catch (error) {
+            if (previous === undefined) await store.delete(key)
+            else await store.set(key, previous)
+            throw error
+          }
+          await emit(CHANGED)
+          for (const listener of listeners) listener()
+        })
+      writes = write
+      return write
     }
   }
   const assets = createPetAssets({
@@ -40,6 +54,7 @@ export function createPlatformPetAssets() {
     storage,
     request: platformApiRequest,
     resources: {
+      exists: path => invoke<boolean>("vibemon_resource", { action: "exists", path, bytes: null, destination: null }),
       async read(path) {
         const value = await invoke<string | null>("vibemon_resource", {
           action: "read",

@@ -11,7 +11,7 @@ export function petWindowCall<T>(action: string, payload: Record<string, unknown
 export function createPetWindowClient(): PetWindowHost {
   return {
     call: petWindowCall,
-    openPet: () => requestPet("open-pet"),
+    openPet: (options = {}) => requestPet("open-pet", options),
     closePet: () => requestPet("close-pet"),
     openRecharge: () => requestPet("recharge"),
     commands(listener) {

@@ -70,17 +70,42 @@ fn resource_path(window: &WebviewWindow, path: &str) -> Result<PathBuf, String> 
     Ok(destination)
 }
 
+fn resource_exists(path: &std::path::Path) -> Result<bool, String> {
+    match std::fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.is_file()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod resource_tests {
+    use super::resource_exists;
+
+    #[test]
+    fn resource_presence_requires_a_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("sprite-sheet.webp");
+        assert!(!resource_exists(&file).unwrap());
+        std::fs::write(&file, [1, 2, 3]).unwrap();
+        assert!(resource_exists(&file).unwrap());
+        assert!(!resource_exists(directory.path()).unwrap());
+        assert!(resource_exists(&file.join("child")).is_err());
+    }
+}
+
 #[tauri::command]
 pub async fn vibemon_resource(
     window: WebviewWindow, action: String, path: String, bytes: Option<String>, destination: Option<String>,
 ) -> Result<Value, String> {
     allowed(&window)?;
-    if action != "read" && window.label() != "main" {
+    if action != "read" && action != "exists" && window.label() != "main" {
         return Err("Only an asset host can write Vibemon resources".into());
     }
     let file = resource_path(&window, &path)?;
     let target = destination.map(|p| resource_path(&window, &p)).transpose()?;
     tauri::async_runtime::spawn_blocking(move || match action.as_str() {
+        "exists" => resource_exists(&file).map(|exists| json!(exists)),
         "read" => match std::fs::read(file) {
             Ok(bytes) => Ok(json!(STANDARD.encode(bytes))),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Null),

@@ -94,18 +94,27 @@ async function start() {
       stop()
     }
   }
-  async function ensurePet() {
+  async function ensurePet(options: { trusted?: boolean } = {}) {
     if (platform() !== "macos" && platform() !== "windows") return "unavailable" as const
     const scope = petScope()
     await refreshSettings()
     const state = await getVibemonState()
     if (!state.pet) throw new Error("Select a Vibemon in the pet center first")
-    await assets.assets.restoreOwned()
+    const completeOpen = async () => {
+      if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
+        throw new Error("The selected pet changed during presentation")
+      await updateVibemonState({ enabled: true })
+      return "shown" as const
+    }
+    if (await WebviewWindow.getByLabel("vibemon")) {
+      await command("present", state.pet)
+      return completeOpen()
+    }
     const owned = assets.assets.snapshot().owned
-    if (!owned?.some(item => item.vibemon_uuid === state.pet)) await assets.assets.getMyVibemons()
+    if (!options.trusted || !owned?.some(item => item.vibemon_uuid === state.pet)) await assets.assets.getMyVibemons()
     if (!assets.assets.snapshot().owned?.some(item => item.vibemon_uuid === state.pet))
       throw new Error("This account does not own the selected Vibemon")
-    if (!(await assets.assets.resources.cached(state.pet))) await assets.assets.ensureResource(state.pet)
+    if (!(await assets.assets.resources.inspect(state.pet))) await assets.assets.ensureResource(state.pet)
     if (scope !== petScope()) throw new Error("The pet account changed")
     let ready!: () => void
     let fail!: (error: Error) => void
@@ -123,10 +132,7 @@ async function start() {
       if (created) await prepared
       if (scope !== petScope()) throw new Error("The pet account changed")
       await command("present", state.pet)
-      if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
-        throw new Error("The selected pet changed during presentation")
-      await updateVibemonState({ enabled: true })
-      return "shown" as const
+      return await completeOpen()
     } catch (error) {
       await petWindowCall("destroy-pet")
       throw error
@@ -142,7 +148,7 @@ async function start() {
   }
   const windows: PetWindowHost = {
     ...createPetWindowClient(),
-    openPet: () => serialize(ensurePet),
+    openPet: (options = {}) => serialize(() => ensurePet(options)),
     closePet: () => serialize(closePet),
     openRecharge: openPlatformAccount
   }
@@ -175,6 +181,7 @@ async function start() {
       label: "main" | "chat"
       sessionId: string | null
       visible: boolean
+      trusted?: boolean
     }
     switch (request.action) {
       case "sync-resources":
@@ -195,7 +202,7 @@ async function start() {
         return owner.surface(payload.label, { sessionId: payload.sessionId, visible: payload.visible })
       }
       case "open-pet":
-        return windows.openPet()
+        return windows.openPet({ trusted: payload.trusted === true })
       case "close-pet":
         return windows.closePet()
       case "recharge":

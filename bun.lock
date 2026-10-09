@@ -7,10 +7,10 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^1.5.1",
         "@alwith/api": "^0.2.2",
-        "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz",
+        "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
         "@alwith/module-chat": "^0.1.6",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
-        "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.1-e05c694be8c0.tgz",
+        "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.2-b5a2b21b30a0.tgz",
         "@alwith/runtime": "^0.1.7",
         "@base-ui/react": "^1.8.0",
         "@fontsource-variable/inter": "^5.3.0",
@@ -91,7 +91,7 @@
     },
   },
   "overrides": {
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz",
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
     "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.3-4196fc85d5a5.tgz",
   },
@@ -100,13 +100,13 @@
 
     "@alwith/api": ["@alwith/api@0.2.2", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.5.1", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-aUh0JctcG6Qfc1Fa+zYJvKdNgwbyaTmyC3cpmmKa8H8XqcvgI7rMq5jOaR1i4uHzqi166cF0twNJbIIhf6t87A=="],
 
-    "@alwith/module-auth": ["@alwith/module-auth@vendor/alwith-module-auth-0.1.1-7ac59ca80156.tgz", {}, "sha512-meUhrcqmnlmAz65AroiTOJNqfRy06OQt3NkMoUIjHSFa5WzkWtJKt8YlztndNQi6Vr+XhOpNsQw9iihUgly/9A=="],
+    "@alwith/module-auth": ["@alwith/module-auth@vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz", {}, "sha512-u2DRmOCEJx/yCLfV6LzleddYRYXrPNHViozfEWXBFK+k7BFa/XhgnXmQPKKJN+QnGBfZatvUjgpxL3Qs6oss1w=="],
 
     "@alwith/module-chat": ["@alwith/module-chat@0.1.6", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-DgNz/R19dkag/OjaLDiaMKaue9lU/FOYNMSO4F/IR3PjhFcAmCz/3YeFbarfpNWAfSIyHHpQcjYYYnCYQMaM3A=="],
 
     "@alwith/module-extension": ["@alwith/module-extension@vendor/alwith-module-extension-0.1.6.tgz", { "dependencies": { "@babel/parser": "^7.28.0", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.2", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-nh13sdoaKh9bIEU3JEQlhIEt5RMTa/WQFej/uxo9AdjhWyJEJsfkTS0HQgVYoLS7/yM271MBI45IvkPD81AAJA=="],
 
-    "@alwith/module-vibemon": ["@alwith/module-vibemon@vendor/alwith-module-vibemon-0.1.1-e05c694be8c0.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "@alwith/module-auth": "^0.1.1", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-h/QX4rYCwcQobffpnZx5sdubrrqpRQEIALclZ4tMxFUY/1SO5rQGT1u61taYLWyBiXK21XIFZIIDmBqszquW6g=="],
+    "@alwith/module-vibemon": ["@alwith/module-vibemon@vendor/alwith-module-vibemon-0.1.2-b5a2b21b30a0.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "@alwith/module-auth": "^0.1.2", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-qPvipCY3xOKKoaaXd/YrGLHoQKGirGvP8d5+4jT33hklMLJQKG+qq/b22wyYbXNzw65Y0KjHGbGnI7rM71XZtw=="],
 
     "@alwith/native": ["@alwith/native@vendor/alwith-native-0.1.3.tgz", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.3", "@alwith/native-linux-arm64": "0.1.3", "@alwith/native-linux-x64": "0.1.3", "@alwith/native-win32-arm64": "0.1.3", "@alwith/native-win32-x64": "0.1.3" } }, "sha512-zzfBGMXzwnMbZzCP6D9aRNbb6NB4PsmBzVTJHH2oVEMBHduNTt4RJ3QVDtgpRPKGPENPYT0R9Z2THNAc3Nxiaw=="],
 
