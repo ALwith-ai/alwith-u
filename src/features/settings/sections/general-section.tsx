@@ -32,7 +32,7 @@ export function GeneralSection() {
   return (
     <SettingGroup>
       <SettingRow title={t("settings.versionLabel")} aligned>
-        <span className="text-muted-foreground block text-right text-sm">v{version}</span>
+        <span className="text-muted-foreground block text-end text-sm">v{version}</span>
       </SettingRow>
       <Separator />
       <SettingRow title={t("chatWindow.shortcut")} aligned>

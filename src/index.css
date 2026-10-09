@@ -7,6 +7,20 @@
 
 @source "../node_modules/@alwith/module-chat/dist";
 
+/* Match Desktop: mirror submenu navigation, but isolate technical notation. */
+:dir(rtl) [data-slot="dropdown-menu-sub-trigger"] > .lucide-chevron-right,
+:dir(rtl) [data-slot="context-menu-sub-trigger"] > .lucide-chevron-right {
+  scale: -1 1;
+}
+
+[data-slot="kbd"],
+[data-slot="kbd-group"],
+pre,
+.d2h-wrapper {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 /* Keep diff metadata readable in both themes, including upstream diff2html styles. */
 [data-stream-style="codexUI"] .d2h-wrapper .d2h-info,
 [data-stream-style="codexUI"] .d2h-wrapper .d2h-tag {
@@ -203,6 +217,9 @@
   transform: translateX(calc(-100% + var(--leading-sidebar-width)));
   transition: transform var(--screen-slide-duration) ease-in-out;
 }
+.main-screen-track:dir(rtl) {
+  transform: translateX(calc(100% - var(--leading-sidebar-width)));
+}
 [data-main-screen="leading"] .main-screen-track {
   transform: translateX(0);
 }
@@ -271,7 +288,8 @@
 /* Clip a full-width sidebar instead of squeezing its contents during resize. */
 .main-sidebar-viewport {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   width: var(--active-sidebar-width);
   overflow: clip;
   opacity: 0;
@@ -285,7 +303,8 @@
 }
 .main-sidebar-panel {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   width: var(--sidebar-width);
 }
 [data-sidebar-mode="hidden"] .main-sidebar-viewport {
@@ -306,7 +325,7 @@
   overflow: clip;
   border-radius: inherit;
 }
-/* Paint only beyond the right edge; the top/bottom gutters receive no shadow. */
+/* Paint only beyond the content-facing edge; keep the top/bottom gutters clear. */
 [data-sidebar-presentation="floating"] .main-sidebar-viewport::after {
   content: "";
   position: absolute;
@@ -315,6 +334,13 @@
   box-shadow: 8px 0 24px -8px var(--sidebar-floating-shadow);
   clip-path: inset(0 -32px 0 100%);
   pointer-events: none;
+}
+.main-sidebar-viewport:dir(rtl) {
+  transform: translateX(8px);
+}
+[data-sidebar-presentation="floating"] .main-sidebar-viewport:dir(rtl)::after {
+  box-shadow: -8px 0 24px -8px var(--sidebar-floating-shadow);
+  clip-path: inset(0 100% 0 -32px);
 }
 [data-sidebar-presentation="floating"] [data-slot="sidebar-header"] {
   padding-top: 8px;
@@ -334,7 +360,8 @@
 }
 .main-sidebar-edge {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   width: 3px;
 }
 .main-sidebar-toggle {

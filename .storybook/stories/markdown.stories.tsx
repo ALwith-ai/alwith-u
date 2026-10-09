@@ -32,6 +32,18 @@ export const Chinese: Story = {
 }
 export const Dark: Story = { ...Answer, globals: { theme: "dark" } }
 
+export const Arabic: Story = {
+  args: { text: "## نتيجة التنفيذ\n\nتم فحص **المحادثة**.\n\n```ts\nconst greeting = 'Hello, ALwith U'\n```" },
+  globals: { locale: "ar" },
+  play: async ({ canvas, canvasElement }) => {
+    const heading = await canvas.findByRole("heading", { name: "نتيجة التنفيذ" })
+    await waitFor(() => expect(getComputedStyle(heading).direction).toBe("rtl"))
+    const code = canvasElement.querySelector("pre")
+    await expect(code).not.toBeNull()
+    await expect(getComputedStyle(code!).direction).toBe("ltr")
+  }
+}
+
 export const FileLink: Story = {
   args: { text: "Review [greeting.ts](/storybook/project/src/greeting.ts:1)." },
   play: async ({ canvas, userEvent }) => {

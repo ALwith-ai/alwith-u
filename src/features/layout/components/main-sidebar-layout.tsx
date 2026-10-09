@@ -225,7 +225,7 @@ export function MainSidebarLayout({
           )}
           className="text-sidebar-foreground"
           onClick={() => changePinned(!docked)}>
-          <ToggleIcon className="size-4" />
+          <ToggleIcon className="size-4 rtl:-scale-x-100" />
         </Button>
       </div>
       {children}

@@ -49,11 +49,20 @@ test("supported locales use the ALwith U product name", async () => {
 
 test("incomplete languages display the complete English UI without mixing translations", async () => {
   for (const { code } of LANGUAGES) {
-    if (code === "en" || code === "zh-CN") continue
+    if (code === "en" || code === "zh-CN" || code === "ar") continue
     await initI18n(code)
 
     expect(i18n.language).toBe(code)
     expect(i18n.t("settings.title")).toBe("Settings")
     expect(i18n.t("actions.copy", { ns: "alwithChat" })).toBe("Copy")
   }
+})
+
+test("Arabic loads existing app and shared chat translations with English for missing messages", async () => {
+  await initI18n("ar")
+  expect(i18n.language).toBe("ar")
+  expect(i18n.dir()).toBe("rtl")
+  expect(i18n.t("settings.title")).toBe("الإعدادات")
+  expect(i18n.t("actions.copy", { ns: "alwithChat" })).toBe(chatLocales.ar.actions.copy)
+  expect(i18n.t("app.name")).toBe("ALwith U")
 })

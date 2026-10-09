@@ -514,7 +514,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
           </div>
-          <div className="absolute right-2 bottom-0 z-20">
+          <div className="absolute end-2 bottom-0 z-20">
             <ClientVersionPopover />
           </div>
         </MainSidebarLayout>

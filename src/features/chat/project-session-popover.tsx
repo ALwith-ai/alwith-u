@@ -120,7 +120,7 @@ export function ProjectSessionPopover({
       )}
       <PopoverContent
         ref={popupRef}
-        side={trigger === undefined ? "bottom" : "right"}
+        side={trigger === undefined ? "bottom" : "inline-end"}
         align="start"
         aria-label={basename(cwd)}
         initialFocus={trigger === undefined ? popupRef : false}
