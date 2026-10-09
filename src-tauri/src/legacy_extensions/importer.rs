@@ -23,7 +23,6 @@ pub(super) struct Profile {
     pub(super) id: String,
     icon: Option<String>,
     source_sha256: String,
-    patched_sha256: String,
     url: String,
     #[serde(default)]
     pub(super) network_hosts: Vec<String>,
@@ -552,12 +551,10 @@ pub fn legacy_stage_import(
         return Err("Legacy import ticket belongs to another window".into());
     }
     let id = pending.prepared.manifest.get("id").and_then(Value::as_str).ok_or("Legacy manifest has no id")?;
-    let p = profile(id)?;
     if manifest != pending.prepared.converted_manifest {
         return Err("Converted legacy manifest does not match".into());
     }
-    let expected_source =
-        p.as_ref().map_or_else(|| digest(pending.prepared.source.as_bytes()), |p| p.patched_sha256.clone());
+    let expected_source = digest(pending.prepared.source.as_bytes());
     validate_entry(&main, &pending.prepared.manifest, &expected_source, &pending.prepared.modules)?;
     let manifest_bytes = serde_json::to_vec(&manifest).map_err(|e| e.to_string())?;
     let staging = tempfile::tempdir().map_err(|e| e.to_string())?;
@@ -921,12 +918,12 @@ mod tests {
         assert_eq!(manifest["version"], "2.20.0");
         assert!(manifest.get("author").is_none());
         assert!(manifest.get("updateUrl").is_none());
-        assert!(validate_entry("module.exports = function() {}", &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry("module.exports = function() {}", &old, &p.source_sha256, &BTreeMap::new()).is_err());
         let forged = format!(
             "{ENTRY_PREFIX}{}{ENTRY_SUFFIX}",
             json!({"manifest":old,"source":"unreviewed()","styles":"styles.css"})
         );
-        assert!(validate_entry(&forged, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&forged, &old, &p.source_sha256, &BTreeMap::new()).is_err());
         assert!(profile("unknown").unwrap().is_none());
     }
     #[test]
@@ -1058,15 +1055,15 @@ mod tests {
         let mut p = profile("etms-strategy-review").unwrap().unwrap();
         let old = json!({"id":p.id,"name":"ETMS","version":"0.1.0"});
         let source = "module.exports = class {};";
-        p.patched_sha256 = digest(source.as_bytes());
+        p.source_sha256 = digest(source.as_bytes());
         let payload = json!({"manifest":old,"source":source,"styles":"styles.css"});
         let entry = format!("{ENTRY_PREFIX}{payload}{ENTRY_SUFFIX}");
-        assert!(validate_entry(&entry, &old, &p.patched_sha256, &BTreeMap::new()).is_ok());
+        assert!(validate_entry(&entry, &old, &p.source_sha256, &BTreeMap::new()).is_ok());
         let injected = format!("{ENTRY_PREFIX}{payload}); evil(); ({ENTRY_SUFFIX}");
-        assert!(validate_entry(&injected, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&injected, &old, &p.source_sha256, &BTreeMap::new()).is_err());
         let wrong_styles =
             format!("{ENTRY_PREFIX}{}{ENTRY_SUFFIX}", json!({"manifest":old,"source":source,"styles":"data.json"}));
-        assert!(validate_entry(&wrong_styles, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&wrong_styles, &old, &p.source_sha256, &BTreeMap::new()).is_err());
     }
 
     #[test]

@@ -8,7 +8,12 @@ export const commonCapabilities = createCommonCapabilities({
   clipboard: { writeText: text => navigator.clipboard.writeText(text) },
   notices: {
     show(message, duration = 5000, onClose) {
-      const options = { duration: duration === 0 ? Infinity : duration, onDismiss: onClose, onAutoClose: onClose }
+      const options = {
+        duration: duration === 0 ? Infinity : duration,
+        closeButton: true,
+        onDismiss: onClose,
+        onAutoClose: onClose
+      }
       const id = toast(message, options)
       return {
         hide: () => {

@@ -6,6 +6,7 @@ import { ExtensionMount } from "./extension-view"
 import { ExtensionsManager } from "./extensions-manager"
 import { executePreparedInstall, type PreparedInstall } from "./install-service"
 import { LEGACY_SOURCE } from "./legacy/profiles"
+import { showExtensionLimitations } from "./legacy/limitations"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
 import { reportExtensionError, useExtensions } from "./runtime"
 
@@ -40,7 +41,17 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
       busy={busy}
       onOpenSurface={onOpenSurface}
       onInstall={id => run(() => install(id))}
-      onRequest={request => run(() => runtime.request(request))}
+      onRequest={request =>
+        run(async () => {
+          await runtime.request(request)
+          if (request.type === "enable") {
+            await runtime.settled()
+            const current = runtime.snapshot()
+            if (!current.errors[request.id])
+              showExtensionLimitations(current.native?.installations.find(item => item.id === request.id))
+          }
+        })
+      }
       onUninstall={(id, name) =>
         run(async () => {
           if (

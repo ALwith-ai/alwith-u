@@ -6,14 +6,14 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import type { Session } from "@alwith/api"
 import { ImageIcon } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
 import { client, useApp } from "@/lib/client"
 import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
-import { drafts } from "./composer/drafts"
+import { drafts, registerComposerWriter } from "./composer/drafts"
 import { MentionChips } from "./composer/mention-chips"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
@@ -108,6 +108,17 @@ export function Composer({
   useEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
   }, [session.id, text, attachments, mentions])
+
+  useLayoutEffect(
+    () =>
+      registerComposerWriter(session.id, value => {
+        if (!inputReady || sending) throw new Error("当前输入框不可写，请稍后重试")
+        if (text.length || attachments.length || mentions.length)
+          throw new Error("输入框已有草稿，请先发送或清空后重试")
+        setText(value)
+      }),
+    [session.id, inputReady, sending, text, attachments, mentions]
+  )
 
   const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
   const searchFiles = useMemo(

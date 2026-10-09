@@ -2,6 +2,7 @@ import * as sdk from "@alwith/module-extension"
 import * as dom from "@alwith/module-extension/dom"
 import { createCommonJsEvaluator, type ExtensionRuntime } from "@alwith/module-extension/host"
 import * as legacy from "@alwith/module-extension/legacy"
+import * as plugin from "@alwith/module-extension/plugin"
 import { mountReact, useHostSnapshot } from "@alwith/module-extension/react"
 import { createTauriExtensionRuntime } from "@alwith/module-extension/tauri"
 import {
@@ -24,7 +25,7 @@ import { version as hostVersion } from "../../../package.json"
 import { type BundledExtension, ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
-import { createLegacyHost } from "./legacy/host"
+import { createLegacyHost, createPluginHost } from "./legacy/host"
 import { watchUninstallFailures, type UninstallFailures } from "./uninstall-failures"
 import * as extensionUi from "./ui"
 
@@ -48,6 +49,7 @@ function getRuntime(): ExtensionRuntime {
     host: { id: "alwith-u", version: hostVersion },
     capabilities: {
       ...commonCapabilities,
+      [plugin.pluginHostCapability.id]: createPluginHost(),
       [legacy.legacyHostCapability.id]: createLegacyHost(id =>
         runtime?.snapshot().native?.installations.find(item => item.id === id)
       ),
@@ -78,6 +80,7 @@ function getRuntime(): ExtensionRuntime {
       "@alwith/module-extension": sdk,
       "@alwith/module-extension/dom": dom,
       "@alwith/module-extension/legacy": legacy,
+      "@alwith/module-extension/plugin": plugin,
       "@alwith/module-extension/react": { mountReact },
       react: React,
       "react/jsx-runtime": jsxRuntime,

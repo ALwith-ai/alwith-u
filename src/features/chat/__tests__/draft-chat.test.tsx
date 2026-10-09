@@ -720,3 +720,190 @@ test("switching writable conversations enables sending only for the selected con
     restore()
   }
 })
+
+test("returning a floating draft transfers its input and releases the surface only after acceptance", async () => {
+  const env = await windowEnvironment()
+  const { ChatWindow } = await import("@/features/chat-window/chat-window")
+  const requests: { target: string; action: Parameters<typeof chatWindow.requestChatSurface>[1] }[] = []
+  let reject = true
+  const request = spyOn(chatWindow, "requestChatSurface").mockImplementation(async (target, action) => {
+    requests.push({ target, action })
+    if (reject) throw new Error("Main window is busy")
+    return null
+  })
+  importDraft(DRAFT_SESSION_ID, { text: "return this input", mentions: [], attachments: [], modelId: null })
+  const view = render(
+    <ThemeProvider>
+      <ChatWindow preferences={windowPreferences} />
+    </ThemeProvider>
+  )
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => env.present())
+    await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("return this input"))
+    const id = must(Object.keys(env.real.state.draftSessions)[0], "floating draft")
+    const returnToMain = async (): Promise<void> => {
+      await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+      await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" })))
+    }
+    await returnToMain()
+    expect(env.hidden).toBe(false)
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("return this input")
+    reject = false
+    await returnToMain()
+    await waitFor(() => expect(env.hidden).toBe(true))
+    expect(view.queryByRole("textbox")).toBeNull()
+    expect(requests).toEqual(
+      [0, 1].map(() => ({
+        target: "main",
+        action: {
+          type: "present",
+          transfer: {
+            sessionId: id,
+            cwd: windowPreferences.lastProjectDirectory,
+            draft: { text: "return this input", mentions: [], attachments: [], modelId: null }
+          }
+        }
+      }))
+    )
+  } finally {
+    await act(async () => view.unmount())
+    request.mockRestore()
+    env.restore()
+  }
+})
+
+test("extension drafts fill the mounted composer without sending and protect existing input", async () => {
+  const { setComposerDraft } = await import("../composer/drafts")
+  const { real, restore } = await environment()
+  await real.connect()
+  const id = await real.prepareDraft("main", "/tmp/extension-draft")
+  const view = render(<Composer session={real.session(id)} />)
+  try {
+    await act(async () => setComposerDraft(id, "Review this before sending"))
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
+    expect(drafts.get(id)?.text).toBe("Review this before sending")
+    expect(real.session(id).items.filter(item => item.kind === "user")).toHaveLength(0)
+    expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
+    await act(async () => view.unmount())
+    expect(() => setComposerDraft(id, "after close")).toThrow("输入框")
+  } finally {
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test.each(["attachments", "mentions"] as const)("extension drafts preserve existing %s and model", async content => {
+  const { setComposerDraft } = await import("../composer/drafts")
+  const { real, restore } = await environment()
+  await real.connect()
+  const id = await real.prepareDraft("main", "/tmp/extension-draft")
+  const original = {
+    text: "",
+    attachments:
+      content === "attachments"
+        ? [{ id: "image", type: "file" as const, mediaType: "image/png", url: "data:image/png;base64,aW1hZ2U=" }]
+        : [],
+    mentions: content === "mentions" ? ["/tmp/report.md"] : [],
+    modelId: "keep/model"
+  }
+  importDraft(id, original)
+  const view = render(<Composer session={real.session(id)} />)
+  try {
+    expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
+    expect(drafts.get(id)).toEqual(original)
+    expect(real.session(id).items.filter(item => item.kind === "user")).toHaveLength(0)
+  } finally {
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
+test("packaged Plugin SDK fills the real U composer through the public chat bridge", async () => {
+  const { ExtensionHost } = await import("@alwith/module-extension/host")
+  const { extensionApiVersion } = await import("@alwith/module-extension")
+  const { createPluginExtension, Plugin } = await import("@alwith/module-extension/plugin")
+  const { createMemoryData } = await import("@alwith/module-extension/testing")
+  const { createExtensionChatBridge } = await import("@/features/extensions/chat/bridge")
+  const { setExtensionDraft, sendExtensionMessage } = await import("@/features/extensions/chat/chat")
+  const { setComposerDraft } = await import("../composer/drafts")
+  const { real, restore } = await environment()
+  await real.connect()
+  const id = await real.prepareDraft("main", "/tmp/extension-draft")
+  const view = render(<Composer session={real.session(id)} />)
+  let presented = false
+  let application: import("@alwith/module-extension/plugin").PluginApp | undefined
+  const dependencies = {
+    session: (target: string) => (target === id ? { cwd: "/tmp/extension-draft" } : null),
+    skills: async () => [],
+    writeDraft: setComposerDraft,
+    present: () => {
+      presented = true
+    },
+    prompt: (target: string, text: string) => real.prompt(target, [{ type: "text", text }])
+  }
+  const chat = createExtensionChatBridge({
+    check: () => {},
+    session: () => ({ id, cwd: "/tmp/extension-draft", title: "Chat" }),
+    send: (target, text) => sendExtensionMessage(target, text, [], dependencies),
+    setDraft: (target, text) => setExtensionDraft(target, text, [], dependencies)
+  })
+  const host = new ExtensionHost({
+    apiVersion: extensionApiVersion,
+    capabilities: {
+      "plugin.host": {
+        version: "1.0.0",
+        value: {
+          ...chat,
+          fetch: async () => new Response(""),
+          captureChatContext: () => {},
+          openView: () => {},
+          notify: () => ({ hide() {}, setMessage() {} }),
+          language: () => "en",
+          primary: true,
+          openExternal: async () => {},
+          vault: { write: async () => {}, remove: async () => {} }
+        }
+      }
+    },
+    contributions: { commands: "1.0.0", surfaces: "1.0.0", settingsPages: "1.0.0" }
+  })
+  const manifest = {
+    manifestVersion: 3 as const,
+    id: "chat-fixture",
+    name: "Chat",
+    version: "1.0.0",
+    entry: "main.js",
+    dependencies: { "@alwith/module-extension": "^0.1.9" },
+    hosts: {},
+    dataSchemaVersion: 1
+  }
+  try {
+    await host.activate(
+      manifest,
+      "fixture",
+      context =>
+        createPluginExtension(context, {
+          manifest,
+          create(_api, app, metadata) {
+            application = app
+            return new Plugin(app, metadata)
+          }
+        }),
+      { data: createMemoryData(), resource: path => path }
+    )
+    const app = must(application, "plugin application")
+    await act(async () => app.chat.setDraft("Draft from a plugin"))
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Draft from a plugin")
+    expect(presented).toBe(true)
+    expect(real.session(id).items.some(item => item.kind === "user")).toBe(false)
+    await act(async () => app.chat.sendMessage("Send directly"))
+    expect(real.session(id).items.some(item => item.kind === "user")).toBe(true)
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Draft from a plugin")
+  } finally {
+    await host.dispose()
+    await act(async () => view.unmount())
+    restore()
+  }
+})

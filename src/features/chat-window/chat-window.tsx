@@ -72,6 +72,17 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     // Native hiding keeps the draft mounted so pending replacements still bind
     // their new session and carry the input forward while the window is hidden.
   }, [])
+  const returnToMain = useCallback(() => {
+    void operation
+      .run(async () => {
+        await requestChatSurface("main", { type: "present", transfer: await capture() })
+        await hide()
+        setContentMounted(false)
+        setSelectedId(null)
+        setGeneration(value => value + 1)
+      })
+      .catch(report)
+  }, [capture, hide, operation])
   const newChat = useCallback(() => {
     if (operation.busy) return
     void operation
@@ -244,6 +255,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
+              onReturnToMain={returnToMain}
               runOperation={operation.run}
               key={`draft-${generation}`}
               cwd={cwd}
@@ -262,6 +274,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
+              onReturnToMain={returnToMain}
               onSelectThread={thread => {
                 void operation
                   .run(async () => {

@@ -381,3 +381,24 @@ test("disabled extensions render Lucide metadata icons locally without image req
   expect(row.querySelector("img")).toBeNull()
   expect(view.actions).toEqual([])
 })
+
+test("shows host limitations independently of a legacy extension's own settings", () => {
+  const snapshot = state()
+  snapshot.native.installations = [{ ...installation("yup-kb", "Knowledge"), source: "legacy:alwith-u" }]
+  const view = setup(snapshot)
+  expect(view.getByText(/会话归档与会话关联不可用/)).toBeTruthy()
+})
+
+test("dismisses a compatibility notice without changing extension state or hiding errors", async () => {
+  const snapshot = state()
+  snapshot.native.installations = [{ ...installation("yup-kb", "Knowledge"), source: "legacy:alwith-u" }]
+  snapshot.errors["yup-kb"] = "Activation failed"
+  const view = setup(snapshot)
+  const notice = view.getByText(/会话归档与会话关联不可用/).closest('[role="alert"]')
+  if (!notice) throw new Error("Compatibility notice missing")
+  await act(async () => fireEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Close" })))
+  expect(view.queryByText(/会话归档与会话关联不可用/)).toBeNull()
+  expect(view.getByText("Activation failed")).toBeTruthy()
+  expect(view.getByRole("switch").getAttribute("aria-checked")).toBe("true")
+  expect(view.actions).toEqual([])
+})

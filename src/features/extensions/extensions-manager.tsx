@@ -2,7 +2,7 @@ import { parseManifestIcon, resolveManifestText } from "@alwith/module-extension
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { openExternal } from "@/lib/open"
 
 import { EXTENSION_ICONS } from "./extension-icons"
+import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
 interface ExtensionsManagerProps {
@@ -72,6 +73,7 @@ export function ExtensionsManager({
 }: ExtensionsManagerProps) {
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
+  const [dismissedNotices, setDismissedNotices] = useState<Set<string>>(() => new Set())
   const detailsId = useId()
   const search = query.trim().toLocaleLowerCase()
   const installations = state.native?.installations ?? []
@@ -265,6 +267,24 @@ export function ExtensionsManager({
                     )}
                   </ItemActions>
                 </PanelItem>
+                {item.source === LEGACY_SOURCE &&
+                  findLegacyProfile(item.id)?.limitations.map(message => {
+                    const key = JSON.stringify([item.installationId, item.packageRevision, message])
+                    if (dismissedNotices.has(key)) return null
+                    return (
+                      <Alert key={key} className="mt-2 pr-10">
+                        <AlertDescription className="text-xs leading-relaxed">{message}</AlertDescription>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-muted-foreground absolute top-2 right-2"
+                          aria-label={t("actions.close")}
+                          onClick={() => setDismissedNotices(previous => new Set(previous).add(key))}>
+                          <XIcon />
+                        </Button>
+                      </Alert>
+                    )
+                  })}
                 {error && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertDescription>{error}</AlertDescription>

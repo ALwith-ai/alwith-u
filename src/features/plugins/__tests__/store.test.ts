@@ -1,9 +1,19 @@
-import { describe, expect, mock, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
+import { toast } from "sonner"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import { createPluginsStore, installParams, type PluginsApi } from "../store"
 
-mock.module("sonner", () => ({ toast: { success: () => undefined, error: () => undefined, message: () => undefined } }))
+const restoreToasts: (() => void)[] = []
+beforeEach(() => {
+  for (const method of ["success", "error", "message"] as const) {
+    const spy = spyOn(toast, method).mockImplementation(() => "test-toast")
+    restoreToasts.push(() => spy.mockRestore())
+  }
+})
+afterEach(() => {
+  for (const restore of restoreToasts.splice(0)) restore()
+})
 
 function plugin(id: string, installed: boolean): PluginSummary {
   return {

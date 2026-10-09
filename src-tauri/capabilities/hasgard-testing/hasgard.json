@@ -1,6 +1,6 @@
 {
   "identifier": "hasgard-testing",
   "description": "Automation bridge; included only with the hasgard-testing feature",
-  "windows": ["main", "settings"],
+  "windows": ["main", "settings", "chat"],
   "permissions": ["hasgard:default"]
 }

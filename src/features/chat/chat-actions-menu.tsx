@@ -3,6 +3,7 @@ import {
   ArrowUpRightIcon,
   FolderPlusIcon,
   MoreHorizontalIcon,
+  PanelTopIcon,
   PencilIcon,
   PictureInPicture2Icon,
   PlusIcon,
@@ -41,6 +42,7 @@ export function ChatActionsMenu({
   session,
   surface,
   onOpenWindow,
+  onReturnToMain,
   cwd,
   onNewChat,
   onNewProject,
@@ -49,6 +51,7 @@ export function ChatActionsMenu({
   session?: Session
   surface: "main" | "floating"
   onOpenWindow?: () => void
+  onReturnToMain?: () => void
   cwd: string | null
   onNewChat: () => void
   onNewProject?: () => void
@@ -88,11 +91,12 @@ export function ChatActionsMenu({
   const canMutate = session !== undefined && connected && !session.restoring
   const hasMessages = session !== undefined && session.items.length > 0
   const canOpenWindow = surface === "main" && onOpenWindow !== undefined && !session?.restoring
+  const canReturnToMain = surface === "floating" && onReturnToMain !== undefined && !session?.restoring
   const showNewChat = surface === "floating" && session !== undefined
   const showNewProject = surface === "floating" && onNewProject !== undefined
   const showCreationActions = showNewChat || showNewProject
-  const showChatActions = canOpenWindow || (canMutate && canRename) || hasMessages
-  if (!session && cwd === null && !canOpenWindow && !showNewProject) return null
+  const showChatActions = canOpenWindow || canReturnToMain || (canMutate && canRename) || hasMessages
+  if (!session && cwd === null && !canOpenWindow && !canReturnToMain && !showNewProject) return null
   return (
     <>
       <DropdownMenu
@@ -148,6 +152,16 @@ export function ChatActionsMenu({
                     }}>
                     <PictureInPicture2Icon />
                     {t("chatWindow.open")}
+                  </DropdownMenuItem>
+                )}
+                {canReturnToMain && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      skipMenuFocus.current = true
+                      onReturnToMain()
+                    }}>
+                    <PanelTopIcon />
+                    {t("chatWindow.returnToMain")}
                   </DropdownMenuItem>
                 )}
                 {canMutate && canRename && (

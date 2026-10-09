@@ -32,6 +32,7 @@ export function DraftChat({
   onAuthRequired,
   providerSnapshot,
   onOpenWindow,
+  onReturnToMain,
   runOperation,
   headerTarget,
   projectMenu,
@@ -49,6 +50,7 @@ export function DraftChat({
   providerSnapshot: ProviderSnapshot | null
   runOperation?: (operation: () => Promise<void>) => Promise<void>
   onOpenWindow?: () => void
+  onReturnToMain?: () => void
   headerTarget?: HTMLElement | null
   projectMenu?: ReactNode
   onNewChat: () => void
@@ -180,6 +182,7 @@ export function DraftChat({
         <ChatActionsMenu
           surface={headerTarget === undefined ? "main" : "floating"}
           onOpenWindow={session && !preparing ? onOpenWindow : undefined}
+          onReturnToMain={preparing ? undefined : onReturnToMain}
           cwd={session?.cwd ?? cwd}
           onNewChat={onNewChat}
           onNewProject={onNewProject}
