@@ -27,6 +27,7 @@ function isFormAction(action: PendingAction): action is FormAction {
 export function ChatView({
   session,
   onOpenWindow,
+  onReturnToMain,
   headerTarget,
   projectMenu,
   onNewChat,
@@ -37,6 +38,7 @@ export function ChatView({
   session: Session
   onSelectThread?: (thread: ThreadSummary) => void
   onOpenWindow?: () => void
+  onReturnToMain?: () => void
   headerTarget?: HTMLElement | null
   projectMenu?: ReactNode
   onNewChat: () => void
@@ -61,6 +63,7 @@ export function ChatView({
           <ChatActionsMenu
             surface={headerTarget === undefined ? "main" : "floating"}
             onOpenWindow={onOpenWindow}
+            onReturnToMain={onReturnToMain}
             session={session}
             cwd={session.cwd}
             onNewChat={onNewChat}

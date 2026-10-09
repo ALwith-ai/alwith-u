@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-extension"
-version = "0.1.6"
+version = "0.1.10"
 dependencies = [
  "cap-std",
  "percent-encoding",
@@ -79,6 +79,7 @@ dependencies = [
  "base64 0.23.1",
  "hex",
  "image",
+ "libc",
  "libloading",
  "log",
  "minisign-verify 0.3.0",

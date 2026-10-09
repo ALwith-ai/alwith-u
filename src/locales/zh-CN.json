@@ -115,7 +115,8 @@
     },
     "draft": {
       "selectProject": "选择项目",
-      "newProject": "新建项目"
+      "newProject": "新建项目",
+      "configureProvider": "配置服务商"
     },
     "openIn": "用以下应用打开",
     "thread": "聊天",
@@ -169,6 +170,7 @@
       "view": "查看图片"
     },
     "content": {
+      "download": "下载 {{name}}",
       "unsupported": "暂不支持的内容：{{type}}"
     },
     "tokens": {
@@ -690,12 +692,28 @@
     "status": "revision {{revision}} · {{entries}} 条 · {{notes}} 笔记"
   },
   "chatWindow": {
+    "returnToMain": "回到聊天主窗",
     "open": "打开聊天浮窗",
     "shortcut": "聊天浮窗快捷键",
     "shortcutSave": "保存快捷键",
     "shortcutOff": "关闭"
   },
   "extensions": {
+    "skills": {
+      "title": "所需 Codex 技能",
+      "loading": "正在检查 Codex 技能…",
+      "disconnected": "请在主窗口连接 Codex 后，检查当前项目的技能。",
+      "error": "技能检查失败：{{message}}",
+      "missing": "未安装",
+      "disabled": "已禁用",
+      "ambiguous": "多个版本已启用",
+      "enabled": "已启用",
+      "unknown": "无法确认",
+      "partial": "部分技能文件加载失败，请处理错误后重新检查。",
+      "note": "通过 Codex 插件安装、启用和更新这些技能。已启用的技能仍需适配数据路径并完成业务认证。",
+      "manage": "管理技能与插件",
+      "refresh": "重新检查"
+    },
     "legacyConflict": "已安装同名扩展，请先卸载后再导入 Desktop 版本。",
     "details": {
       "label": "{{name}}的详细信息",

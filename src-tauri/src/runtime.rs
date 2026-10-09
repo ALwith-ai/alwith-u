@@ -93,7 +93,7 @@ fn engines_table(app: &AppHandle) -> Result<String, String> {
     #[cfg(not(debug_assertions))]
     let resources = app.path().resource_dir().map_err(|error| error.to_string())?;
     let _ = app;
-    let adapter = resources.join("adapter/codex-acp-v2.mjs");
+    let adapter = resources.join("adapter/codex-bootstrap.mjs");
     if !adapter.is_file() {
         return Err(format!("ACP adapter missing at {}", adapter.display()));
     }
@@ -102,7 +102,7 @@ fn engines_table(app: &AppHandle) -> Result<String, String> {
     let mut engines = json!({"codex": {
         "command": sidecar_path("bun")?,
         "args": ["--no-install", adapter],
-        "env": {"CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
+        "env": {"CODEX_PATH": sidecar_path("alwith-codex-launcher")?, "ALWITH_U_CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
     }});
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
     // bundled Bun (`ALWITH_U_BUN` explicitly overrides it). Never discover Desktop's Bun through PATH.

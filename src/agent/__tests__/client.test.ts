@@ -1,5 +1,5 @@
 import { isSelectOption, textOf } from "@alwith/api"
-import { afterEach, expect, test } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { CodexClient, type GatewayModel } from "../client"
 import { createFakeAgent } from "./fake-agent"
@@ -608,4 +608,141 @@ test("Stop answers the session's pending permission with cancelled before sessio
   const reply = client.session(id).items.find(item => item.kind === "assistant")
   // the fake echoes the answer it got as JSON text
   expect(JSON.stringify(reply)).toContain("cancelled")
+})
+
+test("precreated drafts expose real models without entering thread indexes", async () => {
+  const { client, fake } = await make()
+  const [first, duplicate] = await Promise.all([
+    client.prepareDraft("main", "/tmp/draft"),
+    client.prepareDraft("main", "/tmp/draft")
+  ])
+  expect(duplicate).toBe(first)
+  expect(fake.modelHints.size).toBe(1)
+  expect(client.session(first).configOptions[0]?.currentValue).toBe("gpt-5.6-sol")
+  expect(client.state.draftSessions[first]).toBe("main")
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: first, cwd: "/tmp/draft" }] })
+  await client.listThreads({ reset: true })
+  expect(client.state.threads).toEqual([])
+  expect(await client.listProjectThreads("/tmp/draft")).toEqual([])
+  await client.prompt(first, [{ type: "text", text: "hello" }])
+  expect(client.state.draftSessions[first]).toBeUndefined()
+  expect(client.state.threads.some(thread => thread.sessionId === first)).toBe(true)
+  await client.discardDraft("main")
+  expect(fake.deleted.has(first)).toBe(false)
+})
+
+test("draft replacement preserves the old session on failure and transfers ownership", async () => {
+  const { client, fake } = await make()
+  const first = await client.prepareDraft("main", "/tmp/a")
+  await expect(client.prepareDraft("main", "/needs-auth")).rejects.toThrow()
+  expect(client.state.draftSessions[first]).toBe("main")
+  expect(fake.deleted.has(first)).toBe(false)
+  const replacement = await client.prepareDraft("main", "/tmp/b")
+  expect(fake.deleted.has(first)).toBe(true)
+  expect(client.session(replacement).cwd).toBe("/tmp/b")
+  await client.transferDraft(replacement, "chat")
+  await client.discardDraft("main")
+  expect(fake.deleted.has(replacement)).toBe(false)
+  expect(await client.prepareDraft("chat", "/tmp/b")).toBe(replacement)
+  await client.discardDraft("chat")
+  expect(fake.deleted.has(replacement)).toBe(true)
+})
+
+test("a delayed main draft does not block preparation in the floating window", async () => {
+  const { client, fake } = await make()
+  let release!: () => void
+  fake.newSessionDelay.current = cwd =>
+    cwd === "/tmp/slow-main"
+      ? new Promise(resolve => {
+          release = resolve
+        })
+      : Promise.resolve()
+  const main = client.prepareDraft("main", "/tmp/slow-main")
+  await until(() => release !== undefined)
+  const floating = await client.prepareDraft("chat", "/tmp/floating")
+  expect(client.state.draftSessions[floating]).toBe("chat")
+  release()
+  const mainId = await main
+  expect(client.state.draftSessions[mainId]).toBe("main")
+})
+
+test("a replacement waits for the draft's pending model before inheriting it", async () => {
+  const { client, fake } = await make()
+  const source = await client.prepareDraft("main", "/tmp/source")
+  let release!: () => void
+  fake.configDelay.current = () =>
+    new Promise(resolve => {
+      release = resolve
+    })
+  const config = client.setConfig(source, "model", "chosen-model")
+  await until(() => release !== undefined)
+  const replacement = client.prepareDraft("main", "/tmp/replacement")
+  release()
+  await config
+  const id = await replacement
+  expect(fake.modelHints.get(id)).toBe("chosen-model")
+  expect(client.session(id).configOptions[0]?.currentValue).toBe("chosen-model")
+})
+
+test("a draft submitted during transfer can never regain deletion eligibility", async () => {
+  const { client, fake } = await make()
+  const source = await client.prepareDraft("main", "/tmp/source")
+  const target = await client.prepareDraft("chat", "/tmp/target")
+  const originalDelete = client.delete.bind(client)
+  let release: (() => void) | undefined
+  const deleting = vi.spyOn(client, "delete").mockImplementation(async id => {
+    if (id === target)
+      await new Promise<void>(resolve => {
+        release = resolve
+      })
+    await originalDelete(id)
+  })
+  try {
+    const transfer = client.transferDraft(source, "chat")
+    await until(() => release !== undefined)
+    await client.prompt(source, [{ type: "text", text: "retain this conversation" }])
+    must(release, "pending draft cleanup")()
+    await transfer
+    expect(client.state.draftSessions[source]).toBeUndefined()
+    await client.discardDraft("chat")
+    expect(fake.deleted.has(source)).toBe(false)
+    expect(client.state.sessions[source]).toBeDefined()
+  } finally {
+    release?.()
+    deleting.mockRestore()
+  }
+})
+
+test("prompt waits for the model transaction and a failed switch rejects its waiting prompt", async () => {
+  const { client, fake } = await make()
+  const id = await client.newSession("/tmp/model-order")
+  let finish!: () => void
+  fake.configDelay.current = () =>
+    new Promise<void>(resolve => {
+      finish = resolve
+    })
+  const change = client.setConfig(id, "model", "chosen-model")
+  await until(() => finish !== undefined)
+  const sending = client.prompt(id, [{ type: "text", text: "hello" }])
+  await Promise.resolve()
+  expect(client.session(id).items).toEqual([])
+  finish()
+  await Promise.all([change, sending])
+  expect(client.session(id).configOptions[0]?.currentValue).toBe("chosen-model")
+
+  const other = await client.newSession("/tmp/failed-switch")
+  let reject!: (error: Error) => void
+  fake.configDelay.current = () =>
+    new Promise<void>((_resolve, fail) => {
+      reject = fail
+    })
+  const failed = client.setConfig(other, "model", "broken-model")
+  await until(() => reject !== undefined)
+  const queuedConfig = client.setConfig(other, "model", "another-model")
+  const waiting = client.prompt(other, [{ type: "text", text: "must not send" }])
+  const results = Promise.allSettled([failed, queuedConfig, waiting])
+  fake.configDelay.current = null
+  reject(new Error("model unavailable"))
+  expect((await results).map(result => result.status)).toEqual(["rejected", "rejected", "rejected"])
+  expect(client.session(other).items).toEqual([])
 })

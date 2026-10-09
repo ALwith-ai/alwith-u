@@ -1,14 +1,34 @@
-import { isTauri } from "@tauri-apps/api/core"
-import { useEffect } from "react"
+import { getVersion } from "@tauri-apps/api/app"
+import { invoke, isTauri } from "@tauri-apps/api/core"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useUpdaterStore } from "@/features/updater/store"
-import { useSettingsAgent } from "@/lib/settings-bridge"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AboutSection() {
+  const [clientVersion, setClientVersion] = useState<string | null>(null)
+  const [cliVersion, setCliVersion] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    void Promise.allSettled([getVersion(), invoke<string>("codex_version")]).then(([client, cli]) => {
+      if (disposed) return
+      if (client.status === "fulfilled") setClientVersion(client.value)
+      if (cli.status === "fulfilled") setCliVersion(cli.value)
+      for (const result of [client, cli]) {
+        if (result.status === "rejected") {
+          const error: unknown = result.reason
+          toast.error(error instanceof Error ? error.message : String(error))
+        }
+      }
+    })
+    return () => {
+      disposed = true
+    }
+  }, [])
   useEffect(() => {
     if (!isTauri()) return
     void useUpdaterStore
@@ -17,7 +37,6 @@ export function AboutSection() {
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }, [])
   const { t } = useTranslation()
-  const agent = useSettingsAgent()
   const state = useUpdaterStore(store => store.state)
   const confirmInstallAndRelaunch = useUpdaterStore(store => store.confirmInstallAndRelaunch)
 
@@ -43,7 +62,9 @@ export function AboutSection() {
 
   return (
     <SettingGroup>
-      <SettingRow title={t("settings.updates")} desc={updaterText}>
+      <SettingRow
+        title={t("settings.updates")}
+        desc={`${updaterText} ${clientVersion === null ? "—" : `v${clientVersion}`}`}>
         {(state.type === "ready" || state.type === "restarting") && (
           <Button
             variant="outline"
@@ -59,16 +80,12 @@ export function AboutSection() {
         )}
       </SettingRow>
       <Separator />
-      {agent != null && (
-        <>
-          <SettingRow title={t("settings.engine")}>
-            <span className="text-muted-foreground text-sm">
-              {agent.name} {agent.version}
-            </span>
-          </SettingRow>
-          <Separator />
-        </>
-      )}
+      <SettingRow title={t("settings.engine")}>
+        <span className="text-muted-foreground text-sm">
+          {t("settings.codexVersion", { version: cliVersion ?? "—" })}
+        </span>
+      </SettingRow>
+      <Separator />
       <SettingRow title={t("settings.licensesTitle")} desc={t("settings.licenses")} />
     </SettingGroup>
   )

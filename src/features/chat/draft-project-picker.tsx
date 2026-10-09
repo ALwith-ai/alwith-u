@@ -1,6 +1,6 @@
 // ALwith Desktop's DraftProjectPicker reduced: the empty draft's project capsule. Shows the
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
-// dialog. Codex has no default workspace, so a folder must be chosen before the first send.
+// dialog. The host prepares the default workspace when no previous project was selected.
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"

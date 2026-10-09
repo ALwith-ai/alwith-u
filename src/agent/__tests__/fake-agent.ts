@@ -14,6 +14,7 @@ export type FakeAgent = {
   modelHints: Map<string, string | null>
   forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
+  newSessionDelay: { current: ((cwd: string) => Promise<void>) | null }
   listSessions: {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
   }
@@ -70,6 +71,7 @@ export function createFakeAgent(): FakeAgent {
   const forks: acp.ForkSessionRequest[] = []
   const origins = new Map<string, { nativeSessionId: string; forkedFromId: string; forkedAtTurnId: string | null }>()
   const configDelay: FakeAgent["configDelay"] = { current: null }
+  const newSessionDelay: FakeAgent["newSessionDelay"] = { current: null }
   const listSessions: FakeAgent["listSessions"] = { current: null }
   const configChanges: string[] = []
   const changingConfig = new Set<string>()
@@ -168,7 +170,8 @@ export function createFakeAgent(): FakeAgent {
     if (gateways.size === 0) gateway.current = null
     return {}
   })
-  app.onRequest("session/new", ({ params }) => {
+  app.onRequest("session/new", async ({ params }) => {
+    await newSessionDelay.current?.(params.cwd)
     const hint = modelHintOf(params)
     const configuredGateway = hint !== null && gatewayGroups().some(group => group.models.includes(hint))
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
@@ -374,6 +377,7 @@ export function createFakeAgent(): FakeAgent {
     modelHints,
     forks,
     configDelay,
+    newSessionDelay,
     listSessions,
     configChanges,
     renamed,

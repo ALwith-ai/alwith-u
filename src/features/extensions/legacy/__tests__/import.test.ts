@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { convertLegacyExtension, patchLegacySource } from "../import"
-import { legacyProfile } from "../profiles"
+import { convertLegacyExtension } from "../import"
 
 describe("generic import with optional host adapters", () => {
   test("imports a new local identity and module resources without executing source", async () => {
@@ -26,10 +25,9 @@ describe("generic import with optional host adapters", () => {
     expect(converted.manifest).toEqual(manifest)
     expect(converted.main).toContain(source)
     expect(converted.main).toContain("assets/defaults.json")
-    expect(patchLegacySource("generic-reader", source)).toBe(source)
   })
 
-  test("known adapters never bypass their source match and native identity is preserved", async () => {
+  test("preserves source from the native import ticket for known profiles", async () => {
     const prepared = {
       ticket: "test",
       manifest: { id: "yup-kb", name: "YUP", version: "2.20.0" },
@@ -38,33 +36,18 @@ describe("generic import with optional host adapters", () => {
       styles: "",
       modules: {}
     }
-    await expect(convertLegacyExtension(prepared)).rejects.toThrow("已审核版本")
+    const converted = await convertLegacyExtension(prepared)
+    expect(converted.main).toContain(JSON.stringify(prepared.source))
     await expect(
       convertLegacyExtension({ ...prepared, manifest: { id: "generic" }, convertedManifest: { id: "other" } })
     ).rejects.toThrow("ID")
   })
 
-  test("patches only exact reviewed sections and removes session and Desktop discovery paths", () => {
-    const profile = legacyProfile("yup-kb")
-    const source = profile.patches.map(patch => patch.before).join("\n/* unaffected section */\n")
-    const patched = patchLegacySource(profile.id, source)
-    expect(patched).toContain("/* unaffected section */")
-    expect(patched).toContain("会话归档暂不支持，其他知识库功能可用")
-    expect(patched).toContain('invoke("alwith-u:legacy-workspaces", {})')
-    expect(patched).not.toContain('"list_sessions"')
-    expect(patched).not.toContain('var _appId = "ai.alwith.desktop"')
-    expect(patched).not.toContain("syncState.consented === true ?")
-    expect(patched).not.toContain("_filterJsonlForArchive(rawC)")
-    expect(() => patchLegacySource(profile.id, source + profile.patches[0].before)).toThrow("不匹配")
-    expect(() => patchLegacySource(profile.id, "different source")).toThrow("不匹配")
-  })
-
-  test("BI import removes skill auto-updater while ETMS source remains untouched", () => {
-    const profile = legacyProfile("bi-metrics")
-    const patched = patchLegacySource(profile.id, profile.patches.map(patch => patch.before).join("\n"))
-    expect(patched).not.toContain("setTimeout")
-    expect(patched).not.toContain("syncSkillsToDisk")
-    expect(patched).toContain("Codex catalog")
-    expect(patchLegacySource("etms-strategy-review", "business source")).toBe("business source")
+  test("does not embed business source transformations in host profiles", async () => {
+    const { default: profiles } = await import("../profiles.json")
+    for (const profile of profiles) {
+      expect(profile).not.toHaveProperty("patches")
+      expect(profile).not.toHaveProperty("patchedSha256")
+    }
   })
 })

@@ -2,25 +2,58 @@
 
 import { invoke as __t3Invoke } from "@tauri-apps/api/core"
 import {
-  type EventCallback as __t3Callback,
-  emit as __t3Emit,
-  emitTo as __t3EmitTo,
   listen as __t3Listen,
   once as __t3Once,
+  emit as __t3Emit,
+  emitTo as __t3EmitTo,
+  type EventCallback as __t3Callback,
   type EventTarget as __t3Target
 } from "@tauri-apps/api/event"
 
 export const commands = {
+  extensionControlNext: (): Promise<
+    | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+    | { operation: "uninstall"; requestId: string; id: string }
+    | null
+  > =>
+    __t3Invoke<
+      | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+      | { operation: "uninstall"; requestId: string; id: string }
+      | null
+    >("extension_control_next"),
+  extensionControlComplete: (args: {
+    requestId: string
+    result: {
+      id: string
+      version: string
+      packageRevision: string
+      installed: boolean
+      enabled: boolean
+      activeInMainWindow: boolean
+      error: InstallError | null
+    } | null
+    error: string | null
+  }): Promise<null> => __t3Invoke<null>("extension_control_complete", args),
+  extensionControlUnavailable: (args: { message: string }): Promise<null> =>
+    __t3Invoke<null>("extension_control_unavailable", args),
+  extensionControlStatus: (): Promise<null> => __t3Invoke<null>("extension_control_status"),
+  draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
+  chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
+    __t3Invoke<ChatImage>("chat_read_image", args),
   extensionBundles: (): Promise<BundledExtension[]> => __t3Invoke<BundledExtension[]>("extension_bundles"),
   extensionPrepareInstall: (args: {
     expectedId: string | null
   }): Promise<
-    { format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport } | null
+    | { format: "current"; path: string; id: string; version: string; digest: string }
+    | { format: "legacy"; prepared: PreparedImport }
+    | null
   > =>
-    __t3Invoke<{ format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport } | null>(
-      "extension_prepare_install",
-      args
-    ),
+    __t3Invoke<
+      | { format: "current"; path: string; id: string; version: string; digest: string }
+      | { format: "legacy"; prepared: PreparedImport }
+      | null
+    >("extension_prepare_install", args),
   legacyStageImport: (args: { ticket: string; manifest: JsonValue; main: string }): Promise<StagedImport> =>
     __t3Invoke<StagedImport>("legacy_stage_import", args),
   legacyTakeInitialData: (args: {
@@ -130,6 +163,13 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
+  extensionControlNext: string
+  extensionControlComplete: string
+  extensionControlUnavailable: string
+  extensionControlStatus: string
+  draftDirectory: string
+  chatSaveFile: string
+  chatReadImage: string
   extensionBundles: string
   extensionPrepareInstall: string
   legacyStageImport: string
@@ -271,7 +311,16 @@ export type BundledExtension = {
   source: string
 }
 
+export type ChatImage = {
+  data: string
+  mimeType: string
+}
+
 export type CommandPalette = null
+
+export type ControlJob =
+  | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+  | { operation: "uninstall"; requestId: string; id: string }
 
 export type CustomInput = CustomInput_Serialize | CustomInput_Deserialize
 
@@ -365,6 +414,11 @@ export type Input = {
   baseUrl?: string | null
 }
 
+export type InstallError = {
+  code: string
+  message: string
+}
+
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key in string]: JsonValue }
 
 export type Metadata = {
@@ -391,7 +445,8 @@ export type PreparedImport = {
 }
 
 export type PreparedInstall =
-  { format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport }
+  | { format: "current"; path: string; id: string; version: string; digest: string }
+  | { format: "legacy"; prepared: PreparedImport }
 
 export type PublicCustomProvider = PublicCustomProvider_Serialize | PublicCustomProvider_Deserialize
 
@@ -412,6 +467,16 @@ export type PublicCustomProvider_Serialize = {
 export type RefreshedTokens = {
   access_token: string
   refresh_token: string
+}
+
+export type Report = {
+  id: string
+  version: string
+  packageRevision: string
+  installed: boolean
+  enabled: boolean
+  activeInMainWindow: boolean
+  error: InstallError | null
 }
 
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
@@ -448,6 +513,7 @@ export type StagedImport = {
   id: string
   version: string
   source: string
+  digest: string
 }
 
 /**

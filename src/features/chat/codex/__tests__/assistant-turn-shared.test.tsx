@@ -124,6 +124,90 @@ test("an image-only final answer is visible", () => {
   )
 })
 
+test("generated tool images stay visible in the reply when work is collapsed, including history replay", () => {
+  const session = feed(
+    addPrompt(createSession("generated-answer", "/tmp"), [{ type: "text", text: "Draw a portrait" }], "prompt"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "generated",
+      name: "image_generation",
+      kind: "other",
+      status: "completed",
+      content: [
+        {
+          type: "content",
+          content: { type: "image", data: "aGVsbG8=", mimeType: "image/png", uri: "file:///tmp/portrait.png" }
+        }
+      ]
+    },
+    text("final", "Portrait generated", "final_answer")
+  )
+  const view = render(viewOf(session))
+  mounted.push(view)
+  const answer =
+    view.container.querySelector(".codex-assistant-turn > .codex-final-answer") ??
+    view.container.querySelector(".codex-assistant-turn > div:last-child")
+  expect(answer?.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
+  expect(view.getByRole("button", { name: "Download portrait.png" })).toBeDefined()
+  view.rerender(viewOf({ ...session, items: session.items.map(item => ({ ...item, replayed: true })) }))
+  expect(view.container.querySelectorAll(".codex-reply-artifacts img").length).toBe(1)
+})
+
+test("generated images already present as final image or Blob are not repeated", () => {
+  for (const block of [
+    { type: "image", data: "aGVsbG8=", mimeType: "image/png" },
+    { type: "resource", resource: { uri: "file:///tmp/portrait.png", blob: "aGVsbG8=", mimeType: "image/png" } }
+  ]) {
+    const session = feed(
+      addPrompt(createSession("dedup-answer", "/tmp"), [{ type: "text", text: "draw" }], "prompt"),
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "generated",
+        name: "image_generation",
+        kind: "other",
+        status: "completed",
+        content: [{ type: "content", content: { type: "image", data: "aGVsbG8=", mimeType: "image/png" } }]
+      },
+      {
+        sessionUpdate: "agent_message",
+        messageId: "final",
+        content: [block],
+        _meta: { codex: { phase: "final_answer" } }
+      }
+    )
+    const view = render(viewOf(session))
+    mounted.push(view)
+    expect(view.container.querySelectorAll(".codex-final-answer img").length).toBe(1)
+    expect(view.container.querySelector(".codex-reply-artifacts")).toBeNull()
+    view.unmount()
+  }
+})
+
+test("failed image generation and viewed input images are not promoted to the reply", () => {
+  for (const [name, status] of [
+    ["image_generation", "failed"],
+    ["view_image", "completed"]
+  ]) {
+    const session = feed(
+      addPrompt(createSession("non-artifact", "/tmp"), [{ type: "text", text: "go" }], "prompt"),
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "image",
+        name,
+        kind: "read",
+        status,
+        content: [{ type: "content", content: { type: "image", data: "aGVsbG8=", mimeType: "image/png" } }]
+      },
+      text("final", "Result", "final_answer")
+    )
+    const view = render(viewOf(session))
+    mounted.push(view)
+    expect(view.container.querySelector(".codex-reply-artifacts")).toBeNull()
+    expect(view.container.querySelector(".codex-final-answer img")).toBeNull()
+    view.unmount()
+  }
+})
+
 test("completed replies show the original batch time in the shared action bar", () => {
   const session = feed(
     { ...createSession("original-time", "/tmp"), restoring: true },
@@ -176,7 +260,21 @@ test("embedded binary content can be downloaded from its payload", () => {
   })
   const view = render(viewOf(session))
   mounted.push(view)
-  expect(view.getByRole("link", { name: "file:///tmp/result.bin" }).getAttribute("href")).toBe(
-    "data:application/octet-stream;base64,aGVsbG8="
-  )
+  expect(view.getByRole("button", { name: "Download result.bin" })).toBeDefined()
+})
+
+test("embedded Blob images render a preview and retain their download action", () => {
+  const session = feed(addPrompt(createSession("blob-image", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "final",
+    content: [
+      { type: "resource", resource: { uri: "file:///tmp/photo.png", mimeType: "image/png", blob: "aGVsbG8=" } }
+    ],
+    _meta: { codex: { phase: "final_answer" } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.container.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
+  expect(view.getByRole("button", { name: "View image" })).toBeDefined()
+  expect(view.getByRole("button", { name: "Download photo.png" })).toBeDefined()
 })

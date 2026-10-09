@@ -17,6 +17,7 @@ import {
   toNavigationRailItems
 } from "./codex/navigation-rail"
 import { UserMessage } from "./codex/user-message"
+import { ChatDirectoryContext } from "./file-actions"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { useThreadScroll } from "./lib/use-thread-scroll"
 import { groupTurns, type Turn } from "./turns"
@@ -207,17 +208,19 @@ export function ThreadView({ session }: { session: Session }) {
         data-codex-turn={turn.key}
         className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
         {index === 0 && <ForkOriginDivider />}
-        {turn.user !== null && <UserMessage item={turn.user} />}
-        {hasAssistant && (
-          <AssistantTurn
-            turn={turn}
-            terminals={session.terminals}
-            active={active}
-            isLast={isLast}
-            error={session.error}
-            interrupted={!active && isLast && session.lastStopReason === "cancelled"}
-          />
-        )}
+        <ChatDirectoryContext value={session.cwd}>
+          {turn.user !== null && <UserMessage item={turn.user} />}
+          {hasAssistant && (
+            <AssistantTurn
+              turn={turn}
+              terminals={session.terminals}
+              active={active}
+              isLast={isLast}
+              error={session.error}
+              interrupted={!active && isLast && session.lastStopReason === "cancelled"}
+            />
+          )}
+        </ChatDirectoryContext>
         <ForkOriginDivider turn={turn} />
       </div>
     )

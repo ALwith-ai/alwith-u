@@ -13,15 +13,16 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
-import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
+import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
-import { connectLegacyNavigation } from "@/features/extensions/legacy/navigation"
-import { assertLegacySkills } from "@/features/extensions/legacy/skills"
+import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
+import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
+import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
 import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { CommandPalette } from "@/features/palette/command-palette"
@@ -51,7 +52,7 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
-  const { host: extensions } = useExtensions()
+  const { host: extensions, runtime: extensionRuntime } = useExtensions()
   const { t } = useTranslation()
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
@@ -59,6 +60,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
@@ -69,11 +71,19 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")
   const leading = view === "plugins" || view === "extensions" || view === "extension"
   const [extensionView, setExtensionView] = useState<string | null>(null)
-  const openExtension = useCallback((id: string): void => {
-    setExtensionView(id)
-    setLeadingPage("extensions")
-    setView("extension")
-  }, [])
+  const openExtension = useCallback(
+    (id: string): void => {
+      const contribution = extensionRuntime.host.snapshot().views.find(item => item.id === id)
+      if (contribution)
+        showExtensionLimitations(
+          extensionRuntime.snapshot().native?.installations.find(item => item.id === contribution.extensionId)
+        )
+      setExtensionView(id)
+      setLeadingPage("extensions")
+      setView("extension")
+    },
+    [extensionRuntime]
+  )
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
     setPluginsVisited(true)
@@ -85,36 +95,39 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("extensions")
   }, [])
   const session = useSession(selectedId)
-  const legacySession = useRef(session)
-  legacySession.current = session
-  useEffect(
-    () =>
-      connectLegacyNavigation({
-        currentSession: () => {
-          const selected = legacySession.current
-          return selected?.attached
-            ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id }
-            : null
-        },
-        openView: openExtension,
-        send: async (id, text, required) => {
-          if (required.length) {
-            const target = client.state.sessions[id]
-            if (!target?.attached || target.readOnly)
-              throw new Error("已绑定会话当前不可写，请重新打开会话后再操作扩展")
-            const catalog = await client.listSkills([target.cwd], true)
-            assertLegacySkills(
-              required,
-              catalog.data.flatMap(entry => entry.skills)
-            )
-          }
-          await client.prompt(id, [{ type: "text", text }])
-        }
-      }),
-    [openExtension]
-  )
-  const focused = useWindowFocus()
+  const draftSessions = useApp(state => state.draftSessions)
   const { busy, operation } = useSurfaceOperation()
+  const extensionSession = useRef(session)
+  extensionSession.current = session
+  useEffect(() => {
+    const dependencies = {
+      session: (targetId: string) => {
+        const target = client.state.sessions[targetId]
+        return extensionSession.current?.id === targetId && target?.attached && !target.readOnly
+          ? { cwd: target.cwd }
+          : null
+      },
+      skills: async (cwd: string) => {
+        const catalog = await client.listSkills([cwd], true)
+        return catalog.data.flatMap(entry => entry.skills)
+      },
+      present: () => setView("chat"),
+      prompt: (targetId: string, prompt: string) => client.prompt(targetId, [{ type: "text", text: prompt }]),
+      writeDraft: setComposerDraft
+    }
+    return connectExtensionNavigation({
+      currentSession: () => {
+        const selected = extensionSession.current
+        return selected?.attached ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id } : null
+      },
+      openView: openExtension,
+      send: (id, text, required, check) =>
+        operation.run(() => sendExtensionMessage(id, text, required, { ...dependencies, check })),
+      setDraft: (id, text, required, check) =>
+        operation.run(() => setExtensionDraft(id, text, required, { ...dependencies, check }))
+    })
+  }, [openExtension, operation])
+  const focused = useWindowFocus()
 
   useReadVisibleSession(selectedId, focused && view === "chat")
 
@@ -125,9 +138,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void operation
         .run(() =>
           selectThread(thread, {
-            connect: () => client.connect(),
+            connect: async () => {
+              await client.connect()
+              if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
+            },
             unarchive: id => client.unarchive(id),
-            release: releaseChatWindow,
+            release: async id => {
+              const transfer = await releaseChatWindow(id)
+              await client.transferDraft(id, "main")
+              return transfer
+            },
             importDraft,
             open: (id, cwd) => client.open(id, cwd),
             show: id => {
@@ -143,17 +163,24 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  // "New chat" returns to the empty draft, as in Desktop; the session is created on the
-  // first send (DraftChat), never by opening a folder dialog here.
   const newChat = useCallback(() => {
     if (operation.busy) return
-    setView("chat")
-    setSelectedId(null)
+    void operation
+      .run(async () => {
+        const directory = extensionSession.current?.cwd
+        await client.discardDraft("main")
+        if (directory) setLastDirectory(directory)
+        importDraft(DRAFT_SESSION_ID, null)
+        setSurfaceGeneration(value => value + 1)
+        setView("chat")
+        setSelectedId(null)
+      })
+      .catch((error: unknown) => toast.error(describe(error)))
   }, [operation])
 
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
-    void savePreference("lastProjectDirectory", directory)
+    void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
 
   const draftCreated = useCallback((id: string) => {
@@ -169,6 +196,29 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
       const stopSurface = await serveChatSurface(async action => {
         switch (action.type) {
+          case "present":
+            return operation.run(async () => {
+              const transfer = action.transfer
+              if (!transfer) throw new Error("Returning to main requires a chat transfer")
+              await client.connect()
+              if (transfer.sessionId !== null) {
+                if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
+                await client.transferDraft(transfer.sessionId, "main")
+                await client.open(transfer.sessionId, transfer.cwd)
+              } else {
+                await client.discardDraft("main")
+              }
+              importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
+              setLastDirectory(transfer.cwd)
+              setSelectedId(transfer.sessionId)
+              setSurfaceGeneration(value => value + 1)
+              setView("chat")
+              const win = getCurrentWebviewWindow()
+              await win.unminimize()
+              await win.show()
+              await win.setFocus()
+              return null
+            })
           case "markRead":
             await markRead(action.sessionId)
             return null
@@ -198,7 +248,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
       void shortcut.dispose().catch(error => toast.error(describe(error)))
     }
-  }, [initialPreferences.chatWindowShortcut])
+  }, [initialPreferences.chatWindowShortcut, operation])
 
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.
@@ -372,17 +422,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch(error => toast.error(describe(error)))
     }
-    const newProjectChat = (): void => {
-      if (operation.busy) return
-      if (session !== null) chooseDraftFolder(session.cwd)
-      importDraft(DRAFT_SESSION_ID, null)
-      setSurfaceGeneration(value => value + 1)
-      newChat()
-    }
+    const newProjectChat = newChat
+
     const deleted = (sessionId: string): void => {
       setSelectedId(current => (current === sessionId ? null : current))
     }
-    if (session !== null)
+    if (session !== null && !draftSessions[session.id] && submittingDraftId !== session.id)
       return (
         <ChatView
           key={`${session.id}-${surfaceGeneration}`}
@@ -398,6 +443,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <>
         {connectionNotice}
         <DraftChat
+          owner="main"
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
@@ -408,6 +454,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
+          onSendingChange={(id, sending) =>
+            setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+          }
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
           runOperation={operation.run}
@@ -475,7 +524,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 </div>
               )}
               {view === "extension" && extensionView !== null ? (
-                <ExtensionPage id={extensionView} onClose={openExtensions} />
+                <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
               ) : leadingPage === "extensions" ? (
                 <div className="min-h-0 flex-1 overflow-auto">
                   <div className="mx-auto w-full max-w-5xl px-6 py-8">

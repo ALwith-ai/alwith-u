@@ -115,7 +115,8 @@
     },
     "draft": {
       "selectProject": "Select project",
-      "newProject": "New project"
+      "newProject": "New project",
+      "configureProvider": "Configure provider"
     },
     "openIn": "Open in",
     "thread": "Conversation",
@@ -169,6 +170,7 @@
       "view": "View image"
     },
     "content": {
+      "download": "Download {{name}}",
       "unsupported": "Unsupported content: {{type}}"
     },
     "tokens": {
@@ -690,12 +692,28 @@
     "status": "revision {{revision}} · {{entries}} entries · {{notes}} notes"
   },
   "chatWindow": {
+    "returnToMain": "Return to main window",
     "open": "Open chat window",
     "shortcut": "Chat window shortcut",
     "shortcutSave": "Save shortcut",
     "shortcutOff": "Off"
   },
   "extensions": {
+    "skills": {
+      "title": "Required Codex skills",
+      "loading": "Checking Codex skills…",
+      "disconnected": "Open the main window and connect to Codex to check skills for your project.",
+      "error": "Could not check skills: {{message}}",
+      "missing": "Not installed",
+      "disabled": "Disabled",
+      "ambiguous": "Multiple enabled versions",
+      "enabled": "Enabled",
+      "unknown": "Could not verify",
+      "partial": "Some skill files could not be loaded. Fix the errors and check again.",
+      "note": "Install, enable and update these skills through Codex plugins. Enabled skills still require compatible data paths and business authentication.",
+      "manage": "Manage skills and plugins",
+      "refresh": "Check again"
+    },
     "legacyConflict": "An extension with this ID is already installed. Uninstall it before importing the Desktop version.",
     "details": {
       "label": "Details for {{name}}",

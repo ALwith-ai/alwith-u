@@ -29,3 +29,25 @@ export function importDraft(sessionId: string, draft: ComposerDraft | null): voi
   if (draft === null) drafts.delete(sessionId)
   else drafts.set(sessionId, draft)
 }
+
+const writers = new Map<string, (text: string) => void>()
+
+/** A mounted composer remains authoritative for live input and editability. */
+export function registerComposerWriter(sessionId: string, write: (text: string) => void): () => void {
+  if (writers.has(sessionId)) throw new Error("A composer is already registered for this session")
+  writers.set(sessionId, write)
+  return () => {
+    if (writers.get(sessionId) === write) writers.delete(sessionId)
+  }
+}
+
+export function setComposerDraft(sessionId: string, text: string): void {
+  if (typeof text !== "string" || !text.trim()) throw new Error("草稿内容不能为空")
+  const write = writers.get(sessionId)
+  if (!write) throw new Error("目标会话的输入框尚未就绪，请先打开该会话")
+  const current = drafts.get(sessionId)
+  if (current && (current.text.length || current.attachments.length || current.mentions.length))
+    throw new Error("输入框已有草稿，请先发送或清空后重试")
+  write(text)
+  drafts.set(sessionId, { text, attachments: [], mentions: [], modelId: current?.modelId ?? null })
+}
