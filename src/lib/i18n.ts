@@ -1,10 +1,11 @@
 import { chatLocales } from "@alwith/module-chat/locales"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
+import ar from "@/locales/ar.json"
 import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"
 
-/** ALwith Desktop's language list; translations come from Desktop (scripts/locales-from-desktop.ts). */
+/** Supported application languages, shared with ALwith Desktop. */
 export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "zh-CN", label: "简体中文" },
@@ -53,6 +54,7 @@ export function initI18n(language: string | null): Promise<unknown> {
   return i18n.use(initReactI18next).init({
     resources: {
       en: { translation: en, alwithChat: chatLocales.en },
+      ar: { translation: ar, alwithChat: chatLocales.ar },
       "zh-CN": { translation: zhCN, alwithChat: chatLocales["zh-CN"] }
     },
     lng: language !== null && isLanguageCode(language) ? language : systemLanguage(),

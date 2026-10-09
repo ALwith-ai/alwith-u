@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "vitest"
 import { detectTrigger, fileItems, filterSlashCommands } from "../completion"
 import { countControlCharsBeforeIndex, sanitizeTextareaValue } from "../prompt-input-clipboard"
 

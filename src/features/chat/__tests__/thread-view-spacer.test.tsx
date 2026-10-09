@@ -1,12 +1,10 @@
-import { afterEach, expect, mock, test } from "bun:test"
 import { addPrompt, applyUpdate, createSession } from "@alwith/api"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
+import { afterEach, expect, test, vi } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
-import { installDom } from "../codex/__tests__/dom-environment"
 
-installDom()
-mock.module("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
+vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
 const { ThreadView } = await import("../thread-view")
 const { navigationSoundStore } = await import("../codex/navigation-sound-store")
 await initI18n("en")

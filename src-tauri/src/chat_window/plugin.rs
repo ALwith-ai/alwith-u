@@ -3,7 +3,7 @@ use tauri::{
     plugin::{Builder, TauriPlugin},
 };
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
     if window.label() != "chat" {
         return Err("Only the chat window may present itself".into());
@@ -37,7 +37,7 @@ pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn resize_chat_window(
     window: WebviewWindow, direction: String, x: f64, y: f64, width: f64, height: f64,
 ) -> Result<(), String> {

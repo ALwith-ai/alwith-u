@@ -1,9 +1,7 @@
-import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { act, cleanup, renderHook } from "@testing-library/react"
-import { installDom } from "../../codex/__tests__/dom-environment"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { useThreadScroll } from "../use-thread-scroll"
 
-installDom()
 const originalRequest = globalThis.requestAnimationFrame
 const originalCancel = globalThis.cancelAnimationFrame
 const frames = new Map<number, FrameRequestCallback>()
@@ -246,7 +244,7 @@ test("idle history uses the narrow bottom band", () => {
 })
 
 test("reduced motion completes on one frame", () => {
-  const media = spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList)
+  const media = vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList)
   try {
     const view = setup(400)
     act(() => view.result.current.scrollToBottom())

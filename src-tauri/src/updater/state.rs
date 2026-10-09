@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub enum DisablementReason {
     InvalidConfiguration,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateInfo {
     pub version: String,
@@ -17,8 +17,10 @@ pub struct UpdateInfo {
 
 /// The updater state machine (VSCode abstractUpdateService). `AvailableForDownload` is
 /// stored but never emitted: a hit is downloaded straight away.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(tag = "type", rename_all = "camelCase")]
+#[derive(tauri3_specta::Event)]
+#[event(name = "updater:state")]
 pub enum State {
     Uninitialized,
     Disabled {

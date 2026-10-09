@@ -1,4 +1,4 @@
-import { expect, mock, test } from "bun:test"
+import { expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { ProjectThreadCache } from "../project-thread-cache"
 
@@ -11,7 +11,7 @@ const thread: ThreadSummary = {
 }
 
 test("project queries deduplicate while pending and reuse completed results", async () => {
-  const query = mock(async () => [thread])
+  const query = vi.fn(async () => [thread])
   const cache = new ProjectThreadCache(query)
   cache.load(thread.cwd)
   cache.load(thread.cwd)
@@ -22,7 +22,7 @@ test("project queries deduplicate while pending and reuse completed results", as
 })
 
 test("mutations invalidate the affected project, keeping other project results", async () => {
-  const query = mock(async (cwd: string) => [{ ...thread, cwd }])
+  const query = vi.fn(async (cwd: string) => [{ ...thread, cwd }])
   const cache = new ProjectThreadCache(query)
   cache.load(thread.cwd)
   cache.load("/other")
@@ -44,7 +44,7 @@ test("mutations invalidate the affected project, keeping other project results",
 
 test("invalidated in-flight results cannot overwrite a newer project query", async () => {
   let finish!: (value: ThreadSummary[]) => void
-  const query = mock(
+  const query = vi.fn(
     () =>
       new Promise<ThreadSummary[]>(resolve => {
         finish = resolve
@@ -63,7 +63,7 @@ test("invalidated in-flight results cannot overwrite a newer project query", asy
 })
 
 test("failed queries expose the error and retry only after explicit invalidation", async () => {
-  const query = mock(async () => {
+  const query = vi.fn(async () => {
     throw new Error("Query failed")
   })
   const cache = new ProjectThreadCache(query)

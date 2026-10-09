@@ -1,10 +1,7 @@
-import { expect, spyOn, test } from "bun:test"
 import { act, render } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { expect, test, vi } from "vitest"
 import i18n, { initI18n } from "@/lib/i18n"
 import { ErrorBoundary } from "../error-boundary"
-
-installDom()
 
 function Broken(): never {
   throw new Error("test crash")
@@ -15,7 +12,9 @@ test("the mounted production error fallback follows language changes", async () 
   const runtime = window as unknown as Record<string, unknown>
   const originalTauriInternals = runtime.__TAURI_INTERNALS__
   runtime.__TAURI_INTERNALS__ = { invoke: async () => undefined }
-  const consoleError = spyOn(console, "error").mockImplementation(() => undefined)
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined)
+  // Vitest runs in development mode; the production fallback is the one under test.
+  vi.stubEnv("DEV", false)
   try {
     const view = render(
       <ErrorBoundary>
@@ -31,6 +30,7 @@ test("the mounted production error fallback follows language changes", async () 
     expect(view.getByRole("button", { name: "重试" })).toBeTruthy()
     await Promise.resolve()
   } finally {
+    vi.unstubAllEnvs()
     consoleError.mockRestore()
     if (originalTauriInternals === undefined) delete runtime.__TAURI_INTERNALS__
     else runtime.__TAURI_INTERNALS__ = originalTauriInternals

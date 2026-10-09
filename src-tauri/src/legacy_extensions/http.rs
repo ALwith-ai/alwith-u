@@ -1,4 +1,5 @@
-use alwith_extension::http::{self, HttpRequest, HttpResponse};
+use crate::extension_wire::{HttpRequest, HttpResponse};
+use alwith_extension::http;
 use reqwest::Url;
 use tauri::Manager;
 
@@ -33,18 +34,18 @@ fn validate_url(legacy_profile: Option<&str>, value: &str) -> Result<Url, String
     Ok(url)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn legacy_http(
     window: tauri::Window, extension_id: String, request: HttpRequest,
 ) -> Result<HttpResponse, String> {
     require_installation(&window, &extension_id)?;
-    let response = http::execute(request, |url| validate_url(Some(&extension_id), url)).await?;
+    let response = http::execute(request.into(), |url| validate_url(Some(&extension_id), url)).await?;
     // An uninstall during the request must not deliver a response to a stale extension.
     super::importer::require_legacy_installation(window.app_handle(), &extension_id)?;
-    Ok(response)
+    Ok(response.into())
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_http(
     window: tauri::Window, extension_id: String, request: HttpRequest,
 ) -> Result<HttpResponse, String> {
@@ -57,7 +58,7 @@ pub async fn extension_http(
     } else {
         None
     };
-    let response = http::execute(request, |url| validate_url(legacy_profile, url)).await?;
+    let response = http::execute(request.into(), |url| validate_url(legacy_profile, url)).await?;
     let current = crate::extension_capabilities::require_installation(&window, &extension_id)?;
     if current.installation_id != installation.installation_id
         || current.package_revision != installation.package_revision
@@ -69,7 +70,7 @@ pub async fn extension_http(
     if legacy_profile.is_some() {
         super::importer::require_legacy_installation(window.app_handle(), &extension_id)?;
     }
-    Ok(response)
+    Ok(response.into())
 }
 
 #[cfg(test)]

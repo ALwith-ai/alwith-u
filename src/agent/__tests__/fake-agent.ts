@@ -330,7 +330,7 @@ export function createFakeAgent(): FakeAgent {
             status: "completed"
           })
         } else {
-          await Bun.sleep(80)
+          await new Promise(resolve => setTimeout(resolve, 80))
           if (!controller.signal.aborted)
             await emit({
               sessionUpdate: "agent_message_chunk",
@@ -343,7 +343,7 @@ export function createFakeAgent(): FakeAgent {
         await emit({
           sessionUpdate: "state_update",
           state: "idle",
-          stopReason: controller.signal.aborted ? "cancelled" : "end_turn"
+          ...(controller.signal.aborted ? { stopReason: "cancelled" as const } : { stopReason: "end_turn" as const })
         })
         active.delete(id)
       }

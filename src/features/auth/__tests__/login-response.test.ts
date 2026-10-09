@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { assertActiveLogin } from "../login-response"
 
 const response = {

@@ -9,10 +9,10 @@
  * Shared by full and mini chat windows.
  */
 
-import { invoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { platform } from "@tauri-apps/plugin-os"
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef } from "react"
+import { commands } from "@/bindings"
 
 // @tauri-apps/api does not export ResizeDirection; infer it from the method signature.
 type ResizeDirection = Parameters<ReturnType<typeof getCurrentWindow>["startResizeDragging"]>[0]
@@ -105,7 +105,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
         // Absolute screen coordinates remain stable as bounds change each frame; sample the next starting bounds only after serialized resize requests finish.
         const dx = Math.round((point.x - startX) * scaleFactor)
         const dy = Math.round((point.y - startY) * scaleFactor)
-        await invoke("resize_chat_window", {
+        await commands.resizeChatWindow({
           direction,
           x: position.x + (west ? dx : 0),
           y: position.y + (north ? dy : 0),

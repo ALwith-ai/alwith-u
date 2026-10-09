@@ -3,6 +3,7 @@ mod auth;
 mod bundled_extensions;
 mod chat_window;
 mod extension_capabilities;
+mod extension_wire;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -92,43 +93,7 @@ pub fn run() {
             log::info!("page {:?} {}", payload.event(), payload.url());
             let _ = webview;
         })
-        .invoke_handler(tauri::generate_handler![
-            bundled_extensions::extension_bundles,
-            legacy_extensions::importer::extension_prepare_install,
-            legacy_extensions::importer::legacy_stage_import,
-            legacy_extensions::importer::legacy_take_initial_data,
-            legacy_extensions::importer::legacy_ack_initial_data,
-            legacy_extensions::importer::legacy_cleanup_import,
-            legacy_extensions::http::legacy_http,
-            legacy_extensions::http::extension_http,
-            extension_capabilities::extension_cleanup_grants,
-            legacy_extensions::files::extension_file,
-            legacy_extensions::files::extension_directories,
-            legacy_extensions::files::extension_pick_directory,
-            legacy_extensions::files::legacy_file,
-            legacy_extensions::files::legacy_directories,
-            legacy_extensions::files::legacy_pick_directory,
-            appearance::wallpaper::wallpaper_list,
-            appearance::wallpaper::wallpaper_import,
-            appearance::wallpaper::wallpaper_remove,
-            auth::refresh_tokens,
-            chat_window::plugin::present_chat_window,
-            chat_window::plugin::resize_chat_window,
-            runtime::runtime_start,
-            runtime::runtime_send,
-            runtime::codex_version,
-            providers::providers_read,
-            providers::providers_save,
-            providers::providers_save_custom,
-            providers::providers_remove_custom,
-            providers::providers_test,
-            providers::providers_apply,
-            updater::commands::updater_get_state,
-            updater::commands::updater_install_and_relaunch,
-            window::attach_window_to_main,
-            installed_apps::read_apps_info,
-            installed_apps::open_path_in_app
-        ])
+        .invoke_handler(bindings().invoke_handler())
         .build(tauri::generate_context!())
         .expect("error while building ALwith U")
         .run(|app, event| match event {
@@ -144,4 +109,57 @@ pub fn run() {
             }
             _ => {}
         });
+}
+
+/// The native handler and TypeScript exporter use this same command and event graph.
+pub fn bindings() -> tauri3_specta::Bindings {
+    tauri3_specta::commands![
+        bundled_extensions::extension_bundles,
+        legacy_extensions::importer::extension_prepare_install,
+        legacy_extensions::importer::legacy_stage_import,
+        legacy_extensions::importer::legacy_take_initial_data,
+        legacy_extensions::importer::legacy_ack_initial_data,
+        legacy_extensions::importer::legacy_cleanup_import,
+        legacy_extensions::http::legacy_http,
+        legacy_extensions::http::extension_http,
+        extension_capabilities::extension_cleanup_grants,
+        legacy_extensions::files::extension_file,
+        legacy_extensions::files::extension_directories,
+        legacy_extensions::files::extension_pick_directory,
+        legacy_extensions::files::legacy_file,
+        legacy_extensions::files::legacy_directories,
+        legacy_extensions::files::legacy_pick_directory,
+        appearance::wallpaper::wallpaper_list,
+        appearance::wallpaper::wallpaper_import,
+        appearance::wallpaper::wallpaper_remove,
+        auth::refresh_tokens,
+        chat_window::plugin::present_chat_window,
+        chat_window::plugin::resize_chat_window,
+        runtime::runtime_start,
+        runtime::runtime_send,
+        runtime::codex_version,
+        providers::providers_read,
+        providers::providers_save,
+        providers::providers_save_custom,
+        providers::providers_remove_custom,
+        providers::providers_test,
+        providers::providers_apply,
+        updater::commands::updater_get_state,
+        updater::commands::updater_install_and_relaunch,
+        window::attach_window_to_main,
+        installed_apps::read_apps_info,
+        installed_apps::open_path_in_app
+    ]
+    .event::<runtime::RuntimeLines>()
+    .event::<runtime::RuntimeExit>()
+    .event::<providers::Snapshot>()
+    .event::<updater::state::State>()
+    .event::<menu::OpenSettings>()
+    .event::<menu::NewChat>()
+    .event::<menu::FindInChat>()
+    .event::<menu::CommandPalette>()
+    .event::<menu::OpenHotkeys>()
+    .event::<menu::ZoomIn>()
+    .event::<menu::ZoomOut>()
+    .event::<menu::ActualSize>()
 }

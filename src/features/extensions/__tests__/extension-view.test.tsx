@@ -1,14 +1,12 @@
-import { beforeEach, expect, test } from "bun:test"
 import type { ExtensionManifest } from "@alwith/module-extension"
 import { ExtensionHost } from "@alwith/module-extension/host"
 import { mountReact } from "@alwith/module-extension/react"
 import { act, fireEvent, render } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { beforeEach, expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import { ExtensionViewContent } from "../extension-view"
 
-installDom()
 beforeEach(async () => {
   await initI18n("en")
 })

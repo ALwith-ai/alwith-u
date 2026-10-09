@@ -1,4 +1,3 @@
-import { afterEach, describe, expect, test } from "bun:test"
 import {
   VirtualizedTurnList,
   type VirtualizedTurnListApi,
@@ -6,9 +5,7 @@ import {
 } from "@alwith/module-chat/virtualized-turn-list"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { createRef } from "react"
-import { installDom } from "./dom-environment"
-
-installDom()
+import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 function entries(count: number): VirtualizedTurnListEntry[] {
   return Array.from({ length: count }, (_, index) => ({ turnKey: `turn-${index}` }))
@@ -94,8 +91,18 @@ function threadHeight(scrollElement: HTMLElement): number {
   return Number.parseFloat(thread.style.height)
 }
 
+const nativeBounds = HTMLElement.prototype.getBoundingClientRect
+
 describe("VirtualizedTurnList", () => {
+  beforeEach(() => {
+    // Happy DOM has no layout engine. Ready turns are synchronously measured on mount.
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      return new DOMRect(0, 0, 100, this.hasAttribute("data-turn-key") ? 280 : 0)
+    }
+  })
+
   afterEach(() => {
+    HTMLElement.prototype.getBoundingClientRect = nativeBounds
     cleanup()
     globalThis.ResizeObserver = nativeResizeObserver
     document.body.replaceChildren()

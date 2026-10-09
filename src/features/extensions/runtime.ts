@@ -10,7 +10,6 @@ import {
   createTauriHttp,
   createTauriNotifications
 } from "@alwith/module-extension/tauri/capabilities"
-import { invoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import * as React from "react"
 import { useEffect, useSyncExternalStore } from "react"
@@ -18,9 +17,10 @@ import * as jsxDevRuntime from "react/jsx-dev-runtime"
 import * as jsxRuntime from "react/jsx-runtime"
 import * as reactDom from "react-dom/client"
 import { toast } from "sonner"
+import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { version as hostVersion } from "../../../package.json"
-import { type BundledExtension, ensureBundledExtensions } from "./bundled"
+import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost } from "./legacy/host"
@@ -92,8 +92,7 @@ export function useExtensions() {
   const host = useHostSnapshot(current.host)
   useEffect(() => {
     startup ??= current.start().then(async () => {
-      if (getCurrentWindow().label === "main")
-        await ensureBundledExtensions(current, await invoke<BundledExtension[]>("extension_bundles"))
+      if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
     })
     void startup.catch(reportExtensionError)
     const refresh = (): void => {

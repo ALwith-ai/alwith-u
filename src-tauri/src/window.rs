@@ -6,7 +6,7 @@ use tauri::Manager;
 /// follows it between Spaces and never becomes its own Stage Manager stage. Called on every
 /// open: hiding a child window (orderOut) detaches it, so reopening must re-attach.
 /// Other platforms have no such grouping; the command is a no-op there.
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn attach_window_to_main(app: tauri::AppHandle, label: String) -> Result<bool, String> {
     #[cfg(target_os = "macos")]
     {

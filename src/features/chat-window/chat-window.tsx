@@ -3,6 +3,7 @@ import { XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
@@ -96,12 +97,12 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       event.preventDefault()
       void hide().catch(report)
     })
-    const menu = win.listen("menu:new-chat", newChat)
+    const menu = win.listen<null>(events["menu:new-chat"].name, newChat)
     const zoom = Promise.all([
-      win.listen("menu:zoom-in", () => void zoomIn().catch(report)),
-      win.listen("menu:zoom-out", () => void zoomOut().catch(report)),
-      win.listen("menu:actual-size", () => void resetZoom().catch(report)),
-      win.listen("menu:open-settings", () => void openSettingsWindow().catch(report))
+      win.listen<null>(events["menu:zoom-in"].name, () => void zoomIn().catch(report)),
+      win.listen<null>(events["menu:zoom-out"].name, () => void zoomOut().catch(report)),
+      win.listen<null>(events["menu:actual-size"].name, () => void resetZoom().catch(report)),
+      win.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow().catch(report))
     ])
     void (async () => {
       await client.connect()

@@ -3,7 +3,7 @@ use crate::updater::{PluginChecker, PluginDownloader, PluginInstaller, UpdaterSe
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State as TauriState};
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn updater_get_state(svc: TauriState<'_, Arc<UpdaterService>>) -> Result<UpdaterState, ()> {
     Ok(svc.state())
 }
@@ -23,7 +23,7 @@ pub async fn check_and_autodownload(app: AppHandle, svc: Arc<UpdaterService>) {
     svc.autodownload_if_available(&downloader, &updater_dir).await;
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn updater_install_and_relaunch(
     app: AppHandle, svc: TauriState<'_, Arc<UpdaterService>>,
 ) -> Result<(), String> {

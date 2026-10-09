@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test"
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
+import { expect, test } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"

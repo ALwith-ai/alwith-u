@@ -1,12 +1,13 @@
-import { afterEach, expect, spyOn, test } from "bun:test"
 import * as events from "@tauri-apps/api/event"
 import { act, renderHook } from "@testing-library/react"
-import { installDom } from "../../features/chat/codex/__tests__/dom-environment"
+import { afterEach, expect, test, vi } from "vitest"
 import type { ProviderSnapshot } from "../providers"
 import * as providers from "../providers"
 import { useProviders } from "../use-providers"
 
-installDom()
+// Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
+vi.mock("@tauri-apps/api/event", async importOriginal => ({ ...(await importOriginal<object>()), listen: vi.fn() }))
+
 afterEach(() => {
   providersRead?.mockRestore()
   eventListen?.mockRestore()
@@ -32,11 +33,11 @@ for (const [eventRevision, readRevision, expectedRevision] of [
   test(`provider read ${readRevision} and event ${eventRevision} preserve the newest configuration`, async () => {
     let receive!: (event: events.Event<ProviderSnapshot>) => void
     let finish!: (value: ProviderSnapshot) => void
-    eventListen = spyOn(events, "listen").mockImplementation(async (_event, callback) => {
+    eventListen = vi.spyOn(events, "listen").mockImplementation(async (_event, callback) => {
       receive = callback as typeof receive
       return () => {}
     })
-    providersRead = spyOn(providers, "loadProviders").mockImplementation(
+    providersRead = vi.spyOn(providers, "loadProviders").mockImplementation(
       () =>
         new Promise(resolve => {
           finish = resolve

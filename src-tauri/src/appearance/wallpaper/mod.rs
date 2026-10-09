@@ -10,7 +10,7 @@ use tauri_plugin_dialog::DialogExt;
 
 const MAX_IMAGE_BYTES: usize = 20 * 1024 * 1024;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, specta::Type)]
 pub struct ImportedImage {
     id: String,
     name: String,
@@ -136,7 +136,7 @@ fn check_window<R: Runtime>(window: &tauri::Window<R>) -> Result<(), String> {
     }
     Ok(())
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn wallpaper_list(window: tauri::Window) -> Result<Vec<ImportedImage>, String> {
     check_window(&window)?;
     let library = library(window.app_handle())?;
@@ -182,7 +182,7 @@ impl WallpaperDialogText {
         }
     }
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn wallpaper_import(window: tauri::Window, locale: Option<String>) -> Result<Option<ImportedImage>, String> {
     check_window(&window)?;
     let app = window.app_handle().clone();
@@ -210,7 +210,7 @@ pub async fn wallpaper_import(window: tauri::Window, locale: Option<String>) -> 
     .await
     .map_err(|e| e.to_string())?
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn wallpaper_remove(window: tauri::Window, id: String, locale: Option<String>) -> Result<bool, String> {
     check_window(&window)?;
     let app = window.app_handle().clone();

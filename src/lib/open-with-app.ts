@@ -1,10 +1,12 @@
 // Opening a project folder in an installed app (ALwith Desktop's open-with-app + the chat
 // header's OpenInEditorButton). Candidates are English bundle names; Rust answers with the
 // localized display name, the bundle id (Windows: exe path) and the icon.
-import { invoke } from "@tauri-apps/api/core"
+
+import type { AppInfo } from "@/bindings"
+import { commands } from "@/bindings"
 import { isMac } from "@/lib/platform"
 
-export type AppInfo = { name: string; bundle_id: string; icon: string | null }
+export type { AppInfo } from "@/bindings"
 
 /** macOS: `.app` names resolved from the application folders; Windows: uninstall-table names. */
 export function externalAppCandidates(): string[] {
@@ -30,9 +32,9 @@ export function externalAppCandidates(): string[] {
 }
 
 export function readAppsInfo(names: string[], withIcons: boolean): Promise<AppInfo[]> {
-  return invoke<AppInfo[]>("read_apps_info", { names, withIcons })
+  return commands.readAppsInfo({ names, withIcons })
 }
 
-export function openPathInApp(bundleId: string, path: string): Promise<void> {
-  return invoke("open_path_in_app", { bundleId, path })
+export async function openPathInApp(bundleId: string, path: string): Promise<void> {
+  await commands.openPathInApp({ bundleId, path })
 }

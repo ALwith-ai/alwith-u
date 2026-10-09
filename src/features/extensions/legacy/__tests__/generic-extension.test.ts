@@ -1,21 +1,10 @@
-import { expect, test } from "bun:test"
 import { type ExtensionManifest, extensionApiVersion } from "@alwith/module-extension"
 import { createCommonJsEvaluator, ExtensionHost, ResourceScope } from "@alwith/module-extension/host"
 import * as legacy from "@alwith/module-extension/legacy"
 import { createMemoryData } from "@alwith/module-extension/testing"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { expect, test } from "vitest"
 import { createLegacyBridge } from "../bridge"
 import { convertLegacyExtension } from "../import"
-
-installDom()
-;(
-  window as unknown as {
-    happyDOM: { settings: { disableCSSFileLoading: boolean; handleDisabledFileLoadingAsSuccess: boolean } }
-  }
-).happyDOM.settings.disableCSSFileLoading = true
-;(
-  window as unknown as { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: boolean } } }
-).happyDOM.settings.handleDisabledFileLoadingAsSuccess = true
 
 test("an unlisted legacy application loads modules, mounts a page, and shares file and SDK configuration", async () => {
   const manifest: ExtensionManifest = {

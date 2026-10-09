@@ -1,6 +1,6 @@
 // The story module as seen from U: module calls go through the Runtime (`modules/alwith-story/<method>`),
 // the story agent is started by the module (owner-scoped) and driven here over ACP like any other agent.
-import type { SessionUpdate } from "@agentclientprotocol/sdk"
+import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2"
 import { Agent } from "@alwith/api"
 import { runtimeClient } from "@/lib/runtime"
 
@@ -126,12 +126,11 @@ export async function startStoryAgent(root: string): Promise<StoryAgent> {
 
 /** The text of one `session/update` frame for the transcript, or null when it carries none. */
 export function transcriptLine(update: SessionUpdate): { kind: "prose" | "tool"; text: string } | null {
-  switch (update.sessionUpdate) {
-    case "agent_message_chunk":
-      return update.content.type === "text" ? { kind: "prose", text: update.content.text } : null
-    case "tool_call":
-      return { kind: "tool", text: update.title }
-    default:
-      return null
+  if (SessionUpdate.isAgentMessageChunk(update)) {
+    return ContentBlock.isText(update.content) ? { kind: "prose", text: update.content.text } : null
   }
+  if (SessionUpdate.isToolCallUpdate(update) && update.title != null) {
+    return { kind: "tool", text: update.title }
+  }
+  return null
 }

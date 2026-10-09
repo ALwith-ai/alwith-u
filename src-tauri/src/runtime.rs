@@ -10,10 +10,9 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
+use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri3_specta::Event;
 
-pub const LINES_EVENT: &str = "runtime:lines";
-pub const EXIT_EVENT: &str = "runtime:exit";
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
 const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
 
@@ -68,7 +67,7 @@ fn sidecar_path(name: &str) -> Result<PathBuf, String> {
 }
 
 /// Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn codex_version() -> Result<String, String> {
     let mut command = tokio::process::Command::new(sidecar_path("codex")?);
     command.arg("--version").kill_on_drop(true).hide_console();
@@ -138,7 +137,7 @@ fn modules_dir() -> Option<PathBuf> {
     None
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn runtime_start(
     app: AppHandle, window: WebviewWindow, state: State<'_, RuntimeState>, connection_id: String,
 ) -> Result<(), String> {
@@ -204,11 +203,11 @@ pub async fn runtime_start(
                 match event {
                     ClientEvent::Closed { reason } => {
                         if !lines.is_empty() {
-                            let _ = app.emit(LINES_EVENT, std::mem::take(&mut lines));
+                            let _ = RuntimeLines(std::mem::take(&mut lines)).emit(&app);
                         }
                         log::info!("alwith-runtime exited: {reason}");
                         state.client.lock().unwrap().take();
-                        let _ = app.emit(EXIT_EVENT, json!({"code":null,"signal":null}));
+                        let _ = RuntimeExit { code: None, signal: None }.emit(&app);
                         break 'events;
                     }
                     // Wire diagnostics belong to the native host. Private configuration frames
@@ -234,7 +233,7 @@ pub async fn runtime_start(
                 }
             }
             if !lines.is_empty() {
-                let _ = app.emit(LINES_EVENT, lines);
+                let _ = RuntimeLines(lines).emit(&app);
             }
         }
     });
@@ -248,7 +247,7 @@ struct Request {
     params: Option<Value>,
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn runtime_send(
     window: WebviewWindow, state: State<'_, RuntimeState>, line: String, connection_id: String,
 ) -> Result<(), String> {
@@ -281,7 +280,7 @@ pub async fn runtime_send(
         Ok(result) => json!({"connectionId":connection_id,"id":request.id,"result":result,"error":null}),
         Err(error) => json!({"connectionId":connection_id,"id":request.id,"error":error}),
     };
-    window.emit(LINES_EVENT, vec![response.to_string()]).map_err(|error| error.to_string())
+    RuntimeLines(vec![response.to_string()]).emit(&window).map_err(|error| error.to_string())
 }
 
 pub fn request_error(error: ResponseError) -> String {
@@ -301,4 +300,32 @@ fn private_request(line: &str) -> bool {
     serde_json::from_str::<Value>(line).ok().is_some_and(|frame| {
         matches!(frame.get("method").and_then(Value::as_str), Some("providers/set" | "auth/login"))
     })
+}
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[serde(transparent)]
+#[event(name = "runtime:lines")]
+pub struct RuntimeLines(pub Vec<String>);
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "runtime:exit")]
+pub struct RuntimeExit {
+    pub code: Option<i32>,
+    pub signal: Option<i32>,
+}
+
+#[cfg(test)]
+mod binding_tests {
+    use super::*;
+
+    #[test]
+    fn runtime_events_preserve_the_shared_sdk_wire_contract() {
+        assert_eq!(RuntimeLines::NAME, "runtime:lines");
+        assert_eq!(RuntimeExit::NAME, "runtime:exit");
+        assert_eq!(serde_json::to_value(RuntimeLines(vec!["frame".into()])).unwrap(), json!(["frame"]));
+        assert_eq!(
+            serde_json::to_value(RuntimeExit { code: None, signal: None }).unwrap(),
+            json!({"code": null, "signal": null})
+        );
+    }
 }

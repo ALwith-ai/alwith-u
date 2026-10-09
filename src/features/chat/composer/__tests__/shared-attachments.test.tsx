@@ -1,12 +1,10 @@
-import { afterEach, expect, test } from "bun:test"
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
+import { afterEach, expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
-import { installDom } from "../../codex/__tests__/dom-environment"
 import { PromptInputAttachment, PromptInputAttachments } from "../prompt-input-attachments"
 import { type Attachment, PromptInputProvider } from "../prompt-input-context"
 
-installDom()
 await initI18n("en")
 const mounted: ReturnType<typeof render>[] = []
 afterEach(async () => {

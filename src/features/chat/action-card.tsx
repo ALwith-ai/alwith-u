@@ -142,7 +142,7 @@ function ElicitationCard({
       url={params.url}
       t={t}
       onOpen={openExternal}
-      onRespond={answer => onRespond(action.id, { action: answer })}
+      onRespond={answer => onRespond(action.id, answer === "cancel" ? { action: "cancel" } : { action: "decline" })}
     />
   )
 }

@@ -1,19 +1,17 @@
-import { afterEach, beforeEach, expect, test } from "bun:test"
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import type { Installation, Request } from "@alwith/module-extension/tauri"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { afterEach, beforeEach, expect, test } from "vitest"
 import i18n, { initI18n } from "@/lib/i18n"
 import { ExtensionsManager } from "../extensions-manager"
 
-installDom()
 beforeEach(async () => {
   await initI18n("en")
 })
 afterEach(async () => {
   await act(async () => {
     cleanup()
-    await Bun.sleep(0)
+    await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
 function installation(id: string, name: string): Installation {
@@ -292,7 +290,7 @@ test("hovering extension information reveals full metadata and follows language 
     const information = view.getByRole("group", { name: "Details for Alpha Notes" })
     fireEvent.mouseEnter(information)
     fireEvent.mouseMove(information)
-    await Bun.sleep(350)
+    await new Promise(resolve => setTimeout(resolve, 350))
   })
   const details = within(view.getByRole("tooltip"))
   for (const text of [

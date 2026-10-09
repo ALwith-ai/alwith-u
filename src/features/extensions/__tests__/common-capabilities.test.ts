@@ -1,4 +1,3 @@
-import { expect, test } from "bun:test"
 import {
   binaryHttpCapability,
   clipboardCapability,
@@ -13,6 +12,7 @@ import {
 } from "@alwith/module-extension"
 import { createCommonCapabilities, ExtensionHost, type NativeFileRequest } from "@alwith/module-extension/host"
 import { createMemoryData } from "@alwith/module-extension/testing"
+import { expect, test } from "vitest"
 
 test("the installed package exposes common capabilities to a modern extension and revokes retained handles", async () => {
   const calls: { command: string; args: Record<string, unknown> }[] = []

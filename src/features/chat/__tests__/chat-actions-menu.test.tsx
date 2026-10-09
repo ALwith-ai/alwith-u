@@ -1,21 +1,25 @@
-import { afterAll, expect, spyOn, test } from "bun:test"
 import { applyUpdate, createSession } from "@alwith/api"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { createRef } from "react"
+import { afterAll, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ChatActionsMenu } from "../chat-actions-menu"
-import { installDom } from "../codex/__tests__/dom-environment"
 import { ChatSearch } from "../dialogs/chat-search"
 import { threadRegistry } from "../lib/thread-registry"
 import * as projectApps from "../open-in-editor"
 
-installDom()
+// Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
+vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
+  ...(await importOriginal<object>()),
+  openPath: vi.fn()
+}))
+
 await initI18n("en")
-const apps = spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
   apps: [],
   active: undefined,
   openWith: () => {},
@@ -25,7 +29,7 @@ const apps = spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
 afterAll(() => apps.mockRestore())
 
 test("draft menu hides session actions and opens the project directory itself", async () => {
-  const open = spyOn(opener, "openPath").mockResolvedValue()
+  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   try {
     const view = render(<ChatActionsMenu surface="floating" cwd="/tmp/project" onNewChat={() => {}} />)
     await act(async () => {
@@ -46,7 +50,7 @@ test("draft menu hides session actions and opens the project directory itself", 
 test("delete requires confirmation, keeps the dialog on failure and reports the explicit id only on success", async () => {
   const state = client.state
   client.store.setState({ connection: "ready" })
-  const remove = spyOn(client, "delete").mockRejectedValueOnce(new Error("Cannot delete yet")).mockResolvedValue()
+  const remove = vi.spyOn(client, "delete").mockRejectedValueOnce(new Error("Cannot delete yet")).mockResolvedValue()
   const deleted: string[] = []
   try {
     const view = render(

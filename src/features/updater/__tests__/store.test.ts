@@ -1,6 +1,6 @@
 // The Rust side owns the state machine (cargo test in src-tauri/src/updater); this covers the
 // reflection layer: fetch once, follow events, ask to relaunch exactly once per ready version.
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { createUpdaterStore, type UpdaterIo, type UpdaterState } from "../store"
 
@@ -62,7 +62,7 @@ test("a ready update asks to relaunch once per version and installs only on acce
   await store.getState().init()
   declined.emit(ready)
   declined.emit(ready)
-  await Bun.sleep(0)
+  await new Promise(resolve => setTimeout(resolve, 0))
   expect(declined.calls.ask).toBe(1)
   expect(declined.calls.install).toBe(0)
 

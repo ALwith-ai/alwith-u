@@ -5,7 +5,7 @@ use tauri::Manager;
 // Stable provenance also checked by the frontend capability policy.
 const BUNDLED_SOURCE: &str = "bundled:alwith-u";
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 pub struct BundledExtension {
     path: String,
     id: String,
@@ -63,7 +63,7 @@ fn resolve_bundles(root: &Path) -> Result<Vec<BundledExtension>, String> {
     Ok(bundles)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn extension_bundles(window: tauri::Window) -> Result<Vec<BundledExtension>, String> {
     if window.label() != "main" {
         return Err("Only the main window installs bundled extensions".into());

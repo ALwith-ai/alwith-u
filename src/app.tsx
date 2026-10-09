@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import type { ThreadSummary } from "@/agent/client"
 import { hasAccount } from "@/agent/codex-extensions"
+import { events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
@@ -292,13 +293,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useEffect(() => {
     const webview = getCurrentWebviewWindow()
     const listeners = Promise.all([
-      webview.listen("menu:new-chat", () => void newChat()),
-      webview.listen("menu:open-settings", () => void openSettingsWindow()),
-      webview.listen("menu:command-palette", () => setPaletteOpen(open => !open)),
-      webview.listen("menu:open-hotkeys", () => setHotkeysOpen(true)),
-      webview.listen("menu:zoom-in", () => void zoomIn()),
-      webview.listen("menu:zoom-out", () => void zoomOut()),
-      webview.listen("menu:actual-size", () => void resetZoom())
+      webview.listen<null>(events["menu:new-chat"].name, () => void newChat()),
+      webview.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow()),
+      webview.listen<null>(events["menu:command-palette"].name, () => setPaletteOpen(open => !open)),
+      webview.listen<null>(events["menu:open-hotkeys"].name, () => setHotkeysOpen(true)),
+      webview.listen<null>(events["menu:zoom-in"].name, () => void zoomIn()),
+      webview.listen<null>(events["menu:zoom-out"].name, () => void zoomOut()),
+      webview.listen<null>(events["menu:actual-size"].name, () => void resetZoom())
     ])
     return () => {
       void listeners.then(stops => {
@@ -513,7 +514,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
           </div>
-          <div className="absolute right-2 bottom-0 z-20">
+          <div className="absolute end-2 bottom-0 z-20">
             <ClientVersionPopover />
           </div>
         </MainSidebarLayout>

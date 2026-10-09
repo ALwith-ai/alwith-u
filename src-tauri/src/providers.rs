@@ -10,9 +10,9 @@ use std::{
     sync::Arc,
     time::Instant,
 };
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager, State};
+use tauri3_specta::Event;
 
-const EVENT: &str = "providers:changed";
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 struct Credential {
@@ -21,7 +21,7 @@ struct Credential {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     base_url: Option<String>,
 }
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CustomModel {
     label: String,
@@ -49,8 +49,10 @@ struct Saved {
     #[serde(default)]
     custom_providers: BTreeMap<String, CustomProvider>,
 }
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+#[derive(tauri3_specta::Event)]
+#[event(name = "providers:changed")]
 pub struct Snapshot {
     revision: u64,
     applied_revision: Option<u64>,
@@ -59,13 +61,13 @@ pub struct Snapshot {
     status: &'static str,
     error: Option<String>,
 }
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, specta::Type)]
 pub struct Metadata {
     configured: bool,
     region: Option<String>,
     base_url: Option<String>,
 }
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicCustomProvider {
     id: String,
@@ -83,18 +85,23 @@ pub struct Providers {
     path: PathBuf,
     inner: tokio::sync::Mutex<Inner>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Input {
+    #[serde(default)]
     api_key: Option<String>,
+    #[serde(default)]
     region: Option<String>,
+    #[serde(default)]
     base_url: Option<String>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CustomInput {
+    #[serde(default)]
     id: Option<String>,
     name: String,
+    #[serde(default)]
     api_key: Option<String>,
     base_url: String,
     models: Vec<CustomModel>,
@@ -104,7 +111,7 @@ enum AppliedProvider {
     BuiltIn(Credential),
     Custom(CustomProvider),
 }
-#[derive(Serialize)]
+#[derive(Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TestResult {
     ok: bool,
@@ -367,11 +374,11 @@ fn persist(path: &std::path::Path, saved: &Saved) -> Result<(), String> {
     file.persist(path).map_err(|e| e.error.to_string())?;
     Ok(())
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_read(state: State<'_, Providers>) -> Result<Snapshot, String> {
     Ok(state.inner.lock().await.snapshot())
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_save(
     app: AppHandle, state: State<'_, Providers>, provider_id: String, input: Option<Input>, expected_revision: u64,
 ) -> Result<Snapshot, String> {
@@ -388,10 +395,10 @@ pub async fn providers_save(
         let _ = apply_locked(&app, &client).await;
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = app.emit(EVENT, &snapshot);
+    let _ = snapshot.emit(&app);
     Ok(snapshot)
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_save_custom(
     app: AppHandle, state: State<'_, Providers>, input: CustomInput, expected_revision: u64,
 ) -> Result<Snapshot, String> {
@@ -408,10 +415,10 @@ pub async fn providers_save_custom(
         let _ = apply_locked(&app, &client).await;
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = app.emit(EVENT, &snapshot);
+    let _ = snapshot.emit(&app);
     Ok(snapshot)
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_remove_custom(
     app: AppHandle, state: State<'_, Providers>, provider_id: String, expected_revision: u64,
 ) -> Result<Snapshot, String> {
@@ -428,11 +435,11 @@ pub async fn providers_remove_custom(
         let _ = apply_locked(&app, &client).await;
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = app.emit(EVENT, &snapshot);
+    let _ = snapshot.emit(&app);
     Ok(snapshot)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_test(state: State<'_, Providers>, provider_id: String) -> Result<TestResult, String> {
     let config = {
         let inner = state.inner.lock().await;
@@ -440,7 +447,7 @@ pub async fn providers_test(state: State<'_, Providers>, provider_id: String) ->
     };
     Ok(test_connection(config).await)
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn providers_apply(app: AppHandle) -> Result<Snapshot, String> {
     let runtime = app.state::<crate::runtime::RuntimeState>();
     let _admission = runtime.admission.lock().await;
@@ -465,7 +472,7 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
     let mut inner = state.inner.lock().await;
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     let outcome = reconcile(&mut inner, client, &resource_dir).await;
-    let _ = app.emit(EVENT, inner.snapshot());
+    let _ = inner.snapshot().emit(app);
     outcome
 }
 

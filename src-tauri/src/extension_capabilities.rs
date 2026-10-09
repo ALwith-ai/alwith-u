@@ -28,7 +28,7 @@ fn require_removed(snapshot: &Snapshot, id: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_cleanup_grants(window: tauri::Window, extension_id: String) -> Result<(), String> {
     if !matches!(window.label(), "main" | "settings") {
         return Err("Only extension host windows can clear directory grants".into());

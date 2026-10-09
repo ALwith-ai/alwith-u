@@ -1,7 +1,8 @@
-import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { expect, test } from "vitest"
 
-const styles = readFileSync(new URL("../../../../index.css", import.meta.url), "utf8")
+const styles = readFileSync(join(__dirname, "../../../../index.css"), "utf8")
 
 test("the docked navigation leaves native vibrancy visible", () => {
   expect(styles).toMatch(/\[data-slot="sidebar-wrapper"\]\s*\{\s*background-color:\s*transparent;\s*\}/)

@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { createChatShortcut, type ShortcutHost } from "../chat-shortcut"
 
 test("shortcut conflicts preserve the working registration and preference", async () => {

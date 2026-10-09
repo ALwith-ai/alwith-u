@@ -1,7 +1,7 @@
-import { invoke } from "@tauri-apps/api/core"
 import { ask } from "@tauri-apps/plugin-dialog"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { commands } from "@/bindings"
 import { ExtensionMount } from "./extension-view"
 import { ExtensionsManager } from "./extensions-manager"
 import { convertLegacyExtension, type PreparedLegacyImport } from "./legacy/import"
@@ -21,9 +21,7 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
   }
   const busy = operation || state.busy
   const install = async (id?: string): Promise<void> => {
-    const selected = await invoke<
-      { format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedLegacyImport } | null
-    >("extension_prepare_install", { expectedId: id ?? null })
+    const selected = await commands.extensionPrepareInstall({ expectedId: id ?? null })
     if (!selected) return
     if (selected.format === "legacy") {
       await importLegacy(selected.prepared)
@@ -36,10 +34,10 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
     )
   }
   const importLegacy = async (prepared: PreparedLegacyImport): Promise<void> => {
-    const existing = runtime.snapshot().native?.installations.find(item => item.id === prepared.manifest.id)
-    if (existing && existing.source !== LEGACY_SOURCE) throw new Error(t("extensions.legacyConflict"))
     const converted = await convertLegacyExtension(prepared)
-    const staged = await invoke<{ path: string; id: string; source: string }>("legacy_stage_import", {
+    const existing = runtime.snapshot().native?.installations.find(item => item.id === converted.manifest.id)
+    if (existing && existing.source !== LEGACY_SOURCE) throw new Error(t("extensions.legacyConflict"))
+    const staged = await commands.legacyStageImport({
       ticket: prepared.ticket,
       ...converted
     })
@@ -76,7 +74,11 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
                 }
               },
               subscribe: runtime.subscribe,
-              cleanup: () => invoke(legacy ? "legacy_cleanup_import" : "extension_cleanup_grants", { extensionId: id })
+              cleanup: async () => {
+                await (legacy
+                  ? commands.legacyCleanupImport({ extensionId: id })
+                  : commands.extensionCleanupGrants({ extensionId: id }))
+              }
             })
           }
         })

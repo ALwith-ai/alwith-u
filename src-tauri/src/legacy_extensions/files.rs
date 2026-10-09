@@ -20,7 +20,7 @@ pub struct LegacyFiles {
     lock: Mutex<()>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 pub struct DirectoryGrant {
     scope: String,
     path: String,
@@ -222,18 +222,18 @@ async fn file_command(
     .map_err(|error| format!("Extension file task failed: {error}"))?
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_file(
-    window: tauri::Window, extension_id: String, request: FileRequest,
-) -> Result<FileResponse, String> {
-    file_command(window, extension_id, request, false).await
+    window: tauri::Window, extension_id: String, request: crate::extension_wire::FileRequest,
+) -> Result<crate::extension_wire::FileResponse, String> {
+    file_command(window, extension_id, request.into(), false).await.map(Into::into)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn legacy_file(
-    window: tauri::Window, extension_id: String, request: FileRequest,
-) -> Result<FileResponse, String> {
-    file_command(window, extension_id, request, true).await
+    window: tauri::Window, extension_id: String, request: crate::extension_wire::FileRequest,
+) -> Result<crate::extension_wire::FileResponse, String> {
+    file_command(window, extension_id, request.into(), true).await.map(Into::into)
 }
 
 async fn directories_command(
@@ -253,12 +253,12 @@ async fn directories_command(
     .map_err(|error| format!("Extension directories task failed: {error}"))?
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_directories(window: tauri::Window, extension_id: String) -> Result<Vec<DirectoryGrant>, String> {
     directories_command(window, extension_id, false).await
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn legacy_directories(window: tauri::Window, extension_id: String) -> Result<Vec<DirectoryGrant>, String> {
     directories_command(window, extension_id, true).await
 }
@@ -301,14 +301,14 @@ async fn pick_directory_command(
     .map_err(|error| format!("Extension directory picker failed: {error}"))?
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_pick_directory(
     window: tauri::Window, extension_id: String,
 ) -> Result<Option<DirectoryGrant>, String> {
     pick_directory_command(window, extension_id, false).await
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn legacy_pick_directory(
     window: tauri::Window, extension_id: String,
 ) -> Result<Option<DirectoryGrant>, String> {

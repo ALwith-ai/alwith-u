@@ -1,10 +1,7 @@
-import { afterEach, describe, expect, mock, test } from "bun:test"
 import { cleanup, fireEvent, render } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { NavigationGroup } from "../navigation-group"
-
-installDom()
 
 afterEach(() => {
   cleanup()
@@ -13,7 +10,7 @@ afterEach(() => {
 
 describe("NavigationGroup", () => {
   test("uses the navigation's own collapse interaction and renders no chevron slot", () => {
-    const onOpenChange = mock(() => {})
+    const onOpenChange = vi.fn(() => {})
     const screen = render(
       <NavigationGroup open={false} onOpenChange={onOpenChange} label="Project" active>
         <div>Session</div>

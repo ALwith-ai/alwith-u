@@ -1,7 +1,7 @@
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
-import type { ProviderSnapshot } from "@/lib/providers"
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
+import type { ProviderSnapshot } from "@/lib/providers"
 import { gatewayModelId, providerGroups } from "@/lib/providers"
 
 const nativeModel: ChatModelOption = { api_id: "", label: NATIVE_MODEL_GROUP.name }

@@ -1,11 +1,9 @@
-import { afterEach, expect, test } from "bun:test"
 import { CodexWorkSection } from "@alwith/module-chat/activity"
 import { type ActivityHost, ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { CodexPlan } from "@alwith/module-chat/plan"
 import { fireEvent, render } from "@testing-library/react"
-import { installDom } from "./dom-environment"
+import { afterEach, expect, test } from "vitest"
 
-installDom()
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(() => {
   for (const view of mounted.splice(0)) view.unmount()

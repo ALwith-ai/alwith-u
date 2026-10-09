@@ -686,7 +686,7 @@
     "through": "through #{{seq}}, sources {{sources}}",
     "transcript": "Transcript",
     "rejected": "Permission request rejected (the demo grants nothing)",
-    "unavailable": "The story module is not loaded. Build it and run U with ALWITH_U_DSH_AGENT set; see docs/story-demo.md.",
+    "unavailable": "The story module is not loaded.",
     "status": "revision {{revision}} · {{entries}} entries · {{notes}} notes"
   },
   "chatWindow": {

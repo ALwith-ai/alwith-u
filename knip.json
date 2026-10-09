@@ -1,13 +1,12 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/settings-main.tsx",
-    "src/chat-main.tsx",
     "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "src/bindings.ts"
   ],
-  "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.ts"],
+  "project": ["src/**/*.{ts,tsx,css,mdx}", "scripts/**/*.ts"],
   "ignore": ["src/components/ui/**"],
   "ignoreExportsUsedInFile": true,
   "rules": {

@@ -8,13 +8,13 @@ import {
   createTokenStorage,
   type LoginResponse
 } from "@alwith/module-auth"
-import { invoke } from "@tauri-apps/api/core"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
 import { arch, platform } from "@tauri-apps/plugin-os"
 import { LazyStore } from "@tauri-apps/plugin-store"
 import { create } from "zustand"
+import { commands } from "@/bindings"
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
 
@@ -40,7 +40,7 @@ const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
   fetch,
   storage,
-  refresh: refreshToken => invoke("refresh_tokens", { apiBaseUrl: API_BASE_URL, refreshToken }),
+  refresh: refreshToken => commands.refreshTokens({ apiBaseUrl: API_BASE_URL, refreshToken }),
   expired: async () => {
     for (const listener of expiredListeners) listener()
     await storage.clearAllAuth()

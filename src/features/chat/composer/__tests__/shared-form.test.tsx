@@ -1,10 +1,8 @@
-import { afterEach, expect, test } from "bun:test"
 import { fireEvent, render, waitFor } from "@testing-library/react"
+import { afterEach, expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
-import { installDom } from "../../codex/__tests__/dom-environment"
 import { PromptInput, PromptInputProvider, PromptInputSubmit, PromptInputTextarea } from "../prompt-input"
 
-installDom()
 const mounted: ReturnType<typeof render>[] = []
 afterEach(() => {
   for (const view of mounted.splice(0)) view.unmount()

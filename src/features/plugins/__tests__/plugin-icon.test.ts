@@ -1,9 +1,8 @@
-import { expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
-import { installDom } from "../../chat/codex/__tests__/dom-environment"
 import { pluginIconSrc } from "../plugin-icon"
-
-installDom()
 
 test("canonical names use Desktop's stable hash into the Figma collection", (): void => {
   expect(pluginIconSrc("alpha").split("#")[1]).toBe("plugin-ladybug")
@@ -14,7 +13,7 @@ test("canonical names use Desktop's stable hash into the Figma collection", (): 
 })
 
 test("every assigned icon resolves to the shared sprite with isolated paint references", async (): Promise<void> => {
-  const source = await Bun.file(new URL("../plugin-icons.svg", import.meta.url)).text()
+  const source = readFileSync(join(__dirname, "../plugin-icons.svg"), "utf8")
   const document = new DOMParser().parseFromString(source, "image/svg+xml")
   expect(document.querySelector("parsererror")).toBeNull()
   const symbols = [...document.querySelectorAll("symbol")]

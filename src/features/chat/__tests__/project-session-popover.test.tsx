@@ -1,20 +1,24 @@
-import { afterAll, beforeEach, expect, spyOn, test } from "bun:test"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { afterAll, beforeEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
-import { installDom } from "../codex/__tests__/dom-environment"
 import * as projectApps from "../open-in-editor"
 import { ProjectSessionPopover } from "../project-session-popover"
 
-installDom()
+// Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
+vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
+  ...(await importOriginal<object>()),
+  openPath: vi.fn()
+}))
+
 await initI18n("en")
-const connect = spyOn(client, "connect").mockResolvedValue()
-const apps = spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+const connect = vi.spyOn(client, "connect").mockResolvedValue()
+const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
   apps: [],
   active: undefined,
   openWith: () => {},
@@ -40,7 +44,7 @@ function threads(cwd = "/tmp/project"): ThreadSummary[] {
 
 test("project popover shows the full count, expands beyond five chats and routes the selected thread", async () => {
   const entries = threads()
-  const list = spyOn(client, "listProjectThreads").mockResolvedValue(entries)
+  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(entries)
   const selected: ThreadSummary[] = []
   try {
     const view = render(
@@ -72,7 +76,8 @@ test("project popover shows the full count, expands beyond five chats and routes
 
 test("loading and failure never advertise a partial total, and retry reloads the project", async () => {
   let reject!: (error: Error) => void
-  const list = spyOn(client, "listProjectThreads")
+  const list = vi
+    .spyOn(client, "listProjectThreads")
     .mockImplementationOnce(
       () =>
         new Promise((_resolve, fail) => {
@@ -103,8 +108,8 @@ test("loading and failure never advertise a partial total, and retry reloads the
 })
 
 test("project actions open the directory itself and delegate new chat to the host", async () => {
-  const list = spyOn(client, "listProjectThreads").mockResolvedValue([])
-  const open = spyOn(opener, "openPath").mockResolvedValue()
+  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue([])
+  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   let created = 0
   try {
     const view = render(
@@ -140,7 +145,8 @@ test("project actions open the directory itself and delegate new chat to the hos
 
 test("a late response for a previous project cannot replace the current project's list", async () => {
   let finish!: (threads: ThreadSummary[]) => void
-  const list = spyOn(client, "listProjectThreads")
+  const list = vi
+    .spyOn(client, "listProjectThreads")
     .mockImplementationOnce(
       () =>
         new Promise(resolve => {
@@ -169,7 +175,7 @@ test("a late response for a previous project cannot replace the current project'
 })
 
 test("sidebar hover shares the header cache while clicking still toggles the project", async () => {
-  const list = spyOn(client, "listProjectThreads").mockResolvedValue(threads())
+  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads())
   const toggles: boolean[] = []
   try {
     const header = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
@@ -213,7 +219,7 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
 })
 
 test("a changed project list invalidates its closed popup before reopening", async () => {
-  const list = spyOn(client, "listProjectThreads").mockResolvedValue(threads())
+  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads())
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
     await act(async () => {
@@ -237,7 +243,7 @@ test("a changed project list invalidates its closed popup before reopening", asy
 })
 
 test("session-card title and path scroll only on hover and the path opens its own cwd", async () => {
-  const open = spyOn(opener, "openPath").mockResolvedValue()
+  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   try {
     const thread = { ...must(threads()[0]), title: "A long session title", cwd: "/tmp/a/long/project/path" }
     const view = render(<ThreadInfoCard thread={thread} />)

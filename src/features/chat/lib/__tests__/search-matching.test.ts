@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
 import { findTextSourceMatches, literalMatches } from "@alwith/module-chat/search-source"
+import { describe, expect, test } from "vitest"
 
 describe("shared source and DOM matching contract", () => {
   test("case-insensitive Unicode matches preserve original UTF-16 offsets", () => {

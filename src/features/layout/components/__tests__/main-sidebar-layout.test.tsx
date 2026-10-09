@@ -1,21 +1,19 @@
-import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as preferences from "@/lib/preferences"
 import { type MainScreen, MainSidebarLayout } from "../main-sidebar-layout"
 
-installDom()
 await initI18n("en")
 
 let save: ReturnType<typeof spyOn<typeof preferences, "savePreference">>
 beforeEach(() => {
-  save = spyOn(preferences, "savePreference").mockResolvedValue()
+  save = vi.spyOn(preferences, "savePreference").mockResolvedValue()
 })
 afterEach(() => {
   cleanup()
@@ -82,7 +80,7 @@ function setup(initialPinned = false, initialScreen: MainScreen = "main") {
 
 async function afterCloseDelay() {
   await act(async () => {
-    await Bun.sleep(230)
+    await new Promise(resolve => setTimeout(resolve, 230))
   })
 }
 

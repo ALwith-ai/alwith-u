@@ -309,11 +309,7 @@ export function hasPluginStore(agent: acp.InitializeResponse | null): boolean {
   return capabilities.skills || capabilities.plugins
 }
 
-/**
- * User-facing details for a failed turn. The protocol only provides `stopReason`; details live in the idle frame's `_meta`.
- * Each backend uses its own location; Codex uses `_meta.codex.error`. `@alwith/api` passes `_meta` through unchanged,
- * and this function reads the Codex-specific payload.
- */
+/** Standard ACP errors carry the message; Codex data supplies retry classification. */
 export type CodexTurnError = {
   message: string
   category: string | null
@@ -321,11 +317,19 @@ export type CodexTurnError = {
 }
 
 export function codexTurnError(error: TurnError): CodexTurnError {
+  const data = error.error?.data
+  const codexData = typeof data === "object" && data !== null ? (data as { codex?: unknown }).codex : undefined
   const codex = error.meta?.codex
-  const detail = typeof codex === "object" && codex !== null ? (codex as { error?: unknown }).error : undefined
+  const detail =
+    codexData ?? (typeof codex === "object" && codex !== null ? (codex as { error?: unknown }).error : undefined)
   const fields = typeof detail === "object" && detail !== null ? (detail as Record<string, unknown>) : undefined
   return {
-    message: typeof fields?.message === "string" ? fields.message : "Turn failed",
+    message:
+      error.error != null
+        ? error.error.message
+        : typeof fields?.message === "string"
+          ? fields.message
+          : `Turn ended: ${error.stopReason}`,
     category: typeof fields?.category === "string" ? fields.category : null,
     retryable: fields?.retryable === true
   }

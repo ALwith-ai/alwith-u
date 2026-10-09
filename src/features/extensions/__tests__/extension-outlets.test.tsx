@@ -1,7 +1,6 @@
-import { beforeEach, expect, test } from "bun:test"
 import type { HostSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { act, fireEvent, render } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { beforeEach, expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import {
   ExtensionActions,
@@ -10,7 +9,6 @@ import {
   ExtensionStatusBar
 } from "../extension-outlets"
 
-installDom()
 beforeEach(async () => {
   await initI18n("en")
 })

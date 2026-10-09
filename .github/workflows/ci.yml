@@ -19,7 +19,7 @@ jobs:
       - run: bun scripts/check-toolchain.ts
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun run test --reporter=junit --reporter-outfile=test-results.xml
+      - run: bun run test -- --reporter=junit --outputFile=test-results.xml
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -29,6 +29,10 @@ jobs:
       - run: bun run lint
       - run: bun run knip
       - run: bun run build
+      - run: bun run storybook:check
+      - run: bun run storybook:build
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run storybook:test
 
   desktop-public-dependencies:
     # Expand when additional Runtime targets are actually published. Native npm
