@@ -5,6 +5,16 @@
   "trailingComma": "none",
   "bracketSameLine": true,
   "arrowParens": "avoid",
-  "plugins": ["prettier-plugin-tailwindcss"],
-  "overrides": [{ "files": "*.css", "options": { "singleQuote": false } }]
+  "plugins": [
+    "prettier-plugin-tailwindcss"
+  ],
+  "overrides": [
+    {
+      "files": "*.css",
+      "options": {
+        "singleQuote": false
+      }
+    }
+  ],
+  "tailwindPreserveWhitespace": true
 }
