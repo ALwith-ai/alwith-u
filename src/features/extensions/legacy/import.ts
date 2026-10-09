@@ -1,16 +1,8 @@
+import type { JsonValue, PreparedImport } from "@/bindings"
 import { findLegacyProfile } from "./profiles"
-
-export interface PreparedLegacyImport {
-  ticket: string
-  manifest: Record<string, unknown>
-  source: string
-  styles: string
-  convertedManifest: Record<string, unknown>
-  modules: Record<string, string>
-}
-
+export type PreparedLegacyImport = PreparedImport
 export interface ConvertedLegacyImport {
-  manifest: Record<string, unknown>
+  manifest: { [key: string]: JsonValue }
   main: string
 }
 
@@ -35,6 +27,15 @@ export function patchLegacySource(id: string, source: string): string {
 export async function convertLegacyExtension(prepared: PreparedLegacyImport): Promise<ConvertedLegacyImport> {
   const old = prepared.manifest
   const manifest = prepared.convertedManifest
+  if (
+    old === null ||
+    typeof old !== "object" ||
+    Array.isArray(old) ||
+    manifest === null ||
+    typeof manifest !== "object" ||
+    Array.isArray(manifest)
+  )
+    throw new Error("扩展清单必须是 JSON 对象")
   if (typeof old.id !== "string" || manifest.id !== old.id) throw new Error("转换后的扩展 ID 不匹配")
   const id = String(manifest.id)
   const profile = findLegacyProfile(id)

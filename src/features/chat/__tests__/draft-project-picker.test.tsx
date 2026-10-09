@@ -1,11 +1,12 @@
-import { expect, spyOn, test } from "bun:test"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
-import { installDom } from "../codex/__tests__/dom-environment"
 import { DraftProjectPicker } from "../draft-project-picker"
 
-installDom()
+// Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
+vi.mock("@tauri-apps/plugin-dialog", async importOriginal => ({ ...(await importOriginal<object>()), open: vi.fn() }))
+
 await initI18n("en")
 
 test("project picker pins the current directory once, marks it selected and reports a new choice", async () => {
@@ -28,7 +29,7 @@ test("project picker pins the current directory once, marks it selected and repo
 })
 
 test("canceling the directory dialog keeps a draft without a project", async () => {
-  const open = spyOn(dialog, "open").mockResolvedValue(null)
+  const open = vi.spyOn(dialog, "open").mockResolvedValue(null)
   const chosen: string[] = []
   try {
     const view = render(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={cwd => chosen.push(cwd)} />)

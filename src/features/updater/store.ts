@@ -1,30 +1,14 @@
 // Mirrors the Rust updater state machine into React. Checking and downloading are silent
 // (Rust downloads a hit straight away); the only prompt is the native relaunch question once
 // an update is ready, asked once per version. Ported from ALwith Desktop.
-import { invoke } from "@tauri-apps/api/core"
-import { listen } from "@tauri-apps/api/event"
+
 import { ask } from "@tauri-apps/plugin-dialog"
 import i18n from "i18next"
 import { create } from "zustand"
+import type { State as UpdaterState } from "@/bindings"
+import { commands, events } from "@/bindings"
 
-export interface UpdateInfo {
-  version: string
-  filename: string
-  signature: string
-  contentLength: number | null
-}
-
-export type UpdaterState =
-  | { type: "uninitialized" }
-  | { type: "disabled"; reason: "invalidConfiguration" }
-  | { type: "idle" }
-  | { type: "checkingForUpdates" }
-  | { type: "availableForDownload"; update: UpdateInfo }
-  | { type: "downloading"; update: UpdateInfo; downloadedBytes: number | null; totalBytes: number | null }
-  | { type: "ready"; update: UpdateInfo }
-  | { type: "restarting"; update: UpdateInfo }
-
-export const UPDATER_STATE_EVENT = "updater:state"
+export type { State as UpdaterState } from "@/bindings"
 
 /** The Tauri surface the store talks to; tests pass fakes instead of mocking modules. */
 export interface UpdaterIo {
@@ -85,8 +69,8 @@ export function createUpdaterStore(io: UpdaterIo) {
 }
 
 const tauriIo: UpdaterIo = {
-  getState: () => invoke<UpdaterState>("updater_get_state"),
-  onStateChange: handler => listen<UpdaterState>(UPDATER_STATE_EVENT, event => handler(event.payload)),
+  getState: () => commands.updaterGetState(),
+  onStateChange: handler => events["updater:state"].listen(event => handler(event.payload)),
   askRelaunch: () =>
     ask(i18n.t("updater.relaunchConfirmDesc"), {
       title: i18n.t("updater.relaunchConfirmTitle"),
@@ -94,7 +78,9 @@ const tauriIo: UpdaterIo = {
       okLabel: i18n.t("updater.relaunchNow"),
       cancelLabel: i18n.t("updater.relaunchLater")
     }),
-  installAndRelaunch: () => invoke<void>("updater_install_and_relaunch")
+  installAndRelaunch: async () => {
+    await commands.updaterInstallAndRelaunch()
+  }
 }
 
 export const useUpdaterStore = createUpdaterStore(tauriIo)

@@ -47,10 +47,10 @@ fn source_requires_download(hash: &str, profile: Option<&Profile>) -> Result<boo
     }
 }
 fn digest(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    hex::encode(Sha256::digest(bytes))
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PreparedImport {
     ticket: String,
@@ -96,7 +96,7 @@ fn package_revision(files: &PackageFiles) -> String {
         digest.update((bytes.len() as u64).to_le_bytes());
         digest.update(bytes);
     }
-    format!("{:x}", digest.finalize())
+    hex::encode(digest.finalize())
 }
 
 fn relative_path(value: &str) -> Result<&Path, String> {
@@ -283,7 +283,7 @@ fn require_main(window: &tauri::Window) -> Result<(), String> {
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, specta::Type)]
 #[serde(tag = "format", rename_all = "camelCase")]
 pub enum PreparedInstall {
     Current { path: String, id: String },
@@ -318,7 +318,7 @@ fn is_legacy_manifest(manifest: &Value) -> Result<bool, String> {
     Err("无法识别扩展格式：缺少 SDK 依赖或旧版 minAppVersion".into())
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub async fn extension_prepare_install(
     window: tauri::Window, expected_id: Option<String>,
 ) -> Result<Option<PreparedInstall>, String> {
@@ -494,14 +494,14 @@ fn validate_entry(
     }
     Ok(())
 }
-#[derive(Serialize)]
+#[derive(Serialize, specta::Type)]
 pub struct StagedImport {
     path: String,
     id: String,
     version: String,
     source: String,
 }
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn legacy_stage_import(
     window: tauri::Window, ticket: String, manifest: Value, main: String,
 ) -> Result<StagedImport, String> {
@@ -621,7 +621,7 @@ pub(super) fn migrate_initial_files(app: &tauri::AppHandle, extension_id: &str, 
     save_registry(&path, &registry)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn legacy_take_initial_data(window: tauri::Window, extension_id: String) -> Result<Option<Value>, String> {
     require_main(&window)?;
     let (revision, _) = installed_files(window.app_handle(), &extension_id)?;
@@ -631,7 +631,7 @@ pub fn legacy_take_initial_data(window: tauri::Window, extension_id: String) -> 
     Ok(registry.get(&extension_id).and_then(|r| r.get(&revision)).and_then(|entry| entry.initial_data.clone()))
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn legacy_ack_initial_data(window: tauri::Window, extension_id: String) -> Result<(), String> {
     require_main(&window)?;
     let (revision, _) = installed_files(window.app_handle(), &extension_id)?;
@@ -649,7 +649,7 @@ pub fn legacy_ack_initial_data(window: tauri::Window, extension_id: String) -> R
     save_registry(&path, &registry)
 }
 
-#[tauri::command]
+#[tauri3_specta::command]
 pub fn legacy_cleanup_import(window: tauri::Window, extension_id: String) -> Result<(), String> {
     require_main(&window)?;
     let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
@@ -671,6 +671,11 @@ pub fn legacy_cleanup_import(window: tauri::Window, extension_id: String) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn sha256_keeps_standard_lowercase_hex() {
+        assert_eq!(digest(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
+
     #[test]
     fn previous_root_seed_is_consumed_after_first_successful_migration() {
         let dir = tempfile::tempdir().unwrap();

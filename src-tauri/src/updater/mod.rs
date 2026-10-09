@@ -3,6 +3,8 @@
 //! state machine; the plugin only checks, downloads and installs. A downloaded archive survives
 //! restarts on disk and is re-verified (minisign + remote identity) before it is offered again.
 
+use tauri3_specta::Event;
+
 pub mod commands;
 pub mod persist;
 pub mod scheduler;
@@ -15,8 +17,6 @@ use semver::Version;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::RwLock;
-
-pub const STATE_EVENT: &str = "updater:state";
 
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -360,11 +360,11 @@ impl SignatureVerifier for MinisignVerifier {
 /// recovers a downloaded archive, then the 30s/1h check loop and the 5-minute overwrite check run
 /// for the life of the process. Missing `plugins.updater.endpoints` disables the whole feature.
 pub fn init(app: &tauri::App) {
-    use tauri::{Emitter, Manager};
+    use tauri::Manager;
 
     let app_handle = app.handle().clone();
     let svc = std::sync::Arc::new(UpdaterService::new(move |state| {
-        let _ = app_handle.emit(STATE_EVENT, state);
+        let _ = state.emit(&app_handle);
     }));
     app.manage(svc.clone());
 

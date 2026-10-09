@@ -1,11 +1,11 @@
 // The Runtime connection for this app: Rust spawns alwith-runtime over stdio; the webview
 // talks frames through Tauri events and commands (`@alwith/api/tauri`).
 
-import { EXIT_EVENT, type RuntimeExit, TauriRuntimeClient } from "@alwith/api/tauri"
-import { listen } from "@tauri-apps/api/event"
+import { TauriRuntimeClient } from "@alwith/api/tauri"
+import { events, type RuntimeExit } from "@/bindings"
 
 /** Emitted by Rust when the alwith-runtime process ends. */
-export type { RuntimeExit }
+export type { RuntimeExit } from "@/bindings"
 
 /** What the Runtime's launcher accepts for `start` (see alwith-runtime `apps/runtime`). */
 export type CodexProvider = {
@@ -38,7 +38,7 @@ export function resetHubPort(): void {
 
 /** alwith-runtime ended (crash or kill): the port is dead and every subscription with it. */
 export function onHubExit(handler: (exit: RuntimeExit) => void): Promise<() => void> {
-  return listen<RuntimeExit>(EXIT_EVENT, event => {
+  return events["runtime:exit"].listen(event => {
     port?.markExited()
     resetHubPort()
     handler(event.payload)

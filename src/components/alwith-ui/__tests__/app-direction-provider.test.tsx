@@ -1,10 +1,7 @@
-import { expect, test } from "bun:test"
 import { render, waitFor } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import { AppDirectionProvider } from "../app-direction-provider"
-
-installDom()
 
 test("an incomplete RTL locale uses the English content language and LTR layout", async () => {
   await initI18n("ar")

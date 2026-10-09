@@ -1,13 +1,11 @@
-import { afterEach, expect, test } from "bun:test"
 import { addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
 import { render } from "@testing-library/react"
+import { afterEach, expect, test } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 import { groupTurns } from "../../turns"
 import { AssistantTurn } from "../assistant-turn"
-import { installDom } from "./dom-environment"
 
-installDom()
 await initI18n("en")
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(() => {

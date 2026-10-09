@@ -1,5 +1,5 @@
-import { expect, mock, test } from "bun:test"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
+import { expect, test, vi } from "vitest"
 
 type Handler = (event: Event<unknown>) => void | Promise<void>
 
@@ -26,8 +26,8 @@ const emitTo = async (target: string, event: string, payload?: unknown): Promise
   await dispatch(windowListeners.get(target)?.get(event) ?? [], event, payload)
 }
 
-mock.module("@tauri-apps/api/event", () => ({ emitTo, listen }))
-mock.module("@tauri-apps/api/webviewWindow", () => ({
+vi.mock("@tauri-apps/api/event", () => ({ emitTo, listen }))
+vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => {
     const label = currentLabel
     return {

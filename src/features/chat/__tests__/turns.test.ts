@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
+import { describe, expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { groupTurns } from "../turns"
 

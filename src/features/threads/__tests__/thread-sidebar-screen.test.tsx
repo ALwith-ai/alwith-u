@@ -1,20 +1,18 @@
-import { afterEach, expect, test } from "bun:test"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { afterEach, expect, test } from "vitest"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ThreadSidebar } from "../thread-sidebar"
 
-installDom()
 await initI18n("en")
 const originalState = client.state
 afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
-    await Bun.sleep(0)
+    await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
 

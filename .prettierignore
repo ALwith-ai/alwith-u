@@ -5,6 +5,7 @@ bun.lock
 # Folder
 .vscode
 dist
+storybook-static
 docs
 node_modules
 src-tauri

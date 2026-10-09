@@ -55,8 +55,11 @@ Always answer the user in Chinese.
   and diff +/- colours are the one sanctioned exception.
 - No fallbacks for impossible states: throw. Validate only at system boundaries.
 - Tests live in `__tests__/` beside the code they cover and use the in-process fake
-  agent, never a child process. DOM tests import `codex/__tests__/dom-environment.ts`
-  (happy-dom per file); never register a DOM globally, it breaks the ACP stream tests.
+  agent, never a child process. The runner is vitest with jsdom and jest-dom, the same
+  as Desktop and Board (`vitest.config.ts`): component suites run in the `frontend`
+  project (jsdom, `vitest.setup.ts` stubs), `src/agent` suites in the `engine` project
+  (node) because a DOM in scope breaks the ACP stream tests. `scripts/lib` tests stay
+  on `bun test` (they exercise Bun APIs).
 - Pieces reduced from ALwith Desktop (`chat/composer`, `chat/dialogs`, the virtualized
   turn list, `src-tauri/src/updater`, `menu.rs`) stay recognisably Desktop's code:
   subtract, do not redesign.
@@ -67,7 +70,7 @@ Always answer the user in Chinese.
 
 ## Validate before handing back
 
-`bun run typecheck`, `bun test`, `bun run lint`, `bun run knip`, `bun run build`;
+`bun run typecheck`, `bun run test`, `bun run lint`, `bun run knip`, `bun run build`;
 these are CI's gates and match ALwith Desktop's (biome + oxlint, knip for dead
 code). `bun run format` before committing; formatting is not a gate. Run
 `bun run test:live` (uses the user's Codex login) when touching the protocol or

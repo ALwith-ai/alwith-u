@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import { describe, expect, test } from "vitest"
 import { filePatch } from "../diff-modal"
 import { elicitationFields, initialValues, isAnswered } from "../elicitation-form-dialog"
 import { sortPermissionOptions } from "../permission-options"

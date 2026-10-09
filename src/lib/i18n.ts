@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next"
 import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"
 
-/** ALwith Desktop's language list; translations come from Desktop (scripts/locales-from-desktop.ts). */
+/** Supported application languages, shared with ALwith Desktop. */
 export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "zh-CN", label: "简体中文" },

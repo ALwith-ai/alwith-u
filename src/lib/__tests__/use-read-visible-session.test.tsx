@@ -1,19 +1,17 @@
-import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, renderHook } from "@testing-library/react"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import * as clientModule from "../client"
 import { useReadVisibleSession } from "../use-read-visible-session"
 
-installDom()
 const originalState = clientModule.client.state
 let runtime: FakeHubPort
 let mark: ReturnType<typeof spyOn<typeof clientModule, "markRead">>
 beforeEach(() => {
   runtime = new FakeHubPort(() => createFakeAgent().app)
-  mark = spyOn(clientModule, "markRead").mockImplementation(id => runtime.markRead(id))
+  mark = vi.spyOn(clientModule, "markRead").mockImplementation(id => runtime.markRead(id))
 })
 afterEach(() => {
   cleanup()

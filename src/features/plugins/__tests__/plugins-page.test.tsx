@@ -1,14 +1,12 @@
-import { afterEach, beforeEach, expect, test } from "bun:test"
 import { act, fireEvent, render, within } from "@testing-library/react"
+import { afterEach, beforeEach, expect, test } from "vitest"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
 
-installDom()
 const initialState = pluginsStore.getState()
 const initialAppState = client.state
 
@@ -163,7 +161,7 @@ test("plugin icons use the same local Figma asset in marketplace and installed l
   expect(view.container.querySelectorAll("symbol")).toHaveLength(65)
   expect(definition.closest('[role="tabpanel"]')).toBeNull()
   const href = must(image.querySelector("use"), "plugin symbol").getAttribute("href")
-  expect(href).toEndWith("#plugin-ladybug")
+  expect(href?.endsWith("#plugin-ladybug")).toBe(true)
   expect(image.getAttribute("aria-hidden")).toBe("true")
   await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
   expect(must(view.container.querySelector("use"), "installed plugin icon").getAttribute("href")).toBe(href)

@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
+import { events } from "@/bindings"
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
 import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"
@@ -42,7 +43,7 @@ export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElem
       }
       window.addEventListener(OPEN_SEARCH, requested)
       window.addEventListener("keydown", handler)
-      const stopMenu = getCurrentWebviewWindow().listen("menu:find-in-chat", open)
+      const stopMenu = getCurrentWebviewWindow().listen<null>(events["menu:find-in-chat"].name, open)
       return () => {
         window.removeEventListener(OPEN_SEARCH, requested)
         window.removeEventListener("keydown", handler)

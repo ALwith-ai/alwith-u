@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { type ProviderSnapshot, parseCustomModels, providerGroups } from "../providers"
 
 test("Desktop-compatible custom model JSON is normalized for the adapter and model picker", () => {

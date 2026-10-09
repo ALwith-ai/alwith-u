@@ -1,15 +1,13 @@
-import { expect, mock, spyOn, test } from "bun:test"
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
+import { expect, test, vi } from "vitest"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as openWithApp from "@/lib/open-with-app"
 import * as preferences from "@/lib/preferences"
 import { setProjectAppPreference } from "@/lib/project-app-preference"
-import { installDom } from "../codex/__tests__/dom-environment"
 import { useProjectApps } from "../open-in-editor"
 
-installDom()
 await initI18n("en")
 
 test("main header preloads apps before opening its menu and remounts use the resolved list immediately", async () => {
@@ -18,12 +16,12 @@ test("main header preloads apps before opening its menu and remounts use the res
     { name: "Finder", bundle_id: "com.apple.finder", icon: null }
   ]
   let finish!: (apps: openWithApp.AppInfo[]) => void
-  const readAppsInfo = spyOn(openWithApp, "readAppsInfo").mockReturnValue(
+  const readAppsInfo = vi.spyOn(openWithApp, "readAppsInfo").mockReturnValue(
     new Promise(resolve => {
       finish = resolve
     })
   )
-  const loadPreferences = spyOn(preferences, "loadPreferences").mockResolvedValue({
+  const loadPreferences = vi.spyOn(preferences, "loadPreferences").mockResolvedValue({
     sidebarPinned: false,
     lastProjectDirectory: null,
     language: null,
@@ -68,10 +66,10 @@ test("main header preloads apps before opening its menu and remounts use the res
 })
 
 test("main chat menu uses installed app shortcuts, remembers the choice and opens its project", async () => {
-  const readAppsInfo = spyOn(openWithApp, "readAppsInfo").mockResolvedValue([
-    { name: "Visual Studio Code", bundle_id: "com.microsoft.VSCode", icon: null }
-  ])
-  const loadPreferences = spyOn(preferences, "loadPreferences").mockResolvedValue({
+  const readAppsInfo = vi
+    .spyOn(openWithApp, "readAppsInfo")
+    .mockResolvedValue([{ name: "Visual Studio Code", bundle_id: "com.microsoft.VSCode", icon: null }])
+  const loadPreferences = vi.spyOn(preferences, "loadPreferences").mockResolvedValue({
     sidebarPinned: false,
     lastProjectDirectory: null,
     language: null,
@@ -81,8 +79,8 @@ test("main chat menu uses installed app shortcuts, remembers the choice and open
     navigationInstrument: "acoustic_grand_piano",
     externalEditor: "com.microsoft.VSCode"
   })
-  const savePreference = spyOn(preferences, "savePreference").mockResolvedValue()
-  const openPathInApp = spyOn(openWithApp, "openPathInApp").mockResolvedValue()
+  const savePreference = vi.spyOn(preferences, "savePreference").mockResolvedValue()
+  const openPathInApp = vi.spyOn(openWithApp, "openPathInApp").mockResolvedValue()
   try {
     const { ChatActionsMenu } = await import("../chat-actions-menu")
     const view = render(
@@ -124,10 +122,10 @@ function savedEditor(externalEditor: string | null): preferences.Preferences {
 }
 
 test("project and session shortcuts follow preference changes, display the app icon and keep their own cwd", async () => {
-  const load = spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
-  const open = spyOn(openWithApp, "openPathInApp").mockResolvedValue()
-  const save = spyOn(preferences, "savePreference").mockResolvedValue()
-  const closed = mock(() => {})
+  const load = vi.spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
+  const open = vi.spyOn(openWithApp, "openPathInApp").mockResolvedValue()
+  const save = vi.spyOn(preferences, "savePreference").mockResolvedValue()
+  const closed = vi.fn(() => {})
   try {
     const view = render(
       <>
@@ -160,8 +158,8 @@ test("project and session shortcuts follow preference changes, display the app i
 })
 
 test("floating shortcut uses the saved application and shows its icon", async () => {
-  const load = spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
-  const open = spyOn(openWithApp, "openPathInApp").mockResolvedValue()
+  const load = vi.spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
+  const open = vi.spyOn(openWithApp, "openPathInApp").mockResolvedValue()
   try {
     const { ChatActionsMenu } = await import("../chat-actions-menu")
     const view = render(<ChatActionsMenu surface="floating" cwd="/projects/floating" onNewChat={() => {}} />)
@@ -181,8 +179,8 @@ test("floating shortcut uses the saved application and shows its icon", async ()
 })
 
 test("click uses the latest saved preference and refuses to silently substitute a missing app", async () => {
-  const load = spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
-  const open = spyOn(openWithApp, "openPathInApp").mockResolvedValue()
+  const load = vi.spyOn(preferences, "loadPreferences").mockResolvedValue(savedEditor("com.microsoft.VSCode"))
+  const open = vi.spyOn(openWithApp, "openPathInApp").mockResolvedValue()
   try {
     const hook = renderHook(() => useProjectApps("/projects/latest"))
     await act(async () => {})

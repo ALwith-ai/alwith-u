@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test"
 import { applyUpdate, createSession } from "@alwith/api"
+import { expect, test } from "vitest"
 import { groupTurns } from "../../turns"
 import { formatTurnTime } from "../turn-time"
 

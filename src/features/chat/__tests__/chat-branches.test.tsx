@@ -1,15 +1,13 @@
-import { afterEach, expect, spyOn, test } from "bun:test"
 import { applyUpdate, createSession } from "@alwith/api"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { act } from "react"
 import { toast } from "sonner"
+import { afterEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ChatBranchProvider, ForkOriginDivider, ForkTurnButton } from "../chat-branches"
-import { installDom } from "../codex/__tests__/dom-environment"
 
-installDom()
 await initI18n("en")
 const initial = client.state
 const mounted: Array<ReturnType<typeof render>> = []
@@ -50,7 +48,7 @@ function setup(select: (thread: ThreadSummary) => void) {
 
 test("a completed reply forks its explicit turn once and navigates to the returned session", async () => {
   let finish!: (id: string) => void
-  const call = spyOn(client, "fork").mockImplementation(
+  const call = vi.spyOn(client, "fork").mockImplementation(
     () =>
       new Promise(resolve => {
         finish = resolve
@@ -79,8 +77,8 @@ test("a completed reply forks its explicit turn once and navigates to the return
 })
 
 test("a fork failure keeps the current chat and allows retry", async () => {
-  const call = spyOn(client, "fork").mockRejectedValue(new Error("Cannot fork this turn"))
-  const error = spyOn(toast, "error").mockImplementation(() => "error")
+  const call = vi.spyOn(client, "fork").mockRejectedValue(new Error("Cannot fork this turn"))
+  const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   restores.push(
     () => call.mockRestore(),
     () => error.mockRestore()
@@ -99,7 +97,7 @@ test("a fork failure keeps the current chat and allows retry", async () => {
 
 test("a late fork cannot navigate after its source view is unmounted", async () => {
   let finish!: (id: string) => void
-  const call = spyOn(client, "fork").mockImplementation(
+  const call = vi.spyOn(client, "fork").mockImplementation(
     () =>
       new Promise(resolve => {
         finish = resolve
@@ -121,7 +119,7 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
 })
 
 test("the inherited-history divider returns to the exact parent and stays before child turns", async () => {
-  const read = spyOn(client, "readThreadSummary").mockResolvedValue({
+  const read = vi.spyOn(client, "readThreadSummary").mockResolvedValue({
     ...forked,
     sessionId: "parent",
     title: "Original"

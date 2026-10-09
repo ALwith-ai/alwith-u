@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -194,26 +195,69 @@ def check_tauri_versions(root: Path) -> None:
 
 @task
 def tauri(_context: object) -> None:
-    """Stage resources before starting the dev instance."""
-    run("bun", "run", "stage")
+    """Start the dev instance through Tauri's build hooks."""
     os.chdir(ROOT)
     os.execvp("bun", ["bun", "run", "dev:tauri"])
 
 
 @task
+def story(_context: object) -> None:
+    """Select Storybook preview, browser tests, or a static share archive."""
+    action = inquirer.select(
+        message="Storybook",
+        choices=[
+            Choice("dev", name="Start UI preview"),
+            Choice("test", name="Run all story browser tests"),
+            Choice("watch", name="Watch and rerun browser tests"),
+            Choice("browsers", name="Install test browser"),
+            Choice("build", name="Build static preview and share ZIP"),
+        ],
+    ).execute()
+    if action == "build":
+        build_story_archive()
+        return
+    commands = {
+        "dev": ["bun", "run", "storybook"],
+        "test": ["bun", "run", "storybook:test"],
+        "watch": ["bun", "x", "vitest", "--config", ".storybook/vitest.config.ts"],
+        "browsers": ["bun", "x", "playwright", "install", "chromium"],
+    }
+    run(*commands[action])
+
+
+def build_story_archive() -> None:
+    """Build and zip the static Storybook site for sharing without the repository."""
+    run("bun", "run", "storybook:check")
+    run("bun", "run", "storybook:build")
+    site = ROOT / "storybook-static"
+    if not (site / "index.html").is_file():
+        raise Exit("Storybook build did not produce index.html", code=1)
+    if any(site.rglob("*.map")):
+        raise Exit("Source maps found in Storybook output; refusing to package", code=1)
+    output = ROOT / "dist"
+    output.mkdir(exist_ok=True)
+    archive = shutil.make_archive(str(output / "alwith-u-storybook"), "zip", root_dir=site)
+    print(f"Static site: {site}")
+    print(f"Share archive: {archive}")
+    print("Extract and serve with a static web server. Browser JavaScript remains inspectable.")
+
+
+@task
 def check(_context: object) -> None:
-    """Run the CI gates and Rust checks, reporting every failure."""
+    """Run the CI gates shared by Desktop, U and Board, reporting every failure at the end.
+
+    Same table in all three repos: types, lint (biome + oxlint), dead code, tests, then the Rust side
+    (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
-        ("stage", ["bun", "run", "stage"], ROOT),
-        ("typecheck", ["bun", "run", "typecheck"], ROOT),
-        ("tests", ["bun", "run", "test"], ROOT),
-        ("Python tests", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "scripts/__tests__"], ROOT),
+        ("types", ["bun", "run", "typecheck"], ROOT),
         ("lint", ["bun", "run", "lint"], ROOT),
         ("knip", ["bun", "run", "knip"], ROOT),
-        ("build", ["bun", "run", "build"], ROOT),
+        ("tests", ["bun", "run", "test"], ROOT),
         ("rustfmt", ["cargo", "fmt", "--", "--check"], ROOT / "src-tauri"),
         ("clippy", ["cargo", "clippy", "--locked", "--all-targets", "--", "-D", "warnings"], ROOT / "src-tauri"),
-        ("rust tests", ["cargo", "test", "--locked", "--lib"], ROOT / "src-tauri"),
+        ("rust compile surface", ["cargo", "check", "--locked", "--workspace", "--all-targets"], ROOT / "src-tauri"),
+        ("rust tests", ["cargo", "test", "--locked", "--workspace", "--lib"], ROOT / "src-tauri"),
+        ("Python tests", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "scripts/__tests__"], ROOT),
     ]
     failures = []
     for name, command, directory in steps:
@@ -226,9 +270,10 @@ def check(_context: object) -> None:
 
 
 @task
-def build(_context: object) -> None:
-    """Build the Tauri app using its existing staging hook."""
-    run("bun", "run", "tauri", "build")
+def build(context: Context) -> None:
+    """Build the application with Tauri."""
+    with context.cd(str(ROOT)):
+        context.run("bun tauri build")
 
 
 @task(aliases=["u"])
@@ -238,10 +283,10 @@ def upgrade(context: Context) -> None:
         with context.cd("src-tauri"):
             context.run("cargo update")
             # Report releases outside Cargo's declared ranges without upgrading them.
-            # Ignore external paths because cargo-outdated resolves a temporary copy.
+            # Limit reporting depth without dropping local patches or external path dependencies.
             if not context.run("command -v cargo-outdated", warn=True, hide=True).ok:
                 context.run("cargo install cargo-outdated")
-            context.run("cargo outdated --root-deps-only --workspace --ignore-external-rel", warn=True)
+            context.run("cargo outdated --depth 1 --workspace", warn=True)
         context.run("bun outdated")
         context.run("bun update")
         try:
@@ -318,11 +363,15 @@ def toolchain(_context: object) -> None:
         codex_version = input(f"Codex version [{current_codex}]: ").strip() or current_codex
         check_toolchain_prerequisites(ROOT, bun_version)
         update_toolchain_pins(ROOT, bun_version, codex_version)
-        for step, command in (
+        steps = [
             ("Dependency install", ("bun", "install")),
             ("Toolchain check", ("bun", "scripts/check-toolchain.ts")),
             ("Sidecar staging", ("bun", "run", "stage")),
-        ):
+        ]
+        # Hasgard CLI drives the dev instance (MCP, smoke scripts); the same crates.io release everywhere.
+        if shutil.which("tauri-hasgard") is None:
+            steps.append(("Hasgard CLI install", ("cargo", "install", "tauri-hasgard-cli")))
+        for step, command in steps:
             try:
                 run(*command)
             except subprocess.CalledProcessError as error:

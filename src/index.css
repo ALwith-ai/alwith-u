@@ -7,6 +7,17 @@
 
 @source "../node_modules/@alwith/module-chat/dist";
 
+/* Keep diff metadata readable in both themes, including upstream diff2html styles. */
+[data-stream-style="codexUI"] .d2h-wrapper .d2h-info,
+[data-stream-style="codexUI"] .d2h-wrapper .d2h-tag {
+  color: var(--foreground);
+}
+
+[data-stream-style="codexUI"] .codex-markdown-link-label {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

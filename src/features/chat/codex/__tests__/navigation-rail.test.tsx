@@ -1,13 +1,11 @@
-import { afterEach, describe, expect, mock, test } from "bun:test"
 import type { MessageItem } from "@alwith/api"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import type { Turn } from "../../turns"
 import type { NavigationRailItem } from "../navigation-rail"
 import { navigationSoundStore } from "../navigation-sound-store"
-import { installDom } from "./dom-environment"
 
-installDom()
-mock.module("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
+vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
 const { ThreadUserMessageNavigationRail, toNavigationRailItems } = await import("../navigation-rail")
 // happy-dom has no AudioContext; with sounds off the rail never touches one.
 navigationSoundStore.setState({ soundMode: "none" })

@@ -1,9 +1,7 @@
-import { afterEach, expect, mock, spyOn, test } from "bun:test"
 import { PromptInputProvider, usePromptInputController } from "@alwith/module-chat/composer-context"
 import { fireEvent, render } from "@testing-library/react"
-import { installDom } from "../../codex/__tests__/dom-environment"
+import { afterEach, expect, test, vi } from "vitest"
 
-installDom()
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(() => {
   for (const view of mounted.splice(0)) view.unmount()
@@ -23,8 +21,8 @@ function Draft() {
 }
 
 test("shared Desktop controller takes each session's controlled draft without copying it", () => {
-  const onValueChange = mock(() => {})
-  const onAttachmentsChange = mock(() => {})
+  const onValueChange = vi.fn(() => {})
+  const onAttachmentsChange = vi.fn(() => {})
   const view = render(
     <PromptInputProvider
       value="First session"
@@ -50,7 +48,7 @@ test("shared Desktop controller takes each session's controlled draft without co
 })
 
 test("unmount does not revoke attachment URLs owned by the session draft", () => {
-  const revoke = spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
+  const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
   try {
     const view = render(
       <PromptInputProvider

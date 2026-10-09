@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { createWindowController } from "../window-controller"
 
 test("concurrent opens create one window and deliver each intent after readiness", async () => {

@@ -1,9 +1,9 @@
-import { describe, expect, mock, test } from "bun:test"
+import { describe, expect, test, vi } from "vitest"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import { createPluginsStore, installParams, type PluginsApi } from "../store"
 
-mock.module("sonner", () => ({ toast: { success: () => undefined, error: () => undefined, message: () => undefined } }))
+vi.mock("sonner", () => ({ toast: { success: () => undefined, error: () => undefined, message: () => undefined } }))
 
 function plugin(id: string, installed: boolean): PluginSummary {
   return {

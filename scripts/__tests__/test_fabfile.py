@@ -3,6 +3,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from contextlib import redirect_stderr
 from urllib.error import URLError
 from pathlib import Path
@@ -15,6 +16,48 @@ from invoke.runners import Result
 
 from fabfile import ROOT, toolchain, update_toolchain_pins, update_version
 import fabfile
+
+
+class StoryBuildTaskTests(unittest.TestCase):
+    def test_menu_routes_build_to_archive(self) -> None:
+        with patch("fabfile.inquirer.select") as select, patch("fabfile.build_story_archive") as build:
+            select.return_value.execute.return_value = "build"
+            fabfile.story(Context())
+            build.assert_called_once_with()
+
+    def test_menu_routes_preview_to_existing_script(self) -> None:
+        with patch("fabfile.inquirer.select") as select, patch("fabfile.run") as run:
+            select.return_value.execute.return_value = "dev"
+            fabfile.story(Context())
+            run.assert_called_once_with("bun", "run", "storybook")
+
+    def test_packages_only_static_site(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            site = root / "storybook-static"
+            site.mkdir()
+            (site / "index.html").write_text("Preview")
+            (root / "private.ts").write_text("Not part of the site")
+            with patch("fabfile.ROOT", root), patch("fabfile.run") as run:
+                fabfile.build_story_archive()
+            self.assertEqual(run.call_args_list, [
+                call("bun", "run", "storybook:check"),
+                call("bun", "run", "storybook:build"),
+            ])
+            with zipfile.ZipFile(root / "dist/alwith-u-storybook.zip") as archive:
+                self.assertEqual(archive.namelist(), ["index.html"])
+
+    def test_rejects_source_maps(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            site = root / "storybook-static"
+            site.mkdir()
+            (site / "index.html").write_text("Preview")
+            (site / "bundle.js.map").write_text("{}")
+            with patch("fabfile.ROOT", root), patch("fabfile.run"):
+                with self.assertRaisesRegex(Exit, "Source maps"):
+                    fabfile.build_story_archive()
+            self.assertFalse((root / "dist").exists())
 
 
 class UpgradeTaskTests(unittest.TestCase):
@@ -65,7 +108,7 @@ class UpgradeTaskTests(unittest.TestCase):
                 self.assertEqual(commands, [
                     (str(ROOT / "src-tauri"), "cargo update", {}),
                     (str(ROOT / "src-tauri"), "command -v cargo-outdated", {"warn": True, "hide": True}),
-                    (str(ROOT / "src-tauri"), "cargo outdated --root-deps-only --workspace --ignore-external-rel", {"warn": True}),
+                    (str(ROOT / "src-tauri"), "cargo outdated --depth 1 --workspace", {"warn": True}),
                     (str(ROOT), "bun outdated", {}),
                     (str(ROOT), "bun update", {}),
                 ])
@@ -81,7 +124,7 @@ class UpgradeTaskTests(unittest.TestCase):
             Program(namespace=Collection.from_module(fabfile)).run(["fab", "upgrade"], exit=False)
         self.assertIn("cargo install cargo-outdated", commands)
         self.assertLess(commands.index("cargo install cargo-outdated"), commands.index(
-            "cargo outdated --root-deps-only --workspace --ignore-external-rel"
+            "cargo outdated --depth 1 --workspace"
         ))
 
     def test_upgrade_stops_when_dependency_update_fails(self) -> None:

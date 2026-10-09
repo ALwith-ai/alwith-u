@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
+import { expect, test } from "vitest"
 import {
   createSettingsAuthClient,
   type SettingsAgent,

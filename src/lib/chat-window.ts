@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core"
 import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { commands } from "@/bindings"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import i18n from "./i18n"
 import { createWindowController } from "./window-controller"
@@ -127,8 +127,8 @@ export async function openChatWindow(transfer?: ChatTransfer): Promise<void> {
 export function announceChatReady(): Promise<void> {
   return emitTo("main", READY)
 }
-export function presentChatWindow(): Promise<void> {
-  return invoke("present_chat_window")
+export async function presentChatWindow(): Promise<void> {
+  await commands.presentChatWindow()
 }
 
 export async function releaseChatWindow(sessionId: string): Promise<ChatTransfer | null> {

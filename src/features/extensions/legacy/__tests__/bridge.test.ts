@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test"
+import { Blob as NodeBlob } from "node:buffer"
 import { ResourceScope } from "@alwith/module-extension/host"
+import { describe, expect, test } from "vitest"
 import { type BridgeDependencies, createLegacyBridge } from "../bridge"
 
 function setup(
@@ -81,8 +82,11 @@ describe("legacy host boundary", () => {
 
   test("serializes multipart boundaries and retains binary responses", async () => {
     const { bridge, calls } = setup()
-    const body = new FormData()
-    body.append("file", new Blob([new Uint8Array([0, 255, 42])]), "report.bin")
+    // Node's own multipart classes: the jsdom FormData/Blob pair would be converted by the test
+    // environment on its way into fetch and lose the filename. Node's FormData is not importable,
+    // so take an instance from a parsed Response.
+    const body = await new Response(new URLSearchParams()).formData()
+    body.append("file", new NodeBlob([new Uint8Array([0, 255, 42])]) as unknown as Blob, "report.bin")
     const response = await bridge.fetch("https://bi-api.finture.id/test", { method: "POST", body })
     const request = calls[0].args.request as { headers: Record<string, string>; body: number[] }
     expect(request.headers["content-type"]).toContain("multipart/form-data; boundary=")

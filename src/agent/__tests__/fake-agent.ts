@@ -330,7 +330,7 @@ export function createFakeAgent(): FakeAgent {
             status: "completed"
           })
         } else {
-          await Bun.sleep(80)
+          await new Promise(resolve => setTimeout(resolve, 80))
           if (!controller.signal.aborted)
             await emit({
               sessionUpdate: "agent_message_chunk",

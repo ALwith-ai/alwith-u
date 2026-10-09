@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test"
 import { ResourceScope } from "@alwith/module-extension/host"
+import { expect, test } from "vitest"
 import { authorizeCapability, extensionActions } from "../policy"
 
 test("operation policy follows native bundled provenance for any extension", (): void => {

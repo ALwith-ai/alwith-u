@@ -1,9 +1,10 @@
 import { getVersion } from "@tauri-apps/api/app"
-import { invoke, isTauri } from "@tauri-apps/api/core"
+import { isTauri } from "@tauri-apps/api/core"
 import { TerminalIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -17,7 +18,7 @@ export function ClientVersionPopover() {
   useEffect(() => {
     if (!open || !isTauri()) return
     let disposed = false
-    void Promise.all([getVersion(), invoke<string>("codex_version")])
+    void Promise.all([getVersion(), commands.codexVersion()])
       .then(([client, cli]) => {
         if (disposed) return
         setClientVersion(client)

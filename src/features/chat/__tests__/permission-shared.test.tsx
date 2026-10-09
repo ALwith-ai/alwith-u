@@ -1,15 +1,13 @@
-import { afterEach, expect, spyOn, test } from "bun:test"
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { afterEach, expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ActionCard } from "../action-card"
-import { installDom } from "../codex/__tests__/dom-environment"
 
-installDom()
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.
 globalThis.TransformStream = TransformStream as typeof globalThis.TransformStream
 globalThis.ReadableStream = ReadableStream as typeof globalThis.ReadableStream
@@ -34,7 +32,7 @@ test("U shared approval answers the exact pending request through the real ACP c
   await client.prompt(sessionId, [{ type: "text", text: "permission" }])
   await waitFor(() => expect(client.state.actions.length).toBe(1))
   const action = client.state.actions[0]
-  const respond = spyOn(applicationClient, "respond").mockImplementation((id, answer) => client.respond(id, answer))
+  const respond = vi.spyOn(applicationClient, "respond").mockImplementation((id, answer) => client.respond(id, answer))
   try {
     const view = render(<ActionCard action={action} />)
     mounted.push(view)

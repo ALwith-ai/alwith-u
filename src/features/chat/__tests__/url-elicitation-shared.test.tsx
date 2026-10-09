@@ -1,9 +1,7 @@
-import { afterEach, expect, test } from "bun:test"
 import { UrlElicitationCard } from "@alwith/module-chat/url-elicitation-card"
 import { act, fireEvent, render } from "@testing-library/react"
-import { installDom } from "../codex/__tests__/dom-environment"
+import { afterEach, expect, test } from "vitest"
 
-installDom()
 const mounted: ReturnType<typeof render>[] = []
 afterEach(async () => {
   await act(async () => {

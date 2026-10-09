@@ -1,8 +1,6 @@
-import { afterEach, expect, spyOn, test } from "bun:test"
-import { installDom } from "../../codex/__tests__/dom-environment"
+import { afterEach, expect, test, vi } from "vitest"
 import { drafts, exportDraft, importDraft } from "../drafts"
 
-installDom()
 afterEach(() => drafts.clear())
 
 test("cross-window drafts preserve text, mentions, model and materialize blob attachments", async () => {
@@ -14,9 +12,10 @@ test("cross-window drafts preserve text, mentions, model and materialize blob at
       { id: "image", type: "file", mediaType: "image/png", filename: "example.png", url: "blob:source-window" }
     ]
   })
-  const fetchImage = spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(new Blob(["image"], { type: "image/png" }))
-  )
+  // A byte body with an explicit type: jsdom's Blob is not a body Node's Response understands.
+  const fetchImage = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response(new TextEncoder().encode("image"), { headers: { "content-type": "image/png" } }))
   try {
     const transferred = await exportDraft("draft")
     expect(transferred?.text).toBe("Explain this image")
@@ -40,7 +39,7 @@ test("an unreadable attachment fails the transfer without clearing the source dr
     mentions: [],
     modelId: null
   })
-  const fetchImage = spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }))
+  const fetchImage = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }))
   try {
     await expect(exportDraft("draft")).rejects.toThrow("Cannot read draft image")
     expect(drafts.get("draft")?.text).toBe("keep me")

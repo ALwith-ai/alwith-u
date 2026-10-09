@@ -18,14 +18,14 @@ pub const ACTUAL_SIZE_ID: &str = "actual_size";
 /// Menu id → frontend event name. Menu clicks and keyboard accelerators share this path.
 pub fn event_name(id: &str) -> Option<&'static str> {
     Some(match id {
-        OPEN_SETTINGS_ID => "menu:open-settings",
-        NEW_CHAT_ID => "menu:new-chat",
-        FIND_IN_CHAT_ID => "menu:find-in-chat",
-        COMMAND_PALETTE_ID => "menu:command-palette",
-        OPEN_HOTKEYS_ID => "menu:open-hotkeys",
-        ZOOM_IN_ID => "menu:zoom-in",
-        ZOOM_OUT_ID => "menu:zoom-out",
-        ACTUAL_SIZE_ID => "menu:actual-size",
+        OPEN_SETTINGS_ID => <OpenSettings as tauri3_specta::Event>::NAME,
+        NEW_CHAT_ID => <NewChat as tauri3_specta::Event>::NAME,
+        FIND_IN_CHAT_ID => <FindInChat as tauri3_specta::Event>::NAME,
+        COMMAND_PALETTE_ID => <CommandPalette as tauri3_specta::Event>::NAME,
+        OPEN_HOTKEYS_ID => <OpenHotkeys as tauri3_specta::Event>::NAME,
+        ZOOM_IN_ID => <ZoomIn as tauri3_specta::Event>::NAME,
+        ZOOM_OUT_ID => <ZoomOut as tauri3_specta::Event>::NAME,
+        ACTUAL_SIZE_ID => <ActualSize as tauri3_specta::Event>::NAME,
         _ => return None,
     })
 }
@@ -198,3 +198,35 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let menu = menu.item(&app_submenu);
     menu.item(&file_submenu).item(&edit_submenu).item(&view_submenu).item(&window_submenu).build()
 }
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:open-settings")]
+pub struct OpenSettings;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:new-chat")]
+pub struct NewChat;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:find-in-chat")]
+pub struct FindInChat;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:command-palette")]
+pub struct CommandPalette;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:open-hotkeys")]
+pub struct OpenHotkeys;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:zoom-in")]
+pub struct ZoomIn;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:zoom-out")]
+pub struct ZoomOut;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:actual-size")]
+pub struct ActualSize;

@@ -4,9 +4,4 @@ export interface WallpaperPresentation {
   brightness: number
   blur: number
 }
-export interface ImportedWallpaper {
-  id: string
-  name: string
-  width: number
-  height: number
-}
+export type { ImportedImage as ImportedWallpaper } from "@/bindings"

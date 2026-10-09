@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import type { ChatTransfer } from "@/lib/chat-window"
 import { type SelectThreadActions, selectThread } from "../select-thread"

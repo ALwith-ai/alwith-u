@@ -6,3 +6,6 @@ Source: https://github.com/ahkohd/tauri-nspanel at
 Local changes update Tauri dependencies and the Wry extension API for Tauri 3.
 The existing plugin behavior and IPC names are preserved. This source snapshot
 is tracked so a clean checkout can build without sibling repositories.
+
+Tauri 3.0.0-alpha.4 removes the `macos-private-api` feature. The dependency
+no longer requests it; window transparency is available without that feature.

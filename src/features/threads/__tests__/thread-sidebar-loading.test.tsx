@@ -1,12 +1,10 @@
-import { afterEach, expect, test } from "bun:test"
 import { act, cleanup, render } from "@testing-library/react"
+import { afterEach, expect, test } from "vitest"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ThreadSidebar } from "../thread-sidebar"
 
-installDom()
 await initI18n("en")
 
 const originalState = client.state
@@ -14,7 +12,7 @@ afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
-    await Bun.sleep(0)
+    await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
 
@@ -56,7 +54,7 @@ test("the first sidebar frame shows two project-shaped loading rows", async () =
     expect(row.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(2)
   }
   await act(async () => {
-    await Bun.sleep(0)
+    await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
 
@@ -72,6 +70,6 @@ test("a failed initial list offers retry instead of a permanent skeleton", async
   expect(screen.getByText("Unavailable")).toBeTruthy()
   expect(screen.getByRole("button", { name: /retry|重试/i })).toBeTruthy()
   await act(async () => {
-    await Bun.sleep(0)
+    await new Promise(resolve => setTimeout(resolve, 0))
   })
 })

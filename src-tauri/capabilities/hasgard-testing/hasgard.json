@@ -1,6 +1,7 @@
 {
+  "$schema": "../../gen/schemas/desktop-schema.json",
   "identifier": "hasgard-testing",
-  "description": "Automation bridge; included only with the hasgard-testing feature",
-  "windows": ["main", "settings"],
+  "description": "Automation bridge permissions; compiled only with the hasgard-testing feature, release builds never parse this file (see build.rs)",
+  "windows": ["*"],
   "permissions": ["hasgard:default"]
 }

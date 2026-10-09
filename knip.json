@@ -5,7 +5,8 @@
     "src/chat-main.tsx",
     "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "src/bindings.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.ts"],
   "ignore": ["src/components/ui/**"],

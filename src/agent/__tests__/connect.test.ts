@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test"
+import { afterEach, expect, test } from "vitest"
 import { CodexClient } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
@@ -12,7 +12,7 @@ async function until(predicate: () => boolean) {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > 3000) throw new Error("Timed out")
-    await Bun.sleep(5)
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
 }
 

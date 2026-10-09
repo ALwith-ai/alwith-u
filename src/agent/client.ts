@@ -666,7 +666,10 @@ export class CodexClient {
       option !== undefined &&
       isSelectOption(option) &&
       option.options.some(
-        group => "groupId" in group && group.groupId !== NATIVE_MODEL_GROUP.id && group.options.some(model => model.value === modelId)
+        group =>
+          "groupId" in group &&
+          group.groupId !== NATIVE_MODEL_GROUP.id &&
+          group.options.some(model => model.value === modelId)
       )
     if (isGateway) this.gatewayModels.set(session.id, modelId)
     else this.gatewayModels.delete(session.id)

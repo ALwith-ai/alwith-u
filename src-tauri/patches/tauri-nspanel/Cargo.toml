@@ -7,7 +7,7 @@ edition = "2021"
 exclude = ["/examples"]
 
 [dependencies]
-tauri = { version = "3.0.0-alpha.3", features = ["macos-private-api"] }
+tauri = { version = "3.0.0-alpha.4" }
 pastey = "0.2"
 
 [target."cfg(target_os = \"macos\")".dependencies]

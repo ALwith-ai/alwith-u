@@ -20,7 +20,8 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri", "native-http"] }
 tempfile = "3"
-sha2 = "0.10"
+sha2 = "0.11"
+hex = "0.4"
 tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }
 libloading = "0.9"
 log = "0.4"
@@ -28,9 +29,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # reqwest 0.13 renamed the TLS feature from `rustls-tls` to `rustls`.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-# Tauri 3: runtime is a separate crate; enable `macos-private-api` on the runtime crate (which also enables it on tauri).
-tauri = { version = "3.0.0-alpha.3", features = ["protocol-asset"] }
-tauri-runtime-wry = { version = "3.0.0-alpha.3", features = ["macos-private-api"] }
+# Tauri 3 keeps its runtime in a separate crate; alpha.4 provides transparency without a private-API feature.
+tauri = { version = "3.0.0-alpha.4", features = ["protocol-asset", "specta"] }
+specta = { version = "=2.0.0-rc.25", features = ["derive", "function"] }
+tauri3-specta = { git = "https://github.com/nyssance/tauri3-specta", rev = "696f1b47c3321d7a109a742c06fccba98b73e2ba" }
+tauri-runtime-wry = "3.0.0-alpha.4"
 tauri-plugin-dialog = "3.0.0-alpha.1"
 tauri-plugin-global-shortcut = "3.0.0-alpha.1"
 tauri-plugin-log = "3.0.0-alpha.1"

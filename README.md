@@ -1,191 +1,34 @@
 # ALwith U
 
-An independent desktop client for the OpenAI Codex CLI. Tauri 2 shell, React UI,
-the unmodified `codex` binary bundled as a sidecar. Conversations live where Codex
-keeps them (`~/.codex`); the app stores nothing but a handful of preferences.
+Your next product is an Agent. Launch it in 30 minutes.
 
-This client is Apache-2.0; the separately maintained runtime client package has its own licensing status. The runtime that owns
-the agent process, the ALwith Runtime, ships as the closed `alwith-runtime` binary and is
-reached through its documented stdio or WebSocket protocol.
+Built on ALwith’s ready-made components. Powered by Codex CLI. Designed by you.
 
-ALwith U is also a complete reference application: it shows how a chat app is assembled on the
-ALwith Runtime. Apps built the same way need not inherit U's code or use shadcn.
+Your brand. Your experience. Your edge.
 
-Not affiliated with or endorsed by OpenAI.
+## Install from source
 
-## What it does
-
-- Threads grouped by project, with archive, restore, delete and fork straight from
-  Codex's own thread store
-- Streaming replies in the Codex desktop look: reasoning, commands with live terminal
-  output, file edits with diffs, searches, MCP calls, plans, context compaction
-- Approvals inline with number-key shortcuts; MCP form elicitations in a dialog
-- Model, reasoning effort, permission mode and collaboration mode per session
-- Composer from ALwith Desktop: image paste and drop with previews, slash-command
-  completion, per-session drafts
-- Diff modal per edited file, image lightbox, find in thread (⌘F), sidebar search
-- Long threads render as a virtualized window of turns that stays pinned to the bottom
-- ChatGPT login, device-code login and API keys through Codex itself
-- Context usage meter, desktop notifications, command palette, native menu (macOS,
-  Linux), light and dark theme, English and Simplified Chinese
-- Auto-update from GitHub Releases (minisign-verified), single instance, crash-safe
-  error boundary
-- DeepSeek, OpenRouter, Qwen and xAI models in every chat's model picker; each chat picks its own model
-
-Deliberately left out: file tree, browser, file preview, computer use, cloud tasks.
-
-## ALwith account
-
-U requires an ALwith login (email code, password or email registration). It reuses
-`@alwith/module-auth` and `alwith-module-auth`; Desktop is unchanged. Each application logs in
-independently and stores its own tokens in its Tauri application data directory:
-`auth.api.alwith.ai.json` (production) or `auth.api-dev.alwith.ai.json` (development).
-No credentials are copied from Desktop. Refresh and logout affect U's login;
-Codex login, provider keys and local CLI conversation history are separate.
-Pets and entitlements belong to the server account ID, not these token files.
-OAuth callbacks and live multi-login/pet-entitlement verification are not yet wired/verified.
-
-## Model providers
-
-Settings → Model providers manages Codex sign-in, sign-out and usage alongside API
-keys for DeepSeek, OpenRouter, Qwen (Alibaba Model Studio, international or China endpoint)
-and xAI. Each saved key registers
-that provider with the adapter in catalog mode (`providers/set` with `_meta.codex.id` and
-`_meta.codex.mode: "catalog"`): its models join every chat's model picker under their own
-group, and a chat runs on the provider only while one of its models is selected (a Codex
-per-thread `model_providers` override over the Responses API). A new chat can select a
-configured provider before its first message; this does not require Codex sign-in.
-Provider configuration never modifies `~/.codex/config.toml`; Codex authentication
-itself remains owned by the CLI. Only providers that speak the OpenAI
-Responses API natively are listed; Kimi, MiniMax and Zhipu models are reachable through
-OpenRouter. Claude is deliberately not offered.
-
-## Architecture
-
-```
-webview (React) ──alwith-runtime-v1 frames over Tauri events──▶ Rust relay ──stdio──▶ alwith-runtime ──ACP v2 stdio──▶ bun + codex-acp-v2.mjs ──▶ codex
-                                                                                  (closed)                        (bundled Bun + JS)       (native)
-      Rust spawns alwith-runtime as a sidecar and relays frames both ways, 16 ms batches out
-```
-
-- `@alwith/api/runtime`: the transport-independent Runtime client; `@alwith/api/tauri`
-  and `@alwith/api/node` connect through the desktop shell and stdio respectively.
-- `@alwith/api/agent`: shared agent lifecycle and pending approval handling.
-- `@alwith/api/session`: pure reducers over ACP `session/update` frames. No React.
-- `src/agent/client.ts`: the Codex application adapter over these shared APIs. Routes every update by session id and
-  publishes state through a zustand store; the Runtime's four-state run states
-  (`running`, `requires_action`, `done`, `idle`) are mirrored alongside.
-- Agent attach restores pending permissions through the shared agent API; tests use
-  an in-process `AgentApp` and an in-memory fake Runtime.
-- `src-tauri/src/runtime.rs`: spawns `alwith-runtime --listen stdio://` with the engine table, relays stdin/stdout
-  (`codex` → bundled `bun --no-install codex-acp-v2.mjs` with `CODEX_PATH`), waits for its `ready` line.
-- `src/features/chat/codex/`: the Codex desktop chat look (markdown renderer,
-  activity rows, work section, edited-files card, virtualized turn list, stylesheet).
-- `src/features/chat/composer/`, `src/features/chat/dialogs/`: the input area and the
-  dialogs, reduced from ALwith Desktop.
-- `src-tauri/src/updater/`: ALwith Desktop's updater state machine over
-  `tauri-plugin-updater`, fed by `latest.json` on the GitHub Release; `menu.rs` builds
-  the native menu; `lib.rs` wires single-instance and kills `alwith-runtime` on exit.
-
-## Develop
-
-Requires the exact Bun version in `package.json#packageManager`, Rust stable and the Tauri 2 prerequisites for your platform.
+Install the Bun version pinned in `package.json`, Rust stable, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. macOS requires 26.0+ on Apple Silicon.
 
 ```sh
+git clone https://github.com/ALwith-ai/alwith-u.git
+cd alwith-u
 bun install
-bun run stage        # stages native npm binaries, Bun, Runtime, Codex, adapter JS and licences
-bun tauri dev
 ```
 
-For the Fabric shortcuts, install Fabric (`uv tool install fabric`) and run:
+## Run
 
 ```sh
-fab tauri    # stage resources, then start the .dev Tauri instance
-fab check    # run the web and Rust gates
-fab build    # build the Tauri bundle
-fab format   # format Rust and frontend sources
-fab version  # update package.json, Cargo.toml, and Cargo.lock
-fab upgrade  # alias: fab u; update Cargo/Bun dependencies within declared ranges
-fab toolchain # update Bun/Codex pins and bun.lock, then check and stage them
+bun run dev:tauri
 ```
 
+Sign in to ALwith, then configure Codex or a model provider in settings to start chatting.
 
-Run staging and `fab check` after stopping the dev instance; both write resources that Tauri watches.
-
-`stage` takes the Runtime from the installed `@alwith/runtime` platform package (npm installs
-the one binary for your platform; `stageRuntime()` verifies its pinned SHA256 before copying).
-No GitHub token, download script or private checkout is involved. Local Runtime development
-must explicitly set `RUNTIME_SOURCE=sibling` to use a neighbouring checkout's build, or
-`RUNTIME_PATH` to use an existing binary. Auth and installed-app implementations arrive the
-same way through `@alwith/native`; Tauri contains only the thin ABI bridge. Login storage is
-unchanged. See [native distribution](docs/native-distribution.md).
-
-Runtime and native libraries are published for macOS arm64, Linux x64/arm64 and Windows
-x64/arm64 (no Intel Mac). To bump either, change the version in `package.json` and `bun install`.
-
-## Releases
-
-`.github/workflows/ci.yml` runs typecheck, tests, lint, the web build and a macOS ARM64
-desktop compilation using public dependencies on every push.
-Tagging `v<version>` runs `release.yml`: macOS ARM64, Windows x64 and Windows ARM64,
-with sidecars staged from pinned npm packages and bundles uploaded to a draft GitHub
-Release by `tauri-action`. Apple signing and notarisation use the `APPLE_*` secrets
-in the workflow. Bun and Codex versions are pinned in `package.json` and checked by
-`scripts/check-toolchain.ts`; `scripts/verify-bundled-toolchain.ts` validates the built toolchain.
-
-The macOS release job uses `scripts/macos-signing.sh setup/cleanup` to manage signing
-credentials. It imports the Apple certificate into a temporary keychain before
-staging and restores the keychain search list and cleans up afterwards, including on
-failure. Its password is generated per run; no additional secret is needed. Tauri
-handles application signing and notarisation directly. Gatekeeper and clean-Mac
-installation checks remain manual acceptance steps; there is no separate DMG
-notarisation step. Manual workflow runs remain unsigned test builds. Publish a draft
-only after all matrix jobs and manual acceptance checks pass; toolchain smoke tests
-run after the action uploads draft assets. Updater acceptance is a separate test.
-
-Updates: `createUpdaterArtifacts` signs every bundle with the minisign key whose public
-half sits in `tauri.conf.json` (`plugins.updater.pubkey`); the private key goes into the
-`TAURI_SIGNING_PRIVATE_KEY` secret. The app polls `releases/latest/download/latest.json`
-of the repository named in `plugins.updater.endpoints`, downloads in the background and
-offers a relaunch. Losing the key means shipped apps can never accept an update.
-
-`bun run dev:tauri` runs the same thing under the identifier `ai.alwith.u.dev`
-(`src-tauri/tauri.dev-instance.conf.json`), so an installed build and a dev build can
-run side by side with separate preferences, logs and window state. That is how the
-app develops itself: chat with Codex in the installed build, restart the dev build
-freely. Both see the same Codex threads; do not open one thread in both.
-
-The dev command enables the `hasgard-testing` Cargo feature (Tauri Hasgard's
-automation bridge). Normal builds omit both the plugin and its capability.
-To compile a testable desktop binary without starting a dev server, use
-`bun run tauri build --debug --features hasgard-testing --no-bundle`.
-
-`bun run stage` targets the host triple; pass a Rust target triple to stage another
-platform (the matching `@openai/codex-<platform>` package must be installed).
-
-## Validate
+## Build
 
 ```sh
-bun run typecheck
-bun test
-bun run lint         # biome + oxlint, the same rules as ALwith Desktop
-bun run knip         # dead files and exports
-bun run build
-bun run test:live    # stages sidecars; tests stdio + WebSocket with two tiny read-only chats each
 bun tauri build
 ```
 
-`bun run format` (prettier) keeps the style; it is not a gate. Rust: `cargo fmt`, `cargo clippy --all-targets`
-and `cargo test --lib` in `src-tauri`, with Desktop's `rustfmt.toml`.
-
-The live check uses the same client and assertions for both transports: concurrent replies,
-session listing, live-agent attach, then native history replay after stopping and restarting
-the agent. Test processes are cleaned up on success and failure. The four test conversations
-remain in Codex's native history. For local Runtime development, rebuild the sibling Runtime
-before running this check; staging copies its release binary, not its source code.
-
-## Licence
-
-Apache-2.0. Bundles Bun (MIT, with separately licensed embedded libraries), the OpenAI Codex CLI (Apache-2.0) and
-[codex-acp-v2](https://www.npmjs.com/package/@nyssance/codex-acp-v2) (Apache-2.0);
-their notices ship under `resources/licenses`.
+Installers are generated in `src-tauri/target/release/bundle/`.
+On macOS, open the `.dmg` and drag ALwith U into Applications. On Windows, run the generated installer.

@@ -1,5 +1,8 @@
 node_modules/
+__pycache__/
+*.pyc
 dist/
+storybook-static/
 .env
 .DS_Store
 src-tauri/binaries/

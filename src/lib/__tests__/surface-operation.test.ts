@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "vitest"
 import { createSurfaceOperation } from "../surface-operation"
 
 test("handoffs lock synchronously, reject overlap and unlock on failure", async () => {

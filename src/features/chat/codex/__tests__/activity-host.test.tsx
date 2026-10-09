@@ -1,10 +1,7 @@
-import { expect, test } from "bun:test"
 import { render } from "@testing-library/react"
+import { expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import { useChatActivityHost } from "../activity-host"
-import { installDom } from "./dom-environment"
-
-installDom()
 
 function HostLanguage() {
   const host = useChatActivityHost()

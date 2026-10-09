@@ -686,7 +686,7 @@
     "through": "覆盖到 #{{seq}},来源 {{sources}}",
     "transcript": "对话",
     "rejected": "权限请求已拒绝(演示不授予任何权限)",
-    "unavailable": "story 模块未加载。先构建它,再带 ALWITH_U_DSH_AGENT 运行 U;见 docs/story-demo.md。",
+    "unavailable": "story 模块未加载。",
     "status": "revision {{revision}} · {{entries}} 条 · {{notes}} 笔记"
   },
   "chatWindow": {

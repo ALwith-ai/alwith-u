@@ -1,10 +1,8 @@
-import { afterEach, beforeAll, expect, test } from "bun:test"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { afterEach, beforeAll, expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
-import { installDom } from "../../codex/__tests__/dom-environment"
 import { DraftModelSelect } from "../draft-model-select"
 
-installDom()
 beforeAll(async () => {
   await initI18n("en")
 })

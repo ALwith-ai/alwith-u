@@ -1,9 +1,8 @@
-import { expect, test } from "bun:test"
 import { parseManifest } from "@alwith/module-extension"
 import { ResourceScope } from "@alwith/module-extension/host"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
+import { expect, test } from "vitest"
 import { wallpaperController } from "@/features/appearance/wallpaper/controller"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
 import { initI18n } from "@/lib/i18n"
 import { createWallpaperCapability } from "../capabilities/wallpaper"
 
@@ -14,7 +13,6 @@ const manifest = parseManifest({
   dependencies: { "@alwith/module-extension": "^0.1.0" }
 })
 
-installDom()
 test("wallpaper dialogs receive the current app language through the native boundary", async (): Promise<void> => {
   const calls: { command: string; args: unknown }[] = []
   mockIPC((command, args) => {

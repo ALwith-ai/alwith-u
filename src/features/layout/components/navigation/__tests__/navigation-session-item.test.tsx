@@ -1,9 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test"
 import { cleanup, render } from "@testing-library/react"
-import { installDom } from "@/features/chat/codex/__tests__/dom-environment"
+import { afterEach, describe, expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
-
-installDom()
 
 // Desktop's second case here (the CodexHoverCard portal geometry) is not ported: Base UI's
 // portal only mounts when Base UI was first loaded with a DOM present, and in the shared

@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from "bun:test"
 import { isSelectOption, textOf } from "@alwith/api"
+import { afterEach, expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { CodexClient, type GatewayModel } from "../client"
 import { createFakeAgent } from "./fake-agent"
@@ -61,7 +61,7 @@ async function until(predicate: () => boolean) {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > 3000) throw new Error("Timed out")
-    await Bun.sleep(5)
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
 }
 
@@ -224,7 +224,7 @@ test("completion publishes pending chunks and disconnect cannot restore a stale 
     content: { type: "text", text: "!" }
   })
   client.disconnect()
-  await Bun.sleep(25)
+  await new Promise(resolve => setTimeout(resolve, 25))
   expect(client.state.sessions[id].attached).toBe(false)
 })
 
@@ -504,7 +504,7 @@ test("model changes after restoring a session wait for the previous configuratio
   await until(() => enteredFirst)
   const second = client.setConfig("h1", "model", "gpt-5.6-sol")
   const results = Promise.allSettled([first, second])
-  await Bun.sleep(20)
+  await new Promise(resolve => setTimeout(resolve, 20))
   releaseFirst()
   expect(await results).toEqual([
     { status: "fulfilled", value: undefined },

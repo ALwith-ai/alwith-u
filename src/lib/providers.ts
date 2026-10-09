@@ -3,50 +3,24 @@
 // runs on that provider only while one of its models is selected. Nothing in ~/.codex changes.
 // Only providers that speak the OpenAI Responses API natively are listed (Codex dropped chat
 // completions); Kimi, MiniMax and Zhipu are reached through OpenRouter.
-import { invoke } from "@tauri-apps/api/core"
+
 import type { ComponentType, SVGProps } from "react"
 import type { GatewayModel } from "@/agent/client"
+import type { CustomInput, CustomModel, Input, Metadata, PublicCustomProvider, Snapshot, TestResult } from "@/bindings"
+import { commands, events } from "@/bindings"
 import { DeepSeekLogo } from "@/components/icons/deepseek-logo"
 import { GrokLogo } from "@/components/icons/grok-logo"
 import { OpenRouterLogo } from "@/components/icons/openrouter-logo"
 import { QwenLogo } from "@/components/icons/qwen-logo"
 import catalog from "./provider-catalog.json"
-export type ProviderKey = { configured: boolean; region?: string | null; baseUrl?: string | null }
-export type ProviderInput = { apiKey?: string; region?: string; baseUrl?: string }
-export type CustomModel = {
-  label: string
-  api_id: string
-  contextWindow?: number | null
-  description?: string
-}
-export type CustomProvider = { id: string; name: string; baseUrl: string; models: CustomModel[] }
-export type CustomProviderInput = CustomProvider & { apiKey?: string }
-export type ProviderSnapshot = {
-  revision: number
-  appliedRevision: number | null
-  providers: Record<string, ProviderKey>
-  customProviders: CustomProvider[]
-  status: "pending" | "applied" | "failed"
-  error: string | null
-}
-export type ProviderTestResult = {
-  ok: boolean
-  code:
-    | "ok"
-    | "unauthorized"
-    | "not_found"
-    | "rate_limited"
-    | "request_rejected"
-    | "server_error"
-    | "timeout"
-    | "network"
-    | "request_failed"
-    | "invalid_response"
-  message: string
-  status: number | null
-  latencyMs: number | null
-}
-export const PROVIDERS_CHANGED = "providers:changed"
+
+export type { CustomModel } from "@/bindings"
+export type ProviderKey = Metadata
+export type ProviderInput = Input
+export type CustomProvider = PublicCustomProvider
+export type CustomProviderInput = CustomInput & { id: string }
+export type ProviderSnapshot = Snapshot
+export type ProviderTestResult = TestResult
 
 export type ProviderRegion = { id: string; baseUrl: string; keyUrl: string }
 
@@ -115,7 +89,11 @@ export function providerGroups(
     ...snapshot.customProviders.map(provider => ({
       id: provider.id,
       name: provider.name,
-      models: provider.models.map(model => ({ id: model.api_id, label: model.label, description: model.description }))
+      models: provider.models.map(model => ({
+        id: model.api_id,
+        label: model.label,
+        ...(model.description == null ? {} : { description: model.description })
+      }))
     }))
   ]
 }
@@ -135,24 +113,26 @@ export function providerKeyUrl(provider: Provider, regionId: string | null | und
 }
 
 export function loadProviders(): Promise<ProviderSnapshot> {
-  return invoke("providers_read")
+  return commands.providersRead()
 }
 export function applyProviders(): Promise<ProviderSnapshot> {
-  return invoke("providers_apply")
+  return commands.providersApply()
 }
 export function saveProviderKey(
   revision: number,
   providerId: string,
   input: ProviderInput | null
 ): Promise<ProviderSnapshot> {
-  return invoke("providers_save", { providerId, input, expectedRevision: revision })
+  return commands.providersSave({ providerId, input, expectedRevision: revision })
 }
 export function saveCustomProvider(revision: number, input: CustomProviderInput): Promise<ProviderSnapshot> {
-  return invoke("providers_save_custom", { input, expectedRevision: revision })
+  return commands.providersSaveCustom({ input, expectedRevision: revision })
 }
 export function removeCustomProvider(revision: number, providerId: string): Promise<ProviderSnapshot> {
-  return invoke("providers_remove_custom", { providerId, expectedRevision: revision })
+  return commands.providersRemoveCustom({ providerId, expectedRevision: revision })
 }
 export function testProvider(providerId: string): Promise<ProviderTestResult> {
-  return invoke("providers_test", { providerId })
+  return commands.providersTest({ providerId })
 }
+
+export const PROVIDERS_CHANGED = events["providers:changed"].name

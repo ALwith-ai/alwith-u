@@ -1,4 +1,3 @@
-import { afterEach, expect, test } from "bun:test"
 import type { MessageItem, Terminal, ToolItem } from "@alwith/api"
 import { CodexActivityGroup } from "@alwith/module-chat/activity"
 import { type ActivityHost, ActivityHostProvider } from "@alwith/module-chat/activity-host"
@@ -7,11 +6,10 @@ import { PatchView } from "@alwith/module-chat/patch-view"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { fireEvent, render } from "@testing-library/react"
 import { createInstance } from "i18next"
+import { afterEach, expect, test } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { projectActivity } from "../activity-projection"
-import { installDom } from "./dom-environment"
 
-installDom()
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(() => {
   for (const view of mounted.splice(0)) view.unmount()

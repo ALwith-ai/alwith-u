@@ -365,18 +365,18 @@ export function ProviderRow({
   const [showKey, setShowKey] = useState(false)
   const [base, setBase] = useState({ saved, revision })
   const [region, setRegion] = useState(providerRegion(provider, saved?.region)?.id)
-  const [baseUrl, setBaseUrl] = useState(saved?.baseUrl ?? "")
+  const [baseUrl, setBaseUrl] = useState(saved?.base_url ?? "")
   const Logo = provider.logo
   const configured = saved !== null
   const keyTrimmed = apiKey.trim()
   const keyUrl = providerKeyUrl(provider, region)
   const regionChanged = region !== providerRegion(provider, base.saved?.region)?.id
-  const baseUrlChanged = baseUrl.trim() !== (base.saved?.baseUrl ?? "")
+  const baseUrlChanged = baseUrl.trim() !== (base.saved?.base_url ?? "")
   useEffect(() => {
     if (revision > base.revision && keyTrimmed === "" && !regionChanged && !baseUrlChanged) {
       setBase({ saved, revision })
       setRegion(providerRegion(provider, saved?.region)?.id)
-      setBaseUrl(saved?.baseUrl ?? "")
+      setBaseUrl(saved?.base_url ?? "")
     }
   }, [revision, saved, provider, base.revision, keyTrimmed, regionChanged, baseUrlChanged])
   const canSave = !busy && (keyTrimmed !== "" || regionChanged || baseUrlChanged)
@@ -391,7 +391,7 @@ export function ProviderRow({
     setBase({ saved: nextSaved, revision: result.revision })
     setApiKey(current => (current === submittedKey ? "" : current))
     setRegion(current => (current === submittedRegion ? providerRegion(provider, nextSaved?.region)?.id : current))
-    setBaseUrl(current => (current === baseUrl ? (nextSaved?.baseUrl ?? "") : current))
+    setBaseUrl(current => (current === baseUrl ? (nextSaved?.base_url ?? "") : current))
   }
   const submit = () => {
     if (keyTrimmed === "" && base.saved === null) return

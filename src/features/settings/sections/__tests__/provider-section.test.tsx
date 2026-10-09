@@ -1,14 +1,12 @@
-import { beforeAll, expect, mock, test } from "bun:test"
 import { act, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
+import { beforeAll, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import { PROVIDERS, type ProviderSnapshot } from "@/lib/providers"
 import type { SettingsAccount } from "@/lib/settings-bridge"
-import { installDom } from "../../../chat/codex/__tests__/dom-environment"
 import { CodexAccountSummary } from "../codex-provider-section"
 import { CustomProviderEditor, ProviderRow, ProviderTabs } from "../provider-section"
 
-installDom()
 beforeAll(async () => {
   await initI18n("en")
 })
@@ -26,7 +24,7 @@ function snapshot(revision: number, region = "intl"): ProviderSnapshot {
 }
 
 test("an untouched row follows loaded regions and submits the revision it displayed", async () => {
-  const save = mock(async () => snapshot(3))
+  const save = vi.fn(async () => snapshot(3))
   const view = render(
     <ProviderRow
       provider={provider}
@@ -67,7 +65,7 @@ test("an untouched row follows loaded regions and submits the revision it displa
 })
 
 test("a dirty row keeps its loaded revision across another window's save and retains a rejected draft", async () => {
-  const save = mock(async () => null)
+  const save = vi.fn(async () => null)
   const view = render(
     <ProviderRow
       provider={provider}
@@ -104,7 +102,7 @@ test("a dirty row keeps its loaded revision across another window's save and ret
 
 test("a successful save advances the base without erasing text typed while it was in flight", async () => {
   let finish!: (value: ProviderSnapshot) => void
-  const save = mock(
+  const save = vi.fn(
     () =>
       new Promise<ProviderSnapshot>(resolve => {
         finish = resolve
@@ -147,7 +145,7 @@ test("a successful save advances the base without erasing text typed while it wa
 })
 
 test("a built-in provider saves a page-configured API base URL", async () => {
-  const save = mock(async () => snapshot(2))
+  const save = vi.fn(async () => snapshot(2))
   const view = render(
     <ProviderRow
       provider={provider}
@@ -226,8 +224,8 @@ async function enterText(input: HTMLElement, value: string): Promise<void> {
 }
 
 test("custom model previews reflect edits and keep the JSON draft when reopened", async () => {
-  const save = mock(async () => true)
-  const saved = mock(() => {})
+  const save = vi.fn(async () => true)
+  const saved = vi.fn(() => {})
   const view = render(
     <CustomProviderEditor provider={customProvider} revision={7} busy={false} onSave={save} onSaved={saved} />
   )
@@ -247,7 +245,7 @@ test("custom model previews reflect edits and keep the JSON draft when reopened"
 })
 
 test("invalid model JSON stays editable and cannot be saved or hidden by preview", async () => {
-  const save = mock(async () => true)
+  const save = vi.fn(async () => true)
   const view = render(
     <CustomProviderEditor provider={customProvider} revision={1} busy={false} onSave={save} onSaved={() => {}} />
   )
@@ -275,7 +273,7 @@ test("a new custom provider starts with the model editor open and masks its API 
 })
 
 test("Codex loading resolves to real usage without presenting a signed-out action", async () => {
-  const signOut = mock(() => {})
+  const signOut = vi.fn(() => {})
   const view = render(<CodexAccountSummary account={undefined} disabled={false} onSignOut={signOut} />)
   expect(view.getByLabelText("Codex").getAttribute("aria-busy")).toBe("true")
   expect(view.queryByRole("button")).toBeNull()

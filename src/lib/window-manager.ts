@@ -1,7 +1,8 @@
 // On-demand windows, reduced from ALwith Desktop's window-manager to the one this app has.
-import { invoke } from "@tauri-apps/api/core"
+
 import { emitTo } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
@@ -42,7 +43,7 @@ function themeBackgroundRGB(): [number, number, number] {
 export async function openSettingsWindow(section?: SettingsSection): Promise<void> {
   const existing = await WebviewWindow.getByLabel("settings")
   if (existing) {
-    if (isMac()) await invoke("attach_window_to_main", { label: "settings" })
+    if (isMac()) await commands.attachWindowToMain({ label: "settings" })
     else {
       await existing.show()
       await existing.setFocus()
@@ -68,7 +69,7 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
     ...(attachToMain ? { visible: false } : {})
   })
   void win.once("tauri://created", async () => {
-    if (attachToMain) await invoke("attach_window_to_main", { label: "settings" })
+    if (attachToMain) await commands.attachWindowToMain({ label: "settings" })
     else {
       await win.show()
       await win.setFocus()
