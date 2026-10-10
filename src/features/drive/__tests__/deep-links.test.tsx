@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, expect, test, vi } from "vitest"
 
 const mock = vi.hoisted(() => ({
+  connected: true,
   tauri: vi.fn(() => true),
   current: vi.fn<() => Promise<string[] | null>>(),
   receive: null as ((urls: string[]) => void) | null,
@@ -24,7 +25,7 @@ vi.mock("@tauri-apps/plugin-deep-link", () => ({
 }))
 vi.mock("../controller", () => ({
   drive: {
-    getSnapshot: () => ({ snapshot: mock.snapshot }),
+    getSnapshot: () => ({ connected: mock.connected, snapshot: mock.snapshot }),
     request: mock.request,
     subscribe: (handler: () => void) => {
       mock.changed = handler
@@ -39,6 +40,7 @@ import { useDriveDeepLinks } from "../deep-links"
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mock.connected = true
   mock.tauri.mockReturnValue(true)
   mock.receive = null
   mock.changed = null
@@ -126,4 +128,20 @@ test("ordinary browser renders never call native deep-link APIs", async () => {
   expect(mock.request).not.toHaveBeenCalled()
   expect(mock.error).not.toHaveBeenCalled()
   hook.unmount()
+})
+
+test("cold links remain queued until the controller attaches", async () => {
+  mock.connected = false
+  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/7"])
+  const open = vi.fn(async (_path: string) => {})
+  renderHook(() => useDriveDeepLinks(open))
+  await act(async () => {})
+  expect(mock.request).not.toHaveBeenCalled()
+  expect(mock.external).not.toHaveBeenCalled()
+  await act(async () => {
+    mock.connected = true
+    mock.changed?.()
+  })
+  await waitFor(() => expect(open).toHaveBeenCalledWith("/drive/project/note.md"))
+  expect(mock.error).not.toHaveBeenCalled()
 })

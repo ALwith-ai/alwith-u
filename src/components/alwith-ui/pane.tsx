@@ -45,7 +45,7 @@ export function Pane({
         data-slot="scroll-area-scrollbar"
         data-orientation="vertical"
         orientation="vertical"
-        className="flex h-full w-2.5 touch-none border-s border-s-transparent p-px transition-colors select-none">
+        className="flex h-full w-1.5 touch-none p-px transition-colors select-none">
         <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="bg-border relative flex-1 rounded-full" />
       </ScrollAreaPrimitive.Scrollbar>
       <ScrollAreaPrimitive.Corner />

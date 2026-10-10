@@ -2,11 +2,14 @@
 // and publishes state through a framework-agnostic zustand store.
 
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2"
 import {
   Agent,
   AgentRequests,
   Agents,
   createSession,
+  isBooleanOption,
+  isGroupedSelect,
   isSelectOption,
   type PendingRequest,
   type RuntimeClient,
@@ -38,7 +41,7 @@ import type {
   SkillsConfigWriteResponse,
   SkillsListResponse
 } from "./codex-extensions"
-import { codexExtensionCapabilities } from "./codex-extensions"
+import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensions"
 import { forkTitle } from "./fork-title"
 
 /**
@@ -199,6 +202,7 @@ export class CodexClient {
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
+  private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
   })
@@ -341,6 +345,8 @@ export class CodexClient {
   private onClosed(agent: Agent): void {
     if (this.agent !== agent) return
     this.agent = null
+    this.listRequests.threads++
+    this.listRequests.archived++
     this.updates.cancel()
     // The process is gone (or we let go of it): nothing pending can be answered any more.
     this.requests.release()
@@ -359,6 +365,7 @@ export class CodexClient {
     this.store.setState({
       connection: "disconnected",
       connectionError: "Codex disconnected",
+      threadsLoading: false,
       sessions,
       actions: []
     })
@@ -382,6 +389,17 @@ export class CodexClient {
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
     if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
     const session = this.sessions.accept(sessionId, update)
+    if (!session.restoring && SessionUpdateGuard.isUserMessage(update)) {
+      // Use native turn time when available; replay must never look like new activity.
+      const updatedAt = new Date(codexTurnStartedAt(update._meta) ?? Date.now()).toISOString()
+      this.store.setState(state => ({
+        threads: state.threads.map(thread =>
+          thread.sessionId === sessionId && (thread.updatedAt === null || thread.updatedAt < updatedAt)
+            ? { ...thread, updatedAt }
+            : thread
+        )
+      }))
+    }
     // A replay folds silently: `replay()` publishes the finished transcript once the
     // resume answers, so nothing schedules a render per replayed frame.
     if (!session.restoring) {
@@ -396,8 +414,8 @@ export class CodexClient {
         this.updates.flush()
       }
     }
-    if (update.sessionUpdate === "session_info_update") {
-      const frame = update as acp.SessionInfoUpdate
+    if (SessionUpdateGuard.isSessionInfoUpdate(update)) {
+      const frame = update
       this.store.setState(state => ({
         threads: state.threads.map(thread =>
           thread.sessionId === sessionId
@@ -435,6 +453,9 @@ export class CodexClient {
     const state = this.state
     const cursor = options.reset ? null : archived ? state.archivedCursor : state.threadsCursor
     if (!options.reset && (archived ? state.archivedLoaded : state.threadsLoaded) && cursor === null) return
+    const bucket = archived ? "archived" : "threads"
+    const requestId = ++this.listRequests[bucket]
+    const before = new Map([...state.threads, ...state.archivedThreads].map(thread => [thread.sessionId, thread]))
     if (!archived) this.store.setState({ threadsLoading: true, threadsError: null })
     const request: acp.ListSessionsRequest = {
       ...(cursor ? { cursor } : {}),
@@ -442,17 +463,26 @@ export class CodexClient {
     }
     try {
       const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
+      if (requestId !== this.listRequests[bucket]) return
       const page = response.sessions.map(toSummary).filter(thread => !this.state.draftSessions[thread.sessionId])
       const nextCursor = response.nextCursor ?? null
       this.store.setState(current => {
+        // Preserve mutations made after dispatch, including removal and movement between lists.
+        const after = new Map(
+          [...current.threads, ...current.archivedThreads].map(thread => [thread.sessionId, thread])
+        )
+        const changed = new Set([...before.keys(), ...after.keys()].filter(id => before.get(id) !== after.get(id)))
+        const freshPage = page.filter(thread => !changed.has(thread.sessionId))
+        const forks = new Set(archived ? [] : this.liveForks())
         const previous = options.reset
-          ? archived
-            ? []
-            : this.liveForks()
+          ? (archived ? current.archivedThreads : current.threads).filter(
+              thread => changed.has(thread.sessionId) || forks.has(thread)
+            )
           : archived
             ? current.archivedThreads
             : current.threads
-        const merged = [...previous.filter(thread => !page.some(item => item.sessionId === thread.sessionId)), ...page]
+        const pageIds = new Set(freshPage.map(thread => thread.sessionId))
+        const merged = [...previous.filter(thread => !pageIds.has(thread.sessionId)), ...freshPage]
         return archived
           ? {
               archivedThreads: merged,
@@ -462,10 +492,11 @@ export class CodexClient {
           : { threads: merged, threadsCursor: nextCursor, threadsLoaded: true }
       })
     } catch (error) {
+      if (requestId !== this.listRequests[bucket]) return
       if (!archived) this.store.setState({ threadsError: error instanceof Error ? error.message : String(error) })
       throw error
     } finally {
-      if (!archived) this.store.setState({ threadsLoading: false })
+      if (!archived && requestId === this.listRequests[bucket]) this.store.setState({ threadsLoading: false })
     }
   }
 
@@ -631,15 +662,17 @@ export class CodexClient {
   prepareDraft(owner: DraftOwner, cwd: string, model: string | null = null): Promise<string> {
     return this.changeDraft([owner], async () => {
       const existing = Object.keys(this.state.draftSessions).find(id => this.state.draftSessions[id] === owner)
-      if (existing && this.session(existing).cwd === cwd) {
+      if (existing) await this.sessionOperations.get(existing)
+      if (
+        existing &&
+        this.session(existing).cwd === cwd &&
+        (model === null || selectedModel(this.session(existing).configOptions) === model)
+      ) {
         if (!this.session(existing).attached) await this.open(existing, cwd)
-        if (model !== null && selectedModel(this.session(existing).configOptions) !== model)
-          await this.setConfig(existing, "model", model)
         return existing
       }
       // Inherit the confirmed model, including a change already requested by this
       // surface. A failed change must not silently create a draft on the old model.
-      if (existing) await this.sessionOperations.get(existing)
       // Prepare the replacement before retiring the previous draft: failures preserve the user's input.
       const id = await this.createNativeSession(
         cwd,
@@ -647,6 +680,24 @@ export class CodexClient {
         owner
       )
       try {
+        // An unsent model change starts directly on the target provider. Resuming
+        // the default-model thread creates a misleading model-change warning.
+        if (existing && this.session(existing).cwd === cwd) {
+          for (const option of this.session(existing).configOptions) {
+            if (option.category === "model") continue
+            const target = this.session(id).configOptions.find(entry => entry.configId === option.configId)
+            if (!target || target.currentValue === option.currentValue) continue
+            if (isBooleanOption(option) && isBooleanOption(target)) {
+              await this.setConfig(id, option.configId, option.currentValue)
+            } else if (isSelectOption(option) && isSelectOption(target)) {
+              const choices = isGroupedSelect(target.options)
+                ? target.options.flatMap(group => group.options)
+                : target.options
+              if (choices.some(choice => choice.value === option.currentValue))
+                await this.setConfig(id, option.configId, option.currentValue)
+            }
+          }
+        }
         if (existing) await this.deleteEmptyDraft(existing)
       } catch (error) {
         await this.deleteEmptyDraft(id)

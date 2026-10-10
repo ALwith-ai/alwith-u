@@ -407,6 +407,41 @@ body,
   user-select: none;
 }
 
+/* Keep native scrollers compact, including containers supplied by shared modules. */
+:root {
+  --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
+  --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) transparent;
+}
+/* Standard scrollbar properties override WebKit sizing when both are supported. */
+@supports selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--app-scrollbar-thumb);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* From ALwith Desktop `styles/global-utilities.css`: Pane (Base UI ScrollArea) hides the native
    scrollbar and shows its own overlay one only while hovering or scrolling (macOS style). */
 [data-slot="scroll-area-viewport"] {
@@ -418,6 +453,12 @@ body,
 [data-slot="scroll-area-scrollbar"] {
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+[data-slot="scroll-area-thumb"] {
+  background: var(--app-scrollbar-thumb);
+}
+[data-slot="scroll-area-thumb"]:hover {
+  background: var(--app-scrollbar-thumb-hover);
 }
 [data-slot="scroll-area-scrollbar"][data-hovering],
 [data-slot="scroll-area-scrollbar"][data-scrolling] {

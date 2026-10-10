@@ -337,15 +337,6 @@ pub enum PreparedInstall {
     Legacy { prepared: PreparedImport },
 }
 
-impl PreparedInstall {
-    pub(crate) fn id(&self) -> Result<&str, String> {
-        match self {
-            Self::Current { id, .. } => Ok(id),
-            Self::Legacy { prepared } => prepared.manifest["id"].as_str().ok_or_else(|| "Missing prepared ID".into()),
-        }
-    }
-}
-
 fn is_legacy_manifest(manifest: &Value) -> Result<bool, String> {
     let object = manifest.as_object().ok_or("扩展清单必须是 JSON 对象")?;
     // An explicit modern declaration must never fall through to legacy conversion on error.
@@ -394,7 +385,7 @@ pub async fn extension_prepare_install(
     prepare_install_from_directory(&window, &directory, expected_id.as_deref()).await.map(Some)
 }
 
-/// The caller owns native authorization: a folder picker or an authenticated local CLI request.
+/// The caller owns native authorization through the folder picker or startup inbox.
 pub(crate) async fn prepare_install_from_directory(
     window: &tauri::Window, directory: &Path, expected_id: Option<&str>,
 ) -> Result<PreparedInstall, String> {
@@ -516,7 +507,7 @@ fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String>
     alwith_extension::validate_manifest(&typed).map_err(|e| format!("Invalid converted manifest: {e}"))?;
     Ok(manifest)
 }
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WrapperOptions {
     manifest: Value,
@@ -546,11 +537,11 @@ fn validate_entry(
 }
 #[derive(Serialize, specta::Type)]
 pub struct StagedImport {
-    path: String,
-    id: String,
-    version: String,
-    source: String,
-    digest: String,
+    pub(crate) path: String,
+    pub(crate) id: String,
+    pub(crate) version: String,
+    pub(crate) source: String,
+    pub(crate) digest: String,
 }
 #[tauri3_specta::command]
 pub fn legacy_stage_import(
@@ -722,28 +713,24 @@ pub(crate) fn cleanup_import_records(app: &tauri::AppHandle, extension_id: &str)
     super::files::clear_grants(app, extension_id)
 }
 
-/// Follow file -> registry -> SDK order used by file migration and staged imports.
-pub(crate) fn cleanup_uninstalled(
-    app: &tauri::AppHandle, extension_id: &str, purge: bool, cleanup_files: impl FnOnce() -> Result<(), String>,
-) -> Result<(), String> {
-    super::files::with_file_lock(app, || {
-        let state = app.state::<LegacyImports>();
-        let _guard = state.registry_lock.lock().map_err(|_| "Legacy registry lock poisoned")?;
-        alwith_extension::plugin::cleanup_uninstalled(app, extension_id, purge, || {
-            let cleanup = (|| -> Result<(), String> {
-                if purge {
-                    let path = registry_path(app)?;
-                    let mut registry = read_registry(&path)?;
-                    registry.remove(extension_id);
-                    save_registry(&path, &registry)?;
-                    cleanup_files()?;
-                }
-                super::files::clear_grants_locked(app, extension_id)
-            })();
-            cleanup.map_err(|message| alwith_extension::ServiceError { code: "cleanupFailed".into(), message })
-        })
-        .map_err(|error| error.to_string())
-    })
+/// Startup imports use the same native ticket validation as the folder picker.
+pub(crate) async fn prepare_startup_package(window: tauri::Window, directory: &Path) -> Result<StagedImport, String> {
+    match prepare_install_from_directory(&window, directory, None).await? {
+        PreparedInstall::Current { path, id, version, digest } => {
+            Ok(StagedImport { path, id, version, digest, source: "local".into() })
+        }
+        PreparedInstall::Legacy { prepared } => {
+            let options = WrapperOptions {
+                manifest: prepared.manifest,
+                source: prepared.source,
+                styles: "styles.css".into(),
+                modules: prepared.modules,
+            };
+            let main =
+                format!("{ENTRY_PREFIX}{}{ENTRY_SUFFIX}", serde_json::to_string(&options).map_err(|e| e.to_string())?);
+            legacy_stage_import(window, prepared.ticket, prepared.converted_manifest, main)
+        }
+    }
 }
 
 #[cfg(test)]

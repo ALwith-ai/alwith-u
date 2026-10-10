@@ -71,11 +71,12 @@ export function ActivityPanel({
       ),
     [threads]
   )
-  // Exclude only unsent drafts; Runtime remains authoritative for every conversation's activity.
+  // Local draft ownership disappears on deletion or reload; Runtime still identifies unsent drafts.
+  // Keep both checks while the first prompt and its run-state broadcast are in flight.
   const rows = useMemo(
     () =>
       Object.values(runStates)
-        .filter(record => !draftSessions[record.sessionId])
+        .filter(record => !record.reusableDraft && !draftSessions[record.sessionId])
         .map(record => ({ sid: record.sessionId, record, thread: threadOf(threads, record) }))
         .sort((a, b) => (updatedAt.get(a.sid) ?? Infinity) - (updatedAt.get(b.sid) ?? Infinity)),
     [runStates, threads, updatedAt, draftSessions]

@@ -11,13 +11,13 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
-import { startExtensionInstallControl } from "@/features/extensions/install-control"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { hydrateZoom } from "@/lib/zoom"
+import { startStartupImports } from "@/features/extensions/startup-import-control"
 import "./index.css"
 
 function describe(value: unknown): string {
@@ -50,9 +50,7 @@ async function bootstrap(): Promise<void> {
   const preferences = await loadPreferences()
   await initI18n(preferences.language)
   if (isTauri()) {
-    void startExtensionInstallControl().catch(failure =>
-      surfaceGlobalError(`extension control failed: ${describe(failure)}`)
-    )
+    void startStartupImports().catch(failure => surfaceGlobalError(describe(failure)))
     void useUpdaterStore
       .getState()
       .init()

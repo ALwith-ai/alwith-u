@@ -34,7 +34,7 @@
     "@alwith/api": "^0.3.0",
     "@alwith/module-auth": "^0.1.0",
     "@alwith/module-chat": "^0.1.9",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.12.tgz",
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
@@ -110,7 +110,7 @@
   "devDependencies": {
     "@alwith/native": "^0.1.1",
     "@biomejs/biome": "^2.5.15",
-    "@nyssance/codex-acp-v2": "^0.7.8",
+    "@nyssance/codex-acp-v2": "0.7.9",
     "@openai/codex": "0.162.0",
     "@storybook/addon-a11y": "10.6.1",
     "@storybook/addon-docs": "10.6.1",
@@ -157,6 +157,6 @@
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.12.tgz"
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz"
   }
 }

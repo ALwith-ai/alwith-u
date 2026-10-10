@@ -14,6 +14,7 @@ import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
 import { Composer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
+import { ModelSelectGroup } from "./composer/model-select-group"
 import { drafts, importDraft } from "./composer/drafts"
 import { DraftProjectPicker } from "./draft-project-picker"
 
@@ -217,6 +218,26 @@ export function DraftChat({
         session={session ?? pendingComposer}
         allowPendingInput
         preparing={preparing}
+        modelSelector={
+          session ? (
+            <ModelSelectGroup
+              sessionId={session.id}
+              options={session.configOptions}
+              disabled={
+                preparing ||
+                error !== null ||
+                connection !== "ready" ||
+                !session.attached ||
+                session.restoring ||
+                session.readOnly
+              }
+              onModelChange={value => {
+                setPreparing(true)
+                setModel(value)
+              }}
+            />
+          ) : undefined
+        }
         disabled={session === null || preparing || error !== null || connection !== "ready"}
         onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
       />

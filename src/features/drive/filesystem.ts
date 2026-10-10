@@ -20,3 +20,8 @@ export async function driveFileSystem(path: string): Promise<FileSystem> {
     reportError: error => toast.error(String(error))
   })
 }
+
+/** Check indexed cloud paths without opening a workspace that may not exist yet. */
+export async function drivePathExists(path: string): Promise<boolean> {
+  return invoke<boolean>("drive_path_exists", { path })
+}

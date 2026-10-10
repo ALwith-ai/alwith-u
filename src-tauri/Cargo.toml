@@ -31,6 +31,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # reqwest 0.13 renamed the TLS feature from `rustls-tls` to `rustls`.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
 # Tauri 3 keeps its runtime in a separate crate; alpha.4 provides transparency without a private-API feature.
 tauri = { version = "3.0.0-alpha.4", features = ["protocol-asset", "specta"] }
 specta = { version = "=2.0.0-rc.25", features = ["derive", "function"] }
@@ -60,7 +61,6 @@ tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-libc = "0.2"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
 # Same Tauri 3 adaptation snapshot as Desktop (upstream a3122e894383aa068ec5365a42994e3ac94ba1b6; see patches/tauri-nspanel/MIGRATION.md).
@@ -87,6 +87,3 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_Threading"] }

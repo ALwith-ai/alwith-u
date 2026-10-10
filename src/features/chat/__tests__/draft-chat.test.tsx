@@ -527,6 +527,56 @@ test("first send clears persisted text and mentions before the normal composer m
   }
 })
 
+test("choosing a gateway in a prepared draft preserves input and sends on a newly created target-model session", async () => {
+  const { real, fake, restore } = await environment()
+  fake.gateways.set("deepseek", {
+    providerId: "openai",
+    apiType: "openai",
+    baseUrl: "https://example.test",
+    _meta: { codex: { id: "deepseek", name: "DeepSeek" }, alwith: { models: [{ id: "deepseek-flash" }] } }
+  })
+  importDraft(DRAFT_SESSION_ID, {
+    text: "preserve this question",
+    mentions: ["/tmp/source.ts"],
+    attachments: [],
+    modelId: null
+  })
+  let selected: string | null = null
+  const view = render(
+    <DraftChat
+      owner="main"
+      cwd="/tmp/model-picker"
+      onCwdChange={() => {}}
+      onCreated={id => {
+        selected = id
+      }}
+      onSendingChange={() => {}}
+      onAuthRequired={() => {}}
+      onNewChat={() => {}}
+      providerSnapshot={providers}
+    />
+  )
+  try {
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
+    const original = must<string>(selected, "original draft")
+    await act(async () => fireEvent.click(view.getByTestId("model-trigger")))
+    await act(async () => fireEvent.click(view.getByText("deepseek-flash")))
+    await waitFor(() => expect(selected).not.toBe(original))
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
+    const replacement = must<string>(selected, "replacement draft")
+    expect(fake.modelHints.get(replacement)).toBe("deepseek-flash")
+    expect(fake.configChanges).toEqual([])
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("preserve this question")
+    expect(drafts.get(replacement)?.mentions).toEqual(["/tmp/source.ts"])
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(real.session(replacement).items.some(item => item.kind === "user")).toBe(true))
+    expect(fake.deleted.has(original)).toBe(true)
+  } finally {
+    await act(async () => view.unmount())
+    restore()
+  }
+})
+
 test("a queued directory failure retains the last successful replacement and its input", async () => {
   const { fake, real, restore } = await environment()
   importDraft(DRAFT_SESSION_ID, { text: "keep this input", mentions: [], attachments: [], modelId: null })

@@ -9,12 +9,7 @@ mod chat_window;
 mod draft_directory;
 mod drive;
 mod extension_capabilities;
-#[cfg(any(target_os = "macos", windows))]
-mod extension_cli;
-#[cfg(any(target_os = "macos", windows))]
-mod extension_control;
-#[cfg(any(target_os = "macos", windows))]
-mod extension_transport;
+mod extension_inbox;
 mod extension_wire;
 mod html_preview;
 mod installed_apps;
@@ -34,47 +29,12 @@ fn application_context() -> tauri::Context {
     tauri::generate_context!()
 }
 
-fn extension_cli_args(mut args: impl Iterator<Item = std::ffi::OsString>) -> Result<Option<Vec<String>>, String> {
-    if args.next().is_none_or(|arg| arg != "extension") {
-        return Ok(None);
-    }
-    let mut parsed = vec!["extension".into()];
-    for arg in args {
-        parsed.push(arg.into_string().map_err(|_| "Extension CLI arguments must be UTF-8".to_string())?);
-    }
-    Ok(Some(parsed))
-}
-
-/// Dispatch script commands before Tauri starts or joins the GUI instance.
-pub fn run_extension_cli() -> Option<i32> {
-    #[cfg(windows)]
-    if std::env::args_os().nth(1).is_some_and(|arg| arg == "extension")
-        && let Err(error) = extension_transport::attach_console()
-    {
-        eprintln!("Cannot attach CLI console: {error}");
-        return Some(3);
-    }
-    let args = match extension_cli_args(std::env::args_os().skip(1)) {
-        Ok(Some(args)) => args,
-        Ok(None) => return None,
-        Err(error) => {
-            eprintln!("{error}");
-            return Some(2);
-        }
-    };
-    #[cfg(any(target_os = "macos", windows))]
-    {
-        let context = application_context();
-        Some(extension_cli::run(&args, &context.config().identifier))
-    }
-    #[cfg(not(any(target_os = "macos", windows)))]
-    {
-        eprintln!("Extension CLI installation is currently supported on macOS and Windows only");
-        Some(2)
-    }
-}
-
 pub fn run() {
+    // HTTP and WebSocket dependencies enable both providers; select one before TLS clients start.
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("install process-wide rustls crypto provider");
+
     let builder = tauri::Builder::default()
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
@@ -114,7 +74,8 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["chat", "settings"]).build())
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
-        .manage(runtime::RuntimeState::default());
+        .manage(runtime::RuntimeState::default())
+        .manage(extension_inbox::InboxState::default());
 
     #[cfg(feature = "hasgard-testing")]
     let builder = builder.plugin(tauri_plugin_hasgard::init());
@@ -136,14 +97,6 @@ pub fn run() {
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
-            #[cfg(any(target_os = "macos", windows))]
-            {
-                let control = extension_control::ExtensionControl::start(app.handle()).unwrap_or_else(|error| {
-                    log::error!("Extension CLI control is unavailable: {error}");
-                    extension_control::ExtensionControl::failed(error)
-                });
-                app.manage(control);
-            }
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // The window is transparent; macOS paints the sidebar glass behind it (ALwith
             // Desktop's native_window_effects). Panels that must stay opaque paint their own
@@ -187,8 +140,6 @@ pub fn run() {
                 }
             }
             tauri::RunEvent::Exit => {
-                #[cfg(any(target_os = "macos", windows))]
-                app.state::<extension_control::ExtensionControl>().stop();
                 app.state::<runtime::RuntimeState>().kill_on_exit();
             }
             _ => {}
@@ -201,8 +152,13 @@ pub fn bindings() -> tauri3_specta::Bindings {
         ($($platform:path),* $(,)?) => {
             tauri3_specta::commands![
                 $($platform,)*
+                extension_inbox::extension_inbox_scan,
+                extension_inbox::extension_inbox_prepare,
+                extension_inbox::extension_inbox_complete,
+                extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
                 drive::drive_request,
+                drive::drive_path_exists,
                 chat_files::chat_save_file,
                 chat_files::chat_read_image,
                 workspace::workspace_open,
@@ -257,6 +213,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<updater::state::State>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()
+            .event::<menu::ProjectTree>()
             .event::<menu::FindInChat>()
             .event::<menu::ReplaceInFile>()
             .event::<menu::EditUndo>()
@@ -268,14 +225,5 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<menu::ActualSize>()
         };
     }
-    #[cfg(any(target_os = "macos", windows))]
-    let bindings = commands![
-        extension_control::extension_control_next,
-        extension_control::extension_control_complete,
-        extension_control::extension_control_unavailable,
-        extension_control::extension_control_status,
-    ];
-    #[cfg(not(any(target_os = "macos", windows)))]
-    let bindings = commands![];
-    bindings
+    commands![]
 }

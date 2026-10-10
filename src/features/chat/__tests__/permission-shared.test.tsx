@@ -3,7 +3,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient } from "@/agent/client"
+import { CodexClient, type PendingAction } from "@/agent/client"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { ActionCard } from "../action-card"
@@ -21,6 +21,49 @@ afterEach(async () => {
     for (const client of clients.splice(0)) client.disconnect()
   })
 })
+
+test.each(["Implement this plan?", "Review the implementation plan"])(
+  "approval displays the subject title %s only when it differs from the request title",
+  subjectTitle => {
+    const title = "Implement this plan?"
+    const action: PendingAction = {
+      id: "plan-approval",
+      kind: "permission",
+      sessionId: "plan-session",
+      params: {
+        sessionId: "plan-session",
+        title,
+        subject: {
+          type: "tool_call",
+          toolCall: {
+            toolCallId: "plan-review",
+            title: subjectTitle,
+            kind: "switch_mode",
+            status: "pending",
+            content: [{ type: "content", content: { type: "text", text: "Plan details" } }]
+          }
+        },
+        options: [
+          { optionId: "implement", name: "Yes, implement this plan", kind: "allow_once" },
+          { optionId: "revise", name: "No, and tell Codex what to do differently", kind: "reject_once" }
+        ]
+      }
+    }
+    const onRespond = vi.fn()
+    const view = render(<ActionCard action={action} onRespond={onRespond} />)
+    mounted.push(view)
+
+    expect(view.getAllByText(title)).toHaveLength(1)
+    if (subjectTitle !== title) expect(view.getByText(subjectTitle)).toBeVisible()
+    expect(view.getByText("Plan details")).toBeVisible()
+    expect(view.getByRole("listbox")).toHaveAccessibleName(title)
+    expect(view.getAllByRole("option")).toHaveLength(2)
+    fireEvent.click(view.getByRole("option", { name: /Yes, implement this plan/ }))
+    expect(onRespond).toHaveBeenCalledWith(action.id, {
+      outcome: { outcome: "selected", optionId: "implement" }
+    })
+  }
+)
 
 test("U shared approval answers the exact pending request through the real ACP client", async () => {
   const fake = createFakeAgent()

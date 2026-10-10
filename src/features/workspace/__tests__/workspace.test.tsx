@@ -540,3 +540,47 @@ test("edits to an approved project while another exit prompt is open prevent exi
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_exit")).toHaveLength(0)
   expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("changed after approval")
 })
+
+test("project tree shortcut opens the preview and reopens a collapsed tree without toggling it closed", async () => {
+  render(<Surface cwd="/a" />)
+  fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
+  expect(await screen.findByRole("treeitem", { name: /one.txt/ })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Hide file tree" }))
+  expect(screen.getByRole("button", { name: "Show file tree" })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.keyDown(window, { key: "e", metaKey: true, shiftKey: true })
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Hide file tree" })).toHaveAttribute("aria-expanded", "true")
+  )
+  fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Hide file tree" })).toHaveAttribute("aria-expanded", "true")
+  )
+})
+
+test("native project tree menu opens the current workspace", async () => {
+  native.nativeMode = true
+  render(<Surface cwd="/a" />)
+  const calls = native.listen.mock.calls as unknown as [string, () => void][]
+  const callback = calls.find(([name]) => name === "menu:project-tree")?.[1]
+  expect(callback).toBeDefined()
+  act(() => required(callback)())
+  expect(await screen.findByRole("treeitem", { name: /one.txt/ })).toBeVisible()
+})
+
+test("project tree shortcut ignores a response belonging to a previous project", async () => {
+  let finish!: (value: string) => void
+  authorize = () =>
+    new Promise(resolve => {
+      finish = resolve
+    })
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_open", { path: "/a" }))
+  view.rerender(<Surface cwd="/b" />)
+  await act(async () => finish("/a"))
+  expect(screen.queryByRole("tree")).toBeNull()
+  authorize = null
+  fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
+  expect(await screen.findByRole("treeitem", { name: /two.txt/ })).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: /one.txt/ })).toBeNull()
+})

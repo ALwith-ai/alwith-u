@@ -57,14 +57,6 @@ jobs:
       - name: Verify built toolchain with staged resources (Windows)
         if: runner.os == 'Windows'
         run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release" "src-tauri/resources"
-      - name: Verify extension CLI (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          ./scripts/__tests__/resolve-alwith-u.test.ps1
-          cargo test --locked --manifest-path src-tauri/Cargo.toml --target ${{ matrix.target }} --lib extension_
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ./scripts/verify-extension-cli.ps1 -Binary "src-tauri/target/${{ matrix.target }}/release/alwith-u.exe"
 
   release-preflight:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -160,14 +152,6 @@ jobs:
       - name: Verify built toolchain with staged resources (Windows)
         if: runner.os == 'Windows'
         run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release" "src-tauri/resources"
-      - name: Verify extension CLI (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          ./scripts/__tests__/resolve-alwith-u.test.ps1
-          cargo test --locked --manifest-path src-tauri/Cargo.toml --target ${{ matrix.target }} --lib extension_
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ./scripts/verify-extension-cli.ps1 -Binary "src-tauri/target/${{ matrix.target }}/release/alwith-u.exe"
       - name: Clean up Apple signing certificate
         if: always() && runner.os == 'macOS' && env.ALWITH_SIGNING_DIR != ''
         shell: bash

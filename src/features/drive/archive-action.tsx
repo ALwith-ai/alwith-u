@@ -9,13 +9,16 @@ import { useDriveVisible } from "./use-drive-visible"
 
 export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactNode {
   const visible = useDriveVisible()
-  const { snapshot } = useDrive(drive)
+  const { connected, snapshot } = useDrive(drive)
   const { i18n } = useTranslation()
   const [excluded, setExcluded] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
-    if (!visible || !snapshot?.configured) return
+    if (!connected || !visible || !snapshot?.configured) {
+      setExcluded(null)
+      return
+    }
     let active = true
     void drive
       .request({ type: "archivePrivateSessions" })
@@ -29,7 +32,7 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
     return () => {
       active = false
     }
-  }, [visible, snapshot?.configured, snapshot?.generation, sessionId])
+  }, [connected, visible, snapshot?.configured, snapshot?.generation, sessionId])
   if (!visible || !snapshot?.configured) return null
   const zh = i18n.language.startsWith("zh")
   const label = excluded
@@ -43,7 +46,7 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
     <HoverInfoAction
       icon={<ShieldCheckIcon />}
       label={label}
-      disabled={busy || excluded === null}
+      disabled={!connected || busy || excluded === null}
       onClick={() => {
         setBusy(true)
         void drive

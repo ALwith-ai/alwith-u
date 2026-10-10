@@ -6,18 +6,14 @@ async function request(value: DriveRequest): Promise<DriveResponse> {
   return invoke<DriveResponse>("drive_request", { request: value })
 }
 
-/** Credentials exist only in the session assembly request, never the application store. */
+/** Drive contributes REST-backed knowledge; optional connectors are configured independently. */
 export const driveSessionContext: NonNullable<ClientOptions["sessionContext"]> = async cwd => {
   if (!isTauri()) return { mcpServers: [] }
   const snapshot = await request({ type: "snapshot" })
   if (snapshot.type !== "snapshot") throw new Error("Invalid Drive snapshot response")
   if (!snapshot.data.configured) return { mcpServers: [] }
-  const [mcp, preferences] = await Promise.all([
-    request({ type: "mcpSessionConfig" }),
-    request({ type: "preferences" })
-  ])
-  if (mcp.type !== "mcpSessionConfig" || preferences.type !== "preferences")
-    throw new Error("Invalid Drive session configuration")
+  const preferences = await request({ type: "preferences" })
+  if (preferences.type !== "preferences") throw new Error("Invalid Drive session configuration")
   let appendSystemPrompt: string | undefined
   if (preferences.data.knowledgeInject) {
     const context = await request({ type: "knowledgeContext", cwd })
@@ -29,7 +25,7 @@ export const driveSessionContext: NonNullable<ClientOptions["sessionContext"]> =
     throw new Error("Drive configuration changed while preparing this session. Try again.")
   }
   return {
-    mcpServers: mcp.data ? [{ type: "http", name: "yup-drive", url: mcp.data.url, headers: mcp.data.headers }] : [],
+    mcpServers: [],
     ...(appendSystemPrompt ? { appendSystemPrompt } : {})
   }
 }

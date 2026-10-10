@@ -59,7 +59,7 @@ const adapterVersion = await withCleanup(
     const adapter = join(codexHome, "codex-acp-v2.mjs")
     copyFileSync(join(resources, "adapter/codex-acp-v2.mjs"), adapter)
     const adapterVersion = run("bun", ["--no-install", adapter, "--version"])
-    if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+$/.test(adapterVersion)) {
+    if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/.test(adapterVersion)) {
       throw new Error(`Unexpected packaged adapter version: ${adapterVersion}`)
     }
     const bootstrap = join(codexHome, "codex-bootstrap.mjs")

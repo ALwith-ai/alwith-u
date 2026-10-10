@@ -43,7 +43,7 @@ import { listen } from "@tauri-apps/api/event"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { FolderTree, Maximize2, Minimize2, Settings2 } from "lucide-react"
+import { FolderTree, Maximize2, Minimize2 } from "lucide-react"
 import {
   lazy,
   Suspense,
@@ -69,8 +69,7 @@ import { useHostDialog } from "./host-dialog"
 import "./workspace.css"
 import { createTreeOpener } from "./tree-opener"
 import { createWorkspaceStateStore, type IconTheme, type WorkspaceState } from "./workspace-state"
-import { defaultEditorSettings, loadEditorSettings, saveEditorSettings } from "./editor-settings"
-import { EditorSettingsDialog } from "./editor-settings-dialog"
+import { useEditorPreferences } from "./use-editor-preferences"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
 import { localPreviewProviders } from "./local-previews"
 import { resolvePreviewResource } from "./preview-resources"
@@ -90,7 +89,6 @@ interface Workspace {
   stopDirty: () => void
   stopState: () => void
   iconTheme: IconTheme
-  setIconTheme: (theme: IconTheme) => void
 }
 const emptyEditorSnapshot = (): null => null
 const noEditorSubscription = (): (() => void) => () => {}
@@ -119,15 +117,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
   })
   const lifecycle = useRef(new AbortController())
   const stateStore = useMemo(() => createWorkspaceStateStore(), [])
-  const [settings, setSettings] = useState(() => {
-    try {
-      return loadEditorSettings()
-    } catch (error) {
-      report(error)
-      return defaultEditorSettings
-    }
-  })
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { settings, iconTheme } = useEditorPreferences()
   const [sharingPath, setSharingPath] = useState<string | null>(null)
   const [condenseJob, setCondenseJob] = useState<Job | undefined>()
   const [condenseScope, setCondenseScope] = useState<CondenseScope | null>(null)
@@ -153,7 +143,6 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
     }),
     []
   )
-  const [, refreshIconTheme] = useState(0)
   const headerTarget = useContext(WorkspaceHeaderContext)
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
@@ -396,11 +385,6 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
           stopDirty,
           stopState: () => {},
           iconTheme: saved?.iconTheme ?? "vscode-icons",
-          setIconTheme: theme => {
-            created.iconTheme = theme
-            persistState?.()
-            refreshIconTheme(value => value + 1)
-          },
           treeOpener: createTreeOpener(editor, path =>
             prepareWorkspaceFile(path, {
               readFile: async target =>
@@ -494,6 +478,32 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
         .catch(report)
     }
   }, [cwd, ensure, visible])
+  const showProjectTree = useCallback((): void => {
+    const generation = ++requestGeneration.current,
+      owner = cwd
+    void ensure(cwd)
+      .then(value => {
+        if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+        setWorkspace(value)
+        setVisible(true)
+        setTreeVisible(true)
+      })
+      .catch(report)
+  }, [cwd, ensure])
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.altKey || event.key.toLowerCase() !== "e")
+        return
+      event.preventDefault()
+      showProjectTree()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    const subscription = isTauri() ? getCurrentWindow().listen("menu:project-tree", showProjectTree) : null
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      if (subscription) void subscription.then(stop => stop()).catch(report)
+    }
+  }, [showProjectTree])
   const openProject = useCallback(
     async (path: string): Promise<void> => {
       const target = await ensure(path)
@@ -704,23 +714,13 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
             {visible && workspace && (
               <Button
                 variant="ghost"
-                size="icon"
-                aria-label={t("workspace.editorSettings")}
-                title={t("workspace.editorSettings")}
-                onClick={() => setSettingsOpen(true)}>
-                <Settings2 />
-              </Button>
-            )}
-            {visible && workspace && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="workspace-view-toggle"
+                size="icon-xs"
+                className="workspace-sidebar-toggle workspace-view-toggle"
                 aria-label={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
                 title={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
                 aria-pressed={viewMode}
                 onClick={() => setViewMode(value => !value)}>
-                {viewMode ? <Minimize2 /> : <Maximize2 />}
+                {viewMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
               </Button>
             )}
             <WorkspaceButton />
@@ -824,7 +824,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
                       </Button>
                     }
                     isDark={resolvedTheme === "dark"}
-                    iconTheme={workspace.iconTheme}
+                    iconTheme={iconTheme ?? workspace.iconTheme}
                     activePath={activeDocument ? activeDocument.path : null}
                     labels={treeLabels}
                     onError={report}
@@ -960,23 +960,6 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
               }
             })
           }
-        />
-      )}
-      {workspace && (
-        <EditorSettingsDialog
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          settings={settings}
-          onChange={value => {
-            setSettings(value)
-            try {
-              saveEditorSettings(value)
-            } catch (error) {
-              report(error)
-            }
-          }}
-          iconTheme={workspace.iconTheme}
-          onIconThemeChange={workspace.setIconTheme}
         />
       )}
       <Dialog

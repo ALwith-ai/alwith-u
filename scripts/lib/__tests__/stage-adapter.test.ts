@@ -36,7 +36,10 @@ test("the staged toolchain runs with explicit resources outside the executable d
       { cwd: directory, env: { ...process.env, PATH: "", NODE_PATH: "" }, timeout: 10_000 }
     )
     expect(adapter.exitCode, adapter.stderr.toString()).toBe(0)
-    expect(adapter.stdout.toString()).toMatch(/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+\s*$/)
+    const adapterPackage = JSON.parse(
+      readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/package.json"), "utf8")
+    ) as { name: string; version: string }
+    expect(adapter.stdout.toString().trim()).toBe(`${adapterPackage.name} ${adapterPackage.version}`)
 
     const binaries = join(directory, "bin")
     const resources = join(directory, "staged resources")

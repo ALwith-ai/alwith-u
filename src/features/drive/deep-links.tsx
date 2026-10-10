@@ -25,8 +25,8 @@ export function useDriveDeepLinks(openTarget: (path: string) => Promise<void>): 
       busy = true
       try {
         while (!disposed && queued.size) {
-          const snapshot = drive.getSnapshot().snapshot
-          if (!snapshot?.configured || !snapshot.running) return
+          const { connected, snapshot } = drive.getSnapshot()
+          if (!connected || !snapshot?.configured || !snapshot.running) return
           const generation = snapshot.generation
           const entry = queued.entries().next().value
           if (!entry) return

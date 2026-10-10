@@ -398,3 +398,92 @@ it("shows directory failures alongside readable search results", async () => {
   await screen.findByRole("button", { name: /readable.md/ })
   expect(screen.getByRole("alert")).toHaveTextContent("/private: Permission denied")
 })
+
+it("opens a pinned cloud project by landing it before workspace navigation", async () => {
+  const f = fixture({}, async request => {
+    if (request.type === "shared") return { type: "shared", data: [] }
+    if (request.type === "land") return { type: "root", data: root }
+    throw new Error(`Unexpected request: ${request.type}`)
+  })
+  f.host.pathExists = async () => false
+  f.host.pinnedDocs = [{ path: root.localPath, name: "Pinned cloud library", kind: "dir" }]
+  const opened = vi.fn(async (_root: RootInfo) => {})
+  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  const pin = await screen.findByRole("button", { name: "Pinned cloud library" })
+  fireEvent.click(pin)
+  await waitFor(() => expect(opened).toHaveBeenCalledWith(root))
+  expect(f.requests).toContainEqual({ type: "land", projectId: root.projectId })
+  expect(f.host.onOpenEntry).not.toHaveBeenCalled()
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+it("retains a missing pinned file and never lands a project as a replacement", async () => {
+  const f = fixture()
+  f.host.pathExists = async () => false
+  f.host.pinnedDocs = [{ path: `${root.localPath}/gone.md`, name: "Missing note", kind: "file" }]
+  const opened = vi.fn(async () => {})
+  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  const pin = await screen.findByRole("button", { name: "Missing note" })
+  await waitFor(() => expect(pin).toHaveAttribute("data-missing", "true"))
+  fireEvent.click(pin)
+  await screen.findByRole("alert")
+  expect(opened).not.toHaveBeenCalled()
+  expect(f.requests.some(request => request.type === "land")).toBe(false)
+  expect(f.host.onPinnedDocsChange).not.toHaveBeenCalled()
+})
+
+it("does not disguise a pinned project's permission failure as an absent local root", async () => {
+  const f = fixture()
+  f.host.pathExists = async () => {
+    throw new Error("Permission denied")
+  }
+  f.host.pinnedDocs = [{ path: root.localPath, name: "Protected library", kind: "dir" }]
+  const opened = vi.fn(async () => {})
+  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  fireEvent.click(await screen.findByRole("button", { name: "Protected library" }))
+  expect(await screen.findByRole("alert")).toHaveTextContent("Permission denied")
+  expect(opened).not.toHaveBeenCalled()
+  expect(f.requests.some(request => request.type === "land")).toBe(false)
+})
+
+describe("Drive group deferred rendering", () => {
+  it.each(["large", "other-personal"] as const)(
+    "defers %s rows until expanded and preserves their state on collapse",
+    async kind => {
+      const roots =
+        kind === "large"
+          ? Array.from({ length: 31 }, (_, i) => ({ ...root, projectId: i + 1, name: `Library ${i + 1}` }))
+          : [{ ...root, isMine: false, nodePath: null }]
+      const f = fixture({ roots })
+      const view = render(
+        <DrivePanel
+          {...f}
+          controls={controls}
+          mode="launcher"
+          onOpenProject={async () => {}}
+          confirm={async () => true}
+        />
+      )
+      await waitFor(() => expect(f.requests.some(request => request.type === "shared")).toBe(true))
+      const group = view.container.querySelector<HTMLDetailsElement>("details.alwith-drive-group:not([open])")
+      if (!group) throw new Error("Expected a collapsed Drive group")
+      expect(group.querySelectorAll(".alwith-drive-nav-row")).toHaveLength(0)
+      await act(async () => {
+        group.open = true
+        fireEvent(group, new Event("toggle"))
+      })
+      expect(group.querySelectorAll(".alwith-drive-nav-row")).toHaveLength(roots.length)
+      const input = group.querySelector("input")
+      if (!input) throw new Error("Expected the expanded group filter")
+      fireEvent.change(input, { target: { value: "Library" } })
+      await act(async () => {
+        group.open = false
+        fireEvent(group, new Event("toggle"))
+        group.open = true
+        fireEvent(group, new Event("toggle"))
+      })
+      expect(group.querySelector("input")).toBe(input)
+      expect(input).toHaveValue("Library")
+    }
+  )
+})

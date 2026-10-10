@@ -29,6 +29,15 @@
     "title": "Something went wrong.",
     "retry": "Retry"
   },
+  "mcpDiagnostics": {
+    "title": "MCP startup diagnostics",
+    "description": "Startup records for this chat. These records do not indicate the current connection status.",
+    "empty": "No MCP startup errors recorded for this chat.",
+    "failed": "Startup failed",
+    "pending": "Pending",
+    "in_progress": "Starting",
+    "completed": "Started"
+  },
   "actions": {
     "more": "More actions",
     "openFolder": "Open project folder",
@@ -53,9 +62,9 @@
     "showLess": "Show less"
   },
   "connection": {
-    "connecting": "Starting Codex",
-    "disconnected": "Codex is not running",
-    "failed": "Codex failed to start",
+    "connecting": "Starting chat service",
+    "disconnected": "Chat service is not running",
+    "failed": "Chat service failed to start",
     "reconnect": "Reconnect",
     "runtimeExited": "Runtime exited (code {{code}})",
     "signIn": "Sign in with ChatGPT",
@@ -91,7 +100,7 @@
     "fork": "Fork",
     "rename": "Rename",
     "deleteTitle": "Delete this chat?",
-    "deleteDescription": "Codex removes the thread permanently. This cannot be undone.",
+    "deleteDescription": "This chat will be permanently deleted. This cannot be undone.",
     "search": "Search chats",
     "noResults": "No chats found",
     "stop": "Stop",
@@ -99,7 +108,7 @@
   },
   "welcome": {
     "title": "What would you like to build?",
-    "description": "Pick a project folder to start a chat with Codex.",
+    "description": "Pick a project folder to start a chat.",
     "chooseFolder": "Choose folder"
   },
   "chat": {
@@ -121,16 +130,16 @@
     "openIn": "Open in",
     "thread": "Conversation",
     "scrollToBottom": "Scroll to bottom",
-    "placeholder": "Message Codex",
+    "placeholder": "Send a message",
     "steerPlaceholder": "Add a direction to the current turn",
     "restoring": "Restoring conversation",
     "reopen": "Open this chat",
     "readOnly": {
-      "title": "Open in another Codex client",
-      "description": "This chat is being written by another Codex client (the ChatGPT app or the CLI). You can read it here; close it there to continue.",
+      "title": "Open in another client",
+      "description": "This chat is being written by another client (the ChatGPT app or the CLI). You can read it here; close it there to continue.",
       "retry": "Try again"
     },
-    "detached": "This chat is not open. Open it to continue where Codex left off.",
+    "detached": "This chat is not open. Open it to continue your previous conversation.",
     "working": "Working",
     "worked": "Worked",
     "workedFor": "Worked for {{duration}}",
@@ -186,7 +195,7 @@
       "contextSummary": "{{used}} / {{limit}} tokens · {{percent}}%"
     },
     "error": {
-      "title": "Codex hit an error",
+      "title": "Chat encountered an error",
       "retryable": "You can retry this turn."
     },
     "tool": {
@@ -279,7 +288,7 @@
     "hint": "Enter to send · Shift+Enter for a new line"
   },
   "approval": {
-    "needed": "Codex needs your input",
+    "needed": "Your input is needed",
     "requestedOperation": "Requested operation",
     "cancelRequest": "Cancel request",
     "openLink": "Open link",
@@ -335,7 +344,8 @@
     "about": "About",
     "version": "Version {{version}}",
     "codexVersion": "Codex CLI {{version}}",
-    "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI."
+    "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI.",
+    "editor": "Editor"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -637,6 +647,7 @@
     "items": {
       "newChat": "New chat",
       "commandPalette": "Command palette",
+      "projectTree": "Open project tree",
       "findInChat": "Find in chat",
       "openSettings": "Open settings",
       "openHotkeys": "Keyboard shortcuts",
@@ -662,8 +673,8 @@
     "settings": "Open settings"
   },
   "notify": {
-    "needsInput": "Codex needs your input",
-    "finished": "Codex finished"
+    "needsInput": "Your input is needed",
+    "finished": "Task completed"
   },
   "time": {
     "today": "Today",
@@ -700,6 +711,7 @@
     "shortcutOff": "Off"
   },
   "extensions": {
+    "startupImportFailed": "Extension import did not complete: {{message}}. Check inputs and task records in extension-inbox or extension-processing.",
     "skills": {
       "title": "Required Codex skills",
       "loading": "Checking Codex skills…",

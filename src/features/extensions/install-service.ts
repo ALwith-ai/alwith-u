@@ -39,7 +39,7 @@ type InstallRuntime = Pick<ExtensionRuntime, "snapshot" | "subscribe" | "request
   host: Pick<ExtensionRuntime["host"], "snapshot">
 }
 
-/** Both native CLI requests and folder-picker requests commit through this pipeline. */
+/** Folder-picker and startup imports share the same commit and activation checks. */
 export async function executePreparedInstall(
   runtime: InstallRuntime,
   selected: PreparedInstall,
@@ -53,7 +53,7 @@ export async function executePreparedInstall(
   if (!native) throw new Error("Extension service is not ready")
   const existing = native.installations.find(item => item.id === id)
   if (native.pending.some(item => item.id === id)) throw new Error("Extension is transitioning")
-  if (existing && !options.update) throw new Error("Extension is already installed; use --update")
+  if (existing && !options.update) throw new Error("Extension is already installed; choose update")
   if (existing && existing.source !== source) throw new Error("Extension belongs to a different installation source")
   const staged =
     selected.format === "current"
@@ -62,18 +62,59 @@ export async function executePreparedInstall(
           if (!port) throw new Error("Legacy installation port is required")
           return port.stageLegacy(selected.prepared.ticket, await convertLegacyExtension(selected.prepared))
         })()
-  await runtime.request(
-    existing
-      ? { type: "beginTransition", id, action: "update", path: staged.path, source, expectedDigest: staged.digest }
-      : {
-          type: "installLocal",
-          path: staged.path,
-          source,
-          expectedId: id,
-          expectedVersion: staged.version,
-          expectedDigest: staged.digest
-        }
-  )
+  return executeStagedInstall(runtime, staged, {
+    ...options,
+    enable: options.enable ?? (!existing && selected.format === "legacy")
+  })
+}
+
+export interface StagedInstall {
+  path: string
+  id: string
+  version: string
+  digest: string
+  source: string
+}
+
+export async function executeStagedInstall(
+  runtime: InstallRuntime,
+  staged: StagedInstall,
+  options: InstallOptions,
+  signal?: AbortSignal
+): Promise<InstallResult> {
+  signal?.throwIfAborted()
+  const { id, source } = staged
+  const native = runtime.snapshot().native
+  if (!native) throw new Error("Extension service is not ready")
+  const existing = native.installations.find(item => item.id === id)
+  if (native.pending.some(item => item.id === id)) throw new Error("Extension is transitioning")
+  if (existing && !options.update) throw new Error("Extension is already installed")
+  if (existing && existing.source !== source) throw new Error("Extension belongs to a different installation source")
+  const bounded = <T>(operation: Promise<T>): Promise<T> => {
+    if (!signal) return operation
+    return new Promise<T>((resolve, reject) => {
+      const aborted = (): void => reject(signal.reason)
+      signal.addEventListener("abort", aborted, { once: true })
+      operation.then(resolve, reject).finally(() => signal.removeEventListener("abort", aborted))
+      if (signal.aborted) aborted()
+    })
+  }
+  if (existing?.packageRevision !== staged.digest)
+    await bounded(
+      runtime.request(
+        existing
+          ? { type: "beginTransition", id, action: "update", path: staged.path, source, expectedDigest: staged.digest }
+          : {
+              type: "installLocal",
+              path: staged.path,
+              source,
+              expectedId: id,
+              expectedVersion: staged.version,
+              expectedDigest: staged.digest
+            }
+      )
+    )
+  signal?.throwIfAborted()
 
   // request() settles this WebView, but another window can still hold the old package.
   await new Promise<void>((resolve, reject) => {
@@ -92,12 +133,23 @@ export async function executePreparedInstall(
         reject(new Error("Extension installation did not commit the selected package"))
       else resolve()
     }
-    unsubscribe = runtime.subscribe(inspect)
-    inspect()
+    const aborted = (): void => {
+      unsubscribe?.()
+      reject(signal?.reason)
+    }
+    const stop = runtime.subscribe(inspect)
+    unsubscribe = () => {
+      stop()
+      signal?.removeEventListener("abort", aborted)
+    }
+    signal?.addEventListener("abort", aborted, { once: true })
+    if (signal?.aborted) aborted()
+    else inspect()
   })
-  const enable = options.enable ?? (!existing && selected.format === "legacy")
-  if (enable) await runtime.request({ type: "enable", id })
-  await runtime.settled()
+  signal?.throwIfAborted()
+  if (options.enable) await bounded(runtime.request({ type: "enable", id }))
+  await bounded(runtime.settled())
+  signal?.throwIfAborted()
   const installed = runtime.snapshot().native?.installations.find(item => item.id === id)
   if (!installed) throw new Error("Installed extension disappeared")
   if (installed.packageRevision !== staged.digest || installed.source !== source)

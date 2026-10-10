@@ -9,6 +9,7 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 pub const OPEN_SETTINGS_ID: &str = "open_settings";
 pub const QUIT_ID: &str = "quit";
 pub const NEW_CHAT_ID: &str = "new_chat";
+pub const PROJECT_TREE_ID: &str = "project_tree";
 pub const FIND_IN_CHAT_ID: &str = "find_in_chat";
 pub const REPLACE_IN_FILE_ID: &str = "replace_in_file";
 pub const EDIT_UNDO_ID: &str = "edit_undo";
@@ -24,6 +25,7 @@ pub fn event_name(id: &str) -> Option<&'static str> {
     Some(match id {
         OPEN_SETTINGS_ID => <OpenSettings as tauri3_specta::Event>::NAME,
         NEW_CHAT_ID => <NewChat as tauri3_specta::Event>::NAME,
+        PROJECT_TREE_ID => <ProjectTree as tauri3_specta::Event>::NAME,
         FIND_IN_CHAT_ID => <FindInChat as tauri3_specta::Event>::NAME,
         REPLACE_IN_FILE_ID => <ReplaceInFile as tauri3_specta::Event>::NAME,
         EDIT_UNDO_ID => <EditUndo as tauri3_specta::Event>::NAME,
@@ -85,6 +87,7 @@ fn t(key: &str, lang: &str) -> &'static str {
         ("zh-CN", "edit.find") => "查找",
         ("zh-CN", "edit.replace") => "替换",
         ("zh-CN", "view.commandPalette") => "命令面板",
+        ("zh-CN", "view.projectTree") => "项目树",
         ("zh-CN", "view.keyboardShortcuts") => "键盘快捷键",
         ("zh-CN", "view.zoomIn") => "放大",
         ("zh-CN", "view.zoomOut") => "缩小",
@@ -116,6 +119,7 @@ fn t(key: &str, lang: &str) -> &'static str {
         (_, "edit.find") => "Find",
         (_, "edit.replace") => "Replace",
         (_, "view.commandPalette") => "Command Palette",
+        (_, "view.projectTree") => "Project Tree",
         (_, "view.keyboardShortcuts") => "Keyboard Shortcuts",
         (_, "view.zoomIn") => "Zoom In",
         (_, "view.zoomOut") => "Zoom Out",
@@ -195,7 +199,11 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let open_hotkeys_item = MenuItemBuilder::with_id(OPEN_HOTKEYS_ID, t("view.keyboardShortcuts", lang))
         .accelerator("CmdOrCtrl+/")
         .build(app)?;
+    let project_tree_item = MenuItemBuilder::with_id(PROJECT_TREE_ID, t("view.projectTree", lang))
+        .accelerator("CmdOrCtrl+Shift+E")
+        .build(app)?;
     let view_submenu = SubmenuBuilder::new(app, t("menu.view", lang))
+        .item(&project_tree_item)
         .item(&command_palette_item)
         .separator()
         .item(&zoom_in_item)
@@ -261,3 +269,7 @@ pub struct ZoomOut;
 #[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
 #[event(name = "menu:actual-size")]
 pub struct ActualSize;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:project-tree")]
+pub struct ProjectTree;

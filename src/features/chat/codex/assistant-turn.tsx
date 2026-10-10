@@ -15,7 +15,7 @@ import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
 import { useTranslation } from "react-i18next"
 import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
 import { ForkTurnButton } from "../chat-branches"
-import { messageText, type Turn, type WorkEntry } from "../turns"
+import { isSessionStatus, messageText, type Turn, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
 import { useChatActivityHost } from "./activity-host"
 import { AssistantContent } from "./assistant-content"
@@ -92,6 +92,18 @@ function AssistantTurnImpl({
 }) {
   const { t } = useTranslation()
   const host = useChatActivityHost()
+  if (isSessionStatus(turn)) {
+    return (
+      <ActivityHostProvider host={host}>
+        <div role="status" className="text-muted-foreground flex min-w-0 flex-col gap-2 py-2 text-sm">
+          {turn.work.map(entry => (
+            <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={false} />
+          ))}
+        </div>
+        {isLast && error !== null && <TurnErrorView error={error} />}
+      </ActivityHostProvider>
+    )
+  }
   const finalText = turn.final.map(messageText).join("\n")
   const time = active ? null : formatTurnTime(turn)
   // Generated artifacts are tool results in both live updates and history replay.

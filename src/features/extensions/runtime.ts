@@ -11,7 +11,6 @@ import {
   createTauriHttp,
   createTauriNotifications
 } from "@alwith/module-extension/tauri/capabilities"
-import { emit, listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import * as React from "react"
 import { useEffect, useSyncExternalStore } from "react"
@@ -26,13 +25,11 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
-import { watchUninstallFailures, type UninstallFailures } from "./uninstall-failures"
 import * as extensionUi from "./ui"
 import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
 
 let startup: Promise<ExtensionRuntime> | undefined
 let runtime: ExtensionRuntime | undefined
-let uninstallFailures: (UninstallFailures & { dispose(): void }) | undefined
 
 export function reportExtensionError(error: unknown): void {
   const message =
@@ -118,22 +115,11 @@ function getRuntime(): ExtensionRuntime {
 export function startExtensionRuntime(): Promise<ExtensionRuntime> {
   const current = getRuntime()
   startup ??= (async () => {
-    uninstallFailures = await watchUninstallFailures(current, {
-      listen: listener =>
-        listen<{ id: string; error: string }>("extension-uninstall:failed", event => listener(event.payload)),
-      emit: failure => emit("extension-uninstall:failed", failure),
-      report: reportExtensionError
-    })
     await current.start()
     if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
     return current
   })()
   return startup
-}
-
-export function getUninstallFailures(): UninstallFailures {
-  if (!uninstallFailures) throw new Error("Extension failure bridge is not initialized")
-  return uninstallFailures
 }
 
 export function useExtensions() {
@@ -155,6 +141,5 @@ export function useExtensions() {
 
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
-    uninstallFailures?.dispose()
     void runtime?.dispose().catch(reportExtensionError)
   })

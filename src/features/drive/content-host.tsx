@@ -18,12 +18,12 @@ import { drive, driveTransport } from "./controller"
 
 export function useDriveContentHost(saveDocument: (path: string) => Promise<void>): DriveContentHost {
   const { i18n } = useTranslation()
-  const { snapshot } = useDrive(drive)
+  const { connected, snapshot } = useDrive(drive)
   const [userName, setUserName] = useState("")
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     let active = true
-    if (!snapshot?.configured) {
+    if (!connected || !snapshot?.configured) {
       setUserName("")
       return
     }
@@ -39,7 +39,7 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
     return () => {
       active = false
     }
-  }, [snapshot?.configured, snapshot?.generation])
+  }, [connected, snapshot?.configured, snapshot?.generation])
   return useMemo(
     () => ({
       transport: driveTransport,

@@ -96,3 +96,42 @@ describe("groupTurns over @alwith/api", () => {
     expect(turn?.replayed).toBe(false)
   })
 })
+
+test.each([false, true])(
+  "MCP startup diagnostics stay out of turns without changing source items (replayed=%s)",
+  replayed => {
+    const original = feed(createSession("mcp", "/"), {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "mcp-startup:yup-drive",
+      name: "mcp_startup",
+      title: "Start MCP server yup-drive",
+      status: "failed",
+      content: [{ type: "content", content: { type: "text", text: "HTTP 404" } }]
+    })
+    const session = { ...original, items: original.items.map(item => ({ ...item, replayed })) }
+    expect(groupTurns(session)).toEqual([])
+    expect(session.items).toHaveLength(1)
+    expect(session.items[0]).toMatchObject({ name: "mcp_startup", status: "failed", replayed })
+    const prompted = sent(session, "hello", "local", "user")
+    const mixed = feed(
+      prompted,
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "late-startup",
+        name: "mcp_startup",
+        status: "failed"
+      },
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "ordinary-error",
+        name: "read_file",
+        status: "failed"
+      },
+      text("answer", "Hello")
+    )
+    const turns = groupTurns(mixed)
+    expect(turns).toHaveLength(1)
+    expect(turns[0].items.map(item => item.id)).toEqual(["user", "ordinary-error", "answer"])
+    expect(turns[0].work).toMatchObject([{ kind: "activity", items: [{ id: "ordinary-error", status: "failed" }] }])
+  }
+)

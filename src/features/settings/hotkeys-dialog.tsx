@@ -15,6 +15,7 @@ export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       items: [
         { label: t("shortcuts.items.newChat"), key: "CommandOrControl+N" },
         { label: t("shortcuts.items.commandPalette"), key: "CommandOrControl+K" },
+        { label: t("shortcuts.items.projectTree"), key: "CommandOrControl+Shift+E" },
         { label: t("shortcuts.items.findInChat"), key: "CommandOrControl+F" },
         { label: t("shortcuts.items.openSettings"), key: "CommandOrControl+," },
         { label: t("shortcuts.items.openHotkeys"), key: "CommandOrControl+/" },

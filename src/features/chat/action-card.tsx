@@ -42,7 +42,7 @@ function subjectText(toolCall: acp.ToolCallUpdate): string {
     .join("\n")
 }
 
-function Subject({ subject }: { subject: acp.RequestPermissionSubject }) {
+function Subject({ subject, requestTitle }: { subject: acp.RequestPermissionSubject; requestTitle: string }) {
   if (!isToolCallSubject(subject)) return null
   const toolCall = subject.toolCall
   const command = subjectCommand(toolCall)
@@ -50,7 +50,9 @@ function Subject({ subject }: { subject: acp.RequestPermissionSubject }) {
   const text = subjectText(toolCall)
   return (
     <div className="flex flex-col gap-2">
-      {toolCall.title && command === null && <div className="text-sm font-medium">{toolCall.title}</div>}
+      {toolCall.title && toolCall.title !== requestTitle && command === null && (
+        <div className="text-sm font-medium">{toolCall.title}</div>
+      )}
       {command !== null && (
         <pre className="bg-muted overflow-x-auto rounded-lg p-3 font-mono text-xs whitespace-pre-wrap">
           <span className="text-muted-foreground select-none">$ </span>
@@ -120,7 +122,7 @@ function PermissionCard({
         })
       }>
       {params.description && <div className="text-muted-foreground mt-0.5 text-xs">{params.description}</div>}
-      {params.subject && <Subject subject={params.subject} />}
+      {params.subject && <Subject subject={params.subject} requestTitle={params.title} />}
     </PermissionView>
   )
 }

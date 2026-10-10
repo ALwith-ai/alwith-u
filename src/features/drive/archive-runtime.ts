@@ -17,17 +17,21 @@ export function useDriveArchive(): void {
       },
       onError: error => toast.error(String(error))
     })
+    const ready = (): boolean => {
+      const { connected, snapshot } = drive.getSnapshot()
+      return connected && snapshot?.configured === true && snapshot.running && client.state.connection === "ready"
+    }
     const sync = (): void => {
+      if (!ready()) return
       void archive.sync().catch((error: unknown) => toast.error(String(error)))
     }
     const timer = setInterval(sync, 5 * 60 * 1000)
     const stop = listen(DRIVE_ARCHIVE_SYNC, sync)
     let configured = false
     const reconcile = (): void => {
-      const current = drive.getSnapshot().snapshot
-      const ready = current?.configured === true && current.running && client.state.connection === "ready"
-      if (ready && !configured) sync()
-      configured = ready
+      const available = ready()
+      if (available && !configured) sync()
+      configured = available
     }
     const unsubscribe = drive.subscribe(reconcile)
     const stopClient = client.store.subscribe(reconcile)

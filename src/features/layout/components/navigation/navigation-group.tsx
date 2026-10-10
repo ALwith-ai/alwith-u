@@ -13,6 +13,7 @@ export function NavigationGroup({
   leading,
   label,
   count,
+  countLabel,
   active = false,
   actions,
   headerChildren,
@@ -26,6 +27,7 @@ export function NavigationGroup({
   leading?: ReactNode
   label?: ReactNode
   count?: number
+  countLabel?: string
   active?: boolean
   actions?: ReactNode
   headerChildren?: ReactNode
@@ -49,8 +51,9 @@ export function NavigationGroup({
         <TrailingSwap
           content={
             count !== undefined ? (
-              <TrailingSlot className="text-muted-foreground justify-end text-xs opacity-70">
-                <span dir="ltr">{count}</span>
+              <TrailingSlot
+                className={cn("text-muted-foreground justify-end text-xs opacity-70", countLabel && "w-auto")}>
+                <span dir="ltr">{countLabel ?? count}</span>
               </TrailingSlot>
             ) : undefined
           }

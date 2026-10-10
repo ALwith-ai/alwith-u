@@ -4,14 +4,20 @@ import { afterEach, expect, test } from "vitest"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+import { usePlatformAuth } from "@/features/auth/store"
+import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 
 await initI18n("en")
 const originalState = client.state
+const originalAuth = usePlatformAuth.getState()
+const originalUi = useThreadsUiStore.getState()
 afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
+    usePlatformAuth.setState(originalAuth, true)
+    useThreadsUiStore.setState(originalUi, true)
     await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
@@ -130,4 +136,92 @@ test("extensions sit below plugins, select their own leading page and remain ava
   expect(view.getByRole("button", { name: "Extensions" })).toBeTruthy()
   await act(async () => fireEvent.click(extensions))
   expect(extensions.getAttribute("aria-current")).toBe("page")
+})
+
+test("Drive mounts on first visit and retains input across tab switches until access is lost", async () => {
+  usePlatformAuth.setState({
+    isAuthenticated: true,
+    user: { ...originalAuth.user, login_email: "test@finture.id" } as NonNullable<typeof originalAuth.user>
+  })
+  useThreadsUiStore.setState({ view: "sessions" })
+  const view = render(
+    <MainSidebarLayout
+      initialPinned
+      screen="main"
+      leading={null}
+      main={null}
+      sidebar={
+        <ThreadSidebar
+          screen="main"
+          leadingPage="plugins"
+          selectedId={null}
+          onSelect={() => {}}
+          onNewChat={() => {}}
+          onNewProjectChat={() => {}}
+          onSearch={() => {}}
+          onOpenWindow={() => {}}
+          onOpenSettings={() => {}}
+          onOpenPlugins={() => {}}
+          onOpenExtensions={() => {}}
+          onSwitchScreen={() => {}}
+          drivePanel={<input aria-label="Drive filter" defaultValue="" />}
+        />
+      }
+    />
+  )
+  expect(view.queryByLabelText("Drive filter")).toBeNull()
+  await act(async () => fireEvent.click(view.getByRole("tab", { name: "Drive" })))
+  const input = view.getByLabelText("Drive filter")
+  fireEvent.change(input, { target: { value: "report" } })
+  for (const name of ["Activity", "Chats"]) {
+    await act(async () => fireEvent.click(view.getByRole("tab", { name })))
+    expect(input).toBeInTheDocument()
+    expect(input).not.toBeVisible()
+    await act(async () => fireEvent.click(view.getByRole("tab", { name: "Drive" })))
+    expect(view.getByLabelText("Drive filter")).toBe(input)
+    expect(input).toHaveValue("report")
+    expect(input).toBeVisible()
+  }
+  await act(async () => usePlatformAuth.setState({ isAuthenticated: false }))
+  expect(view.queryByLabelText("Drive filter")).toBeNull()
+  expect(useThreadsUiStore.getState().view).toBe("sessions")
+})
+
+test("project counts show only the number of sessions", () => {
+  useThreadsUiStore.setState({ view: "sessions" })
+  client.store.setState({
+    threadsLoaded: true,
+    threadsCursor: "next",
+    threads: [
+      { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
+      { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }
+    ]
+  })
+  const view = render(
+    <MainSidebarLayout
+      initialPinned
+      screen="main"
+      leading={null}
+      main={null}
+      sidebar={
+        <ThreadSidebar
+          screen="main"
+          leadingPage="plugins"
+          selectedId={null}
+          onSelect={() => {}}
+          onNewChat={() => {}}
+          onNewProjectChat={() => {}}
+          onSearch={() => {}}
+          onOpenWindow={() => {}}
+          onOpenSettings={() => {}}
+          onOpenPlugins={() => {}}
+          onOpenExtensions={() => {}}
+          onSwitchScreen={() => {}}
+        />
+      }
+    />
+  )
+  expect(view.getByText("2", { exact: true })).toBeVisible()
+  expect(view.queryByText(/loaded/i)).toBeNull()
+  expect(view.getByRole("button", { name: "Load more" })).toBeVisible()
 })

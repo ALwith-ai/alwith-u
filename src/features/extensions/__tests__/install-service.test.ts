@@ -2,7 +2,7 @@ import { expect, test } from "vitest"
 import { parseManifest } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import { executePreparedInstall } from "../install-service"
+import { executePreparedInstall, executeStagedInstall } from "../install-service"
 
 const manifest = parseManifest({
   id: "notes",
@@ -187,4 +187,50 @@ test("a package replaced while activation settles cannot be reported as the sele
     installed.packageRevision = "another-package"
   }
   await expect(executePreparedInstall(item.runtime, selected, { update: false, enable: false })).rejects.toThrow()
+})
+
+test("startup installs remain disabled and matching packages are not reinstalled", async () => {
+  const item = boundary()
+  const staged = { ...selected, source: "local" }
+  const first = await executeStagedInstall(item.runtime, staged, { update: true, enable: false })
+  expect(first.enabled).toBe(false)
+  expect(first.error).toBeNull()
+  expect(item.writes()).toBe(1)
+  await executeStagedInstall(item.runtime, staged, { update: true, enable: false })
+  expect(item.writes()).toBe(1)
+})
+
+test("aborting a cross-window wait releases subscriptions without enabling later", async () => {
+  const item = boundary(true)
+  const controller = new AbortController()
+  const operation = executeStagedInstall(
+    item.runtime,
+    { ...selected, source: "local" },
+    { update: true, enable: true },
+    controller.signal
+  )
+  const rejected = expect(operation).rejects.toThrow("deadline")
+  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  controller.abort(new Error("deadline"))
+  await rejected
+  item.commit()
+  expect(item.state.native?.installations[0]?.enabled).toBe(false)
+  expect(item.writes()).toBe(1)
+})
+
+test("startup updates preserve an enabled installation and check activation", async () => {
+  const item = boundary(true)
+  const installed = item.state.native?.installations[0]
+  if (!installed) throw new Error("Missing fixture installation")
+  installed.enabled = true
+  const operation = executeStagedInstall(
+    item.runtime,
+    { ...selected, source: "local" },
+    { update: true, enable: false }
+  )
+  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  item.host.instances = [{ id: "notes", revision: "new", status: "active", errors: [] }]
+  item.commit()
+  expect(await operation).toMatchObject({ enabled: true, activeInMainWindow: true, error: null })
+  expect(item.writes()).toBe(1)
 })

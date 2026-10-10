@@ -52,6 +52,43 @@ test("U keeps commentary after the last tool inside work, using the shared Deskt
   expect(view.getAllByRole("button", { name: "Copy" }).length).toBe(1)
 })
 
+test("startup diagnostics stay outside chat while session notices remain visible", () => {
+  const session = feed(
+    createSession("startup", "/tmp"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "mcp-startup:yup-drive",
+      name: "mcp_startup",
+      title: "Start MCP server yup-drive",
+      kind: "other",
+      status: "failed",
+      content: [{ type: "content", content: { type: "text", text: "MCP startup timed out" } }]
+    },
+    {
+      sessionUpdate: "agent_message_chunk",
+      messageId: "notice",
+      content: { type: "text", text: "Warning: model changed" },
+      _meta: { codex: { notice: true } }
+    }
+  )
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getByRole("status").textContent).toContain("Warning: model changed")
+  expect(view.queryByText("Start MCP server yup-drive")).toBeNull()
+  expect(view.container.querySelector(".codex-work-section")).toBeNull()
+  expect(view.container.querySelector(".codex-final-answer")).toBeNull()
+  expect(view.queryByRole("button", { name: "Copy" })).toBeNull()
+})
+
+test("real assistant history without a user still renders as a reply", () => {
+  const session = feed(createSession("orphan-answer", "/tmp"), text("answer", "Preserved reply", "final_answer"))
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.queryByRole("status")).toBeNull()
+  expect(view.getByText("Preserved reply")).toBeDefined()
+  expect(view.getByRole("button", { name: "Copy" })).toBeDefined()
+})
+
 test("streaming final-only responses stay outside work and expose actions only after completion", () => {
   const session = feed(
     addPrompt(createSession("final-only-layout", "/tmp"), [{ type: "text", text: "go" }], "prompt"),

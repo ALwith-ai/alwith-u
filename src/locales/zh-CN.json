@@ -29,6 +29,15 @@
     "waitlisted": "你的账号正在等待开通。",
     "disabled": "你的账号已停用。"
   },
+  "mcpDiagnostics": {
+    "title": "MCP 启动诊断",
+    "description": "此会话的启动记录，不代表当前连接状态。",
+    "empty": "此会话没有记录 MCP 启动错误。",
+    "failed": "启动失败",
+    "pending": "等待启动",
+    "in_progress": "正在启动",
+    "completed": "已启动"
+  },
   "actions": {
     "more": "更多操作",
     "openFolder": "打开项目文件夹",
@@ -53,9 +62,9 @@
     "showLess": "收起"
   },
   "connection": {
-    "connecting": "正在启动 Codex",
-    "disconnected": "Codex 未运行",
-    "failed": "Codex 启动失败",
+    "connecting": "正在启动对话服务",
+    "disconnected": "对话服务未运行",
+    "failed": "对话服务启动失败",
     "reconnect": "重新连接",
     "runtimeExited": "Runtime 已退出(代码 {{code}})",
     "signIn": "通过 ChatGPT 登录",
@@ -91,7 +100,7 @@
     "fork": "分叉",
     "rename": "重命名",
     "deleteTitle": "删除这个聊天?",
-    "deleteDescription": "Codex 会永久删除该线程。此操作不可撤销。",
+    "deleteDescription": "该聊天将被永久删除。此操作不可撤销。",
     "search": "搜索聊天…",
     "noResults": "未找到聊天",
     "stop": "停止",
@@ -99,7 +108,7 @@
   },
   "welcome": {
     "title": "想做点什么?",
-    "description": "选择一个项目文件夹,开始和 Codex 对话。",
+    "description": "选择一个项目文件夹，开始对话。",
     "chooseFolder": "选择文件夹"
   },
   "chat": {
@@ -121,16 +130,16 @@
     "openIn": "用以下应用打开",
     "thread": "聊天",
     "scrollToBottom": "滚动到底部",
-    "placeholder": "给 Codex 发消息",
+    "placeholder": "发送消息",
     "steerPlaceholder": "给当前回合补充指令",
     "restoring": "正在恢复聊天",
     "reopen": "打开这个聊天",
     "readOnly": {
-      "title": "已在其他 Codex 客户端打开",
-      "description": "这条聊天正被另一个 Codex 客户端(ChatGPT 应用或命令行)写入,这里只能查看;在那边关掉后再试。",
+      "title": "已在其他客户端打开",
+      "description": "这条聊天正被另一个客户端(ChatGPT 应用或命令行)写入,这里只能查看;在那边关掉后再试。",
       "retry": "重试"
     },
-    "detached": "这个聊天尚未打开。打开后从 Codex 上次停下的地方继续。",
+    "detached": "这个聊天尚未打开。打开后可继续上次的对话。",
     "working": "工作中",
     "worked": "已完成",
     "workedFor": "用时 {{duration}}",
@@ -186,7 +195,7 @@
       "contextSummary": "{{used}} / {{limit}} Token · {{percent}}%"
     },
     "error": {
-      "title": "Codex 遇到错误",
+      "title": "对话遇到错误",
       "retryable": "可以重试这一回合。"
     },
     "tool": {
@@ -279,7 +288,7 @@
     "hint": "Enter 发送 · Shift+Enter 换行"
   },
   "approval": {
-    "needed": "Codex 需要你的确认",
+    "needed": "需要你的确认",
     "requestedOperation": "请求的操作",
     "cancelRequest": "取消请求",
     "openLink": "打开链接",
@@ -335,7 +344,8 @@
     "about": "关于",
     "codexVersion": "Codex CLI {{version}}",
     "version": "版本 {{version}}",
-    "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。"
+    "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。",
+    "editor": "编辑器"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -637,6 +647,7 @@
     "items": {
       "newChat": "新聊天",
       "commandPalette": "命令面板",
+      "projectTree": "打开项目树",
       "findInChat": "在聊天中查找",
       "openSettings": "打开设置",
       "openHotkeys": "键盘快捷键",
@@ -662,8 +673,8 @@
     "settings": "打开设置"
   },
   "notify": {
-    "needsInput": "Codex 需要你的确认",
-    "finished": "Codex 已完成"
+    "needsInput": "需要你的确认",
+    "finished": "任务已完成"
   },
   "time": {
     "today": "今天",
@@ -700,6 +711,7 @@
     "shortcutOff": "关闭"
   },
   "extensions": {
+    "startupImportFailed": "扩展自动安装未完成：{{message}}。请检查 extension-inbox 或 extension-processing 目录中的源包和任务记录。",
     "skills": {
       "title": "所需 Codex 技能",
       "loading": "正在检查 Codex 技能…",

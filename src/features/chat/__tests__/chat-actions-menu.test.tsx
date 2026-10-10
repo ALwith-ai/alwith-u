@@ -233,3 +233,32 @@ test("floating chat returns to main immediately before Rename and the main menu 
     act(() => client.store.setState(state, true))
   }
 })
+
+test.each(["main", "floating"] as const)("MCP startup diagnostics stay hidden in the %s menu", async surface => {
+  const session = applyUpdate(createSession("mcp-diagnostic", "/tmp"), {
+    sessionUpdate: "tool_call_update",
+    toolCallId: "mcp-startup:yup-drive",
+    name: "mcp_startup",
+    title: "Start MCP server yup-drive",
+    status: "failed",
+    content: [{ type: "content", content: { type: "text", text: "HTTP 404: NO_SUCH_ENDPOINT" } }]
+  } as never)
+  const view = render(<ChatActionsMenu surface={surface} session={session} cwd="/tmp" onNewChat={() => {}} />)
+  try {
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    expect(view.getByRole("menu")).toBeInTheDocument()
+    expect(view.queryByText(/MCP startup diagnostics/)).toBeNull()
+    view.rerender(
+      <ChatActionsMenu
+        surface={surface}
+        session={createSession("another-chat", "/tmp")}
+        cwd="/tmp"
+        onNewChat={() => {}}
+      />
+    )
+    expect(view.getByRole("menu")).toBeInTheDocument()
+    expect(view.queryByText(/MCP startup diagnostics/)).toBeNull()
+  } finally {
+    view.unmount()
+  }
+})

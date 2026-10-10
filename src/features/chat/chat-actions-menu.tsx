@@ -34,8 +34,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { client, useApp } from "@/lib/client"
+import { McpDiagnostics } from "./mcp-diagnostics"
 import { openChatSearch } from "./dialogs/chat-search"
 import { ExternalEditorMenu, ProjectAppIcon, useProjectApps } from "./open-in-editor"
+
+// Keep the diagnostics implementation available while its menu entry is temporarily hidden.
+const showMcpDiagnostics = false
 
 /** Shared by main and floating chats. Mutations always address the displayed session. */
 export function ChatActionsMenu({
@@ -95,7 +99,7 @@ export function ChatActionsMenu({
   const showNewChat = surface === "floating" && session !== undefined
   const showNewProject = surface === "floating" && onNewProject !== undefined
   const showCreationActions = showNewChat || showNewProject
-  const showChatActions = canOpenWindow || canReturnToMain || (canMutate && canRename) || hasMessages
+  const showChatActions = session !== undefined || canOpenWindow || canReturnToMain
   if (!session && cwd === null && !canOpenWindow && !canReturnToMain && !showNewProject) return null
   return (
     <>
@@ -175,6 +179,7 @@ export function ChatActionsMenu({
                     {t("sidebar.rename")}
                   </DropdownMenuItem>
                 )}
+                {showMcpDiagnostics && session && <McpDiagnostics key={session.id} session={session} />}
                 {hasMessages && (
                   <DropdownMenuItem
                     onClick={() => {

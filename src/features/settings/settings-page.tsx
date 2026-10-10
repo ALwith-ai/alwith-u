@@ -4,7 +4,16 @@
 
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { CloudIcon, BlocksIcon, ContrastIcon, CpuIcon, InfoIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
+import {
+  Code2Icon,
+  CloudIcon,
+  BlocksIcon,
+  ContrastIcon,
+  CpuIcon,
+  InfoIcon,
+  SlidersHorizontalIcon,
+  UserIcon
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
@@ -20,6 +29,7 @@ import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/
 import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
+import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
 
@@ -30,6 +40,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,
   drive: CloudIcon,
   general: SlidersHorizontalIcon,
+  editor: Code2Icon,
   appearance: ContrastIcon,
   provider: CpuIcon,
   extensions: BlocksIcon,
@@ -85,6 +96,8 @@ export function SettingsPage() {
             return driveVisible ? <DriveSettings /> : <AccountSection />
           case "account":
             return <AccountSection />
+          case "editor":
+            return <EditorSettingsSection />
           case "general":
             return <GeneralSection />
           case "appearance":

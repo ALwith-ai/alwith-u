@@ -1,4 +1,4 @@
-import { isSelectOption, textOf } from "@alwith/api"
+import { isSelectOption, textOf, type BooleanOption, type SelectOption, type Session } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import { CodexClient, type GatewayModel } from "../client"
@@ -678,6 +678,103 @@ test("draft replacement preserves the old session on failure and transfers owner
   expect(fake.deleted.has(replacement)).toBe(true)
 })
 
+test("changing an empty draft's model creates it on that model without resuming the default model", async () => {
+  const { client, fake } = await make()
+  const first = await client.prepareDraft("main", "/tmp/model-draft")
+  const replacement = await client.prepareDraft("main", "/tmp/model-draft", "deepseek-flash")
+  expect(replacement).not.toBe(first)
+  expect(fake.modelHints.get(replacement)).toBe("deepseek-flash")
+  expect(fake.configChanges).toEqual([])
+  expect(fake.deleted.has(first)).toBe(true)
+  expect(client.state.draftSessions[replacement]).toBe("main")
+  expect(await client.prepareDraft("main", "/tmp/model-draft", "deepseek-flash")).toBe(replacement)
+  expect(client.state.threads).toEqual([])
+  await client.prompt(replacement, [{ type: "text", text: "hello" }])
+  expect(client.session(replacement).items.some(item => item.kind === "user")).toBe(true)
+})
+
+test("failed draft model creation preserves the original draft for retry", async () => {
+  const { client, fake } = await make()
+  const first = await client.prepareDraft("main", "/tmp/model-failure")
+  fake.newSessionDelay.current = async () => {
+    throw new Error("Gateway unavailable")
+  }
+  await expect(client.prepareDraft("main", "/tmp/model-failure", "deepseek-flash")).rejects.toThrow()
+  expect(client.state.draftSessions[first]).toBe("main")
+  expect(fake.deleted.has(first)).toBe(false)
+  fake.newSessionDelay.current = null
+  const replacement = await client.prepareDraft("main", "/tmp/model-failure", "deepseek-flash")
+  expect(fake.modelHints.get(replacement)).toBe("deepseek-flash")
+})
+
+test.each([false, true])(
+  "draft model replacement preserves compatible settings and rolls back on setting failure (%s)",
+  async fail => {
+    const settings = [
+      {
+        configId: "mode",
+        category: "mode",
+        name: "Mode",
+        type: "select",
+        currentValue: "read-only",
+        options: [
+          { value: "read-only", name: "Read only" },
+          { value: "auto", name: "Auto" }
+        ]
+      },
+      {
+        configId: "effort",
+        category: "thought_level",
+        name: "Effort",
+        type: "select",
+        currentValue: "high",
+        options: [{ value: "high", name: "High" }]
+      },
+      { configId: "fast", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+    ] satisfies [SelectOption, SelectOption, BooleanOption]
+    let targetOptions: Session["configOptions"] = [
+      { ...settings[0], currentValue: "auto" },
+      {
+        configId: "effort",
+        category: "thought_level",
+        name: "Effort",
+        type: "select",
+        currentValue: "low",
+        options: [{ value: "low", name: "Low" }]
+      },
+      { ...settings[2], currentValue: false }
+    ]
+    const writes: string[] = []
+    const { client, fake } = await make(fake => {
+      fake.sessionOptions.current = model => (model === "deepseek-flash" ? targetOptions : settings)
+      fake.configResponse.current = params => {
+        if (fail) throw new Error("Cannot apply settings")
+        writes.push(params.configId)
+        targetOptions = targetOptions.map(option =>
+          option.configId === params.configId
+            ? ({ ...option, currentValue: params.value } as Session["configOptions"][number])
+            : option
+        )
+        return { configOptions: targetOptions }
+      }
+    })
+    const first = await client.prepareDraft("main", "/tmp/settings")
+    const replacement = client.prepareDraft("main", "/tmp/settings", "deepseek-flash")
+    if (fail) {
+      await expect(replacement).rejects.toThrow()
+      expect(fake.deleted.has(first)).toBe(false)
+      expect(fake.deleted.has("s1")).toBe(true)
+      expect(client.state.draftSessions[first]).toBe("main")
+    } else {
+      const id = await replacement
+      expect(id).not.toBe(first)
+      expect(writes).toEqual(["mode", "fast"])
+      expect(client.session(id).configOptions.map(option => option.currentValue)).toEqual(["read-only", "low", true])
+      expect(fake.deleted.has(first)).toBe(true)
+    }
+  }
+)
+
 test("a delayed main draft does not block preparation in the floating window", async () => {
   const { client, fake } = await make()
   let release!: () => void
@@ -775,4 +872,98 @@ test("prompt waits for the model transaction and a failed switch rejects its wai
   reject(new Error("model unavailable"))
   expect((await results).map(result => result.status)).toEqual(["rejected", "rejected", "rejected"])
   expect(client.session(other).items).toEqual([])
+})
+
+test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo %s", async action => {
+  const { client, fake } = await make()
+  await client.listThreads()
+  let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
+  fake.listSessions.current = () =>
+    new Promise(resolve => {
+      answer = resolve
+    })
+  const pending = client.listThreads({ reset: true })
+  await until(() => answer !== undefined)
+  if (action === "rename") await client.renameSession("h1", "New title")
+  else await client[action]("h1")
+  must(answer, "pending list response")({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", title: "Old title" }] })
+  await pending
+  expect(client.state.threads.map(thread => [thread.sessionId, thread.title])).toEqual(
+    action === "rename" ? [["h1", "New title"]] : []
+  )
+  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
+})
+
+test("a pending archived list cannot undo restore", async () => {
+  const { client, fake } = await make()
+  await client.listThreads({ archived: true })
+  let answer:
+    | ((value: {
+        sessions: Array<{ sessionId: string; cwd: string; _meta: { codex: { archived: boolean } } }>
+      }) => void)
+    | undefined
+  fake.listSessions.current = () =>
+    new Promise(resolve => {
+      answer = resolve
+    })
+  const pending = client.listThreads({ archived: true, reset: true })
+  await until(() => answer !== undefined)
+  await client.unarchive("h2")
+  must(
+    answer,
+    "pending list response"
+  )({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", _meta: { codex: { archived: true } } }] })
+  await pending
+  expect(client.state.archivedThreads).toEqual([])
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h2"])
+})
+
+test("a superseded list cannot overwrite newer rows, cursor or loading state", async () => {
+  const { client, fake } = await make()
+  const answers: Array<(value: { sessions: Array<{ sessionId: string; cwd: string }>; nextCursor: string }) => void> =
+    []
+  fake.listSessions.current = () =>
+    new Promise(resolve => {
+      answers.push(resolve)
+    })
+  const older = client.listThreads({ reset: true })
+  await until(() => answers.length === 1)
+  const newer = client.listThreads({ reset: true })
+  await until(() => answers.length === 2)
+  must(answers[0], "older response")({ sessions: [{ sessionId: "old", cwd: "/tmp/one" }], nextCursor: "old-page" })
+  await older
+  const afterOlder = client.state
+  must(answers[1], "newer response")({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }], nextCursor: "new-page" })
+  await newer
+  expect(afterOlder.threadsLoading).toBe(true)
+  expect(afterOlder.threads).toEqual([])
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["new"])
+  expect(client.state.threadsCursor).toBe("new-page")
+  expect(client.state.threadsLoading).toBe(false)
+})
+
+test("live user messages refresh recency, while history replay and older turns do not", async () => {
+  const { client, fake } = await make()
+  const original = "2026-01-01T00:00:00.000Z"
+  const current = "2026-10-10T10:00:00.000Z"
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", updatedAt: original }] })
+  await client.listThreads()
+  await client.open("h1", "/tmp/one")
+  expect(client.state.threads[0]?.updatedAt).toBe(original)
+  await fake.pushUpdate("h1", {
+    sessionUpdate: "user_message",
+    messageId: "live",
+    content: [{ type: "text", text: "continue" }],
+    _meta: { codex: { turnStartedAt: Date.parse(current) } }
+  })
+  await until(() => client.session("h1").items.some(item => item.id === "live"))
+  expect(client.state.threads[0]?.updatedAt).toBe(current)
+  await fake.pushUpdate("h1", {
+    sessionUpdate: "user_message",
+    messageId: "older",
+    content: [{ type: "text", text: "earlier" }],
+    _meta: { codex: { turnStartedAt: Date.parse(original) } }
+  })
+  await until(() => client.session("h1").items.some(item => item.id === "older"))
+  expect(client.state.threads[0]?.updatedAt).toBe(current)
 })

@@ -12,14 +12,20 @@ export function DriveIntegrations(): ReactNode {
   const { i18n } = useTranslation()
   const zh = i18n.language.startsWith("zh")
   const t = driveTranslator(zh ? "zh-CN" : "en", "settings")
-  const { snapshot } = useDrive(drive)
+  const { connected, snapshot } = useDrive(drive)
   const [preferences, setPreferences] = useState<Preferences | null>(null)
   const [archive, setArchive] = useState<ArchiveStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
+    if (!connected || !snapshot?.configured) {
+      setPreferences(null)
+      setArchive(null)
+      return
+    }
     let active = true
+    setError(null)
     const load = async (): Promise<void> => {
       const [settings, status] = await Promise.all([
         drive.request({ type: "preferences" }),
@@ -43,7 +49,7 @@ export function DriveIntegrations(): ReactNode {
       active = false
       clearInterval(timer)
     }
-  }, [snapshot?.generation])
+  }, [connected, snapshot?.configured, snapshot?.generation])
   const change = (key: keyof Preferences, value: boolean): void => {
     if (!preferences || busy) return
     setBusy(true)
@@ -99,7 +105,7 @@ export function DriveIntegrations(): ReactNode {
         <Switch
           aria-label={t("archive.title")}
           checked={preferences?.sessionArchive ?? false}
-          disabled={busy || !preferences}
+          disabled={!connected || busy || !preferences}
           onCheckedChange={value => change("sessionArchive", value)}
         />
       </div>
@@ -120,7 +126,7 @@ export function DriveIntegrations(): ReactNode {
         <Switch
           aria-label={t("knowledge.title")}
           checked={preferences?.knowledgeInject ?? false}
-          disabled={busy || !preferences}
+          disabled={!connected || busy || !preferences}
           onCheckedChange={value => change("knowledgeInject", value)}
         />
       </div>

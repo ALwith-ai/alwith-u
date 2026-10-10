@@ -255,8 +255,11 @@ export function ThreadSidebar({
   // Tabs share the navigation icon buttons' 30px row height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const driveVisible = useDriveVisible()
+  const [driveVisited, setDriveVisited] = useState(false)
   useEffect(() => {
     if (!driveVisible && view === "drive") setView("sessions")
+    if (!driveVisible) setDriveVisited(false)
+    else if (view === "drive") setDriveVisited(true)
   }, [driveVisible, view, setView])
   const tabs: { key: SidebarView; title: string; icon: React.ReactNode }[] = [
     { key: "sessions", title: t("sidebar.chats"), icon: <FolderIcon /> },
@@ -397,9 +400,14 @@ export function ThreadSidebar({
               })}
           </div>
         </div>
-        {view === "drive" ? (
-          drivePanel
-        ) : view === "activity" ? (
+        {driveVisible && (driveVisited || view === "drive") && (
+          <div
+            hidden={view !== "drive"}
+            className={cn("min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}>
+            {drivePanel}
+          </div>
+        )}
+        {view === "drive" ? null : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
           <Pane viewportClassName="px-1 py-1">

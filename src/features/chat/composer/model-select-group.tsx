@@ -26,11 +26,14 @@ function currentName(option: SelectOption): string {
 export function ModelSelectGroup({
   sessionId,
   options,
-  disabled
+  disabled,
+  onModelChange
 }: {
   sessionId: string
   options: acp.SessionConfigOption[]
   disabled: boolean
+  /** Unsent drafts create a replacement session directly on the chosen model. */
+  onModelChange?: (model: string) => void
 }) {
   const { t } = useTranslation()
   const switching = useApp(state => Boolean(state.configPending[sessionId]))
@@ -71,7 +74,9 @@ export function ModelSelectGroup({
       showModelList={Boolean(model)}
       showDescription
       onChange={item => {
-        if (model) set(model, item.api_id)
+        if (item.api_id === model?.currentValue) return
+        if (onModelChange) onModelChange(item.api_id)
+        else if (model) set(model, item.api_id)
       }}
       header={model ? { name: model.name } : undefined}
       modelGroups={

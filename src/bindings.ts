@@ -11,34 +11,16 @@ import {
 } from "@tauri-apps/api/event"
 
 export const commands = {
-  extensionControlNext: (): Promise<
-    | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
-    | { operation: "uninstall"; requestId: string; id: string }
-    | null
-  > =>
-    __t3Invoke<
-      | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
-      | { operation: "uninstall"; requestId: string; id: string }
-      | null
-    >("extension_control_next"),
-  extensionControlComplete: (args: {
-    requestId: string
-    result: {
-      id: string
-      version: string
-      packageRevision: string
-      installed: boolean
-      enabled: boolean
-      activeInMainWindow: boolean
-      error: InstallError | null
-    } | null
-    error: string | null
-  }): Promise<null> => __t3Invoke<null>("extension_control_complete", args),
-  extensionControlUnavailable: (args: { message: string }): Promise<null> =>
-    __t3Invoke<null>("extension_control_unavailable", args),
-  extensionControlStatus: (): Promise<null> => __t3Invoke<null>("extension_control_status"),
+  extensionInboxScan: (): Promise<Scan> => __t3Invoke<Scan>("extension_inbox_scan"),
+  extensionInboxPrepare: (args: { taskId: string }): Promise<PreparedTask> =>
+    __t3Invoke<PreparedTask>("extension_inbox_prepare", args),
+  extensionInboxComplete: (args: { taskId: string }): Promise<null> =>
+    __t3Invoke<null>("extension_inbox_complete", args),
+  extensionInboxFailed: (args: { taskId: string; message: string }): Promise<null> =>
+    __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
   driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
+  drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
@@ -185,12 +167,13 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
-  extensionControlNext: string
-  extensionControlComplete: string
-  extensionControlUnavailable: string
-  extensionControlStatus: string
+  extensionInboxScan: string
+  extensionInboxPrepare: string
+  extensionInboxComplete: string
+  extensionInboxFailed: string
   draftDirectory: string
   driveRequest: string
+  drivePathExists: string
   chatSaveFile: string
   chatReadImage: string
   workspaceOpen: string
@@ -284,6 +267,13 @@ export const events = {
     emit: (payload: NewChat) => __t3Emit("menu:new-chat", payload),
     emitTo: (target: string | __t3Target, payload: NewChat) => __t3EmitTo(target, "menu:new-chat", payload)
   },
+  "menu:project-tree": {
+    name: "menu:project-tree",
+    listen: (handler: __t3Callback<ProjectTree>) => __t3Listen<ProjectTree>("menu:project-tree", handler),
+    once: (handler: __t3Callback<ProjectTree>) => __t3Once<ProjectTree>("menu:project-tree", handler),
+    emit: (payload: ProjectTree) => __t3Emit("menu:project-tree", payload),
+    emitTo: (target: string | __t3Target, payload: ProjectTree) => __t3EmitTo(target, "menu:project-tree", payload)
+  },
   "menu:find-in-chat": {
     name: "menu:find-in-chat",
     listen: (handler: __t3Callback<FindInChat>) => __t3Listen<FindInChat>("menu:find-in-chat", handler),
@@ -376,10 +366,6 @@ export type CompletedMove = {
   from: string
   to: string
 }
-
-export type ControlJob =
-  | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
-  | { operation: "uninstall"; requestId: string; id: string }
 
 export type CustomInput = CustomInput_Serialize | CustomInput_Deserialize
 
@@ -477,11 +463,6 @@ export type Input = {
   baseUrl?: string | null
 }
 
-export type InstallError = {
-  code: string
-  message: string
-}
-
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key in string]: JsonValue }
 
 export type Metadata = {
@@ -517,10 +498,26 @@ export type PreparedInstall =
   | { format: "current"; path: string; id: string; version: string; digest: string }
   | { format: "legacy"; prepared: PreparedImport }
 
+export type PreparedPackage = {
+  path: string
+  id: string
+  version: string
+  digest: string
+  source: string
+}
+
+export type PreparedTask = {
+  id: string
+  phase: string
+  package: PreparedPackage | null
+}
+
 export type PreviewLocation = {
   token: string
   path: string
 }
+
+export type ProjectTree = null
 
 export type PublicCustomProvider = PublicCustomProvider_Serialize | PublicCustomProvider_Deserialize
 
@@ -545,16 +542,6 @@ export type RefreshedTokens = {
 
 export type ReplaceInFile = null
 
-export type Report = {
-  id: string
-  version: string
-  packageRevision: string
-  installed: boolean
-  enabled: boolean
-  activeInMainWindow: boolean
-  error: InstallError | null
-}
-
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
 
 export type RuntimeExit = {
@@ -563,6 +550,11 @@ export type RuntimeExit = {
 }
 
 export type RuntimeLines = string[]
+
+export type Scan = {
+  tasks: string[]
+  errors: string[]
+}
 
 export type Snapshot = Snapshot_Serialize | Snapshot_Deserialize
 

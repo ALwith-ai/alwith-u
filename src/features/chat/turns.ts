@@ -31,6 +31,10 @@ export type Turn = {
   items: Item[]
 }
 
+export function isMcpStartup(item: Item): item is ToolItem {
+  return item.kind === "tool" && item.name === "mcp_startup"
+}
+
 function phase(item: MessageItem): string | null {
   const codex = item._meta?.codex
   if (typeof codex !== "object" || codex === null) return null
@@ -41,6 +45,13 @@ function phase(item: MessageItem): string | null {
 function isNotice(item: MessageItem): boolean {
   const codex = item._meta?.codex
   return typeof codex === "object" && codex !== null && (codex as { notice?: unknown }).notice === true
+}
+
+/** Lifecycle diagnostics arriving before a prompt are session status, not an agent turn. */
+export function isSessionStatus(turn: Turn): boolean {
+  return (
+    turn.user === null && turn.items.length > 0 && turn.items.every(item => item.kind === "assistant" && isNotice(item))
+  )
 }
 
 function pushActivity(turn: Turn, item: MessageItem | ToolItem): void {
@@ -108,7 +119,10 @@ export function groupTurns(session: Session, previous: Turn[] = []): Turn[] {
   const tools = new Map(
     session.items.filter((item): item is ToolItem => item.kind === "tool").map(item => [item.id, item])
   )
-  const result: Turn[] = groupSession(session).map(grouped => {
+  // Filter the view before grouping so startup-only entries never create empty turns.
+  // Runtime remains the authority for the original diagnostics.
+  const visible = { ...session, items: session.items.filter(item => !isMcpStartup(item)) }
+  const result: Turn[] = groupSession(visible).map(grouped => {
     const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
     for (const entry of grouped.entries) flatten(entry, items, tools)
     const first = items[0]

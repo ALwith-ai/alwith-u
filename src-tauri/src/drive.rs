@@ -7,6 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
 
+#[path = "drive_paths.rs"]
+mod paths;
+
 pub struct DriveState {
     service: Result<Arc<DriveService>, String>,
     closing: AtomicBool,
@@ -19,12 +22,13 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Erro
     let service = DriveService::new(ServiceOptions {
         data_directory: app.path().app_data_dir()?.join("drive"),
         ownership_directory: home.join(".alwith-drive").join("owners"),
-        default_root: home.join("YUP Drive U"),
-        reserved_roots: vec![home.join("YUP Drive")],
+        default_root: home.join("YUP Drive"),
+        reserved_roots: vec![],
         device_name: "ALwith U".into(),
         client_version: env!("CARGO_PKG_VERSION").into(),
         open_url: Arc::new(move |url| opener.opener().open_url(url, None::<&str>).map_err(|error| error.to_string())),
     })
+    .map(DriveService::with_existing_default_root)
     .and_then(|service| {
         let codex_home =
             std::env::var_os("CODEX_HOME").map(std::path::PathBuf::from).unwrap_or_else(|| home.join(".codex"));
@@ -93,6 +97,23 @@ pub async fn drive_request(
     }
     let response = state.service()?.execute(request).await?;
     serde_json::to_value(response).map_err(|error| error.to_string())
+}
+
+#[tauri3_specta::command]
+pub async fn drive_path_exists(
+    window: tauri::WebviewWindow, state: tauri::State<'_, DriveState>, path: std::path::PathBuf,
+) -> Result<bool, String> {
+    if window.label() != "main" {
+        return Err("Drive filesystem access is limited to the main window".into());
+    }
+    let snapshot = state.service()?.snapshot();
+    let roots = snapshot
+        .roots
+        .iter()
+        .filter(|root| !root.drive_path.is_empty())
+        .map(|root| std::path::PathBuf::from(&root.local_path))
+        .collect::<Vec<_>>();
+    paths::exists(std::path::Path::new(&snapshot.local_root), &roots, &path)
 }
 
 pub fn prevent_exit(app: &tauri::AppHandle, code: Option<i32>) -> bool {

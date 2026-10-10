@@ -15,6 +15,10 @@ export type FakeAgent = {
   forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
   newSessionDelay: { current: ((cwd: string) => Promise<void>) | null }
+  sessionOptions: { current: ((model: string | null) => acp.SessionConfigOption[]) | null }
+  configResponse: {
+    current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
+  }
   listSessions: {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
   }
@@ -72,6 +76,8 @@ export function createFakeAgent(): FakeAgent {
   const origins = new Map<string, { nativeSessionId: string; forkedFromId: string; forkedAtTurnId: string | null }>()
   const configDelay: FakeAgent["configDelay"] = { current: null }
   const newSessionDelay: FakeAgent["newSessionDelay"] = { current: null }
+  const sessionOptions: FakeAgent["sessionOptions"] = { current: null }
+  const configResponse: FakeAgent["configResponse"] = { current: null }
   const listSessions: FakeAgent["listSessions"] = { current: null }
   const configChanges: string[] = []
   const changingConfig = new Set<string>()
@@ -85,7 +91,8 @@ export function createFakeAgent(): FakeAgent {
         { codex?: { name?: string }; alwith?: { models?: Array<{ id: string }> } } | undefined
       return { id, name: meta?.codex?.name ?? id, models: (meta?.alwith?.models ?? []).map(model => model.id) }
     })
-  const optionsFor = (hint: string | null) => [modelOption(hint ?? "gpt-5.6-sol", gatewayGroups())]
+  const optionsFor = (hint: string | null) =>
+    sessionOptions.current?.(hint) ?? [modelOption(hint ?? "gpt-5.6-sol", gatewayGroups())]
   let next = 0
   const sessionId = () => `s${next++}`
   app.onRequest("initialize", ({ client }) => {
@@ -248,6 +255,7 @@ export function createFakeAgent(): FakeAgent {
     changingConfig.add(params.sessionId)
     try {
       await configDelay.current?.()
+      if (configResponse.current) return configResponse.current(params)
       if (params.configId !== "model" || typeof params.value !== "string") throw acp.RequestError.invalidParams()
       configChanges.push(params.value)
       return { configOptions: optionsFor(params.value) }
@@ -369,6 +377,14 @@ export function createFakeAgent(): FakeAgent {
     deleted.add(params.sessionId)
     return {}
   })
+  app.onRequest(
+    "_codex/session_unarchive",
+    (value: unknown) => value as { sessionId: string },
+    ({ params }) => {
+      archived.delete(params.sessionId)
+      return {}
+    }
+  )
   return {
     app,
     archived,
@@ -379,6 +395,8 @@ export function createFakeAgent(): FakeAgent {
     forks,
     configDelay,
     newSessionDelay,
+    sessionOptions,
+    configResponse,
     listSessions,
     configChanges,
     renamed,

@@ -22,7 +22,7 @@ import { DriveCondense, type CondenseScope } from "@alwith/module-drive/content"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { openExternal } from "@/lib/open"
 import { driveControls } from "./controls"
-import { driveFileSystem } from "./filesystem"
+import { driveFileSystem, drivePathExists } from "./filesystem"
 import { saveDrivePins, useDrivePins } from "./pinned"
 import { DriveIntegrations } from "./integrations"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -79,7 +79,7 @@ export function DrivePage({
         name: entry.name,
         isDirectory: entry.kind === "directory"
       })),
-    pathExists: async path => (await (await driveFileSystem(path)).stat(path)) !== null,
+    pathExists: drivePathExists,
     onOpenEntry: async entry => {
       if (!workspace) throw new Error("Drive requires a workspace host")
       const root = drive
@@ -167,7 +167,7 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
                   name: entry.name,
                   isDirectory: entry.kind === "directory"
                 })),
-              pathExists: async value => (await (await driveFileSystem(value)).stat(value)) !== null,
+              pathExists: drivePathExists,
               onOpenEntry: async () => {
                 throw new Error("Navigation is unavailable in this permissions dialog")
               },
@@ -241,11 +241,11 @@ export function DriveStatus(): ReactNode {
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("zh") ? "zh-CN" : "en"
   const t = driveTranslator(locale)
-  const { snapshot } = useDrive(drive)
+  const { connected, snapshot } = useDrive(drive)
   const [failures, setFailures] = useState<FailedUpload[]>([])
   useEffect(() => {
     let active = true
-    if (!snapshot?.running || !snapshot.status?.failed) {
+    if (!connected || !snapshot?.running || !snapshot.status?.failed) {
       setFailures([])
       return
     }
@@ -261,7 +261,7 @@ export function DriveStatus(): ReactNode {
     return () => {
       active = false
     }
-  }, [snapshot?.running, snapshot?.status])
+  }, [connected, snapshot?.running, snapshot?.status])
   if (!visible || !snapshot?.configured) return null
   const summary = summarize(snapshot.status, failures)
   return (
