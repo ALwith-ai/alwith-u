@@ -6,13 +6,8 @@
     "scripts/**/*.ts",
     "src/bindings.ts"
   ],
-  "project": [
-    "src/**/*.{ts,tsx,css,mdx}",
-    "scripts/**/*.ts"
-  ],
-  "ignore": [
-    "src/components/ui/**"
-  ],
+  "project": ["src/**/*.{ts,tsx,css,mdx}", "scripts/**/*.ts"],
+  "ignore": ["src/components/ui/**"],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "files": "error",

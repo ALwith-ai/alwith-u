@@ -32,7 +32,7 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 # Tauri 3 keeps its runtime in a separate crate; alpha.4 provides transparency without a private-API feature.
 tauri = { version = "3.0.0-alpha.4", features = ["protocol-asset", "specta"] }
 specta = { version = "=2.0.0-rc.25", features = ["derive", "function"] }
-tauri3-specta = { git = "https://github.com/nyssance/tauri3-specta", rev = "696f1b47c3321d7a109a742c06fccba98b73e2ba" }
+tauri3-specta = "0.1.0-alpha.1"
 tauri-runtime-wry = "3.0.0-alpha.4"
 tauri-plugin-dialog = "3.0.0-alpha.1"
 tauri-plugin-global-shortcut = "3.0.0-alpha.1"

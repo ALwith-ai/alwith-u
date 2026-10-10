@@ -343,7 +343,7 @@ export function createFakeAgent(): FakeAgent {
         await emit({
           sessionUpdate: "state_update",
           state: "idle",
-          stopReason: controller.signal.aborted ? "cancelled" : "end_turn"
+          ...(controller.signal.aborted ? { stopReason: "cancelled" as const } : { stopReason: "end_turn" as const })
         })
         active.delete(id)
       }

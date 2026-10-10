@@ -72,8 +72,9 @@ test("compaction stays in work and a current-turn error is not repeated on earli
     text("final", "Preserved answer", "final_answer")
   )
   const error = {
-    stopReason: "_error",
-    meta: { codex: { error: { message: "Gateway unavailable", retryable: true } } }
+    stopReason: "error",
+    error: { code: -32603, message: "Gateway unavailable", data: { codex: { retryable: true } } },
+    meta: null
   }
   const view = render(viewOf(session, false, error))
   mounted.push(view)

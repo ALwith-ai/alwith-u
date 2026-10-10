@@ -49,3 +49,13 @@ A separate native bundle used identifier `ai.alwith.u.smoke8521996` and an empty
 Provider rows now submit the revision that their editable draft actually loaded. An unrelated/newer window event cannot silently rebase a dirty key or region. Untouched rows follow newer metadata; failed saves retain entered keys, and successful acknowledgements clear only the submitted draft, preserving input typed while the request was in flight. Snapshot loading and events are monotonic by saved revision; an equal-revision event keeps its newer application status instead of being overwritten by the initial read.
 
 Three row interaction tests and three read/event ordering cases cover these boundaries. All 107 frontend tests, typecheck, lint, knip, frontend build and the isolated macOS debug bundle passed. The rebuilt `ALwith U Runtime Acceptance` instance contains these changes and remains at the normal login gate awaiting user sign-in; authenticated visual acceptance is still pending.
+
+
+## ACP SDK 1.8.0
+
+ACP v2 alpha.8 errors carry JSON-RPC details on idle frames. U reads the shared
+API's `TurnError.error`; Codex-specific retry classification comes from `error.data.codex`.
+Older persisted frames can still carry `_meta.codex.error`. Stop reasons without
+error details remain visible. All U protocol imports use `experimental/v2`.
+The coordinated change consumes the published API 0.3.0, Runtime 0.1.8 and
+codex-acp-v2 0.7.8 releases. Staging copies the published adapter bundle and verifies its version.

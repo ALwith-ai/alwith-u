@@ -5,9 +5,7 @@
   "trailingComma": "none",
   "bracketSameLine": true,
   "arrowParens": "avoid",
-  "plugins": [
-    "prettier-plugin-tailwindcss"
-  ],
+  "plugins": ["prettier-plugin-tailwindcss"],
   "overrides": [
     {
       "files": "*.css",

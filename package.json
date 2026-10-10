@@ -30,12 +30,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^1.7.0",
-    "@alwith/api": "^0.2.2",
+    "@agentclientprotocol/sdk": "^1.8.0",
+    "@alwith/api": "^0.3.0",
     "@alwith/module-auth": "^0.1.0",
     "@alwith/module-chat": "^0.1.9",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.6.tgz",
-    "@alwith/runtime": "^0.1.7",
+    "@alwith/runtime": "^0.1.8",
     "@base-ui/react": "^1.9.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@shadcn/react": "^0.3.1",
@@ -82,7 +82,7 @@
   "devDependencies": {
     "@alwith/native": "^0.1.1",
     "@biomejs/biome": "^2.5.15",
-    "@nyssance/codex-acp-v2": "^0.7.6",
+    "@nyssance/codex-acp-v2": "^0.7.8",
     "@openai/codex": "0.162.0",
     "@storybook/addon-a11y": "10.6.1",
     "@storybook/addon-docs": "10.6.1",

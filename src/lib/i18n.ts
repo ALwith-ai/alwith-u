@@ -1,8 +1,8 @@
 import { chatLocales } from "@alwith/module-chat/locales"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
-import en from "@/locales/en.json"
 import ar from "@/locales/ar.json"
+import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"
 
 /** Supported application languages, shared with ALwith Desktop. */
