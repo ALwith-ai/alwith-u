@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
+    ".storybook/fixtures/open.ts",
     "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
     "scripts/**/*.ts",
