@@ -14,6 +14,13 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src")
     }
   },
+  // Local tarballs change during module development. Serve these ESM packages
+  // directly so dependency optimization cannot retain an older JS implementation.
+  optimizeDeps: {
+    exclude: ["@alwith/module-fs", "@alwith/module-file-tree", "@alwith/module-editor"],
+    // Base UI reaches these CommonJS shims through the excluded packages.
+    include: ["use-sync-external-store/shim", "use-sync-external-store/shim/with-selector"]
+  },
   clearScreen: false,
   server: {
     port: 1430,

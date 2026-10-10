@@ -41,6 +41,20 @@ export const commands = {
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
+  /**
+   *  Opening a project in the main window establishes its scoped filesystem session.
+   */
+  workspaceOpen: (args: { path: string }): Promise<string> => __t3Invoke<string>("workspace_open", args),
+  /**
+   *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
+   */
+  workspaceImport: (args: { root: string; destination: string; paths: string[] }): Promise<null> =>
+    __t3Invoke<null>("workspace_import", args),
+  workspaceFile: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("workspace_file", args),
+  workspaceWatch: (args: { path: string; enabled: boolean }): Promise<null> =>
+    __t3Invoke<null>("workspace_watch", args),
+  workspaceDirty: (args: { dirty: boolean }): Promise<null> => __t3Invoke<null>("workspace_dirty", args),
+  workspaceExit: (): Promise<null> => __t3Invoke<null>("workspace_exit"),
   extensionBundles: (): Promise<BundledExtension[]> => __t3Invoke<BundledExtension[]>("extension_bundles"),
   extensionPrepareInstall: (args: {
     expectedId: string | null
@@ -172,6 +186,12 @@ export type CommandErrors = {
   draftDirectory: string
   chatSaveFile: string
   chatReadImage: string
+  workspaceOpen: string
+  workspaceImport: string
+  workspaceFile: string
+  workspaceWatch: string
+  workspaceDirty: string
+  workspaceExit: string
   extensionBundles: string
   extensionPrepareInstall: string
   legacyStageImport: string
@@ -260,6 +280,27 @@ export const events = {
     once: (handler: __t3Callback<FindInChat>) => __t3Once<FindInChat>("menu:find-in-chat", handler),
     emit: (payload: FindInChat) => __t3Emit("menu:find-in-chat", payload),
     emitTo: (target: string | __t3Target, payload: FindInChat) => __t3EmitTo(target, "menu:find-in-chat", payload)
+  },
+  "menu:replace-in-file": {
+    name: "menu:replace-in-file",
+    listen: (handler: __t3Callback<ReplaceInFile>) => __t3Listen<ReplaceInFile>("menu:replace-in-file", handler),
+    once: (handler: __t3Callback<ReplaceInFile>) => __t3Once<ReplaceInFile>("menu:replace-in-file", handler),
+    emit: (payload: ReplaceInFile) => __t3Emit("menu:replace-in-file", payload),
+    emitTo: (target: string | __t3Target, payload: ReplaceInFile) => __t3EmitTo(target, "menu:replace-in-file", payload)
+  },
+  "menu:edit-undo": {
+    name: "menu:edit-undo",
+    listen: (handler: __t3Callback<EditUndo>) => __t3Listen<EditUndo>("menu:edit-undo", handler),
+    once: (handler: __t3Callback<EditUndo>) => __t3Once<EditUndo>("menu:edit-undo", handler),
+    emit: (payload: EditUndo) => __t3Emit("menu:edit-undo", payload),
+    emitTo: (target: string | __t3Target, payload: EditUndo) => __t3EmitTo(target, "menu:edit-undo", payload)
+  },
+  "menu:edit-redo": {
+    name: "menu:edit-redo",
+    listen: (handler: __t3Callback<EditRedo>) => __t3Listen<EditRedo>("menu:edit-redo", handler),
+    once: (handler: __t3Callback<EditRedo>) => __t3Once<EditRedo>("menu:edit-redo", handler),
+    emit: (payload: EditRedo) => __t3Emit("menu:edit-redo", payload),
+    emitTo: (target: string | __t3Target, payload: EditRedo) => __t3EmitTo(target, "menu:edit-redo", payload)
   },
   "menu:command-palette": {
     name: "menu:command-palette",
@@ -366,6 +407,10 @@ export type DirectoryGrant = {
 
 export type DisablementReason = "invalidConfiguration"
 
+export type EditRedo = null
+
+export type EditUndo = null
+
 export type FileEntry = {
   name: string
   isFile: boolean
@@ -471,6 +516,8 @@ export type RefreshedTokens = {
   access_token: string
   refresh_token: string
 }
+
+export type ReplaceInFile = null
 
 export type Report = {
   id: string

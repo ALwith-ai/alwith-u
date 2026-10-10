@@ -17,6 +17,7 @@ tauri-build = { version = "3.0.0-alpha.2", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-fs = { path = "../node_modules/@alwith/module-fs/rust", default-features = false, features = ["workspace"] }
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri", "native-http"] }
 tempfile = "3"

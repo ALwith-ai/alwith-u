@@ -1,3 +1,5 @@
+import { WorkspaceHeaderContext } from "@/features/workspace/context"
+import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -59,6 +61,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const globalActions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === null)))
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
+  const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
@@ -537,7 +540,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           main={
             <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
               {!leading && actionCards}
-              {main}
+              <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
+                <FileWorkspace cwd={session?.cwd ?? lastDirectory}>{main}</FileWorkspace>
+              </WorkspaceHeaderContext.Provider>
             </SidebarInset>
           }>
           <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
@@ -552,6 +557,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             onSelect={select}
           />
           <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+          <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
           <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
             <ExtensionActions
               host={extensions}

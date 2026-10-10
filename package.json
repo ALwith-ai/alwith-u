@@ -34,10 +34,19 @@
     "@alwith/api": "^0.2.2",
     "@alwith/module-auth": "^0.1.0",
     "@alwith/module-chat": "^0.1.9",
+    "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.6.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
+    "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.16.tgz",
+    "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.3.tgz",
     "@alwith/runtime": "^0.1.7",
     "@base-ui/react": "^1.8.0",
     "@fontsource-variable/inter": "^5.3.0",
+    "@milkdown/core": "^7.22.2",
+    "@milkdown/plugin-history": "^7.22.2",
+    "@milkdown/preset-commonmark": "^7.22.2",
+    "@milkdown/preset-gfm": "^7.22.2",
+    "@milkdown/prose": "^7.22.2",
+    "@milkdown/utils": "^7.22.2",
     "@shadcn/react": "^0.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "^3.0.0-alpha.2",
@@ -58,6 +67,7 @@
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
     "diff2html": "^3.4.56",
+    "docx-preview": "^0.4.1",
     "entities": "^8.1.0",
     "highlight.js": "^11.12.0",
     "i18next": "^26.4.2",
@@ -66,8 +76,10 @@
     "lucide-react": "^1.54.0",
     "marked": "^18.1.0",
     "marked-linkify-it": "^4.0.2",
+    "monaco-editor": "^0.57.0",
     "motion": "^14.0.0",
     "next-themes": "^0.4.6",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.16",
@@ -77,6 +89,8 @@
     "sonner": "^2.0.8",
     "tailwindcss": "^4.3.3",
     "tw-animate-css": "^1.4.0",
+    "utif": "^3.1.0",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -97,6 +111,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/semver": "^7.8.0",
+    "@types/utif": "^3.0.6",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/browser-playwright": "5.0.3",
     "jsdom": "^30.1.2",
@@ -123,6 +138,9 @@
     "@openai/codex-win32-arm64": "npm:@openai/codex@0.162.0-win32-arm64"
   },
   "overrides": {
-    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz"
+    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
+    "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.3.tgz",
+    "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.16.tgz",
+    "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.6.tgz"
   }
 }

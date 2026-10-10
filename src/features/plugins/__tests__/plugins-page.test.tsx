@@ -1,5 +1,5 @@
-import { act, fireEvent, render, within } from "@testing-library/react"
-import { afterEach, beforeEach, expect, test } from "vitest"
+import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
@@ -19,6 +19,8 @@ beforeEach(async () => {
   })
 })
 afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
   pluginsStore.setState(initialState, true)
   client.store.setState(initialAppState, true)
 })
@@ -108,8 +110,14 @@ test("plugin controls and skill scopes follow a language change without remounti
   expect(view.getByRole("menuitem", { name: "移除市场" })).toBeDefined()
   await act(async () => fireEvent.keyDown(view.getByRole("menu"), { key: "Escape" }))
 
+  // Keep the outgoing panel mounted, as it is until its exit transition completes.
+  const animation = vi
+    .spyOn(view.getByRole("tabpanel", { name: "市场" }), "getAnimations")
+    .mockReturnValue([{ finished: new Promise<Animation>(() => {}) } as Animation])
   await act(async () => fireEvent.click(view.getByRole("tab", { name: "已安装" })))
-  const panel = within(view.getByRole("tabpanel"))
+  expect(view.getAllByRole("tabpanel")).toHaveLength(2)
+  const panel = within(view.getByRole("tabpanel", { name: "已安装" }))
+  animation.mockRestore()
   expect(panel.getByRole("heading", { name: "插件" })).toBeDefined()
   expect(panel.getByRole("heading", { name: "技能" })).toBeDefined()
   expect(panel.getByText("插件已启用")).toBeDefined()
@@ -120,7 +128,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   const actions = panel.getAllByRole("button", { name: "更多操作" })
   await act(async () => fireEvent.click(must(actions[0])))
   expect(view.getByRole("menuitem", { name: "卸载" })).toBeDefined()
-  await act(async () => fireEvent.keyDown(view.getByRole("menu"), { key: "Escape" }))
+  await act(async () => fireEvent.keyDown(view.getByRole("menu", { name: "更多操作" }), { key: "Escape" }))
 
   await act(async () => {
     await i18n.changeLanguage("en")

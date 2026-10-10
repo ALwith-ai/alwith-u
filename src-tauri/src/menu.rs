@@ -7,8 +7,12 @@ use tauri::AppHandle;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
 pub const OPEN_SETTINGS_ID: &str = "open_settings";
+pub const QUIT_ID: &str = "quit";
 pub const NEW_CHAT_ID: &str = "new_chat";
 pub const FIND_IN_CHAT_ID: &str = "find_in_chat";
+pub const REPLACE_IN_FILE_ID: &str = "replace_in_file";
+pub const EDIT_UNDO_ID: &str = "edit_undo";
+pub const EDIT_REDO_ID: &str = "edit_redo";
 pub const COMMAND_PALETTE_ID: &str = "command_palette";
 pub const OPEN_HOTKEYS_ID: &str = "open_hotkeys";
 pub const ZOOM_IN_ID: &str = "zoom_in";
@@ -21,6 +25,9 @@ pub fn event_name(id: &str) -> Option<&'static str> {
         OPEN_SETTINGS_ID => <OpenSettings as tauri3_specta::Event>::NAME,
         NEW_CHAT_ID => <NewChat as tauri3_specta::Event>::NAME,
         FIND_IN_CHAT_ID => <FindInChat as tauri3_specta::Event>::NAME,
+        REPLACE_IN_FILE_ID => <ReplaceInFile as tauri3_specta::Event>::NAME,
+        EDIT_UNDO_ID => <EditUndo as tauri3_specta::Event>::NAME,
+        EDIT_REDO_ID => <EditRedo as tauri3_specta::Event>::NAME,
         COMMAND_PALETTE_ID => <CommandPalette as tauri3_specta::Event>::NAME,
         OPEN_HOTKEYS_ID => <OpenHotkeys as tauri3_specta::Event>::NAME,
         ZOOM_IN_ID => <ZoomIn as tauri3_specta::Event>::NAME,
@@ -76,6 +83,7 @@ fn t(key: &str, lang: &str) -> &'static str {
         ("zh-CN", "edit.paste") => "粘贴",
         ("zh-CN", "edit.selectAll") => "全选",
         ("zh-CN", "edit.find") => "查找",
+        ("zh-CN", "edit.replace") => "替换",
         ("zh-CN", "view.commandPalette") => "命令面板",
         ("zh-CN", "view.keyboardShortcuts") => "键盘快捷键",
         ("zh-CN", "view.zoomIn") => "放大",
@@ -106,6 +114,7 @@ fn t(key: &str, lang: &str) -> &'static str {
         (_, "edit.paste") => "Paste",
         (_, "edit.selectAll") => "Select All",
         (_, "edit.find") => "Find",
+        (_, "edit.replace") => "Replace",
         (_, "view.commandPalette") => "Command Palette",
         (_, "view.keyboardShortcuts") => "Keyboard Shortcuts",
         (_, "view.zoomIn") => "Zoom In",
@@ -127,6 +136,8 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let app_submenu = {
         let preferences_item =
             MenuItemBuilder::with_id(OPEN_SETTINGS_ID, t("app.preferences", lang)).accelerator("Cmd+,").build(app)?;
+        // NSApplication's predefined Quit bypasses ExitRequested on macOS.
+        let quit_item = MenuItemBuilder::with_id(QUIT_ID, t("app.quit", lang)).accelerator("Cmd+Q").build(app)?;
         SubmenuBuilder::new(app, "ALwith U")
             .about_with_text(t("app.about", lang), None)
             .separator()
@@ -138,7 +149,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
             .hide_others_with_text(t("app.hideOthers", lang))
             .show_all_with_text(t("app.showAll", lang))
             .separator()
-            .quit_with_text(t("app.quit", lang))
+            .item(&quit_item)
             .build()?
     };
 
@@ -152,9 +163,16 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
 
     let find_item =
         MenuItemBuilder::with_id(FIND_IN_CHAT_ID, t("edit.find", lang)).accelerator("CmdOrCtrl+F").build(app)?;
+    let replace_item = MenuItemBuilder::with_id(REPLACE_IN_FILE_ID, t("edit.replace", lang))
+        .accelerator("CmdOrCtrl+Alt+F")
+        .build(app)?;
+    let undo_item =
+        MenuItemBuilder::with_id(EDIT_UNDO_ID, t("edit.undo", lang)).accelerator("CmdOrCtrl+Z").build(app)?;
+    let redo_item =
+        MenuItemBuilder::with_id(EDIT_REDO_ID, t("edit.redo", lang)).accelerator("CmdOrCtrl+Shift+Z").build(app)?;
     let edit_submenu = SubmenuBuilder::new(app, t("menu.edit", lang))
-        .undo_with_text(t("edit.undo", lang))
-        .redo_with_text(t("edit.redo", lang))
+        .item(&undo_item)
+        .item(&redo_item)
         .separator()
         .cut_with_text(t("edit.cut", lang))
         .copy_with_text(t("edit.copy", lang))
@@ -162,6 +180,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
         .select_all_with_text(t("edit.selectAll", lang))
         .separator()
         .item(&find_item)
+        .item(&replace_item)
         .build()?;
 
     let command_palette_item = MenuItemBuilder::with_id(COMMAND_PALETTE_ID, t("view.commandPalette", lang))
@@ -210,6 +229,18 @@ pub struct NewChat;
 #[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
 #[event(name = "menu:find-in-chat")]
 pub struct FindInChat;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:replace-in-file")]
+pub struct ReplaceInFile;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:edit-undo")]
+pub struct EditUndo;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:edit-redo")]
+pub struct EditRedo;
 
 #[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
 #[event(name = "menu:command-palette")]

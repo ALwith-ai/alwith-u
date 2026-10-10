@@ -1,3 +1,4 @@
+import { useWorkspace } from "@/features/workspace/context"
 import { invoke } from "@tauri-apps/api/core"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
@@ -8,6 +9,7 @@ export const ChatDirectoryContext = createContext<string | null>(null)
 
 export function useOpenChatLink(): (target: string) => void {
   const cwd = useContext(ChatDirectoryContext)
+  const workspace = useWorkspace()
   return useCallback(
     (target: string): void => {
       void (async () => {
@@ -21,10 +23,13 @@ export function useOpenChatLink(): (target: string) => void {
             url = `${directory}/${url}`
           }
         }
-        await openExternal(url)
+        if (workspace !== null && (url.startsWith("/") || url.startsWith("file:") || /^[A-Za-z]:[\\/]/.test(url))) {
+          const path = url.startsWith("file:") ? decodeURIComponent(new URL(url).pathname) : decodeURIComponent(url)
+          await workspace.openFile(path.replace(/:\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?$/, ""), cwd)
+        } else await openExternal(url)
       })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     },
-    [cwd]
+    [cwd, workspace]
   )
 }
 

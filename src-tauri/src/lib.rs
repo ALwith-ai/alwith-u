@@ -21,6 +21,7 @@ mod providers;
 mod runtime;
 mod updater;
 mod window;
+mod workspace;
 
 use tauri::{Emitter, Manager};
 
@@ -106,6 +107,10 @@ pub fn run() {
 
     builder
         .on_menu_event(|app, event| {
+            if event.id().0 == menu::QUIT_ID {
+                app.exit(0);
+                return;
+            }
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
@@ -156,12 +161,16 @@ pub fn run() {
             tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
                 app.exit(0);
             }
-            // Runtime belongs to the application. All quit paths converge here; shutdown is
-            // synchronous so the async runtime cannot tear down before its children leave.
-            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
+                let closing = app.state::<runtime::RuntimeState>().is_closing();
+                if (!closing && workspace::prevent_exit(app)) || runtime::prevent_exit(app, code) {
+                    api.prevent_exit();
+                }
+            }
+            tauri::RunEvent::Exit => {
                 #[cfg(target_os = "macos")]
                 app.state::<extension_control::ExtensionControl>().stop();
-                app.state::<runtime::RuntimeState>().shutdown();
+                app.state::<runtime::RuntimeState>().kill_on_exit();
             }
             _ => {}
         });
@@ -176,6 +185,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 draft_directory::draft_directory,
                 chat_files::chat_save_file,
                 chat_files::chat_read_image,
+                workspace::workspace_open,
+                workspace::workspace_import,
+                workspace::workspace_file,
+                workspace::workspace_watch,
+                workspace::workspace_dirty,
+                workspace::workspace_exit,
                 bundled_extensions::extension_bundles,
                 legacy_extensions::importer::extension_prepare_install,
                 legacy_extensions::importer::legacy_stage_import,
@@ -220,6 +235,9 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()
             .event::<menu::FindInChat>()
+            .event::<menu::ReplaceInFile>()
+            .event::<menu::EditUndo>()
+            .event::<menu::EditRedo>()
             .event::<menu::CommandPalette>()
             .event::<menu::OpenHotkeys>()
             .event::<menu::ZoomIn>()
