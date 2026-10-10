@@ -4,7 +4,7 @@
 
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { BlocksIcon, ContrastIcon, CpuIcon, InfoIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
+import { CloudIcon, BlocksIcon, ContrastIcon, CpuIcon, InfoIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
@@ -23,8 +23,12 @@ import { AppearanceSection } from "./sections/appearance-section"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
 
+import { useDriveVisible } from "@/features/drive/use-drive-visible"
+import { DriveSettings } from "@/features/drive/drive"
+
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,
+  drive: CloudIcon,
   general: SlidersHorizontalIcon,
   appearance: ContrastIcon,
   provider: CpuIcon,
@@ -37,6 +41,7 @@ function isSection(value: string | null): value is SettingsSection {
 }
 
 export function SettingsPage() {
+  const driveVisible = useDriveVisible()
   const { host } = useExtensions()
   const [extensionSection, setExtensionSection] = useState<string | null>(null)
   const { t } = useTranslation()
@@ -76,6 +81,8 @@ export function SettingsPage() {
     ) : (
       (() => {
         switch (section) {
+          case "drive":
+            return driveVisible ? <DriveSettings /> : <AccountSection />
           case "account":
             return <AccountSection />
           case "general":
@@ -96,7 +103,7 @@ export function SettingsPage() {
     <>
       <div className="px-4 pt-8 pb-8 text-base font-semibold">{t("settings.title")}</div>
       <NavigationStack className="min-h-0 overflow-y-auto px-3 pb-4">
-        {SETTINGS_SECTIONS.map(id => {
+        {SETTINGS_SECTIONS.filter(id => id !== "drive" || driveVisible).map(id => {
           const Icon = ICONS[id]
           return (
             <NavigationItemButton

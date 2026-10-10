@@ -18,6 +18,13 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import { routeHistory } from "../editor-shortcuts"
 
+const audioAnalyzers = vi.hoisted(() => ({ destroy: vi.fn() }))
+vi.mock("audiomotion-analyzer", () => ({
+  default: class {
+    destroy = audioAnalyzers.destroy
+  }
+}))
+
 function documentFixture(path: string, text = ""): EditorDocument {
   return {
     id: "preview-document",
@@ -87,8 +94,11 @@ function requiredEditor(editors: Editor[]): Editor {
   if (!editor) throw new Error("Milkdown did not create an editor")
   return editor
 }
-async function markdownReady(): Promise<void> {
-  await waitFor(() => expect(screen.getByRole("button", { name: "Bold" })).toBeEnabled())
+async function markdownReady(editors: Editor[]): Promise<void> {
+  await waitFor(() => {
+    expect(requiredEditor(editors).status).toBe("Created")
+    expect(document.body).toContainOneByRole("textbox")
+  })
 }
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve: ((value: T) => void) | undefined
@@ -114,11 +124,12 @@ afterEach(() => {
 })
 
 test("Markdown mounting and external replacements do not publish edits or autosave", async () => {
+  const editors = captureEditors()
   const context = contextFixture()
   const provider = providerFor(hostFixture({ autoSaveDelay: 800 }), "markdown")
   const initial = documentFixture("/repo/doc.md", "# Initial\n\nText without a trailing newline")
   const rendered = render(provider.render(initial, context))
-  await markdownReady()
+  await markdownReady(editors)
   expect(context.onChange).not.toHaveBeenCalled()
   vi.useFakeTimers()
   act(() => {
@@ -131,6 +142,56 @@ test("Markdown mounting and external replacements do not publish edits or autosa
     vi.advanceTimersByTime(1000)
   })
   expect(context.onChange).not.toHaveBeenCalled()
+  expect(context.onSave).not.toHaveBeenCalled()
+  expect(context.onError).not.toHaveBeenCalled()
+})
+
+test("Markdown does not publish read-only collaboration updates or flush an autosave after access is revoked", async () => {
+  const editors = captureEditors()
+  const context = contextFixture()
+  let writable = false
+  let initialized = false
+  const provider = providerFor(
+    hostFixture({
+      autoSaveDelay: 800,
+      createMarkdownIntegration: () => ({
+        configure: () => {},
+        ready: async () => {
+          initialized = true
+        },
+        dispose: () => {},
+        editable: () => writable,
+        serialize: text => text,
+        applyExternal: () => false,
+        render: () => null
+      })
+    }),
+    "markdown"
+  )
+  render(provider.render(documentFixture("/repo/shared.md", "# Shared\n\nBody"), context))
+  await waitFor(() => expect(initialized).toBe(true))
+  vi.useFakeTimers()
+  const dispatch = (text: string): void => {
+    requiredEditor(editors).action(ctx => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.insertText(text, 1))
+    })
+  }
+  act(() => {
+    dispatch("Remote ")
+    vi.advanceTimersByTime(1000)
+  })
+  expect(context.onChange).not.toHaveBeenCalled()
+  expect(context.onSave).not.toHaveBeenCalled()
+  writable = true
+  act(() => dispatch("Writable "))
+  expect(context.onChange).toHaveBeenCalledTimes(1)
+  writable = false
+  act(() => {
+    dispatch("Read-only again ")
+    vi.advanceTimersByTime(1000)
+  })
+  expect(context.onChange).toHaveBeenCalledTimes(1)
   expect(context.onSave).not.toHaveBeenCalled()
   expect(context.onError).not.toHaveBeenCalled()
 })
@@ -149,7 +210,7 @@ test("Markdown publishes edits before an immediate close, and external replaceme
   const context: PreviewContext = { readOnly: false, onChange, onSave: vi.fn(), onError }
   const provider = providerFor(hostFixture({ autoSaveDelay: 800 }), "markdown")
   const rendered = render(provider.render(initial, context))
-  await markdownReady()
+  await markdownReady(editors)
   vi.useFakeTimers()
   act(() => {
     requiredEditor(editors).action(ctx => {
@@ -294,7 +355,7 @@ test("Markdown native undo and redo use Milkdown history and publish changes wit
   const execCommand = vi.fn()
   Object.defineProperty(document, "execCommand", { configurable: true, value: execCommand })
   try {
-    await markdownReady()
+    await markdownReady(editors)
     act(() => {
       requiredEditor(editors).action(ctx => {
         const view = ctx.get(editorViewCtx)

@@ -17,6 +17,7 @@ tauri-build = { version = "3.0.0-alpha.2", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-drive = { path = "../node_modules/@alwith/module-drive/rust" }
 alwith-fs = { path = "../node_modules/@alwith/module-fs/rust", default-features = false, features = ["workspace"] }
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri", "native-http"] }
@@ -46,7 +47,8 @@ tauri-plugin-opener = "3.0.0-alpha.1"
 tauri-plugin-shell = "3.0.0-alpha.1"
 tauri-plugin-store = "3.0.0-alpha.1"
 tauri-plugin-process = "3.0.0-alpha.1"
-tauri-plugin-single-instance = "3.0.0-alpha.1"
+tauri-plugin-single-instance = { version = "3.0.0-alpha.1", features = ["deep-link"] }
+tauri-plugin-deep-link = "3.0.0-alpha.1"
 tauri-plugin-updater = "3.0.0-alpha.1"
 tauri-plugin-window-state = "3.0.0-alpha.1"
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
@@ -85,3 +87,6 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_Threading"] }

@@ -28,6 +28,7 @@ import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
 import { watchUninstallFailures, type UninstallFailures } from "./uninstall-failures"
 import * as extensionUi from "./ui"
+import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
 
 let startup: Promise<ExtensionRuntime> | undefined
 let runtime: ExtensionRuntime | undefined
@@ -75,18 +76,40 @@ function getRuntime(): ExtensionRuntime {
       statusBar: "1.0.0",
       settingsPages: "1.0.0"
     },
-    evaluate: createCommonJsEvaluator({
-      "@alwith/u-extension-ui": extensionUi,
-      "@alwith/module-extension": sdk,
-      "@alwith/module-extension/dom": dom,
-      "@alwith/module-extension/legacy": legacy,
-      "@alwith/module-extension/plugin": plugin,
-      "@alwith/module-extension/react": { mountReact },
-      react: React,
-      "react/jsx-runtime": jsxRuntime,
-      "react/jsx-dev-runtime": jsxDevRuntime,
-      "react-dom/client": reactDom
-    })
+    evaluate: source => {
+      const factory = createCommonJsEvaluator({
+        "@alwith/u-extension-ui": extensionUi,
+        "@alwith/module-extension": sdk,
+        "@alwith/module-extension/dom": dom,
+        "@alwith/module-extension/legacy": legacy,
+        "@alwith/module-extension/plugin": plugin,
+        "@alwith/module-extension/react": { mountReact },
+        react: React,
+        "react/jsx-runtime": jsxRuntime,
+        "react/jsx-dev-runtime": jsxDevRuntime,
+        "react-dom/client": reactDom
+      })(source)
+      return context => {
+        const extension = factory(context)
+        if (
+          context.manifest.id !== "yup-kb" ||
+          getCurrentWindow().label !== "main" ||
+          !runtime
+            ?.snapshot()
+            .native?.installations.some(item => item.id === "yup-kb" && item.source === "legacy:alwith-u")
+        )
+          return extension
+        return {
+          async onload() {
+            // Let legacy import seed its original configuration before applying the Drive projection.
+            await extension.onload?.()
+            context.cancellation.throwIfAborted()
+            context.own(bindDrivePluginData(context.data, context.manifest.dataSchemaVersion))
+          },
+          onunload: () => extension.onunload?.()
+        }
+      }
+    }
   })
   return runtime
 }

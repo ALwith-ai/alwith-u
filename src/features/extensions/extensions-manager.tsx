@@ -29,10 +29,13 @@ import { EXTENSION_ICONS } from "./extension-icons"
 import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
+export type ExtensionInstallPhase = "preparing" | "installing"
+
 interface ExtensionsManagerProps {
   state: RuntimeSnapshot
   host: HostSnapshot
   busy: boolean
+  installPhase?: ExtensionInstallPhase | null
   onInstall(id?: string): void
   onRequest(request: Request): void
   onUninstall(id: string, name: string): void
@@ -65,6 +68,7 @@ export function ExtensionsManager({
   state,
   host,
   busy,
+  installPhase,
   onInstall,
   onRequest,
   onUninstall,
@@ -94,10 +98,16 @@ export function ExtensionsManager({
           <Badge className="bg-primary/10 text-primary text-[10px]">BETA</Badge>
         </div>
         <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
-          <PlusIcon />
+          {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
           {t("extensions.install")}
         </Button>
       </div>
+      {installPhase && (
+        <div role="status" aria-live="polite" className="text-muted-foreground flex items-center gap-2 text-sm">
+          <Spinner aria-hidden="true" />
+          {t(installPhase === "preparing" ? "extensions.preparingInstall" : "extensions.installing")}
+        </div>
+      )}
       {state.errors.service && (
         <Alert variant="destructive">
           <AlertDescription>{state.errors.service}</AlertDescription>

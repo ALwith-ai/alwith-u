@@ -33,6 +33,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["alwith-u"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUxRDY0MTkxMkUwNjI2NgpSV1JtWXVBU0dXUWRCVjVkQTNjU094b21wbnJOM2l4ZkZjOUFrY29vUjBHU2RmTkpJRDNRTm03OQo=",
       "endpoints": ["https://api.alwith.ai/service/api/v1/open-source-versions/alwith-u/update/{{target}}-{{arch}}/{{current_version}}"]

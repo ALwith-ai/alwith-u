@@ -288,6 +288,7 @@
     "always": "always"
   },
   "settings": {
+    "drive": "Drive",
     "extensions": "App extensions",
     "general": "General",
     "versionLabel": "Version",
@@ -734,6 +735,9 @@
     "noMatches": "No matching extensions.",
     "description": "Extend app pages, commands and settings independently of Codex plugins. Install extensions you trust.",
     "install": "Install from folder",
+    "preparingInstall": "Preparing extension installation…",
+    "installing": "Installing extension…",
+    "installSuccess": "{{name}} installed",
     "empty": "No app extensions installed.",
     "manage": "Manage app extensions",
     "enable": "Enable {{name}}",
@@ -834,6 +838,21 @@
     "hideTree": "Hide file tree",
     "showTree": "Show file tree",
     "closeWorkspace": "Close workspace",
-    "openExternal": "Open externally"
+    "openExternal": "Open externally",
+    "outlineEmpty": "No headings",
+    "editMarkdown": "Edit Markdown",
+    "copyCode": "Copy code",
+    "toggleWrap": "Toggle line wrapping",
+    "previousSheet": "Previous sheet",
+    "nextSheet": "Next sheet",
+    "source": "Source",
+    "viewMode": "View mode",
+    "moveDialogTitle": "Move {{count}} item(s)",
+    "move": "Move",
+    "moveTargetNotSynced": "Not synced to this device",
+    "moveCrossProjectWarning": "Moving across libraries uploads this as a new file in the destination; version history and comments stay in the original library (recoverable from its trash)",
+    "expandFolder": "Expand folder",
+    "collapseFolder": "Collapse folder",
+    "moveToUnsyncedWarning": "This library is not synced to this computer: the move happens in the cloud (version history and comments come along), and the local copy disappears once sync catches up"
   }
 }

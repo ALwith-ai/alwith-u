@@ -9,8 +9,8 @@ export default mergeConfig(
     test: {
       globals: true,
       server: {
-        // @alwith/module-chat imports its own .css; inline it so vite handles the css instead of node.
-        deps: { inline: ["@alwith/module-chat"] }
+        // Shared UI packages import CSS; Vite must transform these imports for Node tests.
+        deps: { inline: ["@alwith/module-chat", "@alwith/module-editor", "@alwith/module-drive"] }
       },
       projects: [
         {

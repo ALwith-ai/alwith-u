@@ -2,9 +2,7 @@
   {
     "id": "bi-metrics",
     "icon": "lucide:chart",
-    "sourceSha256": "c249f69677d127cb629ccebede3ed0f36762bf22e58c1420c1364dadea55d537",
     "url": "https://bi-api.finture.id/api/ext/bi-metrics/main.js",
-    "networkHosts": ["bi-api.finture.id"],
     "dataFiles": [],
     "requiredSkills": ["bi-add-metric", "bi-monthly-report"],
     "exportFilePattern": null,
@@ -14,9 +12,7 @@
   {
     "id": "yup-kb",
     "icon": "lucide:globe",
-    "sourceSha256": "53536c9c1af6312551d106c1b0acdfac6dd551c67f19d789b74ab789b1fd972f",
     "url": "https://bi-api.finture.id/api/ext/yup-kb/main.js",
-    "networkHosts": ["bi-api.finture.id", "yup-knowledge-server.finture.id"],
     "dataFiles": ["workspaces.json"],
     "requiredSkills": ["yup-kb"],
     "exportFilePattern": null,
@@ -26,14 +22,7 @@
   {
     "id": "etms-strategy-review",
     "icon": "lucide:settings",
-    "sourceSha256": "b5b12392592e26463fb63dca4b37cd57883b9c3f17a9415fb537c5afae909758",
     "url": "https://bi-api.finture.id/api/ext/etms-strategy-review/main.js",
-    "networkHosts": [
-      "martech-auth-qa02.finture.id",
-      "martech-auth-test.finture.id",
-      "martech-etms-test.finture.id",
-      "finture-intranet-api.finture.id"
-    ],
     "dataFiles": [],
     "requiredSkills": ["etms-strategy-review"],
     "exportFilePattern": "^etms-review-[a-zA-Z0-9._-]+\\.json$",

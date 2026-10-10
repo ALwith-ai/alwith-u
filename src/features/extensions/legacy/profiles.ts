@@ -5,9 +5,7 @@ export const LEGACY_SOURCE = "legacy:alwith-u"
 interface LegacyProfile {
   id: string
   icon: string
-  sourceSha256: string
-  url: string
-  networkHosts: string[]
+  url?: string
   dataFiles: string[]
   requiredSkills: string[]
   exportFilePattern: string | null

@@ -1,4 +1,8 @@
+import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
+import { useDriveArchive } from "@/features/drive/archive-runtime"
 import { WorkspaceHeaderContext } from "@/features/workspace/context"
+import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } from "@/features/drive/drive"
+import { createPortal, flushSync } from "react-dom"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
@@ -54,6 +58,9 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
+  useDriveConnection()
+  useDrivePluginBridge()
+  useDriveArchive()
   const { host: extensions, runtime: extensionRuntime } = useExtensions()
   const { t } = useTranslation()
   const connection = useApp(state => state.connection)
@@ -61,6 +68,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const globalActions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === null)))
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
+  const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
@@ -502,6 +510,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openPlugins}
               onOpenExtensions={openExtensions}
+              drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               extensionNavigation={
                 <ExtensionActions
                   host={extensions}
@@ -541,7 +550,29 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
-                <FileWorkspace cwd={session?.cwd ?? lastDirectory}>{main}</FileWorkspace>
+                <FileWorkspace cwd={session?.cwd ?? lastDirectory}>
+                  <DriveDeleteConfirmation />
+                  <div className="flex min-h-0 flex-1 flex-col">{main}</div>
+                  {driveSidebar &&
+                    createPortal(
+                      <DrivePage
+                        currentProject={session?.cwd ?? lastDirectory}
+                        onOpenProject={root =>
+                          operation.run(async () => {
+                            await client.discardDraft("main")
+                            flushSync(() => {
+                              chooseDraftFolder(root.localPath)
+                              importDraft(DRAFT_SESSION_ID, null)
+                              setSurfaceGeneration(value => value + 1)
+                              setSelectedId(null)
+                              setView("chat")
+                            })
+                          })
+                        }
+                      />,
+                      driveSidebar
+                    )}
+                </FileWorkspace>
               </WorkspaceHeaderContext.Provider>
             </SidebarInset>
           }>
@@ -567,6 +598,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             />
           </div>
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
+            <DriveStatus />
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
           </div>
           <div className="absolute right-2 bottom-0 z-20">

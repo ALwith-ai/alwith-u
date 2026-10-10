@@ -93,6 +93,8 @@ export type ClientOptions = {
   /** The one agent that hosts every session of this app. */
   agentId: string
   launch: Launch
+  /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
+  sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
 }
 
 export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
@@ -551,6 +553,23 @@ export class CodexClient {
     )
   }
 
+  private async sessionContext(
+    cwd: string,
+    model: string | null
+  ): Promise<{
+    mcpServers?: acp.McpServer[]
+    _meta?: { alwith: { model?: string; appendSystemPrompt?: string } }
+  }> {
+    const hint = modelHint(model)
+    if (!this.options.sessionContext) return hint
+    const context = await this.options.sessionContext(cwd)
+    const alwith = {
+      ...hint._meta?.alwith,
+      ...(context.appendSystemPrompt ? { appendSystemPrompt: context.appendSystemPrompt } : {})
+    }
+    return { mcpServers: context.mcpServers, ...(Object.keys(alwith).length ? { _meta: { alwith } } : {}) }
+  }
+
   newSession(cwd: string, model: string | null = null): Promise<string> {
     return this.createNativeSession(cwd, model, null)
   }
@@ -559,7 +578,7 @@ export class CodexClient {
     const response = await this.live().request<acp.NewSessionResponse>("session/new", {
       cwd,
       mcpServers: [],
-      ...modelHint(model)
+      ...(await this.sessionContext(cwd, model))
     })
     const existing = this.sessions.sessions.get(response.sessionId)
     const session: Session = {
@@ -710,7 +729,7 @@ export class CodexClient {
         sessionId: id,
         cwd,
         replayFrom: { type: "start" },
-        ...modelHint(this.gatewayModels.get(id) ?? null)
+        ...(await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null))
       })
       this.publishSession({
         ...this.sessions.get(id),
@@ -885,10 +904,11 @@ export class CodexClient {
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
-    const hint = modelHint(this.gatewayModels.get(id) ?? null)
+    const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
     const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
       sessionId: id,
       cwd,
+      ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
       _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
     })
     const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)

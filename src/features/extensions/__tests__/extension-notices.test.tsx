@@ -6,6 +6,7 @@ import { Toaster, toast } from "sonner"
 import { commonCapabilities } from "../capabilities/common"
 import { createLegacyHost } from "../legacy/host"
 import { showExtensionLimitations } from "../legacy/limitations"
+import { setDriveArchiveOwner } from "@/features/drive/plugin-bridge"
 
 afterEach(() => {
   toast.dismiss()
@@ -14,6 +15,7 @@ afterEach(() => {
 })
 
 test("history failures surface once without a compatibility notice on opening or enabling", async () => {
+  setDriveArchiveOwner(false)
   mockWindows("main")
   const scope = new ResourceScope()
   const manifest = {

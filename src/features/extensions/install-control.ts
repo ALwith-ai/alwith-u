@@ -15,7 +15,7 @@ let stop: (() => void) | undefined
 
 /** Main-window control runs independently of authentication and settings navigation. */
 export async function startExtensionInstallControl(): Promise<void> {
-  if (platform() !== "macos" || getCurrentWindow().label !== "main") return
+  if (!["macos", "windows"].includes(platform()) || getCurrentWindow().label !== "main") return
   await invoke("extension_control_status")
   const runtime = await startExtensionRuntime().catch(async error => {
     await invoke("extension_control_unavailable", { message: error instanceof Error ? error.message : String(error) })

@@ -1,4 +1,4 @@
-//! Snapshot-based local legacy import with digest-pinned business compatibility. The remote loader is inspected, never executed.
+//! Snapshot-based legacy import with optional compatibility metadata. The remote loader is inspected, never executed.
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -22,10 +22,8 @@ const MAX_SOURCE: u64 = 8 * 1024 * 1024;
 pub(super) struct Profile {
     pub(super) id: String,
     icon: Option<String>,
-    source_sha256: String,
-    url: String,
     #[serde(default)]
-    pub(super) network_hosts: Vec<String>,
+    url: Option<String>,
     #[serde(default)]
     data_files: Vec<String>,
 }
@@ -36,15 +34,60 @@ pub(super) fn profiles() -> Result<Vec<Profile>, String> {
 fn profile(id: &str) -> Result<Option<Profile>, String> {
     Ok(profiles()?.into_iter().find(|p| p.id == id))
 }
-fn source_requires_download(hash: &str, profile: Option<&Profile>) -> Result<bool, String> {
-    match profile {
-        Some(profile) if hash == profile.source_sha256 => Ok(false),
-        Some(_) if hash == LOADER_SHA256 => Ok(true),
-        Some(_) => Err("旧版加载器或代码不属于已审核版本".into()),
-        None if hash == LOADER_SHA256 => Err("此远程加载器没有已审核的扩展配置；请选择扩展本体".into()),
-        None => Ok(false),
+fn remote_source_url(hash: &str, manifest: &Value, profile: Option<&Profile>) -> Result<Option<reqwest::Url>, String> {
+    if hash != LOADER_SHA256 {
+        return Ok(None);
     }
+    if let Some(value) = manifest.get("updateUrl").and_then(Value::as_str).filter(|value| !value.trim().is_empty()) {
+        let mut url = super::http::validate_url(value)?;
+        let path =
+            url.path().strip_suffix("manifest.json").ok_or("Remote loader updateUrl must end in manifest.json")?;
+        let path = format!("{path}main.js");
+        url.set_path(&path);
+        return Ok(Some(url));
+    }
+    let value = profile
+        .and_then(|profile| profile.url.as_deref())
+        .ok_or("远程加载器缺少代码下载地址；请提供 updateUrl 或选择包含完整 main.js 的扩展目录")?;
+    super::http::validate_url(value).map(Some)
 }
+async fn download_source(url: reqwest::Url) -> Result<Vec<u8>, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("Extension source download exceeded 10 redirects")
+            } else if let Err(error) = super::http::validate_url(attempt.url().as_str()) {
+                attempt.error(error)
+            } else {
+                attempt.follow()
+            }
+        }))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("下载扩展代码失败：{e}"))?
+        .error_for_status()
+        .map_err(|e| format!("下载扩展代码失败：{e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("下载扩展代码失败：HTTP {}", response.status()));
+    }
+    if response.content_length().is_some_and(|size| size > MAX_SOURCE) {
+        return Err("Legacy source is too large".into());
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if bytes.len() + chunk.len() > MAX_SOURCE as usize {
+            return Err("Legacy source is too large".into());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
 fn digest(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
@@ -396,37 +439,11 @@ pub(crate) async fn prepare_install_from_directory(
     if local.len() as u64 > MAX_SOURCE {
         return Err("Legacy source is too large".into());
     }
-    let source = if !source_requires_download(&digest(&local), p.as_ref())? {
-        local
+    let source = if let Some(url) = remote_source_url(&digest(&local), &manifest, p.as_ref())? {
+        download_source(url).await?
     } else {
-        let p = p.as_ref().ok_or("Missing reviewed profile")?;
-        let client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| e.to_string())?;
-        let mut response = client
-            .get(&p.url)
-            .send()
-            .await
-            .map_err(|e| format!("下载已审核扩展代码失败：{e}"))?
-            .error_for_status()
-            .map_err(|e| format!("下载已审核扩展代码失败：{e}"))?;
-        if response.content_length().is_some_and(|size| size > MAX_SOURCE) {
-            return Err("Legacy source is too large".into());
-        }
-        let mut bytes = Vec::new();
-        while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-            if bytes.len() + chunk.len() > MAX_SOURCE as usize {
-                return Err("Legacy source is too large".into());
-            }
-            bytes.extend_from_slice(&chunk);
-        }
-        bytes
+        local
     };
-    if p.as_ref().is_some_and(|p| digest(&source) != p.source_sha256) {
-        return Err("服务器代码与已审核版本不一致，请等待兼容配置更新；未执行远程代码".into());
-    }
     let styles = files.remove("styles.css").unwrap_or_default();
     let initial_data = data_files
         .remove("data.json")
@@ -523,7 +540,7 @@ fn validate_entry(
         || digest(options.source.as_bytes()) != expected_source_hash
         || options.modules != *modules
     {
-        return Err("Legacy entry differs from the reviewed compatibility source".into());
+        return Err("Legacy entry differs from the prepared compatibility source".into());
     }
     Ok(())
 }
@@ -776,14 +793,77 @@ mod tests {
         assert_eq!(fs::read(root.join("workspaces.json")).unwrap(), b"[1]");
     }
     #[test]
-    fn known_remote_loader_never_falls_back_for_an_unknown_id() {
-        assert!(source_requires_download(LOADER_SHA256, None).is_err());
-        assert!(!source_requires_download(&digest(b"local source"), None).unwrap());
+    fn local_source_does_not_require_a_reviewed_digest() {
         let p = profile("bi-metrics").unwrap().unwrap();
-        assert!(source_requires_download(LOADER_SHA256, Some(&p)).unwrap());
-        assert!(!source_requires_download(&p.source_sha256, Some(&p)).unwrap());
-        assert!(source_requires_download(&digest(b"unreviewed"), Some(&p)).is_err());
+        let manifest = json!({"id":"bi-metrics"});
+        assert!(remote_source_url(&digest(b"updated source"), &manifest, Some(&p)).unwrap().is_none());
+        assert!(remote_source_url(&digest(b"local source"), &manifest, None).unwrap().is_none());
     }
+
+    #[test]
+    fn remote_loader_uses_manifest_address_without_a_profile() {
+        let loader = LOADER_SHA256;
+        let manifest = json!({"id":"weather-local","updateUrl":"http://localhost:8080/ext/manifest.json?token=value"});
+        assert_eq!(
+            remote_source_url(loader, &manifest, None).unwrap().unwrap().as_str(),
+            "http://localhost:8080/ext/main.js?token=value"
+        );
+        let p = profile("bi-metrics").unwrap().unwrap();
+        assert_eq!(remote_source_url(loader, &json!({}), Some(&p)).unwrap().unwrap().as_str(), p.url.unwrap());
+        assert!(remote_source_url(loader, &json!({}), None).unwrap_err().contains("updateUrl"));
+        assert!(remote_source_url(loader, &json!({"updateUrl":"file:///manifest.json"}), None).is_err());
+        assert!(remote_source_url(loader, &json!({"updateUrl":"https://example.com/other.json"}), None).is_err());
+    }
+
+    #[test]
+    fn downloads_updated_source_through_redirects_and_rejects_non_success() {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let source = b"module.exports = class UpdatedExtension {};";
+        let server = std::thread::spawn(move || {
+            for path in ["/main.js", "/bundle.js", "/not-modified"] {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    request.extend_from_slice(&chunk[..count]);
+                }
+                assert!(String::from_utf8(request).unwrap().starts_with(&format!("GET {path} HTTP/1.1")));
+                match path {
+                    "/main.js" => stream.write_all(b"HTTP/1.1 302 Found\r\nLocation: /bundle.js\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap(),
+                    "/bundle.js" => {
+                        write!(stream, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", source.len()).unwrap();
+                        stream.write_all(source).unwrap();
+                    }
+                    "/not-modified" => stream.write_all(b"HTTP/1.1 304 Not Modified\r\nConnection: close\r\n\r\n").unwrap(),
+                    _ => unreachable!(),
+                }
+            }
+        });
+        let downloaded = tauri::async_runtime::block_on(download_source(
+            reqwest::Url::parse(&format!("http://{address}/main.js")).unwrap(),
+        ))
+        .unwrap();
+        assert_eq!(downloaded, source);
+        let error = tauri::async_runtime::block_on(download_source(
+            reqwest::Url::parse(&format!("http://{address}/not-modified")).unwrap(),
+        ))
+        .unwrap_err();
+        assert!(error.contains("304"), "{error}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn compatibility_metadata_does_not_require_download_or_network_configuration() {
+        let p: Profile = serde_json::from_value(json!({"id":"weather-local"})).unwrap();
+        assert_eq!(p.id, "weather-local");
+        assert!(p.data_files.is_empty());
+    }
+
     #[test]
     fn settings_snapshot_has_an_aggregate_eight_mib_limit() {
         let dir = tempfile::tempdir().unwrap();
@@ -923,12 +1003,15 @@ mod tests {
         assert_eq!(manifest["version"], "2.20.0");
         assert!(manifest.get("author").is_none());
         assert!(manifest.get("updateUrl").is_none());
-        assert!(validate_entry("module.exports = function() {}", &old, &p.source_sha256, &BTreeMap::new()).is_err());
+        assert!(
+            validate_entry("module.exports = function() {}", &old, &digest(b"prepared source"), &BTreeMap::new())
+                .is_err()
+        );
         let forged = format!(
             "{ENTRY_PREFIX}{}{ENTRY_SUFFIX}",
             json!({"manifest":old,"source":"unreviewed()","styles":"styles.css"})
         );
-        assert!(validate_entry(&forged, &old, &p.source_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&forged, &old, &digest(b"prepared source"), &BTreeMap::new()).is_err());
         assert!(profile("unknown").unwrap().is_none());
     }
     #[test]
@@ -1057,18 +1140,18 @@ mod tests {
 
     #[test]
     fn wrapper_payload_is_json_data_and_rejects_executable_suffixes() {
-        let mut p = profile("etms-strategy-review").unwrap().unwrap();
+        let p = profile("etms-strategy-review").unwrap().unwrap();
         let old = json!({"id":p.id,"name":"ETMS","version":"0.1.0"});
         let source = "module.exports = class {};";
-        p.source_sha256 = digest(source.as_bytes());
+        let expected_source = digest(source.as_bytes());
         let payload = json!({"manifest":old,"source":source,"styles":"styles.css"});
         let entry = format!("{ENTRY_PREFIX}{payload}{ENTRY_SUFFIX}");
-        assert!(validate_entry(&entry, &old, &p.source_sha256, &BTreeMap::new()).is_ok());
+        assert!(validate_entry(&entry, &old, &expected_source, &BTreeMap::new()).is_ok());
         let injected = format!("{ENTRY_PREFIX}{payload}); evil(); ({ENTRY_SUFFIX}");
-        assert!(validate_entry(&injected, &old, &p.source_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&injected, &old, &expected_source, &BTreeMap::new()).is_err());
         let wrong_styles =
             format!("{ENTRY_PREFIX}{}{ENTRY_SUFFIX}", json!({"manifest":old,"source":source,"styles":"data.json"}));
-        assert!(validate_entry(&wrong_styles, &old, &p.source_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&wrong_styles, &old, &expected_source, &BTreeMap::new()).is_err());
     }
 
     #[test]

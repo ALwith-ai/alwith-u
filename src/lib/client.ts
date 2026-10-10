@@ -1,5 +1,6 @@
 // The app-wide CodexClient instance and the React bindings to its store.
 
+import { driveSessionContext } from "@/features/drive/session-context"
 import type { Session } from "@alwith/api"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
@@ -11,7 +12,11 @@ import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"
     ? new RemoteChatClient()
-    : new CodexClient(runtimeClient, { agentId: CODEX_AGENT_ID, launch: { engine: "codex" } })
+    : new CodexClient(runtimeClient, {
+        agentId: CODEX_AGENT_ID,
+        launch: { engine: "codex" },
+        sessionContext: driveSessionContext
+      })
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {

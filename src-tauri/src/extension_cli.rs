@@ -1,16 +1,10 @@
-//! macOS command-line client; the GUI remains the sole owner of extension storage.
+//! Desktop command-line client; the GUI remains the sole owner of extension storage.
 use crate::extension_control::{
-    Endpoint, Frame, InstallRequest, Outcome, UninstallRequest, WireRequest, check_peer, read_frame,
-    valid_extension_id, write_frame,
+    Frame, InstallRequest, Outcome, UninstallRequest, WireRequest, read_frame, valid_extension_id, write_frame,
 };
+use crate::extension_transport::{DeadlineReader, Stream, connect, remaining};
 use std::{
-    fs,
-    io::{self, BufReader, Read, Write},
-    os::fd::AsRawFd,
-    os::unix::{
-        fs::{MetadataExt, PermissionsExt},
-        net::UnixStream,
-    },
+    io::{BufReader, Write},
     path::PathBuf,
     process::{Command as ProcessCommand, Stdio},
     time::{Duration, Instant},
@@ -28,7 +22,7 @@ struct Parsed {
     json: bool,
 }
 
-const HELP: &str = "Usage (macOS):\n  alwith-u extension install --path DIRECTORY [--enable] [--update] [--json] [--timeout SECONDS]\n  alwith-u extension uninstall --id ID [--purge] [--json] [--timeout SECONDS]\n  alwith-u extension result --request-id UUID [--json] [--timeout SECONDS]\n\nInstall and uninstall wait for completion. A timeout does not cancel an accepted request.\n";
+const HELP: &str = "Usage (macOS / Windows):\n  alwith-u extension install --path DIRECTORY [--enable] [--update] [--json] [--timeout SECONDS]\n  alwith-u extension uninstall --id ID [--purge] [--json] [--timeout SECONDS]\n  alwith-u extension result --request-id UUID [--json] [--timeout SECONDS]\n\nInstall and uninstall wait for completion. A timeout does not cancel an accepted request.\n";
 
 fn parse(args: &[&str]) -> Result<Parsed, String> {
     if args.first() != Some(&"extension") {
@@ -99,34 +93,6 @@ fn parse(args: &[&str]) -> Result<Parsed, String> {
     Ok(Parsed { command, timeout: Duration::from_secs(timeout), json })
 }
 
-fn connect(root: &std::path::Path) -> Result<UnixStream, String> {
-    let metadata = fs::symlink_metadata(root).map_err(|e| e.to_string())?;
-    if !metadata.is_dir()
-        || metadata.file_type().is_symlink()
-        || metadata.uid() != unsafe { libc::geteuid() }
-        || metadata.permissions().mode() & 0o077 != 0
-    {
-        return Err("Invalid extension control directory ownership or permissions".into());
-    }
-    let path = root.join("endpoint.json");
-    let metadata = fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
-    if !metadata.is_file()
-        || metadata.file_type().is_symlink()
-        || metadata.uid() != unsafe { libc::geteuid() }
-        || metadata.len() > 4096
-    {
-        return Err("Invalid extension control endpoint".into());
-    }
-    let endpoint: Endpoint =
-        serde_json::from_slice(&fs::read(path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    if endpoint.protocol_version != 1 {
-        return Err("Unsupported extension control protocol".into());
-    }
-    let stream = UnixStream::connect(endpoint.socket_path).map_err(|e| e.to_string())?;
-    check_peer(&stream)?;
-    Ok(stream)
-}
-
 fn execute(parsed: &Parsed, identifier: &str) -> Outcome {
     let id = match &parsed.command {
         Command::Result { request_id } => request_id.clone(),
@@ -153,14 +119,10 @@ fn execute(parsed: &Parsed, identifier: &str) -> Outcome {
         Command::Result { .. } => WireRequest::Result { protocol_version: 1, request_id: id.clone() },
         Command::Help => return Outcome::failure(&id, 2, "invalidCommand", HELP),
     };
-    let Some(home) = std::env::var_os("HOME") else {
-        return Outcome::failure(&id, 3, "connectFailed", "HOME is unavailable");
-    };
-    let root = PathBuf::from(home).join("Library/Caches").join(identifier).join("extension-control");
     let deadline = Instant::now() + parsed.timeout;
     let mut launched = false;
     let mut stream = loop {
-        match connect(&root) {
+        match connect(identifier) {
             Ok(stream) => break stream,
             Err(error) => {
                 if Instant::now() >= deadline {
@@ -168,7 +130,13 @@ fn execute(parsed: &Parsed, identifier: &str) -> Outcome {
                 }
                 if !launched {
                     let launch = std::env::current_exe().map_err(|e| e.to_string()).and_then(|exe| {
-                        ProcessCommand::new(exe)
+                        let mut command = ProcessCommand::new(exe);
+                        #[cfg(windows)]
+                        {
+                            use std::os::windows::process::CommandExt;
+                            command.creation_flags(windows_sys::Win32::System::Threading::DETACHED_PROCESS);
+                        }
+                        command
                             .arg("--extension-control-launch")
                             .stdin(Stdio::null())
                             .stdout(Stdio::null())
@@ -194,49 +162,12 @@ fn execute(parsed: &Parsed, identifier: &str) -> Outcome {
     receive_result(stream, &id, deadline)
 }
 
-fn remaining(deadline: Instant) -> io::Result<Duration> {
-    deadline
-        .checked_duration_since(Instant::now())
-        .filter(|duration| !duration.is_zero())
-        .ok_or_else(|| io::Error::new(io::ErrorKind::TimedOut, "Extension request deadline exceeded"))
-}
-
-struct DeadlineReader {
-    stream: UnixStream,
-    deadline: Instant,
-}
-impl Read for DeadlineReader {
-    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-        loop {
-            remaining(self.deadline)?;
-            match self.stream.read(buffer) {
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                    let timeout = remaining(self.deadline)?;
-                    let milliseconds =
-                        timeout.as_millis().saturating_add(u128::from(timeout.subsec_nanos() % 1_000_000 != 0));
-                    let mut descriptor = libc::pollfd { fd: self.stream.as_raw_fd(), events: libc::POLLIN, revents: 0 };
-                    // poll also wakes on peer closure, so buffered terminal bytes remain readable.
-                    // Updating SO_RCVTIMEO after closure would fail with EINVAL on macOS.
-                    let ready = unsafe { libc::poll(&mut descriptor, 1, milliseconds.min(i32::MAX as u128) as i32) };
-                    if ready < 0 {
-                        let error = io::Error::last_os_error();
-                        if error.kind() != io::ErrorKind::Interrupted {
-                            return Err(error);
-                        }
-                    }
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
-                result => return result,
-            }
-        }
-    }
-}
-
-fn receive_result(stream: UnixStream, id: &str, deadline: Instant) -> Outcome {
-    if let Err(error) = stream.set_nonblocking(true) {
-        return Outcome::failure(id, 6, "resultUnknown", &error.to_string());
-    }
-    let mut reader = BufReader::new(DeadlineReader { stream, deadline });
+fn receive_result(stream: Stream, id: &str, deadline: Instant) -> Outcome {
+    let reader = match DeadlineReader::new(stream, deadline) {
+        Ok(reader) => reader,
+        Err(error) => return Outcome::failure(id, 6, "resultUnknown", &error.to_string()),
+    };
+    let mut reader = BufReader::new(reader);
     let mut accepted = false;
     loop {
         let frame =

@@ -198,4 +198,9 @@ function resolveRuntimeOverride(): string | null {
 const adapterLicense = join(root, "node_modules/@nyssance/codex-acp-v2/LICENSE")
 if (!existsSync(adapterLicense)) throw new Error(`Licence file missing: ${adapterLicense}`)
 copyFileSync(adapterLicense, join(licenses, "codex-acp-v2.txt"))
+const driveLicenses = join(licenses, "alwith-drive")
+mkdirSync(driveLicenses, { recursive: true })
+for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
+  copyFileSync(join(root, "node_modules/@alwith/module-drive", name), join(driveLicenses, name))
+}
 console.log(`licences -> ${licenses}`)

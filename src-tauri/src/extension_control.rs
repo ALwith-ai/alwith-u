@@ -1,17 +1,11 @@
 //! Native-only admission for explicit same-user CLI installation requests.
+use crate::extension_transport::{Listener, Stream, check_peer, is_link, private_directory, wait_for_peer_close};
 use crate::legacy_extensions::importer::{PreparedInstall, prepare_install_from_directory};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     fs,
     io::{BufRead, BufReader, Write},
-    os::{
-        fd::AsRawFd,
-        unix::{
-            fs::{MetadataExt, PermissionsExt},
-            net::{UnixListener, UnixStream},
-        },
-    },
     path::{Path, PathBuf},
     sync::{
         Arc, Condvar, Mutex,
@@ -217,22 +211,13 @@ impl Drop for PreparationClaim<'_> {
     }
 }
 
-fn atomic_json(path: &Path, value: &impl Serialize) -> Result<(), String> {
+pub(crate) fn atomic_json(path: &Path, value: &impl Serialize) -> Result<(), String> {
     let parent = path.parent().ok_or("Missing control parent directory")?;
     let mut file = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
     serde_json::to_writer(&mut file, value).map_err(|e| e.to_string())?;
     file.as_file().sync_all().map_err(|e| e.to_string())?;
     file.persist(path).map_err(|e| e.error.to_string())?;
     Ok(())
-}
-
-fn private_directory(path: &Path) -> Result<(), String> {
-    fs::create_dir_all(path).map_err(|e| e.to_string())?;
-    let meta = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
-    if !meta.is_dir() || meta.file_type().is_symlink() || meta.uid() != unsafe { libc::geteuid() } {
-        return Err("Control directory must belong to the current user and cannot be a link".into());
-    }
-    fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())
 }
 
 impl Control {
@@ -378,13 +363,6 @@ impl Control {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct Endpoint {
-    pub protocol_version: u32,
-    pub socket_path: PathBuf,
-}
-
 pub(crate) fn read_frame<T: for<'de> Deserialize<'de>>(reader: &mut impl BufRead) -> Result<T, String> {
     let mut bytes = Vec::new();
     std::io::Read::take(reader, MAX_FRAME + 1).read_until(b'\n', &mut bytes).map_err(|e| e.to_string())?;
@@ -393,27 +371,32 @@ pub(crate) fn read_frame<T: for<'de> Deserialize<'de>>(reader: &mut impl BufRead
     }
     serde_json::from_slice(&bytes).map_err(|e| e.to_string())
 }
-pub(crate) fn write_frame(stream: &mut UnixStream, frame: &impl Serialize) -> Result<(), String> {
+pub(crate) fn write_frame(stream: &mut Stream, frame: &impl Serialize) -> Result<(), String> {
     serde_json::to_writer(&mut *stream, frame).map_err(|e| e.to_string())?;
     stream.write_all(b"\n").map_err(|e| e.to_string())
 }
 
-pub(crate) fn check_peer(stream: &UnixStream) -> Result<(), String> {
-    let mut uid = 0;
-    let mut gid = 0;
-    if unsafe { libc::getpeereid(stream.as_raw_fd(), &mut uid, &mut gid) } != 0 {
-        return Err(std::io::Error::last_os_error().to_string());
+fn handle_connection(
+    mut stream: Stream, control: &Control, notify: impl FnOnce() -> Result<(), String>,
+) -> Result<(), String> {
+    let result = handle_request(&mut stream, control, notify);
+    if let Err(message) = &result
+        && let Err(error) = write_frame(&mut stream, &Frame::Error { message: message.clone() })
+    {
+        log::debug!("Cannot report extension client failure: {error}");
     }
-    if uid != unsafe { libc::geteuid() } {
-        return Err("Extension control only accepts the current user".into());
+    // Windows discards unread pipe buffers on server closure. Let the client consume the
+    // terminal frame and close first, bounded by the transport's timeout.
+    if let Err(error) = wait_for_peer_close(&mut stream) {
+        log::debug!("Extension client did not close after its terminal frame: {error}");
     }
-    Ok(())
+    result
 }
 
-fn handle_connection(
-    mut stream: UnixStream, control: &Control, notify: impl FnOnce() -> Result<(), String>,
+fn handle_request(
+    stream: &mut Stream, control: &Control, notify: impl FnOnce() -> Result<(), String>,
 ) -> Result<(), String> {
-    check_peer(&stream)?;
+    check_peer(stream)?;
     stream.set_read_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
     stream.set_write_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
     let request: WireRequest = read_frame(&mut BufReader::new(stream.try_clone().map_err(|e| e.to_string())?))?;
@@ -439,21 +422,21 @@ fn handle_connection(
             let result = control.result(&request_id)?.unwrap_or_else(|| {
                 Outcome::failure(&request_id, 6, "pending", "Extension operation is still in progress")
             });
-            return write_frame(&mut stream, &Frame::Result { result });
+            return write_frame(stream, &Frame::Result { result });
         }
     };
     let _waiting = ReceiptWaiter { control, id: id.clone() };
-    write_frame(&mut stream, &Frame::Accepted { request_id: id.clone() })?;
+    write_frame(stream, &Frame::Accepted { request_id: id.clone() })?;
     let mut records = control.records.lock().map_err(|_| "Control lock poisoned")?;
     loop {
         if let Some(result) = records.get(&id).and_then(|record| record.result.clone()) {
             drop(records);
-            return write_frame(&mut stream, &Frame::Result { result });
+            return write_frame(stream, &Frame::Result { result });
         }
         if !control.running.load(Ordering::Acquire) {
             drop(records);
             return write_frame(
-                &mut stream,
+                stream,
                 &Frame::Result {
                     result: Outcome::failure(
                         &id,
@@ -470,7 +453,7 @@ fn handle_connection(
         if timeout.timed_out() {
             drop(records);
             return write_frame(
-                &mut stream,
+                stream,
                 &Frame::Result {
                     result: Outcome::failure(&id, 6, "pending", "Extension operation is still in progress"),
                 },
@@ -501,7 +484,6 @@ pub(crate) struct ExtensionControl {
 }
 struct RunningControl {
     control: Arc<Control>,
-    _socket_directory: tempfile::TempDir,
 }
 impl ExtensionControl {
     pub(crate) fn failed(error: String) -> Self {
@@ -513,15 +495,7 @@ impl ExtensionControl {
     pub(crate) fn start(app: &tauri::AppHandle) -> Result<Self, String> {
         let root = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("extension-control");
         let control = Arc::new(Control::open(&root)?);
-        // A short, private path avoids sockaddr_un's macOS path-length limit.
-        let socket_directory =
-            tempfile::Builder::new().prefix("alwith-u-").tempdir_in("/tmp").map_err(|e| e.to_string())?;
-        private_directory(socket_directory.path())?;
-        let socket_path = socket_directory.path().join("control.sock");
-        let listener = UnixListener::bind(&socket_path).map_err(|e| e.to_string())?;
-        fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
-        listener.set_nonblocking(true).map_err(|e| e.to_string())?;
-        atomic_json(&root.join("endpoint.json"), &Endpoint { protocol_version: 1, socket_path })?;
+        let mut listener = Listener::bind(&root, &app.config().identifier)?;
         let server = control.clone();
         let app = app.clone();
         thread::Builder::new()
@@ -529,26 +503,15 @@ impl ExtensionControl {
             .spawn(move || {
                 while server.running.load(Ordering::Acquire) {
                     match listener.accept() {
-                        Ok((stream, _)) => {
+                        Ok(stream) => {
                             let server = server.clone();
                             let app = app.clone();
                             if let Err(error) =
                                 thread::Builder::new().name("extension-install-client".into()).spawn(move || {
-                                    let error_stream = stream.try_clone();
-                                    if let Err(message) = handle_connection(stream, &server, || {
+                                    if let Err(error) = handle_connection(stream, &server, || {
                                         app.emit_to("main", EVENT, ()).map_err(|e| e.to_string())
                                     }) {
-                                        match error_stream {
-                                            Ok(mut stream) => {
-                                                if let Err(error) = write_frame(&mut stream, &Frame::Error { message })
-                                                {
-                                                    log::debug!("extension client disconnected: {error}");
-                                                }
-                                            }
-                                            Err(error) => {
-                                                log::debug!("Cannot report extension client failure: {error}")
-                                            }
-                                        }
+                                        log::debug!("Extension control request failed: {error}");
                                     }
                                 })
                             {
@@ -566,7 +529,7 @@ impl ExtensionControl {
                 }
             })
             .map_err(|e| e.to_string())?;
-        Ok(Self { service: Ok(RunningControl { control, _socket_directory: socket_directory }) })
+        Ok(Self { service: Ok(RunningControl { control }) })
     }
     pub(crate) fn stop(&self) {
         if let Ok(control) = self.control() {
@@ -744,7 +707,7 @@ fn purge_private_files(root: &Path, id: &str) -> Result<(), String> {
     for category in ["legacy-extension-files", "extension-files"] {
         let parent = root.join(category);
         match fs::symlink_metadata(&parent) {
-            Ok(metadata) if !metadata.is_dir() || metadata.file_type().is_symlink() => {
+            Ok(metadata) if !metadata.is_dir() || is_link(&metadata) => {
                 return Err("Invalid extension private root".into());
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
@@ -753,7 +716,7 @@ fn purge_private_files(root: &Path, id: &str) -> Result<(), String> {
         }
         let path = parent.join(id);
         match fs::symlink_metadata(&path) {
-            Ok(metadata) if !metadata.is_dir() || metadata.file_type().is_symlink() => {
+            Ok(metadata) if !metadata.is_dir() || is_link(&metadata) => {
                 return Err("Invalid extension private directory".into());
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,

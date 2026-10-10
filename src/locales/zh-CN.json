@@ -288,6 +288,7 @@
     "always": "始终"
   },
   "settings": {
+    "drive": "云盘",
     "extensions": "应用扩展",
     "general": "通用",
     "versionLabel": "版本",
@@ -734,6 +735,9 @@
     "noMatches": "未找到匹配的扩展。",
     "description": "扩展应用页面、命令和设置；与 Codex 插件独立。仅安装你信任的扩展。",
     "install": "从本地目录安装",
+    "preparingInstall": "正在准备安装，请稍候…",
+    "installing": "正在安装扩展，请稍候…",
+    "installSuccess": "{{name}} 安装成功",
     "empty": "尚未安装应用扩展。",
     "manage": "管理应用扩展",
     "enable": "启用 {{name}}",
@@ -834,6 +838,21 @@
     "hideTree": "隐藏文件树",
     "showTree": "显示文件树",
     "closeWorkspace": "关闭工作区",
-    "openExternal": "在外部打开"
+    "openExternal": "在外部打开",
+    "outlineEmpty": "暂无标题",
+    "editMarkdown": "编辑 Markdown",
+    "copyCode": "复制代码",
+    "toggleWrap": "切换自动换行",
+    "previousSheet": "上一个工作表",
+    "nextSheet": "下一个工作表",
+    "source": "源码",
+    "viewMode": "视图模式",
+    "moveDialogTitle": "移动 {{count}} 个项目",
+    "move": "移动",
+    "moveTargetNotSynced": "未同步到此设备",
+    "moveCrossProjectWarning": "跨库移动：将作为新文件上传到目标库，历史版本与评论保留在原库（可从原库回收站找回）",
+    "expandFolder": "展开文件夹",
+    "collapseFolder": "收起文件夹",
+    "moveToUnsyncedWarning": "这个库还没同步到本机：移动在云端完成（历史版本与评论跟着走），本地这一份会在下一轮同步后消失"
   }
 }

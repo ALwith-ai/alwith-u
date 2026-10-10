@@ -38,6 +38,7 @@ export const commands = {
     __t3Invoke<null>("extension_control_unavailable", args),
   extensionControlStatus: (): Promise<null> => __t3Invoke<null>("extension_control_status"),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
@@ -55,6 +56,11 @@ export const commands = {
     __t3Invoke<null>("workspace_watch", args),
   workspaceDirty: (args: { dirty: boolean }): Promise<null> => __t3Invoke<null>("workspace_dirty", args),
   workspaceExit: (): Promise<null> => __t3Invoke<null>("workspace_exit"),
+  htmlPreviewOpen: (args: { root: string; path: string; source: string }): Promise<PreviewLocation> =>
+    __t3Invoke<PreviewLocation>("html_preview_open", args),
+  htmlPreviewClose: (args: { token: string }): Promise<null> => __t3Invoke<null>("html_preview_close", args),
+  workspaceMoveTo: (args: { root: string; sources: string[]; destination: string }): Promise<MoveToOutcome> =>
+    __t3Invoke<MoveToOutcome>("workspace_move_to", args),
   extensionBundles: (): Promise<BundledExtension[]> => __t3Invoke<BundledExtension[]>("extension_bundles"),
   extensionPrepareInstall: (args: {
     expectedId: string | null
@@ -184,6 +190,7 @@ export type CommandErrors = {
   extensionControlUnavailable: string
   extensionControlStatus: string
   draftDirectory: string
+  driveRequest: string
   chatSaveFile: string
   chatReadImage: string
   workspaceOpen: string
@@ -192,6 +199,9 @@ export type CommandErrors = {
   workspaceWatch: string
   workspaceDirty: string
   workspaceExit: string
+  htmlPreviewOpen: string
+  htmlPreviewClose: string
+  workspaceMoveTo: string
   extensionBundles: string
   extensionPrepareInstall: string
   legacyStageImport: string
@@ -362,6 +372,11 @@ export type ChatImage = {
 
 export type CommandPalette = null
 
+export type CompletedMove = {
+  from: string
+  to: string
+}
+
 export type ControlJob =
   | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
   | { operation: "uninstall"; requestId: string; id: string }
@@ -475,6 +490,12 @@ export type Metadata = {
   base_url: string | null
 }
 
+export type MoveToOutcome = {
+  moves: CompletedMove[]
+  cloud: boolean
+  error: string | null
+}
+
 export type NewChat = null
 
 export type Number = number
@@ -495,6 +516,11 @@ export type PreparedImport = {
 export type PreparedInstall =
   | { format: "current"; path: string; id: string; version: string; digest: string }
   | { format: "legacy"; prepared: PreparedImport }
+
+export type PreviewLocation = {
+  token: string
+  path: string
+}
 
 export type PublicCustomProvider = PublicCustomProvider_Serialize | PublicCustomProvider_Deserialize
 

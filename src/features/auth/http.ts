@@ -3,7 +3,7 @@ import type { createTokenStorage } from "@alwith/module-auth"
 type Storage = ReturnType<typeof createTokenStorage>
 interface Host {
   baseUrl: string
-  fetch: typeof fetch
+  fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   storage: Storage
   refresh(token: string): Promise<{ access_token: string; refresh_token: string }>
   expired(): Promise<void>

@@ -7,12 +7,16 @@ mod bundled_extensions;
 mod chat_files;
 mod chat_window;
 mod draft_directory;
+mod drive;
 mod extension_capabilities;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", windows))]
 mod extension_cli;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", windows))]
 mod extension_control;
+#[cfg(any(target_os = "macos", windows))]
+mod extension_transport;
 mod extension_wire;
+mod html_preview;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -22,6 +26,7 @@ mod runtime;
 mod updater;
 mod window;
 mod workspace;
+mod workspace_move;
 
 use tauri::{Emitter, Manager};
 
@@ -42,6 +47,13 @@ fn extension_cli_args(mut args: impl Iterator<Item = std::ffi::OsString>) -> Res
 
 /// Dispatch script commands before Tauri starts or joins the GUI instance.
 pub fn run_extension_cli() -> Option<i32> {
+    #[cfg(windows)]
+    if std::env::args_os().nth(1).is_some_and(|arg| arg == "extension")
+        && let Err(error) = extension_transport::attach_console()
+    {
+        eprintln!("Cannot attach CLI console: {error}");
+        return Some(3);
+    }
     let args = match extension_cli_args(std::env::args_os().skip(1)) {
         Ok(Some(args)) => args,
         Ok(None) => return None,
@@ -50,20 +62,21 @@ pub fn run_extension_cli() -> Option<i32> {
             return Some(2);
         }
     };
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", windows))]
     {
         let context = application_context();
         Some(extension_cli::run(&args, &context.config().identifier))
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
-        eprintln!("Extension CLI installation is currently supported on macOS only");
+        eprintln!("Extension CLI installation is currently supported on macOS and Windows only");
         Some(2)
     }
 }
 
 pub fn run() {
     let builder = tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
@@ -76,6 +89,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
@@ -121,7 +135,8 @@ pub fn run() {
         .setup(|app| {
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
-            #[cfg(target_os = "macos")]
+            drive::initialize(app.handle())?;
+            #[cfg(any(target_os = "macos", windows))]
             {
                 let control = extension_control::ExtensionControl::start(app.handle()).unwrap_or_else(|error| {
                     log::error!("Extension CLI control is unavailable: {error}");
@@ -162,13 +177,17 @@ pub fn run() {
                 app.exit(0);
             }
             tauri::RunEvent::ExitRequested { api, code, .. } => {
-                let closing = app.state::<runtime::RuntimeState>().is_closing();
-                if (!closing && workspace::prevent_exit(app)) || runtime::prevent_exit(app, code) {
+                let closing =
+                    app.state::<runtime::RuntimeState>().is_closing() || app.state::<drive::DriveState>().is_closing();
+                if (!closing && workspace::prevent_exit(app))
+                    || drive::prevent_exit(app, code)
+                    || runtime::prevent_exit(app, code)
+                {
                     api.prevent_exit();
                 }
             }
             tauri::RunEvent::Exit => {
-                #[cfg(target_os = "macos")]
+                #[cfg(any(target_os = "macos", windows))]
                 app.state::<extension_control::ExtensionControl>().stop();
                 app.state::<runtime::RuntimeState>().kill_on_exit();
             }
@@ -183,6 +202,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 draft_directory::draft_directory,
+                drive::drive_request,
                 chat_files::chat_save_file,
                 chat_files::chat_read_image,
                 workspace::workspace_open,
@@ -191,6 +211,9 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 workspace::workspace_watch,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,
+                html_preview::html_preview_open,
+                html_preview::html_preview_close,
+                workspace_move::workspace_move_to,
                 bundled_extensions::extension_bundles,
                 legacy_extensions::importer::extension_prepare_install,
                 legacy_extensions::importer::legacy_stage_import,
@@ -245,14 +268,14 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<menu::ActualSize>()
         };
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", windows))]
     let bindings = commands![
         extension_control::extension_control_next,
         extension_control::extension_control_complete,
         extension_control::extension_control_unavailable,
         extension_control::extension_control_status,
     ];
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", windows)))]
     let bindings = commands![];
     bindings
 }

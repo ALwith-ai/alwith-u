@@ -5,10 +5,10 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
-static OPERATIONS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+pub(crate) static OPERATIONS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 static ROOTS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
 fn roots() -> &'static Mutex<HashSet<PathBuf>> {
     ROOTS.get_or_init(|| Mutex::new(HashSet::new()))
@@ -28,6 +28,14 @@ fn workspace_root(path: &Path) -> Result<PathBuf, String> {
     Ok(root)
 }
 
+pub(crate) fn authorize_preview_root(path: &Path) -> Result<PathBuf, String> {
+    let root = workspace_root(path)?;
+    if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
+        return Err("Workspace root has not been authorized".into());
+    }
+    Ok(root)
+}
+
 /// Opening a project in the main window establishes its scoped filesystem session.
 #[tauri3_specta::command]
 pub async fn workspace_open(window: tauri::WebviewWindow, path: PathBuf) -> Result<String, String> {
@@ -41,6 +49,7 @@ pub async fn workspace_open(window: tauri::WebviewWindow, path: PathBuf) -> Resu
 #[tauri3_specta::command]
 pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Result<Value, String> {
     main_window(&window)?;
+    let collaboration_owner = request.get("collaborationOwnerId").and_then(Value::as_str).map(str::to_owned);
     let mut request: Request = serde_json::from_value(request).map_err(|error| error.to_string())?;
     let root = request.root.canonicalize().map_err(|error| error.to_string())?;
     if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
@@ -49,7 +58,51 @@ pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Res
     request.root = root.clone();
     let _operation = OPERATIONS.lock().await;
     let fs = FileSystem::new([root])?;
-    execute(&fs, request).await
+    let mut writes = Vec::new();
+    let mut removed = Vec::new();
+    match request.operation.as_str() {
+        "writeFile" | "createDirectory" | "remove" => writes.push(fs.authorize_path(&request.path)?),
+        "move" | "copy" => {
+            writes.push(fs.authorize_path(request.to.as_ref().ok_or("Destination is required")?)?);
+            if request.operation == "move" {
+                writes.push(fs.authorize_path(&request.path)?);
+            }
+        }
+        _ => {}
+    }
+    if matches!(request.operation.as_str(), "remove" | "move") {
+        removed.push(request.path.clone());
+    }
+    if request.operation == "move"
+        && window
+            .app_handle()
+            .state::<crate::drive::DriveState>()
+            .service()?
+            .move_between_projects(
+                &fs.authorize_path(&request.path)?,
+                &fs.authorize_path(request.to.as_ref().ok_or("Destination is required")?)?,
+            )
+            .await?
+    {
+        return Ok(Value::Null);
+    }
+    if request.operation == "writeFile"
+        && let Some(owner) = collaboration_owner
+    {
+        let path = fs.authorize_path(&request.path)?;
+        return window
+            .app_handle()
+            .state::<crate::drive::DriveState>()
+            .service()?
+            .with_collaborative_filesystem(&path, &owner, execute(&fs, request))
+            .await;
+    }
+    window
+        .app_handle()
+        .state::<crate::drive::DriveState>()
+        .service()?
+        .with_filesystem(&writes, &removed, execute(&fs, request))
+        .await
 }
 
 static WATCHERS: OnceLock<Mutex<HashMap<PathBuf, WorkspaceWatcher>>> = OnceLock::new();
@@ -184,7 +237,14 @@ pub async fn workspace_import(
             show_hidden: None,
             show_ignored: None,
         };
-        execute(&fs, request).await.map_err(|error| format!("Import stopped at {}: {error}", source.display()))?;
+        let writes = [fs.authorize_path(request.to.as_ref().ok_or("Import destination missing")?)?];
+        window
+            .app_handle()
+            .state::<crate::drive::DriveState>()
+            .service()?
+            .with_filesystem(&writes, &[], execute(&fs, request))
+            .await
+            .map_err(|error| format!("Import stopped at {}: {error}", source.display()))?;
     }
     Ok(())
 }

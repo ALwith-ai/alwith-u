@@ -1,9 +1,10 @@
 import { ask } from "@tauri-apps/plugin-dialog"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { commands } from "@/bindings"
 import { ExtensionMount } from "./extension-view"
-import { ExtensionsManager } from "./extensions-manager"
+import { ExtensionsManager, type ExtensionInstallPhase } from "./extensions-manager"
 import { executePreparedInstall } from "./install-service"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 import { showExtensionLimitations } from "./legacy/limitations"
@@ -14,6 +15,7 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)
+  const [installPhase, setInstallPhase] = useState<ExtensionInstallPhase | null>(null)
   const run = (action: () => Promise<void>): void => {
     setOperation(true)
     void action()
@@ -22,23 +24,31 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
   }
   const busy = operation || state.busy
   const install = async (id?: string): Promise<void> => {
-    const selected = await commands.extensionPrepareInstall({ expectedId: id ?? null })
-    if (!selected) return
-    const result = await executePreparedInstall(
-      runtime,
-      selected,
-      { update: id !== undefined || selected.format === "legacy" },
-      {
-        stageLegacy: (ticket, converted) => commands.legacyStageImport({ ticket, ...converted })
-      }
-    )
-    if (result.error) throw new Error(result.error.message)
+    setInstallPhase("preparing")
+    try {
+      const selected = await commands.extensionPrepareInstall({ expectedId: id ?? null })
+      if (!selected) return
+      setInstallPhase("installing")
+      const result = await executePreparedInstall(
+        runtime,
+        selected,
+        { update: id !== undefined || selected.format === "legacy" },
+        {
+          stageLegacy: (ticket, converted) => commands.legacyStageImport({ ticket, ...converted })
+        }
+      )
+      if (result.error) throw new Error(result.error.message)
+      toast.success(t("extensions.installSuccess", { name: result.id }))
+    } finally {
+      setInstallPhase(null)
+    }
   }
   return (
     <ExtensionsManager
       state={state}
       host={host}
       busy={busy}
+      installPhase={installPhase}
       onOpenSurface={onOpenSurface}
       onInstall={id => run(() => install(id))}
       onRequest={request =>

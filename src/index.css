@@ -6,6 +6,7 @@
 @import "./features/chat/codex/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
+@source "../node_modules/@alwith/module-drive/dist";
 
 /* Keep diff metadata readable in both themes, including upstream diff2html styles. */
 [data-stream-style="codexUI"] .d2h-wrapper .d2h-info,

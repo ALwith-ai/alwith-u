@@ -70,7 +70,7 @@ fn socket_rejects_unknown_operations_and_wrong_protocol_versions() {
 fn socket_roundtrip_acknowledges_once_then_returns_the_persisted_result() {
     let temp = tempfile::tempdir().unwrap();
     let control = Arc::new(Control::open(temp.path()).unwrap());
-    let (mut client, server) = UnixStream::pair().unwrap();
+    let (mut client, server) = crate::extension_transport::tests::pair();
     client.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
     let req = request(temp.path());
     let worker_control = control.clone();
@@ -90,6 +90,7 @@ fn socket_roundtrip_acknowledges_once_then_returns_the_persisted_result() {
         }
         _ => panic!("Expected terminal result"),
     }
+    drop(reader);
     worker.join().unwrap();
 }
 
@@ -184,7 +185,7 @@ fn unavailable_write_failure_still_rejects_admission_and_completes_waiters() {
 fn shutdown_after_acceptance_returns_unknown_outcome() {
     let temp = tempfile::tempdir().unwrap();
     let control = Arc::new(Control::open(temp.path()).unwrap());
-    let (mut client, server) = UnixStream::pair().unwrap();
+    let (mut client, server) = crate::extension_transport::tests::pair();
     client.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
     let req = request(temp.path());
     let worker_control = control.clone();
@@ -195,6 +196,7 @@ fn shutdown_after_acceptance_returns_unknown_outcome() {
     control.running.store(false, Ordering::Release);
     control.changed.notify_all();
     let frame = read_frame::<Frame>(&mut reader);
+    drop(reader);
     assert!(worker.join().unwrap().is_ok());
     match frame.unwrap() {
         Frame::Result { result } => {
@@ -281,8 +283,11 @@ fn purge_private_files_removes_only_owned_data_and_refuses_links() {
         assert!(temp.path().join(category).join("other").exists());
     }
     assert!(purge_private_files(temp.path(), "../escape").is_err());
-    let outside = tempfile::tempdir().unwrap();
-    std::os::unix::fs::symlink(outside.path(), temp.path().join("extension-files/notes")).unwrap();
-    assert!(purge_private_files(temp.path(), "notes").is_err());
-    assert!(outside.path().exists());
+    #[cfg(unix)]
+    {
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), temp.path().join("extension-files/notes")).unwrap();
+        assert!(purge_private_files(temp.path(), "notes").is_err());
+        assert!(outside.path().exists());
+    }
 }

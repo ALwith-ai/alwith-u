@@ -4,6 +4,11 @@ use std::{fs, path::Path, sync::Mutex};
 use tauri::Manager;
 
 static WRITE_LOCK: Mutex<()> = Mutex::new(());
+const RELEASE_OWNER: &str = "ai.alwith.u";
+
+fn sharing_owner(identifier: &str, debug: bool) -> String {
+    if debug { format!("{identifier}.debug") } else { identifier.into() }
+}
 
 fn projection(id: &str, file: &str, value: &Value) -> Result<Value, String> {
     let fields: &[&str] = match (id, file) {
@@ -56,7 +61,18 @@ fn publish(home: &Path, owner: &str, id: &str, file: &str, value: &Value) -> Res
         return Err("Business sharing data is too large".into());
     }
     let mut directory = home.canonicalize().map_err(|e| e.to_string())?;
-    for component in [".config", "finture-bi", id] {
+    let mut components = vec![".config", "finture-bi"];
+    if owner != RELEASE_OWNER {
+        if owner.is_empty()
+            || !owner.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_'))
+            || matches!(owner, "." | "..")
+        {
+            return Err("Invalid business sharing owner".into());
+        }
+        components.extend(["instances", owner]);
+    }
+    components.push(id);
+    for component in components {
         directory.push(component);
         real_directory(&directory, component != ".config")?;
     }
@@ -116,7 +132,9 @@ pub async fn legacy_share_business(
     }
     let _guard = WRITE_LOCK.lock().map_err(|_| "Business sharing lock poisoned")?;
     let app = window.app_handle();
-    publish(&app.path().home_dir().map_err(|e| e.to_string())?, &app.config().identifier, &extension_id, &file, &value)
+    // Debug builds and alternate app identifiers must never publish into release skill configuration.
+    let owner = sharing_owner(&app.config().identifier, cfg!(debug_assertions));
+    publish(&app.path().home_dir().map_err(|e| e.to_string())?, &owner, &extension_id, &file, &value)
 }
 
 #[cfg(test)]
@@ -129,19 +147,22 @@ mod tests {
         let path = home.path().join(".config/finture-bi/bi-metrics/data.json");
         publish(
             home.path(),
-            "u",
+            "ai.alwith.u",
             "bi-metrics",
             "data",
             &json!({"token":"first", "device_key":"key", "hiddenPanels":[1]}),
         )
         .unwrap();
         let data: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-        assert_eq!(data, json!({"token":"first", "device_key":"key", "_alwithU":"u"}));
-        publish(home.path(), "u", "bi-metrics", "data", &json!({"token":"second"})).unwrap();
+        assert_eq!(data, json!({"token":"first", "device_key":"key", "_alwithU":"ai.alwith.u"}));
+        publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &json!({"token":"second"})).unwrap();
         let data: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-        assert_eq!(data, json!({"token":"second", "_alwithU":"u"}));
-        publish(home.path(), "u", "bi-metrics", "data", &Value::Null).unwrap();
-        assert_eq!(serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(), json!({"_alwithU":"u"}));
+        assert_eq!(data, json!({"token":"second", "_alwithU":"ai.alwith.u"}));
+        publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &Value::Null).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(),
+            json!({"_alwithU":"ai.alwith.u"})
+        );
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -153,19 +174,56 @@ mod tests {
     fn shares_and_clears_current_document_without_overwriting_other_owners() {
         let home = tempfile::tempdir().unwrap();
         let path = home.path().join(".config/finture-bi/yup-kb/current.json");
-        publish(home.path(), "u", "yup-kb", "current", &json!({"fileId":42, "name":"Report", "body":"secret"}))
-            .unwrap();
+        publish(
+            home.path(),
+            "ai.alwith.u",
+            "yup-kb",
+            "current",
+            &json!({"fileId":42, "name":"Report", "body":"secret"}),
+        )
+        .unwrap();
         assert_eq!(
             serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(),
-            json!({"_alwithU":"u", "fileId":42,"name":"Report"})
+            json!({"_alwithU":"ai.alwith.u", "fileId":42,"name":"Report"})
         );
-        assert!(publish(home.path(), "dev", "yup-kb", "current", &Value::Null).is_err());
-        publish(home.path(), "u", "yup-kb", "current", &Value::Null).unwrap();
-        assert_eq!(serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(), json!({"_alwithU":"u"}));
+        publish(home.path(), "dev", "yup-kb", "current", &Value::Null).unwrap();
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["fileId"], 42);
+        publish(home.path(), "ai.alwith.u", "yup-kb", "current", &Value::Null).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(),
+            json!({"_alwithU":"ai.alwith.u"})
+        );
         fs::write(&path, b"{\"fileId\":100}").unwrap();
-        assert!(publish(home.path(), "u", "yup-kb", "current", &Value::Null).is_err());
+        assert!(publish(home.path(), "ai.alwith.u", "yup-kb", "current", &Value::Null).is_err());
         assert_eq!(fs::read(&path).unwrap(), b"{\"fileId\":100}");
-        assert!(publish(home.path(), "u", "../escape", "data", &Value::Null).is_err());
+        assert!(publish(home.path(), "ai.alwith.u", "../escape", "data", &Value::Null).is_err());
+    }
+
+    #[test]
+    fn development_instances_do_not_write_release_skill_configuration() {
+        let home = tempfile::tempdir().unwrap();
+        publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &json!({"token":"release"})).unwrap();
+        let path = home.path().join(".config/finture-bi/bi-metrics/data.json");
+        let before = fs::read(&path).unwrap();
+        publish(home.path(), "ai.alwith.u.dev", "bi-metrics", "data", &json!({"token":"dev"})).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), before);
+        let development = home.path().join(".config/finture-bi/instances/ai.alwith.u.dev/bi-metrics/data.json");
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(development).unwrap()).unwrap()["token"], "dev");
+        publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &json!({"token":"release-updated"})).unwrap();
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap()["token"], "release-updated");
+    }
+
+    #[test]
+    fn debug_builds_with_release_identity_are_isolated() {
+        let home = tempfile::tempdir().unwrap();
+        let owner = sharing_owner(RELEASE_OWNER, true);
+        assert_ne!(owner, RELEASE_OWNER);
+        assert_eq!(sharing_owner(RELEASE_OWNER, false), RELEASE_OWNER);
+        publish(home.path(), &owner, "bi-metrics", "data", &json!({"token":"debug"})).unwrap();
+        assert!(!home.path().join(".config/finture-bi/bi-metrics/data.json").exists());
+        let path = home.path().join(".config/finture-bi/instances/ai.alwith.u.debug/bi-metrics/data.json");
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap()["token"], "debug");
+        assert!(publish(home.path(), "../escape", "bi-metrics", "data", &Value::Null).is_err());
     }
 
     #[cfg(unix)]
@@ -174,7 +232,7 @@ mod tests {
         let home = tempfile::tempdir().unwrap();
         let other = tempfile::tempdir().unwrap();
         std::os::unix::fs::symlink(other.path(), home.path().join(".config")).unwrap();
-        assert!(publish(home.path(), "u", "yup-kb", "current", &Value::Null).is_err());
+        assert!(publish(home.path(), "ai.alwith.u", "yup-kb", "current", &Value::Null).is_err());
         assert!(fs::read_dir(other.path()).unwrap().next().is_none());
     }
 }

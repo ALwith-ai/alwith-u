@@ -1,4 +1,5 @@
 import "./styles.css"
+import { assertPluginSessionArchiveAllowed } from "@/features/drive/plugin-bridge"
 import type { Json } from "@alwith/module-extension"
 import type { CapabilityBinding, CapabilityProvider } from "@alwith/module-extension/host"
 import type { LegacyHost, LegacyStorage } from "@alwith/module-extension/legacy"
@@ -103,10 +104,24 @@ function createHost(
         : {}),
       history: primary
         ? {
-            list: () => readHistory(() => client.listHistorySessions(() => binding.cancellation.throwIfAborted())),
+            list: () =>
+              readHistory(() => {
+                if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
+                return client.listHistorySessions(() => {
+                  binding.cancellation.throwIfAborted()
+                  if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
+                })
+              }),
             read: sessionId =>
               readHistory(() =>
-                client.exportHistory(sessionId, () => binding.cancellation.throwIfAborted(), historyAbort.signal)
+                client.exportHistory(
+                  sessionId,
+                  () => {
+                    binding.cancellation.throwIfAborted()
+                    if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
+                  },
+                  historyAbort.signal
+                )
               ),
             check: () => binding.cancellation.throwIfAborted()
           }

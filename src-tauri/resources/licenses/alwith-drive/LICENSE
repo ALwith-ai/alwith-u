@@ -1,0 +1,94 @@
+ALwith Developer and Redistribution License, Version 1.0
+Copyright 2026 ALWITHAI PTE. LTD. All rights reserved, except as expressly granted below.
+
+1. Scope
+This license applies only to ALWITHAI PTE. LTD.'s ("ALwith") own material in
+the npm package accompanying this license (the "Software"). It is a proprietary
+license, not an open-source license. Third-party material is governed by its
+respective licenses, as described in THIRD_PARTY_NOTICES.md. No restriction here
+reduces rights granted by those licenses or by mandatory applicable law.
+
+2. Permission to develop and distribute applications
+Subject to this license, ALwith grants you a worldwide, non-exclusive, royalty-free
+copyright license to use, reproduce, integrate and modify the supplied Software
+to develop, test, host and operate your own applications, for personal,
+internal business or commercial use. You may brand,
+sell and distribute those applications, including the Software embedded in them,
+to your customers and end users. No per-application registration, approval or
+royalty is required by this software license.
+
+You may bundle, minify, transform and otherwise adapt the supplied JavaScript,
+styles and declarations for those applications. You may include the supplied
+Software in an application source distribution when necessary to build or use
+that application, provided it remains separately identified under this license.
+You may combine it with separately licensed application code, including MPL-2.0
+code, while complying with both licenses. Your own independent code remains yours;
+this license does not require disclosure of your application source code.
+
+Recipients may use the embedded Software to run the application and exercise the
+permissions above under this same license. You may allow your contractors and
+hosting providers to use it for those purposes. You must supply this license and
+all applicable third-party notices with each redistribution (for example in an
+included licenses directory or an accessible legal-notices page), identify your
+modifications, and not impose terms that purport to change ALwith's license.
+
+3. Rights reserved
+No right to ALwith's unpublished source code, private repositories, trademarks,
+or separately distributed Runtime binaries, modules or services is granted here.
+You may not relicense the Software as your own framework or redistribute it as
+a standalone SDK/package for others, except for private development/build caches
+used for applications permitted by Section 2. No restriction is imposed on
+independently developed competing applications or on third-party licensed code.
+You must not misrepresent authorship or imply ALwith endorses your application.
+
+4. Accounts and services
+This license does not supply platform credentials, paid entitlements, hosting,
+support, updates or a service-availability guarantee. Use of ALwith accounts,
+pets, relay or other hosted services is separately subject to the applicable
+service terms and authorization. Do not bypass service access controls or use
+another person's credentials without authorization. Choosing or replacing an
+authentication provider for your own application is not prohibited by this
+software license. Distributing an Auth client does not authorize its recipients
+to access another user's account, data or entitlements.
+
+5. Lawful use and independent responsibility
+You must not use the Software to commit or knowingly facilitate unlawful acts.
+You are responsible for your application's operation, permissions, business
+practices, data processing, content and compliance with applicable law. You must
+not make warranties or commitments on ALwith's behalf. ALwith does not endorse
+your application merely because it uses the Software or connects to ALwith.
+These allocations do not remove either party's own mandatory legal obligations.
+
+6. Disclaimer and limitation of liability
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED
+"AS IS" AND "AS AVAILABLE", WITHOUT EXPRESS OR IMPLIED WARRANTIES, INCLUDING
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY,
+SECURITY OR UNINTERRUPTED OPERATION. AI OUTPUTS AND AUTOMATED ACTIONS MAY BE
+INCORRECT OR HARMFUL; YOU MUST DETERMINE APPROPRIATE REVIEW AND SAFEGUARDS.
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, ALWITH AND ITS CONTRIBUTORS
+ARE NOT LIABLE FOR DAMAGES ARISING FROM USE, MODIFICATION OR DISTRIBUTION OF
+THE SOFTWARE, INCLUDING LOST PROFITS, LOST DATA, BUSINESS INTERRUPTION AND
+INDIRECT OR CONSEQUENTIAL LOSS. NOTHING EXCLUDES OR LIMITS LIABILITY THAT
+CANNOT LAWFULLY BE EXCLUDED OR LIMITED, INCLUDING APPLICABLE MANDATORY CONSUMER
+RIGHTS AND LIABILITY FOR FRAUD, WILLFUL MISCONDUCT OR GROSS NEGLIGENCE WHERE
+SUCH EXCLUSION OR LIMITATION IS PROHIBITED. THIS LICENSE DOES NOT EXCLUDE
+CRIMINAL OR REGULATORY RESPONSIBILITY IMPOSED BY LAW.
+
+7. Duration and termination
+The grant for this version continues while you comply with this license. If
+ALwith gives written notice of a material breach, your rights terminate if you
+do not cure it within 30 days; no cure period authorizes continuing unlawful
+conduct. On termination, cease new use and distribution of ALwith's proprietary
+Software except as required by law. Independently compliant recipients retain
+their own grants. Sections concerning reserved rights, notices, disclaimers and
+mandatory-law exceptions survive as applicable. Third-party licenses are not
+terminated by this provision.
+
+8. Versions and severability
+This license governs the accompanying version. A later license or publication
+of source code does not retroactively replace this grant or revoke rights in
+earlier lawfully obtained versions. Any additional open-source license must be
+expressly identified by ALwith. If a provision is unenforceable, the remaining
+provisions continue to the extent permitted by law. A separate written agreement
+signed by you and ALwith may expressly override these terms for its stated scope.
