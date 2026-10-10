@@ -190,6 +190,12 @@ export class CodexClient {
   private readonly configWrites = new Map<string, Promise<void>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
+  /**
+   * Drafts: real Codex sessions created before any message (ALwith Desktop's "a draft always has
+   * a session"), kept out of the sidebar until the first prompt materializes them. Codex persists
+   * no rollout for a thread without turns, so an abandoned draft leaves nothing behind.
+   */
+  private readonly drafts = new Set<string>()
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
   })
@@ -505,7 +511,7 @@ export class CodexClient {
     )
   }
 
-  async newSession(cwd: string, model: string | null = null): Promise<string> {
+  async newSession(cwd: string, model: string | null = null, options: { draft?: boolean } = {}): Promise<string> {
     const response = await this.live().request<acp.NewSessionResponse>("session/new", {
       cwd,
       mcpServers: [],
@@ -522,19 +528,24 @@ export class CodexClient {
     }
     this.publishSession(session)
     this.noteModel(session)
+    if (options.draft) this.drafts.add(session.id)
+    else this.listThread(session.id, cwd)
+    return session.id
+  }
+
+  /** A session created as a draft that has not carried a message yet. */
+  isDraft(id: string): boolean {
+    return this.drafts.has(id)
+  }
+
+  /** The thread joins the sidebar: at creation, or for a draft with its first prompt. */
+  private listThread(sessionId: string, cwd: string): void {
     this.store.setState(state => ({
       threads: [
-        {
-          sessionId: session.id,
-          cwd,
-          title: null,
-          updatedAt: new Date().toISOString(),
-          archived: false
-        },
-        ...state.threads.filter(thread => thread.sessionId !== session.id)
+        { sessionId, cwd, title: null, updatedAt: new Date().toISOString(), archived: false },
+        ...state.threads.filter(thread => thread.sessionId !== sessionId)
       ]
     }))
-    return session.id
   }
 
   async open(id: string, cwd: string): Promise<void> {
@@ -597,6 +608,7 @@ export class CodexClient {
     // message. Echo and receipt may arrive in either order.
     const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
+    if (this.drafts.delete(id)) this.listThread(id, session.cwd)
     const response = await this.live().request<acp.PromptResponse>("session/prompt", { sessionId: id, prompt })
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
@@ -904,6 +916,7 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
+    this.drafts.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)

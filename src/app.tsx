@@ -14,7 +14,8 @@ import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
-import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
+import { DRAFT_SESSION_ID, DraftChat, isAuthRequiredError } from "@/features/chat/draft-chat"
+import { drafts } from "@/features/chat/composer/drafts"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
@@ -143,18 +144,53 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  // "New chat" returns to the empty draft, as in Desktop; the session is created on the
-  // first send (DraftChat), never by opening a folder dialog here.
+  // "New chat", as in Desktop: a draft always has a real session. An unsent draft is reused;
+  // otherwise the selection empties and the draft effect below creates the next session.
   const newChat = useCallback(() => {
     if (operation.busy) return
     setView("chat")
-    setSelectedId(null)
+    setSelectedId(current => (current !== null && client.isDraft(current) ? current : null))
   }, [operation])
 
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
     void savePreference("lastProjectDirectory", directory)
+    // A draft belongs to its folder: moving the draft elsewhere closes it and lets a new one open there.
+    setSelectedId(current => {
+      if (current !== null && client.isDraft(current) && client.state.sessions[current]?.cwd !== directory) {
+        void client.close(current).catch((error: unknown) => toast.error(describe(error)))
+        return null
+      }
+      return current
+    })
   }, [])
+
+  // Desktop's "a draft always has a session": with nothing selected and a project known, open a
+  // draft session right away so the composer, slash commands and model picker are live before
+  // the first message. The sidebar lists it only once a message has been sent (client.isDraft).
+  const draftInflight = useRef(false)
+  useEffect(() => {
+    if (connection !== "ready" || selectedId !== null || lastDirectory === null || draftInflight.current) return
+    draftInflight.current = true
+    void (async () => {
+      try {
+        const id = await client.newSession(lastDirectory, drafts.get(DRAFT_SESSION_ID)?.modelId ?? null, {
+          draft: true
+        })
+        setSelectedId(current => {
+          if (current === null) return id
+          void client.close(id).catch(() => undefined)
+          return current
+        })
+      } catch (error) {
+        // Codex refuses session/new for want of a login (-32000): stay on the empty draft, which
+        // sends the user to provider settings on its first send.
+        if (!isAuthRequiredError(error)) toast.error(describe(error))
+      } finally {
+        draftInflight.current = false
+      }
+    })()
+  }, [connection, selectedId, lastDirectory])
 
   const draftCreated = useCallback((id: string) => {
     setSelectedId(id)

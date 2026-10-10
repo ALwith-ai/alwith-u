@@ -609,3 +609,23 @@ test("Stop answers the session's pending permission with cancelled before sessio
   // the fake echoes the answer it got as JSON text
   expect(JSON.stringify(reply)).toContain("cancelled")
 })
+
+test("草稿会话:建好即可用但不进侧栏,首条消息发出才列入;关闭的草稿不留痕", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  await client.connect()
+  const draft = await client.newSession("/tmp/draft", null, { draft: true })
+  expect(client.isDraft(draft)).toBe(true)
+  expect(client.session(draft).attached).toBe(true)
+  expect(client.state.threads.some(thread => thread.sessionId === draft)).toBe(false)
+
+  await client.prompt(draft, [{ type: "text", text: "hello" }])
+  expect(client.isDraft(draft)).toBe(false)
+  expect(client.state.threads.find(thread => thread.sessionId === draft)).toMatchObject({ cwd: "/tmp/draft" })
+
+  const abandoned = await client.newSession("/tmp/draft", null, { draft: true })
+  await client.close(abandoned)
+  expect(client.isDraft(abandoned)).toBe(false)
+  expect(client.state.threads.some(thread => thread.sessionId === abandoned)).toBe(false)
+})

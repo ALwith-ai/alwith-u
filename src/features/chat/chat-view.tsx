@@ -8,6 +8,7 @@ import { useShallow } from "zustand/react/shallow"
 import type { PendingAction, ThreadSummary } from "@/agent/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { client, useApp } from "@/lib/client"
 import { ActionCard } from "./action-card"
 import { ChatActionsMenu } from "./chat-actions-menu"
@@ -57,7 +58,10 @@ export function ChatView({
   return (
     <ChatBranchProvider key={session.id} session={session} onSelect={onSelectThread}>
       <div ref={rootRef} className="flex h-full min-h-0 flex-col">
-        <ChatHeader target={headerTarget} title={session.title ?? t("sidebar.untitled")} project={projectMenu}>
+        <ChatHeader
+          target={headerTarget}
+          title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
+          project={projectMenu}>
           <ChatActionsMenu
             surface={headerTarget === undefined ? "main" : "floating"}
             onOpenWindow={onOpenWindow}
@@ -83,7 +87,17 @@ export function ChatView({
             </Alert>
           </div>
         )}
-        <ChatBody session={session} />
+        {session.items.length === 0 ? (
+          // A draft session (Desktop semantics): live Codex session, nothing said yet.
+          <Empty className="flex-1">
+            <EmptyHeader>
+              <EmptyTitle>{t("welcome.title")}</EmptyTitle>
+              <EmptyDescription>{t("welcome.description")}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <ChatBody session={session} />
+        )}
         {inline.length > 0 && (
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
             {inline.map(action => (

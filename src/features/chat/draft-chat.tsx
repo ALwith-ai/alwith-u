@@ -19,7 +19,7 @@ import { chooseFolder, DraftProjectPicker } from "./draft-project-picker"
 export const DRAFT_SESSION_ID = "draft"
 
 /** Codex answers session/new with -32000 when nobody is signed in. */
-function isAuthError(error: unknown): boolean {
+export function isAuthRequiredError(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === -32000
 }
 
@@ -96,7 +96,7 @@ export function DraftChat({
     try {
       id = await client.newSession(directory, model)
     } catch (error) {
-      if (!isAuthError(error)) throw error
+      if (!isAuthRequiredError(error)) throw error
       onAuthRequired()
       throw error
     }

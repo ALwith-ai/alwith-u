@@ -7,7 +7,8 @@ import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
-import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
+import { drafts } from "@/features/chat/composer/drafts"
+import { DRAFT_SESSION_ID, DraftChat, isAuthRequiredError } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import {
   announceChatReady,
@@ -64,10 +65,30 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [])
   const newChat = useCallback(() => {
     if (operation.busy) return
-    setSelectedId(null)
+    setSelectedId(current => (current !== null && client.isDraft(current) ? current : null))
     importDraft(DRAFT_SESSION_ID, null)
     setGeneration(value => value + 1)
   }, [operation])
+  // Desktop's "a draft always has a session", as in the main window.
+  const draftInflight = useRef(false)
+  useEffect(() => {
+    if (connection !== "ready" || selectedId !== null || cwd === null || draftInflight.current) return
+    draftInflight.current = true
+    void (async () => {
+      try {
+        const id = await client.newSession(cwd, drafts.get(DRAFT_SESSION_ID)?.modelId ?? null, { draft: true })
+        setSelectedId(current => {
+          if (current === null) return id
+          void client.close(id).catch(() => undefined)
+          return current
+        })
+      } catch (error) {
+        if (!isAuthRequiredError(error)) report(error)
+      } finally {
+        draftInflight.current = false
+      }
+    })()
+  }, [connection, selectedId, cwd])
 
   const newProject = useCallback(() => {
     void operation
