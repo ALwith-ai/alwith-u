@@ -1,0 +1,129 @@
+.file-workspace-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.file-workspace-chat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.file-workspace-panel {
+  width: var(--workspace-width);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 360px;
+  min-height: 0;
+  background: var(--background);
+}
+.file-workspace-resize {
+  flex-shrink: 0;
+  height: auto;
+  border: 0;
+  margin: 0;
+  width: 5px;
+  cursor: col-resize;
+  background: var(--border);
+  touch-action: none;
+}
+.file-workspace-resize:hover,
+.file-workspace-resize:focus-visible {
+  background: var(--ring);
+  outline: none;
+}
+.file-workspace-tree {
+  width: 280px;
+  min-width: 240px;
+  flex-shrink: 0;
+  border-inline-start: 1px solid var(--border);
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .file-workspace-layout[data-open="true"] .file-workspace-chat {
+    display: none;
+  }
+  .file-workspace-panel {
+    width: 100%;
+    min-width: 0;
+  }
+  .file-workspace-resize {
+    display: none;
+  }
+  .file-workspace-tree {
+    width: 185px;
+  }
+}
+@media (max-width: 560px) {
+  .file-workspace-tree {
+    width: 160px;
+  }
+}
+
+.main-workspace-toolbar {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 12px;
+  z-index: 40;
+  height: 32px;
+  -webkit-app-region: no-drag;
+}
+.file-workspace-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.file-workspace-toolbar [data-slot="button"] {
+  width: 28px;
+  height: 28px;
+}
+[data-main-screen="main"] .main-extension-toolbar {
+  right: 84px;
+}
+
+.file-workspace-layout[data-view-mode="true"] .file-workspace-chat,
+.file-workspace-layout[data-view-mode="true"] .file-workspace-resize {
+  display: none;
+}
+.file-workspace-layout[data-view-mode="true"] .file-workspace-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Workspace controls follow the host toolbar rather than primary action styling. */
+.file-workspace-toolbar .workspace-sidebar-toggle {
+  width: 24px;
+  height: 24px;
+  background-color: transparent;
+  color: var(--sidebar-foreground);
+}
+.file-workspace-toolbar .workspace-sidebar-toggle:hover {
+  background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+.workspace-view-toggle {
+  color: var(--muted-foreground);
+}
+
+.file-workspace-tree[data-collapsed="true"] {
+  width: 36px;
+  min-width: 36px;
+}
+.workspace-explorer-toggle {
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.workspace-explorer-toggle:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}

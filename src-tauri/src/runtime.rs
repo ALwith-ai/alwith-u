@@ -23,12 +23,17 @@ pub struct RuntimeState {
     client: Mutex<Option<Arc<RuntimeClient>>>,
     starting: tokio::sync::Mutex<()>,
     closing: AtomicBool,
+    shutdown_complete: AtomicBool,
     close_signal: tokio::sync::Notify,
 }
 
 impl RuntimeState {
+    pub fn is_closing(&self) -> bool {
+        self.closing.load(Ordering::Acquire)
+    }
+
     pub fn current(&self) -> Result<Arc<RuntimeClient>, String> {
-        if self.closing.load(Ordering::Acquire) {
+        if self.is_closing() {
             return Err("Application is closing".into());
         }
         let client = self.client.lock().unwrap().clone().ok_or("alwith-runtime is not running")?;
@@ -42,17 +47,48 @@ impl RuntimeState {
         self.client.lock().unwrap().as_ref().is_some_and(|current| Arc::ptr_eq(current, client))
     }
 
-    pub fn shutdown(&self) {
-        self.closing.store(true, Ordering::Release);
+    fn begin_shutdown(&self) -> bool {
+        if self.closing.swap(true, Ordering::AcqRel) {
+            return false;
+        }
         self.close_signal.notify_waiters();
-        tauri::async_runtime::block_on(async {
-            let _starting = self.starting.lock().await;
-            let client = self.client.lock().unwrap().take();
-            if let Some(client) = client {
-                client.close(SHUTDOWN_GRACE).await;
-            }
+        true
+    }
+
+    async fn shutdown(&self) {
+        let _starting = self.starting.lock().await;
+        let client = self.client.lock().unwrap().take();
+        if let Some(client) = client {
+            client.close(SHUTDOWN_GRACE).await;
+        }
+        self.shutdown_complete.store(true, Ordering::Release);
+        log::info!("Runtime shutdown complete");
+    }
+
+    /// Last-resort cleanup for a native termination that bypasses ExitRequested.
+    pub fn kill_on_exit(&self) {
+        if let Some(client) = self.client.lock().unwrap().take() {
+            log::warn!("Native termination bypassed graceful Runtime shutdown");
+            client.kill();
+        }
+    }
+}
+
+/// Keep the native event loop alive while IPC replies and Runtime shutdown drain.
+/// Blocking this thread can strand a Tokio worker waiting for a WebKit response.
+pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
+    let state = app.state::<RuntimeState>();
+    if state.shutdown_complete.load(Ordering::Acquire) {
+        return false;
+    }
+    if state.begin_shutdown() {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            app.state::<RuntimeState>().shutdown().await;
+            app.exit(code.unwrap_or(0));
         });
     }
+    true
 }
 
 fn sidecar_path(name: &str) -> Result<PathBuf, String> {
@@ -93,7 +129,7 @@ fn engines_table(app: &AppHandle) -> Result<String, String> {
     #[cfg(not(debug_assertions))]
     let resources = app.path().resource_dir().map_err(|error| error.to_string())?;
     let _ = app;
-    let adapter = resources.join("adapter/codex-acp-v2.mjs");
+    let adapter = resources.join("adapter/codex-bootstrap.mjs");
     if !adapter.is_file() {
         return Err(format!("ACP adapter missing at {}", adapter.display()));
     }
@@ -102,7 +138,7 @@ fn engines_table(app: &AppHandle) -> Result<String, String> {
     let mut engines = json!({"codex": {
         "command": sidecar_path("bun")?,
         "args": ["--no-install", adapter],
-        "env": {"CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
+        "env": {"CODEX_PATH": sidecar_path("alwith-codex-launcher")?, "ALWITH_U_CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
     }});
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
     // bundled Bun (`ALWITH_U_BUN` explicitly overrides it). Never discover Desktop's Bun through PATH.
@@ -313,6 +349,10 @@ pub struct RuntimeExit {
     pub code: Option<i32>,
     pub signal: Option<i32>,
 }
+
+#[cfg(test)]
+#[path = "__tests__/runtime.rs"]
+mod tests;
 
 #[cfg(test)]
 mod binding_tests {

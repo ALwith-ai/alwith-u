@@ -6,13 +6,14 @@ import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
-export type SettingsSection = "general" | "appearance" | "account" | "provider" | "extensions" | "about"
+export type SettingsSection = "general" | "appearance" | "account" | "provider" | "extensions" | "drive" | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   "general",
   "appearance",
   "account",
   "provider",
   "extensions",
+  "drive",
   "about"
 ]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"

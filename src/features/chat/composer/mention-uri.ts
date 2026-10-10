@@ -8,7 +8,7 @@ import { basename } from "@/lib/path"
 export type MentionUri = { kind: "file"; absPath: string }
 
 export function formatMentionUri(m: MentionUri): string {
-  return `file://${encodeURI(m.absPath)}`
+  return `file://${encodeURI(m.absPath).replace(/[?#]/g, encodeURIComponent)}`
 }
 
 /** The `name` of the resource_link: the file name. */

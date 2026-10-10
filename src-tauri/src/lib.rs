@@ -1,9 +1,22 @@
+#[cfg(test)]
+mod codex_launcher;
+
 mod appearance;
 mod auth;
 mod bundled_extensions;
+mod chat_files;
 mod chat_window;
+mod draft_directory;
+mod drive;
 mod extension_capabilities;
+#[cfg(any(target_os = "macos", windows))]
+mod extension_cli;
+#[cfg(any(target_os = "macos", windows))]
+mod extension_control;
+#[cfg(any(target_os = "macos", windows))]
+mod extension_transport;
 mod extension_wire;
+mod html_preview;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -12,11 +25,58 @@ mod providers;
 mod runtime;
 mod updater;
 mod window;
+mod workspace;
+mod workspace_move;
 
 use tauri::{Emitter, Manager};
 
+fn application_context() -> tauri::Context {
+    tauri::generate_context!()
+}
+
+fn extension_cli_args(mut args: impl Iterator<Item = std::ffi::OsString>) -> Result<Option<Vec<String>>, String> {
+    if args.next().is_none_or(|arg| arg != "extension") {
+        return Ok(None);
+    }
+    let mut parsed = vec!["extension".into()];
+    for arg in args {
+        parsed.push(arg.into_string().map_err(|_| "Extension CLI arguments must be UTF-8".to_string())?);
+    }
+    Ok(Some(parsed))
+}
+
+/// Dispatch script commands before Tauri starts or joins the GUI instance.
+pub fn run_extension_cli() -> Option<i32> {
+    #[cfg(windows)]
+    if std::env::args_os().nth(1).is_some_and(|arg| arg == "extension")
+        && let Err(error) = extension_transport::attach_console()
+    {
+        eprintln!("Cannot attach CLI console: {error}");
+        return Some(3);
+    }
+    let args = match extension_cli_args(std::env::args_os().skip(1)) {
+        Ok(Some(args)) => args,
+        Ok(None) => return None,
+        Err(error) => {
+            eprintln!("{error}");
+            return Some(2);
+        }
+    };
+    #[cfg(any(target_os = "macos", windows))]
+    {
+        let context = application_context();
+        Some(extension_cli::run(&args, &context.config().identifier))
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
+    {
+        eprintln!("Extension CLI installation is currently supported on macOS and Windows only");
+        Some(2)
+    }
+}
+
 pub fn run() {
     let builder = tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
@@ -29,6 +89,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
@@ -60,6 +121,10 @@ pub fn run() {
 
     builder
         .on_menu_event(|app, event| {
+            if event.id().0 == menu::QUIT_ID {
+                app.exit(0);
+                return;
+            }
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
@@ -70,6 +135,15 @@ pub fn run() {
         .setup(|app| {
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
+            drive::initialize(app.handle())?;
+            #[cfg(any(target_os = "macos", windows))]
+            {
+                let control = extension_control::ExtensionControl::start(app.handle()).unwrap_or_else(|error| {
+                    log::error!("Extension CLI control is unavailable: {error}");
+                    extension_control::ExtensionControl::failed(error)
+                });
+                app.manage(control);
+            }
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // The window is transparent; macOS paints the sidebar glass behind it (ALwith
             // Desktop's native_window_effects). Panels that must stay opaque paint their own
@@ -94,7 +168,7 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(bindings().invoke_handler())
-        .build(tauri::generate_context!())
+        .build(application_context())
         .expect("error while building ALwith U")
         .run(|app, event| match event {
             // U's main window owns the application lifetime. A hidden settings window must
@@ -102,10 +176,20 @@ pub fn run() {
             tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
                 app.exit(0);
             }
-            // Runtime belongs to the application. All quit paths converge here; shutdown is
-            // synchronous so the async runtime cannot tear down before its children leave.
-            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
-                app.state::<runtime::RuntimeState>().shutdown();
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
+                let closing =
+                    app.state::<runtime::RuntimeState>().is_closing() || app.state::<drive::DriveState>().is_closing();
+                if (!closing && workspace::prevent_exit(app))
+                    || drive::prevent_exit(app, code)
+                    || runtime::prevent_exit(app, code)
+                {
+                    api.prevent_exit();
+                }
+            }
+            tauri::RunEvent::Exit => {
+                #[cfg(any(target_os = "macos", windows))]
+                app.state::<extension_control::ExtensionControl>().stop();
+                app.state::<runtime::RuntimeState>().kill_on_exit();
             }
             _ => {}
         });
@@ -113,53 +197,85 @@ pub fn run() {
 
 /// The native handler and TypeScript exporter use this same command and event graph.
 pub fn bindings() -> tauri3_specta::Bindings {
-    tauri3_specta::commands![
-        bundled_extensions::extension_bundles,
-        legacy_extensions::importer::extension_prepare_install,
-        legacy_extensions::importer::legacy_stage_import,
-        legacy_extensions::importer::legacy_take_initial_data,
-        legacy_extensions::importer::legacy_ack_initial_data,
-        legacy_extensions::importer::legacy_cleanup_import,
-        legacy_extensions::http::legacy_http,
-        legacy_extensions::http::extension_http,
-        extension_capabilities::extension_cleanup_grants,
-        legacy_extensions::files::extension_file,
-        legacy_extensions::files::extension_directories,
-        legacy_extensions::files::extension_pick_directory,
-        legacy_extensions::files::legacy_file,
-        legacy_extensions::files::legacy_directories,
-        legacy_extensions::files::legacy_pick_directory,
-        appearance::wallpaper::wallpaper_list,
-        appearance::wallpaper::wallpaper_import,
-        appearance::wallpaper::wallpaper_remove,
-        auth::refresh_tokens,
-        chat_window::plugin::present_chat_window,
-        chat_window::plugin::resize_chat_window,
-        runtime::runtime_start,
-        runtime::runtime_send,
-        runtime::codex_version,
-        providers::providers_read,
-        providers::providers_save,
-        providers::providers_save_custom,
-        providers::providers_remove_custom,
-        providers::providers_test,
-        providers::providers_apply,
-        updater::commands::updater_get_state,
-        updater::commands::updater_install_and_relaunch,
-        window::attach_window_to_main,
-        installed_apps::read_apps_info,
-        installed_apps::open_path_in_app
-    ]
-    .event::<runtime::RuntimeLines>()
-    .event::<runtime::RuntimeExit>()
-    .event::<providers::Snapshot>()
-    .event::<updater::state::State>()
-    .event::<menu::OpenSettings>()
-    .event::<menu::NewChat>()
-    .event::<menu::FindInChat>()
-    .event::<menu::CommandPalette>()
-    .event::<menu::OpenHotkeys>()
-    .event::<menu::ZoomIn>()
-    .event::<menu::ZoomOut>()
-    .event::<menu::ActualSize>()
+    macro_rules! commands {
+        ($($platform:path),* $(,)?) => {
+            tauri3_specta::commands![
+                $($platform,)*
+                draft_directory::draft_directory,
+                drive::drive_request,
+                chat_files::chat_save_file,
+                chat_files::chat_read_image,
+                workspace::workspace_open,
+                workspace::workspace_import,
+                workspace::workspace_file,
+                workspace::workspace_watch,
+                workspace::workspace_dirty,
+                workspace::workspace_exit,
+                html_preview::html_preview_open,
+                html_preview::html_preview_close,
+                workspace_move::workspace_move_to,
+                bundled_extensions::extension_bundles,
+                legacy_extensions::importer::extension_prepare_install,
+                legacy_extensions::importer::legacy_stage_import,
+                legacy_extensions::importer::legacy_take_initial_data,
+                legacy_extensions::importer::legacy_ack_initial_data,
+                legacy_extensions::importer::legacy_cleanup_import,
+                legacy_extensions::http::legacy_http,
+                legacy_extensions::http::extension_http,
+                extension_capabilities::extension_cleanup_grants,
+                legacy_extensions::files::extension_file,
+                legacy_extensions::files::extension_directories,
+                legacy_extensions::files::extension_pick_directory,
+                legacy_extensions::files::legacy_file,
+                legacy_extensions::business_sharing::legacy_share_business,
+                legacy_extensions::files::legacy_directories,
+                legacy_extensions::files::legacy_pick_directory,
+                appearance::wallpaper::wallpaper_list,
+                appearance::wallpaper::wallpaper_import,
+                appearance::wallpaper::wallpaper_remove,
+                auth::refresh_tokens,
+                chat_window::plugin::present_chat_window,
+                chat_window::plugin::resize_chat_window,
+                runtime::runtime_start,
+                runtime::runtime_send,
+                runtime::codex_version,
+                providers::providers_read,
+                providers::providers_save,
+                providers::providers_save_custom,
+                providers::providers_remove_custom,
+                providers::providers_test,
+                providers::providers_apply,
+                updater::commands::updater_get_state,
+                updater::commands::updater_install_and_relaunch,
+                window::attach_window_to_main,
+                installed_apps::read_apps_info,
+                installed_apps::open_path_in_app
+            ]
+            .event::<runtime::RuntimeLines>()
+            .event::<runtime::RuntimeExit>()
+            .event::<providers::Snapshot>()
+            .event::<updater::state::State>()
+            .event::<menu::OpenSettings>()
+            .event::<menu::NewChat>()
+            .event::<menu::FindInChat>()
+            .event::<menu::ReplaceInFile>()
+            .event::<menu::EditUndo>()
+            .event::<menu::EditRedo>()
+            .event::<menu::CommandPalette>()
+            .event::<menu::OpenHotkeys>()
+            .event::<menu::ZoomIn>()
+            .event::<menu::ZoomOut>()
+            .event::<menu::ActualSize>()
+        };
+    }
+    #[cfg(any(target_os = "macos", windows))]
+    let bindings = commands![
+        extension_control::extension_control_next,
+        extension_control::extension_control_complete,
+        extension_control::extension_control_unavailable,
+        extension_control::extension_control_status,
+    ];
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let bindings = commands![];
+    bindings
 }

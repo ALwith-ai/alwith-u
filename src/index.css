@@ -6,6 +6,7 @@
 @import "./features/chat/codex/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
+@source "../node_modules/@alwith/module-drive/dist";
 
 /* Match Desktop: mirror submenu navigation, but isolate technical notation. */
 :dir(rtl) [data-slot="dropdown-menu-sub-trigger"] > .lucide-chevron-right,

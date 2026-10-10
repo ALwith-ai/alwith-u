@@ -7,6 +7,7 @@
 
 import {
   ActivityIcon,
+  CloudIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftIcon,
@@ -23,9 +24,11 @@ import {
   SearchIcon,
   Trash2Icon
 } from "lucide-react"
+import { DriveArchiveAction } from "@/features/drive/archive-action"
+import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { motion } from "motion/react"
 import type { ReactNode } from "react"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { ThreadSummary } from "@/agent/client"
@@ -154,6 +157,7 @@ function ThreadHoverBody({
           {canRename && (
             <HoverInfoAction icon={<PencilIcon />} label={t("sidebar.rename")} onClick={() => setRenaming(true)} />
           )}
+          <DriveArchiveAction sessionId={thread.sessionId} />
           {thread.archived ? (
             <HoverInfoAction
               icon={<ArchiveRestoreIcon />}
@@ -212,6 +216,7 @@ export function ThreadSidebar({
   onOpenPlugins,
   onOpenExtensions,
   extensionNavigation,
+  drivePanel,
   onSwitchScreen
 }: {
   screen: MainScreen
@@ -225,6 +230,7 @@ export function ThreadSidebar({
   onOpenSettings: () => void
   onOpenPlugins: () => void
   extensionNavigation?: ReactNode
+  drivePanel?: ReactNode
   onOpenExtensions: () => void
   onSwitchScreen: () => void
 }) {
@@ -248,9 +254,14 @@ export function ThreadSidebar({
   const setView = useThreadsUiStore(s => s.setView)
   // Tabs share the navigation icon buttons' 30px row height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
+  const driveVisible = useDriveVisible()
+  useEffect(() => {
+    if (!driveVisible && view === "drive") setView("sessions")
+  }, [driveVisible, view, setView])
   const tabs: { key: SidebarView; title: string; icon: React.ReactNode }[] = [
     { key: "sessions", title: t("sidebar.chats"), icon: <FolderIcon /> },
-    { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> }
+    { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> },
+    { key: "drive", title: t("settings.drive"), icon: <CloudIcon /> }
   ]
   const [pendingDelete, setPendingDelete] = useState<ThreadSummary | null>(null)
   useSidebarOverlay(pendingDelete !== null)
@@ -345,46 +356,50 @@ export function ThreadSidebar({
           <div
             role="tablist"
             className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-[30px] w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
-            {tabs.map(tab => {
-              const active = view === tab.key
-              return (
-                <NavigationMenuIconButton
-                  key={tab.key}
-                  role="tab"
-                  active={active}
-                  expanded={active}
-                  highlight={false}
-                  aria-selected={active}
-                  title={tab.title}
-                  onClick={() => setView(tab.key)}
-                  className={cn(
-                    "relative isolate h-[30px] min-w-[30px] justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-[18px]",
-                    active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
-                  )}>
-                  {active && (
-                    <motion.span
-                      layoutId="navigation-selected-pill"
-                      aria-hidden="true"
-                      className="bg-foreground/8 pointer-events-none absolute inset-0 -z-10 rounded-[10px] [corner-shape:superellipse(1.5)]"
-                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                  )}
-                  {tab.icon}
-                  <span
+            {tabs
+              .filter(tab => tab.key !== "drive" || driveVisible)
+              .map(tab => {
+                const active = view === tab.key
+                return (
+                  <NavigationMenuIconButton
+                    key={tab.key}
+                    role="tab"
+                    active={active}
+                    expanded={active}
+                    highlight={false}
+                    aria-selected={active}
+                    title={tab.title}
+                    onClick={() => setView(tab.key)}
                     className={cn(
-                      "relative z-10 grid",
-                      active
-                        ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
-                        : "ms-0 grid-cols-[0fr] duration-0"
+                      "relative isolate h-[30px] min-w-[30px] justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-[18px]",
+                      active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
                     )}>
-                    <span className="min-w-0 overflow-hidden whitespace-nowrap">{tab.title}</span>
-                  </span>
-                </NavigationMenuIconButton>
-              )
-            })}
+                    {active && (
+                      <motion.span
+                        layoutId="navigation-selected-pill"
+                        aria-hidden="true"
+                        className="bg-foreground/8 pointer-events-none absolute inset-0 -z-10 rounded-[10px] [corner-shape:superellipse(1.5)]"
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                    )}
+                    {tab.icon}
+                    <span
+                      className={cn(
+                        "relative z-10 grid",
+                        active
+                          ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
+                          : "ms-0 grid-cols-[0fr] duration-0"
+                      )}>
+                      <span className="min-w-0 overflow-hidden whitespace-nowrap">{tab.title}</span>
+                    </span>
+                  </NavigationMenuIconButton>
+                )
+              })}
           </div>
         </div>
-        {view === "activity" ? (
+        {view === "drive" ? (
+          drivePanel
+        ) : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
           <Pane viewportClassName="px-1 py-1">

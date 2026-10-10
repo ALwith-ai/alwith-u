@@ -1,3 +1,9 @@
+import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
+import { useDriveArchive } from "@/features/drive/archive-runtime"
+import { WorkspaceHeaderContext } from "@/features/workspace/context"
+import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } from "@/features/drive/drive"
+import { createPortal, flushSync } from "react-dom"
+import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -13,16 +19,16 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
-import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
-import { DRAFT_SESSION_ID, DraftChat, isAuthRequiredError } from "@/features/chat/draft-chat"
-import { drafts } from "@/features/chat/composer/drafts"
+import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
+import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
-import { connectLegacyNavigation } from "@/features/extensions/legacy/navigation"
-import { assertLegacySkills } from "@/features/extensions/legacy/skills"
+import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
+import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
+import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
 import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { CommandPalette } from "@/features/palette/command-palette"
@@ -52,14 +58,20 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
-  const { host: extensions } = useExtensions()
+  useDriveConnection()
+  useDrivePluginBridge()
+  useDriveArchive()
+  const { host: extensions, runtime: extensionRuntime } = useExtensions()
   const { t } = useTranslation()
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
   const globalActions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === null)))
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
+  const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
+  const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
@@ -70,11 +82,19 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")
   const leading = view === "plugins" || view === "extensions" || view === "extension"
   const [extensionView, setExtensionView] = useState<string | null>(null)
-  const openExtension = useCallback((id: string): void => {
-    setExtensionView(id)
-    setLeadingPage("extensions")
-    setView("extension")
-  }, [])
+  const openExtension = useCallback(
+    (id: string): void => {
+      const contribution = extensionRuntime.host.snapshot().views.find(item => item.id === id)
+      if (contribution)
+        showExtensionLimitations(
+          extensionRuntime.snapshot().native?.installations.find(item => item.id === contribution.extensionId)
+        )
+      setExtensionView(id)
+      setLeadingPage("extensions")
+      setView("extension")
+    },
+    [extensionRuntime]
+  )
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
     setPluginsVisited(true)
@@ -86,36 +106,39 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("extensions")
   }, [])
   const session = useSession(selectedId)
-  const legacySession = useRef(session)
-  legacySession.current = session
-  useEffect(
-    () =>
-      connectLegacyNavigation({
-        currentSession: () => {
-          const selected = legacySession.current
-          return selected?.attached
-            ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id }
-            : null
-        },
-        openView: openExtension,
-        send: async (id, text, required) => {
-          if (required.length) {
-            const target = client.state.sessions[id]
-            if (!target?.attached || target.readOnly)
-              throw new Error("已绑定会话当前不可写，请重新打开会话后再操作扩展")
-            const catalog = await client.listSkills([target.cwd], true)
-            assertLegacySkills(
-              required,
-              catalog.data.flatMap(entry => entry.skills)
-            )
-          }
-          await client.prompt(id, [{ type: "text", text }])
-        }
-      }),
-    [openExtension]
-  )
-  const focused = useWindowFocus()
+  const draftSessions = useApp(state => state.draftSessions)
   const { busy, operation } = useSurfaceOperation()
+  const extensionSession = useRef(session)
+  extensionSession.current = session
+  useEffect(() => {
+    const dependencies = {
+      session: (targetId: string) => {
+        const target = client.state.sessions[targetId]
+        return extensionSession.current?.id === targetId && target?.attached && !target.readOnly
+          ? { cwd: target.cwd }
+          : null
+      },
+      skills: async (cwd: string) => {
+        const catalog = await client.listSkills([cwd], true)
+        return catalog.data.flatMap(entry => entry.skills)
+      },
+      present: () => setView("chat"),
+      prompt: (targetId: string, prompt: string) => client.prompt(targetId, [{ type: "text", text: prompt }]),
+      writeDraft: setComposerDraft
+    }
+    return connectExtensionNavigation({
+      currentSession: () => {
+        const selected = extensionSession.current
+        return selected?.attached ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id } : null
+      },
+      openView: openExtension,
+      send: (id, text, required, check) =>
+        operation.run(() => sendExtensionMessage(id, text, required, { ...dependencies, check })),
+      setDraft: (id, text, required, check) =>
+        operation.run(() => setExtensionDraft(id, text, required, { ...dependencies, check }))
+    })
+  }, [openExtension, operation])
+  const focused = useWindowFocus()
 
   useReadVisibleSession(selectedId, focused && view === "chat")
 
@@ -126,9 +149,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void operation
         .run(() =>
           selectThread(thread, {
-            connect: () => client.connect(),
+            connect: async () => {
+              await client.connect()
+              if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
+            },
             unarchive: id => client.unarchive(id),
-            release: releaseChatWindow,
+            release: async id => {
+              const transfer = await releaseChatWindow(id)
+              await client.transferDraft(id, "main")
+              return transfer
+            },
             importDraft,
             open: (id, cwd) => client.open(id, cwd),
             show: id => {
@@ -144,53 +174,25 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  // "New chat", as in Desktop: a draft always has a real session. An unsent draft is reused;
-  // otherwise the selection empties and the draft effect below creates the next session.
   const newChat = useCallback(() => {
     if (operation.busy) return
-    setView("chat")
-    setSelectedId(current => (current !== null && client.isDraft(current) ? current : null))
+    void operation
+      .run(async () => {
+        const directory = extensionSession.current?.cwd
+        await client.discardDraft("main")
+        if (directory) setLastDirectory(directory)
+        importDraft(DRAFT_SESSION_ID, null)
+        setSurfaceGeneration(value => value + 1)
+        setView("chat")
+        setSelectedId(null)
+      })
+      .catch((error: unknown) => toast.error(describe(error)))
   }, [operation])
 
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
-    void savePreference("lastProjectDirectory", directory)
-    // A draft belongs to its folder: moving the draft elsewhere closes it and lets a new one open there.
-    setSelectedId(current => {
-      if (current !== null && client.isDraft(current) && client.state.sessions[current]?.cwd !== directory) {
-        void client.close(current).catch((error: unknown) => toast.error(describe(error)))
-        return null
-      }
-      return current
-    })
+    void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
-
-  // Desktop's "a draft always has a session": with nothing selected and a project known, open a
-  // draft session right away so the composer, slash commands and model picker are live before
-  // the first message. The sidebar lists it only once a message has been sent (client.isDraft).
-  const draftInflight = useRef(false)
-  useEffect(() => {
-    if (connection !== "ready" || selectedId !== null || lastDirectory === null || draftInflight.current) return
-    draftInflight.current = true
-    void (async () => {
-      try {
-        const id = await client.newSession(lastDirectory, drafts.get(DRAFT_SESSION_ID)?.modelId ?? null, {
-          draft: true
-        })
-        setSelectedId(current => {
-          if (current === null) return id
-          void client.close(id).catch(() => undefined)
-          return current
-        })
-      } catch (error) {
-        // Codex refuses session/new for want of a login (-32000): stay on the empty draft, which
-        // sends the user to provider settings on its first send.
-        if (!isAuthRequiredError(error)) toast.error(describe(error))
-      } finally {
-        draftInflight.current = false
-      }
-    })()
-  }, [connection, selectedId, lastDirectory])
 
   const draftCreated = useCallback((id: string) => {
     setSelectedId(id)
@@ -205,6 +207,29 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
       const stopSurface = await serveChatSurface(async action => {
         switch (action.type) {
+          case "present":
+            return operation.run(async () => {
+              const transfer = action.transfer
+              if (!transfer) throw new Error("Returning to main requires a chat transfer")
+              await client.connect()
+              if (transfer.sessionId !== null) {
+                if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
+                await client.transferDraft(transfer.sessionId, "main")
+                await client.open(transfer.sessionId, transfer.cwd)
+              } else {
+                await client.discardDraft("main")
+              }
+              importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
+              setLastDirectory(transfer.cwd)
+              setSelectedId(transfer.sessionId)
+              setSurfaceGeneration(value => value + 1)
+              setView("chat")
+              const win = getCurrentWebviewWindow()
+              await win.unminimize()
+              await win.show()
+              await win.setFocus()
+              return null
+            })
           case "markRead":
             await markRead(action.sessionId)
             return null
@@ -234,7 +259,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
       void shortcut.dispose().catch(error => toast.error(describe(error)))
     }
-  }, [initialPreferences.chatWindowShortcut])
+  }, [initialPreferences.chatWindowShortcut, operation])
 
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.
@@ -408,17 +433,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch(error => toast.error(describe(error)))
     }
-    const newProjectChat = (): void => {
-      if (operation.busy) return
-      if (session !== null) chooseDraftFolder(session.cwd)
-      importDraft(DRAFT_SESSION_ID, null)
-      setSurfaceGeneration(value => value + 1)
-      newChat()
-    }
+    const newProjectChat = newChat
+
     const deleted = (sessionId: string): void => {
       setSelectedId(current => (current === sessionId ? null : current))
     }
-    if (session !== null)
+    if (session !== null && !draftSessions[session.id] && submittingDraftId !== session.id)
       return (
         <ChatView
           key={`${session.id}-${surfaceGeneration}`}
@@ -434,6 +454,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <>
         {connectionNotice}
         <DraftChat
+          owner="main"
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
@@ -444,6 +465,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
+          onSendingChange={(id, sending) =>
+            setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+          }
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
           runOperation={operation.run}
@@ -486,6 +510,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openPlugins}
               onOpenExtensions={openExtensions}
+              drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               extensionNavigation={
                 <ExtensionActions
                   host={extensions}
@@ -511,7 +536,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 </div>
               )}
               {view === "extension" && extensionView !== null ? (
-                <ExtensionPage id={extensionView} onClose={openExtensions} />
+                <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
               ) : leadingPage === "extensions" ? (
                 <div className="min-h-0 flex-1 overflow-auto">
                   <div className="mx-auto w-full max-w-5xl px-6 py-8">
@@ -524,7 +549,31 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           main={
             <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
               {!leading && actionCards}
-              {main}
+              <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
+                <FileWorkspace cwd={session?.cwd ?? lastDirectory}>
+                  <DriveDeleteConfirmation />
+                  <div className="flex min-h-0 flex-1 flex-col">{main}</div>
+                  {driveSidebar &&
+                    createPortal(
+                      <DrivePage
+                        currentProject={session?.cwd ?? lastDirectory}
+                        onOpenProject={root =>
+                          operation.run(async () => {
+                            await client.discardDraft("main")
+                            flushSync(() => {
+                              chooseDraftFolder(root.localPath)
+                              importDraft(DRAFT_SESSION_ID, null)
+                              setSurfaceGeneration(value => value + 1)
+                              setSelectedId(null)
+                              setView("chat")
+                            })
+                          })
+                        }
+                      />,
+                      driveSidebar
+                    )}
+                </FileWorkspace>
+              </WorkspaceHeaderContext.Provider>
             </SidebarInset>
           }>
           <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
@@ -539,6 +588,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             onSelect={select}
           />
           <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
+          <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
           <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
             <ExtensionActions
               host={extensions}
@@ -548,6 +598,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             />
           </div>
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
+            <DriveStatus />
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
           </div>
           <div className="absolute end-2 bottom-0 z-20">

@@ -2,25 +2,78 @@
 
 import { invoke as __t3Invoke } from "@tauri-apps/api/core"
 import {
-  type EventCallback as __t3Callback,
-  emit as __t3Emit,
-  emitTo as __t3EmitTo,
   listen as __t3Listen,
   once as __t3Once,
+  emit as __t3Emit,
+  emitTo as __t3EmitTo,
+  type EventCallback as __t3Callback,
   type EventTarget as __t3Target
 } from "@tauri-apps/api/event"
 
 export const commands = {
+  extensionControlNext: (): Promise<
+    | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+    | { operation: "uninstall"; requestId: string; id: string }
+    | null
+  > =>
+    __t3Invoke<
+      | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+      | { operation: "uninstall"; requestId: string; id: string }
+      | null
+    >("extension_control_next"),
+  extensionControlComplete: (args: {
+    requestId: string
+    result: {
+      id: string
+      version: string
+      packageRevision: string
+      installed: boolean
+      enabled: boolean
+      activeInMainWindow: boolean
+      error: InstallError | null
+    } | null
+    error: string | null
+  }): Promise<null> => __t3Invoke<null>("extension_control_complete", args),
+  extensionControlUnavailable: (args: { message: string }): Promise<null> =>
+    __t3Invoke<null>("extension_control_unavailable", args),
+  extensionControlStatus: (): Promise<null> => __t3Invoke<null>("extension_control_status"),
+  draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
+  chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
+  chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
+    __t3Invoke<ChatImage>("chat_read_image", args),
+  /**
+   *  Opening a project in the main window establishes its scoped filesystem session.
+   */
+  workspaceOpen: (args: { path: string }): Promise<string> => __t3Invoke<string>("workspace_open", args),
+  /**
+   *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
+   */
+  workspaceImport: (args: { root: string; destination: string; paths: string[] }): Promise<null> =>
+    __t3Invoke<null>("workspace_import", args),
+  workspaceFile: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("workspace_file", args),
+  workspaceWatch: (args: { path: string; enabled: boolean }): Promise<null> =>
+    __t3Invoke<null>("workspace_watch", args),
+  workspaceDirty: (args: { dirty: boolean }): Promise<null> => __t3Invoke<null>("workspace_dirty", args),
+  workspaceExit: (): Promise<null> => __t3Invoke<null>("workspace_exit"),
+  htmlPreviewOpen: (args: { root: string; path: string; source: string }): Promise<PreviewLocation> =>
+    __t3Invoke<PreviewLocation>("html_preview_open", args),
+  htmlPreviewClose: (args: { token: string }): Promise<null> => __t3Invoke<null>("html_preview_close", args),
+  workspaceMoveTo: (args: { root: string; sources: string[]; destination: string }): Promise<MoveToOutcome> =>
+    __t3Invoke<MoveToOutcome>("workspace_move_to", args),
   extensionBundles: (): Promise<BundledExtension[]> => __t3Invoke<BundledExtension[]>("extension_bundles"),
   extensionPrepareInstall: (args: {
     expectedId: string | null
   }): Promise<
-    { format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport } | null
+    | { format: "current"; path: string; id: string; version: string; digest: string }
+    | { format: "legacy"; prepared: PreparedImport }
+    | null
   > =>
-    __t3Invoke<{ format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport } | null>(
-      "extension_prepare_install",
-      args
-    ),
+    __t3Invoke<
+      | { format: "current"; path: string; id: string; version: string; digest: string }
+      | { format: "legacy"; prepared: PreparedImport }
+      | null
+    >("extension_prepare_install", args),
   legacyStageImport: (args: { ticket: string; manifest: JsonValue; main: string }): Promise<StagedImport> =>
     __t3Invoke<StagedImport>("legacy_stage_import", args),
   legacyTakeInitialData: (args: {
@@ -56,6 +109,8 @@ export const commands = {
     } | null>("extension_pick_directory", args),
   legacyFile: (args: { extensionId: string; request: FileRequest }): Promise<FileResponse> =>
     __t3Invoke<FileResponse>("legacy_file", args),
+  legacyShareBusiness: (args: { extensionId: string; file: string; value: JsonValue }): Promise<null> =>
+    __t3Invoke<null>("legacy_share_business", args),
   legacyDirectories: (args: { extensionId: string }): Promise<DirectoryGrant[]> =>
     __t3Invoke<DirectoryGrant[]>("legacy_directories", args),
   legacyPickDirectory: (args: {
@@ -130,6 +185,23 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
+  extensionControlNext: string
+  extensionControlComplete: string
+  extensionControlUnavailable: string
+  extensionControlStatus: string
+  draftDirectory: string
+  driveRequest: string
+  chatSaveFile: string
+  chatReadImage: string
+  workspaceOpen: string
+  workspaceImport: string
+  workspaceFile: string
+  workspaceWatch: string
+  workspaceDirty: string
+  workspaceExit: string
+  htmlPreviewOpen: string
+  htmlPreviewClose: string
+  workspaceMoveTo: string
   extensionBundles: string
   extensionPrepareInstall: string
   legacyStageImport: string
@@ -143,6 +215,7 @@ export type CommandErrors = {
   extensionDirectories: string
   extensionPickDirectory: string
   legacyFile: string
+  legacyShareBusiness: string
   legacyDirectories: string
   legacyPickDirectory: string
   wallpaperList: string
@@ -218,6 +291,27 @@ export const events = {
     emit: (payload: FindInChat) => __t3Emit("menu:find-in-chat", payload),
     emitTo: (target: string | __t3Target, payload: FindInChat) => __t3EmitTo(target, "menu:find-in-chat", payload)
   },
+  "menu:replace-in-file": {
+    name: "menu:replace-in-file",
+    listen: (handler: __t3Callback<ReplaceInFile>) => __t3Listen<ReplaceInFile>("menu:replace-in-file", handler),
+    once: (handler: __t3Callback<ReplaceInFile>) => __t3Once<ReplaceInFile>("menu:replace-in-file", handler),
+    emit: (payload: ReplaceInFile) => __t3Emit("menu:replace-in-file", payload),
+    emitTo: (target: string | __t3Target, payload: ReplaceInFile) => __t3EmitTo(target, "menu:replace-in-file", payload)
+  },
+  "menu:edit-undo": {
+    name: "menu:edit-undo",
+    listen: (handler: __t3Callback<EditUndo>) => __t3Listen<EditUndo>("menu:edit-undo", handler),
+    once: (handler: __t3Callback<EditUndo>) => __t3Once<EditUndo>("menu:edit-undo", handler),
+    emit: (payload: EditUndo) => __t3Emit("menu:edit-undo", payload),
+    emitTo: (target: string | __t3Target, payload: EditUndo) => __t3EmitTo(target, "menu:edit-undo", payload)
+  },
+  "menu:edit-redo": {
+    name: "menu:edit-redo",
+    listen: (handler: __t3Callback<EditRedo>) => __t3Listen<EditRedo>("menu:edit-redo", handler),
+    once: (handler: __t3Callback<EditRedo>) => __t3Once<EditRedo>("menu:edit-redo", handler),
+    emit: (payload: EditRedo) => __t3Emit("menu:edit-redo", payload),
+    emitTo: (target: string | __t3Target, payload: EditRedo) => __t3EmitTo(target, "menu:edit-redo", payload)
+  },
   "menu:command-palette": {
     name: "menu:command-palette",
     listen: (handler: __t3Callback<CommandPalette>) => __t3Listen<CommandPalette>("menu:command-palette", handler),
@@ -271,7 +365,21 @@ export type BundledExtension = {
   source: string
 }
 
+export type ChatImage = {
+  data: string
+  mimeType: string
+}
+
 export type CommandPalette = null
+
+export type CompletedMove = {
+  from: string
+  to: string
+}
+
+export type ControlJob =
+  | { operation: "install"; requestId: string; prepared: PreparedInstall; update: boolean; enable: boolean }
+  | { operation: "uninstall"; requestId: string; id: string }
 
 export type CustomInput = CustomInput_Serialize | CustomInput_Deserialize
 
@@ -313,6 +421,10 @@ export type DirectoryGrant = {
 }
 
 export type DisablementReason = "invalidConfiguration"
+
+export type EditRedo = null
+
+export type EditUndo = null
 
 export type FileEntry = {
   name: string
@@ -365,12 +477,23 @@ export type Input = {
   baseUrl?: string | null
 }
 
+export type InstallError = {
+  code: string
+  message: string
+}
+
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key in string]: JsonValue }
 
 export type Metadata = {
   configured: boolean
   region: string | null
   base_url: string | null
+}
+
+export type MoveToOutcome = {
+  moves: CompletedMove[]
+  cloud: boolean
+  error: string | null
 }
 
 export type NewChat = null
@@ -391,7 +514,13 @@ export type PreparedImport = {
 }
 
 export type PreparedInstall =
-  { format: "current"; path: string; id: string } | { format: "legacy"; prepared: PreparedImport }
+  | { format: "current"; path: string; id: string; version: string; digest: string }
+  | { format: "legacy"; prepared: PreparedImport }
+
+export type PreviewLocation = {
+  token: string
+  path: string
+}
 
 export type PublicCustomProvider = PublicCustomProvider_Serialize | PublicCustomProvider_Deserialize
 
@@ -412,6 +541,18 @@ export type PublicCustomProvider_Serialize = {
 export type RefreshedTokens = {
   access_token: string
   refresh_token: string
+}
+
+export type ReplaceInFile = null
+
+export type Report = {
+  id: string
+  version: string
+  packageRevision: string
+  installed: boolean
+  enabled: boolean
+  activeInMainWindow: boolean
+  error: InstallError | null
 }
 
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
@@ -448,6 +589,7 @@ export type StagedImport = {
   id: string
   version: string
   source: string
+  digest: string
 }
 
 /**

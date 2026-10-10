@@ -10,16 +10,15 @@ import {
 import type { LegacyStorage } from "@alwith/module-extension/legacy"
 import { unsupportedLegacyCommand, validateLegacyExport } from "./adapters"
 
-export interface LegacySession {
-  id: string
-  cwd: string
-  title: string
-}
+import { createExtensionChatBridge } from "../chat/bridge"
+import type { ExtensionChatSession } from "../chat/navigation"
+import { createSessionFiles, type SessionFileSource } from "./session-files"
 
 export interface BridgeDependencies {
   binding: CapabilityBinding
   native<T>(command: string, args: Record<string, unknown>): Promise<T>
-  session(): LegacySession | null
+  session(): ExtensionChatSession | null
+  setDraft?(id: string, text: string): Promise<void>
   send(id: string, text: string): Promise<void>
   check(): void
   openView(id: string): void
@@ -29,6 +28,10 @@ export interface BridgeDependencies {
   clipboard(text: string): Promise<void>
   own(dispose: Dispose): Dispose
   primary: boolean
+  imported?: boolean
+  history?: SessionFileSource
+  bindBusinessStorage?(storage: LegacyStorage): Dispose
+  shareCurrent?(value: Json | null): Promise<void>
 }
 
 interface DirectoryGrant {
@@ -59,21 +62,29 @@ function normalizedPath(value: string): string {
 
 /** This bridge translates a finite, reviewed Desktop API surface; native code rechecks every grant. */
 export function createLegacyBridge(extensionId: string, dependencies: BridgeDependencies) {
+  const imported = dependencies.imported !== false
   const commonOptions = {
     native: dependencies.native,
     commands: {
-      file: "legacy_file",
-      pickDirectory: "legacy_pick_directory",
-      directories: "legacy_directories",
-      http: "legacy_http"
+      file: imported ? "legacy_file" : "extension_file",
+      pickDirectory: imported ? "legacy_pick_directory" : "extension_pick_directory",
+      directories: imported ? "legacy_directories" : "extension_directories",
+      http: imported ? "legacy_http" : "extension_http"
     }
   }
   const files = createScopedFileOperations(dependencies.binding, commonOptions)
   const fetch = createBinaryFetch(createBinaryHttp(dependencies.binding, commonOptions))
   const home = `/__alwith_legacy/${extensionId}`
+  const historyRoot = `${home}/.alwith/projects`
+  const history = dependencies.history ? createSessionFiles(historyRoot, dependencies.history) : undefined
+  const appData = `${home}/app-data`
+  const settingsPath = `${appData}/ai.alwith.desktop/settings.json`
+  const unavailable = (message: string): never => {
+    throw new Error(message)
+  }
   const directory = `.alwith/extensions/${extensionId}`
   let storage: LegacyStorage | undefined
-  let target: LegacySession | null = null
+  let target: ExtensionChatSession | null = null
   let exportDirectory: DirectoryGrant | null = null
   const exported = new Map<string, string>()
   const native = async <T>(command: string, args: Record<string, unknown> = {}): Promise<T> => {
@@ -84,6 +95,13 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
   }
   const locate = async (raw: string): Promise<{ scope?: string; path: string }> => {
     const path = normalizedPath(raw)
+    const virtual = path.startsWith(`${home}/`) ? path.slice(home.length + 1) : path
+    if (virtual === ".alwith/projects" || virtual.startsWith(".alwith/projects/")) {
+      unavailable("会话归档暂不支持，其他知识库功能可用")
+    }
+    if (path === appData || path.startsWith(`${appData}/`)) {
+      throw new Error("仅支持读取当前 U 工作目录的只读设置投影")
+    }
     if (path === home || path.startsWith(`${home}/`) || (!path.startsWith("/") && !path.includes(":"))) {
       const relative = path === home ? "." : path.startsWith(`${home}/`) ? path.slice(home.length + 1) : path
       if (relative === directory) return { path: "." }
@@ -108,7 +126,36 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     path: string,
     extra: Record<string, unknown> = {}
   ): Promise<NativeFileResponse> => {
+    const normalized = normalizedPath(path)
+    const virtual = normalized.startsWith(`${home}/`) ? normalized.slice(home.length + 1) : normalized
+    if (virtual === ".alwith/projects" || virtual.startsWith(".alwith/projects/")) {
+      if (!history) throw new Error("会话归档暂不支持，其他知识库功能可用")
+      return history.file(operation, virtual.slice(".alwith/projects".length).replace(/^\//, ""))
+    }
+    if (normalizedPath(path) === settingsPath) {
+      if (operation !== "read" && operation !== "stat") throw new Error("工作目录设置投影是只读的")
+      const session = dependencies.session()
+      const settings = {
+        "window.scopedState": session ? { main: { lastOpenedWorkspace: { path: session.cwd } } } : {},
+        recentWorkspaces: session ? [session.cwd] : []
+      }
+      const body = Array.from(new TextEncoder().encode(JSON.stringify(settings)))
+      return operation === "read"
+        ? { type: "read", body }
+        : { type: "stat", exists: true, size: body.length, mtime: null, isFile: true, isDirectory: false }
+    }
     const location = await locate(path)
+    if (!location.scope && location.path === "current.json" && dependencies.shareCurrent) {
+      if (operation === "remove") await dependencies.shareCurrent(null)
+      if (operation === "write") {
+        const value: Json = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(extra.body as number[]))
+        )
+        // Record the reader's intent before local IO, so a failed private write cannot retain an older shared document.
+        await dependencies.shareCurrent(value)
+        return files.file({ operation, ...location, ...extra } as NativeFileRequest)
+      }
+    }
     if (!location.scope && location.path === "data.json") {
       if (!storage) throw new Error("扩展配置存储尚未绑定或已关闭")
       if (operation === "write") {
@@ -163,15 +210,15 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     const current = dependencies.session()
     if (!current) return
     target = { ...current }
-    dependencies.notify(`扩展分析将发送到会话：${target.title || target.id}`, 5000)
   }
-  const requireTarget = (): LegacySession => {
+  const requireTarget = (): ExtensionChatSession => {
     if (!target) throw new Error("请先打开一个会话，再操作扩展；发送目标在操作开始时绑定")
     return target
   }
   const requireExportDirectory = async (): Promise<DirectoryGrant> => {
     const session = requireTarget()
     if (exportDirectory) return exportDirectory
+    dependencies.notify(`分析文件绑定到会话：${session.title || session.id}`, 5000)
     const grants = await files.directories()
     const existing = grants.find(grant => normalizedPath(grant.path) === normalizedPath(session.cwd))
     if (existing) {
@@ -192,8 +239,10 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       dependencies.check()
       if (storage) throw new Error("扩展配置存储已绑定")
       storage = value
-      return () => {
+      const releaseBusiness = dependencies.bindBusinessStorage?.(value)
+      return async () => {
         if (storage === value) storage = undefined
+        await releaseBusiness?.()
       }
     },
     primary: dependencies.primary,
@@ -209,17 +258,24 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       if (!["https:", "http:"].includes(new URL(url).protocol)) throw new Error("仅支持 HTTP(S) 外部链接")
       await dependencies.openExternal(url)
     },
-    loadInitialData: (): Promise<Json | null> => native("legacy_take_initial_data"),
-    acknowledgeInitialData: (): Promise<void> => native("legacy_ack_initial_data"),
+    ...(imported
+      ? {
+          loadInitialData: (): Promise<Json | null> => native("legacy_take_initial_data"),
+          acknowledgeInitialData: (): Promise<void> => native("legacy_ack_initial_data")
+        }
+      : {}),
     fetch,
-    async sendMessage(text: string): Promise<void> {
-      dependencies.check()
-      const session = requireTarget()
-      let prompt = text
-      for (const [relative, absolute] of exported) prompt = prompt.replaceAll(relative, absolute)
-      await dependencies.send(session.id, prompt)
-      dependencies.check()
-    },
+    ...createExtensionChatBridge({
+      check: dependencies.check,
+      session: () => (exportDirectory ? requireTarget() : dependencies.session()),
+      send: dependencies.send,
+      setDraft: dependencies.setDraft,
+      prepare: text => {
+        let prompt = text
+        for (const [relative, absolute] of exported) prompt = prompt.replaceAll(relative, absolute)
+        return prompt
+      }
+    }),
     vault: {
       async write(path: string, data: string): Promise<void> {
         path = exportPath(path)
@@ -241,10 +297,15 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     },
     async invoke(command: string, args: unknown = {}, options?: unknown): Promise<unknown> {
       dependencies.check()
-      const unavailable = unsupportedLegacyCommand(extensionId, command)
-      if (unavailable) throw new Error(unavailable)
+      if (command === "list_sessions") {
+        if (!history) throw new Error("会话归档暂不支持，其他知识库功能可用")
+        return history.listSessions(normalizedPath(string(object(args).baseDir)))
+      }
+      const reason = unsupportedLegacyCommand(extensionId, command)
+      if (reason) unavailable(reason)
       if (command === "alwith-u:legacy-is-primary") return dependencies.primary
       if (command === "plugin:path|resolve_directory") {
+        if (object(args).directory === 4) return appData
         if (object(args).directory !== 21) throw new Error("不支持访问 Desktop 的应用数据目录")
         return home
       }

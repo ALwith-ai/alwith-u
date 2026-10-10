@@ -5,7 +5,7 @@
 import { create } from "zustand"
 
 /** Desktop's `NavigationItemId`, reduced to the two panels this client has. */
-export type SidebarView = "sessions" | "activity"
+export type SidebarView = "sessions" | "activity" | "drive"
 
 interface ThreadsUiState {
   /** Current sidebar panel: session list or activity. */

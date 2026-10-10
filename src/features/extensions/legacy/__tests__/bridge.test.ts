@@ -6,13 +6,20 @@ import { type BridgeDependencies, createLegacyBridge } from "../bridge"
 function setup(
   extensionId = "yup-kb",
   grants = [{ scope: "grant", path: "/work" }],
-  picked: { scope: string; path: string } | null = { scope: "grant", path: "/work" }
+  picked: { scope: string; path: string } | null = { scope: "grant", path: "/work" },
+  imported = true,
+  history?: BridgeDependencies["history"],
+  shareCurrent?: BridgeDependencies["shareCurrent"]
 ) {
-  let selected = { id: "first", cwd: "/work", title: "First" }
+  let selected: ReturnType<BridgeDependencies["session"]> = { id: "first", cwd: "/work", title: "First" }
   const calls: { command: string; args: Record<string, unknown> }[] = []
+  const notices: string[] = []
   const sent: { id: string; text: string }[] = []
   const scope = new ResourceScope()
   const dependencies: BridgeDependencies = {
+    imported,
+    history,
+    shareCurrent,
     binding: {
       manifest: {
         manifestVersion: 3,
@@ -31,10 +38,12 @@ function setup(
       calls.push({ command, args })
       if (command === "legacy_pick_directory") return picked as T
       if (command === "legacy_directories") return grants as T
-      if (command === "legacy_http")
+      if (command === "legacy_http" || command === "extension_http")
         return { status: 200, url: "https://bi-api.finture.id/test", headers: {}, body: [0, 255, 42] } as T
-      if (command === "legacy_file") {
-        const request = args.request as { operation: string }
+      if (command === "legacy_file" || command === "extension_file") {
+        const request = args.request as { operation: string; path: string }
+        if (request.path.startsWith(".alwith/projects")) throw new Error("会话归档暂不支持，其他知识库功能可用")
+        if (request.operation === "list") return { type: "list", entries: [] } as T
         if (request.operation === "read") return { type: "read", body: [] } as T
         return { type: "ok" } as T
       }
@@ -46,7 +55,10 @@ function setup(
     },
     check: () => {},
     openView: () => {},
-    notify: () => ({ hide() {}, setMessage() {} }),
+    notify: message => {
+      notices.push(message)
+      return { hide() {}, setMessage() {} }
+    },
     language: () => "zh-CN",
     openExternal: async () => {},
     clipboard: async () => {},
@@ -57,27 +69,83 @@ function setup(
     bridge: createLegacyBridge(extensionId, dependencies),
     calls,
     sent,
+    notices,
     dispose: () => scope.dispose(),
+    clear: () => {
+      selected = null
+    },
     select: () => {
       selected = { id: "second", cwd: "/other", title: "Second" }
     }
   }
 }
 
+test("shares the current reader document and clears it before removing the local pointer", async () => {
+  const shared: unknown[] = []
+  const { bridge } = setup("yup-kb", [], null, true, undefined, async value => {
+    shared.push(value)
+  })
+  const path = "/__alwith_legacy/yup-kb/.alwith/extensions/yup-kb/current.json"
+  await bridge.invoke("plugin:fs|write_text_file", new TextEncoder().encode(JSON.stringify({ fileId: 42 })), {
+    headers: { path: encodeURIComponent(path) }
+  })
+  expect(shared).toEqual([{ fileId: 42 }])
+  await bridge.invoke("plugin:fs|remove", { path })
+  expect(shared).toEqual([{ fileId: 42 }, null])
+  const failing = setup("yup-kb", [], null, true, undefined, async () => {
+    throw new Error("sharing unavailable")
+  })
+  await expect(failing.bridge.invoke("plugin:fs|remove", { path })).rejects.toThrow("sharing unavailable")
+  expect(failing.calls).toEqual([])
+})
+
+test("routes legacy session discovery and JSONL reads through the read-only history source", async () => {
+  const history = {
+    list: async () => [{ sessionId: "s", cwd: "/work", title: "Session", updatedAt: null, archived: false }],
+    read: async () => '{"type":"user","message":{"content":"Hello"}}\n',
+    check: () => {}
+  }
+  const { bridge, calls } = setup("yup-kb", [], null, true, history)
+  const root = "/__alwith_legacy/yup-kb/.alwith/projects"
+  expect(await bridge.invoke("list_sessions", { baseDir: root })).toEqual([
+    expect.objectContaining({ id: "s", project_dir: "-work", path: `${root}/-work/s.jsonl` })
+  ])
+  expect(await bridge.invoke("plugin:fs|read_dir", { path: root })).toEqual([
+    { name: "-work", isDirectory: true, isFile: false }
+  ])
+  const body = (await bridge.invoke("plugin:fs|read_text_file", { path: `${root}/-work/s.jsonl` })) as number[]
+  expect(new TextDecoder().decode(new Uint8Array(body))).toContain('"Hello"')
+  await expect(bridge.invoke("plugin:fs|remove", { path: `${root}/-work/s.jsonl` })).rejects.toThrow("只读")
+  expect(calls).toEqual([])
+})
+
 describe("legacy host boundary", () => {
-  test("binds a chat explicitly and never retargets an in-flight operation", async () => {
-    const { bridge, sent, select } = setup()
+  test("binds each plain chat send to the current session", async () => {
+    const { bridge, sent, select } = setup("bi-metrics")
     bridge.captureChatContext()
+    await bridge.sendMessage("first request")
     select()
-    bridge.captureChatContext()
-    await bridge.sendMessage("analyze")
-    expect(sent).toEqual([{ id: "first", text: "analyze" }])
+    await bridge.sendMessage("second request")
+    expect(sent).toEqual([
+      { id: "first", text: "first request" },
+      { id: "second", text: "second request" }
+    ])
   })
 
-  test("does not infer a destination at send time", async () => {
-    const { bridge, sent } = setup()
+  test("does not use the old captured chat when no chat is selected", async () => {
+    const { bridge, sent, clear } = setup("bi-metrics")
+    bridge.captureChatContext()
+    clear()
     await expect(bridge.sendMessage("analyze")).rejects.toThrow("会话")
     expect(sent).toHaveLength(0)
+  })
+
+  test("does not retarget a send after it starts", async () => {
+    const { bridge, sent, select } = setup("bi-metrics")
+    const pending = bridge.sendMessage("analyze")
+    select()
+    await pending
+    expect(sent).toEqual([{ id: "first", text: "analyze" }])
   })
 
   test("serializes multipart boundaries and retains binary responses", async () => {
@@ -236,3 +304,69 @@ test.each([null, { scope: "wrong", path: "/other" }])(
     }
   }
 )
+
+test("projects the current U workspace through read-only Desktop settings without granting files", async () => {
+  const { bridge, calls, select } = setup()
+  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const path = `${appData}/ai.alwith.desktop/settings.json`
+  const read = async (): Promise<unknown> => {
+    const bytes = (await bridge.invoke("plugin:fs|read_text_file", { path })) as number[]
+    return JSON.parse(new TextDecoder().decode(new Uint8Array(bytes)))
+  }
+  expect(await read()).toEqual({
+    "window.scopedState": { main: { lastOpenedWorkspace: { path: "/work" } } },
+    recentWorkspaces: ["/work"]
+  })
+  select()
+  expect(await read()).toMatchObject({ recentWorkspaces: ["/other"] })
+  await expect(
+    bridge.invoke("plugin:fs|write_text_file", new TextEncoder().encode("{}"), {
+      headers: { path: encodeURIComponent(path) }
+    })
+  ).rejects.toThrow("只读")
+  expect(calls).toHaveLength(0)
+})
+
+test("rejects background archival without showing a popup even when a parent is granted", async () => {
+  const { bridge, calls, notices } = setup("yup-kb", [{ scope: "home", path: "/Users/example" }])
+  for (const path of [
+    "/__alwith_legacy/yup-kb/.alwith/projects",
+    "/Users/example/.alwith/projects/project/session.jsonl"
+  ]) {
+    await expect(bridge.invoke("plugin:fs|read_dir", { path })).rejects.toThrow("会话归档暂不支持")
+  }
+  expect(notices).toEqual([])
+  expect(calls.at(-1)?.args.request).toMatchObject({ path: ".alwith/projects/project/session.jsonl" })
+})
+
+test("formal plugins use common native IO and never request legacy migration", async () => {
+  const { bridge, calls } = setup("new-plugin", [], null, false)
+  expect(bridge.loadInitialData).toBeUndefined()
+  expect(bridge.acknowledgeInitialData).toBeUndefined()
+  await bridge.invoke("plugin:fs|read_text_file", { path: "notes.json" })
+  await bridge.fetch("https://api.github.com/example")
+  expect(calls.map(call => call.command)).toEqual(["extension_file", "extension_http"])
+})
+
+test("workspace projection represents no selected session and refuses other Desktop metadata", async () => {
+  const { bridge, calls, clear } = setup()
+  clear()
+  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const bytes = (await bridge.invoke("plugin:fs|read_text_file", {
+    path: `${appData}/ai.alwith.desktop/settings.json`
+  })) as number[]
+  expect(JSON.parse(new TextDecoder().decode(new Uint8Array(bytes)))).toEqual({
+    "window.scopedState": {},
+    recentWorkspaces: []
+  })
+  await expect(
+    bridge.invoke("plugin:fs|read_text_file", { path: `${appData}/ai.alwith.desktop/credentials.json` })
+  ).rejects.toThrow("只读设置投影")
+  expect(calls).toHaveLength(0)
+})
+
+test("does not confuse an authorized business directory with Desktop's actual archive", async () => {
+  const { bridge, calls } = setup("yup-kb", [{ scope: "home", path: "/Users/example" }])
+  expect(await bridge.invoke("plugin:fs|read_dir", { path: "/Users/example/business/.alwith/projects" })).toEqual([])
+  expect(calls.at(-1)?.args.request).toMatchObject({ scope: "home", path: "business/.alwith/projects" })
+})

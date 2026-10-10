@@ -6,14 +6,14 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import type { Session } from "@alwith/api"
 import { ImageIcon } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
 import { client, useApp } from "@/lib/client"
 import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
-import { drafts } from "./composer/drafts"
+import { drafts, registerComposerWriter } from "./composer/drafts"
 import { MentionChips } from "./composer/mention-chips"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
@@ -75,10 +75,17 @@ export function Composer({
   session,
   onSubmit,
   modelSelector,
-  inputHeader
+  inputHeader,
+  disabled = false,
+  preparing = false,
+  allowPendingInput = false
 }: {
   session: Session
-  /** The empty draft owns the first send: it creates the session, then prompts. */
+  disabled?: boolean
+  preparing?: boolean
+  /** Draft input stays editable while session preparation blocks submission. */
+  allowPendingInput?: boolean
+  /** The draft surface owns the transition after the first prompt is accepted. */
   onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
   /** Before session/new, the host owns the initial model selection. */
   modelSelector?: import("react").ReactNode
@@ -95,19 +102,31 @@ export function Composer({
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
   const active = session.state !== "idle"
-  const ready = session.attached && !session.restoring && !session.readOnly
+  const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
+  const inputReady = !session.readOnly && (allowPendingInput || ready)
 
   useEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
   }, [session.id, text, attachments, mentions])
 
+  useLayoutEffect(
+    () =>
+      registerComposerWriter(session.id, value => {
+        if (!inputReady || sending) throw new Error("当前输入框不可写，请稍后重试")
+        if (text.length || attachments.length || mentions.length)
+          throw new Error("输入框已有草稿，请先发送或清空后重试")
+        setText(value)
+      }),
+    [session.id, inputReady, sending, text, attachments, mentions]
+  )
+
   const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
   const searchFiles = useMemo(
     () =>
-      fileSearchAvailable
+      fileSearchAvailable && ready
         ? async (query: string) => (await client.fuzzyFileSearch({ query, roots: [session.cwd] })).files
         : undefined,
-    [fileSearchAvailable, session.cwd]
+    [fileSearchAvailable, ready, session.cwd]
   )
   const addMention = useCallback((path: string) => {
     setMentions(current => (current.includes(path) ? current : [...current, path]))
@@ -193,6 +212,12 @@ export function Composer({
           accept={IMAGE_TYPES.join(",")}
           onError={onAttachmentError}
           onSubmit={submit}
+          onSubmitCapture={event => {
+            if (!ready || sending) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+          }}
           className="relative z-10">
           <PromptInputHeader>
             <MentionChips
@@ -206,7 +231,7 @@ export function Composer({
               className="min-h-10"
               ref={textareaRef}
               rows={2}
-              disabled={!ready}
+              disabled={!inputReady}
               placeholder={active ? t("chat.steerPlaceholder") : t("chat.placeholder")}
               aria-label={t("chat.placeholder")}
             />
@@ -220,7 +245,7 @@ export function Composer({
                   onOpenChange={setSlashMenuOpen}
                   disabled={!ready || session.commands.length === 0}
                 />
-                <AttachImageButton disabled={!ready} />
+                <AttachImageButton disabled={!inputReady} />
                 <PermissionModeSelect sessionId={session.id} options={session.configOptions} disabled={!ready} />
               </div>
               <PromptInputTools className="w-full min-w-0 items-center justify-end gap-1">
@@ -228,7 +253,7 @@ export function Composer({
                 {modelSelector ?? (
                   <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
                 )}
-                <ChatSubmitButton active={active} sending={sending} ready={ready} onStop={stop} />
+                <ChatSubmitButton active={active} sending={sending || preparing} ready={ready} onStop={stop} />
               </PromptInputTools>
             </div>
           </PromptInputFooter>

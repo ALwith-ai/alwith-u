@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "drive-deep-link",
+  "description": "Only the main window consumes ALwith U Drive deep links",
+  "windows": ["main"],
+  "permissions": ["deep-link:allow-get-current"]
+}

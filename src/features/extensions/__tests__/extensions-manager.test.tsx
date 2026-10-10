@@ -379,3 +379,21 @@ test("disabled extensions render Lucide metadata icons locally without image req
   expect(row.querySelector("img")).toBeNull()
   expect(view.actions).toEqual([])
 })
+
+test("does not show a compatibility notice for supported Yup history", () => {
+  const snapshot = state()
+  snapshot.native.installations = [{ ...installation("yup-kb", "Knowledge"), source: "legacy:alwith-u" }]
+  const view = setup(snapshot)
+  expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
+})
+
+test("keeps Yup activation errors visible without a compatibility notice", () => {
+  const snapshot = state()
+  snapshot.native.installations = [{ ...installation("yup-kb", "Knowledge"), source: "legacy:alwith-u" }]
+  snapshot.errors["yup-kb"] = "Activation failed"
+  const view = setup(snapshot)
+  expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
+  expect(view.getByText("Activation failed")).toBeTruthy()
+  expect(view.getByRole("switch").getAttribute("aria-checked")).toBe("true")
+  expect(view.actions).toEqual([])
+})

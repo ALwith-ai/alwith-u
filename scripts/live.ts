@@ -41,6 +41,18 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
   if (projectThreads.some(thread => thread.cwd !== directory))
     throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
+    const exported = await client.exportHistory(id, () => {})
+    const messages = exported
+      .trim()
+      .split("\n")
+      .map(line => JSON.parse(line))
+    const exportedText = messages
+      .filter(message => message.type === "assistant")
+      .flatMap(message => message.message.content as { type: string; text: string }[])
+      .map(block => block.text)
+      .join("")
+    if (exportedText.trim() !== original.trim() || messages.filter(message => message.type === "user").length !== 1)
+      throw new Error(`Read-only export of ${id} differs from the live transcript`)
     if (!projectThreads.some(thread => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from project list`)
     if (!client.state.threads.some(thread => thread.sessionId === id))
@@ -85,7 +97,16 @@ async function check(transport: "stdio" | "ws") {
     await client.connect()
     console.log(`agent: ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
 
-    const [a, b] = await Promise.all([client.newSession(directory), client.newSession(directory)])
+    const draft = await client.prepareDraft("main", directory)
+    if (!client.session(draft).configOptions.some(option => option.category === "model"))
+      throw new Error("Precreated draft has no model selector")
+    if ((await client.listProjectThreads(directory)).some(thread => thread.sessionId === draft))
+      throw new Error("Precreated draft leaked into the project index")
+    await client.discardDraft("main")
+    if (client.state.sessions[draft]) throw new Error("Discarded draft is still attached")
+    console.log("draft: real model options before sending; empty session cleaned up")
+
+    const [a, b] = await Promise.all([client.prepareDraft("main", directory), client.prepareDraft("chat", directory)])
     await Promise.all([
       client.prompt(a, [
         {
@@ -100,6 +121,10 @@ async function check(transport: "stdio" | "ws") {
         }
       ])
     ])
+    if (client.state.draftSessions[a] || client.state.draftSessions[b])
+      throw new Error("Accepted prompts did not materialize the drafts")
+    await client.discardDraft("main")
+    if (!client.state.sessions[a]) throw new Error("Discard removed a submitted conversation")
     await until(
       () => client.session(a).state === "idle" && client.session(b).state === "idle",
       120_000,

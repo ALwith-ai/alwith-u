@@ -16,6 +16,9 @@ const CLOSED = "chat:client-closed"
 const METHODS = [
   "connect",
   "newSession",
+  "prepareDraft",
+  "discardDraft",
+  "transferDraft",
   "fork",
   "readThreadSummary",
   "open",
@@ -233,6 +236,8 @@ export class RemoteChatClient extends CodexClient {
       sessions: {},
       actions: [],
       runStates: {},
+      draftSessions: {},
+      configPending: {},
       threads: []
     })
   }
@@ -241,6 +246,15 @@ export class RemoteChatClient extends CodexClient {
     const session = this.state.sessions[id]
     if (!session) throw new Error(`Unknown session: ${id}`)
     return session
+  }
+  override prepareDraft(...args: Parameters<CodexClient["prepareDraft"]>): Promise<string> {
+    return this.request("prepareDraft", args)
+  }
+  override discardDraft(...args: Parameters<CodexClient["discardDraft"]>): Promise<void> {
+    return this.request("discardDraft", args)
+  }
+  override transferDraft(...args: Parameters<CodexClient["transferDraft"]>): Promise<void> {
+    return this.request("transferDraft", args)
   }
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", args)

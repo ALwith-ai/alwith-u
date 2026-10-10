@@ -1,4 +1,4 @@
-//! Snapshot-based local legacy import with digest-pinned business compatibility. The remote loader is inspected, never executed.
+//! Snapshot-based legacy import with optional compatibility metadata. The remote loader is inspected, never executed.
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -22,11 +22,8 @@ const MAX_SOURCE: u64 = 8 * 1024 * 1024;
 pub(super) struct Profile {
     pub(super) id: String,
     icon: Option<String>,
-    source_sha256: String,
-    patched_sha256: String,
-    url: String,
     #[serde(default)]
-    pub(super) network_hosts: Vec<String>,
+    url: Option<String>,
     #[serde(default)]
     data_files: Vec<String>,
 }
@@ -37,15 +34,60 @@ pub(super) fn profiles() -> Result<Vec<Profile>, String> {
 fn profile(id: &str) -> Result<Option<Profile>, String> {
     Ok(profiles()?.into_iter().find(|p| p.id == id))
 }
-fn source_requires_download(hash: &str, profile: Option<&Profile>) -> Result<bool, String> {
-    match profile {
-        Some(profile) if hash == profile.source_sha256 => Ok(false),
-        Some(_) if hash == LOADER_SHA256 => Ok(true),
-        Some(_) => Err("旧版加载器或代码不属于已审核版本".into()),
-        None if hash == LOADER_SHA256 => Err("此远程加载器没有已审核的扩展配置；请选择扩展本体".into()),
-        None => Ok(false),
+fn remote_source_url(hash: &str, manifest: &Value, profile: Option<&Profile>) -> Result<Option<reqwest::Url>, String> {
+    if hash != LOADER_SHA256 {
+        return Ok(None);
     }
+    if let Some(value) = manifest.get("updateUrl").and_then(Value::as_str).filter(|value| !value.trim().is_empty()) {
+        let mut url = super::http::validate_url(value)?;
+        let path =
+            url.path().strip_suffix("manifest.json").ok_or("Remote loader updateUrl must end in manifest.json")?;
+        let path = format!("{path}main.js");
+        url.set_path(&path);
+        return Ok(Some(url));
+    }
+    let value = profile
+        .and_then(|profile| profile.url.as_deref())
+        .ok_or("远程加载器缺少代码下载地址；请提供 updateUrl 或选择包含完整 main.js 的扩展目录")?;
+    super::http::validate_url(value).map(Some)
 }
+async fn download_source(url: reqwest::Url) -> Result<Vec<u8>, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("Extension source download exceeded 10 redirects")
+            } else if let Err(error) = super::http::validate_url(attempt.url().as_str()) {
+                attempt.error(error)
+            } else {
+                attempt.follow()
+            }
+        }))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("下载扩展代码失败：{e}"))?
+        .error_for_status()
+        .map_err(|e| format!("下载扩展代码失败：{e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("下载扩展代码失败：HTTP {}", response.status()));
+    }
+    if response.content_length().is_some_and(|size| size > MAX_SOURCE) {
+        return Err("Legacy source is too large".into());
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if bytes.len() + chunk.len() > MAX_SOURCE as usize {
+            return Err("Legacy source is too large".into());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
 fn digest(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
@@ -109,7 +151,7 @@ fn relative_path(value: &str) -> Result<&Path, String> {
     Ok(Path::new(value))
 }
 
-fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, PackageFiles), String> {
+fn snapshot_package(root: &Path) -> Result<PackageFiles, String> {
     fn collect(root: &Path, path: &Path, files: &mut PackageFiles, size: &mut usize) -> Result<(), String> {
         let relative = path.strip_prefix(root).map_err(|e| e.to_string())?;
         if relative.components().count() > 64 {
@@ -141,6 +183,11 @@ fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, P
     }
     let mut files = PackageFiles::new();
     collect(root, root, &mut files, &mut 0)?;
+    Ok(files)
+}
+
+fn snapshot_files(root: &Path, data_names: &[String]) -> Result<(PackageFiles, PackageFiles), String> {
+    let mut files = snapshot_package(root)?;
     let mut data = PackageFiles::new();
     for name in data_names.iter().map(String::as_str).chain(["data.json"]) {
         relative_path(name)?;
@@ -286,8 +333,17 @@ fn require_main(window: &tauri::Window) -> Result<(), String> {
 #[derive(Serialize, specta::Type)]
 #[serde(tag = "format", rename_all = "camelCase")]
 pub enum PreparedInstall {
-    Current { path: String, id: String },
+    Current { path: String, id: String, version: String, digest: String },
     Legacy { prepared: PreparedImport },
+}
+
+impl PreparedInstall {
+    pub(crate) fn id(&self) -> Result<&str, String> {
+        match self {
+            Self::Current { id, .. } => Ok(id),
+            Self::Legacy { prepared } => prepared.manifest["id"].as_str().ok_or_else(|| "Missing prepared ID".into()),
+        }
+    }
 }
 
 fn is_legacy_manifest(manifest: &Value) -> Result<bool, String> {
@@ -334,20 +390,40 @@ pub async fn extension_prepare_install(
     let Some(selected) = selected else {
         return Ok(None);
     };
-    let directory = selected.into_path().map_err(|e| e.to_string())?.canonicalize().map_err(|e| e.to_string())?;
+    let directory = selected.into_path().map_err(|e| e.to_string())?;
+    prepare_install_from_directory(&window, &directory, expected_id.as_deref()).await.map(Some)
+}
+
+/// The caller owns native authorization: a folder picker or an authenticated local CLI request.
+pub(crate) async fn prepare_install_from_directory(
+    window: &tauri::Window, directory: &Path, expected_id: Option<&str>,
+) -> Result<PreparedInstall, String> {
+    require_main(window)?;
+    let app = window.app_handle().clone();
+    let directory = directory.canonicalize().map_err(|e| e.to_string())?;
     let manifest: Value = serde_json::from_slice(&read_regular(&directory.join("manifest.json"), 128 * 1024)?)
         .map_err(|e| format!("Invalid extension manifest: {e}"))?;
     let id = manifest.get("id").and_then(Value::as_str).ok_or("Extension manifest has no id")?;
-    if expected_id.as_deref().is_some_and(|expected| expected != id) {
+    if expected_id.is_some_and(|expected| expected != id) {
         return Err("所选目录不是正在更新的扩展".into());
     }
     if !is_legacy_manifest(&manifest)? {
+        // Pin the same bytes the installer will consume; changes after preparation fail the digest check.
+        let package_files = snapshot_package(&directory)?;
+        let snapshot_manifest: Value =
+            serde_json::from_slice(package_files.get("manifest.json").ok_or("Manifest disappeared")?)
+                .map_err(|e| e.to_string())?;
+        if snapshot_manifest != manifest {
+            return Err("Extension manifest changed during import".into());
+        }
         alwith_extension::plugin::grant_install(&app, window.label(), &directory, "local")
             .map_err(|e| e.to_string())?;
-        return Ok(Some(PreparedInstall::Current {
+        return Ok(PreparedInstall::Current {
             path: directory.to_str().ok_or("Invalid extension directory path")?.into(),
             id: id.into(),
-        }));
+            version: manifest["version"].as_str().ok_or("Extension version missing")?.into(),
+            digest: package_revision(&package_files),
+        });
     }
     let p = profile(id)?;
     // Validate metadata now as well as on staging, before downloading anything.
@@ -363,37 +439,11 @@ pub async fn extension_prepare_install(
     if local.len() as u64 > MAX_SOURCE {
         return Err("Legacy source is too large".into());
     }
-    let source = if !source_requires_download(&digest(&local), p.as_ref())? {
-        local
+    let source = if let Some(url) = remote_source_url(&digest(&local), &manifest, p.as_ref())? {
+        download_source(url).await?
     } else {
-        let p = p.as_ref().ok_or("Missing reviewed profile")?;
-        let client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| e.to_string())?;
-        let mut response = client
-            .get(&p.url)
-            .send()
-            .await
-            .map_err(|e| format!("下载已审核扩展代码失败：{e}"))?
-            .error_for_status()
-            .map_err(|e| format!("下载已审核扩展代码失败：{e}"))?;
-        if response.content_length().is_some_and(|size| size > MAX_SOURCE) {
-            return Err("Legacy source is too large".into());
-        }
-        let mut bytes = Vec::new();
-        while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-            if bytes.len() + chunk.len() > MAX_SOURCE as usize {
-                return Err("Legacy source is too large".into());
-            }
-            bytes.extend_from_slice(&chunk);
-        }
-        bytes
+        local
     };
-    if p.as_ref().is_some_and(|p| digest(&source) != p.source_sha256) {
-        return Err("服务器代码与已审核版本不一致，请等待兼容配置更新；未执行远程代码".into());
-    }
     let styles = files.remove("styles.css").unwrap_or_default();
     let initial_data = data_files
         .remove("data.json")
@@ -419,7 +469,7 @@ pub async fn extension_prepare_install(
         prepared.ticket.clone(),
         ImportTicket { window: window.label().into(), prepared: prepared.clone(), initial_data, files, data_files },
     );
-    Ok(Some(PreparedInstall::Legacy { prepared }))
+    Ok(PreparedInstall::Legacy { prepared })
 }
 
 fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String> {
@@ -490,7 +540,7 @@ fn validate_entry(
         || digest(options.source.as_bytes()) != expected_source_hash
         || options.modules != *modules
     {
-        return Err("Legacy entry differs from the reviewed compatibility source".into());
+        return Err("Legacy entry differs from the prepared compatibility source".into());
     }
     Ok(())
 }
@@ -500,6 +550,7 @@ pub struct StagedImport {
     id: String,
     version: String,
     source: String,
+    digest: String,
 }
 #[tauri3_specta::command]
 pub fn legacy_stage_import(
@@ -517,12 +568,10 @@ pub fn legacy_stage_import(
         return Err("Legacy import ticket belongs to another window".into());
     }
     let id = pending.prepared.manifest.get("id").and_then(Value::as_str).ok_or("Legacy manifest has no id")?;
-    let p = profile(id)?;
     if manifest != pending.prepared.converted_manifest {
         return Err("Converted legacy manifest does not match".into());
     }
-    let expected_source =
-        p.as_ref().map_or_else(|| digest(pending.prepared.source.as_bytes()), |p| p.patched_sha256.clone());
+    let expected_source = digest(pending.prepared.source.as_bytes());
     validate_entry(&main, &pending.prepared.manifest, &expected_source, &pending.prepared.modules)?;
     let manifest_bytes = serde_json::to_vec(&manifest).map_err(|e| e.to_string())?;
     let staging = tempfile::tempdir().map_err(|e| e.to_string())?;
@@ -550,7 +599,7 @@ pub fn legacy_stage_import(
     let registry_path = registry_path(window.app_handle())?;
     let mut registry = read_registry(&registry_path)?;
     let revision = package_revision(&files);
-    registry.entry(id.into()).or_default().entry(revision).or_insert(certificate);
+    registry.entry(id.into()).or_default().entry(revision.clone()).or_insert(certificate);
     save_registry(&registry_path, &registry)?;
     alwith_extension::plugin::grant_install(window.app_handle(), window.label(), staging.path(), SOURCE)
         .map_err(|e| e.to_string())?;
@@ -559,6 +608,7 @@ pub fn legacy_stage_import(
         id: id.into(),
         version: manifest["version"].as_str().ok_or("Invalid legacy version")?.into(),
         source: SOURCE.into(),
+        digest: revision,
     };
     state.staging.lock().map_err(|_| "Legacy staging lock poisoned")?.push(staging);
     Ok(result)
@@ -658,14 +708,42 @@ pub fn legacy_cleanup_import(window: tauri::Window, extension_id: String) -> Res
     {
         return Err("Legacy cleanup requires a completed uninstall".into());
     }
-    let state = window.state::<LegacyImports>();
+    cleanup_import_records(window.app_handle(), &extension_id)
+}
+
+pub(crate) fn cleanup_import_records(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+    let state = app.state::<LegacyImports>();
     let _guard = state.registry_lock.lock().map_err(|_| "Legacy registry lock poisoned")?;
-    let path = registry_path(window.app_handle())?;
+    let path = registry_path(app)?;
     let mut registry = read_registry(&path)?;
-    registry.remove(&extension_id);
+    registry.remove(extension_id);
     save_registry(&path, &registry)?;
     drop(_guard);
-    super::files::clear_grants(window.app_handle(), &extension_id)
+    super::files::clear_grants(app, extension_id)
+}
+
+/// Follow file -> registry -> SDK order used by file migration and staged imports.
+pub(crate) fn cleanup_uninstalled(
+    app: &tauri::AppHandle, extension_id: &str, purge: bool, cleanup_files: impl FnOnce() -> Result<(), String>,
+) -> Result<(), String> {
+    super::files::with_file_lock(app, || {
+        let state = app.state::<LegacyImports>();
+        let _guard = state.registry_lock.lock().map_err(|_| "Legacy registry lock poisoned")?;
+        alwith_extension::plugin::cleanup_uninstalled(app, extension_id, purge, || {
+            let cleanup = (|| -> Result<(), String> {
+                if purge {
+                    let path = registry_path(app)?;
+                    let mut registry = read_registry(&path)?;
+                    registry.remove(extension_id);
+                    save_registry(&path, &registry)?;
+                    cleanup_files()?;
+                }
+                super::files::clear_grants_locked(app, extension_id)
+            })();
+            cleanup.map_err(|message| alwith_extension::ServiceError { code: "cleanupFailed".into(), message })
+        })
+        .map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]
@@ -715,14 +793,77 @@ mod tests {
         assert_eq!(fs::read(root.join("workspaces.json")).unwrap(), b"[1]");
     }
     #[test]
-    fn known_remote_loader_never_falls_back_for_an_unknown_id() {
-        assert!(source_requires_download(LOADER_SHA256, None).is_err());
-        assert!(!source_requires_download(&digest(b"local source"), None).unwrap());
+    fn local_source_does_not_require_a_reviewed_digest() {
         let p = profile("bi-metrics").unwrap().unwrap();
-        assert!(source_requires_download(LOADER_SHA256, Some(&p)).unwrap());
-        assert!(!source_requires_download(&p.source_sha256, Some(&p)).unwrap());
-        assert!(source_requires_download(&digest(b"unreviewed"), Some(&p)).is_err());
+        let manifest = json!({"id":"bi-metrics"});
+        assert!(remote_source_url(&digest(b"updated source"), &manifest, Some(&p)).unwrap().is_none());
+        assert!(remote_source_url(&digest(b"local source"), &manifest, None).unwrap().is_none());
     }
+
+    #[test]
+    fn remote_loader_uses_manifest_address_without_a_profile() {
+        let loader = LOADER_SHA256;
+        let manifest = json!({"id":"weather-local","updateUrl":"http://localhost:8080/ext/manifest.json?token=value"});
+        assert_eq!(
+            remote_source_url(loader, &manifest, None).unwrap().unwrap().as_str(),
+            "http://localhost:8080/ext/main.js?token=value"
+        );
+        let p = profile("bi-metrics").unwrap().unwrap();
+        assert_eq!(remote_source_url(loader, &json!({}), Some(&p)).unwrap().unwrap().as_str(), p.url.unwrap());
+        assert!(remote_source_url(loader, &json!({}), None).unwrap_err().contains("updateUrl"));
+        assert!(remote_source_url(loader, &json!({"updateUrl":"file:///manifest.json"}), None).is_err());
+        assert!(remote_source_url(loader, &json!({"updateUrl":"https://example.com/other.json"}), None).is_err());
+    }
+
+    #[test]
+    fn downloads_updated_source_through_redirects_and_rejects_non_success() {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let source = b"module.exports = class UpdatedExtension {};";
+        let server = std::thread::spawn(move || {
+            for path in ["/main.js", "/bundle.js", "/not-modified"] {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    request.extend_from_slice(&chunk[..count]);
+                }
+                assert!(String::from_utf8(request).unwrap().starts_with(&format!("GET {path} HTTP/1.1")));
+                match path {
+                    "/main.js" => stream.write_all(b"HTTP/1.1 302 Found\r\nLocation: /bundle.js\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap(),
+                    "/bundle.js" => {
+                        write!(stream, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", source.len()).unwrap();
+                        stream.write_all(source).unwrap();
+                    }
+                    "/not-modified" => stream.write_all(b"HTTP/1.1 304 Not Modified\r\nConnection: close\r\n\r\n").unwrap(),
+                    _ => unreachable!(),
+                }
+            }
+        });
+        let downloaded = tauri::async_runtime::block_on(download_source(
+            reqwest::Url::parse(&format!("http://{address}/main.js")).unwrap(),
+        ))
+        .unwrap();
+        assert_eq!(downloaded, source);
+        let error = tauri::async_runtime::block_on(download_source(
+            reqwest::Url::parse(&format!("http://{address}/not-modified")).unwrap(),
+        ))
+        .unwrap_err();
+        assert!(error.contains("304"), "{error}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn compatibility_metadata_does_not_require_download_or_network_configuration() {
+        let p: Profile = serde_json::from_value(json!({"id":"weather-local"})).unwrap();
+        assert_eq!(p.id, "weather-local");
+        assert!(p.data_files.is_empty());
+    }
+
     #[test]
     fn settings_snapshot_has_an_aggregate_eight_mib_limit() {
         let dir = tempfile::tempdir().unwrap();
@@ -862,12 +1003,15 @@ mod tests {
         assert_eq!(manifest["version"], "2.20.0");
         assert!(manifest.get("author").is_none());
         assert!(manifest.get("updateUrl").is_none());
-        assert!(validate_entry("module.exports = function() {}", &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(
+            validate_entry("module.exports = function() {}", &old, &digest(b"prepared source"), &BTreeMap::new())
+                .is_err()
+        );
         let forged = format!(
             "{ENTRY_PREFIX}{}{ENTRY_SUFFIX}",
             json!({"manifest":old,"source":"unreviewed()","styles":"styles.css"})
         );
-        assert!(validate_entry(&forged, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&forged, &old, &digest(b"prepared source"), &BTreeMap::new()).is_err());
         assert!(profile("unknown").unwrap().is_none());
     }
     #[test]
@@ -996,18 +1140,18 @@ mod tests {
 
     #[test]
     fn wrapper_payload_is_json_data_and_rejects_executable_suffixes() {
-        let mut p = profile("etms-strategy-review").unwrap().unwrap();
+        let p = profile("etms-strategy-review").unwrap().unwrap();
         let old = json!({"id":p.id,"name":"ETMS","version":"0.1.0"});
         let source = "module.exports = class {};";
-        p.patched_sha256 = digest(source.as_bytes());
+        let expected_source = digest(source.as_bytes());
         let payload = json!({"manifest":old,"source":source,"styles":"styles.css"});
         let entry = format!("{ENTRY_PREFIX}{payload}{ENTRY_SUFFIX}");
-        assert!(validate_entry(&entry, &old, &p.patched_sha256, &BTreeMap::new()).is_ok());
+        assert!(validate_entry(&entry, &old, &expected_source, &BTreeMap::new()).is_ok());
         let injected = format!("{ENTRY_PREFIX}{payload}); evil(); ({ENTRY_SUFFIX}");
-        assert!(validate_entry(&injected, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&injected, &old, &expected_source, &BTreeMap::new()).is_err());
         let wrong_styles =
             format!("{ENTRY_PREFIX}{}{ENTRY_SUFFIX}", json!({"manifest":old,"source":source,"styles":"data.json"}));
-        assert!(validate_entry(&wrong_styles, &old, &p.patched_sha256, &BTreeMap::new()).is_err());
+        assert!(validate_entry(&wrong_styles, &old, &expected_source, &BTreeMap::new()).is_err());
     }
 
     #[test]

@@ -1,11 +1,13 @@
 import { ask } from "@tauri-apps/plugin-dialog"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { commands } from "@/bindings"
 import { ExtensionMount } from "./extension-view"
-import { ExtensionsManager } from "./extensions-manager"
-import { convertLegacyExtension, type PreparedLegacyImport } from "./legacy/import"
+import { ExtensionsManager, type ExtensionInstallPhase } from "./extensions-manager"
+import { executePreparedInstall } from "./install-service"
 import { LEGACY_SOURCE } from "./legacy/profiles"
+import { showExtensionLimitations } from "./legacy/limitations"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
 import { reportExtensionError, useExtensions } from "./runtime"
 
@@ -13,6 +15,7 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)
+  const [installPhase, setInstallPhase] = useState<ExtensionInstallPhase | null>(null)
   const run = (action: () => Promise<void>): void => {
     setOperation(true)
     void action()
@@ -21,41 +24,44 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
   }
   const busy = operation || state.busy
   const install = async (id?: string): Promise<void> => {
-    const selected = await commands.extensionPrepareInstall({ expectedId: id ?? null })
-    if (!selected) return
-    if (selected.format === "legacy") {
-      await importLegacy(selected.prepared)
-      return
+    setInstallPhase("preparing")
+    try {
+      const selected = await commands.extensionPrepareInstall({ expectedId: id ?? null })
+      if (!selected) return
+      setInstallPhase("installing")
+      const result = await executePreparedInstall(
+        runtime,
+        selected,
+        { update: id !== undefined || selected.format === "legacy" },
+        {
+          stageLegacy: (ticket, converted) => commands.legacyStageImport({ ticket, ...converted })
+        }
+      )
+      if (result.error) throw new Error(result.error.message)
+      toast.success(t("extensions.installSuccess", { name: result.id }))
+    } finally {
+      setInstallPhase(null)
     }
-    await runtime.request(
-      id
-        ? { type: "beginTransition", id, action: "update", path: selected.path, source: "local" }
-        : { type: "installLocal", path: selected.path, source: "local", expectedId: selected.id }
-    )
-  }
-  const importLegacy = async (prepared: PreparedLegacyImport): Promise<void> => {
-    const converted = await convertLegacyExtension(prepared)
-    const existing = runtime.snapshot().native?.installations.find(item => item.id === converted.manifest.id)
-    if (existing && existing.source !== LEGACY_SOURCE) throw new Error(t("extensions.legacyConflict"))
-    const staged = await commands.legacyStageImport({
-      ticket: prepared.ticket,
-      ...converted
-    })
-    await runtime.request(
-      existing
-        ? { type: "beginTransition", id: staged.id, action: "update", path: staged.path, source: staged.source }
-        : { type: "installLocal", path: staged.path, source: staged.source, expectedId: staged.id }
-    )
-    if (!existing) await runtime.request({ type: "enable", id: staged.id })
   }
   return (
     <ExtensionsManager
       state={state}
       host={host}
       busy={busy}
+      installPhase={installPhase}
       onOpenSurface={onOpenSurface}
       onInstall={id => run(() => install(id))}
-      onRequest={request => run(() => runtime.request(request))}
+      onRequest={request =>
+        run(async () => {
+          await runtime.request(request)
+          if (request.type === "enable") {
+            await runtime.settled()
+            const current = runtime.snapshot()
+            if (!current.errors[request.id])
+              showExtensionLimitations(current.native?.installations.find(item => item.id === request.id))
+          }
+        })
+      }
       onUninstall={(id, name) =>
         run(async () => {
           if (

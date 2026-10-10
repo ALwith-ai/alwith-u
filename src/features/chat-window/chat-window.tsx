@@ -7,8 +7,7 @@ import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
-import { drafts } from "@/features/chat/composer/drafts"
-import { DRAFT_SESSION_ID, DraftChat, isAuthRequiredError } from "@/features/chat/draft-chat"
+import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import {
   announceChatReady,
@@ -33,14 +32,20 @@ function report(error: unknown): void {
 export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const { t } = useTranslation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)
   const [generation, setGeneration] = useState(0)
   const [ready, setReady] = useState(false)
+  const [contentMounted, setContentMounted] = useState(false)
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const current = useRef({ selectedId, cwd })
   current.current = { selectedId, cwd }
   const connection = useApp(state => state.connection)
   const session = useSession(selectedId)
+  const draftSessions = useApp(state => state.draftSessions)
+  // A replacement is published before its retired id disappears and before
+  // DraftChat receives the reply that binds the replacement to this surface.
+  const replacingDraft = session === null && Object.values(draftSessions).includes("chat")
   const runState = useApp(state => (selectedId === null ? null : state.runStates[selectedId]?.state))
   const focused = useWindowFocus()
   const providers = useProviders()
@@ -54,7 +59,10 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const reconnect = useCallback(async (): Promise<void> => {
     await client.connect()
     const { selectedId, cwd } = current.current
-    if (selectedId !== null && !client.state.sessions[selectedId]) {
+    // During replacement, the owner may already hold the new draft while the
+    // mounted surface is still awaiting its response. Do not resume the retired id.
+    const preparingDraft = Object.values(client.state.draftSessions).includes("chat")
+    if (selectedId !== null && !client.state.sessions[selectedId] && !preparingDraft) {
       if (cwd === null) throw new Error("A chat session must have a working directory")
       await client.open(selectedId, cwd)
     }
@@ -62,33 +70,31 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
 
   const hide = useCallback(async (): Promise<void> => {
     await getCurrentWebviewWindow().hide()
+    // Native hiding keeps the draft mounted so pending replacements still bind
+    // their new session and carry the input forward while the window is hidden.
   }, [])
+  const returnToMain = useCallback(() => {
+    void operation
+      .run(async () => {
+        await requestChatSurface("main", { type: "present", transfer: await capture() })
+        await hide()
+        setContentMounted(false)
+        setSelectedId(null)
+        setGeneration(value => value + 1)
+      })
+      .catch(report)
+  }, [capture, hide, operation])
   const newChat = useCallback(() => {
     if (operation.busy) return
-    setSelectedId(current => (current !== null && client.isDraft(current) ? current : null))
-    importDraft(DRAFT_SESSION_ID, null)
-    setGeneration(value => value + 1)
+    void operation
+      .run(async () => {
+        await client.discardDraft("chat")
+        setSelectedId(null)
+        importDraft(DRAFT_SESSION_ID, null)
+        setGeneration(value => value + 1)
+      })
+      .catch(report)
   }, [operation])
-  // Desktop's "a draft always has a session", as in the main window.
-  const draftInflight = useRef(false)
-  useEffect(() => {
-    if (connection !== "ready" || selectedId !== null || cwd === null || draftInflight.current) return
-    draftInflight.current = true
-    void (async () => {
-      try {
-        const id = await client.newSession(cwd, drafts.get(DRAFT_SESSION_ID)?.modelId ?? null, { draft: true })
-        setSelectedId(current => {
-          if (current === null) return id
-          void client.close(id).catch(() => undefined)
-          return current
-        })
-      } catch (error) {
-        if (!isAuthRequiredError(error)) report(error)
-      } finally {
-        draftInflight.current = false
-      }
-    })()
-  }, [connection, selectedId, cwd])
 
   const newProject = useCallback(() => {
     void operation
@@ -96,6 +102,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         const directory = await chooseFolder(current.current.cwd)
         if (directory === null) return
         setCwd(directory)
+        if (current.current.selectedId === null || client.state.draftSessions[current.current.selectedId] === "chat")
+          return
         setSelectedId(null)
         importDraft(DRAFT_SESSION_ID, null)
         setGeneration(value => value + 1)
@@ -138,13 +146,16 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 const transfer = action.transfer
                 if (transfer.sessionId !== null) {
                   if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
+                  await client.transferDraft(transfer.sessionId, "chat")
                   await client.open(transfer.sessionId, transfer.cwd)
                 }
+                if (transfer.sessionId === null) await client.discardDraft("chat")
                 importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
                 setCwd(transfer.cwd)
                 setSelectedId(transfer.sessionId)
                 setGeneration(value => value + 1)
               }
+              setContentMounted(true)
               await presentChatWindow()
               return null
             }
@@ -152,6 +163,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               if (current.current.selectedId !== action.sessionId) return null
               const transfer = await capture()
               await hide()
+              // A handoff releases this surface; it must not prepare another draft.
+              setContentMounted(false)
               setSelectedId(null)
               setGeneration(value => value + 1)
               return transfer
@@ -233,16 +246,25 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         )}
       <div className="min-h-0 flex-1">
         {ready &&
-          (selectedId === null ? (
+          contentMounted &&
+          (selectedId === null ||
+          replacingDraft ||
+          draftSessions[selectedId] === "chat" ||
+          submittingDraftId === selectedId ? (
             <DraftChat
+              owner="chat"
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
+              onReturnToMain={returnToMain}
               runOperation={operation.run}
               key={`draft-${generation}`}
               cwd={cwd}
               onCwdChange={setCwd}
               onCreated={setSelectedId}
+              onSendingChange={(id, sending) =>
+                setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+              }
               onAuthRequired={() => void openSettingsWindow("provider")}
               providerSnapshot={providers}
             />
@@ -253,9 +275,11 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
+              onReturnToMain={returnToMain}
               onSelectThread={thread => {
                 void operation
                   .run(async () => {
+                    if (client.state.draftSessions[thread.sessionId] !== "chat") await client.discardDraft("chat")
                     await client.open(thread.sessionId, thread.cwd)
                     setCwd(thread.cwd)
                     setSelectedId(thread.sessionId)

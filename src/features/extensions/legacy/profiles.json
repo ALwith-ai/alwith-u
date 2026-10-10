@@ -2,117 +2,31 @@
   {
     "id": "bi-metrics",
     "icon": "lucide:chart",
-    "sourceSha256": "150bded59b67c05b1f18c5ee34af6733230cb6a5cadd5e85abe1716e049e5805",
-    "patchedSha256": "2eeb6cac67585145a9cfa84a5ad65cb7105b13569bd49694d5b61b3463e499d1",
     "url": "https://bi-api.finture.id/api/ext/bi-metrics/main.js",
-    "patches": [
-      {
-        "before": "    // skill 自更新：后台跑，不 await（拉不到/写不了都不影响插件启动）。\n    setTimeout(function () {\n      syncSkillsToDisk(self.settings, function () { return self.saveSettings(); })\n        .then(function (r) {\n          if (r && r.written > 0) {\n            try { new obs.Notice(\"✅ AI 指令(skill)已更新到最新版（\" + r.written + \" 个文件）\", 3000); } catch (e) {}\n          }\n        })\n        .catch(function () { /* 静默：skill 同步失败不该打扰用户 */ });\n    }, 1500);\n\n",
-        "after": "    // U manages skills through the Codex catalog.\n\n"
-      },
-      {
-        "before": "    await this.loadSettings();",
-        "after": "    await this.loadSettings();\n    this._uPrimary = await window.__TAURI_INTERNALS__.invoke(\"alwith-u:legacy-is-primary\", {});"
-      },
-      {
-        "before": "    var min = this.settings.refresh_minutes;",
-        "after": "    if (!this._uPrimary) return;\n    var min = this.settings.refresh_minutes;"
-      },
-      {
-        "before": "    leaf.setViewState({\n      type: DETAIL_VIEW_TYPE,",
-        "after": "    leaf._uReady = leaf.setViewState({\n      type: DETAIL_VIEW_TYPE,"
-      },
-      {
-        "before": "  if (!leaf) return;\n  // setHtml 闭包：每次被调时再解 leaf.view（此时 setViewState 已落定）；",
-        "after": "  if (!leaf) return;\n  // U awaits the detail lifecycle before a fast response can replace its loading state.\n  if (leaf._uReady) await leaf._uReady;\n  // setHtml 闭包：每次被调时再解 leaf.view（此时 setViewState 已落定）；"
-      }
-    ],
-    "networkHosts": ["bi-api.finture.id"],
     "dataFiles": [],
     "requiredSkills": ["bi-add-metric", "bi-monthly-report"],
     "exportFilePattern": null,
-    "unsupportedCommands": {}
+    "unsupportedCommands": {},
+    "limitations": []
   },
   {
     "id": "yup-kb",
     "icon": "lucide:globe",
-    "sourceSha256": "53536c9c1af6312551d106c1b0acdfac6dd551c67f19d789b74ab789b1fd972f",
-    "patchedSha256": "f2f54cecd1e9f0fc9726ad2e5c86e19c0b567104db7f22442f8e0e0c8a30d6bb",
     "url": "https://bi-api.finture.id/api/ext/yup-kb/main.js",
-    "patches": [
-      {
-        "before": "    // ── Sessions sync init ─────────────────────────────────────────────────────\n    // Prefer sync-state.json (avoids hot-reload on write). Fall back to legacy\n    // data.json._sessionsSync for one-time migration; once migrated, data.json\n    // is no longer written by sync, so windows stay open.\n    var fileState = await this._loadSyncStateFromFile();\n    var rawSyncData = await this.loadData();\n    var legacyState = rawSyncData ? rawSyncData._sessionsSync : null;\n    this._sessionsSyncState = Object.assign(\n      { synced: {}, consented: false, archiveProjectId: null, lastSyncAt: null, lastScanAt: null, monthFolderIds: {}, lastRunLog: null },\n      legacyState || {},\n      fileState || {}\n    );\n    // Show consent dialog on first load (non-blocking; don't await so UI loads fast)\n    this._setupConsentBroadcastListener();\n    this._showConsentIfNeeded();\n    if (this._sessionsSyncState.consented === true) {\n      this._startSessionsSync();\n    }\n\n",
-        "after": "    // Conversation archival is unavailable in U.\n    this._sessionsSyncState = { synced: {}, consented: false };\n\n"
-      },
-      {
-        "before": "    // ── AI 对话同步 section ──────────────────────────────────────────────────\n    c.createEl(\"h3\", { text: \"AI 对话归档同步\" });\n    var syncState = self.plugin._sessionsSyncState || {};\n\n    var syncStatus = syncState.consented === true ? \"已启用\" :\n                     syncState.consented === \"declined\" ? \"未启用（已拒绝）\" : \"未启用\";\n    var lastScan = syncState.lastScanAt\n      ? new Date(syncState.lastScanAt).toLocaleString()\n      : \"从未\";\n    var lastUpload = syncState.lastSyncAt\n      ? new Date(syncState.lastSyncAt).toLocaleString()\n      : \"从未\";\n    var syncedCount = Object.keys(syncState.synced || {}).length;\n\n    var lastRunLog = syncState.lastRunLog;\n    var lastRunText = \"\";\n    if (lastRunLog\n        && typeof lastRunLog.scanned === \"number\" && isFinite(lastRunLog.scanned)\n        && typeof lastRunLog.uploaded === \"number\" && isFinite(lastRunLog.uploaded)\n        && typeof lastRunLog.durationMs === \"number\" && isFinite(lastRunLog.durationMs)\n        && typeof lastRunLog.at === \"number\" && lastRunLog.at > 0\n        && !isNaN(new Date(lastRunLog.at).getTime())) {\n      var logTime = new Date(lastRunLog.at).toLocaleTimeString();\n      var dur = lastRunLog.durationMs < 1000\n        ? lastRunLog.durationMs + \"ms\"\n        : (lastRunLog.durationMs / 1000).toFixed(1) + \"s\";\n      var skipped = lastRunLog.scanned - lastRunLog.uploaded;\n      lastRunText = \"扫描 \" + lastRunLog.scanned + \" · 上传 \" + lastRunLog.uploaded +\n        \" · 跳过 \" + skipped + \" · 耗时 \" + dur + \"（\" + logTime + \"）\";\n    }\n\n    var statusEl = c.createEl(\"p\");\n    statusEl.style.cssText = \"font-size:12px;line-height:1.7;opacity:0.8;margin:0 0 8px;\";\n    this._statusEl = statusEl; // keep reference for in-place updates\n    statusEl.innerHTML =\n      \"<strong>状态：</strong>\" + syncStatus + \"<br>\" +\n      \"<strong>最后扫描：</strong>\" + lastScan + \"<br>\" +\n      \"<strong>最后上传：</strong>\" + lastUpload + \"<br>\" +\n      \"<strong>已同步会话：</strong>\" + syncedCount + \" 个\" +\n      (lastRunText ? \"<br><strong>上次运行：</strong>\" + lastRunText : \"\");\n\n    new import_obsidian.Setting(c)\n      .setName(syncState.consented === true ? \"停止同步\" : \"启用同步\")\n      .setDesc(syncState.consented === true\n        ? \"停止后将不再同步对话。已上传的不受影响\"\n        : \"启用后每 5 分钟扫描并上传变更的 alwith 对话 jsonl 文件\")\n      .addButton(function (b) {\n        b.setButtonText(syncState.consented === true ? \"停止同步\" : \"启用同步\")\n          .onClick(async function () {\n            var ss = self.plugin._sessionsSyncState;\n            if (ss.consented === true) {\n              ss.consented = \"declined\";\n              self.plugin._stopSessionsSync();\n            } else {\n              ss.consented = true;\n              self.plugin._startSessionsSync();\n            }\n            await self.plugin._saveSyncState();\n            await self.plugin._saveConsentToData(ss.consented);\n            // Refresh settings display — force full rebuild so button label updates\n            self.display(true);\n          });\n      });\n\n    new import_obsidian.Setting(c)\n      .setName(\"立即同步一次\")\n      .setDesc(\"不等 5 分钟定时，现在立刻扫描并上传\")\n      .addButton(function (b) {\n        b.setButtonText(\"立即同步\").onClick(async function () {\n          if (self.plugin._isSyncing) return;\n          b.setButtonText(\"同步中…\");\n          b.setDisabled(true);\n          try {\n            await self.plugin._scanAndUploadSessions();\n            var newCount = Object.keys(self.plugin._sessionsSyncState.synced || {}).length;\n            try { new import_obsidian.Notice(\"同步完成，共 \" + newCount + \" 个会话已归档\", 3000); } catch (_e) {}\n          } catch (e2) {\n            try { new import_obsidian.Notice(\"同步失败：\" + (e2 && e2.message ? e2.message : String(e2)), 5000); } catch (_e) {}\n          }\n          b.setButtonText(\"立即同步\");\n          b.setDisabled(false);\n          self.refreshStatus();\n        });\n      });\n  }\n\n",
-        "after": "    c.createEl(\"h3\", { text: \"AI 对话归档同步\" });\n    c.createEl(\"p\", { text: \"会话归档暂不支持，其他知识库功能可用\" });\n  }\n\n"
-      },
-      {
-        "before": "  _startSessionsSync() {\n    var self = this;\n    if (self._sessionsSyncTimer) return; // already running\n    // Claim window-level sync ownership so stale instances from hot-reloads cannot race us.\n    window.__yupKbSyncOwner = self;\n    // Run immediately once, then every 5 minutes. Store both handles so onunload can cancel.\n    self._sessionsSyncInitTimer = setTimeout(function () {\n      self._sessionsSyncInitTimer = null;\n      if (window.__yupKbSyncOwner !== self) return; // superseded by a newer instance\n      self._scanAndUploadSessions();\n    }, 10000);\n    self._sessionsSyncTimer = setInterval(function () {\n      if (window.__yupKbSyncOwner !== self) return; // superseded\n      self._scanAndUploadSessions();\n    }, 5 * 60 * 1000);\n  }\n\n",
-        "after": "  _startSessionsSync() {\n    throw new Error(\"会话归档暂不支持，其他知识库功能可用\");\n  }\n\n"
-      },
-      {
-        "before": "  async _scanAndUploadSessions() {",
-        "after": "  async _scanAndUploadSessions() {\n    throw new Error(\"会话归档暂不支持，其他知识库功能可用\");"
-      },
-      {
-        "before": "  async _showConsentIfNeeded() {",
-        "after": "  async _showConsentIfNeeded() {\n    return; // U does not request consent for an unavailable feature."
-      },
-      {
-        "before": "    // Option 1: recent/current directories from alwith stores\n    // Primary: settings.json → window.scopedState → lastOpenedWorkspace.path (most reliable)\n    // Fallback: settings.json → recentWorkspaces[0] (recently opened)\n    // Last resort: parse workspace.json keys to collect folder paths\n    var _recentPaths = []; // ordered: most-likely-current first\n    try {\n      var _appData = await window.__TAURI_INTERNALS__.invoke(\"plugin:path|resolve_directory\", { directory: 4 });\n      var _appId = \"ai.alwith.desktop\";\n\n      // ① Primary: settings.json → window.scopedState (most accurate for current window)\n      try {\n        var _settingsPath = _appData + \"/\" + _appId + \"/settings.json\";\n        var _settingsArr = await window.__TAURI_INTERNALS__.invoke(\"plugin:fs|read_text_file\", { path: _settingsPath, options: {} });\n        var _settingsBytes = _settingsArr instanceof ArrayBuffer ? _settingsArr : Uint8Array.from(_settingsArr);\n        var _settingsData = JSON.parse(new TextDecoder(\"utf-8\").decode(_settingsBytes));\n\n        // Extract from window.scopedState (each window's lastOpenedWorkspace.path)\n        var _scopedState = _settingsData[\"window.scopedState\"] || {};\n        var _scopedPaths = [];\n        Object.values(_scopedState).forEach(function(v) {\n          if (v && v.lastOpenedWorkspace && v.lastOpenedWorkspace.path) {\n            var p = v.lastOpenedWorkspace.path;\n            if (!_scopedPaths.includes(p)) _scopedPaths.push(p);\n          }\n        });\n\n        // If we found scoped paths, use them (most recent first based on object iteration order)\n        if (_scopedPaths.length > 0) {\n          _recentPaths = _scopedPaths;\n        } else if (_settingsData.recentWorkspaces && _settingsData.recentWorkspaces.length > 0) {\n          // Fallback to recentWorkspaces array\n          _recentPaths = _settingsData.recentWorkspaces.slice();\n        }\n      } catch (_e1) {}\n\n      // ② Last resort: parse workspace.json keys (folder:/path:setting → extract path)\n      if (_recentPaths.length === 0) {\n        try {\n          var _wsPath = _appData + \"/\" + _appId + \"/workspace.json\";\n          var _wsArr = await window.__TAURI_INTERNALS__.invoke(\"plugin:fs|read_text_file\", { path: _wsPath, options: {} });\n          var _wsBytes = _wsArr instanceof ArrayBuffer ? _wsArr : Uint8Array.from(_wsArr);\n          var _wsData = JSON.parse(new TextDecoder(\"utf-8\").decode(_wsBytes));\n          var _seen = {};\n          Object.keys(_wsData).forEach(function(k) {\n            var m = k.match(/^folder:(.+):[^:]+$/);\n            if (m && !_seen[m[1]]) { _seen[m[1]] = true; _recentPaths.push(m[1]); }\n          });\n        } catch (_e2) {}\n      }\n    } catch (_e) {}\n\n",
-        "after": "    // Current U workspace is resolved by the host capability.\n    var _recentPaths = await window.__TAURI_INTERNALS__.invoke(\"alwith-u:legacy-workspaces\", {});\n\n"
-      },
-      {
-        "before": "        if (window.__TAURI_INTERNALS__) {\n          mgr.autoLinkSessions(ws.id).catch(function () {});\n        }",
-        "after": "        // Session discovery is unavailable in U."
-      },
-      {
-        "before": "      mkItem(\"同步最新会话\", null, function () {\n        mgr.autoLinkSessions(ws.id).then(function () {\n          self._toast(\"已关联 \" + ws.linkedSessionDirs.length + \" 个会话\");\n        });\n      });\n",
-        "after": "      mkItem(\"会话归档暂不支持\", null, function () {\n        self._toast(\"会话归档暂不支持，其他知识库功能可用\");\n      });\n"
-      },
-      {
-        "before": "    self._showSessionPickerModal(ws, mgr, function (selectedSessions) {\n      ws.linkedSessionDirs = selectedSessions;\n      mgr._saveQueued();\n      doUpload();\n    }, function () {\n      syncBtn.disabled = false;\n      progressEl.style.display = \"none\";\n    });\n  }\n\n",
-        "after": "    self._toast(\"仅同步本地文件；会话归档暂不支持\");\n    doUpload();\n  }\n\n"
-      },
-      {
-        "before": "  async _autoLinkSessionsForWs(ws) {\n    if (!window.__TAURI_INTERNALS__) return;\n    try {\n      var home = await _fsHomeDir();\n      var alwithRoot = await _fsJoin(home, \".alwith\", \"projects\");\n      // Scope to the vault-dir that matches ws.localPath (same logic as _discoverSessions)\n      var scanRoot = alwithRoot;\n      if (ws.localPath) {\n        var vaultDir = ws.localPath.replace(/\\\\/g, \"/\").replace(/\\//g, \"-\");\n        var candidate = alwithRoot + \"/\" + vaultDir;\n        try { await _fsStat(candidate); scanRoot = candidate; } catch (_e) {}\n      }\n      // One Tauri invoke returns all sessions with title, modified_ms\n      var entries = await _tauriInvoke(\"list_sessions\", { baseDir: scanRoot });\n      // Use modified_ms: include sessions active in the last 7 days\n      var threshold = Date.now() - 7 * 24 * 60 * 60 * 1000;\n      var linked = new Set(ws.linkedSessionDirs);\n      for (var i = 0; i < entries.length; i++) {\n        var e = entries[i];\n        if (e.kind !== \"session\") continue;\n        if ((e.modified_ms || 0) >= threshold) linked.add(e.path);\n      }\n      ws.linkedSessionDirs = Array.from(linked).slice(-200);\n    } catch (_e) {}\n  }\n\n",
-        "after": "  async _autoLinkSessionsForWs(ws) {\n    throw new Error(\"会话归档暂不支持，其他知识库功能可用\");\n  }\n\n"
-      },
-      {
-        "before": "  async _discoverSessions(ws) {\n    var results = [];\n    if (!window.__TAURI_INTERNALS__) return results;\n    try {\n      var home = await _fsHomeDir();\n      var alwithRoot = await _fsJoin(home, \".alwith\", \"projects\");\n\n      // Derive vault-dir name for plugin-side filtering (same encoding alwith uses)\n      var vaultDir = \"\";\n      if (ws.localPath) {\n        vaultDir = ws.localPath.replace(/\\\\/g, \"/\").replace(/\\//g, \"-\");\n      }\n\n      // list_sessions expects the projects root — it iterates subdirectories as\n      // project dirs. Always pass alwithRoot; filter by project_dir on our side.\n      var entries = await _tauriInvoke(\"list_sessions\", { baseDir: alwithRoot });\n      for (var i = 0; i < entries.length; i++) {\n        var e = entries[i];\n        if (e.kind !== \"session\") continue; // skip subagent / tool-result children\n        if (vaultDir && e.project_dir !== vaultDir) continue;\n        results.push({ dir: e.path, title: e.title || e.id.slice(0, 8) + \"…\", ctimeMs: e.modified_ms || 0 });\n      }\n      results.sort(function (a, b) { return b.ctimeMs - a.ctimeMs; });\n    } catch (_e) {}\n    return results;\n  }\n\n",
-        "after": "  async _discoverSessions(ws) {\n    throw new Error(\"会话归档暂不支持，其他知识库功能可用\");\n  }\n\n"
-      },
-      {
-        "before": "    // Step 4: upload linked sessions\n    // linkedSessionDirs stores full absolute paths to .jsonl files,\n    // e.g. /Users/x/.alwith/projects/-Users-x-Desktop-test/uuid.jsonl\n    cb({ phase: \"sessions\" });\n    var sessionsFolderId = null;\n    var sessionsEnsured = false;\n    for (var si = 0; si < ws.linkedSessionDirs.length; si++) {\n      var sessionPath = ws.linkedSessionDirs[si];\n      if (!sessionPath || !sessionPath.endsWith(\".jsonl\")) continue;\n      var sParts = sessionPath.replace(/\\\\/g, \"/\").split(\"/\");\n      var sFileName = sParts[sParts.length - 1];\n      var sUuid = sFileName.replace(/\\.jsonl$/i, \"\");\n      var sDirPath = sParts.slice(0, -1).join(\"/\");\n      var isPrivate = false;\n      try { isPrivate = await _fileExists(sDirPath + \"/\" + sUuid + \".private\"); } catch (_e) {}\n      if (isPrivate) continue;\n      var rawC;\n      try { rawC = await _fsReadTextFile(sessionPath); } catch (_e) { continue; }\n      var filteredSes = _filterJsonlForArchive(rawC);\n      if (!filteredSes.kept) continue;\n      var sesSha;\n      try { sesSha = await _sha256Hex(filteredSes.jsonl); } catch (_e) { continue; }\n      var sesKey = \"sessions/\" + sFileName; // cache key always uses UUID filename\n      var sesCached = ws.uploadedFiles[sesKey];\n      if (sesCached && sesCached.sha === sesSha) continue;\n\n      // Build a human-readable display name from session content\n      var sesDisplayName = sFileName;\n      try {\n        var sesLines = rawC.split(\"\\n\");\n        var sesDate = \"\";\n        var sesTitle = \"\";\n        for (var sli = 0; sli < Math.min(sesLines.length, 10); sli++) {\n          var sln = sesLines[sli].trim();\n          if (!sln) continue;\n          var sobj = JSON.parse(sln);\n          if (!sesDate && sobj && sobj.timestamp) {\n            sesDate = new Date(sobj.timestamp).toISOString().slice(0, 10);\n          }\n          if (!sesTitle && sobj && sobj.type === \"user\" && sobj.message) {\n            var sc = sobj.message.content;\n            if (typeof sc === \"string\" && sc.trim()) {\n              sesTitle = sc.trim().replace(/[\\r\\n\\s]+/g, \" \").replace(/[/\\\\:*?\"<>|]/g, \"\");\n              if (sesTitle.length > 40) sesTitle = sesTitle.slice(0, 40);\n            }\n          }\n          if (sesDate && sesTitle) break;\n        }\n        if (sesTitle) sesDisplayName = (sesDate ? sesDate + \"_\" : \"\") + sesTitle + \".jsonl\";\n      } catch (_e) {}\n\n      if (!sessionsEnsured) {\n        try {\n          var sfr = await fetch(base + \"/api/v1/folders/ensure\", {\n            method: \"POST\",\n            headers: { \"Authorization\": \"Bearer \" + token, \"Content-Type\": \"application/json\" },\n            body: JSON.stringify({ projectId: ws.yupProjectId, parentId: ws.yupWorkspaceFolderId, relativePath: \"sessions\" })\n          });\n          if (sfr.ok) sessionsFolderId = (await sfr.json()).data;\n        } catch (_e) {}\n        sessionsEnsured = true;\n      }\n\n      var sesBlob = new Blob([filteredSes.jsonl], { type: \"application/octet-stream\" });\n      var sesFd = new FormData();\n      sesFd.append(\"file\", sesBlob, sesDisplayName);\n      var sesResp;\n      if (sesCached && sesCached.fileId) {\n        sesResp = await fetch(base + \"/api/v1/files/\" + sesCached.fileId + \"/upload-version\", {\n          method: \"POST\", headers: { \"Authorization\": \"Bearer \" + token }, body: sesFd\n        });\n        if (sesResp.status === 404) sesCached = null;\n      }\n      if (!sesCached || !sesCached.fileId) {\n        sesResp = await fetch(\n          base + \"/api/v1/files/upload?projectId=\" + ws.yupProjectId +\n          (sessionsFolderId ? \"&folderId=\" + sessionsFolderId : \"\") +\n          \"&name=\" + encodeURIComponent(sesDisplayName),\n          { method: \"POST\", headers: { \"Authorization\": \"Bearer \" + token }, body: sesFd }\n        );\n      }\n      if (sesResp && sesResp.ok) {\n        var sesJ = await sesResp.json();\n        ws.uploadedFiles[sesKey] = { sha: sesSha, fileId: sesJ && sesJ.data && sesJ.data.fileId, mtime: Date.now() };\n      }\n    }\n\n",
-        "after": "    // U uploads local files only; conversation archival is unavailable.\n\n"
-      }
-    ],
-    "networkHosts": ["bi-api.finture.id", "yup-knowledge-server.finture.id"],
     "dataFiles": ["workspaces.json"],
     "requiredSkills": ["yup-kb"],
     "exportFilePattern": null,
-    "unsupportedCommands": {
-      "list_sessions": "会话归档暂不支持，其他知识库功能可用"
-    }
+    "unsupportedCommands": {},
+    "limitations": []
   },
   {
     "id": "etms-strategy-review",
     "icon": "lucide:settings",
-    "sourceSha256": "b5b12392592e26463fb63dca4b37cd57883b9c3f17a9415fb537c5afae909758",
-    "patchedSha256": "b5b12392592e26463fb63dca4b37cd57883b9c3f17a9415fb537c5afae909758",
     "url": "https://bi-api.finture.id/api/ext/etms-strategy-review/main.js",
-    "patches": [],
-    "networkHosts": [
-      "martech-auth-qa02.finture.id",
-      "martech-auth-test.finture.id",
-      "martech-etms-test.finture.id",
-      "finture-intranet-api.finture.id"
-    ],
     "dataFiles": [],
     "requiredSkills": ["etms-strategy-review"],
     "exportFilePattern": "^etms-review-[a-zA-Z0-9._-]+\\.json$",
-    "unsupportedCommands": {}
+    "unsupportedCommands": {},
+    "limitations": []
   }
 ]

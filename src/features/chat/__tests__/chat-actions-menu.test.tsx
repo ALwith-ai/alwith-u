@@ -196,3 +196,40 @@ test("floating menu opens a new project after New chat and keeps the action avai
   })
   expect(newProjects).toBe(2)
 })
+
+test("floating chat returns to main immediately before Rename and the main menu omits it", async () => {
+  const state = client.state
+  client.store.setState({
+    connection: "ready",
+    agent: {
+      protocolVersion: 2,
+      info: { name: "fake-codex", version: "1" },
+      capabilities: { _meta: { codex: { rename: true } } }
+    }
+  })
+  let returned = false
+  const props = {
+    session: createSession("return-id", "/tmp/project"),
+    cwd: "/tmp/project",
+    onNewChat: () => {},
+    onReturnToMain: () => {
+      returned = true
+    }
+  }
+  const view = render(<ChatActionsMenu surface="floating" {...props} />)
+  try {
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    const names = view.getAllByRole("menuitem").map(item => item.textContent)
+    const index = names.indexOf("Return to main window")
+    expect(index).toBeGreaterThanOrEqual(0)
+    expect(names[index + 1]).toBe("Rename")
+    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" })))
+    expect(returned).toBe(true)
+    view.rerender(<ChatActionsMenu surface="main" {...props} />)
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    expect(view.queryByRole("menuitem", { name: "Return to main window" })).toBeNull()
+  } finally {
+    view.unmount()
+    act(() => client.store.setState(state, true))
+  }
+})

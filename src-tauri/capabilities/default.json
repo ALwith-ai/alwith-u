@@ -40,6 +40,9 @@
       "allow": [
         {
           "path": "**"
+        },
+        {
+          "path": "$HOME/.codex/generated_images/**"
         }
       ]
     },

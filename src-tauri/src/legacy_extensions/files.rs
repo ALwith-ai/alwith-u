@@ -145,13 +145,23 @@ fn perform_private_file(
     perform_file(root, request)
 }
 
-pub(crate) fn clear_grants(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+pub(super) fn with_file_lock<T>(
+    app: &tauri::AppHandle, operation: impl FnOnce() -> Result<T, String>,
+) -> Result<T, String> {
     let state = app.state::<LegacyFiles>();
     let _guard = state.lock.lock().map_err(|_| "Legacy file state is poisoned")?;
+    operation()
+}
+
+pub(super) fn clear_grants_locked(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
     let path = grant_path(app)?;
     let mut grants = read_grants(&path)?;
     grants.remove(extension_id);
     write_grants(&path, &grants)
+}
+
+pub(crate) fn clear_grants(app: &tauri::AppHandle, extension_id: &str) -> Result<(), String> {
+    with_file_lock(app, || clear_grants_locked(app, extension_id))
 }
 
 fn require_file_installation(window: &tauri::Window, extension_id: &str, legacy_only: bool) -> Result<bool, String> {
@@ -191,6 +201,25 @@ fn validate_common_file(root: &Path, request: &FileRequest) -> Result<(), String
     Ok(())
 }
 
+fn validate_legacy_file(root: &Path, request: &FileRequest, home: &Path) -> Result<(), String> {
+    let directory = open_scope(root)?;
+    let path = root.join(scoped_path(&directory, &request.path)?);
+    let archive = match fs::canonicalize(home.join(".alwith/projects")) {
+        Ok(path) => path,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(format!("Inspect Desktop archive directory: {error}")),
+    };
+    let target = match fs::canonicalize(&path) {
+        Ok(path) => path,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => path,
+        Err(error) => return Err(format!("Inspect legacy file: {error}")),
+    };
+    if target.starts_with(archive) {
+        return Err("会话归档暂不支持，其他知识库功能可用".into());
+    }
+    Ok(())
+}
+
 async fn file_command(
     window: tauri::Window, extension_id: String, request: FileRequest, legacy_only: bool,
 ) -> Result<FileResponse, String> {
@@ -205,6 +234,9 @@ async fn file_command(
         } else {
             create_modern_private_root(&app.path().app_data_dir().map_err(|error| error.to_string())?, &extension_id)?
         };
+        if legacy {
+            validate_legacy_file(&root, &request, &app.path().home_dir().map_err(|error| error.to_string())?)?;
+        }
         if !legacy_only {
             validate_common_file(&root, &request)?;
         }
@@ -321,6 +353,22 @@ mod tests {
 
     fn request(operation: FileOperation, path: &str) -> FileRequest {
         FileRequest { operation, scope: None, path: path.into(), body: None, recursive: false }
+    }
+
+    #[test]
+    fn legacy_archive_reads_remain_unsupported_even_with_a_parent_directory_grant() {
+        let temp = tempfile::tempdir().unwrap();
+        let home = fs::canonicalize(temp.path()).unwrap();
+        let archive = home.join(".alwith/projects/project");
+        fs::create_dir_all(&archive).unwrap();
+        fs::write(archive.join("session.jsonl"), b"private conversation").unwrap();
+        assert!(
+            validate_legacy_file(&home, &request(FileOperation::Read, ".alwith/projects/project/session.jsonl"), &home)
+                .is_err()
+        );
+        assert!(validate_legacy_file(&archive, &request(FileOperation::Read, "session.jsonl"), &home).is_err());
+        fs::create_dir_all(home.join("business/.alwith/projects")).unwrap();
+        assert!(validate_legacy_file(&home, &request(FileOperation::List, "business/.alwith/projects"), &home).is_ok());
     }
 
     #[test]

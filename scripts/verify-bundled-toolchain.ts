@@ -1,6 +1,6 @@
 // Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
+import { copyFileSync, existsSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import manifest from "../package.json"
@@ -37,7 +37,7 @@ function run(name: string, args: string[]): string {
 
 const adapterVersion = await withCleanup(
   async () => {
-    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime"]) {
+    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime", "alwith-codex-launcher"]) {
       if (!existsSync(join(directory, `${name}${suffix}`))) throw new Error(`Packaged sidecar missing: ${name}`)
     }
     assertVersion("packaged Bun", run("bun", ["--version"]), versions.bun)
@@ -62,7 +62,10 @@ const adapterVersion = await withCleanup(
     if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+$/.test(adapterVersion)) {
       throw new Error(`Unexpected packaged adapter version: ${adapterVersion}`)
     }
-    await checkInitialize(adapter)
+    const bootstrap = join(codexHome, "codex-bootstrap.mjs")
+    copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), bootstrap)
+    writeFileSync(join(codexHome, "gateway-models.json"), '{"models":[]}')
+    await checkInitialize(bootstrap)
     return adapterVersion
   },
   () => removeTemporaryDirectory(codexHome)
@@ -76,7 +79,11 @@ async function checkInitialize(adapter: string): Promise<void> {
       codex: {
         command: join(directory, `bun${suffix}`),
         args: ["--no-install", adapter],
-        env: { CODEX_PATH: join(directory, `codex${suffix}`) }
+        env: {
+          CODEX_PATH: join(directory, `alwith-codex-launcher${suffix}`),
+          ALWITH_U_CODEX_PATH: join(directory, `codex${suffix}`),
+          CODEX_ACP_MODEL_CATALOGS: join(codexHome, "gateway-models.json")
+        }
       }
     },
     journalRoot: join(codexHome, "journal"),

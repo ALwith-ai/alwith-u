@@ -16,6 +16,7 @@ import {
 } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import { createStore, type StoreApi } from "zustand/vanilla"
+import { exportConversation } from "./history"
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -92,11 +93,18 @@ export type ClientOptions = {
   /** The one agent that hosts every session of this app. */
   agentId: string
   launch: Launch
+  /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
+  sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
 }
 
 export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
 
+export type DraftOwner = "main" | "chat"
+
 export type AppState = {
+  /** Only drafts created by this connection are eligible for automatic cleanup. */
+  draftSessions: Record<string, DraftOwner>
+  configPending: Record<string, boolean>
   /** In-memory projection of native fork/resume metadata; never a second persisted history. */
   forkOrigins: Record<string, ForkOrigin>
   connection: ConnectionState
@@ -187,15 +195,10 @@ export class CodexClient {
   /** Main and floating windows allocate counted titles through the same owner. */
   private forkQueue: Promise<unknown> = Promise.resolve()
   /** The adapter rejects overlapping configuration writes to one session. */
-  private readonly configWrites = new Map<string, Promise<void>>()
+  private readonly sessionOperations = new Map<string, Promise<void>>()
+  private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
   private readonly gatewayModels = new Map<string, string>()
-  /**
-   * Drafts: real Codex sessions created before any message (ALwith Desktop's "a draft always has
-   * a session"), kept out of the sidebar until the first prompt materializes them. Codex persists
-   * no rollout for a thread without turns, so an abandoned draft leaves nothing behind.
-   */
-  private readonly drafts = new Set<string>()
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
   })
@@ -205,6 +208,8 @@ export class CodexClient {
     this.options = options
     this.requests.onChange(pending => this.store.setState({ actions: pending.map(toAction) }))
     this.store = createStore<AppState>(() => ({
+      draftSessions: {},
+      configPending: {},
       connection: "disconnected",
       connectionError: null,
       agent: null,
@@ -437,7 +442,7 @@ export class CodexClient {
     }
     try {
       const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
-      const page = response.sessions.map(toSummary)
+      const page = response.sessions.map(toSummary).filter(thread => !this.state.draftSessions[thread.sessionId])
       const nextCursor = response.nextCursor ?? null
       this.store.setState(current => {
         const previous = options.reset
@@ -469,6 +474,42 @@ export class CodexClient {
     return this.listSessionIndex(cwd)
   }
 
+  private requireHistory(): void {
+    const codex = this.state.agent?.capabilities?._meta?.codex
+    const capability = codex && typeof codex === "object" && "sessionHistory" in codex ? codex.sessionHistory : null
+    if (
+      !capability ||
+      typeof capability !== "object" ||
+      !("version" in capability) ||
+      capability.version !== 2 ||
+      !("items" in capability) ||
+      capability.items !== true ||
+      !("modes" in capability) ||
+      !Array.isArray(capability.modes) ||
+      !capability.modes.includes("export")
+    )
+      throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
+  }
+
+  async listHistorySessions(check: () => void): Promise<ThreadSummary[]> {
+    check()
+    this.requireHistory()
+    const current = await this.listSessionIndex(undefined, false)
+    check()
+    const archived = await this.listSessionIndex(undefined, true)
+    check()
+    return [...new Map([...current, ...archived].map(thread => [thread.sessionId, thread])).values()]
+  }
+
+  async exportHistory(sessionId: string, check: () => void, signal?: AbortSignal): Promise<string> {
+    this.requireHistory()
+    return exportConversation(
+      sessionId,
+      params => this.live().request("_codex/session_history_items", params, { signal }),
+      check
+    )
+  }
+
   private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {
     const agent = this.live()
     const threads = new Map<string, ThreadSummary>()
@@ -482,6 +523,7 @@ export class CodexClient {
       })
       for (const info of response.sessions) {
         const thread = toSummary(info)
+        if (this.state.draftSessions[thread.sessionId]) continue
         if ((cwd === undefined || thread.cwd === cwd) && thread.archived === archived)
           threads.set(thread.sessionId, thread)
       }
@@ -511,11 +553,32 @@ export class CodexClient {
     )
   }
 
-  async newSession(cwd: string, model: string | null = null, options: { draft?: boolean } = {}): Promise<string> {
+  private async sessionContext(
+    cwd: string,
+    model: string | null
+  ): Promise<{
+    mcpServers?: acp.McpServer[]
+    _meta?: { alwith: { model?: string; appendSystemPrompt?: string } }
+  }> {
+    const hint = modelHint(model)
+    if (!this.options.sessionContext) return hint
+    const context = await this.options.sessionContext(cwd)
+    const alwith = {
+      ...hint._meta?.alwith,
+      ...(context.appendSystemPrompt ? { appendSystemPrompt: context.appendSystemPrompt } : {})
+    }
+    return { mcpServers: context.mcpServers, ...(Object.keys(alwith).length ? { _meta: { alwith } } : {}) }
+  }
+
+  newSession(cwd: string, model: string | null = null): Promise<string> {
+    return this.createNativeSession(cwd, model, null)
+  }
+
+  private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
     const response = await this.live().request<acp.NewSessionResponse>("session/new", {
       cwd,
       mcpServers: [],
-      ...modelHint(model)
+      ...(await this.sessionContext(cwd, model))
     })
     const existing = this.sessions.sessions.get(response.sessionId)
     const session: Session = {
@@ -527,25 +590,117 @@ export class CodexClient {
       error: null
     }
     this.publishSession(session)
+    if (owner === null) this.listSession(session)
+    else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
     this.noteModel(session)
-    if (options.draft) this.drafts.add(session.id)
-    else this.listThread(session.id, cwd)
     return session.id
   }
 
-  /** A session created as a draft that has not carried a message yet. */
-  isDraft(id: string): boolean {
-    return this.drafts.has(id)
-  }
-
-  /** The thread joins the sidebar: at creation, or for a draft with its first prompt. */
-  private listThread(sessionId: string, cwd: string): void {
+  private listSession(session: Session): void {
     this.store.setState(state => ({
       threads: [
-        { sessionId, cwd, title: null, updatedAt: new Date().toISOString(), archived: false },
-        ...state.threads.filter(thread => thread.sessionId !== sessionId)
+        {
+          sessionId: session.id,
+          cwd: session.cwd,
+          title: session.title,
+          updatedAt: new Date().toISOString(),
+          archived: false
+        },
+        ...state.threads.filter(thread => thread.sessionId !== session.id)
       ]
     }))
+  }
+
+  private materializeDraft(id: string): void {
+    if (!this.state.draftSessions[id]) return
+    this.store.setState(state => {
+      const { [id]: _draft, ...draftSessions } = state.draftSessions
+      return { draftSessions }
+    })
+    this.listSession(this.session(id))
+    this.noteModel(this.session(id))
+  }
+
+  /** Ownership changes are serialized independently of individual session operations. */
+  private changeDraft<T>(owners: DraftOwner[], operation: () => Promise<T>): Promise<T> {
+    const next = Promise.allSettled(owners.map(owner => this.draftOperations.get(owner))).then(operation)
+    for (const owner of owners) this.draftOperations.set(owner, next)
+    return next
+  }
+
+  prepareDraft(owner: DraftOwner, cwd: string, model: string | null = null): Promise<string> {
+    return this.changeDraft([owner], async () => {
+      const existing = Object.keys(this.state.draftSessions).find(id => this.state.draftSessions[id] === owner)
+      if (existing && this.session(existing).cwd === cwd) {
+        if (!this.session(existing).attached) await this.open(existing, cwd)
+        if (model !== null && selectedModel(this.session(existing).configOptions) !== model)
+          await this.setConfig(existing, "model", model)
+        return existing
+      }
+      // Inherit the confirmed model, including a change already requested by this
+      // surface. A failed change must not silently create a draft on the old model.
+      if (existing) await this.sessionOperations.get(existing)
+      // Prepare the replacement before retiring the previous draft: failures preserve the user's input.
+      const id = await this.createNativeSession(
+        cwd,
+        model ?? (existing ? selectedModel(this.session(existing).configOptions) : null),
+        owner
+      )
+      try {
+        if (existing) await this.deleteEmptyDraft(existing)
+      } catch (error) {
+        await this.deleteEmptyDraft(id)
+        throw error
+      }
+      return id
+    })
+  }
+
+  discardDraft(owner: DraftOwner): Promise<void> {
+    return this.changeDraft([owner], async () => {
+      for (const [id, current] of Object.entries(this.state.draftSessions))
+        if (current === owner) await this.deleteEmptyDraft(id)
+    })
+  }
+
+  transferDraft(id: string, owner: DraftOwner): Promise<void> {
+    return this.changeDraft(["main", "chat"], async () => {
+      if (!this.state.draftSessions[id] || this.state.draftSessions[id] === owner) return
+      for (const [other, current] of Object.entries(this.state.draftSessions))
+        if (current === owner) await this.deleteEmptyDraft(other)
+      this.store.setState(state =>
+        state.draftSessions[id] ? { draftSessions: { ...state.draftSessions, [id]: owner } } : {}
+      )
+    })
+  }
+
+  private deleteEmptyDraft(id: string): Promise<void> {
+    return this.enqueueSession(id, async () => {
+      if (!this.state.draftSessions[id]) return
+      await this.delete(id)
+      this.gatewayModels.delete(id)
+    })
+  }
+
+  private enqueueSession(id: string, operation: () => Promise<void>, continueAfterFailure = true): Promise<void> {
+    const previous = this.sessionOperations.get(id)
+    const next = previous
+      ? continueAfterFailure
+        ? previous.then(operation, operation)
+        : previous.then(operation)
+      : operation()
+    this.sessionOperations.set(id, next)
+    const release = (): void => {
+      if (this.sessionOperations.get(id) === next) {
+        this.sessionOperations.delete(id)
+        this.store.setState(state => {
+          const { [id]: _pending, ...configPending } = state.configPending
+          return { configPending }
+        })
+      }
+    }
+    void next.then(release, release)
+    return next
   }
 
   async open(id: string, cwd: string): Promise<void> {
@@ -574,7 +729,7 @@ export class CodexClient {
         sessionId: id,
         cwd,
         replayFrom: { type: "start" },
-        ...modelHint(this.gatewayModels.get(id) ?? null)
+        ...(await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null))
       })
       this.publishSession({
         ...this.sessions.get(id),
@@ -597,7 +752,11 @@ export class CodexClient {
     }
   }
 
-  async prompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
+  prompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
+    return this.enqueueSession(id, () => this.sendPrompt(id, prompt), false)
+  }
+
+  private async sendPrompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
     const session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
@@ -608,7 +767,9 @@ export class CodexClient {
     // message. Echo and receipt may arrive in either order.
     const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
-    if (this.drafts.delete(id)) this.listThread(id, session.cwd)
+    // Once a request leaves the client, transport failure cannot prove it was not accepted.
+    // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
+    this.materializeDraft(id)
     const response = await this.live().request<acp.PromptResponse>("session/prompt", { sessionId: id, prompt })
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
@@ -636,17 +797,9 @@ export class CodexClient {
       })
       this.noteModel(this.sessions.get(id))
     }
-    const previous = this.configWrites.get(id)
-    const pending = previous ? previous.catch(() => {}).then(write) : write()
-    this.configWrites.set(id, pending)
-    void pending.then(
-      () => {
-        if (this.configWrites.get(id) === pending) this.configWrites.delete(id)
-      },
-      () => {
-        if (this.configWrites.get(id) === pending) this.configWrites.delete(id)
-      }
-    )
+    this.store.setState(state => ({ configPending: { ...state.configPending, [id]: true } }))
+    const pending = this.enqueueSession(id, write, false)
+
     return pending
   }
 
@@ -685,7 +838,8 @@ export class CodexClient {
       )
     if (isGateway) this.gatewayModels.set(session.id, modelId)
     else this.gatewayModels.delete(session.id)
-    for (const listener of this.modelListeners) listener(session.id, modelId, isGateway)
+    if (!this.state.draftSessions[session.id])
+      for (const listener of this.modelListeners) listener(session.id, modelId, isGateway)
   }
 
   async login(methodId: string, extra: Record<string, unknown> = {}): Promise<void> {
@@ -750,10 +904,11 @@ export class CodexClient {
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
-    const hint = modelHint(this.gatewayModels.get(id) ?? null)
+    const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
     const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
       sessionId: id,
       cwd,
+      ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
       _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
     })
     const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)
@@ -916,14 +1071,14 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
-    this.drafts.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)
     this.store.setState(state => {
       const { [id]: _removed, ...sessions } = state.sessions
       const { [id]: _origin, ...forkOrigins } = state.forkOrigins
-      return { sessions, forkOrigins }
+      const { [id]: _draft, ...draftSessions } = state.draftSessions
+      return { sessions, forkOrigins, draftSessions }
     })
   }
 }

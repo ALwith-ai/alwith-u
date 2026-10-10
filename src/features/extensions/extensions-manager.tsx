@@ -2,7 +2,7 @@ import { parseManifestIcon, resolveManifestText } from "@alwith/module-extension
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -26,12 +26,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { openExternal } from "@/lib/open"
 
 import { EXTENSION_ICONS } from "./extension-icons"
+import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
+
+export type ExtensionInstallPhase = "preparing" | "installing"
 
 interface ExtensionsManagerProps {
   state: RuntimeSnapshot
   host: HostSnapshot
   busy: boolean
+  installPhase?: ExtensionInstallPhase | null
   onInstall(id?: string): void
   onRequest(request: Request): void
   onUninstall(id: string, name: string): void
@@ -64,6 +68,7 @@ export function ExtensionsManager({
   state,
   host,
   busy,
+  installPhase,
   onInstall,
   onRequest,
   onUninstall,
@@ -72,6 +77,7 @@ export function ExtensionsManager({
 }: ExtensionsManagerProps) {
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
+  const [dismissedNotices, setDismissedNotices] = useState<Set<string>>(() => new Set())
   const detailsId = useId()
   const search = query.trim().toLocaleLowerCase()
   const installations = state.native?.installations ?? []
@@ -92,10 +98,16 @@ export function ExtensionsManager({
           <Badge className="bg-primary/10 text-primary text-[10px]">BETA</Badge>
         </div>
         <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
-          <PlusIcon />
+          {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
           {t("extensions.install")}
         </Button>
       </div>
+      {installPhase && (
+        <div role="status" aria-live="polite" className="text-muted-foreground flex items-center gap-2 text-sm">
+          <Spinner aria-hidden="true" />
+          {t(installPhase === "preparing" ? "extensions.preparingInstall" : "extensions.installing")}
+        </div>
+      )}
       {state.errors.service && (
         <Alert variant="destructive">
           <AlertDescription>{state.errors.service}</AlertDescription>
@@ -265,6 +277,24 @@ export function ExtensionsManager({
                     )}
                   </ItemActions>
                 </PanelItem>
+                {item.source === LEGACY_SOURCE &&
+                  findLegacyProfile(item.id)?.limitations.map(message => {
+                    const key = JSON.stringify([item.installationId, item.packageRevision, message])
+                    if (dismissedNotices.has(key)) return null
+                    return (
+                      <Alert key={key} className="mt-2 pr-10">
+                        <AlertDescription className="text-xs leading-relaxed">{message}</AlertDescription>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-muted-foreground absolute top-2 right-2"
+                          aria-label={t("actions.close")}
+                          onClick={() => setDismissedNotices(previous => new Set(previous).add(key))}>
+                          <XIcon />
+                        </Button>
+                      </Alert>
+                    )
+                  })}
                 {error && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertDescription>{error}</AlertDescription>

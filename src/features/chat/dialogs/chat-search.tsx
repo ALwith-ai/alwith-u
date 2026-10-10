@@ -7,6 +7,7 @@ import { events } from "@/bindings"
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
 import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"
+import { routeFind } from "@/features/workspace/editor-shortcuts"
 
 const OPEN_SEARCH = "chat:find"
 
@@ -34,6 +35,7 @@ export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElem
     (open: () => void) => {
       const handler = (event: KeyboardEvent) => {
         if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "f") {
+          if (document.activeElement?.closest(".alwith-editor")) return
           event.preventDefault()
           open()
         }
@@ -43,7 +45,7 @@ export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElem
       }
       window.addEventListener(OPEN_SEARCH, requested)
       window.addEventListener("keydown", handler)
-      const stopMenu = getCurrentWebviewWindow().listen<null>(events["menu:find-in-chat"].name, open)
+      const stopMenu = getCurrentWebviewWindow().listen<null>(events["menu:find-in-chat"].name, () => routeFind(open))
       return () => {
         window.removeEventListener(OPEN_SEARCH, requested)
         window.removeEventListener("keydown", handler)
