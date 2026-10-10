@@ -189,6 +189,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 legacy_extensions::files::extension_directories,
                 legacy_extensions::files::extension_pick_directory,
                 legacy_extensions::files::legacy_file,
+                legacy_extensions::business_sharing::legacy_share_business,
                 legacy_extensions::files::legacy_directories,
                 legacy_extensions::files::legacy_pick_directory,
                 appearance::wallpaper::wallpaper_list,

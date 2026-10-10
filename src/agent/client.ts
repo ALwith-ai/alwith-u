@@ -16,6 +16,7 @@ import {
 } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import { createStore, type StoreApi } from "zustand/vanilla"
+import { exportConversation } from "./history"
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -469,6 +470,42 @@ export class CodexClient {
   /** Read a complete project index without changing the sidebar's pagination or persisting history. */
   async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
     return this.listSessionIndex(cwd)
+  }
+
+  private requireHistory(): void {
+    const codex = this.state.agent?.capabilities?._meta?.codex
+    const capability = codex && typeof codex === "object" && "sessionHistory" in codex ? codex.sessionHistory : null
+    if (
+      !capability ||
+      typeof capability !== "object" ||
+      !("version" in capability) ||
+      capability.version !== 2 ||
+      !("items" in capability) ||
+      capability.items !== true ||
+      !("modes" in capability) ||
+      !Array.isArray(capability.modes) ||
+      !capability.modes.includes("export")
+    )
+      throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
+  }
+
+  async listHistorySessions(check: () => void): Promise<ThreadSummary[]> {
+    check()
+    this.requireHistory()
+    const current = await this.listSessionIndex(undefined, false)
+    check()
+    const archived = await this.listSessionIndex(undefined, true)
+    check()
+    return [...new Map([...current, ...archived].map(thread => [thread.sessionId, thread])).values()]
+  }
+
+  async exportHistory(sessionId: string, check: () => void, signal?: AbortSignal): Promise<string> {
+    this.requireHistory()
+    return exportConversation(
+      sessionId,
+      params => this.live().request("_codex/session_history_items", params, { signal }),
+      check
+    )
   }
 
   private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {

@@ -48,14 +48,44 @@ afterEach(() => {
   for (const client of clients.splice(0)) client.disconnect()
 })
 
-async function make() {
+async function make(configure?: (fake: ReturnType<typeof createFakeAgent>) => void) {
   const fake = createFakeAgent()
+  configure?.(fake)
   const port = new FakeHubPort(() => fake.app)
   const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
   return { client, fake, port }
 }
+
+test("history enumeration and export leave sidebar, selection and attachments untouched", async () => {
+  const { client, fake, port } = await make(fake =>
+    fake.app.onRequest(
+      "_codex/session_history_items",
+      value => value as { sessionId: string },
+      ({ params }) => ({
+        sessionId: params.sessionId,
+        createdAt: 100,
+        running: false,
+        revision: "r",
+        consistency: "optimistic",
+        items: [],
+        complete: true,
+        nextCursor: null
+      })
+    )
+  )
+  const before = client.state
+  expect((await client.listHistorySessions(() => {})).map(thread => thread.sessionId)).toEqual(["h1", "h2"])
+  expect(await client.exportHistory("h2", () => {})).toBe("")
+  expect(client.state).toBe(before)
+  expect(port.attached).toEqual([])
+  expect(fake.modelHints.size).toBe(0)
+  const agent = client.state.agent
+  if (!agent) throw new Error("Missing initialized agent")
+  client.store.setState({ agent: { ...agent, capabilities: {} } })
+  await expect(client.exportHistory("h2", () => {})).rejects.toThrow("0.7.7")
+})
 
 async function until(predicate: () => boolean) {
   const start = Date.now()

@@ -12,6 +12,7 @@ import { unsupportedLegacyCommand, validateLegacyExport } from "./adapters"
 
 import { createExtensionChatBridge } from "../chat/bridge"
 import type { ExtensionChatSession } from "../chat/navigation"
+import { createSessionFiles, type SessionFileSource } from "./session-files"
 
 export interface BridgeDependencies {
   binding: CapabilityBinding
@@ -28,6 +29,9 @@ export interface BridgeDependencies {
   own(dispose: Dispose): Dispose
   primary: boolean
   imported?: boolean
+  history?: SessionFileSource
+  bindBusinessStorage?(storage: LegacyStorage): Dispose
+  shareCurrent?(value: Json | null): Promise<void>
 }
 
 interface DirectoryGrant {
@@ -71,6 +75,8 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
   const files = createScopedFileOperations(dependencies.binding, commonOptions)
   const fetch = createBinaryFetch(createBinaryHttp(dependencies.binding, commonOptions))
   const home = `/__alwith_legacy/${extensionId}`
+  const historyRoot = `${home}/.alwith/projects`
+  const history = dependencies.history ? createSessionFiles(historyRoot, dependencies.history) : undefined
   const appData = `${home}/app-data`
   const settingsPath = `${appData}/ai.alwith.desktop/settings.json`
   const unavailable = (message: string): never => {
@@ -120,6 +126,12 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     path: string,
     extra: Record<string, unknown> = {}
   ): Promise<NativeFileResponse> => {
+    const normalized = normalizedPath(path)
+    const virtual = normalized.startsWith(`${home}/`) ? normalized.slice(home.length + 1) : normalized
+    if (virtual === ".alwith/projects" || virtual.startsWith(".alwith/projects/")) {
+      if (!history) throw new Error("会话归档暂不支持，其他知识库功能可用")
+      return history.file(operation, virtual.slice(".alwith/projects".length).replace(/^\//, ""))
+    }
     if (normalizedPath(path) === settingsPath) {
       if (operation !== "read" && operation !== "stat") throw new Error("工作目录设置投影是只读的")
       const session = dependencies.session()
@@ -133,6 +145,17 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
         : { type: "stat", exists: true, size: body.length, mtime: null, isFile: true, isDirectory: false }
     }
     const location = await locate(path)
+    if (!location.scope && location.path === "current.json" && dependencies.shareCurrent) {
+      if (operation === "remove") await dependencies.shareCurrent(null)
+      if (operation === "write") {
+        const value: Json = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(extra.body as number[]))
+        )
+        // Record the reader's intent before local IO, so a failed private write cannot retain an older shared document.
+        await dependencies.shareCurrent(value)
+        return files.file({ operation, ...location, ...extra } as NativeFileRequest)
+      }
+    }
     if (!location.scope && location.path === "data.json") {
       if (!storage) throw new Error("扩展配置存储尚未绑定或已关闭")
       if (operation === "write") {
@@ -216,8 +239,10 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       dependencies.check()
       if (storage) throw new Error("扩展配置存储已绑定")
       storage = value
-      return () => {
+      const releaseBusiness = dependencies.bindBusinessStorage?.(value)
+      return async () => {
         if (storage === value) storage = undefined
+        await releaseBusiness?.()
       }
     },
     primary: dependencies.primary,
@@ -272,6 +297,10 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     },
     async invoke(command: string, args: unknown = {}, options?: unknown): Promise<unknown> {
       dependencies.check()
+      if (command === "list_sessions") {
+        if (!history) throw new Error("会话归档暂不支持，其他知识库功能可用")
+        return history.listSessions(normalizedPath(string(object(args).baseDir)))
+      }
       const reason = unsupportedLegacyCommand(extensionId, command)
       if (reason) unavailable(reason)
       if (command === "alwith-u:legacy-is-primary") return dependencies.primary

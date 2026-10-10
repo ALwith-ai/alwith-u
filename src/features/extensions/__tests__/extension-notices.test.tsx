@@ -13,7 +13,7 @@ afterEach(() => {
   clearMocks()
 })
 
-test("background activation stays quiet; explicit opening or enabling shows one closeable notice", async () => {
+test("history failures surface once without a compatibility notice on opening or enabling", async () => {
   mockWindows("main")
   const scope = new ResourceScope()
   const manifest = {
@@ -42,29 +42,34 @@ test("background activation stays quiet; explicit opening or enabling shows one 
   try {
     await act(async () => {
       const host = create({ manifest, cancellation: scope.cancellation, own: dispose => scope.own(dispose) })
-      await expect(host.invoke("list_sessions", {})).rejects.toThrow("会话归档暂不支持")
-      await expect(host.invoke("list_sessions", {})).rejects.toThrow("会话归档暂不支持")
+      await expect(
+        host.invoke("list_sessions", { baseDir: "/__alwith_legacy/yup-kb/.alwith/projects" })
+      ).rejects.toThrow("会话归档需要 codex-acp-v2")
+      await expect(
+        host.invoke("list_sessions", { baseDir: "/__alwith_legacy/yup-kb/.alwith/projects" })
+      ).rejects.toThrow("会话归档需要 codex-acp-v2")
       await expect(
         host.invoke("plugin:fs|read_dir", { path: "/__alwith_legacy/yup-kb/.alwith/projects" })
-      ).rejects.toThrow("会话归档暂不支持")
+      ).rejects.toThrow("会话归档需要 codex-acp-v2")
       await new Promise<void>(resolve => setTimeout(resolve, 20))
     })
     const archivalNotices = [...view.container.querySelectorAll("[data-sonner-toast]")].filter(notice =>
       notice.textContent?.includes("会话归档")
     )
-    expect(archivalNotices).toHaveLength(0)
+    expect(archivalNotices).toHaveLength(1)
     await act(async () => {
       showExtensionLimitations({ ...installation, enabled: false })
       showExtensionLimitations({ ...installation, source: "local" })
       await new Promise<void>(resolve => setTimeout(resolve, 20))
     })
-    expect(view.queryByText(/会话归档与会话关联不可用/)).toBeNull()
+    expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
     await act(async () => {
       showExtensionLimitations(installation)
       showExtensionLimitations(installation)
       await new Promise<void>(resolve => setTimeout(resolve, 20))
     })
-    expect(view.getAllByText(/会话归档与会话关联不可用/)).toHaveLength(1)
+    expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
+    expect(view.container.querySelectorAll("[data-sonner-toast]")).toHaveLength(1)
   } finally {
     await scope.dispose()
   }

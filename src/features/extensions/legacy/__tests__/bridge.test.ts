@@ -7,7 +7,9 @@ function setup(
   extensionId = "yup-kb",
   grants = [{ scope: "grant", path: "/work" }],
   picked: { scope: string; path: string } | null = { scope: "grant", path: "/work" },
-  imported = true
+  imported = true,
+  history?: BridgeDependencies["history"],
+  shareCurrent?: BridgeDependencies["shareCurrent"]
 ) {
   let selected: ReturnType<BridgeDependencies["session"]> = { id: "first", cwd: "/work", title: "First" }
   const calls: { command: string; args: Record<string, unknown> }[] = []
@@ -16,6 +18,8 @@ function setup(
   const scope = new ResourceScope()
   const dependencies: BridgeDependencies = {
     imported,
+    history,
+    shareCurrent,
     binding: {
       manifest: {
         manifestVersion: 3,
@@ -75,6 +79,45 @@ function setup(
     }
   }
 }
+
+test("shares the current reader document and clears it before removing the local pointer", async () => {
+  const shared: unknown[] = []
+  const { bridge } = setup("yup-kb", [], null, true, undefined, async value => {
+    shared.push(value)
+  })
+  const path = "/__alwith_legacy/yup-kb/.alwith/extensions/yup-kb/current.json"
+  await bridge.invoke("plugin:fs|write_text_file", new TextEncoder().encode(JSON.stringify({ fileId: 42 })), {
+    headers: { path: encodeURIComponent(path) }
+  })
+  expect(shared).toEqual([{ fileId: 42 }])
+  await bridge.invoke("plugin:fs|remove", { path })
+  expect(shared).toEqual([{ fileId: 42 }, null])
+  const failing = setup("yup-kb", [], null, true, undefined, async () => {
+    throw new Error("sharing unavailable")
+  })
+  await expect(failing.bridge.invoke("plugin:fs|remove", { path })).rejects.toThrow("sharing unavailable")
+  expect(failing.calls).toEqual([])
+})
+
+test("routes legacy session discovery and JSONL reads through the read-only history source", async () => {
+  const history = {
+    list: async () => [{ sessionId: "s", cwd: "/work", title: "Session", updatedAt: null, archived: false }],
+    read: async () => '{"type":"user","message":{"content":"Hello"}}\n',
+    check: () => {}
+  }
+  const { bridge, calls } = setup("yup-kb", [], null, true, history)
+  const root = "/__alwith_legacy/yup-kb/.alwith/projects"
+  expect(await bridge.invoke("list_sessions", { baseDir: root })).toEqual([
+    expect.objectContaining({ id: "s", project_dir: "-work", path: `${root}/-work/s.jsonl` })
+  ])
+  expect(await bridge.invoke("plugin:fs|read_dir", { path: root })).toEqual([
+    { name: "-work", isDirectory: true, isFile: false }
+  ])
+  const body = (await bridge.invoke("plugin:fs|read_text_file", { path: `${root}/-work/s.jsonl` })) as number[]
+  expect(new TextDecoder().decode(new Uint8Array(body))).toContain('"Hello"')
+  await expect(bridge.invoke("plugin:fs|remove", { path: `${root}/-work/s.jsonl` })).rejects.toThrow("只读")
+  expect(calls).toEqual([])
+})
 
 describe("legacy host boundary", () => {
   test("binds each plain chat send to the current session", async () => {

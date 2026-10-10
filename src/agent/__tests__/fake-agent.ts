@@ -103,7 +103,8 @@ export function createFakeAgent(): FakeAgent {
             providerCatalog: true,
             rename: true,
             account: true,
-            fuzzyFileSearch: true
+            fuzzyFileSearch: true,
+            sessionHistory: { version: 2, items: true, modes: ["browse", "export"] }
           }
         }
       },

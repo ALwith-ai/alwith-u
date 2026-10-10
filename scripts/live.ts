@@ -41,6 +41,18 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
   if (projectThreads.some(thread => thread.cwd !== directory))
     throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
+    const exported = await client.exportHistory(id, () => {})
+    const messages = exported
+      .trim()
+      .split("\n")
+      .map(line => JSON.parse(line))
+    const exportedText = messages
+      .filter(message => message.type === "assistant")
+      .flatMap(message => message.message.content as { type: string; text: string }[])
+      .map(block => block.text)
+      .join("")
+    if (exportedText.trim() !== original.trim() || messages.filter(message => message.type === "user").length !== 1)
+      throw new Error(`Read-only export of ${id} differs from the live transcript`)
     if (!projectThreads.some(thread => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from project list`)
     if (!client.state.threads.some(thread => thread.sessionId === id))

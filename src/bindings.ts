@@ -89,6 +89,8 @@ export const commands = {
     } | null>("extension_pick_directory", args),
   legacyFile: (args: { extensionId: string; request: FileRequest }): Promise<FileResponse> =>
     __t3Invoke<FileResponse>("legacy_file", args),
+  legacyShareBusiness: (args: { extensionId: string; file: string; value: JsonValue }): Promise<null> =>
+    __t3Invoke<null>("legacy_share_business", args),
   legacyDirectories: (args: { extensionId: string }): Promise<DirectoryGrant[]> =>
     __t3Invoke<DirectoryGrant[]>("legacy_directories", args),
   legacyPickDirectory: (args: {
@@ -183,6 +185,7 @@ export type CommandErrors = {
   extensionDirectories: string
   extensionPickDirectory: string
   legacyFile: string
+  legacyShareBusiness: string
   legacyDirectories: string
   legacyPickDirectory: string
   wallpaperList: string

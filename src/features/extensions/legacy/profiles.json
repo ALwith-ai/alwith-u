@@ -20,10 +20,8 @@
     "dataFiles": ["workspaces.json"],
     "requiredSkills": ["yup-kb"],
     "exportFilePattern": null,
-    "unsupportedCommands": {
-      "list_sessions": "会话归档暂不支持，其他知识库功能可用"
-    },
-    "limitations": ["会话归档与会话关联不可用，本地文件同步可用。扩展内部的归档开关或完成提示不代表 U 已支持归档。"]
+    "unsupportedCommands": {},
+    "limitations": []
   },
   {
     "id": "etms-strategy-review",
