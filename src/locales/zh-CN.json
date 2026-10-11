@@ -112,6 +112,12 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "filePreview": {
+      "readOnly": "只读预览",
+      "reveal": "在文件管理器中显示",
+      "openExternal": "用系统应用打开",
+      "unsupported": "暂不支持预览此文件类型或大小。可以用系统应用打开，或在文件管理器中查看。"
+    },
     "stopped": "会话已终止",
     "branches": {
       "create": "创建聊天分支",
@@ -147,6 +153,7 @@
     "thinking": "正在思考",
     "thought": "已完成思考",
     "thoughtFor": "已思考 {{duration}}",
+    "historyInterrupted": "已停止。Codex 历史可能未保存停止前的未完成回复。",
     "interrupted": "已停止",
     "contextCompacted": "上下文已压缩",
     "compacting": "正在压缩上下文",
@@ -154,9 +161,14 @@
     "removeImage": "移除图片",
     "commands": "命令",
     "noCommands": "没有匹配的命令",
+    "searchingFiles": "正在查找项目文件…",
+    "noMatchingFiles": "没有匹配的文件",
     "input": {
       "image": "图片",
       "removeAttachment": "移除附件",
+      "dropUnavailable": "当前会话暂时无法添加文件。",
+      "dropFailed": "无法添加 {{name}}",
+      "addingFiles": "正在添加文件…",
       "imageTooLargeTitle": "图片附件过大",
       "imageTooLargeDesc": "图片总大小不能超过 {{mb}}MB。请移除部分图片后重试。",
       "unsupportedAttachmentTitle": "只支持图片附件",
@@ -177,7 +189,8 @@
       "next": "下一个"
     },
     "image": {
-      "view": "查看图片"
+      "view": "查看图片",
+      "unavailable": "图片已不可用"
     },
     "content": {
       "download": "下载 {{name}}",
@@ -666,7 +679,7 @@
     "story": "打开故事",
     "hotkeys": "键盘快捷键",
     "plugins": "打开插件",
-    "placeholder": "输入命令或搜索聊天",
+    "placeholder": "搜索聊天",
     "actions": "操作",
     "chats": "聊天",
     "newChat": "新聊天",

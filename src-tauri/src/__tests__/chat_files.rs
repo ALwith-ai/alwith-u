@@ -46,3 +46,58 @@ fn rejects_symlinks_outside_the_preview_roots() {
     std::os::unix::fs::symlink(file, &link).unwrap();
     assert!(read_image(&link, &[directory.path().to_path_buf()]).is_err());
 }
+
+#[test]
+fn dropped_files_outside_project_are_referenced_without_reading_their_contents() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("中文 space #1.txt");
+    std::fs::write(&path, b"context").unwrap();
+    let file = read_dropped_file(&path).unwrap();
+    assert_eq!(file.path, path.canonicalize().unwrap().to_str().unwrap());
+    assert_eq!(file.name, "中文 space #1.txt");
+    assert!(file.image.is_none());
+    assert!(read_dropped_file(directory.path()).is_err());
+    assert!(read_dropped_file(&directory.path().join("missing.txt")).is_err());
+}
+
+#[test]
+fn dropped_images_validate_contents_and_decimal_size_boundary() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("image.PNG");
+    let png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aSAAAAABJRU5ErkJggg==";
+    std::fs::write(&path, base64::engine::general_purpose::STANDARD.decode(png).unwrap()).unwrap();
+    let image = read_dropped_file(&path).unwrap().image.unwrap();
+    assert_eq!(image.mime_type, "image/png");
+    assert_eq!(image.data, png);
+    let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+    file.set_len(5_000_000).unwrap();
+    assert!(read_dropped_file(&path).is_ok());
+    file.set_len(5_000_001).unwrap();
+    assert!(read_dropped_file(&path).unwrap_err().contains("5 MB"));
+    std::fs::write(&path, b"not an image").unwrap();
+    assert!(read_dropped_file(&path).is_err());
+}
+
+#[test]
+fn previews_explicit_external_files_without_authorizing_a_workspace() {
+    let directory = tempfile::tempdir().unwrap();
+    let text = directory.path().join("中文 space #1.txt");
+    std::fs::write(&text, "first\nsecond").unwrap();
+    assert!(matches!(read_file_preview(&text).unwrap(), ChatFilePreview::Text { text } if text == "first\nsecond"));
+    assert!(matches!(read_file_preview(directory.path()).unwrap(), ChatFilePreview::Unsupported));
+    let binary = directory.path().join("binary.dat");
+    std::fs::write(&binary, [0, 255, 7]).unwrap();
+    assert!(matches!(read_file_preview(&binary).unwrap(), ChatFilePreview::Unsupported));
+    let image = directory.path().join("image.png");
+    let png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aSAAAAABJRU5ErkJggg==";
+    std::fs::write(&image, base64::engine::general_purpose::STANDARD.decode(png).unwrap()).unwrap();
+    assert!(
+        matches!(read_file_preview(&image).unwrap(), ChatFilePreview::Image { data, mime_type } if data == png && mime_type == "image/png")
+    );
+    let large = directory.path().join("large.txt");
+    std::fs::write(&large, vec![b'a'; 2 * 1024 * 1024 + 1]).unwrap();
+    assert!(matches!(read_file_preview(&large).unwrap(), ChatFilePreview::Unsupported));
+    std::fs::File::create(&large).unwrap().set_len(32 * 1024 * 1024 + 1).unwrap();
+    assert!(matches!(read_file_preview(&large).unwrap(), ChatFilePreview::Unsupported));
+    assert!(read_file_preview(&directory.path().join("missing")).is_err());
+}

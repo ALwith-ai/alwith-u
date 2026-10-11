@@ -43,7 +43,9 @@ export function DiffModal() {
             </DialogDescription>
           )}
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border" data-stream-style="codexUI">
+        <div
+          className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border [&>.codex-patch-view]:h-full"
+          data-stream-style="codexUI">
           {request !== null && <PatchView patch={request.patch} />}
         </div>
       </DialogContent>

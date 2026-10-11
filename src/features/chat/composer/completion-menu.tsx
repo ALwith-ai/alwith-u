@@ -37,11 +37,11 @@ export function CompletionMenu({
       commands={commands}
       searchFiles={searchFiles ? findFiles : undefined}
       onMention={onMention}
-      fileSearchDebounceMs={120}
       onSearchError={reportError}
       forcedOpen={forcedOpen}
       onForcedOpenChange={onForcedOpenChange}
       emptyLabel={t("chat.noCommands")}
+      fileStatusLabels={{ loading: t("chat.searchingFiles"), empty: t("chat.noMatchingFiles") }}
     />
   )
 }

@@ -17,6 +17,7 @@ import { ChatBranchProvider } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
+import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DiffModal } from "./dialogs/diff-modal"
 import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
 import { ImageLightbox } from "./dialogs/image-lightbox"
@@ -60,7 +61,7 @@ export function ChatView({
   }
   return (
     <ChatBranchProvider key={session.id} session={session} onSelect={onSelectThread}>
-      <div ref={rootRef} className="flex h-full min-h-0 flex-col">
+      <div data-chat-drop-zone ref={rootRef} className="flex h-full min-h-0 flex-col">
         <ChatHeader
           target={headerTarget}
           title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
@@ -104,7 +105,7 @@ export function ChatView({
             </Alert>
           </div>
         )}
-        {session.items.length === 0 ? (
+        {session.items.length === 0 && session.attached && !session.restoring && session.state === "idle" ? (
           // A draft session (Desktop semantics): live Codex session, nothing said yet.
           <Empty className="flex-1">
             <EmptyHeader>
@@ -125,6 +126,7 @@ export function ChatView({
         <Composer session={session} />
         {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
         <DiffModal />
+        <FilePreviewModal />
         <ImageLightbox />
       </div>
     </ChatBranchProvider>

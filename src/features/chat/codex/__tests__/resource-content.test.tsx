@@ -1,7 +1,7 @@
 import { afterEach, expect, vi, test } from "vitest"
 import { createSession, addPrompt, type ToolItem } from "@alwith/api"
 import * as core from "@tauri-apps/api/core"
-import * as opener from "@tauri-apps/plugin-opener"
+import * as preview from "../../dialogs/file-preview-modal"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -12,6 +12,7 @@ import { ImageLightbox } from "../../dialogs/image-lightbox"
 import { ActivityGroup } from "../activity-group"
 import { ResourceContent } from "../resource-content"
 import { UserMessage } from "../user-message"
+import { WorkspaceContext } from "@/features/workspace/context"
 
 vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
 
@@ -29,7 +30,7 @@ const blob = {
 }
 
 test("file references preserve encoded names, bare line locations and reserved filename characters", async () => {
-  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
+  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
   mocks.push(path)
   const refs = [
     "README.md:12",
@@ -48,11 +49,11 @@ test("file references preserve encoded names, bare line locations and reserved f
   for (const uri of refs) fireEvent.click(view.getByRole("button", { name: uri }))
   await waitFor(() =>
     expect(path.mock.calls).toEqual([
-      ["/tmp/project%20/README.md"],
-      ["/tmp/project%20/100%.pdf"],
-      ["/tmp/project%20/reports/report one.pdf"],
-      ["/tmp/project%20/reports/报告.pdf"],
-      ["/tmp/a#b?c.pdf"]
+      ["/tmp/project%20/README.md", { lineNumber: 12, column: 1 }],
+      ["/tmp/project%20/100%.pdf", undefined],
+      ["/tmp/project%20/reports/report one.pdf", undefined],
+      ["/tmp/project%20/reports/报告.pdf", undefined],
+      ["/tmp/a#b?c.pdf", undefined]
     ])
   )
 })
@@ -90,7 +91,7 @@ test("Blob images open the lightbox and undecodable images retain the download a
 })
 
 test("user references are clickable and resolve against their own thread directory", async () => {
-  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
+  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   mocks.push(path, error)
   const session = addPrompt(
@@ -102,19 +103,16 @@ test("user references are clickable and resolve against their own thread directo
   if (item?.kind !== "user") throw new Error("User prompt is missing")
   const view = render(
     <ChatDirectoryContext value={session.cwd}>
-      <UserMessage item={item} />
+      <UserMessage item={item} messageTime={null} />
     </ChatDirectoryContext>
   )
   fireEvent.click(view.getByRole("button", { name: "result.pdf" }))
-  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/owner/reports/result.pdf"))
+  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/owner/reports/result.pdf", undefined))
   expect(view.container.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
-  path.mockRejectedValue(new Error("File missing"))
-  fireEvent.click(view.getByRole("button", { name: "result.pdf" }))
-  await waitFor(() => expect(error).toHaveBeenCalledWith("File missing"))
 })
 
 test("tool resources expose Blob previews, file links and downloads", async () => {
-  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
+  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
   mocks.push(path)
   const item: ToolItem = {
     id: "files",
@@ -151,5 +149,123 @@ test("tool resources expose Blob previews, file links and downloads", async () =
   expect(view.getByRole("button", { name: "Download movie.mp4" })).toBeDefined()
   expect(view.container.querySelector("video")).toBeNull()
   fireEvent.click(view.getByRole("button", { name: "report.pdf" }))
-  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/report.pdf"))
+  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/report.pdf", undefined))
+})
+
+test("file links deliver the decoded path and line/column to the workspace", async () => {
+  const openFile = vi.fn().mockResolvedValue(undefined)
+  const view = render(
+    <WorkspaceContext value={{ visible: true, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
+      <ChatDirectoryContext value="/tmp/project">
+        <ResourceContent block={{ type: "resource_link", uri: "中文%20space%20%231.txt:2:3", name: "Located file" }} />
+      </ChatDirectoryContext>
+    </WorkspaceContext>
+  )
+  fireEvent.click(view.getByRole("button", { name: "Located file" }))
+  await waitFor(() =>
+    expect(openFile).toHaveBeenCalledWith("/tmp/project/中文 space #1.txt", "/tmp/project", {
+      lineNumber: 2,
+      column: 3
+    })
+  )
+  view.unmount()
+})
+
+test("replayed user images render thumbnails above the body without attachment paths", () => {
+  const session = addPrompt(
+    createSession("images", "/tmp/project"),
+    [
+      { type: "text", text: "检测图片" },
+      { type: "image", mimeType: "image/png", data: "aGVsbG8=" },
+      {
+        type: "resource_link",
+        name: "Image unavailable",
+        uri: "codex-image:unavailable",
+        _meta: { codex: { imageUnavailable: true } }
+      }
+    ],
+    "image-prompt"
+  )
+  const item = session.items.find(item => item.kind === "user")
+  if (item?.kind !== "user") throw new Error("User prompt is missing")
+  const view = render(
+    <ThemeProvider>
+      <UserMessage item={item} messageTime={null} />
+      <ImageLightbox />
+    </ThemeProvider>
+  )
+  expect(view.getByText("检测图片")).toBeDefined()
+  expect(view.getByText("Image unavailable")).toBeDefined()
+  expect(view.container.querySelector(".codex-user-images img")?.getAttribute("src")).toBe(
+    "data:image/png;base64,aGVsbG8="
+  )
+  expect(view.queryByText(/Files mentioned|file:\/\/|codex-image:/)).toBeNull()
+  expect(view.queryByRole("button", { name: "Image unavailable" })).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "" }))
+  expect(view.getByRole("dialog").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
+})
+
+test("external file links bypass the project workspace and preserve line locations", async () => {
+  const openFile = vi.fn().mockResolvedValue(undefined)
+  const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
+  mocks.push(openPreview)
+  const view = render(
+    <WorkspaceContext value={{ visible: true, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
+      <ChatDirectoryContext value="/tmp/project">
+        <ResourceContent
+          block={{
+            type: "resource_link",
+            uri: "file:///tmp/outside/%E4%B8%AD%E6%96%87%20%231.txt#L2C3",
+            name: "External file"
+          }}
+        />
+      </ChatDirectoryContext>
+    </WorkspaceContext>
+  )
+  fireEvent.click(view.getByRole("button", { name: "External file" }))
+  await waitFor(() =>
+    expect(openPreview).toHaveBeenCalledWith("/tmp/outside/中文 #1.txt", { lineNumber: 2, column: 3 })
+  )
+  expect(openFile).not.toHaveBeenCalled()
+})
+
+test.each([false, true])("questionnaire replies hide metadata (local receipt: %s)", receipt => {
+  const replies = [
+    { question: "Focus Vibemon?", answer: "已点" },
+    { question: "Files?", answer: "A.txt\nB.txt" }
+  ]
+  const session = addPrompt(
+    createSession("questions", "/tmp/questions"),
+    replies.map(reply => ({
+      type: "text",
+      text: `${reply.question}\n${reply.answer}`,
+      _meta: { codex: { questionReply: reply } }
+    })),
+    "replies"
+  )
+  const item = session.items.find(item => item.kind === "user")
+  if (item?.kind !== "user") throw new Error("User prompt is missing")
+  const rendered = receipt
+    ? {
+        ...item,
+        content: [
+          {
+            type: "text" as const,
+            text: "<send_user_message_question_reply>raw payload</send_user_message_question_reply>"
+          }
+        ],
+        _meta: {
+          codex: { questionReplyParts: replies.map(reply => ({ question: reply.question, text: reply.answer })) }
+        }
+      }
+    : item
+  const view = render(<UserMessage item={rendered} messageTime={{ short: "17:40", full: "2026-10-11 17:40" }} />)
+  expect([...view.container.querySelectorAll(".codex-user-question-summary")].map(node => node.textContent)).toEqual([
+    "Focus Vibemon?",
+    "Files?"
+  ])
+  expect(view.getByText("已点")).toBeDefined()
+  expect(view.container.querySelectorAll(".codex-user-question-answer")[1]?.textContent).toBe("A.txt\nB.txt")
+  expect(view.getByText("17:40")).toBeDefined()
+  expect(view.container.textContent).not.toMatch(/questionItemId|send_user_message_question_reply/)
 })

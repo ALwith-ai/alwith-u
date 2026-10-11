@@ -25,9 +25,19 @@ export const commands = {
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
   /**
+   *  Explicit file-link clicks may preview one external file without authorizing
+   *  its parent directory or creating a writable workspace.
+   */
+  chatPreviewFile: (args: { path: string }): Promise<ChatFilePreview> =>
+    __t3Invoke<ChatFilePreview>("chat_preview_file", args),
+  chatReadDroppedFile: (args: { path: string }): Promise<ChatDroppedFile> =>
+    __t3Invoke<ChatDroppedFile>("chat_read_dropped_file", args),
+  /**
    *  Opening a project in the main window establishes its scoped filesystem session.
    */
   workspaceOpen: (args: { path: string }): Promise<string> => __t3Invoke<string>("workspace_open", args),
+  workspaceListFiles: (args: { path: string }): Promise<JsonValue> =>
+    __t3Invoke<JsonValue>("workspace_list_files", args),
   /**
    *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
    */
@@ -187,7 +197,10 @@ export type CommandErrors = {
   drivePathExists: string
   chatSaveFile: string
   chatReadImage: string
+  chatPreviewFile: string
+  chatReadDroppedFile: string
   workspaceOpen: string
+  workspaceListFiles: string
   workspaceImport: string
   workspaceFile: string
   workspaceWatch: string
@@ -369,6 +382,15 @@ export type BundledExtension = {
   version: string
   source: string
 }
+
+export type ChatDroppedFile = {
+  path: string
+  name: string
+  image: ChatImage | null
+}
+
+export type ChatFilePreview =
+  { kind: "text"; text: string } | { kind: "image"; data: string; mimeType: string } | { kind: "unsupported" }
 
 export type ChatImage = {
   data: string

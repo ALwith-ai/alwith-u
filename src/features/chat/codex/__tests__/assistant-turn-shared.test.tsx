@@ -3,7 +3,7 @@ import { fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
-import { groupTurns } from "../../turns"
+import { groupTurns, turnTiming } from "../../turns"
 import { AssistantTurn } from "../assistant-turn"
 
 await initI18n("en")
@@ -256,7 +256,7 @@ test("completed replies show the original batch time in the shared action bar", 
       sessionUpdate: "agent_message",
       messageId: "final",
       content: [{ type: "text", text: "Answer" }],
-      _meta: { codex: { phase: "final_answer", turnStartedAt: new Date(2024, 0, 2, 3, 4).getTime() } }
+      _meta: { codex: { phase: "final_answer", turnCompletedAt: new Date(2024, 0, 2, 3, 4).getTime() } }
     }
   )
   const view = render(viewOf(session, true))
@@ -319,4 +319,44 @@ test("embedded Blob images render a preview and retain their download action", (
   expect(view.container.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
   expect(view.getByRole("button", { name: "View image" })).toBeDefined()
   expect(view.getByRole("button", { name: "Download photo.png" })).toBeDefined()
+})
+
+test("an interrupted historical turn explains missing partial output without fabricating a reply", () => {
+  const session = feed(createSession("interrupted-history", "/tmp"), {
+    sessionUpdate: "user_message",
+    messageId: "u",
+    content: [{ type: "text", text: "long answer" }],
+    _meta: { codex: { turnId: "t", historyInterrupted: true } }
+  })
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getByRole("status").textContent).toContain("Codex history may not contain the unfinished response")
+  expect(view.queryByRole("button", { name: "Copy" })).toBeNull()
+})
+
+test("history uses native duration even when replay items lack the runtime replay flag", () => {
+  const session = feed(createSession("native-duration", "/tmp"), text("work", "Checking", "commentary"), {
+    sessionUpdate: "agent_message",
+    messageId: "historic-final",
+    content: [{ type: "text", text: "Done" }],
+    _meta: { codex: { phase: "final_answer", historyReplay: true, turnDurationMs: 123000 } }
+  })
+  expect(turnTiming(groupTurns(session)[0]).durationMs).toBe(123000)
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getByRole("button", { name: /^Total time/ }).textContent).not.toBe("Total time 1s")
+})
+
+test("history without native timing shows Worked without a fabricated one-second duration", () => {
+  const session = feed(createSession("unknown-duration", "/tmp"), text("work", "Checking", "commentary"), {
+    sessionUpdate: "agent_message",
+    messageId: "historic-final",
+    content: [{ type: "text", text: "Done" }],
+    _meta: { codex: { phase: "final_answer", historyReplay: true } }
+  })
+  expect(turnTiming(groupTurns(session)[0]).durationMs).toBeUndefined()
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getByRole("button", { name: "Worked" })).toBeDefined()
+  expect(view.queryByRole("button", { name: /^Worked for/ })).toBeNull()
 })

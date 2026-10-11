@@ -15,7 +15,7 @@ export const PromptInputTextarea = forwardRef<PromptInputTextareaHandle, PromptI
       {...props}
       ref={ref}
       bashMode={false}
-      className={cn("min-h-[calc(var(--chat-input-line-height)*2)] bg-transparent", className)}
+      className={cn("min-h-[calc(var(--chat-input-line-height)*2)] bg-transparent text-sm", className)}
     />
   )
 )

@@ -4,6 +4,8 @@
 import type { Session } from "@alwith/api"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { type AppState, CodexClient } from "@/agent/client"
+import { macProjectPaths } from "@/agent/project-path"
+import { isMac } from "@/lib/platform"
 import type { RateLimitSnapshot } from "@/agent/codex-extensions"
 
 export type ChatEvents = { listen: typeof listen; emitTo: typeof emitTo }
@@ -150,7 +152,7 @@ export class RemoteChatClient extends CodexClient {
       async () => {
         throw new Error("Chat window cannot own an agent connection")
       },
-      { agentId: "codex", launch: { engine: "codex" } }
+      { agentId: "codex", launch: { engine: "codex" }, projectPaths: isMac() ? macProjectPaths : undefined }
     )
     this.transport = transport
   }

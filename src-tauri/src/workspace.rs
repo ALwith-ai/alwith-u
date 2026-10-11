@@ -47,6 +47,21 @@ pub async fn workspace_open(window: tauri::WebviewWindow, path: PathBuf) -> Resu
 }
 
 #[tauri3_specta::command]
+pub async fn workspace_list_files(window: tauri::WebviewWindow, path: PathBuf) -> Result<Value, String> {
+    main_window(&window)?;
+    let (root, fs) = tokio::task::spawn_blocking(move || {
+        let root = workspace_root(&path)?;
+        let fs = FileSystem::new([root.clone()])?;
+        roots().lock().map_err(|error| error.to_string())?.insert(root.clone());
+        Ok::<_, String>((root, fs))
+    })
+    .await
+    .map_err(|error| error.to_string())??;
+    let paths = fs.list_files(root.clone(), 100_000).await?;
+    Ok(serde_json::json!({"root": root.to_string_lossy().replace('\\', "/"), "paths": paths}))
+}
+
+#[tauri3_specta::command]
 pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Result<Value, String> {
     main_window(&window)?;
     let collaboration_owner = request.get("collaborationOwnerId").and_then(Value::as_str).map(str::to_owned);

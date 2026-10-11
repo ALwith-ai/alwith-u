@@ -3,12 +3,18 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { API_BASE_URL, usePlatformAuth } from "@/features/auth/store"
 
 export type PetRequest = { id: string; from: string; scope: string; deadline: number; action: string; payload: unknown }
+class PetRequestTimeout extends Error {}
 export function petScope(): string {
   const user = usePlatformAuth.getState().user
   if (user === null) throw new Error("Sign in to use Vibemon")
   return `${new URL(API_BASE_URL).host}/${user.user_uuid}`
 }
-export async function requestPet<T>(action: string, payload: unknown = null, signal?: AbortSignal): Promise<T> {
+export async function requestPet<T>(
+  action: string,
+  payload: unknown = null,
+  signal?: AbortSignal,
+  timeout = 20_000
+): Promise<T> {
   signal?.throwIfAborted()
   const id = crypto.randomUUID()
   const current = getCurrentWebviewWindow()
@@ -28,10 +34,10 @@ export async function requestPet<T>(action: string, payload: unknown = null, sig
   )
   const abort = () => reject(new Error("Vibemon operation cancelled"))
   signal?.addEventListener("abort", abort, { once: true })
-  const deadline = Date.now() + 20_000
+  const deadline = Date.now() + timeout
   const timer = setTimeout(
-    () => reject(new Error("Vibemon request timed out; check the conversation before retrying")),
-    20_000
+    () => reject(new PetRequestTimeout("Vibemon request timed out; check the conversation before retrying")),
+    timeout
   )
   try {
     signal?.throwIfAborted()
@@ -49,6 +55,18 @@ export async function requestPet<T>(action: string, payload: unknown = null, sig
     signal?.removeEventListener("abort", abort)
     clearTimeout(timer)
     stop()
+  }
+}
+
+/** Only the idempotent bootstrap read may retry while the main WebView starts its listener. */
+export async function inspectPet<T>(): Promise<T> {
+  const deadline = Date.now() + 20_000
+  while (true) {
+    try {
+      return await requestPet<T>("inspect", null, undefined, Math.min(1000, deadline - Date.now()))
+    } catch (error) {
+      if (!(error instanceof PetRequestTimeout) || Date.now() >= deadline) throw error
+    }
   }
 }
 export async function servePetRequests(handler: (request: PetRequest) => Promise<unknown>): Promise<() => void> {

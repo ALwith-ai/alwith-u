@@ -17,6 +17,7 @@ client.store.subscribe((state, previous) => {
 })
 
 export function useProjectThreads(cwd: string) {
+  cwd = client.projectPath(cwd)
   const result = useStore(cache.store, state => state[cwd])
   useEffect(() => {
     if (result === undefined) cache.load(cwd)

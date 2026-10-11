@@ -17,7 +17,13 @@ export default defineConfig({
   // Local tarballs change during module development. Serve these ESM packages
   // directly so dependency optimization cannot retain an older JS implementation.
   optimizeDeps: {
-    exclude: ["@alwith/module-fs", "@alwith/module-file-tree", "@alwith/module-editor", "@alwith/module-drive"],
+    exclude: [
+      "@alwith/module-fs",
+      "@alwith/module-file-tree",
+      "@alwith/module-editor",
+      "@alwith/module-drive",
+      "@alwith/module-vibemon"
+    ],
     // Excluded shared packages load Milkdown lazily. Prebundle its dependency
     // graph so CommonJS dependencies such as debug expose valid ESM bindings.
     include: [

@@ -1,3 +1,4 @@
+import { sessionIcons } from "./session-icons"
 import { configureVibemon, initializeSettings } from "@alwith/module-vibemon"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
@@ -26,6 +27,7 @@ export async function bootstrapVibemonWindow(): Promise<void> {
   const assets = createPlatformPetAssets()
   const sessions = await createPetSessionClient()
   configureVibemon({
+    sessionIcons,
     ...assets,
     sessions,
     windows: createPetWindowClient(),

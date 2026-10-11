@@ -1,6 +1,6 @@
 import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
 import { isEmbeddedResource, isImage, isResourceLink } from "@alwith/api"
-import { DownloadIcon, FileIcon } from "lucide-react"
+import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
 import { useState, type ReactElement } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -14,6 +14,14 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
   const [saving, setSaving] = useState(false)
   const [failedImage, setFailedImage] = useState<string | null>(null)
   if (isResourceLink(block)) {
+    if (block.uri === "codex-image:unavailable") {
+      return (
+        <span className="text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-sm">
+          <ImageOffIcon className="size-4" />
+          {t("chat.image.unavailable")}
+        </span>
+      )
+    }
     const name = chatFileName(block.uri)
     return (
       <Button
@@ -26,7 +34,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         <span className="min-w-0 text-start">
           <span className="block truncate">{block.title ?? block.name}</span>
           <span className="text-muted-foreground block text-xs">
-            {name} · {block.mimeType ?? name.split(".").at(-1)?.toUpperCase()}
+            {(block.title ?? block.name) !== name && `${name} · `}
+            {block.mimeType ?? name.split(".").at(-1)?.toUpperCase()}
           </span>
         </span>
       </Button>

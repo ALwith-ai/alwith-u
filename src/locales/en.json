@@ -112,6 +112,12 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
+    "filePreview": {
+      "readOnly": "Read-only preview",
+      "reveal": "Show in file manager",
+      "openExternal": "Open with system app",
+      "unsupported": "This file type or size cannot be previewed here. Open it with a system app or show it in the file manager."
+    },
     "stopped": "Session stopped",
     "branches": {
       "create": "Create chat branch",
@@ -147,6 +153,7 @@
     "thinking": "Thinking",
     "thought": "Thought",
     "thoughtFor": "Thought for {{duration}}",
+    "historyInterrupted": "Stopped. Codex history may not contain the unfinished response.",
     "interrupted": "Stopped",
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",
@@ -154,9 +161,14 @@
     "removeImage": "Remove image",
     "commands": "Commands",
     "noCommands": "No matching commands",
+    "searchingFiles": "Searching project files…",
+    "noMatchingFiles": "No matching files",
     "input": {
       "image": "Image",
       "removeAttachment": "Remove attachment",
+      "dropUnavailable": "This chat cannot accept files right now.",
+      "dropFailed": "Could not attach {{name}}",
+      "addingFiles": "Adding files…",
       "imageTooLargeTitle": "Image attachments too large",
       "imageTooLargeDesc": "Total image size must not exceed {{mb}}MB. Remove some images and try again.",
       "unsupportedAttachmentTitle": "Only image attachments supported",
@@ -177,7 +189,8 @@
       "next": "Next match"
     },
     "image": {
-      "view": "View image"
+      "view": "View image",
+      "unavailable": "Image unavailable"
     },
     "content": {
       "download": "Download {{name}}",
@@ -666,7 +679,7 @@
     "story": "Open story",
     "hotkeys": "Keyboard shortcuts",
     "plugins": "Open plugins",
-    "placeholder": "Type a command or search chats",
+    "placeholder": "Search chats",
     "actions": "Actions",
     "chats": "Chats",
     "newChat": "New chat",

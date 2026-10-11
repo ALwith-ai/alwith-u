@@ -158,3 +158,40 @@ function sameItems(a: Item[], b: Item[]): boolean {
 export function messageText(item: MessageItem): string {
   return textOf(item.content)
 }
+
+export function isHistoryInterrupted(turn: Turn): boolean {
+  return turn.items.some(item => {
+    const codex = item._meta?.codex
+    return (
+      typeof codex === "object" && codex !== null && "historyInterrupted" in codex && codex.historyInterrupted === true
+    )
+  })
+}
+
+/** The adapter retains live interruption on its prompt upsert, independently of later turns. */
+export function isTurnInterrupted(turn: Turn): boolean {
+  return turn.items.some(item => {
+    const codex = item._meta?.codex
+    return typeof codex === "object" && codex !== null && "turnInterrupted" in codex && codex.turnInterrupted === true
+  })
+}
+
+/** Work timing stops at final-answer start; native history exposes only the whole turn. */
+export function turnTiming(turn: Turn): { durationMs?: number; durationKind: "work" | "total"; startedAt?: number } {
+  const value = (field: string): number | undefined => {
+    for (const item of turn.items) {
+      const codex = item._meta?.codex
+      if (typeof codex !== "object" || codex === null) continue
+      const candidate = (codex as Record<string, unknown>)[field]
+      if (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= 0) return candidate
+    }
+    return undefined
+  }
+  const work = value("workDurationMs")
+  const total = value("turnDurationMs")
+  return {
+    durationMs: work ?? total,
+    durationKind: work === undefined && total !== undefined ? "total" : "work",
+    startedAt: value("workStartedAt")
+  }
+}

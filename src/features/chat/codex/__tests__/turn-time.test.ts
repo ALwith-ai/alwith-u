@@ -1,40 +1,69 @@
-import { applyUpdate, createSession } from "@alwith/api"
+import { addPrompt, applyUpdate, createSession } from "@alwith/api"
 import { expect, test } from "vitest"
-import { groupTurns } from "../../turns"
+import { groupTurns, turnTiming } from "../../turns"
 import { formatTurnTime } from "../turn-time"
 
-function turnAt(timestamp: unknown, replayed = true) {
-  return groupTurns(
-    applyUpdate({ ...createSession("time", "/tmp"), restoring: replayed }, {
-      sessionUpdate: "agent_message",
-      messageId: "answer",
-      content: [{ type: "text", text: "answer" }],
-      _meta: { codex: { turnStartedAt: timestamp } }
-    } as never)
-  )[0]
+function timedTurn(meta: Record<string, unknown>, replayed = true) {
+  let session = createSession("time", "/tmp")
+  session = applyUpdate({ ...session, restoring: replayed }, {
+    sessionUpdate: "user_message",
+    messageId: "user",
+    content: [{ type: "text", text: "hello" }],
+    _meta: { codex: meta }
+  } as never)
+  session = applyUpdate(session, {
+    sessionUpdate: "agent_message",
+    messageId: "answer",
+    content: [{ type: "text", text: "answer" }],
+    _meta: { codex: { ...meta, phase: "final_answer" } }
+  } as never)
+  return groupTurns(session)[0]
 }
 
-test("replayed batches use native time, with Desktop's today and older date formats", () => {
-  const today = new Date()
-  today.setHours(12, 34, 0, 0)
-  expect(formatTurnTime(turnAt(today.getTime()))?.short).toBe(
-    new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(today)
-  )
-  const older = new Date(2024, 0, 2, 3, 4)
-  expect(formatTurnTime(turnAt(older.getTime()))).toEqual({
-    short: new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit"
-    }).format(older),
-    full: "2024-01-02 03:04"
-  })
+test("user send and assistant completion remain distinct across a minute boundary", () => {
+  const sent = new Date(2024, 0, 2, 20, 20, 43).getTime()
+  const completed = new Date(2024, 0, 2, 20, 21, 19).getTime()
+  const turn = timedTurn({ messageSentAt: sent, turnStartedAt: sent, turnCompletedAt: completed, historyReplay: true })
+  expect(formatTurnTime(turn, "user")?.full).toBe("2024-01-02 20:20")
+  expect(formatTurnTime(turn, "assistant")?.full).toBe("2024-01-02 20:21")
 })
 
-test("history without a native time never displays its replay arrival time", () => {
+test("live assistant uses item completion; history uses persisted turn completion", () => {
+  const turn = timedTurn(
+    {
+      messageCompletedAt: new Date(2024, 0, 2, 20, 21).getTime(),
+      turnCompletedAt: new Date(2024, 0, 2, 20, 22).getTime()
+    },
+    false
+  )
+  expect(formatTurnTime(turn, "assistant")?.full).toBe("2024-01-02 20:21")
+})
+
+test("missing or invalid history timestamps never display arrival or turn-start time", () => {
   for (const invalid of [undefined, null, "123", Number.NaN, Infinity, 9e15]) {
-    expect(formatTurnTime(turnAt(invalid))).toBeNull()
+    const turn = timedTurn(
+      { messageSentAt: invalid, turnCompletedAt: invalid, turnStartedAt: 123000, historyReplay: true },
+      false
+    )
+    expect(formatTurnTime(turn, "user")).toBeNull()
+    expect(formatTurnTime(turn, "assistant")).toBeNull()
   }
-  expect(formatTurnTime(turnAt(undefined, false))).not.toBeNull()
+})
+
+test("a locally pending user message displays its recorded send time", () => {
+  const session = addPrompt(createSession("pending", "/tmp"), [{ type: "text", text: "hi" }], "u")
+  expect(formatTurnTime(groupTurns(session)[0], "user")).not.toBeNull()
+  expect(formatTurnTime(groupTurns(session)[0], "assistant")).toBeNull()
+})
+
+test("native work duration wins over total; total and unknown are explicitly different", () => {
+  expect(turnTiming(timedTurn({ workDurationMs: 34000, turnDurationMs: 36284 }))).toMatchObject({
+    durationMs: 34000,
+    durationKind: "work"
+  })
+  expect(turnTiming(timedTurn({ historyReplay: true, turnDurationMs: 36284 }))).toMatchObject({
+    durationMs: 36284,
+    durationKind: "total"
+  })
+  expect(turnTiming(timedTurn({ historyReplay: true })).durationMs).toBeUndefined()
 })
