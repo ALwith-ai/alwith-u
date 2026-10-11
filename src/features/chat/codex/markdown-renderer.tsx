@@ -1,10 +1,10 @@
 import { type MarkdownHost, CodexMarkdownRenderer as SharedMarkdown } from "@alwith/module-chat/markdown"
 import { createChatMarkdown } from "@alwith/module-chat/markdown-rules"
 import type { Token, Tokens } from "marked"
-import { useMemo } from "react"
+import { type SyntheticEvent, useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
-import { chatFileName, useOpenChatLink } from "../file-actions"
+import { ChatDirectoryContext, chatFileName, resolveChatLink, useOpenChatLink } from "../file-actions"
 import { LinkedImage } from "./linked-image"
 import { ResourceContent } from "./resource-content"
 
@@ -46,14 +46,31 @@ function segments(text: string): Segment[] {
 
 export function CodexMarkdownRenderer({ text, streaming }: { text: string; streaming?: boolean }) {
   const openLink = useOpenChatLink()
+  const cwd = useContext(ChatDirectoryContext)
   const { resolvedTheme } = useTheme()
   const { t } = useTranslation()
   const copyLabel = t("actions.copy")
   const host = useMemo<MarkdownHost>(() => ({ theme: resolvedTheme, copyLabel, openLink }), [resolvedTheme, copyLabel, openLink])
   const parts = useMemo(() => segments(text), [text])
-  return <>{parts.map(part => "text" in part
+  // Delegate to include links introduced by the shared renderer's streaming worker.
+  const showLinkAddress = (event: SyntheticEvent<HTMLDivElement>): void => {
+    if (!(event.target instanceof Element)) return
+    const link = event.target.closest<HTMLAnchorElement>("a[href]")
+    if (!link || !event.currentTarget.contains(link)) return
+    const href = link.getAttribute("href")
+    if (href === null) throw new Error("Chat link is missing its address")
+    const address = resolveChatLink(href, cwd)
+    try {
+      link.title = decodeURIComponent(address)
+    } catch (error) {
+      if (!(error instanceof URIError)) throw error
+      link.title = address
+    }
+  }
+  // Code blocks need a full-width containing box inside the assistant's start-aligned flex layout.
+  return <div className="w-full min-w-0" onMouseOver={showLinkAddress} onFocus={showLinkAddress}>{parts.map(part => "text" in part
     ? <SharedMarkdown key={part.key} text={part.text} streaming={streaming} host={host} />
     : imageExtension.test(part.link.href)
       ? <LinkedImage key={part.key} uri={part.link.href} name={part.link.text || chatFileName(part.link.href)} />
-      : <ResourceContent key={part.key} block={{ type: "resource_link", uri: part.link.href, name: part.link.text || chatFileName(part.link.href) }} />)}</>
+      : <ResourceContent key={part.key} block={{ type: "resource_link", uri: part.link.href, name: part.link.text || chatFileName(part.link.href) }} />)}</div>
 }

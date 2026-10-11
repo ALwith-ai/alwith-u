@@ -1,6 +1,6 @@
 import { afterEach, expect, vi, test } from "vitest"
 import * as core from "@tauri-apps/api/core"
-import { render, waitFor } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 import { ChatDirectoryContext } from "../../file-actions"
@@ -78,4 +78,19 @@ test("web image links are not read as local files", () => {
   mounted.push(view)
   expect(view.queryByRole("button", { name: "Web portrait" })).toBeNull()
   expect(invoke).not.toHaveBeenCalled()
+})
+
+test("link tooltips show the owning file address and preserve web destinations", () => {
+  const view = render(viewOf('[Source](src/my%20file.ts:12 "Source label") [Docs](https://example.com/docs)'))
+  mounted.push(view)
+  const source = view.getByRole("link", { name: "Source" })
+  fireEvent.mouseOver(view.getByText("Source"))
+  expect(source).toHaveAttribute("title", "/tmp/owner/src/my file.ts:12")
+  expect(source).toHaveAttribute("href", "src/my%20file.ts:12")
+  const docs = view.getByRole("link", { name: "Docs" })
+  fireEvent.focus(docs)
+  expect(docs).toHaveAttribute("title", "https://example.com/docs")
+  view.rerender(viewOf("[Next](/tmp/next.ts:3)"))
+  fireEvent.mouseOver(view.getByText("Next"))
+  expect(view.getByRole("link", { name: "Next" })).toHaveAttribute("title", "/tmp/next.ts:3")
 })
