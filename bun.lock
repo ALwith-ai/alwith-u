@@ -84,7 +84,7 @@
         "zustand": "^5.0.15",
       },
       "devDependencies": {
-        "@alwith/native": "file:vendor/alwith-native-0.1.4.tgz",
+        "@alwith/native": "0.1.4",
         "@biomejs/biome": "^2.5.15",
         "@nyssance/codex-acp-v2": "0.7.9",
         "@openai/codex": "0.162.0",
@@ -138,7 +138,6 @@
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
-    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "https://registry.npmmirror.com/@adobe/css-tools/-/css-tools-4.5.0.tgz", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
@@ -163,9 +162,17 @@
 
     "@alwith/module-vibemon": ["@alwith/module-vibemon@vendor/alwith-module-vibemon-0.1.4-594db9782e61.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "@alwith/module-auth": "^0.1.2", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-uyuy9pR6TLUNG+eacwMVECci0ojfnFvXKM/OjVYzb1CAc/jnaxODHV5RqxSgJMStm8Eh93EmbJ69CqQuf7HB3w=="],
 
-    "@alwith/native": ["@alwith/native@vendor/alwith-native-0.1.4.tgz", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.4", "@alwith/native-linux-arm64": "0.1.4", "@alwith/native-linux-x64": "0.1.4", "@alwith/native-win32-arm64": "0.1.4", "@alwith/native-win32-x64": "0.1.4" } }, "sha512-sDvFY4M4r9/fx9ML2tyVw8AxscY4wExwyJM5LwRHWM7SlIAXWCZErvk6PgKwnf2WvZsm3V6BVGLFUEm4X8OWYw=="],
+    "@alwith/native": ["@alwith/native@0.1.4", "", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.4", "@alwith/native-linux-arm64": "0.1.4", "@alwith/native-linux-x64": "0.1.4", "@alwith/native-win32-arm64": "0.1.4", "@alwith/native-win32-x64": "0.1.4" } }, "sha512-g9kdgJuM0xXdjxS9GvW3MEODwVD6mBdllnIQ7ZnLCfl6EKCJpR5IVP5xkIAiuqb8tApRf0/Bn+honrTy2xOAQA=="],
 
-    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz", {}, "sha512-W8i08uQ/RCUKZgmibko8Kr7OKMdqd0PRoUvnM3B0NXZK1ScdxjDaZcXr2WjKJGb9Y0i/wcRu8TqKMXyXewPtPA=="],
+    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@0.1.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-gZGZSXvzl0r50XaawnkGp5idaMIKoNCyfvne/rANWd7fUq5o3YDvzKbKUjTczbnRIG1SgtLLAYJ3cfW8toNlNw=="],
+
+    "@alwith/native-linux-arm64": ["@alwith/native-linux-arm64@0.1.4", "", { "os": "linux", "cpu": "arm64" }, "sha512-dJ8pq8xrBAgUO2VyfHGaSfvrEMA/jbFeHa9X/BnYveKS5D2UzwUUQb2GveixKGsozhBCwDk5b+9HskY6oSzz3w=="],
+
+    "@alwith/native-linux-x64": ["@alwith/native-linux-x64@0.1.4", "", { "os": "linux", "cpu": "x64" }, "sha512-WDdn24oOTzPpbXATEK8C0YojRdHUoZjOfyFeG32DeznU06DYRBDJwpaZEbcxe1UzdJZemCh0NxXdS/6d1C91SQ=="],
+
+    "@alwith/native-win32-arm64": ["@alwith/native-win32-arm64@0.1.4", "", { "os": "win32", "cpu": "arm64" }, "sha512-Z9V6mrZrd48ZBkOIfik3rX2jE9DMCHiCPsrwLiQiLFluh7BX5oli1nxdq44om9S2cur9rNZCUySAkfMJ2Y4uIA=="],
+
+    "@alwith/native-win32-x64": ["@alwith/native-win32-x64@0.1.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+B1iDuqU7OBDg21RfSA5oMIWnFkzx49Sm3jQ4wEEwz3xwnEu6dee5Gw6/uH4y+1To5agonyQYJbSaOPPkno8dQ=="],
 
     "@alwith/runtime": ["@alwith/runtime@0.1.8", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.1.8", "@alwith/runtime-linux-arm64": "0.1.8", "@alwith/runtime-linux-x64": "0.1.8", "@alwith/runtime-win32-arm64": "0.1.8", "@alwith/runtime-win32-x64": "0.1.8" } }, "sha512-X+m8LcM1m+V7fJauoKmO3tI6X2ure13QL/eJYjqEi8/pr2W9do0aDQovCVs55MVY/13dHJAoLkctjvihgV5ywg=="],
 
