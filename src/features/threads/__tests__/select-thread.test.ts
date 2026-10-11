@@ -1,4 +1,4 @@
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import type { ChatTransfer } from "@/lib/chat-window"
 import { type SelectThreadActions, selectThread } from "../select-thread"
@@ -27,6 +27,7 @@ function actions(open: () => Promise<void>, selected: string[], errors: unknown[
     unarchive: async () => {},
     release: async (): Promise<ChatTransfer | null> => null,
     importDraft: (_id: string, _draft: ComposerDraft | null) => {},
+    include: () => {},
     open: async () => open(),
     show: id => selected.push(id),
     onOpenError: error => errors.push(error)
@@ -45,6 +46,25 @@ test("selects a chat while its history is still restoring", async () => {
 
   expect(selected).toEqual(["history-1"])
   expect(errors).toEqual([])
+  restoration.resolve()
+  await restoration.promise
+})
+
+test("includes a selected project chat before showing it, after restoring an archived chat", async () => {
+  const restoration = deferred()
+  const selected: string[] = []
+  const callbacks = actions(() => restoration.promise, selected, [])
+  const include = vi.fn()
+  callbacks.include = include
+  callbacks.unarchive = async () => {
+    expect(include).not.toHaveBeenCalled()
+  }
+  callbacks.show = id => {
+    expect(include).toHaveBeenCalledExactlyOnceWith(thread)
+    selected.push(id)
+  }
+  await selectThread({ ...thread, archived: true }, callbacks)
+  expect(selected).toEqual([thread.sessionId])
   restoration.resolve()
   await restoration.promise
 })

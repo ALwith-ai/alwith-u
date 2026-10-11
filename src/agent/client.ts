@@ -450,6 +450,12 @@ export class CodexClient {
     this.requests.answer(actionId, answer)
   }
 
+  /** Include an explicitly selected history entry without advancing sidebar pagination. */
+  includeThread(thread: ThreadSummary): void {
+    if (this.state.threads.some(item => item.sessionId === thread.sessionId)) return
+    this.store.setState(state => ({ threads: [...state.threads, thread] }))
+  }
+
   async listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
     const archived = options.archived === true
     const state = this.state
@@ -483,8 +489,7 @@ export class CodexClient {
           : archived
             ? current.archivedThreads
             : current.threads
-        const pageIds = new Set(freshPage.map(thread => thread.sessionId))
-        const merged = [...previous.filter(thread => !pageIds.has(thread.sessionId)), ...freshPage]
+        const merged = [...new Map([...previous, ...freshPage].map(thread => [thread.sessionId, thread])).values()]
         return archived
           ? {
               archivedThreads: merged,

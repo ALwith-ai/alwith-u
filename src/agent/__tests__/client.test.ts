@@ -384,6 +384,56 @@ test("project query reads every page, deduplicates IDs and leaves sidebar pagina
   expect(client.state).toBe(before)
 })
 
+test("selected project chats join the sidebar once without consuming its next page", async () => {
+  const { client, fake } = await make()
+  fake.listSessions.current = params =>
+    params.cursor
+      ? {
+          sessions: [
+            { sessionId: "older", cwd: "/tmp/project", title: "Updated title" },
+            { sessionId: "older", cwd: "/tmp/project", title: "Updated title" },
+            { sessionId: "oldest", cwd: "/tmp/project" }
+          ]
+        }
+      : { sessions: [{ sessionId: "recent", cwd: "/tmp/project" }], nextCursor: "next" }
+  await client.listThreads()
+  const selected = {
+    sessionId: "older",
+    cwd: "/tmp/project",
+    title: "Selected title",
+    updatedAt: null,
+    archived: false
+  }
+  client.includeThread(selected)
+  const state = client.state
+  client.includeThread({ ...selected, title: "Stale popup title" })
+  expect(client.state).toBe(state)
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["recent", "older"])
+  expect(client.state.threadsCursor).toBe("next")
+  await client.listThreads()
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["recent", "older", "oldest"])
+  expect(client.state.threads.find(thread => thread.sessionId === "older")?.title).toBe("Updated title")
+  expect(client.state.threadsCursor).toBeNull()
+})
+
+test.each([false, true])("a pending sidebar page preserves a newly selected project chat (reset=%s)", async reset => {
+  const { client, fake } = await make()
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: "recent", cwd: "/tmp/project" }], nextCursor: "next" })
+  await client.listThreads()
+  let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
+  fake.listSessions.current = () =>
+    new Promise(resolve => {
+      answer = resolve
+    })
+  const pending = client.listThreads({ reset })
+  await until(() => answer !== undefined)
+  client.includeThread({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
+  must(answer, "pending page")({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
+  await pending
+  expect(client.state.threads.filter(thread => thread.sessionId === "older")).toHaveLength(1)
+  expect(client.state.threads.find(thread => thread.sessionId === "older")?.title).toBe("Selected")
+})
+
 test("project query rejects failed or cyclic pagination instead of returning an incomplete total", async () => {
   const { client, fake } = await make()
   fake.listSessions.current = params => {

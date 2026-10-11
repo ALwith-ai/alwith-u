@@ -179,6 +179,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               return transfer
             },
             importDraft,
+            include: thread => client.includeThread(thread),
             open: (id, cwd) => client.open(id, cwd),
             show: id => {
               setSurfaceGeneration(value => value + 1)
