@@ -1,5 +1,5 @@
 import { addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
-import { render } from "@testing-library/react"
+import { fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
@@ -46,6 +46,8 @@ test("U keeps commentary after the last tool inside work, using the shared Deskt
   )
   const view = render(viewOf(session))
   mounted.push(view)
+  expect(view.container.querySelector(".codex-work-body")?.textContent).toBe("")
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   expect(view.container.querySelector(".codex-work-body")?.textContent).toContain("Still checking the result")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).toContain("Here is the final answer")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).not.toContain("Still checking the result")
@@ -115,6 +117,7 @@ test("compaction stays in work and a current-turn error is not repeated on earli
   }
   const view = render(viewOf(session, false, error))
   mounted.push(view)
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   expect(view.container.querySelector(".codex-work-body")?.textContent).toContain("Context compacted")
   expect(view.getByRole("alert").textContent).toContain("Gateway unavailable")
   view.rerender(viewOf(session, false, error, false))
@@ -278,6 +281,7 @@ test("commentary keeps non-text content and unknown blocks are visible", () => {
   })
   const view = render(viewOf(session))
   mounted.push(view)
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   const work = view.container.querySelector(".codex-work-body")
   expect(work?.textContent).toContain("See")
   expect(work?.textContent).toContain("result.txt")

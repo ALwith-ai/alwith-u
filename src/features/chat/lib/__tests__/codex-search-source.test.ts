@@ -58,4 +58,15 @@ describe("Codex search source", () => {
       )
     ).toEqual([])
   })
+
+  test("an empty query never reads tool payloads", () => {
+    const item = tool("unread-output", 2, null)
+    const turns = groupTurns({ ...createSession("s", "/"), items: [message("prompt", "user", "run", 1), item] })
+    Object.defineProperty(item, "rawOutput", {
+      get: () => {
+        throw new Error("Empty search read tool output")
+      }
+    })
+    expect(findCodexSearchSourceMatches(turns, "  ")).toEqual([])
+  })
 })

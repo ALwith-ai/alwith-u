@@ -33,7 +33,7 @@
     "@agentclientprotocol/sdk": "^1.8.0",
     "@alwith/api": "^0.3.0",
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
-    "@alwith/module-chat": "^0.1.9",
+    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.9-ed3e879.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
@@ -160,6 +160,7 @@
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
-    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz"
+    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz",
+    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.9-ed3e879.tgz"
   }
 }
