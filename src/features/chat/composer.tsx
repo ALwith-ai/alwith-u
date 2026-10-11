@@ -15,6 +15,7 @@ import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
 import { drafts, registerComposerWriter } from "./composer/drafts"
 import { MentionChips } from "./composer/mention-chips"
+import { NativeFileDrop, nativeAttachmentPolicy } from "./composer/native-file-drop"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
 import { PermissionModeSelect } from "./composer/permission-mode-select"
@@ -98,6 +99,7 @@ export function Composer({
   )
   const [mentions, setMentions] = useState<string[]>(() => drafts.get(session.id)?.mentions ?? [])
   const [sending, setSending] = useState(false)
+  const [dropping, setDropping] = useState(false)
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
@@ -140,17 +142,17 @@ export function Composer({
   const submit = useCallback(
     async ({ text: input, files }: PromptInputMessage) => {
       const trimmed = input.trim()
-      if (trimmed.length === 0 && files.length === 0) return
-      const prompt: acp.ContentBlock[] = []
-      // Mentions go first as ACP embedded context, the way ALwith Desktop sends them.
-      for (const path of mentions) {
-        const mention = { kind: "file", absPath: path } as const
-        prompt.push({ type: "resource_link", uri: formatMentionUri(mention), name: mentionDisplayName(mention) })
-      }
-      if (trimmed.length > 0) prompt.push({ type: "text", text: trimmed })
-      for (const file of files) prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
+      if (trimmed.length === 0 && files.length === 0 && mentions.length === 0) return
       setSending(true)
       try {
+        const prompt: acp.ContentBlock[] = []
+        // Mentions go first as ACP embedded context, the way ALwith Desktop sends them.
+        for (const path of mentions) {
+          const mention = { kind: "file", absPath: path } as const
+          prompt.push({ type: "resource_link", uri: formatMentionUri(mention), name: mentionDisplayName(mention) })
+        }
+        if (trimmed.length > 0) prompt.push({ type: "text", text: trimmed })
+        for (const file of files) prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
         if (onSubmit) await onSubmit(prompt)
         else await client.prompt(session.id, prompt)
         setMentions([])
@@ -185,7 +187,7 @@ export function Composer({
   )
 
   return (
-    <div className="relative mx-auto w-full max-w-3xl px-6 pb-5" ref={inputAreaRef}>
+    <div data-chat-drop-zone className="relative mx-auto w-full max-w-3xl px-6 pb-5" ref={inputAreaRef}>
       {inputHeader && (
         <div
           data-chat-input-header
@@ -194,6 +196,7 @@ export function Composer({
         </div>
       )}
       <PromptInputProvider
+        attachmentPolicy={nativeAttachmentPolicy}
         value={text}
         onValueChange={setText}
         attachments={attachments}
@@ -213,13 +216,24 @@ export function Composer({
           onError={onAttachmentError}
           onSubmit={submit}
           onSubmitCapture={event => {
-            if (!ready || sending) {
+            if (!ready || sending || dropping) {
               event.preventDefault()
               event.stopPropagation()
             }
           }}
           className="relative z-10">
+          <NativeFileDrop
+            sessionId={session.id}
+            enabled={inputReady && !sending}
+            onMention={addMention}
+            onBusyChange={setDropping}
+          />
           <PromptInputHeader>
+            {dropping && (
+              <span role="status" className="text-muted-foreground text-xs">
+                {t("chat.input.addingFiles")}
+              </span>
+            )}
             <MentionChips
               mentions={mentions}
               onRemove={path => setMentions(current => current.filter(item => item !== path))}
@@ -253,7 +267,13 @@ export function Composer({
                 {modelSelector ?? (
                   <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
                 )}
-                <ChatSubmitButton active={active} sending={sending || preparing} ready={ready} onStop={stop} />
+                <ChatSubmitButton
+                  active={active}
+                  sending={sending || preparing || dropping}
+                  ready={ready}
+                  hasMentions={mentions.length > 0}
+                  onStop={stop}
+                />
               </PromptInputTools>
             </div>
           </PromptInputFooter>

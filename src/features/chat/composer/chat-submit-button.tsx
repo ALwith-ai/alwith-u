@@ -11,16 +11,19 @@ export function ChatSubmitButton({
   active,
   sending,
   ready,
+  hasMentions = false,
   onStop
 }: {
   active: boolean
   sending: boolean
   ready: boolean
+  hasMentions?: boolean
   onStop: () => void
 }) {
   const { t } = useTranslation()
   const controller = usePromptInputController()
-  const hasInput = controller.textInput.value.trim().length > 0 || controller.attachments.files.length > 0
+  const hasInput =
+    hasMentions || controller.textInput.value.trim().length > 0 || controller.attachments.files.length > 0
   const disabled = !ready || sending || !hasInput
   return (
     <>

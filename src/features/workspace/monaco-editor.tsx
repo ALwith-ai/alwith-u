@@ -9,6 +9,7 @@ import type { EditorController, TextEditorProps } from "@alwith/module-editor"
 import { useEffect, useMemo, useRef } from "react"
 import { useTheme } from "@/components/theme-provider"
 import type { MonacoAction } from "@alwith/module-editor/monaco"
+import type { FilePosition } from "./context"
 import type { EditorSettings } from "./editor-settings"
 self.MonacoEnvironment = {
   getWorker(_id, label) {
@@ -28,7 +29,12 @@ export function releaseMonaco(controller: EditorController): void {
   }
 }
 export default function CodeEditor(
-  props: TextEditorProps & { controller: EditorController; settings: EditorSettings; onError: (error: unknown) => void }
+  props: TextEditorProps & {
+    controller: EditorController
+    settings: EditorSettings
+    position?: FilePosition
+    onError: (error: unknown) => void
+  }
 ) {
   const { resolvedTheme } = useTheme()
   const element = useRef<HTMLDivElement>(null)

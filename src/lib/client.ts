@@ -5,16 +5,20 @@ import type { Session } from "@alwith/api"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
-import { type AppState, CodexClient } from "@/agent/client"
+import type { AppState } from "@/agent/client"
+import { DesktopCodexClient } from "@/lib/desktop-client"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
+import { macProjectPaths } from "@/agent/project-path"
+import { isMac } from "@/lib/platform"
 
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"
     ? new RemoteChatClient()
-    : new CodexClient(runtimeClient, {
+    : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex" },
+        projectPaths: isMac() ? macProjectPaths : undefined,
         sessionContext: driveSessionContext
       })
 

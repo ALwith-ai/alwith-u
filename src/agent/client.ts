@@ -99,6 +99,8 @@ export type ClientOptions = {
   launch: Launch
   /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
   sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
+  /** Host-specific path identity, independent of whether a historical directory still exists. */
+  projectPaths?: import("./project-path").ProjectPaths
 }
 
 export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
@@ -235,6 +237,18 @@ export class CodexClient {
 
   get state(): AppState {
     return this.store.getState()
+  }
+
+  projectPath(cwd: string): string {
+    return this.projectPaths(cwd)[0]
+  }
+
+  private projectPaths(cwd: string): readonly [string, ...string[]] {
+    return this.options.projectPaths?.(cwd) ?? [cwd]
+  }
+
+  private threadSummary(info: acp.SessionInfo): ThreadSummary {
+    return { ...toSummary(info), cwd: this.projectPath(info.cwd) }
   }
 
   session(id: string): Session {
@@ -453,7 +467,7 @@ export class CodexClient {
   /** Include an explicitly selected history entry without advancing sidebar pagination. */
   includeThread(thread: ThreadSummary): void {
     if (this.state.threads.some(item => item.sessionId === thread.sessionId)) return
-    this.store.setState(state => ({ threads: [...state.threads, thread] }))
+    this.store.setState(state => ({ threads: [...state.threads, { ...thread, cwd: this.projectPath(thread.cwd) }] }))
   }
 
   async listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
@@ -472,7 +486,9 @@ export class CodexClient {
     try {
       const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
       if (requestId !== this.listRequests[bucket]) return
-      const page = response.sessions.map(toSummary).filter(thread => !this.state.draftSessions[thread.sessionId])
+      const page = response.sessions
+        .map(info => this.threadSummary(info))
+        .filter(thread => !this.state.draftSessions[thread.sessionId])
       const nextCursor = response.nextCursor ?? null
       this.store.setState(current => {
         // Preserve mutations made after dispatch, including removal and movement between lists.
@@ -551,26 +567,30 @@ export class CodexClient {
   private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {
     const agent = this.live()
     const threads = new Map<string, ThreadSummary>()
-    const cursors = new Set<string>()
-    let cursor: string | undefined
-    do {
-      const response = await agent.request<acp.ListSessionsResponse>("session/list", {
-        ...(cwd === undefined ? {} : { cwd }),
-        ...(archived ? { _meta: { codex: { archived: true } } } : {}),
-        ...(cursor === undefined ? {} : { cursor })
-      })
-      for (const info of response.sessions) {
-        const thread = toSummary(info)
-        if (this.state.draftSessions[thread.sessionId]) continue
-        if ((cwd === undefined || thread.cwd === cwd) && thread.archived === archived)
-          threads.set(thread.sessionId, thread)
-      }
-      cursor = response.nextCursor ?? undefined
-      if (cursor !== undefined) {
-        if (cursors.has(cursor)) throw new Error("Session list returned a repeated cursor")
-        cursors.add(cursor)
-      }
-    } while (cursor !== undefined)
+    const project = cwd === undefined ? undefined : this.projectPath(cwd)
+    // Codex filters historical cwd strings literally; query each system alias with its own cursor.
+    for (const queryCwd of cwd === undefined ? [undefined] : this.projectPaths(cwd)) {
+      const cursors = new Set<string>()
+      let cursor: string | undefined
+      do {
+        const response = await agent.request<acp.ListSessionsResponse>("session/list", {
+          ...(queryCwd === undefined ? {} : { cwd: queryCwd }),
+          ...(archived ? { _meta: { codex: { archived: true } } } : {}),
+          ...(cursor === undefined ? {} : { cursor })
+        })
+        for (const info of response.sessions) {
+          const thread = this.threadSummary(info)
+          if (this.state.draftSessions[thread.sessionId]) continue
+          if ((project === undefined || thread.cwd === project) && thread.archived === archived)
+            threads.set(thread.sessionId, thread)
+        }
+        cursor = response.nextCursor ?? undefined
+        if (cursor !== undefined) {
+          if (cursors.has(cursor)) throw new Error("Session list returned a repeated cursor")
+          cursors.add(cursor)
+        }
+      } while (cursor !== undefined)
+    }
     if (!archived) {
       // Codex can read a just-forked thread before it includes it in thread/list.
       // Keep the native fork response visible while that thread is attached; this is not a persisted index.
@@ -587,7 +607,7 @@ export class CodexClient {
         !thread.archived &&
         thread.forkedFromId != null &&
         this.state.sessions[thread.sessionId]?.attached &&
-        (cwd === undefined || thread.cwd === cwd)
+        (cwd === undefined || thread.cwd === this.projectPath(cwd))
     )
   }
 
@@ -639,7 +659,7 @@ export class CodexClient {
       threads: [
         {
           sessionId: session.id,
-          cwd: session.cwd,
+          cwd: this.projectPath(session.cwd),
           title: session.title,
           updatedAt: new Date().toISOString(),
           archived: false
@@ -823,12 +843,17 @@ export class CodexClient {
     // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
     // the later `user_message` echo or its text, so an unclaimed copy would stay a second
     // message. Echo and receipt may arrive in either order.
+    const sentAt = Date.now()
     const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
     // Once a request leaves the client, transport failure cannot prove it was not accepted.
     // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
     this.materializeDraft(id)
-    const response = await this.live().request<acp.PromptResponse>("session/prompt", { sessionId: id, prompt })
+    const response = await this.live().request<acp.PromptResponse>("session/prompt", {
+      sessionId: id,
+      prompt,
+      _meta: { codex: { messageSentAt: sentAt } }
+    })
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
   }
@@ -1001,7 +1026,7 @@ export class CodexClient {
       threads: [
         {
           sessionId: response.sessionId,
-          cwd,
+          cwd: this.projectPath(cwd),
           title: forked.title,
           updatedAt: new Date().toISOString(),
           archived: false,

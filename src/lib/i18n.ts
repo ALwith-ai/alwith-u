@@ -54,9 +54,35 @@ function systemLanguage(): LanguageCode {
 export function initI18n(language: string | null): Promise<unknown> {
   return i18n.use(initReactI18next).init({
     resources: {
-      en: { translation: en, alwithChat: chatLocales.en, ...vibemonLocales.en },
+      en: {
+        translation: en,
+        alwithChat: chatLocales.en,
+        ...vibemonLocales.en,
+        common: {
+          ...vibemonLocales.en.common,
+          navigation: { mainWindow: "Main window", chatWindow: "Floating window" },
+          petMode: {
+            ...vibemonLocales.en.common.petMode,
+            openMain: "Open conversation in main window",
+            openChat: "Open conversation in floating window"
+          }
+        }
+      },
       ar: { translation: ar, alwithChat: chatLocales.ar },
-      "zh-CN": { translation: zhCN, alwithChat: chatLocales["zh-CN"], ...vibemonLocales["zh-CN"] }
+      "zh-CN": {
+        translation: zhCN,
+        alwithChat: chatLocales["zh-CN"],
+        ...vibemonLocales["zh-CN"],
+        common: {
+          ...vibemonLocales["zh-CN"].common,
+          navigation: { mainWindow: "主窗", chatWindow: "独立浮窗" },
+          petMode: {
+            ...vibemonLocales["zh-CN"].common.petMode,
+            openMain: "在主窗中打开会话",
+            openChat: "在独立浮窗中打开会话"
+          }
+        }
+      }
     },
     lng: language !== null && isLanguageCode(language) ? language : systemLanguage(),
     fallbackLng: "en",

@@ -16,6 +16,10 @@ describe("detectTrigger", () => {
   })
   test("a slash inside a word or path, or whitespace before the caret, does not", () => {
     expect(detectTrigger("src/app", 7)).toBeNull()
+    expect(detectTrigger("/private/tmp/example", 20)).toBeNull()
+    expect(detectTrigger("/tmp/", 5)).toBeNull()
+    expect(detectTrigger("//server/share", 14)).toBeNull()
+    expect(detectTrigger("@src/app", 8)).toEqual({ kind: "at", start: 0, end: 8, query: "src/app" })
     expect(detectTrigger("/review now", 11)).toBeNull()
     expect(detectTrigger("", 0)).toBeNull()
   })

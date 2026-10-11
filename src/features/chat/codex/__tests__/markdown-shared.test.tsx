@@ -30,3 +30,22 @@ describe("Desktop Markdown through the shared chat package", () => {
     expect(view.container.querySelector("strong")?.textContent).toBe("answer")
   })
 })
+
+test("renders dollar and backslash math while preserving code examples and currency", () => {
+  const view = render(
+    <CodexMarkdownRenderer
+      host={{ theme: "dark", copyLabel: "Copy", openLink: () => {} }}
+      text={String.raw`Inline $x^2$ and \(a+b\).
+
+$$\int_0^1 x^2 dx=\frac{1}{3}$$
+
+\[\begin{pmatrix}1&2\\3&4\end{pmatrix}\]
+
+Price $10 and $20. Code: ${"`\\(literal\\)`"}`}
+    />
+  )
+  expect(view.container.querySelectorAll(".katex")).toHaveLength(4)
+  expect(view.container.querySelectorAll(".katex-display")).toHaveLength(2)
+  expect(view.container.querySelector(".codex-markdown-inline-code")?.textContent).toBe("\\(literal\\)")
+  expect(view.container.textContent).toContain("Price $10 and $20")
+})

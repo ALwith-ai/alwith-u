@@ -1,8 +1,13 @@
 import { createContext, useContext } from "react"
+export interface FilePosition {
+  lineNumber: number
+  column: number
+}
+
 export interface WorkspaceActions {
   visible: boolean
   toggle(): void
-  openFile(path: string, root: string | null): Promise<void>
+  openFile(path: string, root: string | null, position?: FilePosition): Promise<void>
   openProject(path: string): Promise<void>
   revealEntry(path: string, root: string): Promise<void>
 }

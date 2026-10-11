@@ -1,4 +1,4 @@
-import { PetModeButton } from "@alwith/module-vibemon/react"
+import { LoaderCircleIcon, Minimize2Icon } from "lucide-react"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -43,7 +43,15 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
   }
   return (
     <>
-      <PetModeButton busy={busy} onClick={() => void collapse()} />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        title={t("petMode.enter")}
+        aria-label={t("petMode.enter")}
+        disabled={busy}
+        onClick={() => void collapse()}>
+        {busy ? <LoaderCircleIcon className="animate-spin" /> : <Minimize2Icon />}
+      </Button>
       <Dialog
         open={error !== null}
         onOpenChange={open => {

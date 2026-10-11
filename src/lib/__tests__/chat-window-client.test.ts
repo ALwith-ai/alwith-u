@@ -1,9 +1,48 @@
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
-import { expect, test } from "vitest"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
+import { DesktopCodexClient } from "../desktop-client"
+
+const initialFiles = vi.hoisted(() => vi.fn())
+vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
+
+test("floating file completion delegates both empty and typed queries to the main owner", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new DesktopCodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const file = {
+    root: "/selected-project",
+    path: "中文 #1.txt",
+    file_name: "中文 #1.txt",
+    match_type: "file",
+    score: 0,
+    indices: null
+  }
+  initialFiles.mockResolvedValue([file])
+  try {
+    await remote.connect()
+    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"] })).toEqual({ files: [file] })
+    expect(initialFiles).toHaveBeenCalledWith("/selected-project", "")
+    expect(fake.fileSearches).toEqual([])
+    expect((await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"] })).files).toMatchObject([
+      { root: "/selected-project", path: "中文 #1.txt" }
+    ])
+    expect(initialFiles).toHaveBeenCalledWith("/selected-project", "client")
+    expect(fake.fileSearches).toEqual([])
+  } finally {
+    initialFiles.mockReset()
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
 
 function eventBus(): ChatEvents {
   const handlers = new Map<string, Set<EventCallback<unknown>>>()
@@ -233,3 +272,182 @@ test("draft handoff keeps its model and only the new owner can discard it", asyn
     owner.disconnect()
   }
 })
+
+const codexModel = "gpt-6-astra"
+const deepseekModel = "gateway:deepseek:deepseek-flash"
+
+function providerOptions(model: string | null): acp.SessionConfigOption[] {
+  return [
+    {
+      configId: "model",
+      name: "Model",
+      category: "model",
+      type: "select",
+      currentValue: model ?? codexModel,
+      options: [
+        { groupId: "chatgpt", name: "ChatGPT", options: [{ value: codexModel, name: "GPT-6-Astra" }] },
+        { groupId: "deepseek", name: "DeepSeek", options: [{ value: deepseekModel, name: "DeepSeek-Flash" }] }
+      ]
+    }
+  ]
+}
+
+async function providerWindows() {
+  const fake = createFakeAgent()
+  // Match the adapter's catalog response, including the provider-qualified model ID.
+  fake.sessionOptions.current = providerOptions
+  const port = new FakeHubPort(() => fake.app)
+  const requests = vi.spyOn(port, "acpRequest")
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  await remote.connect()
+  return {
+    fake,
+    port,
+    requests,
+    owner,
+    remote,
+    dispose() {
+      remote.disconnect()
+      stop()
+      owner.disconnect()
+      requests.mockRestore()
+    }
+  }
+}
+
+for (const surface of ["main", "chat"] as const) {
+  test(`${surface} switches Codex to DeepSeek and back without changing the other window's session`, async () => {
+    const f = await providerWindows()
+    try {
+      const window = surface === "main" ? f.owner : f.remote
+      const id = await window.newSession("/tmp/provider-target")
+      const other = await f.owner.newSession("/tmp/provider-other")
+      const seen: unknown[] = []
+      f.owner.onSessionModel((...change) => seen.push(change))
+      for (const model of [deepseekModel, codexModel]) {
+        await window.setConfig(id, "model", model)
+        expect(f.fake.configChanges.at(-1)).toBe(model)
+        expect(f.owner.session(id).configOptions[0]?.currentValue).toBe(model)
+        expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(model)
+        expect(f.owner.session(other).configOptions[0]?.currentValue).toBe(codexModel)
+        expect(f.remote.session(other).configOptions[0]?.currentValue).toBe(codexModel)
+        expect(seen.at(-1)).toEqual([id, model, model === deepseekModel])
+      }
+      expect(
+        f.requests.mock.calls
+          .filter(([, method]) => method === "session/set_config_option")
+          .map(([, , params]) => params)
+      ).toEqual([
+        { sessionId: id, configId: "model", type: "id", value: deepseekModel },
+        { sessionId: id, configId: "model", type: "id", value: codexModel }
+      ])
+      expect(f.port.started).toEqual(["codex"])
+    } finally {
+      f.dispose()
+    }
+  })
+
+  test(`${surface} waits for provider selection before sending and synchronizes the pending state`, async () => {
+    const f = await providerWindows()
+    const gate = Promise.withResolvers<void>()
+    const entered = Promise.withResolvers<void>()
+    try {
+      const window = surface === "main" ? f.owner : f.remote
+      const id = await window.newSession("/tmp/provider-pending")
+      f.fake.configDelay.current = async () => {
+        entered.resolve()
+        await gate.promise
+      }
+      const selecting = window.setConfig(id, "model", deepseekModel)
+      await entered.promise
+      await vi.waitFor(() => expect(f.remote.state.configPending[id]).toBe(true))
+      expect(f.owner.state.configPending[id]).toBe(true)
+      expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
+      const sending = window.prompt(id, [{ type: "text", text: "Provider selection test" }])
+      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
+      gate.resolve()
+      await Promise.all([selecting, sending])
+      expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(deepseekModel)
+      await vi.waitFor(() => expect(Boolean(f.remote.state.configPending[id])).toBe(false))
+      expect(
+        f.requests.mock.calls
+          .filter(([, method]) => ["session/set_config_option", "session/prompt"].includes(method))
+          .map(([, method, params]) => [method, params])
+      ).toEqual([
+        ["session/set_config_option", { sessionId: id, configId: "model", type: "id", value: deepseekModel }],
+        [
+          "session/prompt",
+          {
+            sessionId: id,
+            prompt: [{ type: "text", text: "Provider selection test" }],
+            _meta: { codex: { messageSentAt: expect.any(Number) } }
+          }
+        ]
+      ])
+      await vi.waitFor(() => expect(f.owner.session(id).state).toBe("idle"))
+    } finally {
+      gate.resolve()
+      f.dispose()
+    }
+  })
+
+  test(`${surface} preserves Codex and rejects a queued send when switching to DeepSeek fails`, async () => {
+    const f = await providerWindows()
+    const gate = Promise.withResolvers<void>()
+    const entered = Promise.withResolvers<void>()
+    try {
+      const window = surface === "main" ? f.owner : f.remote
+      const id = await window.newSession("/tmp/provider-failure")
+      f.fake.configDelay.current = async () => {
+        entered.resolve()
+        await gate.promise
+        throw new Error("DeepSeek unavailable")
+      }
+      const selecting = window.setConfig(id, "model", deepseekModel)
+      await entered.promise
+      const sending = window.prompt(id, [{ type: "text", text: "Do not send on Codex" }])
+      const results = Promise.allSettled([selecting, sending])
+      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      gate.resolve()
+      expect((await results).map(result => result.status)).toEqual(["rejected", "rejected"])
+      expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
+      expect(f.owner.session(id).configOptions[0]?.currentValue).toBe(codexModel)
+      expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
+      await vi.waitFor(() => expect(Boolean(f.remote.state.configPending[id])).toBe(false))
+      f.fake.configDelay.current = null
+      await window.setConfig(id, "model", deepseekModel)
+      expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(deepseekModel)
+    } finally {
+      gate.resolve()
+      f.dispose()
+    }
+  })
+
+  test(`${surface} hands off a DeepSeek draft and can switch it back to Codex before sending`, async () => {
+    const f = await providerWindows()
+    try {
+      const window = surface === "main" ? f.owner : f.remote
+      const target = surface === "main" ? "chat" : "main"
+      const otherWindow = target === "main" ? f.owner : f.remote
+      const native = await window.prepareDraft(surface, "/tmp/provider-draft", codexModel)
+      const deepseek = await window.prepareDraft(surface, "/tmp/provider-draft", deepseekModel)
+      expect(f.fake.deleted.has(native)).toBe(true)
+      expect(f.fake.modelHints.get(deepseek)).toBe(deepseekModel)
+      await window.transferDraft(deepseek, target)
+      expect(await otherWindow.prepareDraft(target, "/tmp/provider-draft")).toBe(deepseek)
+      expect(otherWindow.session(deepseek).configOptions[0]?.currentValue).toBe(deepseekModel)
+      const restored = await otherWindow.prepareDraft(target, "/tmp/provider-draft", codexModel)
+      expect(f.fake.modelHints.get(restored)).toBe(codexModel)
+      expect(f.fake.deleted.has(deepseek)).toBe(true)
+      expect(f.owner.state.draftSessions[restored]).toBe(target)
+      expect(f.remote.session(restored).configOptions[0]?.currentValue).toBe(codexModel)
+      expect(f.fake.configChanges).toEqual([])
+    } finally {
+      f.dispose()
+    }
+  })
+}

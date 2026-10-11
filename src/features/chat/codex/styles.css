@@ -106,3 +106,19 @@
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+
+/* Keep table scrolling within the same horizontal inset as prose and code. */
+.codex-markdown-table-container {
+  width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+}
+
+.codex-markdown-table-wrapper {
+  min-width: 100%;
+  margin-inline: 0;
+}
+
+.codex-markdown-table {
+  min-width: 100%;
+}

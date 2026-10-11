@@ -1,3 +1,4 @@
+import { sessionIcons } from "./session-icons"
 import { sessionIconSvg, type PetWindowHost, type PetBinding, type PetSessionChoice } from "@alwith/module-vibemon"
 import { invoke } from "@tauri-apps/api/core"
 import { Image as TauriImage } from "@tauri-apps/api/image"
@@ -7,6 +8,7 @@ import { LogicalPosition } from "@tauri-apps/api/window"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import i18n from "@/lib/i18n"
 import { requestPet } from "./transport"
+import { fitSessionMenuLabel } from "./session-menu-label"
 
 let sessionMenu: Menu | null = null
 async function chooseSession(payload: {
@@ -22,10 +24,13 @@ async function chooseSession(payload: {
   const window = getCurrentWebviewWindow()
   const theme = await window.theme()
   const icons: TauriImage[] = []
+  const metrics = document.createElement("canvas").getContext("2d")
+  if (metrics === null) throw new Error("Session menu requires Canvas 2D")
+  metrics.font = "13px -apple-system, BlinkMacSystemFont, sans-serif"
   try {
     for (const candidate of payload.candidates) {
       const source = new globalThis.Image()
-      source.src = `data:image/svg+xml,${encodeURIComponent(sessionIconSvg(candidate.windowLabel).replace("currentColor", theme === "dark" ? "white" : "black"))}`
+      source.src = `data:image/svg+xml,${encodeURIComponent(sessionIconSvg(candidate.windowLabel, sessionIcons).replace("currentColor", theme === "dark" ? "white" : "black"))}`
       await source.decode()
       const canvas = document.createElement("canvas")
       canvas.width = 18
@@ -39,12 +44,18 @@ async function chooseSession(payload: {
       items: payload.candidates.map((candidate, index) => ({
         id: candidate.sessionId,
         icon: icons[index],
-        text: [
-          candidate.cwd.split(/[\\/]/).filter(Boolean).at(-1),
-          candidate.title || i18n.t("collection.defaultChatTitle", { ns: "common" })
-        ]
-          .filter(Boolean)
-          .join(" / "),
+        text: fitSessionMenuLabel(
+          [
+            i18n.t(candidate.windowLabel === "main" ? "navigation.mainWindow" : "navigation.chatWindow", {
+              ns: "common"
+            }),
+            candidate.cwd.split(/[\\/]/).filter(Boolean).at(-1),
+            candidate.title || i18n.t("collection.defaultChatTitle", { ns: "common" })
+          ]
+            .filter(Boolean)
+            .join(" / "),
+          label => metrics.measureText(label).width
+        ),
         action: () => void payload.onSelect(candidate.sessionId)
       }))
     })

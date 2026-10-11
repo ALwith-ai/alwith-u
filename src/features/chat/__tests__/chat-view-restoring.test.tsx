@@ -32,3 +32,104 @@ test("shows restored messages before session/resume finishes", async () => {
   // Pane queues its initial measurement; flush it before this file releases its DOM.
   await act(async () => {})
 })
+
+test("shows an interruption explanation when replay contains only the user's prompt", async () => {
+  const session = applyUpdate(
+    { ...createSession("stopped-history", "/tmp/project"), attached: true },
+    {
+      sessionUpdate: "user_message",
+      messageId: "stopped-prompt",
+      content: [{ type: "text", text: "Stopped question" }],
+      _meta: { codex: { turnId: "stopped-turn", historyInterrupted: true } }
+    }
+  )
+  const view = render(
+    <ThemeProvider>
+      <ChatBody session={session} />
+    </ThemeProvider>
+  )
+  expect(view.getByText("Stopped question")).toBeDefined()
+  expect(view.getByText("Stopped. Codex history may not contain the unfinished response.")).toBeDefined()
+  await act(async () => {})
+})
+
+test.each(["error", "cancelled"] as const)("shows %s before the first assistant token", async reason => {
+  const { addPrompt } = await import("@alwith/api")
+  const session = {
+    ...addPrompt(
+      createSession(`early-${reason}`, "/tmp/project"),
+      [{ type: "text", text: "Awaiting reply" }],
+      "prompt"
+    ),
+    state: "idle" as const,
+    attached: true,
+    lastStopReason: reason,
+    error:
+      reason === "error"
+        ? { stopReason: "error", error: { code: -32603, message: "QA service unavailable" }, meta: null }
+        : null
+  }
+  const view = render(
+    <ThemeProvider>
+      <ChatBody session={session} />
+    </ThemeProvider>
+  )
+  expect(view.getByText(reason === "error" ? "QA service unavailable" : "Stopped")).toBeInTheDocument()
+  expect(view.queryByText("Thinking")).toBeNull()
+  view.unmount()
+  await act(async () => {})
+})
+
+test("an accepted turn shows inline thinking while history restoration keeps its loader", async () => {
+  const { addPrompt } = await import("@alwith/api")
+  const initial = { ...createSession("thinking", "/tmp/project"), attached: true }
+  const view = render(
+    <ThemeProvider>
+      <ChatBody session={{ ...initial, restoring: true }} />
+    </ThemeProvider>
+  )
+  expect(view.container.querySelector(".animate-spin")).not.toBeNull()
+  const running = {
+    ...addPrompt(initial, [{ type: "text", text: "Think about it" }], "prompt"),
+    state: "running" as const
+  }
+  view.rerender(
+    <ThemeProvider>
+      <ChatBody session={running} />
+    </ThemeProvider>
+  )
+  expect(view.getByRole("status").textContent).toBe("Thinking")
+  expect(view.container.querySelector(".codex-pending-message .codex-activity-running")).not.toBeNull()
+  expect(view.container.querySelector(".animate-spin")).toBeNull()
+  const time = view.container.querySelector(".codex-user-actions .codex-user-time")
+  expect(time?.getAttribute("title")).toMatch(/\d{4}-\d{2}-\d{2}/)
+  expect(time?.previousElementSibling?.getAttribute("aria-label")).toBe("Copy")
+  view.unmount()
+  await act(async () => {})
+})
+
+test("an interrupted prompt keeps its notice after another turn starts", async () => {
+  let session = applyUpdate(
+    { ...createSession("retained-stop", "/tmp/project"), attached: true },
+    {
+      sessionUpdate: "user_message",
+      messageId: "stopped",
+      content: [{ type: "text", text: "Interrupted prompt" }],
+      _meta: { codex: { turnId: "turn-a", turnInterrupted: true } }
+    }
+  )
+  session = applyUpdate(session, {
+    sessionUpdate: "user_message",
+    messageId: "next",
+    content: [{ type: "text", text: "Next prompt" }]
+  })
+  const view = render(
+    <ThemeProvider>
+      <ChatBody session={{ ...session, state: "running" }} />
+    </ThemeProvider>
+  )
+  expect(view.getAllByText("Stopped")).toHaveLength(1)
+  expect(view.getByText("Thinking")).toBeInTheDocument()
+  view.unmount()
+  await act(async () => {})
+})

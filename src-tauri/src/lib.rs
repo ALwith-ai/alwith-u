@@ -80,7 +80,8 @@ pub fn run() {
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default())
-        .manage(extension_inbox::InboxState::default());
+        .manage(extension_inbox::InboxState::default())
+        .manage(vibemon::BubblePresentation::default());
 
     #[cfg(feature = "hasgard-testing")]
     let builder = builder.plugin(tauri_plugin_hasgard::init());
@@ -126,6 +127,12 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
+            if webview.label() == "bubble-menu-vibemon"
+                && matches!(payload.event(), tauri::webview::PageLoadEvent::Started)
+                && let Some(window) = webview.app_handle().get_webview_window(webview.label())
+            {
+                vibemon::reset_bubble_on_navigation(window);
+            }
             log::info!("page {:?} {}", payload.event(), payload.url());
             let _ = webview;
         })
@@ -170,7 +177,10 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 drive::drive_path_exists,
                 chat_files::chat_save_file,
                 chat_files::chat_read_image,
+                chat_files::chat_preview_file,
+                chat_files::chat_read_dropped_file,
                 workspace::workspace_open,
+                workspace::workspace_list_files,
                 workspace::workspace_import,
                 workspace::workspace_file,
                 workspace::workspace_watch,

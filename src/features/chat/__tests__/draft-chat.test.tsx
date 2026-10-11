@@ -487,45 +487,48 @@ test("new chat prepares once under StrictMode and exposes the real model before 
   }
 })
 
-test("first send clears persisted text and mentions before the normal composer mounts", async () => {
-  const { real, restore } = await environment()
-  importDraft(DRAFT_SESSION_ID, { text: "hello", mentions: ["/tmp/source.ts"], attachments: [], modelId: null })
-  let prepared: string | null = null
-  function Surface() {
-    const [id, setId] = useState<string | null>(null)
-    const [sending, setSending] = useState(false)
-    const session = useSession(id)
-    const draft = useApp(state => id === null || Boolean(state.draftSessions[id]))
-    if (!draft && !sending && session) return <Composer session={session} />
-    return (
-      <DraftChat
-        owner="main"
-        cwd="/tmp/first-send"
-        onCwdChange={() => {}}
-        onCreated={value => {
-          prepared = value
-          setId(value)
-        }}
-        onSendingChange={(_id, sending) => setSending(sending)}
-        onAuthRequired={() => {}}
-        providerSnapshot={providers}
-        onNewChat={() => {}}
-      />
-    )
+test.each(["hello", ""])(
+  "first send with text %j clears persisted file references before the normal composer mounts",
+  async text => {
+    const { real, restore } = await environment()
+    importDraft(DRAFT_SESSION_ID, { text, mentions: ["/tmp/source.ts"], attachments: [], modelId: null })
+    let prepared: string | null = null
+    function Surface() {
+      const [id, setId] = useState<string | null>(null)
+      const [sending, setSending] = useState(false)
+      const session = useSession(id)
+      const draft = useApp(state => id === null || Boolean(state.draftSessions[id]))
+      if (!draft && !sending && session) return <Composer session={session} />
+      return (
+        <DraftChat
+          owner="main"
+          cwd="/tmp/first-send"
+          onCwdChange={() => {}}
+          onCreated={value => {
+            prepared = value
+            setId(value)
+          }}
+          onSendingChange={(_id, sending) => setSending(sending)}
+          onAuthRequired={() => {}}
+          providerSnapshot={providers}
+          onNewChat={() => {}}
+        />
+      )
+    }
+    const view = render(<Surface />)
+    try {
+      await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
+      await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+      await waitFor(() => expect(real.state.draftSessions[must<string>(prepared, "prepared draft")]).toBeUndefined())
+      await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(""))
+      expect(drafts.get(must<string>(prepared, "prepared draft"))?.mentions).toEqual([])
+      expect(real.session(must<string>(prepared, "prepared draft")).items.some(item => item.kind === "user")).toBe(true)
+    } finally {
+      await act(async () => view.unmount())
+      restore()
+    }
   }
-  const view = render(<Surface />)
-  try {
-    await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
-    await waitFor(() => expect(real.state.draftSessions[must<string>(prepared, "prepared draft")]).toBeUndefined())
-    await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(""))
-    expect(drafts.get(must<string>(prepared, "prepared draft"))?.mentions).toEqual([])
-    expect(real.session(must<string>(prepared, "prepared draft")).items.some(item => item.kind === "user")).toBe(true)
-  } finally {
-    await act(async () => view.unmount())
-    restore()
-  }
-})
+)
 
 test("choosing a gateway in a prepared draft preserves input and sends on a newly created target-model session", async () => {
   const { real, fake, restore } = await environment()

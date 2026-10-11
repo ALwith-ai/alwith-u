@@ -2,7 +2,9 @@ import { useWorkspace } from "@/features/workspace/context"
 import { invoke } from "@tauri-apps/api/core"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
-import { openExternal } from "@/lib/open"
+import { openFilePreview } from "./dialogs/file-preview-modal"
+import { containsPath } from "@alwith/module-fs"
+import { fileLocationPath, openExternal } from "@/lib/open"
 
 // Scope relative file references to their owning thread, including inactive chats.
 export const ChatDirectoryContext = createContext<string | null>(null)
@@ -24,9 +26,28 @@ export function useOpenChatLink(): (target: string) => void {
     (target: string): void => {
       void (async () => {
         const url = resolveChatLink(target, cwd)
-        if (workspace !== null && (url.startsWith("/") || url.startsWith("file:") || /^[A-Za-z]:[\\/]/.test(url))) {
-          const path = url.startsWith("file:") ? decodeURIComponent(new URL(url).pathname) : decodeURIComponent(url)
-          await workspace.openFile(path.replace(/:\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?$/, ""), cwd)
+        if (url.startsWith("/") || url.startsWith("file:") || /^[A-Za-z]:[\\/]/.test(url) || url.startsWith("\\\\")) {
+          let value = url
+          if (url.startsWith("file:")) {
+            const file = new URL(url)
+            value = file.pathname + file.hash
+            if (/^\/[A-Za-z]:\//.test(value)) value = value.slice(1)
+            if (file.hostname && file.hostname !== "localhost") value = `//${file.hostname}${value}`
+          }
+          const location = /(?::(\d+)(?::(\d+))?(?:[-–]\d+(?::\d+)?)?|#L(\d+)(?:C(\d+))?(?:-L\d+(?:C\d+)?)?)$/.exec(
+            value
+          )
+          const position =
+            location === null
+              ? undefined
+              : {
+                  lineNumber: Math.max(1, Number(location[1] ?? location[3])),
+                  column: Math.max(1, Number(location[2] ?? location[4] ?? 1))
+                }
+          const target = fileLocationPath(value)
+          if (workspace !== null && cwd !== null && containsPath(cwd, target))
+            await workspace.openFile(target, cwd, position)
+          else openFilePreview(target, position)
         } else await openExternal(url)
       })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     },

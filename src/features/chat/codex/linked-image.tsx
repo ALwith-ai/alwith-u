@@ -1,3 +1,4 @@
+import { containsPath } from "@alwith/module-fs"
 import { invoke } from "@tauri-apps/api/core"
 import { useContext, useEffect, useState, type ReactElement } from "react"
 import { ChatDirectoryContext } from "../file-actions"
@@ -29,7 +30,10 @@ export function LinkedImage({ uri, name }: { uri: string; name: string }): React
           const directory = encodeURI(cwd.replace(/[\\/]$/, "")).replace(/[?#]/g, encodeURIComponent)
           path = `${directory}/${uri}`
         }
-        const payload = await invoke<ImagePayload>("chat_read_image", { path: fileLocationPath(path), cwd })
+        const resolved = fileLocationPath(path)
+        // External links are read only after an explicit click in the file preview.
+        if (!containsPath(cwd, resolved)) return
+        const payload = await invoke<ImagePayload>("chat_read_image", { path: resolved, cwd })
         if (!disposed) setResult({ uri, cwd, payload, error: null })
       } catch (error: unknown) {
         if (!disposed)

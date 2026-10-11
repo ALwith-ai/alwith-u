@@ -2,7 +2,46 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
 use std::path::{Component, PathBuf};
+use std::sync::Mutex;
 use tauri::{Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+
+#[derive(Default)]
+pub struct BubblePresentation(Mutex<BubbleState>);
+
+#[derive(Default)]
+struct BubbleState {
+    requested: bool,
+    ready: bool,
+    generation: u64,
+}
+
+impl BubbleState {
+    fn visible(&self) -> bool {
+        self.requested && self.ready
+    }
+}
+
+/// A WebView navigation drops React without running its effect cleanups. Remove the
+/// native backdrop immediately; a fresh measured backdrop is required before showing it again.
+pub fn reset_bubble_on_navigation(window: WebviewWindow) {
+    {
+        let state = window.state::<BubblePresentation>();
+        let mut state = state.0.lock().expect("bubble presentation lock");
+        state.ready = false;
+        state.generation += 1;
+    }
+    tauri::async_runtime::spawn(async move {
+        let result = async {
+            native(&window, "hide", None, Value::Null).await?;
+            native(&window, "blur", None, json!({"radius":1,"path":null})).await?;
+            Ok::<_, String>(())
+        }
+        .await;
+        if let Err(error) = result {
+            log::error!("Could not reset Vibemon bubble: {error}");
+        }
+    });
+}
 
 fn allowed(window: &WebviewWindow) -> Result<(), String> {
     if !matches!(window.label(), "main" | "vibemon" | "bubble-menu-vibemon") {
@@ -80,7 +119,22 @@ fn resource_exists(path: &std::path::Path) -> Result<bool, String> {
 
 #[cfg(test)]
 mod resource_tests {
-    use super::resource_exists;
+    use super::{BubbleState, resource_exists};
+
+    #[test]
+    fn bubble_requires_both_a_show_request_and_a_measured_background() {
+        let mut bubble = BubbleState { requested: true, ..BubbleState::default() };
+        assert!(!bubble.visible());
+        bubble.ready = true;
+        assert!(bubble.visible());
+        // Reloading drops content readiness while preserving the user's open intent.
+        bubble.ready = false;
+        assert!(!bubble.visible());
+        // Closing during reload must not reopen the bubble when rendering finishes.
+        bubble.requested = false;
+        bubble.ready = true;
+        assert!(!bubble.visible());
+    }
 
     #[test]
     fn resource_presence_requires_a_file() {
@@ -215,6 +269,10 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if app.get_webview_window(label).is_some() {
                 return Ok(json!(false));
             }
+            if label == "bubble-menu-vibemon" {
+                *window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock") =
+                    BubbleState::default();
+            }
             let created = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
                 .title("Vibémon")
                 .inner_size(width, height)
@@ -276,6 +334,9 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon") {
                 return Err("Invalid overlay caller".into());
             }
+            if action == "hide" && window.label() == "bubble-menu-vibemon" {
+                window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
+            }
             let parent = if action == "drag" { app.get_webview_window("bubble-menu-vibemon") } else { None };
             native(&window, &action, parent, Value::Null).await?;
             if action == "drag" {
@@ -289,7 +350,13 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Only pet controls the bubble".into());
             }
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
-                if payload["visible"].as_bool().ok_or("Missing visibility")? {
+                let visible = {
+                    let state = window.state::<BubblePresentation>();
+                    let mut state = state.0.lock().expect("bubble presentation lock");
+                    state.requested = payload["visible"].as_bool().ok_or("Missing visibility")?;
+                    state.visible()
+                };
+                if visible {
                     native(&bubble, "bubble", Some(window.clone()), Value::Null).await?;
                 } else {
                     native(&bubble, "hide", None, Value::Null).await?;
@@ -323,12 +390,30 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if !(1..=20).contains(&radius) || enabled != payload["path"].is_array() {
                 return Err("Invalid pet backdrop".into());
             }
-            native(&window, "blur", None, json!({"radius":radius,"path":payload["path"]})).await
+            let generation =
+                window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").generation;
+            native(&window, "blur", None, json!({"radius":radius,"path":payload["path"]})).await?;
+            let visible = {
+                let state = window.state::<BubblePresentation>();
+                let mut state = state.0.lock().expect("bubble presentation lock");
+                if state.generation != generation {
+                    return Ok(Value::Null);
+                }
+                state.ready = enabled;
+                state.visible()
+            };
+            if visible {
+                native(&window, "bubble", app.get_webview_window("vibemon"), Value::Null).await?;
+            } else {
+                native(&window, "hide", None, Value::Null).await?;
+            }
+            Ok(Value::Null)
         }
         "bubble-close" => {
             if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon" | "main") {
                 return Err("Invalid bubble caller".into());
             }
+            window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 native(&bubble, "hide", None, Value::Null).await?;
             }

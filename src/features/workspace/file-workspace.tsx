@@ -9,6 +9,7 @@ import {
   drivePreviewIntegrations,
   type CondenseScope
 } from "@alwith/module-drive/content"
+import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
 import { openExternal } from "@/lib/open"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { resolveDriveRoot } from "@alwith/module-drive/content"
@@ -63,7 +64,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
-import { WorkspaceContext, WorkspaceHeaderContext } from "./context"
+import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
 import { WorkspaceButton } from "./workspace-button"
 import { useHostDialog } from "./host-dialog"
 import "./workspace.css"
@@ -149,6 +150,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
     [viewMode, setViewMode] = useState(false),
     [width, setWidth] = useState(58)
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
+  const [navigation, setNavigation] = useState<{ path: string; position: FilePosition } | null>(null)
   const editorSnapshot = useSyncExternalStore(
     workspace ? workspace.editor.subscribe : noEditorSubscription,
     workspace ? workspace.editor.getSnapshot : emptyEditorSnapshot
@@ -434,14 +436,17 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
     [ask, t, stateStore]
   )
   const openFile = useCallback(
-    async (path: string, root: string | null): Promise<void> => {
+    async (path: string, root: string | null, position?: FilePosition): Promise<void> => {
       const generation = ++requestGeneration.current,
         owner = currentCwd.current
       const authorized = [...workspaces.current.values()].find(
         value => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
       )
       const target = authorized === undefined ? await ensure(root) : authorized
-      if (!containsPath(target.root, path)) throw new Error(t("workspace.outside"))
+      if (!containsPath(target.root, path)) {
+        openFilePreview(path, position)
+        return
+      }
       const destination = await prepareWorkspaceFile(path, {
         readFile: async value =>
           (containsPath(target.root, value) ? target.fs : await driveFileSystem(value)).readFile(value),
@@ -451,9 +456,10 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
       await target.editor.open(destination)
       if (generation !== requestGeneration.current || owner !== currentCwd.current) return
       setWorkspace(target)
+      setNavigation(position ? { path: destination, position } : null)
       setVisible(true)
     },
-    [ensure, t]
+    [ensure]
   )
   routeDriveTarget.current = async path => {
     const match = resolveDriveRoot(path, drive.getSnapshot().snapshot?.roots ?? [])
@@ -802,7 +808,13 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
                             fallback={
                               <div className="text-muted-foreground p-6 text-sm">{t("workspace.loading")}</div>
                             }>
-                            <CodeEditor {...props} controller={workspace.editor} settings={settings} onError={report} />
+                            <CodeEditor
+                              {...props}
+                              controller={workspace.editor}
+                              settings={settings}
+                              onError={report}
+                              position={navigation?.path === props.document.path ? navigation.position : undefined}
+                            />
                           </Suspense>
                         )}
                       />

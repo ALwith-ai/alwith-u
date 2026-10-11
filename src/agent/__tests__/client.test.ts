@@ -4,6 +4,7 @@ import { must } from "@/lib/__tests__/must"
 import { CodexClient, type GatewayModel } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
+import { macProjectPaths, type ProjectPaths } from "../project-path"
 
 /**
  * `providers/set` in catalog mode (codex-acp-v2 0.5.0): the gateway's models join every
@@ -48,11 +49,11 @@ afterEach(() => {
   for (const client of clients.splice(0)) client.disconnect()
 })
 
-async function make(configure?: (fake: ReturnType<typeof createFakeAgent>) => void) {
+async function make(configure?: (fake: ReturnType<typeof createFakeAgent>) => void, projectPaths?: ProjectPaths) {
   const fake = createFakeAgent()
   configure?.(fake)
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" }, projectPaths })
   clients.push(client)
   await client.connect()
   return { client, fake, port }
@@ -1050,4 +1051,84 @@ test("live user messages refresh recency, while history replay and older turns d
   })
   await until(() => client.session("h1").items.some(item => item.id === "older"))
   expect(client.state.threads[0]?.updatedAt).toBe(current)
+})
+
+test("deleted-project aliases share sidebar identity and complete independently paginated project queries", async () => {
+  const { client, fake } = await make(undefined, macProjectPaths)
+  const canonical = "/private/var/deleted/project"
+  const alias = "/var/deleted/project"
+  const one = { sessionId: "alias-one", cwd: alias, title: "One" }
+  const two = { sessionId: "alias-two", cwd: canonical, title: "Two" }
+  fake.listSessions.current = () => ({ sessions: [one, two], nextCursor: "sidebar-next" })
+  await client.listThreads()
+  expect(client.state.threads.map(thread => thread.cwd)).toEqual([canonical, canonical])
+  const before = client.state
+  const calls: Array<{ cwd?: string | null; cursor?: string | null }> = []
+  fake.listSessions.current = params => {
+    calls.push(params)
+    if (params.cwd === canonical) return { sessions: [], nextCursor: params.cursor ? null : "next" }
+    if (params.cwd !== alias) throw new Error("Project queries must not enumerate unrelated history")
+    if (!params.cursor) return { sessions: [one], nextCursor: "next" }
+    return {
+      sessions: [
+        one,
+        two,
+        { sessionId: "foreign", cwd: "/var/other" },
+        { sessionId: "archived", cwd: alias, _meta: { codex: { archived: true } } }
+      ]
+    }
+  }
+  const result = await client.listProjectThreads(canonical)
+  expect(result.map(thread => [thread.sessionId, thread.cwd])).toEqual([
+    [one.sessionId, canonical],
+    [two.sessionId, canonical]
+  ])
+  expect(calls.map(call => [call.cwd, call.cursor])).toEqual([
+    [canonical, undefined],
+    [canonical, "next"],
+    [alias, undefined],
+    [alias, "next"]
+  ])
+  expect(client.state).toBe(before)
+  expect(await client.listProjectThreads(`${alias}/`)).toEqual(result)
+})
+
+test("project alias failures reject partial results and do not replace the sidebar", async () => {
+  const { client, fake } = await make(undefined, macProjectPaths)
+  const before = client.state
+  fake.listSessions.current = params => {
+    if (params.cwd === "/var/deleted") throw new Error("Alias query failed")
+    return { sessions: [{ sessionId: "one", cwd: "/private/var/deleted" }] }
+  }
+  await expect(client.listProjectThreads("/private/var/deleted")).rejects.toThrow("Internal error")
+  expect(client.state).toBe(before)
+})
+
+test("new and explicitly included chats use the same project key as history", async () => {
+  const { client } = await make(undefined, macProjectPaths)
+  await client.newSession("/var/new-project")
+  client.includeThread({
+    sessionId: "historical",
+    cwd: "/var/new-project",
+    title: "Old",
+    updatedAt: null,
+    archived: false
+  })
+  expect(client.state.threads.map(thread => thread.cwd)).toEqual([
+    "/private/var/new-project",
+    "/private/var/new-project"
+  ])
+})
+
+test("hosts without macOS aliases preserve distinct private and non-private directories", async () => {
+  const { client, fake } = await make()
+  fake.listSessions.current = () => ({
+    sessions: [
+      { sessionId: "one", cwd: "/var/project" },
+      { sessionId: "two", cwd: "/private/var/project" }
+    ]
+  })
+  await client.listThreads()
+  expect(client.state.threads.map(thread => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
+  expect((await client.listProjectThreads("/var/project")).map(thread => thread.sessionId)).toEqual(["one"])
 })

@@ -1,6 +1,6 @@
 import type { PetObservation, PetSessionHost } from "@alwith/module-vibemon"
 import { listen } from "@tauri-apps/api/event"
-import { requestPet } from "./transport"
+import { inspectPet, requestPet } from "./transport"
 
 export async function createPetSessionClient(): Promise<PetSessionHost & { dispose(): void }> {
   let snapshot: PetObservation | null = null
@@ -24,7 +24,14 @@ export async function createPetSessionClient(): Promise<PetSessionHost & { dispo
   }
   listeners.add(unregister)
   const baseline = updates
-  const initial = await requestPet<PetObservation | null>("inspect")
+  let initial: PetObservation | null
+  try {
+    initial = await inspectPet<PetObservation | null>()
+  } catch (error) {
+    stop()
+    listeners.clear()
+    throw error
+  }
   if (updates === baseline) {
     snapshot = initial
     revision = initial?.revision ?? 0

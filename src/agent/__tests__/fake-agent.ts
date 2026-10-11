@@ -30,6 +30,7 @@ export type FakeAgent = {
   /** Pushes a `_codex/rate_limits_updated` notification to the connected client. */
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
+  requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   replayUpdates: acp.SessionUpdate[]
 }
 
@@ -407,6 +408,10 @@ export function createFakeAgent(): FakeAgent {
     fileSearches,
     replayUpdates,
     pushRateLimits,
+    requestForm: async params => {
+      if (link === null) throw new Error("Fake agent is not connected")
+      return link.request("elicitation/create", params)
+    },
     pushUpdate: async (sessionId, update) => {
       if (link === null) throw new Error("Fake agent is not connected")
       await link.notify("session/update", { sessionId, update })

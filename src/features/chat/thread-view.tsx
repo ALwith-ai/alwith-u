@@ -17,10 +17,11 @@ import {
   toNavigationRailItems
 } from "./codex/navigation-rail"
 import { UserMessage } from "./codex/user-message"
+import { formatTurnTime } from "./codex/turn-time"
 import { ChatDirectoryContext } from "./file-actions"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { useThreadScroll } from "./lib/use-thread-scroll"
-import { groupTurns, type Turn } from "./turns"
+import { groupTurns, isHistoryInterrupted, isTurnInterrupted, type Turn } from "./turns"
 
 /** The anchored turn sits this far below the viewport top. */
 const CODEX_ANCHOR_TOP_OFFSET_PX = 64
@@ -199,7 +200,13 @@ export function ThreadView({ session }: { session: Session }) {
     if (turn === undefined || turn.key !== entry.turnKey) throw new Error(`Turn is missing at index ${index}`)
     const isLast = index === turns.length - 1
     const active = running && isLast
-    const hasAssistant = turn.work.length > 0 || turn.final.length > 0 || active
+    const hasAssistant =
+      turn.work.length > 0 ||
+      turn.final.length > 0 ||
+      active ||
+      isHistoryInterrupted(turn) ||
+      isTurnInterrupted(turn) ||
+      (isLast && (session.error !== null || session.lastStopReason === "cancelled"))
     return (
       // The top inset lives inside the first turn: the virtual layout assumes its container
       // starts at scrollTop 0.
@@ -209,7 +216,7 @@ export function ThreadView({ session }: { session: Session }) {
         className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
         {index === 0 && <ForkOriginDivider />}
         <ChatDirectoryContext value={session.cwd}>
-          {turn.user !== null && <UserMessage item={turn.user} />}
+          {turn.user !== null && <UserMessage item={turn.user} messageTime={formatTurnTime(turn)} />}
           {hasAssistant && (
             <AssistantTurn
               turn={turn}
@@ -217,7 +224,7 @@ export function ThreadView({ session }: { session: Session }) {
               active={active}
               isLast={isLast}
               error={session.error}
-              interrupted={!active && isLast && session.lastStopReason === "cancelled"}
+              interrupted={isTurnInterrupted(turn) || (!active && isLast && session.lastStopReason === "cancelled")}
             />
           )}
         </ChatDirectoryContext>

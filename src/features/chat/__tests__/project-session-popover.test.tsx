@@ -265,3 +265,31 @@ test("session-card title and path scroll only on hover and the path opens its ow
     open.mockRestore()
   }
 })
+
+test("project path aliases share the popover cache and still show every matching chat", async () => {
+  const key = vi.spyOn(client, "projectPath").mockImplementation(cwd => cwd.replace(/^\/var\//, "/private/var/"))
+  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads("/private/var/deleted-project"))
+  try {
+    const first = render(<ProjectSessionPopover cwd="/var/deleted-project" onSelect={() => {}} onNewChat={() => {}} />)
+    await act(async () => {
+      fireEvent.click(first.getByRole("button", { name: "deleted-project" }))
+    })
+    expect(first.getByText("7 chats")).toBeDefined()
+    first.unmount()
+    const second = render(
+      <ProjectSessionPopover cwd="/private/var/deleted-project" onSelect={() => {}} onNewChat={() => {}} />
+    )
+    await act(async () => {
+      fireEvent.click(second.getByRole("button", { name: "deleted-project" }))
+    })
+    expect(second.getByText("7 chats")).toBeDefined()
+    expect(list).toHaveBeenCalledExactlyOnceWith("/private/var/deleted-project")
+    await act(async () => {
+      fireEvent.click(second.getByRole("button", { name: "Show more" }))
+    })
+    expect(second.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
+  } finally {
+    key.mockRestore()
+    list.mockRestore()
+  }
+})

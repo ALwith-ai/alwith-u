@@ -1,3 +1,4 @@
+import { sessionIcons } from "./session-icons"
 import {
   configureVibemon,
   getVibemonState,
@@ -160,6 +161,7 @@ async function start() {
     openRecharge: openPlatformAccount
   }
   configureVibemon({
+    sessionIcons,
     ...assets,
     sessions: { ...owner, openChat: binding => owner.openChat(binding) },
     windows,

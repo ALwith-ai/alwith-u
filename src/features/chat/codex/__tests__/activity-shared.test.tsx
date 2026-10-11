@@ -163,3 +163,17 @@ test("adding chat translations does not replace application strings", async () =
   expect(instance.t("name")).toBe("ALwith U")
   expect(instance.t("stream.codex.worked", { ns: "alwithChat" })).toBe("已处理")
 })
+
+test.each(["failed", "cancelled", "interrupted"] as const)(
+  "command summary exposes %s instead of claiming it ran",
+  status => {
+    const item = tool({ status })
+    const view = mount(
+      <ActivityHostProvider host={{ ...host, commandStatus: block => block.status }}>
+        <CodexActivityGroup blocks={[projectActivity(item, {}, false)]} />
+      </ActivityHostProvider>
+    )
+    expect(view.getByRole("button", { name: `${status} echo hello` })).toBeDefined()
+    expect(view.queryByRole("button", { name: "Ran echo hello" })).toBeNull()
+  }
+)

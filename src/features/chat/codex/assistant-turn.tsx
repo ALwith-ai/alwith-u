@@ -15,7 +15,7 @@ import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
 import { useTranslation } from "react-i18next"
 import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
 import { ForkTurnButton } from "../chat-branches"
-import { isSessionStatus, messageText, type Turn, type WorkEntry } from "../turns"
+import { isHistoryInterrupted, isSessionStatus, messageText, turnTiming, type Turn, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
 import { useChatActivityHost } from "./activity-host"
 import { AssistantContent } from "./assistant-content"
@@ -104,8 +104,9 @@ function AssistantTurnImpl({
       </ActivityHostProvider>
     )
   }
+  const historyInterrupted = isHistoryInterrupted(turn)
   const finalText = turn.final.map(messageText).join("\n")
-  const time = active ? null : formatTurnTime(turn)
+  const time = active ? null : formatTurnTime(turn, "assistant")
   // Generated artifacts are tool results in both live updates and history replay.
   // Project them into the reply without moving items out of the runtime-owned session.
   const displayedImages = new Set(
@@ -137,8 +138,7 @@ function AssistantTurnImpl({
       <CodexAssistantTurn
         stateKey={turn.key}
         active={active}
-        startedAt={turn.startedAt}
-        durationMs={turn.replayed ? undefined : turn.endedAt - turn.startedAt}
+        {...turnTiming(turn)}
         loading={active && turn.work.length === 0 && !hasFinal}
         work={turn.work.map(entry => (
           <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={active} />
@@ -190,7 +190,11 @@ function AssistantTurnImpl({
         footer={
           <>
             {turn.edits.length > 0 && !active && <EditedFilesCard items={turn.edits} />}
-            {interrupted && <div className="codex-interrupted-turn">{t("chat.interrupted")}</div>}
+            {(interrupted || historyInterrupted) && (
+              <div className="codex-interrupted-turn" role="status">
+                {t(historyInterrupted ? "chat.historyInterrupted" : "chat.interrupted")}
+              </div>
+            )}
             {error !== null && isLast && <TurnErrorView error={error} />}
           </>
         }
