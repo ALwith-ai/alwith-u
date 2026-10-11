@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "vibemon",
+  "description": "Pet assets and overlays without an agent connection",
+  "windows": [
+    "vibemon",
+    "bubble-menu-vibemon"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-hide",
+    "core:app:allow-set-app-theme",
+    "core:webview:allow-set-webview-zoom",
+    "core:window:allow-is-visible",
+    "log:default",
+    "os:default",
+    "store:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://api.alwith.ai/service/**"
+        },
+        {
+          "url": "https://api-dev.alwith.ai/service/**"
+        }
+      ]
+    }
+  ]
+}

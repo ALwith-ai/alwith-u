@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
+import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initI18n } from "@/lib/i18n"
@@ -60,6 +61,7 @@ async function bootstrap(): Promise<void> {
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
   await initPlatformAuth()
+  await initializeVibemonMain()
   const root = document.getElementById("root")
   if (!root) throw new Error("index.html has no #root")
   createRoot(root).render(

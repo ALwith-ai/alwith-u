@@ -21,8 +21,14 @@ export const client =
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {
   const port = await runtimeClient()
-  const stop = await port.onRunStates(sessions => client.applyRunStates(sessions))
-  client.applyRunStates(await port.runStates())
+  let revision = 0
+  const stop = await port.onRunStates(sessions => {
+    revision++
+    client.applyRunStates(sessions)
+  })
+  const baseline = revision
+  const snapshot = await port.runStates()
+  if (revision === baseline) client.applyRunStates(snapshot, "snapshot")
   return stop
 }
 

@@ -17,6 +17,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   GitForkIcon,
+  PawPrintIcon,
   PencilIcon,
   PictureInPicture2Icon,
   PlusIcon,
@@ -212,6 +213,7 @@ export function ThreadSidebar({
   onNewProjectChat,
   onSearch,
   onOpenWindow,
+  onOpenVibemon,
   onOpenSettings,
   onOpenPlugins,
   onOpenExtensions,
@@ -220,13 +222,14 @@ export function ThreadSidebar({
   onSwitchScreen
 }: {
   screen: MainScreen
-  leadingPage: "plugins" | "extensions"
+  leadingPage: "plugins" | "extensions" | "vibemon"
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
   onNewProjectChat: (cwd: string) => void
   onSearch: () => void
   onOpenWindow: () => void
+  onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
   extensionNavigation?: ReactNode
@@ -352,6 +355,15 @@ export function ThreadSidebar({
           <BlocksIcon />
           <span>{t("sidebar.extensions")}</span>
         </NavigationItemButton>
+        {onOpenVibemon && (
+          <NavigationItemButton
+            active={screen === "leading" && leadingPage === "vibemon"}
+            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            onClick={onOpenVibemon}>
+            <PawPrintIcon />
+            <span>Vibemon</span>
+          </NavigationItemButton>
+        )}
         {extensionNavigation}
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-hidden">

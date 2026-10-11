@@ -32,7 +32,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.8.0",
     "@alwith/api": "^0.3.0",
-    "@alwith/module-auth": "^0.1.0",
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
     "@alwith/module-chat": "^0.1.9",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
@@ -105,10 +105,11 @@
     "y-protocols": "^1.0.7",
     "y-websocket": "^3.1.0",
     "yjs": "^13.6.33",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.15",
+    "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.4-594db9782e61.tgz"
   },
   "devDependencies": {
-    "@alwith/native": "^0.1.1",
+    "@alwith/native": "file:vendor/alwith-native-0.1.4.tgz",
     "@biomejs/biome": "^2.5.15",
     "@nyssance/codex-acp-v2": "0.7.9",
     "@openai/codex": "0.162.0",
@@ -157,6 +158,8 @@
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz"
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
+    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz"
   }
 }

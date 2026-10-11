@@ -47,6 +47,7 @@ const transport = createAuthTransport({
     await emit(STATE_EVENT, { action: "logout" } satisfies AuthStateEvent)
   }
 })
+export const platformApiRequest = transport.request
 export const authClient = createAuthClient({
   publicPost: (path, body) => transport.request(path, "POST", body, false),
   apiPost: (path, body) => transport.request(path, "POST", body),

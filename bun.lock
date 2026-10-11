@@ -7,13 +7,14 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^1.8.0",
         "@alwith/api": "^0.3.0",
-        "@alwith/module-auth": "^0.1.0",
+        "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
         "@alwith/module-chat": "^0.1.9",
         "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
         "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
         "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
         "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
+        "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.4-594db9782e61.tgz",
         "@alwith/runtime": "^0.1.8",
         "@base-ui/react": "^1.9.0",
         "@fontsource-variable/inter": "^5.3.0",
@@ -83,7 +84,7 @@
         "zustand": "^5.0.15",
       },
       "devDependencies": {
-        "@alwith/native": "^0.1.1",
+        "@alwith/native": "file:vendor/alwith-native-0.1.4.tgz",
         "@biomejs/biome": "^2.5.15",
         "@nyssance/codex-acp-v2": "0.7.9",
         "@openai/codex": "0.162.0",
@@ -130,11 +131,13 @@
     },
   },
   "overrides": {
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.17.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.10.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
+    "@alwith/native-darwin-arm64": "file:vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "https://registry.npmmirror.com/@adobe/css-tools/-/css-tools-4.5.0.tgz", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
@@ -143,7 +146,7 @@
 
     "@alwith/api": ["@alwith/api@0.3.0", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.8.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-VQLsJxOsZ5xGkMrvu/IYy5427XntEG5oy6Th/4SdRJcZw/BJGQ8GE59ZjSK61gYf5vGN3XwaKYRqd4tJwg6mpg=="],
 
-    "@alwith/module-auth": ["@alwith/module-auth@0.1.0", "", {}, "sha512-XwDyzwlSnJcRuKoxaoEhAIDADYbwdmfl5wAnU2XwxQR8X8arMC/fD9XUoKW4Vdce17Bz7ARGpVbCtMf1sGhTrw=="],
+    "@alwith/module-auth": ["@alwith/module-auth@vendor/alwith-module-auth-0.1.2-f3735bb4e0f2.tgz", {}, "sha512-u2DRmOCEJx/yCLfV6LzleddYRYXrPNHViozfEWXBFK+k7BFa/XhgnXmQPKKJN+QnGBfZatvUjgpxL3Qs6oss1w=="],
 
     "@alwith/module-chat": ["@alwith/module-chat@0.1.9", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-3e89JpFdz//KVQmS57ruvNw/SfGQZHoPTGNcGB8vyehA/RHAIftPKterLftL+35zQ5oikXBHEd5UGdvTV4stlg=="],
 
@@ -157,17 +160,11 @@
 
     "@alwith/module-fs": ["@alwith/module-fs@vendor/alwith-module-fs-0.1.0-rc.4.tgz", {}, "sha512-p/5Knkr+Ro1cVoJc9WBMwwrf2m2Fm9JWLtx5ylEo7JtlNgdAHnTwNbeI6+l48jXRCESSFr/iNdYSB3Xf9zIvFg=="],
 
-    "@alwith/native": ["@alwith/native@0.1.1", "", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.1", "@alwith/native-linux-arm64": "0.1.1", "@alwith/native-linux-x64": "0.1.1", "@alwith/native-win32-arm64": "0.1.1", "@alwith/native-win32-x64": "0.1.1" } }, "sha512-RltgTjpl+NlOPVGyV/ZGA9QMtVvHB90RdU0F6/STG0JUarA5U2ocw3Fydt9GyDAHNtqmCBKVgZZcVB7Pu6yv2w=="],
+    "@alwith/module-vibemon": ["@alwith/module-vibemon@vendor/alwith-module-vibemon-0.1.4-594db9782e61.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "@alwith/module-auth": "^0.1.2", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-uyuy9pR6TLUNG+eacwMVECci0ojfnFvXKM/OjVYzb1CAc/jnaxODHV5RqxSgJMStm8Eh93EmbJ69CqQuf7HB3w=="],
 
-    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@0.1.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-I1nXMrGSpjfxWD/4U/23oqN2chHS3XK/9XgiHi80q+V3M2vZgNdwIO1KXz87ACIgZ6i0VfY9OMZCUoQMPrWuDQ=="],
+    "@alwith/native": ["@alwith/native@vendor/alwith-native-0.1.4.tgz", { "optionalDependencies": { "@alwith/native-darwin-arm64": "0.1.4", "@alwith/native-linux-arm64": "0.1.4", "@alwith/native-linux-x64": "0.1.4", "@alwith/native-win32-arm64": "0.1.4", "@alwith/native-win32-x64": "0.1.4" } }, "sha512-sDvFY4M4r9/fx9ML2tyVw8AxscY4wExwyJM5LwRHWM7SlIAXWCZErvk6PgKwnf2WvZsm3V6BVGLFUEm4X8OWYw=="],
 
-    "@alwith/native-linux-arm64": ["@alwith/native-linux-arm64@0.1.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-6tPN25rcfgm1rHcmGAa+yB1GAaOjidNflFpJXmg3y272BAcGMZ+bT00W1ovPrSOzKK9xiTMKwzag3LdXxhH1tA=="],
-
-    "@alwith/native-linux-x64": ["@alwith/native-linux-x64@0.1.1", "", { "os": "linux", "cpu": "x64" }, "sha512-d9XpPeNpEc+KS+j8b81vNlWsGTNnjM+rWG+euEQAKhNFYktzUKekb+K5x4uoyPX6M3zr2ErUEeztGURUh3obpg=="],
-
-    "@alwith/native-win32-arm64": ["@alwith/native-win32-arm64@0.1.1", "", { "os": "win32", "cpu": "arm64" }, "sha512-gHTVStMucf9Wolx43Uo7PkJaBIcMtXxK7IxnVzmvacMoWit/6E5DCjF0Um+IiaoNWbsoJA2rGYGkrSuXEMEd6Q=="],
-
-    "@alwith/native-win32-x64": ["@alwith/native-win32-x64@0.1.1", "", { "os": "win32", "cpu": "x64" }, "sha512-TfCy4Y1WW8xwSGhvQ1A4d8Trwf8mhdf5M3crPDC59j0En1TLt6zB34rW3uBYeAn8WDmeJpwQcd29eaAV8E0/ww=="],
+    "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz", {}, "sha512-W8i08uQ/RCUKZgmibko8Kr7OKMdqd0PRoUvnM3B0NXZK1ScdxjDaZcXr2WjKJGb9Y0i/wcRu8TqKMXyXewPtPA=="],
 
     "@alwith/runtime": ["@alwith/runtime@0.1.8", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.1.8", "@alwith/runtime-linux-arm64": "0.1.8", "@alwith/runtime-linux-x64": "0.1.8", "@alwith/runtime-win32-arm64": "0.1.8", "@alwith/runtime-win32-x64": "0.1.8" } }, "sha512-X+m8LcM1m+V7fJauoKmO3tI6X2ure13QL/eJYjqEi8/pr2W9do0aDQovCVs55MVY/13dHJAoLkctjvihgV5ywg=="],
 
@@ -2133,6 +2130,8 @@
 
     "@alwith/module-chat/katex": ["katex@0.18.11", "https://registry.npmmirror.com/katex/-/katex-0.18.11.tgz", { "dependencies": { "commander": "^15.0.0" }, "bin": { "katex": "cli.js" } }, "sha512-yvyz/2VMKqoho/35Hat5w37wIEdWJ5ElVMidTAlWrxr5uW4aBGsEpveTmKh18/zw08v/7lGswCPon4OhqmqrTA=="],
 
+    "@alwith/module-vibemon/motion": ["motion@13.5.1", "", { "dependencies": { "framer-motion": "13.5.1", "tslib": "^2.4.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-eV9SUem6KnzEa9+eT+dVBeDlhy5TTdn09YWR1WhUsKoZCJPw/n4TcYhjbxq2Gy5PTwDr//4H3r5vxkcZnNnO1w=="],
+
     "@babel/core/semver": ["semver@6.3.1", "https://registry.npmmirror.com/semver/-/semver-6.3.1.tgz", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/helper-compilation-targets/lru-cache": ["lru-cache@5.1.1", "https://registry.npmmirror.com/lru-cache/-/lru-cache-5.1.1.tgz", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
@@ -2303,6 +2302,8 @@
 
     "type-is/content-type": ["content-type@2.1.0", "https://registry.npmmirror.com/content-type/-/content-type-2.1.0.tgz", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
 
+    "@alwith/module-vibemon/motion/framer-motion": ["framer-motion@13.5.1", "", { "dependencies": { "motion-dom": "13.5.1", "motion-utils": "13.5.0", "tslib": "^2.4.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-HeWOaeHD3kyTSIEMT6+nw7fBn4saIfxxabZyAITbycAl4xr1kzGJKIvGt/OWghSlvIA9qTnZ1zTGelHAe6S8DA=="],
+
     "@dotenvx/dotenvx/execa/get-stream": ["get-stream@6.0.1", "https://registry.npmmirror.com/get-stream/-/get-stream-6.0.1.tgz", {}, "sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg=="],
 
     "@dotenvx/dotenvx/execa/human-signals": ["human-signals@2.1.0", "https://registry.npmmirror.com/human-signals/-/human-signals-2.1.0.tgz", {}, "sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw=="],
@@ -2468,6 +2469,10 @@
     "storybook/oxc-resolver/@oxc-resolver/binding-win32-x64-msvc": ["@oxc-resolver/binding-win32-x64-msvc@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-win32-x64-msvc/-/binding-win32-x64-msvc-11.21.2.tgz", { "os": "win32", "cpu": "x64" }, "sha512-VPoCAhKvCQTlG7vxqaBXcmuvbh77BfnGXj8g0pbvVXpm1F/R8rDVwqIWcEbMzrI1JvJlm8v7T9uMVQb6UctMRg=="],
 
     "stream-parser/debug/ms": ["ms@2.0.0", "https://registry.npmmirror.com/ms/-/ms-2.0.0.tgz", {}, "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A=="],
+
+    "@alwith/module-vibemon/motion/framer-motion/motion-dom": ["motion-dom@13.5.1", "", { "dependencies": { "motion-utils": "13.5.0" } }, "sha512-/7CVCD20Mz1KobktorpdgvowV0V41J7UxqE+qWS3GkSJqrRr5ft+2RloOYtEKv+wvBp3JaSFBclhxt4ja8ovHg=="],
+
+    "@alwith/module-vibemon/motion/framer-motion/motion-utils": ["motion-utils@13.5.0", "", {}, "sha512-Hqe/sqjIKliPZg8sVjWAkdySDPJNIeKH+euVkDOG8ri3DUUU7ZjndmHsGqEPz2iHpiyVaV5I22iguCMHU2he+Q=="],
 
     "inquirer/cli-cursor/restore-cursor/onetime": ["onetime@2.0.1", "https://registry.npmmirror.com/onetime/-/onetime-2.0.1.tgz", { "dependencies": { "mimic-fn": "^1.0.0" } }, "sha512-oyyPpiMaKARvvcgip+JV+7zci5L8D1W9RZIz2l1o08AM3pfspitVWnPt3mzHcBPp12oYMTy0pqrFs/C+m3EwsQ=="],
 

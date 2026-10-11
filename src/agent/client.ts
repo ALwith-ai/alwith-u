@@ -42,6 +42,7 @@ import type {
   SkillsListResponse
 } from "./codex-extensions"
 import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensions"
+import { setRunStateSource } from "./run-state-source"
 import { forkTitle } from "./fork-title"
 
 /**
@@ -380,9 +381,10 @@ export class CodexClient {
   }
 
   /** Runtime run-state snapshot (broadcast on every change). */
-  applyRunStates(sessions: SessionRunState[]): void {
+  applyRunStates(sessions: SessionRunState[], source: "snapshot" | "event" = "event"): void {
     const runStates: Record<string, SessionRunState> = {}
     for (const session of sessions) runStates[session.sessionId] = session
+    setRunStateSource(runStates, source)
     this.store.setState({ runStates })
   }
 

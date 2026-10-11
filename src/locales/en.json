@@ -866,5 +866,13 @@
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
     "moveToUnsyncedWarning": "This library is not synced to this computer: the move happens in the cloud (version history and comments come along), and the local copy disappears once sync catches up"
+  },
+  "pet": {
+    "enable": "Enable Vibemon",
+    "disable": "Disable Vibemon",
+    "show": "Show desktop pet",
+    "hide": "Close desktop pet",
+    "selectFirst": "Select a pet from the equip page first",
+    "unavailable": "Desktop pets are supported on macOS and Windows"
   }
 }

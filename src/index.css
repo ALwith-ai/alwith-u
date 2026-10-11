@@ -4,6 +4,7 @@
 @import "@fontsource-variable/inter";
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
+@import "@alwith/module-vibemon/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
@@ -32,6 +33,7 @@ pre,
   color: var(--primary);
   text-decoration: underline;
 }
+@source "../node_modules/@alwith/module-vibemon/dist";
 
 @custom-variant dark (&:is(.dark *));
 

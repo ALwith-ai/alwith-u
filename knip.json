@@ -5,7 +5,9 @@
     "src/features/story/use-story-available.ts",
     "src/**/*.test.{ts,tsx}",
     "scripts/**/*.ts",
-    "src/bindings.ts"
+    "src/bindings.ts",
+    "src/vibemon-main.tsx",
+    "src/vibemon-bubble-main.tsx"
   ],
   "project": ["src/**/*.{ts,tsx,css,mdx}", "scripts/**/*.ts"],
   "ignore": ["src/components/ui/**"],
