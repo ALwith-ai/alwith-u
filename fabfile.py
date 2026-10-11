@@ -280,6 +280,12 @@ def build(context: Context) -> None:
 def upgrade(context: Context) -> None:
     """Update dependencies within declared ranges and report newer releases."""
     with context.cd(str(ROOT)):
+        # Cargo path dependencies live in node_modules, including their Rust manifests.
+        # Restore the locked packages first so a fresh checkout can run this task.
+        context.run("bun install --frozen-lockfile")
+        context.run("bun outdated")
+        context.run("bun update")
+        # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
         with context.cd("src-tauri"):
             context.run("cargo update")
             # Report releases outside Cargo's declared ranges without upgrading them.
@@ -287,8 +293,7 @@ def upgrade(context: Context) -> None:
             if not context.run("command -v cargo-outdated", warn=True, hide=True).ok:
                 context.run("cargo install cargo-outdated")
             context.run("cargo outdated --depth 1 --workspace", warn=True)
-        context.run("bun outdated")
-        context.run("bun update")
+        # Compare the final installed JavaScript packages with the updated Cargo lockfile.
         try:
             check_tauri_versions(ROOT)
         except (KeyError, OSError, ValueError) as error:
