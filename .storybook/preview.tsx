@@ -1,4 +1,5 @@
 import "../src/index.css"
+import { mockIPC } from "@tauri-apps/api/mocks"
 import { useEffect, type ReactNode } from "react"
 import type { Preview } from "@storybook/react-vite"
 import { withThemeByClassName } from "@storybook/addon-themes"
@@ -6,6 +7,11 @@ import { I18nextProvider } from "react-i18next"
 import { AppDirectionProvider } from "../src/components/alwith-ui/app-direction-provider"
 import { ThemeProvider, useTheme } from "../src/components/theme-provider"
 import i18n, { initI18n } from "../src/lib/i18n"
+
+mockIPC(command => {
+  if (command === "plugin:log|log") return
+  throw new Error(`Unexpected Storybook IPC command: ${command}`)
+})
 
 function ThemeSync({ theme, children }: { theme: "light" | "dark"; children: ReactNode }) {
   const { setTheme } = useTheme()

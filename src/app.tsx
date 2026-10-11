@@ -193,25 +193,30 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  const newChat = useCallback(() => {
-    if (operation.busy) return
-    void operation
-      .run(async () => {
-        const directory = extensionSession.current?.cwd
-        await client.discardDraft("main")
-        if (directory) setLastDirectory(directory)
-        importDraft(DRAFT_SESSION_ID, null)
-        setSurfaceGeneration(value => value + 1)
-        setView("chat")
-        setSelectedId(null)
-      })
-      .catch((error: unknown) => toast.error(describe(error)))
-  }, [operation])
-
   const chooseDraftFolder = useCallback((directory: string) => {
     setLastDirectory(directory)
     void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
+
+  const newChatInDirectory = useCallback(
+    (cwd?: string) => {
+      if (operation.busy) return
+      void operation
+        .run(async () => {
+          const directory = cwd ?? extensionSession.current?.cwd
+          await client.discardDraft("main")
+          if (directory) chooseDraftFolder(directory)
+          importDraft(DRAFT_SESSION_ID, null)
+          setSurfaceGeneration(value => value + 1)
+          setView("chat")
+          setSelectedId(null)
+        })
+        .catch((error: unknown) => toast.error(describe(error)))
+    },
+    [chooseDraftFolder, operation]
+  )
+
+  const newChat = useCallback(() => newChatInDirectory(), [newChatInDirectory])
 
   const draftCreated = useCallback((id: string) => {
     setSelectedId(id)
@@ -520,13 +525,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onSearch={() => setPaletteOpen(true)}
               onOpenVibemon={openVibemon}
               onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
-              onNewProjectChat={cwd => {
-                if (operation.busy) return
-                chooseDraftFolder(cwd)
-                importDraft(DRAFT_SESSION_ID, null)
-                setSurfaceGeneration(value => value + 1)
-                newChat()
-              }}
+              onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openPlugins}
               onOpenExtensions={openExtensions}
