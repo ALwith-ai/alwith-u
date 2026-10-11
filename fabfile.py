@@ -99,21 +99,24 @@ def update_version(root: Path, new_version: str) -> None:
 
 
 def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> bool:
-    """Update the direct toolchain pins only after checking the existing platform pins."""
+    """Update the bundled Bun and Codex pins only after checking the existing platform pins.
+
+    `packageManager` (the Bun that builds the app) is left alone: it changes with the developer's toolchain,
+    not with what the app ships.
+    """
     if not PIN_VERSION.fullmatch(bun_version) or not PIN_VERSION.fullmatch(codex_version):
         raise ValueError("Bun and Codex version must be exact X.Y.Z versions")
 
     package_path = root / "package.json"
     manifest = json.loads(package_path.read_text())
-    manager = manifest["packageManager"]
-    if not manager.startswith("bun@") or not PIN_VERSION.fullmatch(manager[4:]):
-        raise ValueError("packageManager must pin an exact Bun version")
-    old_bun = manager[4:]
+    optional = manifest["optionalDependencies"]
+    old_bun = optional.get(BUN_PLATFORM_PACKAGES[0], "")
+    if not PIN_VERSION.fullmatch(old_bun):
+        raise ValueError("Bun platform pins must be an exact version")
     dev_dependencies = manifest["devDependencies"]
     old_codex = dev_dependencies["@openai/codex"]
     if not PIN_VERSION.fullmatch(old_codex):
         raise ValueError("@openai/codex must pin an exact version")
-    optional = manifest["optionalDependencies"]
     for name in BUN_PLATFORM_PACKAGES:
         if optional.get(name) != old_bun:
             raise ValueError(f"Bun platform pin {name} does not match {old_bun}")
@@ -125,7 +128,6 @@ def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> b
 
     if bun_version == old_bun and codex_version == old_codex:
         return False
-    manifest["packageManager"] = f"bun@{bun_version}"
     dev_dependencies["@openai/codex"] = codex_version
     for name in BUN_PLATFORM_PACKAGES:
         optional[name] = bun_version
@@ -137,15 +139,13 @@ def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> b
 
 
 def check_toolchain_prerequisites(root: Path, bun_version: str) -> None:
-    """Prepare a versioned Bun licence before changing version pins."""
+    """Prepare the bundled Bun's versioned licence before changing version pins.
+
+    The bundled Bun ships to users from the pinned `@oven/bun-*` packages; the Bun on this machine only
+    builds the app (`packageManager`) and is never required to match it.
+    """
     if not PIN_VERSION.fullmatch(bun_version):
         raise ValueError("Bun version must be an exact X.Y.Z version")
-    try:
-        installed = subprocess.run(["bun", "--version"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise RuntimeError(f"Cannot check local Bun; install Bun {bun_version} first") from error
-    if installed != bun_version:
-        raise ValueError(f"Local Bun is {installed}; install Bun {bun_version} before running fab toolchain")
     license_path = root / "src-tauri/resources/licenses" / f"bun-{bun_version}.md"
     if license_path.is_file():
         return
@@ -354,12 +354,12 @@ def version(_context: object) -> None:
 
 @task
 def toolchain(_context: object) -> None:
-    """Update Bun and Codex pins, then install and stage the toolchain."""
+    """Update the bundled Bun and Codex pins, then install and stage the toolchain."""
     try:
         manifest = json.loads((ROOT / "package.json").read_text())
-        current_bun = manifest["packageManager"].removeprefix("bun@")
+        current_bun = manifest["optionalDependencies"][BUN_PLATFORM_PACKAGES[0]]
         current_codex = manifest["devDependencies"]["@openai/codex"]
-        bun_version = input(f"Bun version [{current_bun}]: ").strip() or current_bun
+        bun_version = input(f"Bundled Bun version [{current_bun}]: ").strip() or current_bun
         codex_version = input(f"Codex version [{current_codex}]: ").strip() or current_codex
         check_toolchain_prerequisites(ROOT, bun_version)
         update_toolchain_pins(ROOT, bun_version, codex_version)
@@ -378,4 +378,4 @@ def toolchain(_context: object) -> None:
                 raise RuntimeError(f"{step} failed; fix the cause and rerun fab toolchain with the same versions") from error
     except (ValueError, RuntimeError, OSError) as error:
         raise Exit(f"Toolchain failed: {error}", code=1) from None
-    print(f"Toolchain pins and staged binaries verified: Bun {bun_version}, Codex {codex_version}")
+    print(f"Toolchain pins and staged binaries verified: bundled Bun {bun_version}, Codex {codex_version}")
