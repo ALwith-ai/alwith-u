@@ -112,6 +112,7 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "stopped": "会话已终止",
     "branches": {
       "create": "创建聊天分支",
       "continuedFrom": "从原聊天继续",

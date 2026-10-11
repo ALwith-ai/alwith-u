@@ -87,12 +87,12 @@ class UpgradeTaskTests(unittest.TestCase):
                     r"tauri-plugin-http \(v2\.7\.0\) : @tauri-apps/plugin-http \(v2\.6\.1\)",
                 ):
                     fabfile.upgrade(Context())
-                self.assertEqual(commands[-1], "bun update")
+                self.assertLess(commands.index("bun update"), commands.index("cargo update"))
 
                 npm_manifest.write_text('{"version": "2.7.3"}\n')
                 commands.clear()
                 fabfile.upgrade(Context())
-                self.assertEqual(commands[-1], "bun update")
+                self.assertLess(commands.index("bun update"), commands.index("cargo update"))
 
     def test_upgrade_and_alias_run_in_project_directories(self) -> None:
         for name in ("upgrade", "u"):
@@ -106,11 +106,12 @@ class UpgradeTaskTests(unittest.TestCase):
                 with patch.object(Context, "run", record):
                     Program(namespace=Collection.from_module(fabfile)).run(["fab", name], exit=False)
                 self.assertEqual(commands, [
+                    (str(ROOT), "bun install --frozen-lockfile", {}),
+                    (str(ROOT), "bun outdated", {}),
+                    (str(ROOT), "bun update", {}),
                     (str(ROOT / "src-tauri"), "cargo update", {}),
                     (str(ROOT / "src-tauri"), "command -v cargo-outdated", {"warn": True, "hide": True}),
                     (str(ROOT / "src-tauri"), "cargo outdated --depth 1 --workspace", {"warn": True}),
-                    (str(ROOT), "bun outdated", {}),
-                    (str(ROOT), "bun update", {}),
                 ])
 
     def test_installs_missing_cargo_outdated(self) -> None:
@@ -128,16 +129,22 @@ class UpgradeTaskTests(unittest.TestCase):
         ))
 
     def test_upgrade_stops_when_dependency_update_fails(self) -> None:
-        commands = []
+        steps = ["bun install --frozen-lockfile", "bun outdated", "bun update", "cargo update"]
+        for index, failing_command in enumerate(steps):
+            with self.subTest(command=failing_command):
+                commands = []
 
-        def fail(context: Context, command: str, **options: object) -> Result:
-            commands.append(command)
-            raise UnexpectedExit(Result(command=command, exited=1))
+                def fail(context: Context, command: str, **options: object) -> Result:
+                    commands.append(command)
+                    if command == failing_command:
+                        raise UnexpectedExit(Result(command=command, exited=1))
+                    return Result(exited=0)
 
-        with patch.object(Context, "run", fail):
-            with self.assertRaises(UnexpectedExit):
-                fabfile.upgrade(Context())
-        self.assertEqual(commands, ["cargo update"])
+                with patch.object(Context, "run", fail), patch("fabfile.check_tauri_versions") as check:
+                    with self.assertRaises(UnexpectedExit):
+                        fabfile.upgrade(Context())
+                self.assertEqual(commands, steps[:index + 1])
+                check.assert_not_called()
 
 
 class VersionTaskTests(unittest.TestCase):

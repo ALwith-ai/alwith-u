@@ -450,6 +450,12 @@ export class CodexClient {
     this.requests.answer(actionId, answer)
   }
 
+  /** Include an explicitly selected history entry without advancing sidebar pagination. */
+  includeThread(thread: ThreadSummary): void {
+    if (this.state.threads.some(item => item.sessionId === thread.sessionId)) return
+    this.store.setState(state => ({ threads: [...state.threads, thread] }))
+  }
+
   async listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
     const archived = options.archived === true
     const state = this.state
@@ -483,8 +489,7 @@ export class CodexClient {
           : archived
             ? current.archivedThreads
             : current.threads
-        const pageIds = new Set(freshPage.map(thread => thread.sessionId))
-        const merged = [...previous.filter(thread => !pageIds.has(thread.sessionId)), ...freshPage]
+        const merged = [...new Map([...previous, ...freshPage].map(thread => [thread.sessionId, thread])).values()]
         return archived
           ? {
               archivedThreads: merged,
@@ -907,8 +912,25 @@ export class CodexClient {
   }
 
   async close(id: string): Promise<void> {
-    await this.live().request("session/close", { sessionId: id })
-    this.dropSession(id)
+    await this.enqueueSession(id, async () => {
+      this.requests.cancelSession(id)
+      await this.live().request("session/close", { sessionId: id })
+      this.dropSession(id)
+    })
+  }
+
+  /** End the live session while retaining its transcript, as Desktop's Activity stop does. */
+  async stopSession(id: string): Promise<void> {
+    await this.enqueueSession(id, async () => {
+      this.requests.cancelSession(id)
+      await this.live().request("session/close", { sessionId: id })
+      this.updates.remove(id)
+      const session = this.sessions.sessions.get(id)
+      // Activity can also contain sessions that this window has never opened.
+      if (session) {
+        this.publishSession({ ...session, attached: false, restoring: false, readOnly: false, state: "idle" })
+      }
+    })
   }
 
   async archive(id: string): Promise<void> {

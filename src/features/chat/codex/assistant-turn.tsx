@@ -145,7 +145,7 @@ function AssistantTurnImpl({
         ))}
         answer={
           hasFinal ? (
-            <div className="flex min-w-0 flex-col items-start gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
               {artifacts.length > 0 && (
                 <div className="codex-reply-artifacts flex min-w-0 flex-col gap-3">
                   {artifacts.map(artifact => (

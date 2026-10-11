@@ -38,10 +38,9 @@ export async function markRead(sessionId: string): Promise<void> {
   await port.markRead(sessionId)
 }
 
-/** Stop = the Runtime finds the agent behind the session and reaps its process. */
+/** Close only this session; Runtime.stopSession would kill the shared Codex agent. */
 export async function stopSession(sessionId: string): Promise<void> {
-  const port = await runtimeClient()
-  await port.stopSession(sessionId)
+  await client.stopSession(sessionId)
 }
 
 export function useApp<T>(selector: (state: AppState) => T): T {

@@ -30,7 +30,19 @@ pre,
 }
 
 [data-stream-style="codexUI"] .codex-markdown-link-label {
-  color: var(--primary);
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.codex-markdown-link,
+.codex-markdown-link .codex-markdown-link-mention {
+  color: var(--link);
+  cursor: pointer;
+}
+
+.codex-markdown-link:is(:hover, :focus-visible) .codex-markdown-link-label {
+  color: var(--link);
+  background-color: color-mix(in oklab, var(--link) 14%, transparent);
   text-decoration: underline;
 }
 @source "../node_modules/@alwith/module-vibemon/dist";
@@ -88,6 +100,7 @@ pre,
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
+  --link: oklch(0.42 0.17 264);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -129,6 +142,7 @@ pre,
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
+  --link: oklch(0.64 0.13 255);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);

@@ -23,7 +23,7 @@ export function ChatBody({ session }: { session: Session }) {
     ) : (
       <ThreadView session={session} />
     )
-  if (!session.attached)
+  if (!session.attached && session.items.length === 0)
     return (
       <Empty className="flex-1">
         <EmptyHeader>

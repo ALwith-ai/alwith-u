@@ -283,6 +283,48 @@ async function check(transport: "stdio" | "ws") {
     console.log(`journal: ${events.length} frames for A, last sequence ${events.at(-1)!.sequence}`)
     const states = await port.runStates()
     console.log(`run states: ${states.map(state => `${state.sessionId.slice(0, 8)}=${state.state}`).join(", ")}`)
+    // Session close must retire only its Runtime record, including when the session is idle.
+    // Unsent native drafts have no persisted rollout to reopen; use materialized conversations.
+    const closeTarget = a
+    const survivor = b
+    await second.open(closeTarget, directory)
+    await second.open(survivor, directory)
+    const retainedText = assistantText(second.session(closeTarget))
+    await second.stopSession(closeTarget)
+    if (second.session(closeTarget).attached || assistantText(second.session(closeTarget)) !== retainedText)
+      throw new Error("Stopping a session did not retain its detached transcript")
+    await until(
+      async () => !(await port.runStates()).some(state => state.sessionId === closeTarget),
+      10_000,
+      "idle session removal"
+    )
+    if (!(await port.runStates()).some(state => state.sessionId === survivor))
+      throw new Error("Closing one session removed its sibling")
+    await second.open(closeTarget, directory)
+    await Promise.all([
+      second.prompt(closeTarget, [{ type: "text", text: "Count from 1 to 1000, one number per line." }]),
+      second.prompt(survivor, [{ type: "text", text: "Reply with exactly CLOSE_SURVIVOR." }])
+    ])
+    await second.stopSession(closeTarget)
+    await until(
+      async () => !(await port.runStates()).some(state => state.sessionId === closeTarget),
+      10_000,
+      "running session removal"
+    )
+    await until(
+      () =>
+        second!.session(survivor).state === "idle" &&
+        assistantText(second!.session(survivor)).includes("CLOSE_SURVIVOR"),
+      120_000,
+      "sibling completion after close"
+    )
+    if (!(await port.agents()).some(agent => agent.agentId === "codex"))
+      throw new Error("Session close killed the shared agent")
+    await second.open(closeTarget, directory)
+    if (!second.session(closeTarget).attached) throw new Error("Closed session could not reopen")
+    await second.close(closeTarget)
+    await second.close(survivor)
+    console.log("close: idle and running sessions retire independently; sibling completes and closed history reopens")
   } finally {
     client.disconnect()
     second?.disconnect()

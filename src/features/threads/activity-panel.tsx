@@ -7,7 +7,7 @@
  * - Subagent rows = running tasks parsed by Runtime from ACP traffic and removed on completion, showing what a long-running session
  *   is doing and which background tasks remain outstanding.
  * - Group by host: foreground is the currently viewed session (always flat, with no group header), followed by background running sessions.
- *   Click a row to open it; the trailing ✕ stops it (Runtime finds the agent by session and terminates the process).
+ *   Click a row to open it; the trailing stop button closes only that session.
  * This app has one window and no ALwith.dev: Desktop's window badges, execution leases (dev group), and ownerless rows are omitted.
  */
 
@@ -33,7 +33,12 @@ import { useThreadsUiStore } from "./store"
 import { ThreadInfoCard } from "./thread-info-card"
 
 function report(promise: Promise<unknown>) {
-  promise.catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+  return promise.then(
+    () => {},
+    (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  )
 }
 
 /** The thread behind a run state: the listed one, else a summary built from the Runtime's record. */
@@ -211,8 +216,7 @@ function ActivityRow({
         title={title}
         hint={hint}
         actions={
-          /* The trailing ✕ stops the session, using the same control as session columns. Runtime finds the agent by session and terminates its process;
-             every row in this panel gets this control. */
+          /* Session columns and activity rows close by session ID without stopping the shared agent. */
           <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(thread.sessionId))} />
         }
       />

@@ -7,6 +7,7 @@ export type SelectThreadActions = {
   unarchive: (id: string) => Promise<void>
   release: (id: string) => Promise<ChatTransfer | null>
   importDraft: (id: string, draft: ComposerDraft | null) => void
+  include: (thread: ThreadSummary) => void
   open: (id: string, cwd: string) => Promise<void>
   show: (id: string) => void
   onOpenError: (error: unknown) => void
@@ -17,6 +18,7 @@ export async function selectThread(thread: ThreadSummary, actions: SelectThreadA
   if (thread.archived) await actions.unarchive(thread.sessionId)
   const transfer = await actions.release(thread.sessionId)
   if (transfer) actions.importDraft(thread.sessionId, transfer.draft)
+  actions.include({ ...thread, archived: false })
   const opening = actions.open(thread.sessionId, thread.cwd)
   actions.show(thread.sessionId)
   void opening.catch(actions.onOpenError)
