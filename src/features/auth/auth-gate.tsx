@@ -29,7 +29,8 @@ function PlatformLogin() {
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
   const [password, setPassword] = useState("")
-  const [busy, setBusy] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"sendCode" | "submit" | null>(null)
+  const busy = pendingAction !== null
   const [error, setError] = useState("")
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({})
   const [now, setNow] = useState(Date.now())
@@ -39,11 +40,12 @@ function PlatformLogin() {
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [])
-  async function run(action: () => Promise<void>) {
-    setBusy(true)
+  async function run(action: "sendCode" | "submit") {
+    if (busy) return
+    setPendingAction(action)
     setError("")
     try {
-      await action()
+      await (action === "sendCode" ? sendCode() : submit())
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setError(
@@ -54,7 +56,7 @@ function PlatformLogin() {
             : message || t("platformAuth.failed")
       )
     } finally {
-      setBusy(false)
+      setPendingAction(null)
     }
   }
   async function sendCode() {
@@ -78,7 +80,7 @@ function PlatformLogin() {
   return (
     <main className="bg-background text-foreground flex h-dvh flex-col overflow-auto">
       <div data-tauri-drag-region className="h-10 shrink-0" />
-      <div className="m-auto flex w-full max-w-sm flex-col gap-6 px-6 py-8">
+      <div className="m-auto flex w-full max-w-md flex-col gap-6 px-6 py-8">
         <header className="flex flex-col gap-2">
           <h1 className="text-xl font-semibold">{t("app.name")}</h1>
           <p className="text-muted-foreground text-sm">{t("platformAuth.intro")}</p>
@@ -107,7 +109,7 @@ function PlatformLogin() {
         <form
           onSubmit={event => {
             event.preventDefault()
-            void run(submit)
+            void run("submit")
           }}>
           <FieldGroup>
             <Field data-disabled={busy}>
@@ -125,21 +127,26 @@ function PlatformLogin() {
             {mode !== "password" && (
               <Field data-disabled={busy}>
                 <FieldLabel htmlFor="alwith-code">{t("platformAuth.code")}</FieldLabel>
-                <Input
-                  id="alwith-code"
-                  autoComplete="one-time-code"
-                  required
-                  disabled={busy}
-                  value={code}
-                  onChange={event => setCode(event.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy || seconds > 0}
-                  onClick={() => void run(sendCode)}>
-                  {seconds > 0 ? t("platformAuth.resend", { seconds }) : t("platformAuth.sendCode")}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="alwith-code"
+                    className="min-w-0 flex-1"
+                    autoComplete="one-time-code"
+                    required
+                    disabled={busy}
+                    value={code}
+                    onChange={event => setCode(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={busy || seconds > 0}
+                    onClick={() => void run("sendCode")}>
+                    {pendingAction === "sendCode" && <Spinner data-icon="inline-start" />}
+                    {seconds > 0 ? t("platformAuth.resend", { seconds }) : t("platformAuth.sendCode")}
+                  </Button>
+                </div>
               </Field>
             )}
             {mode !== "code" && (
@@ -163,7 +170,7 @@ function PlatformLogin() {
               </Alert>
             )}
             <Button type="submit" disabled={busy}>
-              {busy && <Spinner data-icon="inline-start" />}
+              {pendingAction === "submit" && <Spinner data-icon="inline-start" />}
               {t(mode === "register" ? "platformAuth.register" : "platformAuth.signIn")}
             </Button>
           </FieldGroup>
