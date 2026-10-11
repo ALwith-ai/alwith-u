@@ -86,7 +86,7 @@
       "devDependencies": {
         "@alwith/native": "file:vendor/alwith-native-0.1.4.tgz",
         "@biomejs/biome": "^2.5.15",
-        "@nyssance/codex-acp-v2": "file:vendor/nyssance-codex-acp-v2-0.7.10-7c11bcd6d058.tgz",
+        "@nyssance/codex-acp-v2": "0.7.10",
         "@openai/codex": "0.162.0",
         "@storybook/addon-a11y": "10.6.1",
         "@storybook/addon-docs": "10.6.1",
@@ -441,7 +441,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@vendor/nyssance-codex-acp-v2-0.7.10-7c11bcd6d058.tgz", { "dependencies": { "@agentclientprotocol/sdk": "^1.8.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2" }, "optionalDependencies": { "@openai/codex": "^0.159.2" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-VJl1UBiI9ZuMg8O8/RHULzxwtYYIGdnOEfQPaOhwXlRVSXPGAK3yNrHjnk3fDrjSVS1HmSy4G8z62RQUXo7Gtw=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.10", "", { "dependencies": { "@agentclientprotocol/sdk": "^1.8.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2" }, "optionalDependencies": { "@openai/codex": "^0.159.2" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-s7q+yTc+Zi9SGa2A/vuiPFNPypLeFeIM+7ZN7PleVDc5dc/E31GW/tHZ1t+FxQOyJy683HLgJXXO3WgJQkB5Cg=="],
 
     "@openai/codex": ["@openai/codex@0.162.0", "https://registry.npmmirror.com/@openai/codex/-/codex-0.162.0.tgz", { "optionalDependencies": { "@openai/codex-darwin-arm64": "npm:@openai/codex@0.162.0-darwin-arm64", "@openai/codex-darwin-x64": "npm:@openai/codex@0.162.0-darwin-x64", "@openai/codex-linux-arm64": "npm:@openai/codex@0.162.0-linux-arm64", "@openai/codex-linux-x64": "npm:@openai/codex@0.162.0-linux-x64", "@openai/codex-win32-arm64": "npm:@openai/codex@0.162.0-win32-arm64", "@openai/codex-win32-x64": "npm:@openai/codex@0.162.0-win32-x64" }, "bin": { "codex": "bin/codex.js" } }, "sha512-qWWckMfknyVym1lD5y2rTwPJA2sgHkzePF2l/Uevss4hVpqbt23rMIHKNTrqECdnv82denylHWEzrAmDnCYNIw=="],
 

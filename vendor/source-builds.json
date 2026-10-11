@@ -30,16 +30,6 @@
     "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
   },
   {
-    "name": "@nyssance/codex-acp-v2",
-    "file": "vendor/nyssance-codex-acp-v2-0.7.10-7c11bcd6d058.tgz",
-    "sha256": "7c11bcd6d058582497ac673246b6732e3af8b32e44933bba48c27dd1da3c50c8",
-    "source": "codex-acp-v2",
-    "baseCommit": "5fc9500c84be258376883b506b34930b1ddf8230",
-    "sourceSnapshotSha256": "1a3925365cc7c06bd9dcaf6f0f1e00c5dde9a29e64f63ac505453b3e20ed7c7d",
-    "sourceState": "committed; source tree clean at 5fc9500c84be258376883b506b34930b1ddf8230",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
-  },
-  {
     "name": "@alwith/module-fs",
     "file": "vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "sha256": "5f43be16d6bcf9d986259abbb120c987875f580fab4e8a61ccba923e708418eb",
