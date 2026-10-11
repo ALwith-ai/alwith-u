@@ -124,6 +124,17 @@ export const commands = {
     __t3Invoke<boolean>("wallpaper_remove", args),
   refreshTokens: (args: { apiBaseUrl: string; refreshToken: string }): Promise<RefreshedTokens> =>
     __t3Invoke<RefreshedTokens>("refresh_tokens", args),
+  vibemonWindow: (args: { action: string; payload: JsonValue }): Promise<JsonValue> =>
+    __t3Invoke<JsonValue>("vibemon_window", args),
+  vibemonResource: (args: {
+    action: string
+    path: string
+    bytes: string | null
+    destination: string | null
+  }): Promise<JsonValue> => __t3Invoke<JsonValue>("vibemon_resource", args),
+  vibemonDownload: (args: { url: string }): Promise<string> => __t3Invoke<string>("vibemon_download", args),
+  vibemonClaim: (args: { requestId: string; scope: string; sessionId: string; owner: string }): Promise<boolean> =>
+    __t3Invoke<boolean>("vibemon_claim", args),
   presentChatWindow: (): Promise<null> => __t3Invoke<null>("present_chat_window"),
   resizeChatWindow: (args: { direction: string; x: number; y: number; width: number; height: number }): Promise<null> =>
     __t3Invoke<null>("resize_chat_window", args),
@@ -205,6 +216,10 @@ export type CommandErrors = {
   wallpaperImport: string
   wallpaperRemove: string
   refreshTokens: JsonValue
+  vibemonWindow: string
+  vibemonResource: string
+  vibemonDownload: string
+  vibemonClaim: string
   presentChatWindow: string
   resizeChatWindow: string
   runtimeStart: string

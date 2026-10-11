@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, expect, vi, test } from "vitest"
 import { isText, type SessionRunState } from "@alwith/api"
 import { must } from "@/lib/__tests__/must"
@@ -183,7 +184,7 @@ test("a once-only pet answer resolves the original fake agent approval and keeps
   const deadline = Date.now() + 3000
   while (f.client.state.actions.length === 0) {
     if (Date.now() >= deadline) throw new Error("Approval did not arrive")
-    await Bun.sleep(5)
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
   await f.host.refresh()
   const observation = must(f.host.snapshot(), "pet observation")
@@ -191,7 +192,7 @@ test("a once-only pet answer resolves the original fake agent approval and keeps
   await f.host.answer(observation.binding, "allow-request", approval.token, "allow_once")
   while (!f.client.state.sessions[f.a.id]?.items.some(item => item.kind === "assistant")) {
     if (Date.now() >= deadline) throw new Error("Approval response did not arrive")
-    await Bun.sleep(5)
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
   expect(f.client.state.actions).toHaveLength(0)
   const reply = must(

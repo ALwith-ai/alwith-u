@@ -15,6 +15,7 @@ import { initI18n } from "@/lib/i18n"
 import type { ProviderSnapshot } from "@/lib/providers"
 import type { Preferences } from "@/lib/preferences"
 import { navigationSoundStore } from "../codex/navigation-sound-store"
+import { ChatWindow } from "@/features/chat-window/chat-window"
 import { Composer } from "../composer"
 import { drafts, importDraft } from "../composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "../draft-chat"
@@ -89,7 +90,8 @@ async function windowEnvironment() {
   mockIPC(
     command => {
       if (command === "plugin:log|log") return
-      if (command === "plugin:window|is_focused") return false
+      if (command === "plugin:window|is_focused" || command === "plugin:window|is_minimized") return false
+      if (command === "plugin:window|is_visible") return !hidden
       if (command === "plugin:window|hide") {
         hidden = true
         return
@@ -142,7 +144,6 @@ async function windowEnvironment() {
 
 test("a hidden floating window reopens the replacement draft with its unsent input", async () => {
   const env = await windowEnvironment()
-  const { ChatWindow } = await import("@/features/chat-window/chat-window")
   importDraft(DRAFT_SESSION_ID, { text: "keep this draft", mentions: [], attachments: [], modelId: null })
   let release: (() => void) | undefined
   env.fake.newSessionDelay.current = cwd =>
@@ -192,7 +193,6 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
 
 test("a first message sent outside the composer opens the conversation and preserves unsent input", async () => {
   const env = await windowEnvironment()
-  const { ChatWindow } = await import("@/features/chat-window/chat-window")
   importDraft(DRAFT_SESSION_ID, { text: "my unsent input", mentions: [], attachments: [], modelId: null })
   const view = render(
     <ThemeProvider>
@@ -773,7 +773,6 @@ test("switching writable conversations enables sending only for the selected con
 
 test("returning a floating draft transfers its input and releases the surface only after acceptance", async () => {
   const env = await windowEnvironment()
-  const { ChatWindow } = await import("@/features/chat-window/chat-window")
   const requests: { target: string; action: Parameters<typeof chatWindow.requestChatSurface>[1] }[] = []
   let reject = true
   const request = vi.spyOn(chatWindow, "requestChatSurface").mockImplementation(async (target, action) => {
