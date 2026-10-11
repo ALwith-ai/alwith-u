@@ -4,9 +4,17 @@ import { assertVersion, toolchainVersions } from "../toolchain"
 
 test("all Bun and Codex platform pins match their authoritative versions", () => {
   expect(toolchainVersions(manifest)).toEqual({
-    bun: manifest.packageManager.slice("bun@".length),
+    buildBun: manifest.packageManager.slice("bun@".length),
+    bun: manifest.optionalDependencies["@oven/bun-darwin-aarch64"],
     codex: manifest.devDependencies["@openai/codex"]
   })
+})
+
+test("the bundled Bun is pinned independently of the build Bun", () => {
+  const split = structuredClone(manifest)
+  split.packageManager = "bun@1.0.0"
+  expect(toolchainVersions(split).buildBun).toBe("1.0.0")
+  expect(toolchainVersions(split).bun).toBe(manifest.optionalDependencies["@oven/bun-darwin-aarch64"])
 })
 
 test("rejects floating toolchain versions and mismatched platform pins", () => {

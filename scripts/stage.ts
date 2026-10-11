@@ -24,7 +24,7 @@ const root = resolve(import.meta.dirname, "..")
 const binaries = join(root, "src-tauri/binaries")
 const licenses = join(root, "src-tauri/resources/licenses")
 const versions = toolchainVersions(manifest)
-assertVersion("build Bun", Bun.version, versions.bun)
+assertVersion("build Bun", Bun.version, versions.buildBun)
 
 type Target = { npm: string; exe: string }
 const TARGETS: Record<string, Target> = {

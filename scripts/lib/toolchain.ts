@@ -15,10 +15,17 @@ type Manifest = {
   optionalDependencies: Record<string, string>
 }
 
-export function toolchainVersions(manifest: Manifest): { bun: string; codex: string } {
+/**
+ * Two Bun versions on purpose: `packageManager` pins the Bun that builds the app (the developer's and
+ * CI's), while the `@oven/bun-*` platform packages pin the Bun bundled with the app and shipped to users.
+ * Upgrading the bundled one never requires reinstalling Bun on a developer machine.
+ */
+export function toolchainVersions(manifest: Manifest): { buildBun: string; bun: string; codex: string } {
   const match = /^bun@(\d+\.\d+\.\d+)$/.exec(manifest.packageManager)
   if (!match) throw new Error("packageManager must pin an exact Bun version (bun@X.Y.Z)")
-  const bun = match[1]!
+  const buildBun = match[1]!
+  const bun = manifest.optionalDependencies[BUN_PACKAGES["aarch64-apple-darwin"]!]
+  if (!bun || !/^\d+\.\d+\.\d+$/.test(bun)) throw new Error("the bundled Bun platform packages must pin an exact version")
   const codex = manifest.devDependencies["@openai/codex"]
   if (!codex || !/^\d+\.\d+\.\d+$/.test(codex)) throw new Error("@openai/codex must pin an exact version")
   for (const name of Object.values(BUN_PACKAGES)) {
@@ -31,7 +38,7 @@ export function toolchainVersions(manifest: Manifest): { bun: string; codex: str
       `npm:@openai/codex@${codex}-${platform}`
     )
   }
-  return { bun, codex }
+  return { buildBun, bun, codex }
 }
 
 export function assertVersion(name: string, actual: string | undefined, expected: string): void {
