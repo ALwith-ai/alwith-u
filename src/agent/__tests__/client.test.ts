@@ -302,6 +302,40 @@ test("prompt acknowledgement is not completion; cancelling one session leaves th
   expect(client.state.sessions[b]).toBe(client.session(b))
 })
 
+test("stopping a session retains its transcript, cancels its permission and preserves the shared agent", async () => {
+  const { client, port } = await make()
+  const a = await client.newSession("/tmp/a")
+  const b = await client.newSession("/tmp/b")
+  await Promise.all([
+    client.prompt(a, [{ type: "text", text: "permission" }]),
+    client.prompt(b, [{ type: "text", text: "permission" }])
+  ])
+  await until(() => client.state.actions.length === 2)
+  const items = client.session(a).items
+  await client.stopSession(a)
+  expect(client.state.sessions[a]).toMatchObject({ attached: false, restoring: false, state: "idle" })
+  expect(client.session(a).items).toEqual(expect.arrayContaining(items))
+  expect(client.state.actions.map(action => action.sessionId)).toEqual([b])
+  expect(client.session(b).state).toBe("requires_action")
+  expect((await port.agents()).map(agent => agent.agentId)).toEqual(["codex"])
+  expect(client.state.connection).toBe("ready")
+  await client.open(a, "/tmp/a")
+  expect(client.session(a).attached).toBe(true)
+  await client.close(b)
+})
+
+test("a rejected session stop preserves the conversation for retry", async () => {
+  const { client, port } = await make()
+  const id = await client.newSession("/tmp/a")
+  const session = client.session(id)
+  vi.spyOn(port, "acpRequest").mockRejectedValueOnce(new Error("Close failed"))
+  await expect(client.stopSession(id)).rejects.toThrow("Close failed")
+  expect(client.state.sessions[id]).toBe(session)
+  expect(client.session(id).attached).toBe(true)
+  await client.stopSession(id)
+  expect(client.state.sessions[id]?.attached).toBe(false)
+})
+
 test("permission requests surface as actions and resolve back to the agent", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/a")

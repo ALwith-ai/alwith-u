@@ -24,6 +24,8 @@ const METHODS = [
   "open",
   "prompt",
   "cancel",
+  "close",
+  "stopSession",
   "setConfig",
   "respond",
   "readRateLimits",
@@ -282,6 +284,13 @@ export class RemoteChatClient extends CodexClient {
   }
   override cancel(...args: Parameters<CodexClient["cancel"]>): Promise<void> {
     return this.request("cancel", args)
+  }
+  override close(...args: Parameters<CodexClient["close"]>): Promise<void> {
+    return this.request("close", args)
+  }
+
+  override stopSession(...args: Parameters<CodexClient["stopSession"]>): Promise<void> {
+    return this.request("stopSession", args)
   }
   override setConfig(...args: Parameters<CodexClient["setConfig"]>): Promise<void> {
     return this.request("setConfig", args)

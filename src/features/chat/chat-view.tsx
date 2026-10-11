@@ -1,6 +1,6 @@
 import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
-import { LockIcon } from "lucide-react"
+import { LockIcon, UnplugIcon } from "lucide-react"
 import { type ReactNode, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -48,6 +48,7 @@ export function ChatView({
 }) {
   const { t } = useTranslation()
   const actions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === session.id)))
+  const connected = useApp(state => state.connection === "ready")
   // Form elicitations are answered one at a time in a modal; everything else stays inline.
   const forms = actions.filter(isFormAction)
   const inline = actions.filter(action => !isFormAction(action))
@@ -76,6 +77,19 @@ export function ChatView({
           />
         </ChatHeader>
         <ChatSearch rootRef={rootRef} sessionId={session.id} />
+        {connected && !session.attached && !session.restoring && (
+          <div className="px-4 pb-2">
+            <Alert>
+              <UnplugIcon />
+              <AlertTitle>{t("chat.stopped")}</AlertTitle>
+              <AlertDescription>
+                <Button size="sm" variant="outline" onClick={reopen}>
+                  {t("connection.reconnect")}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
         {session.readOnly && (
           <div className="px-4 pb-2">
             <Alert>

@@ -40,6 +40,11 @@ test("floating fork sends the source and turn to the owner and receives the new 
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
     expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
     expect(port.started).toEqual(["codex"])
+    await remote.stopSession(source)
+    expect(owner.state.sessions[source]?.attached).toBe(false)
+    expect(remote.state.sessions[source]?.attached).toBe(false)
+    expect(owner.session(child).attached).toBe(true)
+    expect((await port.agents()).map(agent => agent.agentId)).toEqual(["codex"])
   } finally {
     remote.disconnect()
     stop()

@@ -112,6 +112,7 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
+    "stopped": "Session stopped",
     "branches": {
       "create": "Create chat branch",
       "continuedFrom": "Continue from original chat",

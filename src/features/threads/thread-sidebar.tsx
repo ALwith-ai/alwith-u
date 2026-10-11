@@ -60,11 +60,10 @@ import { NavigationItemButton } from "@/features/layout/components/navigation/na
 import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
-import { client, useApp } from "@/lib/client"
+import { client, stopSession, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
-import { runtimeClient } from "@/lib/runtime"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
 import { ActivityPanel } from "./activity-panel"
@@ -73,7 +72,12 @@ import { type SidebarView, useThreadsUiStore } from "./store"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
 
 function report(promise: Promise<unknown>) {
-  promise.catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+  return promise.then(
+    () => {},
+    (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  )
 }
 
 /** Desktop's `DiskSessionRow`: state dot, title, time in the meta slot, stop button while alive. */
@@ -119,10 +123,7 @@ function ThreadRow({
       }
       actions={
         state != null ? (
-          <RowStopButton
-            title={t("sidebar.stop")}
-            onStop={() => report(runtimeClient().then(port => port.stopSession(thread.sessionId)))}
-          />
+          <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(thread.sessionId))} />
         ) : undefined
       }
     />

@@ -912,8 +912,25 @@ export class CodexClient {
   }
 
   async close(id: string): Promise<void> {
-    await this.live().request("session/close", { sessionId: id })
-    this.dropSession(id)
+    await this.enqueueSession(id, async () => {
+      this.requests.cancelSession(id)
+      await this.live().request("session/close", { sessionId: id })
+      this.dropSession(id)
+    })
+  }
+
+  /** End the live session while retaining its transcript, as Desktop's Activity stop does. */
+  async stopSession(id: string): Promise<void> {
+    await this.enqueueSession(id, async () => {
+      this.requests.cancelSession(id)
+      await this.live().request("session/close", { sessionId: id })
+      this.updates.remove(id)
+      const session = this.sessions.sessions.get(id)
+      // Activity can also contain sessions that this window has never opened.
+      if (session) {
+        this.publishSession({ ...session, attached: false, restoring: false, readOnly: false, state: "idle" })
+      }
+    })
   }
 
   async archive(id: string): Promise<void> {

@@ -222,7 +222,11 @@ export function createFakeAgent(): FakeAgent {
       ].filter(item => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
     }
   })
-  app.onRequest("session/close", () => ({}))
+  app.onRequest("session/close", async ({ params }) => {
+    active.get(params.sessionId)?.abort()
+    while (active.has(params.sessionId)) await new Promise(resolve => setTimeout(resolve, 1))
+    return {}
+  })
   app.onRequest("session/resume", async ({ params, client }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)

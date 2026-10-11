@@ -15,7 +15,7 @@
         "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
         "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.4.tgz",
         "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.4-594db9782e61.tgz",
-        "@alwith/runtime": "^0.1.8",
+        "@alwith/runtime": "^0.1.9",
         "@base-ui/react": "^1.9.0",
         "@fontsource-variable/inter": "^5.3.0",
         "@milkdown/core": "^7.22.2",
@@ -167,17 +167,17 @@
 
     "@alwith/native-darwin-arm64": ["@alwith/native-darwin-arm64@vendor/alwith-native-darwin-arm64-0.1.4-cd0e51178776.tgz", {}, "sha512-W8i08uQ/RCUKZgmibko8Kr7OKMdqd0PRoUvnM3B0NXZK1ScdxjDaZcXr2WjKJGb9Y0i/wcRu8TqKMXyXewPtPA=="],
 
-    "@alwith/runtime": ["@alwith/runtime@0.1.8", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.1.8", "@alwith/runtime-linux-arm64": "0.1.8", "@alwith/runtime-linux-x64": "0.1.8", "@alwith/runtime-win32-arm64": "0.1.8", "@alwith/runtime-win32-x64": "0.1.8" } }, "sha512-X+m8LcM1m+V7fJauoKmO3tI6X2ure13QL/eJYjqEi8/pr2W9do0aDQovCVs55MVY/13dHJAoLkctjvihgV5ywg=="],
+    "@alwith/runtime": ["@alwith/runtime@0.1.9", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.1.9", "@alwith/runtime-linux-arm64": "0.1.9", "@alwith/runtime-linux-x64": "0.1.9", "@alwith/runtime-win32-arm64": "0.1.9", "@alwith/runtime-win32-x64": "0.1.9" } }, "sha512-+/XpFSQckPzHZlbQsVh/vovkNFFhnd5susd1Z3EXLI/sM1VCbjiN/8R0CK8J03xpntsCRFYI7ZNRjWnxCk8t8A=="],
 
-    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.1.8", "", { "os": "darwin", "cpu": "arm64" }, "sha512-cQKV5w4BF9icZgzEHDmzdiDwMa/HyLSX5SY0PEBBBV5zbmuZJYzyLWnvicRGlhP5XeDnIWqtiPKQk7dT7UxpAQ=="],
+    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.1.9", "", { "os": "darwin", "cpu": "arm64" }, "sha512-0YwU907AHa5bCW6bbm2EzJRtBE/DJ7QMSDUqNCTOBF+Td3Xz4TcKqJ3kCXKqFj5O3arNp/J7UIezQHKgrZwjgw=="],
 
-    "@alwith/runtime-linux-arm64": ["@alwith/runtime-linux-arm64@0.1.8", "", { "os": "linux", "cpu": "arm64" }, "sha512-9vQEQjs3t4FbY/zVmAbeRxxaDUbuyW4SRxvuRl6IYloJAyeAuwGLXwoLQA16gwo1M3V/hbU1MF3YYpV2BQqyFQ=="],
+    "@alwith/runtime-linux-arm64": ["@alwith/runtime-linux-arm64@0.1.9", "", { "os": "linux", "cpu": "arm64" }, "sha512-3HEY+ss087gI/G+ylzp/FeYQtptJUlWTyRHejns5xqyW0xpWitLmdZ4cCSCoq7VPq13hYlBplmxRXBxVxLw9cA=="],
 
-    "@alwith/runtime-linux-x64": ["@alwith/runtime-linux-x64@0.1.8", "", { "os": "linux", "cpu": "x64" }, "sha512-D9iHHKdepka9ljr9P4dYnGiDaTd+xYdnAFNxjMTyZg1DogofASs61htyyI1dsh8IfAFQIKZnb8wGrvd7HFuLWg=="],
+    "@alwith/runtime-linux-x64": ["@alwith/runtime-linux-x64@0.1.9", "", { "os": "linux", "cpu": "x64" }, "sha512-sPKbeqJzLwW8OagE7ADEABkL+nociKCuKwC/H0E0np9pZtIi3+HApl72v+59rrQpfkl4AkvlvllmbHD56iM8aQ=="],
 
-    "@alwith/runtime-win32-arm64": ["@alwith/runtime-win32-arm64@0.1.8", "", { "os": "win32", "cpu": "arm64" }, "sha512-eDoEOLboadv72XvdAzvspsE+mmNZcZVz4gRXnXNqi3ttP+LTlb/ZllOzEnWprUFL+JtAlegrJY+FyQ3EHAUSeg=="],
+    "@alwith/runtime-win32-arm64": ["@alwith/runtime-win32-arm64@0.1.9", "", { "os": "win32", "cpu": "arm64" }, "sha512-1gydLhmq+0yvLjfI8kWS2G93IVJ7oB4YrpA0hP1eUpoFmAf6+QeUcWrdTxajfmMF/q/uyiUUpXRAVf0eTE0W5w=="],
 
-    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.1.8", "", { "os": "win32", "cpu": "x64" }, "sha512-fmumyAcKAi35BIsPStZrt/iCZn8FqmmW6cGCvMrqEoPikcL6KMemjrMuZgeDeH9y8ixC67sgC/pl1OjXF38OzQ=="],
+    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.1.9", "", { "os": "win32", "cpu": "x64" }, "sha512-y5FDHJgXJYiZxlzi0+4wcbVvQG9cE/0cGM9PCdhSd0uHrVzA+xv0zyaWfTmAgouFaXO6RrqJQaPvIHw8r6IhPw=="],
 
     "@asamuzakjp/css-color": ["@asamuzakjp/css-color@7.1.4", "https://registry.npmmirror.com/@asamuzakjp/css-color/-/css-color-7.1.4.tgz", { "dependencies": { "@csstools/css-calc": "^3.4.3", "@csstools/css-color-parser": "^4.2.6", "@csstools/css-parser-algorithms": "^4.0.2", "@csstools/css-tokenizer": "^4.0.2", "lru-cache": "^11.5.3" } }, "sha512-KdNhWlAh2sbYB8Of0Yw84/a+LO/vsBOHJcIg8BpyXo2RGrFWVJvEMRviMON+ysQu0KpV7wxrWrq9jaX0P21GzA=="],
 
