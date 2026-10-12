@@ -274,7 +274,7 @@ export function DriveStatus(): ReactNode {
           </Button>
         }
       />
-      <PopoverContent side="top" className="max-h-[70vh] w-96 overflow-auto">
+      <PopoverContent side="top" align="end" alignOffset={-8} className="w-80 p-0 text-xs">
         <DrivePanel
           controller={drive}
           mode="status"

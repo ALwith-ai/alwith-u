@@ -200,3 +200,78 @@ test("failed mass deletion retains the dialog and never advances to another batc
   expect(screen.getByRole("dialog")).toHaveAccessibleName("Delete 12 files from the cloud too?")
   expect(f.requests).toEqual([{ type: "confirmDeletes", projectId: 1 }])
 })
+
+test("status panel uses a state row and disables the sync icon while paused", async () => {
+  const f = fixture({
+    status: {
+      state: { kind: "paused" },
+      pending: 0,
+      uploading: 0,
+      downloading: 0,
+      synced: 1,
+      failed: 0,
+      conflicts: [],
+      errors: [],
+      lastSyncAt: null,
+      pushConnected: false
+    }
+  })
+  render(
+    <DrivePanel {...f} controls={controls} mode="status" onOpenProject={async () => {}} confirm={async () => true} />
+  )
+  expect(screen.getByText("State").tagName).toBe("DT")
+  expect(screen.getByRole("button", { name: "Sync now" })).toBeDisabled()
+  expect(screen.queryByRole("button", { name: "Re-check" })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Resume" }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "pause", paused: false }))
+})
+
+test("status panel exposes conflicts immediately and keeps re-check available for errors", async () => {
+  const reveal = vi.fn(async (_path: string) => {})
+  const f = fixture({
+    status: {
+      state: { kind: "error", message: "Sync unavailable" },
+      pending: 0,
+      uploading: 0,
+      downloading: 0,
+      synced: 1,
+      failed: 0,
+      conflicts: [
+        {
+          projectId: 1,
+          path: "report.md",
+          localPath: "/drive/report.md",
+          conflictCopyPath: "/drive/report.conflict.md",
+          remoteUpdatedBy: null,
+          at: "2026-10-12T06:00:00Z"
+        }
+      ],
+      errors: [],
+      lastSyncAt: null,
+      pushConnected: false
+    }
+  })
+  const host: DriveHost = {
+    readDirectory: async () => [],
+    pathExists: async () => true,
+    onOpenEntry: async () => {},
+    onRevealPath: reveal,
+    onOpenExternal: async () => {}
+  }
+  render(
+    <DrivePanel
+      {...f}
+      host={host}
+      controls={controls}
+      mode="status"
+      onOpenProject={async () => {}}
+      confirm={async () => true}
+    />
+  )
+  expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
+  expect(screen.getByText("report.md", { exact: false })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Reveal" }))
+  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/drive/report.conflict.md"))
+  fireEvent.click(screen.getByRole("button", { name: "Re-check" }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "reconcile", projectId: null }))
+})
