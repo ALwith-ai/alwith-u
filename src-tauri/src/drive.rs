@@ -122,10 +122,12 @@ pub fn prevent_exit(app: &tauri::AppHandle, code: Option<i32>) -> bool {
         return false;
     }
     if !state.closing.swap(true, Ordering::AcqRel) {
-        // Dirty-buffer approval precedes this irreversible shutdown phase.
+        // Dirty-buffer approval precedes this irreversible shutdown phase. Keep webviews
+        // alive for cleanup, but hide them instead of disabling them: on macOS disabling
+        // attaches a translucent sheet and can bring a hidden chat panel back on screen.
         for window in app.webview_windows().into_values() {
-            if let Err(error) = window.set_enabled(false) {
-                log::error!("Cannot disable a window during shutdown: {error}");
+            if let Err(error) = window.hide() {
+                log::error!("Cannot hide a window during shutdown: {error}");
             }
         }
         let app = app.clone();
