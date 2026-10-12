@@ -76,6 +76,7 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "quickChats": "Quick chats",
     "pin": "Pin sidebar",
     "unpin": "Collapse sidebar",
     "toggleRight": "Toggle right sidebar",
@@ -130,6 +131,7 @@
       "loading": "Loading chats…"
     },
     "draft": {
+      "workOutsideProject": "Work outside a project",
       "selectProject": "Select project",
       "newProject": "New project",
       "configureProvider": "Configure provider"

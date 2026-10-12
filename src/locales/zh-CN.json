@@ -76,6 +76,7 @@
     "apiKeyTitle": "API 密钥"
   },
   "sidebar": {
+    "quickChats": "随聊",
     "pin": "固定侧边栏",
     "unpin": "收起侧边栏",
     "toggleRight": "切换右侧边栏",
@@ -130,6 +131,7 @@
       "loading": "正在加载会话…"
     },
     "draft": {
+      "workOutsideProject": "不在项目中工作",
       "selectProject": "选择项目",
       "newProject": "新建项目",
       "configureProvider": "配置服务商"

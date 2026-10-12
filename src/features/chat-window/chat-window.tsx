@@ -9,6 +9,7 @@ import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
+import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import {
   announceChatReady,
   type ChatTransfer,
@@ -95,7 +96,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     if (operation.busy) return
     void operation
       .run(async () => {
+        const directory = newChatDirectory(current.current.cwd)
         await client.discardDraft("chat")
+        setCwd(directory)
         setSelectedId(null)
         importDraft(DRAFT_SESSION_ID, null)
         setGeneration(value => value + 1)

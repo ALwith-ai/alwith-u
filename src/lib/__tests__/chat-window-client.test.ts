@@ -451,3 +451,24 @@ for (const surface of ["main", "chat"] as const) {
     }
   })
 }
+
+test("floating project views use the owner's full session list and receive mutations", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    expect((await remote.listProjectThreads("/tmp/one")).map(thread => thread.sessionId)).toEqual(["h1"])
+    expect(fake.fullListRequests).toEqual([undefined])
+    await owner.renameSession("h1", "Renamed")
+    expect((await remote.listProjectThreads("/tmp/one"))[0]?.title).toBe("Renamed")
+    expect(fake.fullListRequests).toHaveLength(1)
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})

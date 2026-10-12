@@ -5,8 +5,10 @@
  * actions live in the hover card, the row's trailing slot only ever shows the stop button.
  */
 
+import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
+  MessagesSquareIcon,
   CloudIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -51,7 +53,6 @@ import {
 } from "@/components/ui/dialog"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
@@ -66,6 +67,8 @@ import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
+import { groupThreads, QUICK_CHATS_GROUP, REVEAL_PAGE_SIZE } from "./thread-groups"
+import { VirtualThreadRows } from "./virtual-thread-rows"
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
 import { type SidebarView, useThreadsUiStore } from "./store"
@@ -87,7 +90,8 @@ function ThreadRow({
   state,
   onSelect,
   onForked,
-  onDelete
+  onDelete,
+  onHoverCardOpenChange
 }: {
   thread: ThreadSummary
   active: boolean
@@ -95,6 +99,7 @@ function ThreadRow({
   onSelect: () => void
   onForked: (thread: ThreadSummary) => void
   onDelete: () => void
+  onHoverCardOpenChange: (open: boolean) => void
 }) {
   const { t, i18n } = useTranslation()
   const title = thread.title ?? t("sidebar.untitled")
@@ -113,6 +118,7 @@ function ThreadRow({
       }}
       state={state}
       title={title}
+      onHoverCardOpenChange={onHoverCardOpenChange}
       hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} />}
       meta={
         thread.updatedAt !== null ? (
@@ -240,9 +246,7 @@ export function ThreadSidebar({
 }) {
   const { t } = useTranslation()
   const threads = useApp(state => state.threads)
-  const threadsCursor = useApp(state => state.threadsCursor)
   const threadsLoaded = useApp(state => state.threadsLoaded)
-  const threadsLoading = useApp(state => state.threadsLoading)
   const threadsError = useApp(state => state.threadsError)
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
@@ -251,6 +255,9 @@ export function ThreadSidebar({
   const archivedCursor = useApp(state => state.archivedCursor)
   const runStates = useApp(state => state.runStates)
   // Keep expansion state in the shared in-memory store, as in Desktop; preserve it while the app runs and reset it on restart.
+  const windowsTempDirectory = useThreadsUiStore(s => s.windowsTempDirectory)
+  const revealed = useThreadsUiStore(s => s.revealed)
+  const reveal = useThreadsUiStore(s => s.reveal)
   const projectOpen = useThreadsUiStore(s => s.projectOpen)
   const setProjectOpen = useThreadsUiStore(s => s.setProjectOpen)
   // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
@@ -272,33 +279,26 @@ export function ThreadSidebar({
   ]
   const [pendingDelete, setPendingDelete] = useState<ThreadSummary | null>(null)
   useSidebarOverlay(pendingDelete !== null)
+  const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
+  const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
-  const groups = useMemo(() => {
-    const byProject = new Map<string, ThreadSummary[]>()
-    const sorted = [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
-    for (const thread of sorted) {
-      const list = byProject.get(thread.cwd)
-      if (list) list.push(thread)
-      else byProject.set(thread.cwd, [thread])
-    }
-    return [...byProject.entries()]
-  }, [threads])
+  const groups = useMemo(() => groupThreads(threads, windowsTempDirectory), [threads, windowsTempDirectory])
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
 
-  const rows = (list: ThreadSummary[]) =>
-    list.map(thread => (
-      <ThreadRow
-        key={thread.sessionId}
-        thread={thread}
-        active={thread.sessionId === selectedId}
-        state={stateOf(thread)}
-        onSelect={() => onSelect(thread)}
-        onForked={onSelect}
-        onDelete={() => setPendingDelete(thread)}
-      />
-    ))
+  const renderRow = (thread: ThreadSummary, onHoverCardOpenChange: (open: boolean) => void) => (
+    <ThreadRow
+      key={thread.sessionId}
+      onHoverCardOpenChange={onHoverCardOpenChange}
+      thread={thread}
+      active={thread.sessionId === selectedId}
+      state={stateOf(thread)}
+      onSelect={() => onSelect(thread)}
+      onForked={onSelect}
+      onDelete={() => setPendingDelete(thread)}
+    />
+  )
 
   return (
     <Sidebar collapsible="none" className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px]">
@@ -423,8 +423,9 @@ export function ThreadSidebar({
         {view === "drive" ? null : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <Pane viewportClassName="px-1 py-1">
-            <NavigationStack>
+          <Pane viewportRef={setViewport} viewportClassName="px-1 py-1">
+            {/* Observe content height as groups expand, collapse or reveal more rows. */}
+            <ScrollArea.Content render={<NavigationStack />} style={{ minWidth: 0 }}>
               {!threadsLoaded &&
                 threadsError === null &&
                 connection !== "failed" &&
@@ -447,55 +448,56 @@ export function ThreadSidebar({
               {threadsError !== null && (
                 <div role="alert" className="text-muted-foreground flex flex-col items-start gap-2 px-3 py-4 text-sm">
                   <span>{threadsError}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => report(client.listThreads({ reset: !threadsLoaded }))}>
+                  <Button variant="outline" size="sm" onClick={() => report(client.listThreads({ reset: true }))}>
                     {t("actions.retry")}
                   </Button>
                 </div>
               )}
-              {threadsLoaded && threadsError === null && groups.length === 0 && archived.length === 0 && (
-                <p className="text-muted-foreground px-3 py-6 text-center text-sm">{t("sidebar.noResults")}</p>
-              )}
               {groups.map(([cwd, list]) => {
                 const isOpen = projectOpen.get(cwd) ?? false
+                const quick = cwd === QUICK_CHATS_GROUP
+                const limit = revealed.get(cwd) ?? REVEAL_PAGE_SIZE
                 return (
                   // Two levels: collapsible project groups, then their sessions. Expansion is controlled by the shared store.
                   <NavigationGroup
                     key={cwd}
-                    wrapHeader={header => (
-                      <ProjectSessionPopover
-                        cwd={cwd}
-                        trigger={header}
-                        onSelect={onSelect}
-                        onNewChat={() => onNewProjectChat(cwd)}
-                      />
-                    )}
+                    wrapHeader={
+                      quick
+                        ? undefined
+                        : header => (
+                            <ProjectSessionPopover
+                              cwd={cwd}
+                              trigger={header}
+                              onSelect={onSelect}
+                              onNewChat={() => onNewProjectChat(cwd)}
+                            />
+                          )
+                    }
                     open={isOpen}
                     onOpenChange={open => setProjectOpen(new Map(projectOpen).set(cwd, open))}
                     leading={
                       // Project (workspace) groups use an open folder icon when expanded and a closed folder icon when collapsed.
-                      isOpen ? (
+                      quick ? (
+                        <MessagesSquareIcon className="text-foreground size-3.5 shrink-0" />
+                      ) : isOpen ? (
                         <FolderOpenIcon className="text-foreground size-3.5 shrink-0" />
                       ) : (
                         <FolderClosedIcon className="text-foreground size-3.5 shrink-0" />
                       )
                     }
-                    label={basename(cwd)}
+                    label={quick ? t("sidebar.quickChats") : basename(cwd)}
                     count={list.length}>
-                    {rows(list)}
+                    <VirtualThreadRows threads={list.slice(0, limit)} viewport={viewport} renderRow={renderRow} />
+                    {list.length > limit && (
+                      <NavigationItemButton
+                        className={`${MENU_HIGHLIGHT} text-muted-foreground`}
+                        onClick={() => reveal(cwd, limit + REVEAL_PAGE_SIZE)}>
+                        {t("sidebar.loadMore")}
+                      </NavigationItemButton>
+                    )}
                   </NavigationGroup>
                 )
               })}
-              {threadsCursor !== null && threadsError === null && (
-                <NavigationItemButton
-                  className={`${MENU_HIGHLIGHT} text-muted-foreground`}
-                  disabled={threadsLoading}
-                  onClick={() => report(client.listThreads())}>
-                  {threadsLoading ? <Spinner className="size-3.5" /> : t("sidebar.loadMore")}
-                </NavigationItemButton>
-              )}
               <NavigationGroup
                 open={archivedOpen}
                 onOpenChange={open => {
@@ -505,16 +507,28 @@ export function ThreadSidebar({
                 leading={<ArchiveIcon className="text-foreground size-3.5 shrink-0" />}
                 label={t("sidebar.archived")}
                 count={archivedLoaded ? archived.length : undefined}>
-                {rows(archived)}
-                {archivedCursor !== null && (
+                <VirtualThreadRows
+                  threads={archived.slice(0, archivedLimit)}
+                  viewport={viewport}
+                  renderRow={renderRow}
+                />
+                {(archived.length > archivedLimit || archivedCursor !== null) && (
                   <NavigationItemButton
                     className={`${MENU_HIGHLIGHT} text-muted-foreground`}
-                    onClick={() => report(client.listThreads({ archived: true }))}>
+                    onClick={() => {
+                      if (archived.length > archivedLimit) setArchivedLimit(value => value + REVEAL_PAGE_SIZE)
+                      else
+                        report(
+                          client
+                            .listThreads({ archived: true })
+                            .then(() => setArchivedLimit(value => value + REVEAL_PAGE_SIZE))
+                        )
+                    }}>
                     {t("sidebar.loadMore")}
                   </NavigationItemButton>
                 )}
               </NavigationGroup>
-            </NavigationStack>
+            </ScrollArea.Content>
           </Pane>
         )}
       </SidebarContent>

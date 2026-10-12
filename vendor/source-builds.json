@@ -1,13 +1,13 @@
 [
   {
     "name": "@alwith/module-chat",
-    "file": "vendor/alwith-module-chat-0.1.10-b125fe29e98e.tgz",
-    "sha256": "b125fe29e98e7b6bdf7a5df5c52b2ae1a140238b78a589400d57cc838f7e7651",
+    "file": "vendor/alwith-module-chat-0.1.10-e9ef5f598890.tgz",
+    "sha256": "e9ef5f598890760c0138f41d5099531ab910915aa4d6628dba89de5e175ff4ef",
     "source": "alwith-modules/packages/chat",
-    "baseCommit": "99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotSha256": "23dcfc561d09261db7bd3c18b33d19a767c5162783f29bb9586c905b1725455a",
-    "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
+    "baseCommit": "de108b938bde8893b032a0b2df8cd8487437ef92",
+    "sourceSnapshotSha256": "29a502b5abf158b2e095888a9e38685f2977d5ea584436260a8fff22f312cd11",
+    "sourceState": "committed; source tree clean at de108b938bde8893b032a0b2df8cd8487437ef92",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files (excluding .alwith runtime data)"
   },
   {
     "name": "@alwith/module-editor",

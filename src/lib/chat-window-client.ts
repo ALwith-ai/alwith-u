@@ -23,6 +23,7 @@ const METHODS = [
   "transferDraft",
   "fork",
   "readThreadSummary",
+  "listThreads",
   "open",
   "prompt",
   "cancel",
@@ -250,6 +251,9 @@ export class RemoteChatClient extends CodexClient {
     const session = this.state.sessions[id]
     if (!session) throw new Error(`Unknown session: ${id}`)
     return session
+  }
+  override listThreads(...args: Parameters<CodexClient["listThreads"]>): Promise<void> {
+    return this.request("listThreads", args)
   }
   override prepareDraft(...args: Parameters<CodexClient["prepareDraft"]>): Promise<string> {
     return this.request("prepareDraft", args)

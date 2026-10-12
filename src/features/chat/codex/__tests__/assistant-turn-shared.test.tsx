@@ -3,6 +3,7 @@ import { fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
+import { must } from "@/lib/__tests__/must"
 import { groupTurns, turnTiming } from "../../turns"
 import { AssistantTurn } from "../assistant-turn"
 
@@ -36,6 +37,88 @@ function viewOf(session: Session, active = false, error: Session["error"] = null
     </ThemeProvider>
   )
 }
+
+const thought = (messageId: string, content: string) => ({
+  sessionUpdate: "agent_thought_chunk",
+  messageId,
+  content: { type: "text", text: content }
+})
+
+test.each(["commentary", "final_answer"])("%s completes and collapses the preceding thought", phase => {
+  const id = crypto.randomUUID()
+  let session = feed(createSession(id, "/tmp"), thought(id, "Inspecting the code"))
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  session = feed(session, text(`${id}-message`, "Next step", phase))
+  view.rerender(viewOf(session, true))
+  expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
+  expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: "Thought" }))
+  expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByText("Inspecting the code")).toBeDefined()
+})
+
+test("long turns finish older thoughts, collapse completed groups and retain every command", () => {
+  const id = crypto.randomUUID()
+  let session = feed(createSession(id, "/tmp"), thought(`${id}-first`, "First thought"))
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  session = feed(session, {
+    sessionUpdate: "tool_call_update",
+    toolCallId: `${id}-test`,
+    name: "shell",
+    kind: "execute",
+    status: "in_progress",
+    rawInput: { command: "bun run test" }
+  })
+  view.rerender(viewOf(session, true))
+  expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
+  expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
+  expect(view.container.querySelector(".codex-activity-group-trigger")).toHaveAttribute("aria-expanded", "true")
+  session = feed(
+    session,
+    { sessionUpdate: "tool_call_update", toolCallId: `${id}-test`, status: "completed" },
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: `${id}-build`,
+      name: "shell",
+      kind: "execute",
+      status: "completed",
+      rawInput: { command: "bun run build" }
+    },
+    thought(`${id}-second`, "Checking results")
+  )
+  view.rerender(viewOf(session, true))
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
+  session = feed(
+    session,
+    text(`${id}-comment`, "Tests completed", "commentary"),
+    thought(`${id}-third`, "Preparing the answer")
+  )
+  view.rerender(viewOf(session, true))
+  const previousGroup = must(view.container.querySelector(".codex-activity-group-trigger"), "the previous group")
+  expect(previousGroup).toHaveAttribute("aria-expanded", "false")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  fireEvent.click(previousGroup)
+  expect(view.getByRole("button", { name: "Ran bun run test" })).toBeDefined()
+  expect(view.getByRole("button", { name: "Ran bun run build" })).toBeDefined()
+  expect(view.getAllByRole("button", { name: "Thought" })).toHaveLength(2)
+
+  // A late upsert must not make an older thought current or reopen its disclosure.
+  session = feed(session, thought(`${id}-first`, " updated"))
+  view.rerender(viewOf(session, true))
+  expect(
+    view.getAllByRole("button", { name: "Thought" }).every(button => button.getAttribute("aria-expanded") === "false")
+  ).toBe(true)
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(previousGroup).toHaveAttribute("aria-expanded", "true")
+
+  view.rerender(viewOf(session, false))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
+})
 
 test("U keeps commentary after the last tool inside work, using the shared Desktop turn layout", () => {
   const session = feed(

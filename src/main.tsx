@@ -1,3 +1,6 @@
+import { tempDir } from "@tauri-apps/api/path"
+import { platform } from "@tauri-apps/plugin-os"
+import { useThreadsUiStore } from "@/features/threads/store"
 import { isTauri } from "@tauri-apps/api/core"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
 import { StrictMode } from "react"
@@ -51,6 +54,7 @@ async function bootstrap(): Promise<void> {
   const preferences = await loadPreferences()
   await initI18n(preferences.language)
   if (isTauri()) {
+    if (platform() === "windows") useThreadsUiStore.setState({ windowsTempDirectory: await tempDir() })
     void startStartupImports().catch(failure => surfaceGlobalError(describe(failure)))
     void useUpdaterStore
       .getState()

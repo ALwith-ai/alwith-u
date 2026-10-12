@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 import type { ThreadSummary } from "@/agent/client"
+import { watchThreadList } from "@/agent/thread-list-refresh"
 import { hasAccount } from "@/agent/codex-extensions"
 import { events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -22,6 +23,7 @@ import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
+import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
@@ -194,7 +196,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     [operation]
   )
 
-  const chooseDraftFolder = useCallback((directory: string) => {
+  const chooseDraftFolder = useCallback((directory: string | null) => {
     setLastDirectory(directory)
     void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
@@ -204,9 +206,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       if (operation.busy) return
       void operation
         .run(async () => {
-          const directory = cwd ?? extensionSession.current?.cwd
+          const directory = newChatDirectory(cwd ?? extensionSession.current?.cwd ?? lastDirectory)
           await client.discardDraft("main")
-          if (directory) chooseDraftFolder(directory)
+          chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
           setSurfaceGeneration(value => value + 1)
           setView("chat")
@@ -214,7 +216,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch((error: unknown) => toast.error(describe(error)))
     },
-    [chooseDraftFolder, operation]
+    [chooseDraftFolder, lastDirectory, operation]
   )
 
   const newChat = useCallback(() => newChatInDirectory(), [newChatInDirectory])
@@ -295,15 +297,20 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       // to one of them resumes there.
       client.setGatewayModels(initialPreferences.sessionModels)
       void applyProviders().catch((error: unknown) => toast.error(describe(error)))
-      await client.listThreads({ reset: true })
-      const threads = client.state.threads
-      void info(
-        `connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}, ${threads.length} threads`
-      )
+      void info(`connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
     } catch (error) {
       toast.error(describe(error))
     }
   }, [initialPreferences.sessionModels])
+
+  useEffect(() => {
+    if (connection === "ready") return watchThreadList(client)
+  }, [connection])
+
+  useEffect(() => {
+    if (focused && connection === "ready" && client.state.threadsLoaded)
+      void client.listThreads({ reset: true }).catch(() => undefined)
+  }, [focused, connection])
 
   // Either window can reconnect the owner; refresh Runtime subscriptions for every ready port.
   useEffect(() => {

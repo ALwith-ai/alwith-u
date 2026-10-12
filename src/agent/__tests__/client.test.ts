@@ -388,96 +388,66 @@ test("threads come from the agent and open() replays history", async () => {
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
-test("project query reads every page, deduplicates IDs and leaves sidebar pagination untouched", async () => {
+test("project views share one no-params full list, deduplicate IDs and reuse memory", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
-  const before = client.state
-  const requests: Array<{ cwd?: string | null; cursor?: string | null }> = []
-  fake.listSessions.current = params => {
-    requests.push(params)
-    if (!params.cursor) return { sessions: [{ sessionId: "p1", cwd: "/tmp/project", title: "Old" }], nextCursor: "p2" }
-    if (params.cursor === "p2") return { sessions: [], nextCursor: "p3" }
-    return {
-      sessions: [
-        { sessionId: "p1", cwd: "/tmp/project", title: "Renamed" },
-        { sessionId: "p2", cwd: "/tmp/project", title: "Second" },
-        { sessionId: "foreign", cwd: "/tmp/other" },
-        { sessionId: "archived", cwd: "/tmp/project", _meta: { codex: { archived: true } } }
-      ]
-    }
-  }
-  const result = await client.listProjectThreads("/tmp/project")
-  expect(requests.map(request => [request.cwd, request.cursor])).toEqual([
-    ["/tmp/project", undefined],
-    ["/tmp/project", "p2"],
-    ["/tmp/project", "p3"]
-  ])
-  expect(result.map(thread => [thread.sessionId, thread.title])).toEqual([
-    ["p1", "Renamed"],
-    ["p2", "Second"]
-  ])
-  expect(client.state).toBe(before)
+  fake.listSessions.current = () => ({
+    sessions: [
+      { sessionId: "p1", cwd: "/tmp/project", title: "Old" },
+      { sessionId: "p1", cwd: "/tmp/project", title: "Renamed" },
+      { sessionId: "other", cwd: "/tmp/other" },
+      { sessionId: "archive", cwd: "/tmp/project", _meta: { codex: { archived: true } } }
+    ]
+  })
+  const [project] = await Promise.all([client.listProjectThreads("/tmp/project"), client.listThreads()])
+  expect(project.map(thread => [thread.sessionId, thread.title])).toEqual([["p1", "Renamed"]])
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["p1", "other"])
+  await client.listProjectThreads("/tmp/other")
+  expect(fake.fullListRequests).toEqual([undefined])
 })
 
-test("selected project chats join the sidebar once without consuming its next page", async () => {
-  const { client, fake } = await make()
-  fake.listSessions.current = params =>
-    params.cursor
-      ? {
-          sessions: [
-            { sessionId: "older", cwd: "/tmp/project", title: "Updated title" },
-            { sessionId: "older", cwd: "/tmp/project", title: "Updated title" },
-            { sessionId: "oldest", cwd: "/tmp/project" }
-          ]
-        }
-      : { sessions: [{ sessionId: "recent", cwd: "/tmp/project" }], nextCursor: "next" }
+test("explicitly selected history entries join the shared list only once", async () => {
+  const { client } = await make()
   await client.listThreads()
-  const selected = {
-    sessionId: "older",
-    cwd: "/tmp/project",
-    title: "Selected title",
-    updatedAt: null,
-    archived: false
-  }
+  const selected = { sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false }
   client.includeThread(selected)
   const state = client.state
-  client.includeThread({ ...selected, title: "Stale popup title" })
+  client.includeThread({ ...selected, title: "Stale" })
   expect(client.state).toBe(state)
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["recent", "older"])
-  expect(client.state.threadsCursor).toBe("next")
-  await client.listThreads()
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["recent", "older", "oldest"])
-  expect(client.state.threads.find(thread => thread.sessionId === "older")?.title).toBe("Updated title")
-  expect(client.state.threadsCursor).toBeNull()
+  expect(await client.listProjectThreads("/tmp/project")).toEqual([selected])
 })
 
-test.each([false, true])("a pending sidebar page preserves a newly selected project chat (reset=%s)", async reset => {
+test("a pending refresh preserves a newly selected project chat", async () => {
   const { client, fake } = await make()
-  fake.listSessions.current = () => ({ sessions: [{ sessionId: "recent", cwd: "/tmp/project" }], nextCursor: "next" })
   await client.listThreads()
-  let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
+  let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void
   fake.listSessions.current = () =>
     new Promise(resolve => {
       answer = resolve
     })
-  const pending = client.listThreads({ reset })
+  const pending = client.listThreads({ reset: true })
   await until(() => answer !== undefined)
   client.includeThread({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
-  must(answer, "pending page")({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
+  answer({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
   await pending
   expect(client.state.threads.filter(thread => thread.sessionId === "older")).toHaveLength(1)
   expect(client.state.threads.find(thread => thread.sessionId === "older")?.title).toBe("Selected")
 })
 
-test("project query rejects failed or cyclic pagination instead of returning an incomplete total", async () => {
+test("refresh replaces the complete list and preserves the last snapshot on failure", async () => {
   const { client, fake } = await make()
-  fake.listSessions.current = params => {
-    if (params.cursor) throw new Error("Page unavailable")
-    return { sessions: [{ sessionId: "p1", cwd: "/tmp/project" }], nextCursor: "again" }
+  await client.listThreads()
+  fake.listSessions.current = () => {
+    throw new Error("Unavailable")
   }
-  await expect(client.listProjectThreads("/tmp/project")).rejects.toThrow("Internal error")
-  fake.listSessions.current = () => ({ sessions: [], nextCursor: "again" })
-  await expect(client.listProjectThreads("/tmp/project")).rejects.toThrow("repeated cursor")
+  await expect(client.listThreads({ reset: true })).rejects.toThrow()
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h1"])
+  expect(client.state.threadsLoaded).toBe(true)
+  fake.listSessions.current = () => ({ sessions: [{ sessionId: "external", cwd: "/tmp/other" }] })
+  await client.listThreads({ reset: true })
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["external"])
+  fake.listSessions.current = () => ({ sessions: [], nextCursor: "unexpected" })
+  await expect(client.listThreads({ reset: true })).rejects.toThrow("Full session list returned a cursor")
+  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["external"])
 })
 
 test("thread loading reports failure and clears it after retry", async () => {
@@ -1003,27 +973,22 @@ test("a pending archived list cannot undo restore", async () => {
   expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h2"])
 })
 
-test("a superseded list cannot overwrite newer rows, cursor or loading state", async () => {
+test("concurrent refreshes share one request and loading state", async () => {
   const { client, fake } = await make()
-  const answers: Array<(value: { sessions: Array<{ sessionId: string; cwd: string }>; nextCursor: string }) => void> =
-    []
+  let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string }> }) => void
   fake.listSessions.current = () =>
     new Promise(resolve => {
-      answers.push(resolve)
+      answer = resolve
     })
-  const older = client.listThreads({ reset: true })
-  await until(() => answers.length === 1)
-  const newer = client.listThreads({ reset: true })
-  await until(() => answers.length === 2)
-  must(answers[0], "older response")({ sessions: [{ sessionId: "old", cwd: "/tmp/one" }], nextCursor: "old-page" })
-  await older
-  const afterOlder = client.state
-  must(answers[1], "newer response")({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }], nextCursor: "new-page" })
-  await newer
-  expect(afterOlder.threadsLoading).toBe(true)
-  expect(afterOlder.threads).toEqual([])
+  const first = client.listThreads({ reset: true })
+  await until(() => answer !== undefined)
+  const second = client.listThreads({ reset: true })
+  expect(first).toBe(second)
+  expect(client.state.threadsLoading).toBe(true)
+  expect(fake.fullListRequests).toHaveLength(1)
+  answer({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }] })
+  await Promise.all([first, second])
   expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["new"])
-  expect(client.state.threadsCursor).toBe("new-page")
   expect(client.state.threadsLoading).toBe(false)
 })
 
@@ -1053,55 +1018,23 @@ test("live user messages refresh recency, while history replay and older turns d
   expect(client.state.threads[0]?.updatedAt).toBe(current)
 })
 
-test("deleted-project aliases share sidebar identity and complete independently paginated project queries", async () => {
+test("deleted-project aliases share the same complete memory list", async () => {
   const { client, fake } = await make(undefined, macProjectPaths)
   const canonical = "/private/var/deleted/project"
   const alias = "/var/deleted/project"
-  const one = { sessionId: "alias-one", cwd: alias, title: "One" }
-  const two = { sessionId: "alias-two", cwd: canonical, title: "Two" }
-  fake.listSessions.current = () => ({ sessions: [one, two], nextCursor: "sidebar-next" })
+  fake.listSessions.current = () => ({
+    sessions: [
+      { sessionId: "one", cwd: alias },
+      { sessionId: "two", cwd: canonical }
+    ]
+  })
   await client.listThreads()
-  expect(client.state.threads.map(thread => thread.cwd)).toEqual([canonical, canonical])
   const before = client.state
-  const calls: Array<{ cwd?: string | null; cursor?: string | null }> = []
-  fake.listSessions.current = params => {
-    calls.push(params)
-    if (params.cwd === canonical) return { sessions: [], nextCursor: params.cursor ? null : "next" }
-    if (params.cwd !== alias) throw new Error("Project queries must not enumerate unrelated history")
-    if (!params.cursor) return { sessions: [one], nextCursor: "next" }
-    return {
-      sessions: [
-        one,
-        two,
-        { sessionId: "foreign", cwd: "/var/other" },
-        { sessionId: "archived", cwd: alias, _meta: { codex: { archived: true } } }
-      ]
-    }
-  }
   const result = await client.listProjectThreads(canonical)
-  expect(result.map(thread => [thread.sessionId, thread.cwd])).toEqual([
-    [one.sessionId, canonical],
-    [two.sessionId, canonical]
-  ])
-  expect(calls.map(call => [call.cwd, call.cursor])).toEqual([
-    [canonical, undefined],
-    [canonical, "next"],
-    [alias, undefined],
-    [alias, "next"]
-  ])
-  expect(client.state).toBe(before)
+  expect(result.map(thread => thread.cwd)).toEqual([canonical, canonical])
   expect(await client.listProjectThreads(`${alias}/`)).toEqual(result)
-})
-
-test("project alias failures reject partial results and do not replace the sidebar", async () => {
-  const { client, fake } = await make(undefined, macProjectPaths)
-  const before = client.state
-  fake.listSessions.current = params => {
-    if (params.cwd === "/var/deleted") throw new Error("Alias query failed")
-    return { sessions: [{ sessionId: "one", cwd: "/private/var/deleted" }] }
-  }
-  await expect(client.listProjectThreads("/private/var/deleted")).rejects.toThrow("Internal error")
   expect(client.state).toBe(before)
+  expect(fake.fullListRequests).toHaveLength(1)
 })
 
 test("new and explicitly included chats use the same project key as history", async () => {

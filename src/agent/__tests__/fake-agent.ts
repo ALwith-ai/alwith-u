@@ -19,6 +19,7 @@ export type FakeAgent = {
   configResponse: {
     current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
   }
+  fullListRequests: unknown[]
   listSessions: {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
   }
@@ -202,7 +203,8 @@ export function createFakeAgent(): FakeAgent {
     for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
     return { sessionId: id, configOptions: optionsFor(hint), _meta: { codex } }
   })
-  app.onRequest("session/list", ({ params }) => {
+  const fullListRequests: unknown[] = []
+  const list = (params: acp.ListSessionsRequest) => {
     if (listSessions.current !== null) return listSessions.current(params)
     const wantArchived =
       typeof params._meta?.codex === "object" && (params._meta.codex as { archived?: boolean }).archived === true
@@ -222,7 +224,16 @@ export function createFakeAgent(): FakeAgent {
         }
       ].filter(item => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
     }
-  })
+  }
+  app.onRequest("session/list", ({ params }) => list(params))
+  app.onRequest(
+    "_codex/session_list",
+    value => value,
+    ({ params }) => {
+      fullListRequests.push(params)
+      return list({})
+    }
+  )
   app.onRequest("session/close", async ({ params }) => {
     active.get(params.sessionId)?.abort()
     while (active.has(params.sessionId)) await new Promise(resolve => setTimeout(resolve, 1))
@@ -403,6 +414,7 @@ export function createFakeAgent(): FakeAgent {
     sessionOptions,
     configResponse,
     listSessions,
+    fullListRequests,
     configChanges,
     renamed,
     fileSearches,
