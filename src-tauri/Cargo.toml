@@ -60,6 +60,9 @@ sys-locale = "0.3"
 tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
 
+[target.'cfg(target_os = "windows")'.dependencies]
+tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
@@ -70,7 +73,7 @@ objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGra
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel"]
+exclude = ["patches/tauri-nspanel", "patches/tauri-plugin-decoration"]
 
 [profile.dev]
 debug = "line-tables-only"

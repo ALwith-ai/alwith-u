@@ -1,0 +1,281 @@
+:root {
+  --tauri-plugin-decoration-ready: ready;
+}
+
+[data-tauri-plugin-decoration-root] {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: var(--tauri-plugin-decoration-z-index, 1);
+  display: none;
+  width: 100%;
+  height: var(--tauri-plugin-decoration-titlebar-height, 32px);
+  color: CanvasText;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-tauri-plugin-decoration-root][data-tauri-plugin-decoration-prepared],
+[data-tauri-plugin-decoration-root][data-tauri-plugin-decoration-active] {
+  display: block;
+}
+
+[data-tauri-plugin-decoration-root][data-tauri-decoration-fullscreen] {
+  display: none;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-controls] {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: var(--tauri-plugin-decoration-titlebar-height, 32px);
+  pointer-events: auto;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-side="left"] {
+  left: 0;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-side="right"],
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-platform="windows"] {
+  right: 0;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-control] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #202020;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  cursor: default;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-platform="windows"]
+  [data-tauri-decoration-control] {
+  width: 58px;
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+  font-size: 10px;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-platform="linux"] {
+  gap: 6px;
+  padding-inline: 8px;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-platform="linux"]
+  [data-tauri-decoration-control] {
+  width: 32px;
+  border-radius: 999px;
+  background: var(
+    --decoration-tb-actions-icon-bg,
+    rgba(0, 0, 0, 0.18)
+  );
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-control]:hover,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control][data-tauri-decoration-hover] {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-platform="linux"]
+  [data-tauri-decoration-control]:hover {
+  background: var(
+    --decoration-tb-actions-icon-active-bg,
+    rgba(0, 0, 0, 0.32)
+  );
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control="close"]:hover,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control="close"][data-tauri-decoration-hover] {
+  color: #fff;
+  background: #c42b1c;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control]:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: -3px;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-control] img {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+[data-tauri-plugin-decoration-root] [data-tauri-decoration-icon-fallback] img {
+  display: none;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon]::before,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon]::after {
+  position: absolute;
+  box-sizing: border-box;
+  display: none;
+  width: 10px;
+  height: 10px;
+  content: "";
+  border-color: currentColor;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon-fallback]::before,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon-fallback]::after {
+  display: block;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="minimize"]::before {
+  top: 16px;
+  height: 0;
+  border-top: 1.5px solid;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="maximize"]::before {
+  border: 1.5px solid;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="restore"]::before,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="restore"]::after {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="restore"]::before {
+  transform: translate(2px, -2px);
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="restore"]::after {
+  background: inherit;
+  transform: translate(-2px, 2px);
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="close"]::before,
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="close"]::after {
+  top: 15px;
+  height: 0;
+  border-top: 1.5px solid;
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="close"]::before {
+  transform: rotate(45deg);
+}
+
+[data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-icon="close"]::after {
+  transform: rotate(-45deg);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-tauri-plugin-decoration-root] [data-tauri-decoration-control] {
+    color: #f5f5f5;
+  }
+
+  [data-tauri-plugin-decoration-root] [data-tauri-decoration-control]:hover,
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-control][data-tauri-decoration-hover] {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control] {
+    background: var(
+      --decoration-tb-actions-icon-bg,
+      rgba(255, 255, 255, 0.18)
+    );
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control]:hover {
+    background: var(
+      --decoration-tb-actions-icon-active-bg,
+      rgba(255, 255, 255, 0.32)
+    );
+  }
+}
+
+@supports (color: color-mix(in srgb, black 50%, transparent)) {
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control] {
+    background: var(
+      --decoration-tb-actions-icon-bg,
+      color-mix(in srgb, CanvasText 18%, transparent)
+    );
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control]:hover {
+    background: var(
+      --decoration-tb-actions-icon-active-bg,
+      color-mix(in srgb, CanvasText 32%, transparent)
+    );
+  }
+}
+
+@media (forced-colors: active) {
+  [data-tauri-plugin-decoration-root] [data-tauri-decoration-control],
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control] {
+    color: ButtonText;
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    forced-color-adjust: auto;
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-control]:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-control]
+    img {
+    display: none;
+  }
+
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-icon]::before,
+  [data-tauri-plugin-decoration-root]
+    [data-tauri-decoration-platform="linux"]
+    [data-tauri-decoration-icon]::after {
+    display: block;
+  }
+}

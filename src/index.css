@@ -188,6 +188,38 @@ pre,
     background: transparent;
   }
 }
+/* Stabilize contrast over Windows Acrylic while retaining the native backdrop texture. */
+html[data-window-backdrop="acrylic"] body {
+  background-color: color-mix(in srgb, var(--sidebar) 60%, transparent);
+}
+html[data-window-backdrop="acrylic"] {
+  --tauri-plugin-decoration-z-index: 60;
+}
+/* The native recovery frame already supplies its own title bar. */
+html[data-window-backdrop="acrylic"]:not(:has([data-tauri-plugin-decoration-active])) .windows-main-titlebar {
+  display: none;
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control] {
+  width: calc(46px / var(--main-window-zoom, 1));
+  min-width: 0;
+  height: var(--tauri-plugin-decoration-titlebar-height, 32px);
+  color: var(--foreground);
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control]:hover,
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-hover] {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control="close"]:hover,
+html[data-window-backdrop="acrylic"]
+  [data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control="close"][data-tauri-decoration-hover] {
+  color: var(--primary-foreground);
+  background: var(--destructive);
+}
+/* Login and startup screens share the space below the custom title bar. */
+.windows-main-content > :first-child {
+  height: 100%;
+}
 /* Match Desktop: native vibrancy shows through around the persistent navigation and main panel. */
 [data-slot="sidebar-wrapper"] {
   background-color: transparent;

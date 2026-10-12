@@ -1,0 +1,3 @@
+[default]
+description = "Allows the embedded decoration frontend to activate, update measured geometry, and invoke its closed window-control API."
+permissions = ["allow-frontend-ack", "allow-frontend-document-boot", "allow-frontend-document-ready", "allow-frontend-geometry", "allow-window-control"]
