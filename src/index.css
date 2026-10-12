@@ -249,6 +249,29 @@ html[data-window-backdrop="acrylic"]
   background-color: var(--background);
   box-shadow: none;
 }
+/* The Windows frame already reserves the full-width title bar above the content. */
+.windows-main-content [data-sidebar-presentation] {
+  min-height: 0;
+}
+html[data-window-backdrop="acrylic"] .main-chat-surface {
+  margin-block-start: 0;
+}
+html[data-window-backdrop="acrylic"] .main-chat-drag-region {
+  display: none;
+}
+html[data-window-backdrop="acrylic"] .main-extension-status {
+  inset-inline: 0;
+  height: var(--main-surface-block-gutter);
+  padding-inline: 12px;
+  display: flex;
+  align-items: center;
+}
+html[data-window-backdrop="acrylic"] .main-sidebar-shell {
+  height: calc(100% - var(--main-surface-block-gutter));
+}
+html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-footer"] {
+  padding-bottom: 8px;
+}
 
 /* The 32px gap above the main panel also serves as a native drag region without controls. */
 [data-sidebar-presentation] {
@@ -421,11 +444,21 @@ html[data-window-backdrop="acrylic"]
   transform: scale(var(--sidebar-control-scale));
   transform-origin: top left;
 }
+.windows-sidebar-toggle {
+  display: flex;
+  align-items: center;
+}
+.windows-sidebar-toggle [data-slot="button"] {
+  transform: scale(calc(1 / var(--main-window-zoom, 1)));
+  transform-origin: top left;
+}
 /* Pin/preview state is conveyed by ARIA; only pointer hover paints this control. */
-.main-sidebar-toggle [data-slot="button"] {
+.main-sidebar-toggle [data-slot="button"],
+.windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
-.main-sidebar-toggle [data-slot="button"]:hover {
+.main-sidebar-toggle [data-slot="button"]:hover,
+.windows-sidebar-toggle [data-slot="button"]:hover {
   background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {

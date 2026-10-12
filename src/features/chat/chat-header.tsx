@@ -34,7 +34,10 @@ export function ChatHeader({
   )
   if (floating) return target === null ? null : createPortal(content, target)
   return (
-    <header className="@container relative flex h-12 shrink-0 items-center gap-3 px-4" data-tauri-drag-region>
+    <header
+      className="@container relative flex h-12 shrink-0 items-center gap-3 px-4"
+      data-main-chat-header
+      data-tauri-drag-region>
       {content}
     </header>
   )

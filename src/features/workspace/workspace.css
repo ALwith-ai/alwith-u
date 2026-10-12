@@ -72,6 +72,14 @@
   height: 32px;
   -webkit-app-region: no-drag;
 }
+/* Windows places workspace controls inside the chat heading, clear of its action menu. */
+html[data-window-backdrop="acrylic"] .main-workspace-toolbar {
+  top: 8px;
+  inset-inline-end: var(--windows-workspace-controls-end, calc(var(--main-surface-gutter) + 16px));
+}
+html[data-window-backdrop="acrylic"] .main-chat-surface [data-main-chat-header] {
+  padding-inline-end: calc(24px + var(--windows-workspace-controls-width, 0px));
+}
 .file-workspace-toolbar {
   display: flex;
   align-items: center;
@@ -102,7 +110,26 @@
   background-color: transparent;
   color: var(--sidebar-foreground);
 }
-.file-workspace-toolbar .workspace-sidebar-toggle:hover {
+.windows-workspace-controls {
+  padding-inline: calc(4px / var(--main-window-zoom, 1));
+  justify-content: center;
+  -webkit-app-region: no-drag;
+}
+.windows-workspace-controls .workspace-sidebar-toggle {
+  width: 24px;
+  height: 24px;
+  color: var(--sidebar-foreground);
+  background-color: transparent;
+  flex-shrink: 0;
+}
+.windows-workspace-controls .file-workspace-toolbar {
+  zoom: calc(1 / var(--main-window-zoom, 1));
+}
+.windows-main-titlebar:has(+ .windows-main-content [data-main-screen="leading"]) .windows-workspace-controls {
+  visibility: hidden;
+}
+.file-workspace-toolbar .workspace-sidebar-toggle:hover,
+.windows-workspace-controls .workspace-sidebar-toggle:hover {
   background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 .workspace-view-toggle {

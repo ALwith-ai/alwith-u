@@ -72,6 +72,36 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // user opens one.
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!workspaceToolbar || document.documentElement.dataset.windowBackdrop !== "acrylic") return
+    const host = workspaceToolbar.parentElement
+    if (!host) throw new Error("Workspace toolbar has no layout parent")
+    const chat = host.querySelector<HTMLElement>(".file-workspace-chat")
+    if (!chat) throw new Error("Workspace toolbar has no chat column")
+    const update = (): void => {
+      host.style.setProperty(
+        "--windows-workspace-controls-width",
+        `${workspaceToolbar.getBoundingClientRect().width}px`
+      )
+      const chatRect = chat.getBoundingClientRect()
+      const surface = chat.closest<HTMLElement>(".main-chat-surface")
+      if (!surface) throw new Error("Workspace chat has no main surface")
+      const anchor = chatRect.width > 0 ? chatRect : surface.getBoundingClientRect()
+      host.style.setProperty(
+        "--windows-workspace-controls-end",
+        `${host.getBoundingClientRect().right - anchor.right + 16}px`
+      )
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(workspaceToolbar)
+    observer.observe(chat)
+    update()
+    return () => {
+      observer.disconnect()
+      host.style.removeProperty("--windows-workspace-controls-width")
+      host.style.removeProperty("--windows-workspace-controls-end")
+    }
+  }, [workspaceToolbar])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)

@@ -9,6 +9,7 @@ import type { TextEditorProps } from "@alwith/module-editor"
 import { initI18n } from "@/lib/i18n"
 import { FileWorkspace } from "../file-workspace"
 import { ChatHeader } from "@/features/chat/chat-header"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 
 const native = vi.hoisted(() => ({ invoke: vi.fn(), listen: vi.fn(async () => (): void => {}) }))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
@@ -107,6 +108,30 @@ test("remount restores pinned files, active file and expanded folders without dr
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+})
+test("Windows moves only the workspace toggle into the title bar and preserves its action", async () => {
+  const target = document.createElement("div")
+  document.body.append(target)
+  try {
+    const view = render(
+      <WindowsWorkspaceControlsContext.Provider value={target}>
+        <Surface cwd="/a" />
+      </WindowsWorkspaceControlsContext.Provider>
+    )
+    fireEvent.click(within(target).getByRole("button", { name: "Open preview area" }))
+    await screen.findByRole("treeitem", { name: /one.txt/ })
+    expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+    fireEvent.click(within(target).getByRole("button", { name: "Enter view mode" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "true")
+    fireEvent.click(within(target).getByRole("button", { name: "Exit view mode" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "false")
+    fireEvent.click(within(target).getByRole("button", { name: "Close workspace" }))
+    expect(within(target).getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+    view.unmount()
+    expect(target).toBeEmptyDOMElement()
+  } finally {
+    target.remove()
+  }
 })
 function Surface({ cwd }: { cwd: string }) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)

@@ -62,6 +62,7 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
@@ -97,6 +98,7 @@ function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))
 }
 export function FileWorkspace({ cwd, children }: { cwd: string | null; children: ReactNode }) {
+  const windowsControls = useContext(WindowsWorkspaceControlsContext)
   const { resolvedTheme } = useTheme()
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
@@ -700,6 +702,23 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
     loadFailed: t("workspace.loadFailed"),
     retry: t("workspace.retry")
   }
+  const workspaceControls = (
+    <>
+      {visible && workspace && (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="workspace-sidebar-toggle workspace-view-toggle"
+          aria-label={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
+          title={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
+          aria-pressed={viewMode}
+          onClick={() => setViewMode(value => !value)}>
+          {viewMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+        </Button>
+      )}
+      <WorkspaceButton />
+    </>
+  )
   return (
     <WorkspaceContext.Provider value={context}>
       {headerTarget !== null &&
@@ -717,22 +736,12 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
                 setCondenseScope(scope)
               }}
             />
-            {visible && workspace && (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="workspace-sidebar-toggle workspace-view-toggle"
-                aria-label={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                title={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                aria-pressed={viewMode}
-                onClick={() => setViewMode(value => !value)}>
-                {viewMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
-              </Button>
-            )}
-            <WorkspaceButton />
+            {windowsControls === null && workspaceControls}
           </div>,
           headerTarget
         )}
+      {windowsControls !== null &&
+        createPortal(<div className="file-workspace-toolbar">{workspaceControls}</div>, windowsControls)}
       <div
         ref={container}
         className="file-workspace-layout"
