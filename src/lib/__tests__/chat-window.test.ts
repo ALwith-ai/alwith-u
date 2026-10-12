@@ -44,6 +44,7 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   }
 }))
 
+const { useChatWindowSurface } = await import("../chat-window-state")
 const { requestChatSurface, serveChatSurface } = await import("../chat-window")
 
 test("a chat-targeted release is handled only by the chat window", async () => {
@@ -70,5 +71,26 @@ test("a chat-targeted release is handled only by the chat window", async () => {
   } finally {
     stopMain()
     stopChat()
+  }
+})
+
+test("chat surface reports reach the main registry without invoking navigation", async () => {
+  currentLabel = "main"
+  const actions: string[] = []
+  const stopMain = await serveChatSurface(async action => {
+    actions.push(action.type)
+    throw new Error("Surface reports must not navigate")
+  })
+  try {
+    currentLabel = "chat"
+    await expect(
+      requestChatSurface("main", { type: "surface", sessionId: "chat-session", visible: true })
+    ).resolves.toBeNull()
+    expect(actions).toEqual([])
+    expect(useChatWindowSurface.getState()).toEqual({ sessionId: "chat-session", visible: true })
+    await requestChatSurface("main", { type: "surface", sessionId: "chat-session", visible: false })
+    expect(useChatWindowSurface.getState()).toEqual({ sessionId: "chat-session", visible: false })
+  } finally {
+    stopMain()
   }
 })

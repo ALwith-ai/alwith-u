@@ -13,6 +13,7 @@ import {
   announceChatReady,
   type ChatTransfer,
   presentChatWindow,
+  publishChatWindowSurface,
   requestChatSurface,
   serveChatSurface
 } from "@/lib/chat-window"
@@ -50,6 +51,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   // DraftChat receives the reply that binds the replacement to this surface.
   const replacingDraft = session === null && Object.values(draftSessions).includes("chat")
   const runState = useApp(state => (selectedId === null ? null : state.runStates[selectedId]?.state))
+  const surfaceRevision = useRef(0)
   const focused = useWindowFocus()
   const providers = useProviders()
   const { busy, operation } = useSurfaceOperation()
@@ -72,7 +74,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [])
 
   const hide = useCallback(async (restore = true): Promise<void> => {
+    surfaceRevision.current++
     await getCurrentWebviewWindow().hide()
+    await publishChatWindowSurface(current.current.selectedId, false)
     // Native hiding keeps the draft mounted so pending replacements still bind
     // their new session and carry the input forward while the window is hidden.
     if (usePlatformAuth.getState().user !== null) {
@@ -85,6 +89,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       .run(async () => {
         await requestChatSurface("main", { type: "present", transfer: await capture() })
         await hide()
+        surfaceRevision.current++
+        current.current = { ...current.current, selectedId: null }
+        await publishChatWindowSurface(null, false)
         setContentMounted(false)
         setSelectedId(null)
         setGeneration(value => value + 1)
@@ -147,6 +154,17 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         operation.run(async () => {
           switch (action.type) {
             case "present": {
+              if (action.sessionId !== undefined && action.sessionId !== current.current.selectedId) {
+                if (client.state.sessionWindows[action.sessionId] !== "chat")
+                  throw new Error("The chat window conversation changed")
+                const target = client.session(action.sessionId)
+                await client.discardDraft("chat")
+                await client.open(target.id, target.cwd)
+                current.current = { selectedId: target.id, cwd: target.cwd }
+                setCwd(target.cwd)
+                setSelectedId(target.id)
+              }
+              surfaceRevision.current++
               if (action.transfer) await client.connect()
               else await reconnect()
               if (action.transfer) {
@@ -165,6 +183,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               }
               setContentMounted(true)
               await presentChatWindow()
+              await publishChatWindowSurface(current.current.selectedId, true)
               if (usePlatformAuth.getState().user !== null) {
                 await registerPetSurface("chat", current.current.selectedId, true)
                 await suspendPetForChat()
@@ -172,9 +191,18 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               return null
             }
             case "release": {
-              if (current.current.selectedId !== action.sessionId) return null
+              if (current.current.selectedId !== action.sessionId) {
+                if (client.state.sessionWindows[action.sessionId] !== "chat") return null
+                const target = client.session(action.sessionId)
+                const transfer = { sessionId: target.id, cwd: target.cwd, draft: await exportDraft(target.id) }
+                await hide(false)
+                return transfer
+              }
               const transfer = await capture()
               await hide(false)
+              surfaceRevision.current++
+              current.current = { ...current.current, selectedId: null }
+              await publishChatWindowSurface(null, false)
               // A handoff releases this surface; it must not prepare another draft.
               setContentMounted(false)
               setSelectedId(null)
@@ -208,21 +236,31 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [capture, hide, newChat, operation, reconnect])
 
   useEffect(() => {
+    if (!ready) return
     const window = getCurrentWebviewWindow()
     let disposed = false
     const refresh = async () => {
+      const revision = ++surfaceRevision.current
       const visible = (await window.isVisible()) && !(await window.isMinimized())
-      if (!disposed && usePlatformAuth.getState().user !== null) await registerPetSurface("chat", selectedId, visible)
+      if (disposed || revision !== surfaceRevision.current || current.current.selectedId !== selectedId) return
+      await publishChatWindowSurface(current.current.selectedId, visible)
+      if (usePlatformAuth.getState().user !== null)
+        await registerPetSurface("chat", current.current.selectedId, visible)
     }
     void refresh().catch(report)
-    const stop = window.onFocusChanged(() => {
-      void refresh().catch(report)
-    })
+    const stop = Promise.all([
+      window.onFocusChanged(() => void refresh().catch(report)),
+      window.onResized(() => void refresh().catch(report))
+    ])
     return () => {
       disposed = true
-      void stop.then(unlisten => unlisten())
+      void stop
+        .then(listeners => {
+          for (const unlisten of listeners) unlisten()
+        })
+        .catch(report)
     }
-  }, [selectedId])
+  }, [selectedId, ready])
 
   useEffect(() => {
     if (focused && selectedId !== null && runState === "done") {

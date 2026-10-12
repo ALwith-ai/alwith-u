@@ -110,6 +110,8 @@ export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
 export type DraftOwner = "main" | "chat"
 
 export type AppState = {
+  /** Window ownership survives switching the visible conversation; never persisted. */
+  sessionWindows: Record<string, DraftOwner>
   /** Only drafts created by this connection are eligible for automatic cleanup. */
   draftSessions: Record<string, DraftOwner>
   configPending: Record<string, boolean>
@@ -222,6 +224,7 @@ export class CodexClient {
     this.options = options
     this.requests.onChange(pending => this.store.setState({ actions: pending.map(toAction) }))
     this.store = createStore<AppState>(() => ({
+      sessionWindows: {},
       draftSessions: {},
       configPending: {},
       connection: "disconnected",
@@ -963,6 +966,7 @@ export class CodexClient {
       ++this.slotVersions[other]
     }
     this.slotTargets[owner] = id
+    this.store.setState(state => ({ sessionWindows: { ...state.sessionWindows, [id]: owner } }))
   }
 
   private confirmModel(owner: DraftOwner, session: Session): void {
@@ -1255,7 +1259,8 @@ export class CodexClient {
       const { [id]: _removed, ...sessions } = state.sessions
       const { [id]: _origin, ...forkOrigins } = state.forkOrigins
       const { [id]: _draft, ...draftSessions } = state.draftSessions
-      return { sessions, forkOrigins, draftSessions }
+      const { [id]: _window, ...sessionWindows } = state.sessionWindows
+      return { sessions, forkOrigins, draftSessions, sessionWindows }
     })
   }
 }

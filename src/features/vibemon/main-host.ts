@@ -20,7 +20,7 @@ import { openPlatformAccount } from "@/features/auth/open-account"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
 import { exportDraft } from "@/features/chat/composer/drafts"
-import { openChatWindow } from "@/lib/chat-window"
+import { openChatWindow, syncChatWindowSurface } from "@/lib/chat-window"
 import { client } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 import { createPetSessionOwner, type PetSurface } from "./session-host"
@@ -257,6 +257,7 @@ async function start() {
           const chat = await WebviewWindow.getByLabel("chat")
           if (chat === null) throw new Error("Chat window unavailable")
           await chat.hide()
+          await syncChatWindowSurface()
           await owner.surface("chat", { sessionId: payload.sessionId, visible: false })
           await command("bubble-open", (await getVibemonState()).pet)
         })

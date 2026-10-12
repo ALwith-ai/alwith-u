@@ -241,6 +241,7 @@ export class RemoteChatClient extends CodexClient {
       actions: [],
       runStates: {},
       draftSessions: {},
+      sessionWindows: {},
       configPending: {},
       threads: []
     })

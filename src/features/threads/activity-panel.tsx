@@ -2,21 +2,24 @@
  * ActivityPanel adapts ALwith Desktop's Activity panel: active sessions from Runtime's run-state registry,
  * shown hierarchically with a main agent row and running subagent rows beneath it.
  *
- * - Main agent row = session (using the same row component as session columns), in ascending chronological order for stable positioning:
+ * - Main agent row = session, in first-observed order for stable positioning:
  *   older sessions stay above new sessions appended at the bottom; state colors provide the attention cue.
  * - Subagent rows = running tasks parsed by Runtime from ACP traffic and removed on completion, showing what a long-running session
  *   is doing and which background tasks remain outstanding.
  * - Group by host: foreground is the currently viewed session (always flat, with no group header), followed by background running sessions.
  *   Click a row to open it; the trailing stop button closes only that session.
- * This app has one window and no ALwith.dev: Desktop's window badges, execution leases (dev group), and ownerless rows are omitted.
+ * Window ownership comes from the client; visibility comes from the chat surface. Clicking a floating row opens it in that window.
  */
 
 import type { SessionRunState, SessionTask } from "@alwith/api"
-import { ActivityIcon } from "lucide-react"
+import { ActivityIcon, AppWindowIcon, PictureInPicture2Icon, ArrowLeftIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { ThreadSummary } from "@/agent/client"
+import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import { focusChatSession } from "@/lib/chat-window"
+import { useChatWindowSurface } from "@/lib/chat-window-state"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
 import { SessionStateDot } from "@/components/alwith-ui/session-state-dot"
@@ -27,12 +30,14 @@ import { NavigationStack } from "@/features/layout/components/navigation/navigat
 import { useCmdHeld } from "@/hooks/use-cmd-held"
 import { stopSession, useApp } from "@/lib/client"
 import type { RunState } from "@/lib/run-state"
-import { formatShortcutForDisplay } from "@/lib/shortcut-formatter"
+import { isMac } from "@/lib/platform"
+import { useActivityOrder } from "./activity-order"
+import { displayShortcut } from "@/lib/shortcut-formatter"
 import { activityGroupOf } from "./lib/activity-group"
 import { useThreadsUiStore } from "./store"
 import { ThreadInfoCard } from "./thread-info-card"
 
-function report(promise: Promise<unknown>) {
+function report(promise: Promise<unknown>): Promise<void> {
   return promise.then(
     () => {},
     (error: unknown) => {
@@ -64,34 +69,30 @@ export function ActivityPanel({
   const { t } = useTranslation()
   const runStates = useApp(state => state.runStates)
   const threads = useApp(state => state.threads)
+  const chatSurface = useChatWindowSurface()
+  const sessionWindows = useApp(state => state.sessionWindows)
   const draftSessions = useApp(state => state.draftSessions)
 
-  // Sort by the thread's most recent update time in ascending order: older entries first, new sessions appended like a log.
-  // Desktop uses creation time from its on-disk session table; Codex's thread list only exposes updatedAt, the closest available value.
-  // Sessions absent from the list sort last.
-  const updatedAt = useMemo(
-    () =>
-      new Map(
-        threads.map(thread => [thread.sessionId, thread.updatedAt ? new Date(thread.updatedAt).getTime() : Infinity])
-      ),
-    [threads]
-  )
-  // Local draft ownership disappears on deletion or reload; Runtime still identifies unsent drafts.
-  // Keep both checks while the first prompt and its run-state broadcast are in flight.
+  const order = useActivityOrder(state => state.ids)
   const rows = useMemo(
     () =>
-      Object.values(runStates)
-        .filter(record => !record.reusableDraft && !draftSessions[record.sessionId])
-        .map(record => ({ sid: record.sessionId, record, thread: threadOf(threads, record) }))
-        .sort((a, b) => (updatedAt.get(a.sid) ?? Infinity) - (updatedAt.get(b.sid) ?? Infinity)),
-    [runStates, threads, updatedAt, draftSessions]
+      order.flatMap(sid => {
+        const record = runStates[sid]
+        // The derived order and source can notify React separately; never render a retired row.
+        return record && !record.reusableDraft && !draftSessions[sid]
+          ? [{ sid, record, thread: threadOf(threads, record) }]
+          : []
+      }),
+    [order, runStates, threads, draftSessions]
   )
 
-  // Foreground means occupying the visible Chat slot: in this single-window app, that is the selected session.
+  // Foreground means occupying a visible chat surface, including the separate chat window.
   const groups = useMemo(() => {
     const byKey = new Map<string, typeof rows>()
     for (const row of rows) {
-      const key = activityGroupOf({ visible: row.sid === selectedId })
+      const key = activityGroupOf({
+        visible: row.sid === selectedId || (chatSurface.visible && row.sid === chatSurface.sessionId)
+      })
       const bucket = byKey.get(key) ?? []
       bucket.push(row)
       byKey.set(key, bucket)
@@ -104,29 +105,37 @@ export function ActivityPanel({
         .map(key => ({
           key,
           label: key === "background" ? t("sidebar.background") : t("sidebar.foreground"),
-          // Background uses fixed Tailwind orange (Inbox blue / casual chat green / Background orange; Desktop decision, 2026-08-10).
-          icon: key === "background" ? <ActivityIcon className="size-3.5 shrink-0 text-orange-500" /> : undefined,
+          icon: key === "background" ? <ActivityIcon className="text-muted-foreground size-3.5 shrink-0" /> : undefined,
           rows: byKey.get(key) ?? []
         }))
     )
-  }, [rows, selectedId, t])
+  }, [rows, selectedId, chatSurface, t])
   // Collapsed state lives only in process memory: it survives leaving Activity and returning, but resets on restart.
   const collapsedGroups = useThreadsUiStore(s => s.activityCollapsedGroups)
   const setCollapsedGroups = useThreadsUiStore(s => s.setActivityCollapsedGroups)
-  // Cmd+1 through Cmd+9 and numeric hints follow the flattened group order visible to the user.
-  const flatRows = groups.flatMap(group => group.rows)
+  // Cmd/Ctrl+1 through Cmd/Ctrl+9 and numeric hints follow the flattened group order visible to the user.
+  const flatRows = groups.flatMap(group =>
+    group.key === "foreground" || !collapsedGroups.has(group.key) ? group.rows : []
+  )
 
-  // Cmd+1 through Cmd+9 jump to the Nth row in ascending order; number hints appear only on the first nine rows.
+  const openRow = (thread: ThreadSummary): void => {
+    if (sessionWindows[thread.sessionId] === "chat") void report(focusChatSession(thread.sessionId))
+    else onSelect(thread)
+  }
+
+  // Cmd/Ctrl+1 through Cmd/Ctrl+9 jump to the Nth row in ascending order; number hints appear only on the first nine rows.
   const cmdHeld = useCmdHeld()
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!e.metaKey || e.shiftKey || e.altKey || e.ctrlKey) return
+      if (e.defaultPrevented || e.isComposing || e.repeat || e.shiftKey || e.altKey) return
+      if (isMac() ? !e.metaKey || e.ctrlKey : !e.ctrlKey || e.metaKey) return
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')) return
       const n = Number(e.key)
       if (!Number.isInteger(n) || n < 1 || n > 9) return
       const row = flatRows[n - 1]
       if (!row) return
       e.preventDefault()
-      onSelect(row.thread)
+      openRow(row.thread)
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
@@ -141,12 +150,11 @@ export function ActivityPanel({
         state={row.record.state}
         active={row.sid === selectedId}
         tasks={row.record.tasks}
-        onOpen={() => onSelect(row.thread)}
-        hint={
-          index < 9 && cmdHeld ? (
-            <Kbd>{formatShortcutForDisplay(`CommandOrControl+${index + 1}`).join("")}</Kbd>
-          ) : undefined
-        }
+        listeningPorts={row.record.listeningPorts}
+        onOpen={() => openRow(row.thread)}
+        windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
+        onReturnToMain={() => onSelect(row.thread)}
+        hint={index < 9 && cmdHeld ? <Kbd>{displayShortcut(`CommandOrControl+${index + 1}`)}</Kbd> : undefined}
       />
     )
   }
@@ -184,6 +192,9 @@ function ActivityRow({
   state,
   active,
   tasks,
+  listeningPorts,
+  windowLabel,
+  onReturnToMain,
   onOpen,
   hint
 }: {
@@ -192,6 +203,9 @@ function ActivityRow({
   active: boolean
   /** Running subagent tasks parsed by Runtime, rendered as indented children and removed from updates on completion. */
   tasks: SessionTask[]
+  listeningPorts: number[]
+  windowLabel: "main" | "chat" | null
+  onReturnToMain: () => void
   onOpen: () => void
   hint?: React.ReactNode
 }) {
@@ -204,16 +218,47 @@ function ActivityRow({
         active={active}
         role="button"
         tabIndex={0}
-        hoverCard={<ThreadInfoCard thread={thread} />}
+        hoverCard={
+          <ThreadInfoCard
+            thread={thread}
+            actions={
+              windowLabel === "chat" ? (
+                <HoverInfoAction
+                  icon={<ArrowLeftIcon />}
+                  label={t("chatWindow.returnToMain")}
+                  onClick={onReturnToMain}
+                />
+              ) : undefined
+            }
+          />
+        }
         onClick={onOpen}
         onKeyDown={e => {
+          if (e.target !== e.currentTarget) return
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()
             onOpen()
           }
         }}
         state={state}
+        listeningPorts={listeningPorts}
         title={title}
+        accessory={
+          windowLabel === null ? undefined : (
+            <span
+              role="img"
+              aria-label={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", {
+                ns: "common"
+              })}
+              title={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", { ns: "common" })}>
+              {windowLabel === "chat" ? (
+                <PictureInPicture2Icon className="text-muted-foreground size-3.5" />
+              ) : (
+                <AppWindowIcon className="text-muted-foreground size-3.5" />
+              )}
+            </span>
+          )
+        }
         hint={hint}
         actions={
           /* Session columns and activity rows close by session ID without stopping the shared agent. */
