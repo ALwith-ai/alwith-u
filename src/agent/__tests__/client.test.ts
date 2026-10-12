@@ -1,7 +1,7 @@
 import { isSelectOption, textOf, type BooleanOption, type SelectOption, type Session } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
-import { CodexClient, type GatewayModel } from "../client"
+import { CodexClient, type ClientOptions, type GatewayModel } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 import { macProjectPaths, type ProjectPaths } from "../project-path"
@@ -49,11 +49,20 @@ afterEach(() => {
   for (const client of clients.splice(0)) client.disconnect()
 })
 
-async function make(configure?: (fake: ReturnType<typeof createFakeAgent>) => void, projectPaths?: ProjectPaths) {
+async function make(
+  configure?: (fake: ReturnType<typeof createFakeAgent>) => void,
+  projectPaths?: ProjectPaths,
+  resolveModel?: ClientOptions["resolveModel"]
+) {
   const fake = createFakeAgent()
   configure?.(fake)
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" }, projectPaths })
+  const client = new CodexClient(async () => port, {
+    agentId: "codex",
+    launch: { engine: "codex" },
+    projectPaths,
+    resolveModel
+  })
   clients.push(client)
   await client.connect()
   return { client, fake, port }
@@ -569,17 +578,17 @@ test("host configured gateway models are identified from the session catalog and
     alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }] }
   })
 
-  // A thread the user moved to DeepSeek earlier is asked for on resume; others are not.
+  // Every restored thread uses the latest confirmed model, not its historical binding.
   const seen: Array<[string, string, boolean]> = []
   client.onSessionModel((sessionId, modelId, isGateway) => seen.push([sessionId, modelId, isGateway]))
-  client.setGatewayModels({ h1: "deepseek-flash" })
+  client.setModelSelections({ main: "deepseek-flash", chat: null })
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two")
   expect(fake.modelHints.get("h1")).toBe("deepseek-flash")
-  expect(fake.modelHints.get("h2")).toBeNull()
+  expect(fake.modelHints.get("h2")).toBe("deepseek-flash")
   expect(seen).toEqual([
     ["h1", "deepseek-flash", true],
-    ["h2", "gpt-5.6-sol", false]
+    ["h2", "deepseek-flash", true]
   ])
 
   // New chats start native; a gateway model can be asked for explicitly.
@@ -590,6 +599,104 @@ test("host configured gateway models are identified from the session catalog and
 
   await unregisterGateway(port, "deepseek")
   expect(fake.gateway.current).toBeNull()
+})
+
+test("restore uses each slot's current choice without creating a probe session", async () => {
+  const { client, fake } = await make()
+  client.setModelSelections({ main: "main-model", chat: "chat-model" })
+  await client.open("h1", "/tmp/one")
+  await client.open("h2", "/tmp/two", "chat")
+  expect(fake.modelHints.get("h1")).toBe("main-model")
+  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  expect(fake.modelHints.size).toBe(2)
+  expect(fake.deleted.size).toBe(0)
+})
+
+test("attached session reuse follows its runtime model without rewriting slot memory", async () => {
+  const { client, fake } = await make()
+  client.setModelSelections({ main: "main-model", chat: "chat-model" })
+  await client.open("h1", "/tmp/one", "chat")
+  const seen: unknown[] = []
+  client.onConfirmedModel((...args) => seen.push(args))
+  await client.open("h1", "/tmp/one")
+  await client.open("h2", "/tmp/two")
+  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  const draft = await client.prepareDraft("main", "/tmp/draft")
+  expect(fake.modelHints.get(draft)).toBe("main-model")
+  expect(seen).toEqual([])
+})
+
+test("only an explicit successful model selection updates its own slot memory", async () => {
+  const { client, fake } = await make()
+  const seen: unknown[] = []
+  client.onConfirmedModel((...args) => seen.push(args))
+  const draft = await client.prepareDraft("main", "/tmp/one")
+  await client.open("h1", "/tmp/one")
+  await client.prompt("h1", [{ type: "text", text: "hello" }])
+  expect(seen).toEqual([])
+  await client.setConfig(draft, "model", "picked", "chat")
+  expect(seen).toEqual([["chat", "picked"]])
+  fake.configResponse.current = () => {
+    throw new Error("Rejected model change")
+  }
+  await expect(client.setConfig(draft, "model", "unavailable", "chat")).rejects.toThrow("Internal error")
+  expect(seen).toEqual([["chat", "picked"]])
+  const floating = await client.prepareDraft("chat", "/tmp/two")
+  expect(fake.modelHints.get(floating)).toBe("picked")
+})
+
+test("a new slot does not borrow another slot's saved selection", async () => {
+  const { client, fake } = await make()
+  client.setModelSelections({ main: "picked", chat: null })
+  await client.open("h1", "/tmp/one", "chat")
+  expect(fake.modelHints.get("h1")).toBeNull()
+})
+
+test("a late restore cannot replace the model of the slot's newer target", async () => {
+  const ready = Promise.withResolvers<string | null>()
+  let delay = false
+  const { client, fake } = await make(undefined, undefined, model => (delay ? ready.promise : Promise.resolve(model)))
+  client.setModelSelections({ main: "main-model", chat: "chat-model" })
+  await client.open("h2", "/tmp/two", "chat")
+  delay = true
+  const opening = client.open("h1", "/tmp/one")
+  await client.open("h2", "/tmp/two")
+  ready.resolve("main-model")
+  await opening
+  delay = false
+  await client.open("h3", "/tmp/three")
+  expect(fake.modelHints.get("h3")).toBe("chat-model")
+})
+
+test("a handed-off session no longer changes the previous slot's model", async () => {
+  const { client, fake } = await make()
+  await client.open("h1", "/tmp/one", "chat")
+  const previousModel = client.session("h1").configOptions.find(option => option.category === "model")?.currentValue
+  await client.open("h1", "/tmp/one", "main")
+  await client.setConfig("h1", "model", "main-picked", "main")
+  const draft = await client.prepareDraft("chat", "/tmp/two")
+  expect(fake.modelHints.get(draft)).toBe(previousModel)
+})
+
+test("restore waits for the host's applied provider selection", async () => {
+  const ready = Promise.withResolvers<string | null>()
+  const { client, fake } = await make(undefined, undefined, () => ready.promise)
+  const opening = client.open("h1", "/tmp/one")
+  expect(client.session("h1").restoring).toBe(true)
+  expect(fake.modelHints.size).toBe(0)
+  ready.resolve("configured-default")
+  await opening
+  expect(fake.modelHints.get("h1")).toBe("configured-default")
+  expect(fake.modelHints.size).toBe(1)
+})
+
+test("provider application failures stop restoration without probing or replacing the conversation", async () => {
+  const { client, fake } = await make(undefined, undefined, async () => {
+    throw new Error("Provider unavailable")
+  })
+  await expect(client.open("h1", "/tmp/one")).rejects.toThrow("Provider unavailable")
+  expect(fake.modelHints.size).toBe(0)
+  expect(client.session("h1").restoring).toBe(false)
 })
 
 test("model changes after restoring a session wait for the previous configuration change", async () => {
@@ -818,6 +925,14 @@ test.each([false, true])(
       { configId: "fast", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
     ] satisfies [SelectOption, SelectOption, BooleanOption]
     let targetOptions: Session["configOptions"] = [
+      {
+        configId: "model",
+        category: "model",
+        name: "Model",
+        type: "select",
+        currentValue: "deepseek-flash",
+        options: [{ value: "deepseek-flash", name: "Flash" }]
+      },
       { ...settings[0], currentValue: "auto" },
       {
         configId: "effort",
@@ -854,7 +969,12 @@ test.each([false, true])(
       const id = await replacement
       expect(id).not.toBe(first)
       expect(writes).toEqual(["mode", "fast"])
-      expect(client.session(id).configOptions.map(option => option.currentValue)).toEqual(["read-only", "low", true])
+      expect(
+        client
+          .session(id)
+          .configOptions.filter(option => option.category !== "model")
+          .map(option => option.currentValue)
+      ).toEqual(["read-only", "low", true])
       expect(fake.deleted.has(first)).toBe(true)
     }
   }

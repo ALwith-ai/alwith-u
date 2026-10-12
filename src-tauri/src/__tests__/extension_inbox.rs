@@ -196,3 +196,103 @@ fn distinct_unix_filenames_cannot_hide_a_source_change() {
     fs::write(input.join("assets\\x.js"), "same").unwrap();
     assert_ne!(tree(&input).unwrap().fingerprint, before.fingerprint);
 }
+
+#[tokio::test]
+async fn targeted_scan_claims_only_the_selected_extension_and_can_repeat() {
+    let temp = tempfile::tempdir().unwrap();
+    let inbox = temp.path().join("inbox");
+    let processing = temp.path().join("processing");
+    directory(&inbox).unwrap();
+    directory(&processing).unwrap();
+    source(&inbox, "notes");
+    let other = source(&inbox, "other");
+    fs::write(other.join("manifest.json"), r#"{"id":"other","version":"1.0.0"}"#).unwrap();
+    let result = scan_for(&inbox, &processing, Some("notes")).await.unwrap();
+    assert_eq!(result.tasks.len(), 1);
+    assert!(result.errors.is_empty());
+    assert!(other.exists());
+    let task = load(&task_root(&processing, &result.tasks[0]).unwrap()).unwrap();
+    assert_eq!(task.extension_id, "notes");
+    let repeated = scan_for(&inbox, &processing, Some("notes")).await.unwrap();
+    assert_eq!(repeated.tasks, result.tasks);
+    assert!(other.exists());
+}
+
+#[tokio::test]
+async fn targeted_scan_ignores_unidentifiable_unrelated_inputs() {
+    let temp = tempfile::tempdir().unwrap();
+    let inbox = temp.path().join("inbox");
+    let processing = temp.path().join("processing");
+    directory(&inbox).unwrap();
+    directory(&processing).unwrap();
+    let unrelated = inbox.join("unfinished-copy");
+    fs::create_dir(&unrelated).unwrap();
+    fs::write(unrelated.join("main.js"), "incomplete").unwrap();
+    let broken_task = processing.join("broken-record");
+    fs::create_dir(&broken_task).unwrap();
+    let result = scan_for(&inbox, &processing, Some("notes")).await.unwrap();
+    assert!(result.tasks.is_empty());
+    assert!(result.errors.is_empty());
+    assert!(unrelated.exists());
+    assert!(broken_task.exists());
+}
+
+#[tokio::test]
+async fn canceled_scan_cannot_claim_after_another_window_takes_ownership() {
+    let temp = tempfile::tempdir().unwrap();
+    let inbox = temp.path().join("inbox");
+    let processing = temp.path().join("processing");
+    directory(&inbox).unwrap();
+    directory(&processing).unwrap();
+    let input = source(&inbox, "notes");
+    let state = InboxState::default();
+    let token = reserve(&state, "settings").unwrap();
+    let scan = scan_for_owned(&inbox, &processing, Some("notes"), Some((&state, "settings", &token)));
+    let close = async {
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        *state.owner.lock().unwrap() = None;
+        reserve(&state, "main").unwrap();
+    };
+    let (result, _) = tokio::join!(scan, close);
+    assert!(result.is_err());
+    assert!(input.exists());
+    assert_eq!(fs::read_dir(&processing).unwrap().count(), 0);
+}
+
+#[test]
+fn navigation_releases_only_its_owner_and_invalidates_old_token() {
+    let state = InboxState::default();
+    let old = reserve(&state, "settings").unwrap();
+    *state.active.lock().unwrap() = Some("task".into());
+    cancel_window(&state, "main");
+    assert!(lock_owner(&state, "settings", &old).is_ok());
+    cancel_window(&state, "settings");
+    assert!(state.active.lock().unwrap().is_none());
+    let new = reserve(&state, "settings").unwrap();
+    assert!(lock_owner(&state, "settings", &old).is_err());
+    assert!(lock_owner(&state, "settings", &new).is_ok());
+}
+
+#[tokio::test]
+async fn targeted_scan_recovers_committed_cleanup_before_claiming_new_input() {
+    let temp = tempfile::tempdir().unwrap();
+    let inbox = temp.path().join("inbox");
+    let processing = temp.path().join("processing");
+    directory(&inbox).unwrap();
+    directory(&processing).unwrap();
+    let input = source(&inbox, "notes");
+    let mut task = claim(&inbox, &processing, "notes", &tree(&input).unwrap().fingerprint).unwrap();
+    let root = task_root(&processing, &task.id).unwrap();
+    task.committed = true;
+    save(&root, &task).unwrap();
+    let next = source(&inbox, "notes");
+    let result = scan_for(&inbox, &processing, Some("notes")).await.unwrap();
+    assert_eq!(result.tasks, vec![task.id.clone()]);
+    assert!(result.errors.is_empty());
+    assert!(next.exists());
+    cleanup(&root, &mut task).unwrap();
+    let result = scan_for(&inbox, &processing, Some("notes")).await.unwrap();
+    assert_eq!(result.tasks.len(), 1);
+    assert!(result.errors.is_empty());
+    assert!(!next.exists());
+}

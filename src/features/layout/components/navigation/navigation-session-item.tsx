@@ -1,4 +1,5 @@
 import { LockIcon } from "lucide-react"
+import { toast } from "sonner"
 import { type ComponentProps, createContext, type ReactNode, useContext, useState } from "react"
 import { CodexHoverCard } from "@/components/alwith-ui/codex-hover-card"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
@@ -60,6 +61,7 @@ export function NavigationSessionItem({
         TRAILING_GROUP,
         ROW_HIGHLIGHT,
         "group/navigation-row focus-visible:outline-ring flex h-[var(--navigation-row-height)] w-full items-center gap-1 overflow-hidden rounded-[10px] ps-1 pe-1.5 text-start text-sm outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+        listeningPorts != null && listeningPorts.length > 0 && "h-auto min-h-[var(--navigation-row-height)] py-1",
         className
       )}
       {...props}>
@@ -80,7 +82,9 @@ export function NavigationSessionItem({
                   onKeyDown={event => event.stopPropagation()}
                   onClick={event => {
                     event.stopPropagation()
-                    void openUrl(url)
+                    void openUrl(url).catch((error: unknown) =>
+                      toast.error(error instanceof Error ? error.message : String(error))
+                    )
                   }}>
                   :{port}
                 </button>

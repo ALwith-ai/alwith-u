@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-extension"
-version = "0.1.10"
+version = "0.1.0-rc.11"
 dependencies = [
  "cap-std",
  "percent-encoding",

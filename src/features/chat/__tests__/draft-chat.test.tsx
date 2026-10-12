@@ -45,7 +45,9 @@ async function environment(nativeWindow = false) {
   const invokeHost = core.invoke
   const mocks = [
     vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
+    vi.spyOn(client, "session").mockImplementation(id => real.session(id)),
     vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
+    vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
     vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
     vi.spyOn(client, "prompt").mockImplementation((...args) => real.prompt(...args)),
     vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
@@ -76,7 +78,7 @@ const windowPreferences: Preferences = {
   lastProjectDirectory: "/tmp/window-original",
   language: "en",
   zoomLevel: null,
-  sessionModels: {},
+  modelSelections: { main: null, chat: null },
   navigationSoundMode: "none",
   navigationInstrument: "acoustic_grand_piano",
   externalEditor: null
@@ -115,10 +117,11 @@ async function windowEnvironment() {
       }
     }),
     vi.spyOn(chatWindow, "announceChatReady").mockResolvedValue(),
+    vi.spyOn(chatWindow, "publishChatWindowSurface").mockResolvedValue(),
     vi.spyOn(projectPicker, "chooseFolder").mockResolvedValue("/tmp/window-replacement"),
     vi.spyOn(client, "open").mockImplementation(async (id, cwd) => {
       if (env.fake.deleted.has(id)) throw new Error("Cannot resume a deleted session")
-      await env.real.open(id, cwd)
+      await env.real.open(id, cwd, "chat")
     })
   ]
   return {
@@ -126,8 +129,8 @@ async function windowEnvironment() {
     get hidden() {
       return hidden
     },
-    async present(): Promise<void> {
-      await must(surface, "window handler")({ type: "present" })
+    async present(sessionId?: string): Promise<void> {
+      await must(surface, "window handler")({ type: "present", sessionId })
     },
     async release(id: string): Promise<chatWindow.ChatTransfer | null> {
       return await must(surface, "window handler")({ type: "release", sessionId: id })
@@ -163,11 +166,18 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     await act(() => env.present())
     await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
     const original = must(Object.keys(env.real.state.draftSessions)[0], "original draft")
+    await act(async () => {
+      await expect(env.present("a-different-session")).rejects.toThrow("conversation changed")
+    })
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this draft")
+    await act(() => env.present(original))
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(original, true)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
     await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New project" })))
     await waitFor(() => expect(release).toBeDefined())
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Close" })))
     expect(env.hidden).toBe(true)
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(original, false)
     await act(async () => must(release, "pending replacement")())
     await waitFor(() => expect(env.fake.deleted.has(original)).toBe(true))
     await act(() => env.present())
@@ -183,6 +193,7 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     expect(transfer).toMatchObject({ sessionId: replacement, cwd: "/tmp/window-replacement" })
     expect(env.hidden).toBe(true)
     expect(view.queryByRole("textbox")).toBeNull()
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(null, false)
     expect(env.fake.modelHints.size).toBe(2)
   } finally {
     release?.()
@@ -927,7 +938,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     name: "Chat",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.9" },
+    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
     hosts: {},
     dataSchemaVersion: 1
   }
@@ -957,5 +968,50 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     await host.dispose()
     await act(async () => view.unmount())
     restore()
+  }
+})
+
+test("floating background sessions reopen in their host and returning one hides the window", async () => {
+  const env = await windowEnvironment()
+  const view = render(
+    <ThemeProvider>
+      <ChatWindow preferences={windowPreferences} />
+    </ThemeProvider>
+  )
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    let first = ""
+    let second = ""
+    await act(async () => {
+      first = await env.real.newSession("/tmp/first", null, "chat")
+      second = await env.real.newSession("/tmp/second", null, "chat")
+    })
+    importDraft(first, { text: "first unsent input", mentions: [], attachments: [], modelId: null })
+    await act(() => env.present(first))
+    await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("first unsent input"))
+    await act(() => env.present(second))
+    expect(env.real.state.sessionWindows).toMatchObject({ [first]: "chat", [second]: "chat" })
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(second, true)
+    await act(() => env.present(first))
+    await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("first unsent input"))
+    await act(() => env.present(second))
+    let transfer: chatWindow.ChatTransfer | null = null
+    await act(async () => {
+      transfer = await env.release(first)
+    })
+    expect(transfer).toMatchObject({ sessionId: first, cwd: "/tmp/first", draft: { text: "first unsent input" } })
+    expect(env.hidden).toBe(true)
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(second, false)
+    await act(() => env.real.open(first, "/tmp/first", "main"))
+    expect(env.real.state.sessionWindows).toMatchObject({ [first]: "main", [second]: "chat" })
+    await act(async () => {
+      await expect(env.present(first)).rejects.toThrow("conversation changed")
+    })
+    await act(() => env.real.close(first))
+    expect(env.real.state.sessionWindows[first]).toBeUndefined()
+    expect(env.real.state.sessionWindows[second]).toBe("chat")
+  } finally {
+    await act(async () => view.unmount())
+    env.restore()
   }
 })

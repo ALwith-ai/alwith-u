@@ -780,7 +780,11 @@
       "active": "Running",
       "deactivating": "Stopping",
       "failed": "Failed"
-    }
+    },
+    "reload": "Reload",
+    "reloadHint": "Check the pending install folder for this extension; reload the installed version when there is no new package.",
+    "reloadSuccess": "{{name}} reloaded",
+    "updateReloadSuccess": "{{name}} updated and reloaded"
   },
   "workspace": {
     "thumbnails": "Page thumbnails",

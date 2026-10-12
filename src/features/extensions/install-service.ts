@@ -8,6 +8,7 @@ export type PreparedInstall =
 
 interface InstallOptions {
   update: boolean
+  reload?: boolean
   /** Omitted preserves the UI's existing behavior: enable new legacy imports only. */
   enable?: boolean
 }
@@ -99,7 +100,12 @@ export async function executeStagedInstall(
       if (signal.aborted) aborted()
     })
   }
-  if (existing?.packageRevision !== staged.digest)
+  const reloading = Boolean(options.reload && existing?.packageRevision === staged.digest)
+  const activationRevision = existing?.activationRevision ?? 0
+  if (reloading) {
+    if (!existing?.enabled) throw new Error("Disabled extensions cannot be reloaded")
+    await bounded(runtime.request({ type: "beginTransition", id, action: "reload" }))
+  } else if (existing?.packageRevision !== staged.digest)
     await bounded(
       runtime.request(
         existing
@@ -131,6 +137,8 @@ export async function executeStagedInstall(
       const installed = state.installations.find(item => item.id === id)
       if (installed?.packageRevision !== staged.digest || installed.source !== source)
         reject(new Error("Extension installation did not commit the selected package"))
+      else if (reloading && (installed.activationRevision ?? 0) !== activationRevision + 1)
+        reject(new Error("Extension reload did not commit"))
       else resolve()
     }
     const aborted = (): void => {
@@ -169,4 +177,23 @@ export async function executeStagedInstall(
         ? { code: "activationFailed", message: failure || "Extension did not activate" }
         : null
   }
+}
+
+/** Reload preserves native enable intent, package identity and data generation. */
+export async function executeReload(runtime: InstallRuntime, id: string, signal: AbortSignal): Promise<InstallResult> {
+  const native = runtime.snapshot().native
+  const installed = native?.installations.find(item => item.id === id)
+  if (!installed?.enabled) throw new Error("Extension is not installed and enabled")
+  return executeStagedInstall(
+    runtime,
+    {
+      id,
+      source: installed.source,
+      digest: installed.packageRevision,
+      version: installed.manifest.version,
+      path: ""
+    },
+    { update: true, enable: false, reload: true },
+    signal
+  )
 }

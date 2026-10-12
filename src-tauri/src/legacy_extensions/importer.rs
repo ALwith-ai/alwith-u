@@ -389,7 +389,6 @@ pub async fn extension_prepare_install(
 pub(crate) async fn prepare_install_from_directory(
     window: &tauri::Window, directory: &Path, expected_id: Option<&str>,
 ) -> Result<PreparedInstall, String> {
-    require_main(window)?;
     let app = window.app_handle().clone();
     let directory = directory.canonicalize().map_err(|e| e.to_string())?;
     let manifest: Value = serde_json::from_slice(&read_regular(&directory.join("manifest.json"), 128 * 1024)?)
@@ -482,7 +481,7 @@ fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String>
         .ok_or("Invalid legacy extension id")?;
     let mut manifest = json!({
         "manifestVersion": 3, "id": id, "name": name, "version": version,
-        "entry": "main.js", "dependencies": {"@alwith/module-extension": "^0.1.6"},
+        "entry": "main.js", "dependencies": {"@alwith/module-extension": "^0.1.0-rc.11"},
         "hosts": {"alwith-u": ">=0.1.1"}, "dataSchemaVersion": 1
     });
     if let Some(icon) = p.and_then(|p| p.icon.as_deref()) {
@@ -548,6 +547,12 @@ pub fn legacy_stage_import(
     window: tauri::Window, ticket: String, manifest: Value, main: String,
 ) -> Result<StagedImport, String> {
     require_main(&window)?;
+    stage_import_from_ticket(window, ticket, manifest, main)
+}
+
+fn stage_import_from_ticket(
+    window: tauri::Window, ticket: String, manifest: Value, main: String,
+) -> Result<StagedImport, String> {
     let state = window.state::<LegacyImports>();
     let pending = state
         .tickets
@@ -714,8 +719,17 @@ pub(crate) fn cleanup_import_records(app: &tauri::AppHandle, extension_id: &str)
 }
 
 /// Startup imports use the same native ticket validation as the folder picker.
-pub(crate) async fn prepare_startup_package(window: tauri::Window, directory: &Path) -> Result<StagedImport, String> {
-    match prepare_install_from_directory(&window, directory, None).await? {
+pub(crate) async fn prepare_startup_package<F, G>(
+    window: tauri::Window, directory: &Path, authorize: F,
+) -> Result<StagedImport, String>
+where
+    F: FnOnce() -> Result<G, String>,
+{
+    let prepared = prepare_install_from_directory(&window, directory, None).await?;
+    // Hold the caller's authorization guard through synchronous staging. Downloads
+    // may finish after the originating window has closed or lost its operation.
+    let _authorization = authorize()?;
+    match prepared {
         PreparedInstall::Current { path, id, version, digest } => {
             Ok(StagedImport { path, id, version, digest, source: "local".into() })
         }
@@ -728,7 +742,7 @@ pub(crate) async fn prepare_startup_package(window: tauri::Window, directory: &P
             };
             let main =
                 format!("{ENTRY_PREFIX}{}{ENTRY_SUFFIX}", serde_json::to_string(&options).map_err(|e| e.to_string())?);
-            legacy_stage_import(window, prepared.ticket, prepared.converted_manifest, main)
+            stage_import_from_ticket(window, prepared.ticket, prepared.converted_manifest, main)
         }
     }
 }
@@ -925,7 +939,7 @@ mod tests {
         assert!(is_legacy_manifest(&old).unwrap());
         let converted = converted_manifest(&old, None).unwrap();
         assert_eq!(converted["id"], "weather-local");
-        assert_eq!(converted["dependencies"]["@alwith/module-extension"], "^0.1.6");
+        assert_eq!(converted["dependencies"]["@alwith/module-extension"], "^0.1.0-rc.11");
     }
     #[test]
     fn snapshots_resources_and_separates_named_mutable_data() {

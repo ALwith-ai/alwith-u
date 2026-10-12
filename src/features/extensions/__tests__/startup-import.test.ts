@@ -59,3 +59,14 @@ describe("startup imports", () => {
     expect(port.report).toHaveBeenCalledWith(expect.stringContaining("disk full"))
   })
 })
+
+it("releases scan ownership after processing failures", async () => {
+  const port = fixture()
+  port.install = async () => {
+    throw new Error("Invalid package")
+  }
+  port.finish = vi.fn(async () => {})
+  await runStartupImports(port)
+  expect(port.finish).toHaveBeenCalledOnce()
+  expect(port.failed).toHaveBeenCalledTimes(2)
+})

@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react"
+import { isMac } from "@/lib/platform"
 
-/** Whether Cmd itself is held, independent of digit keys; controls the session list's Cmd+1 through Cmd+9 hints.
+/** Whether the platform primary modifier is held; controls activity navigation hints.
  * Clear on blur (window/app switch) so a missed keyup cannot leave the hints permanently visible. */
 export function useCmdHeld(): boolean {
   const [held, setHeld] = useState(false)
   useEffect(() => {
+    const modifier = isMac() ? "Meta" : "Control"
     const down = (e: KeyboardEvent) => {
-      if (e.key === "Meta") setHeld(true)
+      if (e.key === modifier) setHeld(true)
     }
     const up = (e: KeyboardEvent) => {
-      if (e.key === "Meta") setHeld(false)
+      if (e.key === modifier) setHeld(false)
     }
     const blur = () => setHeld(false)
     window.addEventListener("keydown", down)

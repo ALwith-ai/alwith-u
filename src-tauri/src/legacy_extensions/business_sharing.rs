@@ -5,9 +5,16 @@ use tauri::Manager;
 
 static WRITE_LOCK: Mutex<()> = Mutex::new(());
 const RELEASE_OWNER: &str = "ai.alwith.u";
+const DEVELOPMENT_OWNER: &str = "ai.alwith.u.dev";
 
 fn sharing_owner(identifier: &str, debug: bool) -> String {
-    if debug { format!("{identifier}.debug") } else { identifier.into() }
+    if identifier == DEVELOPMENT_OWNER || (identifier == RELEASE_OWNER && debug) {
+        DEVELOPMENT_OWNER.into()
+    } else if debug {
+        format!("{identifier}.debug")
+    } else {
+        identifier.into()
+    }
 }
 
 fn projection(id: &str, file: &str, value: &Value) -> Result<Value, String> {
@@ -37,16 +44,16 @@ fn projection(id: &str, file: &str, value: &Value) -> Result<Value, String> {
     Ok(Value::Object(result))
 }
 
-fn real_directory(path: &Path, private: bool) -> Result<(), String> {
+fn real_directory(path: &Path, _private: bool) -> Result<(), String> {
     match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => Ok(()),
+        Ok(metadata) if metadata.is_dir() && !linked(&metadata) => Ok(()),
         Ok(_) => Err("Business sharing directory must not be a symbolic link".into()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let mut builder = fs::DirBuilder::new();
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt;
-                builder.mode(if private { 0o700 } else { 0o755 });
+                builder.mode(if _private { 0o700 } else { 0o755 });
             }
             builder.create(path).map_err(|e| format!("Create business sharing directory: {e}"))
         }
@@ -54,15 +61,38 @@ fn real_directory(path: &Path, private: bool) -> Result<(), String> {
     }
 }
 
+fn linked(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
 fn publish(home: &Path, owner: &str, id: &str, file: &str, value: &Value) -> Result<(), String> {
+    let home = home.canonicalize().map_err(|e| e.to_string())?;
+    publish_in_config(&home.join(".config"), owner, id, file, value)
+}
+
+fn publish_in_config(config: &Path, owner: &str, id: &str, file: &str, value: &Value) -> Result<(), String> {
     let mut value = projection(id, file, value)?;
     let encoded = serde_json::to_vec(&value).map_err(|e| e.to_string())?;
     if encoded.len() > 1024 * 1024 {
         return Err("Business sharing data is too large".into());
     }
-    let mut directory = home.canonicalize().map_err(|e| e.to_string())?;
-    let mut components = vec![".config", "finture-bi"];
-    if owner != RELEASE_OWNER {
+    // All platforms share the same configuration layout under the user home.
+    real_directory(config, false)?;
+    let mut directory = config.canonicalize().map_err(|e| e.to_string())?;
+    let namespace = if owner == RELEASE_OWNER { "alwith-u" } else { "alwith-u-dev" };
+    let mut components = vec![namespace, "extension"];
+    if owner != RELEASE_OWNER && owner != DEVELOPMENT_OWNER {
         if owner.is_empty()
             || !owner.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_'))
             || matches!(owner, "." | "..")
@@ -74,12 +104,12 @@ fn publish(home: &Path, owner: &str, id: &str, file: &str, value: &Value) -> Res
     components.push(id);
     for component in components {
         directory.push(component);
-        real_directory(&directory, component != ".config")?;
+        real_directory(&directory, true)?;
     }
     let path = directory.join(format!("{file}.json"));
     let existed = match fs::symlink_metadata(&path) {
         Ok(metadata) => {
-            if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() > 1024 * 1024 {
+            if !metadata.is_file() || linked(&metadata) || metadata.len() > 1024 * 1024 {
                 return Err("Business sharing target must be a bounded regular file".into());
             }
             let existing: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?)
@@ -144,7 +174,7 @@ mod tests {
     #[test]
     fn shares_only_credentials_and_updates_or_revokes_them() {
         let home = tempfile::tempdir().unwrap();
-        let path = home.path().join(".config/finture-bi/bi-metrics/data.json");
+        let path = home.path().join(".config/alwith-u/extension/bi-metrics/data.json");
         publish(
             home.path(),
             "ai.alwith.u",
@@ -173,7 +203,7 @@ mod tests {
     #[test]
     fn shares_and_clears_current_document_without_overwriting_other_owners() {
         let home = tempfile::tempdir().unwrap();
-        let path = home.path().join(".config/finture-bi/yup-kb/current.json");
+        let path = home.path().join(".config/alwith-u/extension/yup-kb/current.json");
         publish(
             home.path(),
             "ai.alwith.u",
@@ -203,11 +233,12 @@ mod tests {
     fn development_instances_do_not_write_release_skill_configuration() {
         let home = tempfile::tempdir().unwrap();
         publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &json!({"token":"release"})).unwrap();
-        let path = home.path().join(".config/finture-bi/bi-metrics/data.json");
+        assert!(!home.path().join(".config/finture-bi").exists());
+        let path = home.path().join(".config/alwith-u/extension/bi-metrics/data.json");
         let before = fs::read(&path).unwrap();
         publish(home.path(), "ai.alwith.u.dev", "bi-metrics", "data", &json!({"token":"dev"})).unwrap();
         assert_eq!(fs::read(&path).unwrap(), before);
-        let development = home.path().join(".config/finture-bi/instances/ai.alwith.u.dev/bi-metrics/data.json");
+        let development = home.path().join(".config/alwith-u-dev/extension/bi-metrics/data.json");
         assert_eq!(serde_json::from_slice::<Value>(&fs::read(development).unwrap()).unwrap()["token"], "dev");
         publish(home.path(), "ai.alwith.u", "bi-metrics", "data", &json!({"token":"release-updated"})).unwrap();
         assert_eq!(serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap()["token"], "release-updated");
@@ -220,10 +251,40 @@ mod tests {
         assert_ne!(owner, RELEASE_OWNER);
         assert_eq!(sharing_owner(RELEASE_OWNER, false), RELEASE_OWNER);
         publish(home.path(), &owner, "bi-metrics", "data", &json!({"token":"debug"})).unwrap();
-        assert!(!home.path().join(".config/finture-bi/bi-metrics/data.json").exists());
-        let path = home.path().join(".config/finture-bi/instances/ai.alwith.u.debug/bi-metrics/data.json");
+        assert!(!home.path().join(".config/alwith-u/extension/bi-metrics/data.json").exists());
+        let path = home.path().join(".config/alwith-u-dev/extension/bi-metrics/data.json");
         assert_eq!(serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap()["token"], "debug");
         assert!(publish(home.path(), "../escape", "bi-metrics", "data", &Value::Null).is_err());
+    }
+
+    #[test]
+    fn test_build_modes_share_the_development_namespace() {
+        assert_eq!(sharing_owner("ai.alwith.u.dev", false), "ai.alwith.u.dev");
+        assert_eq!(sharing_owner("ai.alwith.u.dev", true), "ai.alwith.u.dev");
+        assert_eq!(sharing_owner(RELEASE_OWNER, true), "ai.alwith.u.dev");
+        assert_eq!(sharing_owner(RELEASE_OWNER, false), RELEASE_OWNER);
+    }
+
+    #[test]
+    fn all_platforms_use_the_home_config_root_for_both_channels() {
+        let home = tempfile::tempdir().unwrap();
+        publish(home.path(), RELEASE_OWNER, "yup-kb", "current", &json!({"fileId":7})).unwrap();
+        let path = home.path().join(".config/alwith-u/extension/yup-kb/current.json");
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap()["fileId"], 7);
+        publish(home.path(), "ai.alwith.u.dev", "yup-kb", "current", &json!({"fileId":8})).unwrap();
+        let development = home.path().join(".config/alwith-u-dev/extension/yup-kb/current.json");
+        assert_eq!(serde_json::from_slice::<Value>(&fs::read(development).unwrap()).unwrap()["fileId"], 8);
+        assert_eq!(
+            serde_json::from_slice::<Value>(
+                &fs::read(home.path().join(".config/alwith-u/extension/yup-kb/current.json")).unwrap()
+            )
+            .unwrap()["fileId"],
+            7
+        );
+        assert!(home.path().join(".config").is_dir());
+        assert!(!home.path().join("alwith-u").exists());
+        assert!(!home.path().join("alwith-u-dev").exists());
+        assert!(!home.path().join(".config/finture-bi").exists());
     }
 
     #[cfg(unix)]

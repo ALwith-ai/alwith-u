@@ -241,6 +241,7 @@ export class RemoteChatClient extends CodexClient {
       actions: [],
       runStates: {},
       draftSessions: {},
+      sessionWindows: {},
       configPending: {},
       threads: []
     })
@@ -261,7 +262,7 @@ export class RemoteChatClient extends CodexClient {
     return this.request("transferDraft", args)
   }
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
-    return this.request("newSession", args)
+    return this.request("newSession", [args[0], args[1] ?? null, "chat"])
   }
   override readThreadSummary(
     ...args: Parameters<CodexClient["readThreadSummary"]>
@@ -273,7 +274,7 @@ export class RemoteChatClient extends CodexClient {
     return this.request("fork", args)
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
-    return this.request("open", args)
+    return this.request("open", [args[0], args[1], "chat"])
   }
   override renameSession(...args: Parameters<CodexClient["renameSession"]>): Promise<void> {
     return this.request("renameSession", args)
@@ -295,7 +296,7 @@ export class RemoteChatClient extends CodexClient {
     return this.request("stopSession", args)
   }
   override setConfig(...args: Parameters<CodexClient["setConfig"]>): Promise<void> {
-    return this.request("setConfig", args)
+    return this.request("setConfig", [args[0], args[1], args[2], "chat"])
   }
   override respond(...args: Parameters<CodexClient["respond"]>): void {
     // Existing approval UI uses synchronous respond; surface asynchronous failures globally.
