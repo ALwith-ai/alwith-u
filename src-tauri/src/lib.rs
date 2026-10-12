@@ -16,6 +16,7 @@ mod installed_apps;
 mod legacy_extensions;
 mod menu;
 mod native;
+mod panic_report;
 mod providers;
 mod runtime;
 mod updater;
@@ -104,6 +105,10 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            match app.path().app_log_dir() {
+                Ok(directory) => panic_report::install(directory.join("panic.log")),
+                Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
+            }
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;

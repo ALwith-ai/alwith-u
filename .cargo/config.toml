@@ -1,0 +1,3 @@
+[build]
+# Panic reports need unwind metadata even when release panics abort the process.
+rustflags = ["-C", "force-unwind-tables=yes"]
