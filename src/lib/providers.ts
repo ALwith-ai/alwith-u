@@ -98,7 +98,11 @@ export function providerGroups(
   ]
 }
 export function gatewayModelId(providerId: string, modelId: string): string {
-  return `gateway:${encodeURIComponent(providerId)}:${encodeURIComponent(modelId)}`
+  // Keep persisted IDs stable; the adapter accepts only [a-z0-9-]+. Match providers.rs.
+  const runtimeId = providerId.startsWith("custom_")
+    ? `custom-${Array.from(new TextEncoder().encode(providerId), byte => byte.toString(16).padStart(2, "0")).join("")}`
+    : providerId
+  return `gateway:${encodeURIComponent(runtimeId)}:${encodeURIComponent(modelId)}`
 }
 
 export function providerRegion(provider: Provider, regionId: string | null | undefined): ProviderRegion | null {

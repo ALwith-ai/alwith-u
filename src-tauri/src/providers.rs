@@ -505,6 +505,7 @@ async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std
     let outcome: Result<(), String> = async {
         for (id, selected) in &desired {
             if inner.applied.get(id) == Some(selected) { continue; }
+            let runtime_id = runtime_provider_id(id);
             let (name, base_url, bearer_token, models, mut config, bundled_catalog) = match selected {
                 AppliedProvider::BuiltIn(key) => {
                     let provider = definition(id)?;
@@ -532,13 +533,13 @@ async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
             }
             client.acp_request("codex", "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
-                "_meta":{"codex":{"id":id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
+                "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
                 .await.map_err(|e| format!("Provider {id} could not be applied ({}); retry at an idle boundary", e.code))?;
             inner.applied.insert(id.clone(), selected.clone());
         }
         let removed: Vec<_> = inner.applied.keys().filter(|id| !desired.contains_key(*id)).cloned().collect();
         for id in removed {
-            client.acp_request("codex", "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":id}}}), None, None)
+            client.acp_request("codex", "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
                 .await.map_err(|e| format!("Provider {id} could not be removed ({}); retry at an idle boundary", e.code))?;
             inner.applied.remove(&id);
         }
@@ -549,6 +550,16 @@ async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std
         inner.applied_revision = Some(inner.saved.revision);
     }
     outcome
+}
+
+/// Preserve saved IDs while encoding custom IDs without collisions for the adapter's [a-z0-9-]+ grammar.
+/// Keep this mapping aligned with gatewayModelId in src/lib/providers.ts.
+fn runtime_provider_id(id: &str) -> String {
+    if id.starts_with("custom_") {
+        format!("custom-{}", id.bytes().map(|byte| format!("{byte:02x}")).collect::<String>())
+    } else {
+        id.to_string()
+    }
 }
 
 #[derive(Clone)]
@@ -968,19 +979,28 @@ mod tests {
         );
         let mut inner = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        {
+            let recorded = calls.lock().unwrap();
+            let params = &recorded[0]["params"]["params"];
+            let runtime_id = params["_meta"]["codex"]["id"].as_str().unwrap();
+            assert!(runtime_id.bytes().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'));
+            assert_eq!(runtime_id, "custom-637573746f6d5f70726976617465");
+            assert_eq!(params["baseUrl"], "https://gateway.example.test/v1");
+            assert_eq!(params["_meta"]["codex"]["name"], "Private gateway");
+            assert_eq!(
+                params["_meta"]["alwith"]["models"],
+                json!([{
+                    "id": "model-a",
+                    "label": "Model A",
+                    "description": "Fast",
+                    "contextWindow": 128000
+                }])
+            );
+        }
+        inner.saved = remove_custom(&inner.saved, "custom_private", 1).unwrap();
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         let calls = calls.lock().unwrap();
-        let params = &calls[0]["params"]["params"];
-        assert_eq!(params["baseUrl"], "https://gateway.example.test/v1");
-        assert_eq!(params["_meta"]["codex"]["name"], "Private gateway");
-        assert_eq!(
-            params["_meta"]["alwith"]["models"],
-            json!([{
-                "id": "model-a",
-                "label": "Model A",
-                "description": "Fast",
-                "contextWindow": 128000
-            }])
-        );
+        assert_eq!(calls[1]["params"]["params"]["_meta"]["codex"]["id"], "custom-637573746f6d5f70726976617465");
     }
 
     #[test]
