@@ -36,7 +36,7 @@
     "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.10-b125fe29e98e.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.18.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",
-    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
+    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-c12fe3c522f4.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "@alwith/runtime": "^0.1.9",
@@ -154,7 +154,7 @@
     "@openai/codex-win32-arm64": "npm:@openai/codex@0.162.1-win32-arm64"
   },
   "overrides": {
-    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.10.tgz",
+    "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-c12fe3c522f4.tgz",
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",

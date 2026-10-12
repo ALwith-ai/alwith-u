@@ -12,11 +12,15 @@ import {
 
 export const commands = {
   extensionInboxScan: (): Promise<Scan> => __t3Invoke<Scan>("extension_inbox_scan"),
-  extensionInboxPrepare: (args: { taskId: string }): Promise<PreparedTask> =>
+  extensionInboxScanExtension: (args: { extensionId: string }): Promise<Scan> =>
+    __t3Invoke<Scan>("extension_inbox_scan_extension", args),
+  extensionInboxFinish: (args: { operationId: string }): Promise<null> =>
+    __t3Invoke<null>("extension_inbox_finish", args),
+  extensionInboxPrepare: (args: { taskId: string; operationId: string }): Promise<PreparedTask> =>
     __t3Invoke<PreparedTask>("extension_inbox_prepare", args),
-  extensionInboxComplete: (args: { taskId: string }): Promise<null> =>
+  extensionInboxComplete: (args: { taskId: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_complete", args),
-  extensionInboxFailed: (args: { taskId: string; message: string }): Promise<null> =>
+  extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
   driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
@@ -189,6 +193,8 @@ export const commands = {
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
   extensionInboxScan: string
+  extensionInboxScanExtension: string
+  extensionInboxFinish: string
   extensionInboxPrepare: string
   extensionInboxComplete: string
   extensionInboxFailed: string
@@ -589,6 +595,7 @@ export type RuntimeExit = {
 export type RuntimeLines = string[]
 
 export type Scan = {
+  operationId: string | null
   tasks: string[]
   errors: string[]
 }

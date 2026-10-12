@@ -2,7 +2,7 @@ import { expect, test } from "vitest"
 import { parseManifest } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import { executePreparedInstall, executeStagedInstall } from "../install-service"
+import { executePreparedInstall, executeReload, executeStagedInstall } from "../install-service"
 
 const manifest = parseManifest({
   id: "notes",
@@ -77,7 +77,7 @@ function boundary(existing = false, source = "local") {
           }
         ]
       if (request.type === "beginTransition")
-        state.native.pending = [{ id: request.id, action: "update", waitingInstances: 1 }]
+        state.native.pending = [{ id: request.id, action: request.action, waitingInstances: 1 }]
       if (request.type === "enable") {
         const installed = state.native.installations[0]
         if (!installed) throw new Error("Missing installation")
@@ -92,12 +92,13 @@ function boundary(existing = false, source = "local") {
     state,
     host,
     writes: () => writes,
-    commit: (digest = "new"): void => {
+    commit: (digest = "new", activationRevision?: number): void => {
       if (!state.native) throw new Error("Missing state")
       state.native.pending = []
       const installed = state.native.installations[0]
       if (!installed) throw new Error("Missing installation")
       installed.packageRevision = digest
+      if (activationRevision !== undefined) installed.activationRevision = activationRevision
       notify()
     }
   }
@@ -233,4 +234,32 @@ test("startup updates preserve an enabled installation and check activation", as
   item.commit()
   expect(await operation).toMatchObject({ enabled: true, activeInMainWindow: true, error: null })
   expect(item.writes()).toBe(1)
+})
+
+test("reload waits for all leases, preserves enable intent and verifies activation revision", async () => {
+  const item = boundary(true)
+  const installed = item.state.native?.installations[0]
+  if (!installed) throw new Error("Missing fixture installation")
+  installed.enabled = true
+  const operation = executeReload(item.runtime, "notes", new AbortController().signal)
+  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  expect(item.state.native?.pending[0]?.action).toBe("reload")
+  expect(installed.enabled).toBe(true)
+  item.host.instances = [{ id: "notes", revision: "old", status: "active", errors: [] }]
+  item.commit("old", 1)
+  expect(await operation).toMatchObject({ enabled: true, packageRevision: "old", error: null })
+  expect(item.writes()).toBe(1)
+})
+
+test("a canceled reload cannot report the old active instance as a successful reload", async () => {
+  const item = boundary(true)
+  const installed = item.state.native?.installations[0]
+  if (!installed) throw new Error("Missing fixture installation")
+  installed.enabled = true
+  item.host.instances = [{ id: "notes", revision: "old", status: "active", errors: [] }]
+  const operation = executeReload(item.runtime, "notes", new AbortController().signal)
+  const rejected = expect(operation).rejects.toThrow("reload did not commit")
+  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  item.commit("old")
+  await rejected
 })
