@@ -76,7 +76,7 @@ const windowPreferences: Preferences = {
   lastProjectDirectory: "/tmp/window-original",
   language: "en",
   zoomLevel: null,
-  sessionModels: {},
+  modelSelections: { main: null, chat: null },
   navigationSoundMode: "none",
   navigationInstrument: "acoustic_grand_piano",
   externalEditor: null

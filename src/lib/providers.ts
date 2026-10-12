@@ -105,6 +105,15 @@ export function gatewayModelId(providerId: string, modelId: string): string {
   return `gateway:${encodeURIComponent(runtimeId)}:${encodeURIComponent(modelId)}`
 }
 
+/** Desktop's default selection prefers a user-configured provider; native defaults stay engine-owned. */
+export function resolveSessionModel(model: string | null, snapshot: ProviderSnapshot): string | null {
+  const models = providerGroups(snapshot).flatMap(group =>
+    group.models.map(entry => gatewayModelId(group.id, entry.id))
+  )
+  if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
+  return models[0] ?? null
+}
+
 export function providerRegion(provider: Provider, regionId: string | null | undefined): ProviderRegion | null {
   if (!provider.regions) return null
   const region = provider.regions.find(entry => entry.id === regionId) ?? provider.regions[0]

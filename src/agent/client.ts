@@ -97,6 +97,8 @@ export type ClientOptions = {
   /** The one agent that hosts every session of this app. */
   agentId: string
   launch: Launch
+  /** Resolve a slot selection against the host's applied provider configuration. */
+  resolveModel?: (model: string | null) => Promise<string | null>
   /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
   sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
   /** Host-specific path identity, independent of whether a historical directory still exists. */
@@ -196,6 +198,11 @@ export class CodexClient {
   private readonly options: ClientOptions
   private readonly skillsListeners = new Set<() => void>()
   private readonly modelListeners = new Set<SessionModelListener>()
+  private readonly confirmedModelListeners = new Set<(owner: DraftOwner, model: string) => void>()
+  private savedModels: Record<DraftOwner, string | null> = { main: null, chat: null }
+  private slotModels: Record<DraftOwner, string | null> = { main: null, chat: null }
+  private slotTargets: Record<DraftOwner, string | null> = { main: null, chat: null }
+  private slotVersions: Record<DraftOwner, number> = { main: 0, chat: 0 }
   private readonly rateLimitListeners = new Set<(limits: RateLimitSnapshot) => void>()
   private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
   /** Main and floating windows allocate counted titles through the same owner. */
@@ -203,7 +210,7 @@ export class CodexClient {
   /** The adapter rejects overlapping configuration writes to one session. */
   private readonly sessionOperations = new Map<string, Promise<void>>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
-  /** Session id → gateway model to ask for on resume; the app fills it from its preferences. */
+  /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
@@ -257,6 +264,10 @@ export class CodexClient {
 
   private publishSession(session: Session): void {
     this.sessions.set(session)
+    if (!session.restoring) {
+      this.followModel("main", session)
+      this.followModel("chat", session)
+    }
     this.updates.enqueue(session.id, session)
     this.updates.flush()
   }
@@ -419,6 +430,8 @@ export class CodexClient {
     // A replay folds silently: `replay()` publishes the finished transcript once the
     // resume answers, so nothing schedules a render per replayed frame.
     if (!session.restoring) {
+      this.followModel("main", session)
+      this.followModel("chat", session)
       this.updates.enqueue(sessionId, session)
       if (
         update.sessionUpdate !== "agent_message_chunk" &&
@@ -628,8 +641,11 @@ export class CodexClient {
     return { mcpServers: context.mcpServers, ...(Object.keys(alwith).length ? { _meta: { alwith } } : {}) }
   }
 
-  newSession(cwd: string, model: string | null = null): Promise<string> {
-    return this.createNativeSession(cwd, model, null)
+  async newSession(cwd: string, model: string | null = null, owner: DraftOwner = "main"): Promise<string> {
+    const version = ++this.slotVersions[owner]
+    const id = await this.createNativeSession(cwd, model, null)
+    this.activateSlot(owner, id, version)
+    return id
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
@@ -687,6 +703,7 @@ export class CodexClient {
   }
 
   prepareDraft(owner: DraftOwner, cwd: string, model: string | null = null): Promise<string> {
+    const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
       const existing = Object.keys(this.state.draftSessions).find(id => this.state.draftSessions[id] === owner)
       if (existing) await this.sessionOperations.get(existing)
@@ -695,7 +712,9 @@ export class CodexClient {
         this.session(existing).cwd === cwd &&
         (model === null || selectedModel(this.session(existing).configOptions) === model)
       ) {
-        if (!this.session(existing).attached) await this.open(existing, cwd)
+        this.activateSlot(owner, existing, version)
+        if (!this.session(existing).attached) await this.replay(existing, cwd, owner)
+        if (model !== null) this.confirmModel(owner, this.session(existing))
         return existing
       }
       // Inherit the confirmed model, including a change already requested by this
@@ -703,7 +722,12 @@ export class CodexClient {
       // Prepare the replacement before retiring the previous draft: failures preserve the user's input.
       const id = await this.createNativeSession(
         cwd,
-        model ?? (existing ? selectedModel(this.session(existing).configOptions) : null),
+        await this.resolveModel(
+          model ??
+            (existing
+              ? selectedModel(this.session(existing).configOptions)
+              : (this.savedModels[owner] ?? this.slotModels[owner]))
+        ),
         owner
       )
       try {
@@ -730,6 +754,8 @@ export class CodexClient {
         await this.deleteEmptyDraft(id)
         throw error
       }
+      this.activateSlot(owner, id, version)
+      if (model !== null) this.confirmModel(owner, this.session(id))
       return id
     })
   }
@@ -781,10 +807,16 @@ export class CodexClient {
     return next
   }
 
-  async open(id: string, cwd: string): Promise<void> {
+  async open(id: string, cwd: string, owner: DraftOwner = "main"): Promise<void> {
+    this.bindSlot(owner, id)
+    ++this.slotVersions[owner]
     const existing = this.sessions.sessions.get(id)
-    if (existing?.attached || existing?.restoring) return
-    await this.replay(id, cwd)
+    if (existing?.restoring) return
+    if (existing?.attached) {
+      this.followModel(owner, existing)
+      return
+    }
+    await this.replay(id, cwd, owner)
   }
 
   /**
@@ -798,16 +830,20 @@ export class CodexClient {
     await this.replay(id, session.cwd)
   }
 
-  private async replay(id: string, cwd: string): Promise<void> {
+  private async replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     this.sessions.beginReplay(id)
     this.publishSession(this.sessions.get(id))
     try {
+      const model =
+        owner !== undefined
+          ? await this.resolveModel(this.slotModels[owner])
+          : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
       const response = await this.live().request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
         replayFrom: { type: "start" },
-        ...(await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null))
+        ...(await this.sessionContext(cwd, model))
       })
       this.publishSession({
         ...this.sessions.get(id),
@@ -866,7 +902,7 @@ export class CodexClient {
     await this.live().notify("session/cancel", { sessionId: id })
   }
 
-  async setConfig(id: string, configId: string, value: string | boolean): Promise<void> {
+  async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
       const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
         "session/set_config_option",
@@ -879,6 +915,8 @@ export class CodexClient {
         configOptions: response.configOptions
       })
       this.noteModel(this.sessions.get(id))
+      if (response.configOptions.some(option => option.configId === configId && option.category === "model"))
+        this.confirmModel(owner, this.sessions.get(id))
     }
     this.store.setState(state => ({ configPending: { ...state.configPending, [id]: true } }))
     const pending = this.enqueueSession(id, write, false)
@@ -894,10 +932,49 @@ export class CodexClient {
     )
   }
 
-  /** Seeds the resume hints for threads the user moved to the gateway. */
-  setGatewayModels(models: Record<string, string>): void {
-    this.gatewayModels.clear()
-    for (const [sessionId, model] of Object.entries(models)) this.gatewayModels.set(sessionId, model)
+  /** Desktop keeps explicit selections per chat slot, never in historical session bindings. */
+  setModelSelections(models: Record<DraftOwner, string | null>): void {
+    this.savedModels = { ...models }
+    this.slotModels = { ...models }
+  }
+
+  onConfirmedModel(listener: (owner: DraftOwner, model: string) => void): () => void {
+    this.confirmedModelListeners.add(listener)
+    return () => this.confirmedModelListeners.delete(listener)
+  }
+
+  private followModel(owner: DraftOwner, session: Session): void {
+    if (this.slotTargets[owner] !== session.id || !session.attached || session.restoring) return
+    const model = selectedModel(session.configOptions)
+    if (model !== null) this.slotModels[owner] = model
+  }
+
+  private activateSlot(owner: DraftOwner, id: string, version: number): void {
+    if (this.slotVersions[owner] !== version) return
+    this.bindSlot(owner, id)
+    this.followModel(owner, this.session(id))
+  }
+
+  private bindSlot(owner: DraftOwner, id: string): void {
+    // A conversation is handed between surfaces, never displayed in both at once.
+    const other = owner === "main" ? "chat" : "main"
+    if (this.slotTargets[other] === id) {
+      this.slotTargets[other] = null
+      ++this.slotVersions[other]
+    }
+    this.slotTargets[owner] = id
+  }
+
+  private confirmModel(owner: DraftOwner, session: Session): void {
+    const model = selectedModel(session.configOptions)
+    if (model === null) throw new Error("Model selection did not return the current model")
+    this.followModel(owner, session)
+    this.savedModels[owner] = model
+    for (const listener of this.confirmedModelListeners) listener(owner, model)
+  }
+
+  private resolveModel(model: string | null): Promise<string | null> {
+    return this.options.resolveModel ? this.options.resolveModel(model) : Promise.resolve(model)
   }
 
   onSessionModel(listener: SessionModelListener): () => void {

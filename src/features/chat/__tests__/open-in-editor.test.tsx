@@ -26,7 +26,7 @@ test("main header preloads apps before opening its menu and remounts use the res
     lastProjectDirectory: null,
     language: null,
     zoomLevel: null,
-    sessionModels: {},
+    modelSelections: { main: null, chat: null },
     navigationSoundMode: "scale",
     navigationInstrument: "acoustic_grand_piano",
     externalEditor: null
@@ -74,7 +74,7 @@ test("main chat menu uses installed app shortcuts, remembers the choice and open
     lastProjectDirectory: null,
     language: null,
     zoomLevel: null,
-    sessionModels: {},
+    modelSelections: { main: null, chat: null },
     navigationSoundMode: "scale",
     navigationInstrument: "acoustic_grand_piano",
     externalEditor: "com.microsoft.VSCode"
@@ -114,7 +114,7 @@ function savedEditor(externalEditor: string | null): preferences.Preferences {
     lastProjectDirectory: null,
     language: null,
     zoomLevel: null,
-    sessionModels: {},
+    modelSelections: { main: null, chat: null },
     navigationSoundMode: "scale",
     navigationInstrument: "acoustic_grand_piano",
     externalEditor

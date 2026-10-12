@@ -291,10 +291,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const connect = useCallback(async () => {
     try {
       await client.connect()
-      // Providers join the model pickers before any thread opens, so a thread the user moved
-      // to one of them resumes there.
-      client.setGatewayModels(initialPreferences.sessionModels)
-      void applyProviders().catch((error: unknown) => toast.error(describe(error)))
+      // Restore choices must be checked against the applied provider catalog.
+      await applyProviders()
       await client.listThreads({ reset: true })
       const threads = client.state.threads
       void info(
@@ -303,7 +301,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     } catch (error) {
       toast.error(describe(error))
     }
-  }, [initialPreferences.sessionModels])
+  }, [])
 
   // Either window can reconnect the owner; refresh Runtime subscriptions for every ready port.
   useEffect(() => {
@@ -318,15 +316,21 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     }
   }, [connection])
 
-  // Remember which chats run on a gateway model, so they reopen there after a restart.
+  // Passive history replay and draft initialization never overwrite the user's last choice.
   useEffect(() => {
-    const models = { ...initialPreferences.sessionModels }
-    return client.onSessionModel((sessionId, modelId, isGateway) => {
-      if (isGateway) models[sessionId] = modelId
-      else delete models[sessionId]
-      void savePreference("sessionModels", models)
+    client.setModelSelections(initialPreferences.modelSelections)
+    let saving = Promise.resolve()
+    const models = { ...initialPreferences.modelSelections }
+    return client.onConfirmedModel((owner, model) => {
+      models[owner] = model
+      const selection = { ...models }
+      saving = saving
+        .then(() => savePreference("modelSelections", selection))
+        .catch(error => {
+          toast.error(describe(error))
+        })
     })
-  }, [initialPreferences.sessionModels])
+  }, [initialPreferences.modelSelections])
 
   // The settings window has no agent connection of its own: it asks this window for the
   // engine identity and for sign-out, and provider keys saved there are applied here.
