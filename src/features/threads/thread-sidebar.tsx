@@ -68,6 +68,7 @@ import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
+import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { type SidebarView, useThreadsUiStore } from "./store"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
 
@@ -530,6 +531,7 @@ export function ThreadSidebar({
           onClick={onSwitchScreen}>
           {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
         </Button>
+        <UpdateStatusButton />
         <SidebarAccountMenu onOpenSettings={onOpenSettings} />
       </SidebarFooter>
       <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
