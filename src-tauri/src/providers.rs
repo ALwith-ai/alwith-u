@@ -654,7 +654,7 @@ fn build_test_request(client: &reqwest::Client, config: &TestConfig) -> Result<r
     client
         .post(format!("{}/responses", config.base_url.trim_end_matches('/')))
         .bearer_auth(&config.api_key)
-        .json(&json!({"model": config.model, "input": "Reply with OK.", "max_output_tokens": 8, "store": false}))
+        .json(&json!({"model": config.model, "input": "Reply with OK.", "max_output_tokens": 16, "store": false}))
         .build()
 }
 
@@ -1000,6 +1000,6 @@ mod tests {
         assert_eq!(request.headers()[reqwest::header::AUTHORIZATION], "Bearer private-test-secret");
         let body = request.body().and_then(reqwest::Body::as_bytes).unwrap();
         let body: Value = serde_json::from_slice(body).unwrap();
-        assert_eq!(body, json!({"model":"model-a","input":"Reply with OK.","max_output_tokens":8,"store":false}));
+        assert_eq!(body, json!({"model":"model-a","input":"Reply with OK.","max_output_tokens":16,"store":false}));
     }
 }
