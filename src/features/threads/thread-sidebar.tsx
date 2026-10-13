@@ -284,7 +284,10 @@ export function ThreadSidebar({
   const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
-  const groups = useMemo(() => groupThreads(threads, windowsTempDirectory), [threads, windowsTempDirectory])
+  const groups = useMemo(
+    () => (threadsLoaded ? groupThreads(threads, windowsTempDirectory) : []),
+    [threadsLoaded, threads, windowsTempDirectory]
+  )
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
 
