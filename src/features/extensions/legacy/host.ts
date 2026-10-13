@@ -18,6 +18,7 @@ import { createLegacyBridge } from "./bridge"
 import { type BusinessSharing, createBusinessSharing } from "./business-sharing"
 import { createPluginEvents } from "./events"
 import { LEGACY_SOURCE } from "./profiles"
+import { createStartupConsentPresenter } from "./startup-consent"
 
 export function createLegacyHost(
   installation: (id: string) => Installation | undefined
@@ -70,6 +71,13 @@ function createHost(
     }
   }
   return {
+    ...(imported && id === "yup-kb"
+      ? {
+          presentModal: createStartupConsentPresenter(binding, error => {
+            if (!binding.cancellation.aborted) notices.show(String(error), 8000)
+          })
+        }
+      : {}),
     ...createLegacyBridge(id, {
       binding,
       imported,
