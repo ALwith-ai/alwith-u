@@ -203,7 +203,6 @@ test("project counts show only the number of sessions", () => {
   useThreadsUiStore.setState({ view: "sessions" })
   client.store.setState({
     threadsLoaded: true,
-    threadsCursor: "next",
     threads: [
       { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
       { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }
@@ -235,7 +234,7 @@ test("project counts show only the number of sessions", () => {
   )
   expect(view.getByText("2", { exact: true })).toBeVisible()
   expect(view.queryByText(/loaded/i)).toBeNull()
-  expect(view.getByRole("button", { name: "Load more" })).toBeVisible()
+  expect(view.queryByRole("button", { name: "Load more" })).toBeNull()
 })
 
 test("Vibemon sits below extensions and selects its own leading page without an agent connection", async () => {

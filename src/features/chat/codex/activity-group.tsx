@@ -26,16 +26,17 @@ function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
 export const ActivityGroup = memo(function ActivityGroup({
   items,
   terminals,
-  streaming
+  streamingThoughtId
 }: {
   items: Array<MessageItem | ToolItem>
   terminals: Record<string, Terminal>
-  streaming: boolean
+  streamingThoughtId: string | null
 }) {
   const host = useChatActivityHost()
   const blocks = useMemo(
-    () => items.map(item => projectActivity(item, terminals, streaming)),
-    [items, terminals, streaming]
+    () =>
+      items.map(item => projectActivity(item, terminals, item.kind === "thought" && item.id === streamingThoughtId)),
+    [items, terminals, streamingThoughtId]
   )
   return (
     <ActivityHostProvider host={host}>

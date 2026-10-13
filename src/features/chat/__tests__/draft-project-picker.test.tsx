@@ -1,13 +1,18 @@
+import { invoke } from "@tauri-apps/api/core"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
-import { expect, test, vi } from "vitest"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
+import { useThreadsUiStore } from "@/features/threads/store"
 import { DraftProjectPicker } from "../draft-project-picker"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
 vi.mock("@tauri-apps/plugin-dialog", async importOriginal => ({ ...(await importOriginal<object>()), open: vi.fn() }))
 
 await initI18n("en")
+beforeEach(() => vi.mocked(invoke).mockResolvedValue("/tmp/ALwith U"))
+afterEach(() => vi.clearAllMocks())
 
 test("project picker pins the current directory once, marks it selected and reports a new choice", async () => {
   const chosen: string[] = []
@@ -41,5 +46,59 @@ test("canceling the directory dialog keeps a draft without a project", async () 
     expect(chosen).toEqual([])
   } finally {
     open.mockRestore()
+  }
+})
+
+test("outside-project selection resolves to the host default and hides it from recent projects", async () => {
+  const onChange = vi.fn()
+  const view = render(
+    <DraftProjectPicker cwd="/tmp/current" recentProjects={["/tmp/ALwith U", "/tmp/recent"]} onChange={onChange} />
+  )
+  await act(async () => {})
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
+  expect(view.getAllByRole("menuitemradio").map(item => item.textContent)).toEqual(["current", "recent"])
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" })))
+  expect(onChange).toHaveBeenCalledWith("/tmp/ALwith U")
+  expect(invoke).toHaveBeenCalledWith("draft_directory", { cwd: null })
+  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={["/tmp/ALwith U"]} onChange={onChange} />)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Select project" })))
+  expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
+  expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
+})
+
+test("project choices exclude quick-chat directories, including the current directory and custom Windows temp root", async () => {
+  const original = useThreadsUiStore.getState().windowsTempDirectory
+  useThreadsUiStore.setState({ windowsTempDirectory: String.raw`D:\Scratch` })
+  const onChange = vi.fn()
+  const view = render(
+    <DraftProjectPicker
+      cwd="/private/var/folders/example/T/current"
+      recentProjects={[
+        "/Users/mac/Documents/Codex/project",
+        "/Users/mac/Documents/ALwith U",
+        "/var/folders/example/T/project",
+        String.raw`C:\Users\Alice\Documents\Codex\project`,
+        String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
+        String.raw`C:\Windows\Temp\project`,
+        String.raw`D:\Scratch\project`,
+        "/work/recent",
+        "/Users/mac/Documents/ALwith U/real-project",
+        "/var/folders-other/ordinary"
+      ]}
+      onChange={onChange}
+    />
+  )
+  try {
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
+    expect(view.getAllByRole("menuitemradio").map(item => item.textContent)).toEqual([
+      "recent",
+      "real-project",
+      "ordinary"
+    ])
+    await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: "recent" })))
+    expect(onChange.mock.calls[0]?.[0]).toBe("/work/recent")
+  } finally {
+    view.unmount()
+    useThreadsUiStore.setState({ windowsTempDirectory: original })
   }
 })

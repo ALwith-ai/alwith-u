@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
+import { useThreadsUiStore } from "@/features/threads/store"
+import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { basename } from "@/lib/path"
 
 type ProjectActions = {
@@ -19,13 +21,15 @@ type ProjectActions = {
   onNewChat: () => void
 }
 
-/** Header click and sidebar hover share the same query and actions, as in Desktop. */
-export function ProjectSessionPopover({
-  cwd,
-  onSelect,
-  onNewChat,
-  trigger
-}: ProjectActions & { trigger?: ReactElement }) {
+/** Default-directory chats have session cards, but no project card. */
+export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactElement }) {
+  const windowsTempDirectory = useThreadsUiStore(state => state.windowsTempDirectory)
+  if (isQuickChatDirectory(props.cwd, windowsTempDirectory)) return props.trigger ?? null
+  return <ProjectPopover {...props} />
+}
+
+/** Header click and sidebar hover share the same list and actions, as in Desktop. */
+function ProjectPopover({ cwd, onSelect, onNewChat, trigger }: ProjectActions & { trigger?: ReactElement }) {
   const [open, setOpen] = useState(false)
   useSidebarOverlay(open)
   const skipFocus = useRef(false)

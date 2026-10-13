@@ -8,22 +8,29 @@ import { create } from "zustand"
 export type SidebarView = "sessions" | "activity" | "drive"
 
 interface ThreadsUiState {
+  /** Resolved once at startup; never persisted or used to rewrite a session cwd. */
+  windowsTempDirectory: string | null
   /** Current sidebar panel: session list or activity. */
   view: SidebarView
   setView: (view: SidebarView) => void
   /** Project expansion state lives only in process memory and resets on app restart. */
   projectOpen: Map<string, boolean>
   setProjectOpen: (next: Map<string, boolean>) => void
+  revealed: Map<string, number>
+  reveal: (key: string, count: number) => void
   /** Collapsed Activity groups (foreground / background); preserved across panel switches, reset on restart. */
   activityCollapsedGroups: ReadonlySet<string>
   setActivityCollapsedGroups: (next: ReadonlySet<string>) => void
 }
 
 export const useThreadsUiStore = create<ThreadsUiState>(set => ({
+  windowsTempDirectory: null,
   view: "sessions",
   setView: view => set({ view }),
   projectOpen: new Map(),
   setProjectOpen: next => set({ projectOpen: next }),
+  revealed: new Map(),
+  reveal: (key, count) => set(state => ({ revealed: new Map(state.revealed).set(key, count) })),
   activityCollapsedGroups: new Set(),
   setActivityCollapsedGroups: next => set({ activityCollapsedGroups: next })
 }))

@@ -5,14 +5,19 @@ import type { CodexActivityBlock } from "@alwith/module-chat/group-blocks"
 export function projectActivity(
   item: MessageItem | ToolItem,
   terminals: Record<string, Terminal>,
-  streaming: boolean
+  thinkingStreaming: boolean
 ): CodexActivityBlock {
   if (item.kind !== "tool") {
     const thinking = textOf(item.content)
     // The shared reasoning view removes a leading bold heading. Keep it as plain text
     // when the heading is the entire summary, so the expanded view is not empty.
     const headingOnly = /^\s*\*\*([^\n]*?)\*\*\s*$/.exec(thinking)
-    return { type: "thinking", id: item.id, thinking: headingOnly ? headingOnly[1] : thinking, isComplete: !streaming }
+    return {
+      type: "thinking",
+      id: item.id,
+      thinking: headingOnly ? headingOnly[1] : thinking,
+      isComplete: !thinkingStreaming
+    }
   }
   if (item.name === "subagent" || item.name === "collab") {
     return {

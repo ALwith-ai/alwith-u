@@ -145,6 +145,46 @@ async function windowEnvironment() {
   }
 }
 
+test.each([
+  ["/private/var/folders/example/T/project", "/tmp/ALwith U"],
+  ["/Users/mac/Documents/Codex/project", "/tmp/ALwith U"],
+  ["/work/project", "/work/project"]
+])("floating new chat from %s prepares in %s", async (cwd, expected) => {
+  const env = await windowEnvironment()
+  const discard = vi.spyOn(client, "discardDraft").mockImplementation(owner => env.real.discardDraft(owner))
+  const view = render(
+    <ThemeProvider>
+      <ChatWindow preferences={{ ...windowPreferences, lastProjectDirectory: cwd }} />
+    </ThemeProvider>
+  )
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => env.present())
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const previous = must(Object.keys(env.real.state.draftSessions)[0])
+    await act(async () => {
+      fireEvent.input(view.getByRole("textbox"), { target: { value: "First message" } })
+      fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+    })
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(env.real.state.draftSessions[previous]).toBeUndefined())
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New chat" })))
+    await waitFor(() => {
+      const id = must(Object.keys(env.real.state.draftSessions)[0])
+      expect(id).not.toBe(previous)
+      expect(env.real.session(id).cwd).toBe(expected)
+    })
+    expect(discard).toHaveBeenCalledWith("chat")
+    expect(env.real.session(previous).cwd).toBe(cwd)
+    expect(env.real.session(previous).items.some(item => item.kind === "user")).toBe(true)
+  } finally {
+    await act(async () => view.unmount())
+    discard.mockRestore()
+    env.restore()
+  }
+})
+
 test("a hidden floating window reopens the replacement draft with its unsent input", async () => {
   const env = await windowEnvironment()
   importDraft(DRAFT_SESSION_ID, { text: "keep this draft", mentions: [], attachments: [], modelId: null })

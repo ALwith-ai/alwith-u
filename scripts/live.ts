@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // Live check against a real Codex login: two read-only conversations run
 // concurrently and stay isolated; attach and a fresh agent both replay the original history.
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { WebSocketRuntimeClient } from "@alwith/api"
@@ -75,7 +75,7 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
 }
 
 async function check(transport: "stdio" | "ws") {
-  const directory = await mkdtemp(join(tmpdir(), `alwith-u-live-${transport}-`))
+  const directory = await realpath(await mkdtemp(join(tmpdir(), `alwith-u-live-${transport}-`)))
   await writeFile(join(directory, "README.md"), "# live check\n")
   console.log(`project: ${directory}`)
 

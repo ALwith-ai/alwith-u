@@ -122,7 +122,6 @@ export type AppState = {
   agent: acp.InitializeResponse | null
   sessions: Record<string, Session>
   threads: ThreadSummary[]
-  threadsCursor: string | null
   threadsLoaded: boolean
   threadsLoading: boolean
   threadsError: string | null
@@ -214,6 +213,7 @@ export class CodexClient {
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
+  private threadsRequest: Promise<void> | null = null
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -233,7 +233,6 @@ export class CodexClient {
       sessions: {},
       forkOrigins: {},
       threads: [],
-      threadsCursor: null,
       threadsLoaded: false,
       threadsLoading: false,
       threadsError: null,
@@ -374,6 +373,7 @@ export class CodexClient {
   private onClosed(agent: Agent): void {
     if (this.agent !== agent) return
     this.agent = null
+    this.threadsRequest = null
     this.listRequests.threads++
     this.listRequests.archived++
     this.updates.cancel()
@@ -480,16 +480,27 @@ export class CodexClient {
     this.requests.answer(actionId, answer)
   }
 
-  /** Include an explicitly selected history entry without advancing sidebar pagination. */
+  /** Include an explicitly selected history entry in the shared memory list. */
   includeThread(thread: ThreadSummary): void {
     if (this.state.threads.some(item => item.sessionId === thread.sessionId)) return
     this.store.setState(state => ({ threads: [...state.threads, { ...thread, cwd: this.projectPath(thread.cwd) }] }))
   }
 
-  async listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
+  listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
+    if (options.archived) return this.readThreadList(options)
+    if (this.threadsRequest) return this.threadsRequest
+    if (!options.reset && this.state.threadsLoaded) return Promise.resolve()
+    const request = this.readThreadList({ reset: true }).finally(() => {
+      if (this.threadsRequest === request) this.threadsRequest = null
+    })
+    this.threadsRequest = request
+    return request
+  }
+
+  private async readThreadList(options: { reset?: boolean; archived?: boolean }): Promise<void> {
     const archived = options.archived === true
     const state = this.state
-    const cursor = options.reset ? null : archived ? state.archivedCursor : state.threadsCursor
+    const cursor = options.reset || !archived ? null : state.archivedCursor
     if (!options.reset && (archived ? state.archivedLoaded : state.threadsLoaded) && cursor === null) return
     const bucket = archived ? "archived" : "threads"
     const requestId = ++this.listRequests[bucket]
@@ -500,11 +511,14 @@ export class CodexClient {
       ...(archived ? { _meta: { codex: { archived: true } } } : {})
     }
     try {
-      const response = await this.live().request<acp.ListSessionsResponse>("session/list", request)
+      const response = archived
+        ? await this.live().request<acp.ListSessionsResponse>("session/list", request)
+        : await this.live().request<acp.ListSessionsResponse>("_codex/session_list")
+      if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
       if (requestId !== this.listRequests[bucket]) return
       const page = response.sessions
         .map(info => this.threadSummary(info))
-        .filter(thread => !this.state.draftSessions[thread.sessionId])
+        .filter(thread => thread.archived === archived && !this.state.draftSessions[thread.sessionId])
       const nextCursor = response.nextCursor ?? null
       this.store.setState(current => {
         // Preserve mutations made after dispatch, including removal and movement between lists.
@@ -528,7 +542,7 @@ export class CodexClient {
               archivedCursor: nextCursor,
               archivedLoaded: true
             }
-          : { threads: merged, threadsCursor: nextCursor, threadsLoaded: true }
+          : { threads: merged, threadsLoaded: true }
       })
     } catch (error) {
       if (requestId !== this.listRequests[bucket]) return
@@ -539,9 +553,11 @@ export class CodexClient {
     }
   }
 
-  /** Read a complete project index without changing the sidebar's pagination or persisting history. */
+  /** Project views share the complete in-memory list with the sidebar. */
   async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
-    return this.listSessionIndex(cwd)
+    await this.listThreads()
+    const project = this.projectPath(cwd)
+    return this.state.threads.filter(thread => thread.cwd === project)
   }
 
   private requireHistory(): void {

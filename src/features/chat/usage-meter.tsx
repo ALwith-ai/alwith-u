@@ -136,17 +136,19 @@ export function UsageMeter({ session }: { session: Session }) {
           </div>
         )}
         <div className="flex flex-col gap-3 p-3">
-          <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium">{t("chat.tokens.openDetails")}</p>
-            <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
-              {rows.map(([label, value]) => (
-                <div className="contents" key={label}>
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="text-end tabular-nums">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {turn !== null && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium">{t("chat.tokens.openDetails")}</p>
+              <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
+                {rows.map(([label, value]) => (
+                  <div className="contents" key={label}>
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="text-end tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
           {usage !== null && usage.size > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               <p className="text-xs font-medium">{t("chat.tokens.context")}</p>

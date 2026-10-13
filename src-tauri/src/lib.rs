@@ -75,6 +75,11 @@ pub fn run() {
         // Settings has a fixed logical size; cached physical sizes must not override it.
         .plugin(
             tauri_plugin_window_state::Builder::new()
+                // Shutdown hides windows while services drain; that visibility is not a
+                // startup preference. Restore geometry without hiding the next main window.
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
                 .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon"])
                 .build(),
         )

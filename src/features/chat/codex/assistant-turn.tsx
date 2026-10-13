@@ -37,16 +37,18 @@ function imageIdentity(block: ContentBlock): string | null {
 function WorkEntryView({
   entry,
   terminals,
-  streaming
+  streaming,
+  streamingThoughtId
 }: {
   entry: WorkEntry
   terminals: Record<string, Terminal>
   streaming: boolean
+  streamingThoughtId: string | null
 }) {
   const { t } = useTranslation()
   switch (entry.kind) {
     case "activity":
-      return <ActivityGroup items={entry.items} terminals={terminals} streaming={streaming} />
+      return <ActivityGroup items={entry.items} terminals={terminals} streamingThoughtId={streamingThoughtId} />
     case "text":
       return <AssistantContent content={entry.item.content} messageId={entry.item.id} streaming={streaming} />
     case "plan":
@@ -97,7 +99,13 @@ function AssistantTurnImpl({
       <ActivityHostProvider host={host}>
         <div role="status" className="text-muted-foreground flex min-w-0 flex-col gap-2 py-2 text-sm">
           {turn.work.map(entry => (
-            <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={false} />
+            <WorkEntryView
+              key={entry.key}
+              entry={entry}
+              terminals={terminals}
+              streaming={false}
+              streamingThoughtId={null}
+            />
           ))}
         </div>
         {isLast && error !== null && <TurnErrorView error={error} />}
@@ -105,6 +113,10 @@ function AssistantTurnImpl({
     )
   }
   const historyInterrupted = isHistoryInterrupted(turn)
+  // Codex streams reasoning only while it is the latest non-user item in the turn.
+  // Use item order, not arrival timestamps: patches to earlier items do not resume them.
+  const latestItem = turn.items.findLast(item => item.kind !== "user")
+  const streamingThoughtId = active && latestItem?.kind === "thought" ? latestItem.id : null
   const finalText = turn.final.map(messageText).join("\n")
   const time = active ? null : formatTurnTime(turn, "assistant")
   // Generated artifacts are tool results in both live updates and history replay.
@@ -141,7 +153,13 @@ function AssistantTurnImpl({
         {...turnTiming(turn)}
         loading={active && turn.work.length === 0 && !hasFinal}
         work={turn.work.map(entry => (
-          <WorkEntryView key={entry.key} entry={entry} terminals={terminals} streaming={active} />
+          <WorkEntryView
+            key={entry.key}
+            entry={entry}
+            terminals={terminals}
+            streaming={active}
+            streamingThoughtId={streamingThoughtId}
+          />
         ))}
         answer={
           hasFinal ? (

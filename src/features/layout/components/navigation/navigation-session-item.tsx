@@ -1,6 +1,6 @@
 import { LockIcon } from "lucide-react"
 import { toast } from "sonner"
-import { type ComponentProps, createContext, type ReactNode, useContext, useState } from "react"
+import { type ComponentProps, createContext, type ReactNode, useContext, useLayoutEffect, useState } from "react"
 import { CodexHoverCard } from "@/components/alwith-ui/codex-hover-card"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { SessionStateDot } from "@/components/alwith-ui/session-state-dot"
@@ -29,6 +29,7 @@ type NavigationSessionItemProps = Omit<ComponentProps<"div">, "title"> & {
   media?: ReactNode
   title: ReactNode
   hoverCard?: ReactNode
+  onHoverCardOpenChange?: (open: boolean) => void
   subtitle?: ReactNode
   listeningPorts?: number[]
   accessory?: ReactNode
@@ -44,6 +45,7 @@ export function NavigationSessionItem({
   media,
   title,
   hoverCard,
+  onHoverCardOpenChange,
   subtitle,
   listeningPorts,
   accessory,
@@ -109,12 +111,29 @@ export function NavigationSessionItem({
   )
 
   if (hoverCard == null) return row
-  return <NavigationSessionHoverCard row={row}>{hoverCard}</NavigationSessionHoverCard>
+  return (
+    <NavigationSessionHoverCard row={row} onOpenChange={onHoverCardOpenChange}>
+      {hoverCard}
+    </NavigationSessionHoverCard>
+  )
 }
 
-function NavigationSessionHoverCard({ row, children }: { row: React.ReactElement; children: ReactNode }) {
+function NavigationSessionHoverCard({
+  row,
+  children,
+  onOpenChange
+}: {
+  row: React.ReactElement
+  children: ReactNode
+  onOpenChange?: (open: boolean) => void
+}) {
   const [hovering, setHovering] = useState(false)
   const [pinned, setPinned] = useState(false)
+  const open = hovering || pinned
+  useLayoutEffect(() => {
+    onOpenChange?.(open)
+    return () => onOpenChange?.(false)
+  }, [open, onOpenChange])
   return (
     <NavigationHoverCardPinContext.Provider value={setPinned}>
       <NavigationHoverCardCloseContext.Provider
@@ -122,7 +141,7 @@ function NavigationSessionHoverCard({ row, children }: { row: React.ReactElement
           setHovering(false)
           setPinned(false)
         }}>
-        <CodexHoverCard open={hovering || pinned} onOpenChange={setHovering} trigger={row}>
+        <CodexHoverCard open={open} onOpenChange={setHovering} trigger={row}>
           {children}
         </CodexHoverCard>
       </NavigationHoverCardCloseContext.Provider>

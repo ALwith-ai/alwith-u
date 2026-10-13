@@ -3,6 +3,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
+import { useThreadsUiStore } from "@/features/threads/store"
 import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
@@ -30,7 +31,7 @@ afterAll(() => {
   connect.mockRestore()
   apps.mockRestore()
 })
-beforeEach(() => client.store.setState({ threads: [], archivedThreads: [] }))
+beforeEach(() => client.store.setState({ threads: [], archivedThreads: [], threadsLoaded: true, threadsError: null }))
 
 function threads(cwd = "/tmp/project"): ThreadSummary[] {
   return Array.from({ length: 7 }, (_, index) => ({
@@ -44,7 +45,8 @@ function threads(cwd = "/tmp/project"): ThreadSummary[] {
 
 test("project popover shows the full count, expands beyond five chats and routes the selected thread", async () => {
   const entries = threads()
-  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(entries)
+  client.store.setState({ threads: entries })
+  const list = vi.spyOn(client, "listThreads")
   const selected: ThreadSummary[] = []
   try {
     const view = render(
@@ -54,7 +56,7 @@ test("project popover shows the full count, expands beyond five chats and routes
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "project" }))
     })
-    expect(list).toHaveBeenCalledWith("/tmp/project")
+    expect(list).not.toHaveBeenCalled()
     expect(view.getByText("7 chats")).toBeDefined()
     expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(5)
     expect(view.getAllByRole("button", { name: /^Chat / })[0]?.textContent).toContain("Chat 6")
@@ -74,41 +76,29 @@ test("project popover shows the full count, expands beyond five chats and routes
   }
 })
 
-test("loading and failure never advertise a partial total, and retry reloads the project", async () => {
-  let reject!: (error: Error) => void
-  const list = vi
-    .spyOn(client, "listProjectThreads")
-    .mockImplementationOnce(
-      () =>
-        new Promise((_resolve, fail) => {
-          reject = fail
-        })
-    )
-    .mockResolvedValue([])
+test("loading and failure expose shared list state, and retry refreshes the shared cache", async () => {
+  client.store.setState({ connection: "ready", threadsLoaded: false, threadsLoading: true })
+  const list = vi.spyOn(client, "listThreads").mockResolvedValue()
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
-    })
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
     expect(view.getByRole("status").textContent).toContain("Loading chats")
     expect(view.queryByText(/\d+ chats?/)).toBeNull()
-    await act(async () => {
-      reject(new Error("Could not load next page"))
+    await act(async () => client.store.setState({ threadsLoading: false, threadsError: "Unavailable" }))
+    expect(view.getByRole("alert").textContent).toBe("Unavailable")
+    list.mockImplementation(async () => {
+      client.store.setState({ threadsLoaded: true, threadsError: null })
     })
-    expect(view.getByRole("alert").textContent).toBe("Could not load next page")
-    expect(view.queryByText(/\d+ chats?/)).toBeNull()
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Retry" }))
-    })
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Retry" })))
+    expect(list).toHaveBeenLastCalledWith({ reset: true })
     expect(view.getByText("0 chats")).toBeDefined()
-    expect(list).toHaveBeenCalledTimes(2)
   } finally {
     list.mockRestore()
   }
 })
 
 test("project actions open the directory itself and delegate new chat to the host", async () => {
-  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue([])
+  const list = vi.spyOn(client, "listThreads")
   const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   let created = 0
   try {
@@ -136,46 +126,32 @@ test("project actions open the directory itself and delegate new chat to the hos
       fireEvent.click(view.getByRole("button", { name: "New chat" }))
     })
     expect(created).toBe(1)
-    expect(list).toHaveBeenCalledTimes(1)
+    expect(list).not.toHaveBeenCalled()
   } finally {
     list.mockRestore()
     open.mockRestore()
   }
 })
 
-test("a late response for a previous project cannot replace the current project's list", async () => {
-  let finish!: (threads: ThreadSummary[]) => void
-  const list = vi
-    .spyOn(client, "listProjectThreads")
-    .mockImplementationOnce(
-      () =>
-        new Promise(resolve => {
-          finish = resolve
-        })
-    )
-    .mockResolvedValue([{ ...must(threads("/tmp/other")[0]), title: "Other project" }])
-  try {
-    const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+test("changing projects selects from the latest shared snapshot", async () => {
+  const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+  await act(async () =>
+    view.rerender(<ProjectSessionPopover cwd="/tmp/other" onSelect={() => {}} onNewChat={() => {}} />)
+  )
+  await act(async () =>
+    client.store.setState({
+      threads: [...threads(), { ...must(threads("/tmp/other")[0]), sessionId: "other", title: "Other project" }]
     })
-    await act(async () => {
-      view.rerender(<ProjectSessionPopover cwd="/tmp/other" onSelect={() => {}} onNewChat={() => {}} />)
-    })
-    expect(view.getByText("1 chat")).toBeDefined()
-    await act(async () => {
-      finish(threads())
-    })
-    expect(view.getByText("1 chat")).toBeDefined()
-    expect(view.getByRole("button", { name: "Other project" })).toBeDefined()
-    expect(view.queryByRole("button", { name: "Chat 0" })).toBeNull()
-  } finally {
-    list.mockRestore()
-  }
+  )
+  expect(view.getByText("1 chat")).toBeDefined()
+  expect(view.getByRole("button", { name: "Other project" })).toBeDefined()
+  expect(view.queryByRole("button", { name: "Chat 0" })).toBeNull()
 })
 
 test("sidebar hover shares the header cache while clicking still toggles the project", async () => {
-  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads())
+  client.store.setState({ threads: threads() })
+  const list = vi.spyOn(client, "listThreads")
   const toggles: boolean[] = []
   try {
     const header = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
@@ -207,7 +183,7 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
       fireEvent.mouseMove(trigger)
     })
     await waitFor(() => expect(sidebar.getByRole("button", { name: "Chat 6" })).toBeDefined())
-    expect(list).toHaveBeenCalledTimes(1)
+    expect(list).not.toHaveBeenCalled()
     expect(sidebar.queryByText("7 chats")).toBeNull()
     await act(async () => {
       fireEvent.click(sidebar.getByRole("button", { name: "Show more" }))
@@ -219,7 +195,8 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
 })
 
 test("a changed project list invalidates its closed popup before reopening", async () => {
-  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads())
+  client.store.setState({ threads: threads() })
+  const list = vi.spyOn(client, "listThreads")
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
     await act(async () => {
@@ -231,12 +208,11 @@ test("a changed project list invalidates its closed popup before reopening", asy
     await act(async () => {
       client.store.setState({ threads: [{ ...must(threads()[0]), title: "Renamed" }] })
     })
-    list.mockResolvedValue([{ ...must(threads()[0]), title: "Renamed" }])
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "project" }))
     })
     expect(view.getByRole("button", { name: "Renamed" })).toBeDefined()
-    expect(list).toHaveBeenCalledTimes(2)
+    expect(list).not.toHaveBeenCalled()
   } finally {
     list.mockRestore()
   }
@@ -268,7 +244,8 @@ test("session-card title and path scroll only on hover and the path opens its ow
 
 test("project path aliases share the popover cache and still show every matching chat", async () => {
   const key = vi.spyOn(client, "projectPath").mockImplementation(cwd => cwd.replace(/^\/var\//, "/private/var/"))
-  const list = vi.spyOn(client, "listProjectThreads").mockResolvedValue(threads("/private/var/deleted-project"))
+  client.store.setState({ threads: threads("/private/var/deleted-project") })
+  const list = vi.spyOn(client, "listThreads")
   try {
     const first = render(<ProjectSessionPopover cwd="/var/deleted-project" onSelect={() => {}} onNewChat={() => {}} />)
     await act(async () => {
@@ -283,7 +260,7 @@ test("project path aliases share the popover cache and still show every matching
       fireEvent.click(second.getByRole("button", { name: "deleted-project" }))
     })
     expect(second.getByText("7 chats")).toBeDefined()
-    expect(list).toHaveBeenCalledExactlyOnceWith("/private/var/deleted-project")
+    expect(list).not.toHaveBeenCalled()
     await act(async () => {
       fireEvent.click(second.getByRole("button", { name: "Show more" }))
     })
@@ -291,5 +268,28 @@ test("project path aliases share the popover cache and still show every matching
   } finally {
     key.mockRestore()
     list.mockRestore()
+  }
+})
+
+test.each([
+  "/Users/mac/Documents/Codex",
+  "/private/var/folders/example/T/project",
+  "/var/folders/example/T/project"
+])("quick-chat directory %s does not expose a project popover", cwd => {
+  const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
+  expect(view.queryByRole("button")).toBeNull()
+})
+
+test("custom Windows temporary sessions do not expose a project popover", () => {
+  const original = useThreadsUiStore.getState().windowsTempDirectory
+  useThreadsUiStore.setState({ windowsTempDirectory: String.raw`D:\Scratch` })
+  try {
+    const view = render(
+      <ProjectSessionPopover cwd={String.raw`D:\Scratch\project`} onSelect={() => {}} onNewChat={() => {}} />
+    )
+    expect(view.queryByRole("button")).toBeNull()
+    view.unmount()
+  } finally {
+    useThreadsUiStore.setState({ windowsTempDirectory: original })
   }
 })
