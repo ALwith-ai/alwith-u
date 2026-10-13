@@ -1,6 +1,13 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { isText, isToolCallSubject } from "@alwith/api"
-import { type PetBinding, type PetObservation, type PetSessionChoice, sameBinding } from "@alwith/module-vibemon"
+import {
+  PetSessionContext,
+  sameBinding,
+  type PetBinding,
+  type PetObservation,
+  type PetSessionChoice,
+  type PetSurface
+} from "@alwith/module-auth/pets/core"
 import type { AppState } from "@/agent/client"
 import { petAnswer, petPrompt } from "./pet-prompt"
 
@@ -14,7 +21,7 @@ export interface PetSessionOwner {
   respond(token: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse): void
   openChat(id: string | null, windowLabel: "main" | "chat"): Promise<void>
 }
-export type PetSurface = { sessionId: string | null; visible: boolean }
+export type { PetSurface } from "@alwith/module-auth/pets/core"
 
 /** A transient projection of the existing client. It never attaches or owns a session. */
 export function createPetSessionOwner(owner: PetSessionOwner) {
@@ -23,17 +30,15 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
   let bindingRevision = 0
   let revision = 0
   let signature = ""
-  let manual: string | null = null
-  const surfaces: Record<"main" | "chat", PetSurface> = {
-    main: { sessionId: null, visible: false },
-    chat: { sessionId: null, visible: false }
-  }
+  let observedAgent: string | null = null
+  const context = new PetSessionContext()
+  const surfaces = context.surfaces
   const incarnations = new Map<string, string>()
   let snapshot: PetObservation | null = null
   let sequence = 0
   const listeners = new Set<(value: PetObservation | null) => void>()
   function target(): string | null {
-    return manual ?? surfaces.chat.sessionId ?? surfaces.main.sessionId
+    return context.target()
   }
   function candidates(state: AppState): PetSessionChoice[] {
     const choices: PetSessionChoice[] = []
@@ -59,6 +64,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
   async function refresh() {
     const current = ++sequence
     const state = owner.state()
+    const source = owner.source()
     if (state.connection !== connection) {
       connection = state.connection
       epoch = crypto.randomUUID()
@@ -74,8 +80,6 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       return
     }
     const session = state.sessions[id]
-    const agent = await owner.agentForSession(id)
-    if (sequence !== current) return
     let incarnation = incarnations.get(id)
     if (incarnation === undefined) {
       incarnation = crypto.randomUUID()
@@ -84,10 +88,6 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     const windowLabel = surfaces.chat.sessionId === id ? "chat" : "main"
     const nextSignature = `${epoch}/${id}/${incarnation}/${run.owner}/${run.executionId}/${windowLabel}`
     const changed = signature !== nextSignature
-    if (changed) {
-      signature = nextSignature
-      bindingRevision++
-    }
     const action =
       state.actions.find(item => item.sessionId === id && item.kind === "permission") ??
       state.actions.find(item => item.sessionId === id)
@@ -111,41 +111,63 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
           }
         : null
     const user = session?.items.findLast(item => item.kind === "user")
-    publish({
-      binding: { connectionEpoch: epoch, agentId: agent ?? owner.agentId, sessionId: id, incarnation, bindingRevision },
-      source: changed ? "snapshot" : owner.source(),
-      revision: ++revision,
-      state: run.state,
-      since: run.since,
-      title: session?.title ?? run.title,
-      cwd: session?.cwd ?? run.cwd ?? "",
-      windowLabel,
-      candidates: candidates(state),
-      owner: run.owner,
-      executionId: run.executionId,
-      executionRole: run.executionRole,
-      access:
-        agent !== owner.agentId || session === undefined || !session.attached || session.restoring
-          ? "unavailable"
-          : session.readOnly || run.executionId !== null
-            ? "readOnly"
-            : "writable",
-      surfaceVisible: Object.values(surfaces).some(surface => surface.visible && surface.sessionId === id),
-      error: session?.error?.stopReason ?? null,
-      reply,
-      userMessage:
-        user?.kind === "user"
-          ? {
-              messageId: user.id,
-              text: user.content
-                .filter(isText)
-                .map(block => block.text)
-                .join(""),
-              timestamp: user.at
-            }
-          : null,
-      prompt
-    })
+    const publishObservation = (agent: string | null) => {
+      if (signature !== nextSignature) {
+        signature = nextSignature
+        bindingRevision++
+      }
+      publish({
+        binding: {
+          connectionEpoch: epoch,
+          agentId: agent ?? owner.agentId,
+          sessionId: id,
+          incarnation,
+          bindingRevision
+        },
+        source: changed ? "snapshot" : source,
+        revision: ++revision,
+        state: run.state,
+        since: run.since,
+        title: session?.title ?? run.title,
+        cwd: session?.cwd ?? run.cwd ?? "",
+        windowLabel,
+        candidates: candidates(state),
+        owner: run.owner,
+        executionId: run.executionId,
+        executionRole: run.executionRole,
+        access:
+          agent !== owner.agentId || session === undefined || !session.attached || session.restoring
+            ? "unavailable"
+            : session.readOnly || run.executionId !== null
+              ? "readOnly"
+              : "writable",
+        surfaceVisible: Object.values(surfaces).some(surface => surface.visible && surface.sessionId === id),
+        error: session?.error?.stopReason ?? null,
+        reply,
+        userMessage:
+          user?.kind === "user"
+            ? {
+                messageId: user.id,
+                text: user.content
+                  .filter(isText)
+                  .map(block => block.text)
+                  .join(""),
+                timestamp: user.at
+              }
+            : null,
+        prompt
+      })
+    }
+    // Preserve every live transition for an established binding, including done -> idle.
+    // Ownership lookups may coalesce; Runtime events must reach the animation synchronously.
+    const knownBinding = !changed && snapshot !== null
+    if (knownBinding) publishObservation(observedAgent)
+    const agent = await owner.agentForSession(id)
+    if (sequence !== current) return
+    if (!knownBinding || agent !== observedAgent) {
+      observedAgent = agent
+      publishObservation(agent)
+    }
   }
   function requireBinding(binding: PetBinding): PetObservation {
     if (snapshot === null || !sameBinding(snapshot.binding, binding))
@@ -183,14 +205,11 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       }
     },
     surface(label: "main" | "chat", value: PetSurface) {
-      const previous = surfaces[label]
-      surfaces[label] = value
-      if (manual !== null && previous.sessionId !== value.sessionId && value.visible && value.sessionId !== manual)
-        manual = null
+      context.surface(label, value)
       return refresh()
     },
     collapse(sessionId: string | null) {
-      manual = sessionId
+      context.collapse(sessionId)
       return refresh()
     },
     requireSurface(label: "main" | "chat", sessionId: string | null) {
@@ -202,7 +221,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       requireBinding(binding)
       if (!candidates(owner.state()).some(item => item.sessionId === sessionId))
         throw new Error("The conversation is no longer current")
-      manual = sessionId
+      context.select(sessionId)
       await refresh()
     },
     invalidate() {
@@ -210,7 +229,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       epoch = crypto.randomUUID()
       signature = ""
       incarnations.clear()
-      manual = null
+      context.reset()
       publish(null)
     },
     async send(binding: PetBinding, requestId: string, text: string) {

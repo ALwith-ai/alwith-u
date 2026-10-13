@@ -8,8 +8,6 @@ import { create } from "zustand"
 export type SidebarView = "sessions" | "activity" | "drive"
 
 interface ThreadsUiState {
-  /** Resolved once at startup; never persisted or used to rewrite a session cwd. */
-  windowsTempDirectory: string | null
   /** Current sidebar panel: session list or activity. */
   view: SidebarView
   setView: (view: SidebarView) => void
@@ -24,7 +22,6 @@ interface ThreadsUiState {
 }
 
 export const useThreadsUiStore = create<ThreadsUiState>(set => ({
-  windowsTempDirectory: null,
   view: "sessions",
   setView: view => set({ view }),
   projectOpen: new Map(),

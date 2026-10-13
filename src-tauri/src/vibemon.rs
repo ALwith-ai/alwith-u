@@ -1,9 +1,12 @@
-//! Public Tauri transport. Window policy is supplied by the closed native capability.
+//! U pet host. Shared packages own pet state, rendering, and assets.
+mod claims;
+pub(crate) mod window;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
 use std::path::{Component, PathBuf};
 use std::sync::Mutex;
 use tauri::{Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use window::perform as window_action;
 
 #[derive(Default)]
 pub struct BubblePresentation(Mutex<BubbleState>);
@@ -32,8 +35,8 @@ pub fn reset_bubble_on_navigation(window: WebviewWindow) {
     }
     tauri::async_runtime::spawn(async move {
         let result = async {
-            native(&window, "hide", None, Value::Null).await?;
-            native(&window, "blur", None, json!({"radius":1,"path":null})).await?;
+            window_action(&window, "hide", None, Value::Null).await?;
+            window_action(&window, "blur", None, json!({"radius":1,"path":null})).await?;
             Ok::<_, String>(())
         }
         .await;
@@ -48,46 +51,6 @@ fn allowed(window: &WebviewWindow) -> Result<(), String> {
         return Err("This window cannot use Vibemon".into());
     }
     Ok(())
-}
-async fn native(
-    window: &WebviewWindow, action: &str, parent: Option<WebviewWindow>, extra: Value,
-) -> Result<Value, String> {
-    #[cfg(target_os = "windows")]
-    if action == "drag" {
-        let pointer = window.hwnd().map_err(|e| e.to_string())?.0 as usize;
-        let parent_pointer =
-            parent.as_ref().map(|p| p.hwnd().map(|v| v.0 as usize)).transpose().map_err(|e| e.to_string())?;
-        return window
-            .state::<crate::native::Native>()
-            .call("vibemon.window", json!({"action":action,"handle":pointer,"parent":parent_pointer,"role":"pet"}))
-            .await
-            .map_err(|e| e.to_string());
-    }
-    let handle = window.clone();
-    let operation = action.to_owned();
-    let library = window.state::<crate::native::Native>().inner().clone();
-    let (send, receive) = tokio::sync::oneshot::channel();
-    window.run_on_main_thread(move || {
-        let result = (|| {
-            #[cfg(target_os = "macos")]
-            let pointer = handle.ns_window().map_err(|e| e.to_string())? as usize;
-            #[cfg(target_os = "windows")]
-            let pointer = handle.hwnd().map_err(|e| e.to_string())?.0 as usize;
-            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let pointer = 0_usize;
-            #[cfg(target_os = "macos")]
-            let parent_pointer = parent.map(|p| p.ns_window().map(|v| v as usize)).transpose().map_err(|e| e.to_string())?;
-            #[cfg(target_os = "windows")]
-            let parent_pointer = parent.map(|p| p.hwnd().map(|v| v.0 as usize)).transpose().map_err(|e| e.to_string())?;
-            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let parent_pointer: Option<usize> = { let _ = parent; None };
-            let mut params = json!({"action": operation, "handle": pointer, "parent": parent_pointer, "role": if handle.label() == "vibemon" { "pet" } else { "bubble" }});
-            if let Some(fields) = extra.as_object() { params.as_object_mut().expect("object").extend(fields.clone()); }
-            library.call_on_ui("vibemon.window", params).map_err(|e| e.to_string())
-        })();
-        let _ = send.send(result);
-    }).map_err(|e| e.to_string())?;
-    receive.await.map_err(|e| e.to_string())?
 }
 fn resource_path(window: &WebviewWindow, path: &str) -> Result<PathBuf, String> {
     if !path.starts_with("vibemon/")
@@ -241,13 +204,7 @@ pub async fn vibemon_claim(
     if matches.len() != 1 || matches[0].owner_id != owner || matches[0].execution_id.is_some() {
         return Err("Vibemon execution owner changed or is read-only".into());
     }
-    window
-        .state::<crate::native::Native>()
-        .call("vibemon.claim", json!({"scope": scope, "request_id": request_id}))
-        .await
-        .map_err(|e| e.to_string())?
-        .as_bool()
-        .ok_or("Invalid request claim response".into())
+    Ok(claims::claim(&scope, &request_id))
 }
 
 #[tauri3_specta::command]
@@ -286,7 +243,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 .shadow(false)
                 .build()
                 .map_err(|e| e.to_string())?;
-            native(&created, "prepare", None, Value::Null).await?;
+            window_action(&created, "prepare", None, Value::Null).await?;
             Ok(json!(true))
         }
         "ready" => {
@@ -324,7 +281,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                     Some(bubble) if bubble.is_visible().map_err(|e| e.to_string())? => Some(bubble),
                     _ => None,
                 };
-                native(&window, "move", child, json!({"x":x,"y":y})).await?;
+                window_action(&window, "move", child, json!({"x":x,"y":y})).await?;
             }
             #[cfg(not(target_os = "windows"))]
             window.set_position(PhysicalPosition::new(x, y)).map_err(|e| e.to_string())?;
@@ -338,7 +295,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
             }
             let parent = if action == "drag" { app.get_webview_window("bubble-menu-vibemon") } else { None };
-            native(&window, &action, parent, Value::Null).await?;
+            window_action(&window, &action, parent, Value::Null).await?;
             if action == "drag" {
                 app.emit_to("main", "vibemon:position", window.outer_position().map_err(|e| e.to_string())?)
                     .map_err(|e| e.to_string())?;
@@ -357,9 +314,9 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                     state.visible()
                 };
                 if visible {
-                    native(&bubble, "bubble", Some(window.clone()), Value::Null).await?;
+                    window_action(&bubble, "bubble", Some(window.clone()), Value::Null).await?;
                 } else {
-                    native(&bubble, "hide", None, Value::Null).await?;
+                    window_action(&bubble, "hide", None, Value::Null).await?;
                 }
             }
             Ok(Value::Null)
@@ -374,8 +331,13 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Invalid bubble dimensions".into());
             }
             if window.is_visible().map_err(|e| e.to_string())? {
-                native(&window, "bubble", app.get_webview_window("vibemon"), json!({"width":width,"height":height}))
-                    .await?;
+                window_action(
+                    &window,
+                    "bubble",
+                    app.get_webview_window("vibemon"),
+                    json!({"width":width,"height":height}),
+                )
+                .await?;
             } else {
                 window.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
             }
@@ -392,7 +354,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             }
             let generation =
                 window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").generation;
-            native(&window, "blur", None, json!({"radius":radius,"path":payload["path"]})).await?;
+            window_action(&window, "blur", None, json!({"radius":radius,"path":payload["path"]})).await?;
             let visible = {
                 let state = window.state::<BubblePresentation>();
                 let mut state = state.0.lock().expect("bubble presentation lock");
@@ -403,9 +365,9 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 state.visible()
             };
             if visible {
-                native(&window, "bubble", app.get_webview_window("vibemon"), Value::Null).await?;
+                window_action(&window, "bubble", app.get_webview_window("vibemon"), Value::Null).await?;
             } else {
-                native(&window, "hide", None, Value::Null).await?;
+                window_action(&window, "hide", None, Value::Null).await?;
             }
             Ok(Value::Null)
         }
@@ -415,7 +377,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             }
             window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
-                native(&bubble, "hide", None, Value::Null).await?;
+                window_action(&bubble, "hide", None, Value::Null).await?;
             }
             app.emit_to("vibemon", "vibemon:command", json!({"type":"bubble-close","petId":"","requestId":""}))
                 .map_err(|e| e.to_string())?;
@@ -427,12 +389,12 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Only main destroys pet windows".into());
             }
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
-                native(&bubble, "detach", None, Value::Null).await?;
-                native(&bubble, "forget", None, Value::Null).await?;
+                window_action(&bubble, "detach", None, Value::Null).await?;
+                window_action(&bubble, "forget", None, Value::Null).await?;
                 bubble.destroy().map_err(|e| e.to_string())?;
             }
             if let Some(pet) = app.get_webview_window("vibemon") {
-                native(&pet, "forget", None, Value::Null).await?;
+                window_action(&pet, "forget", None, Value::Null).await?;
                 pet.destroy().map_err(|e| e.to_string())?;
             }
             Ok(Value::Null)

@@ -98,21 +98,50 @@ mod observer {
     extern "C-unwind" fn restore(_observer: &AnyObject, _selector: Sel, _notification: *mut AnyObject) {
         let app = APP.get().expect("Window observer installed");
         let handle = app.clone();
-        app.run_on_main_thread(move || {
-            for (label, window) in handle.webview_windows() {
-                if label != "chat" {
+        if let Err(error) = app.run_on_main_thread(move || {
+            let mut pet_restored = false;
+            // Child layout must use the repaired parent frame, never HashMap iteration order.
+            for label in ["chat", "vibemon", "bubble-menu-vibemon"] {
+                if label == "bubble-menu-vibemon" && !pet_restored {
                     continue;
                 }
-                let pointer = window.ns_window().expect("Live chat window has NSWindow");
-                // SAFETY: main thread holds the live window.
-                let native = unsafe { &*(pointer as *const NSWindow) };
-                if native.isVisible() && native.isKindOfClass(NSPanel::class()) {
-                    crate::chat_window::restore(&window);
-                    native.orderFrontRegardless();
+                let Some(window) = handle.get_webview_window(label) else { continue };
+                match restore_window(&window) {
+                    Ok(restored) => {
+                        if label == "vibemon" {
+                            pet_restored = restored;
+                        }
+                    }
+                    Err(error) => log::error!("Could not restore overlay {label}: {error}"),
                 }
             }
             crate::chat_window::update_input_candidates();
-        })
-        .expect("Restore chat window after environment change");
+        }) {
+            log::error!("Could not schedule overlay restoration: {error}");
+        }
+    }
+
+    fn restore_window(window: &WebviewWindow) -> Result<bool, String> {
+        let pointer = window.ns_window().map_err(|error| error.to_string())?;
+        // SAFETY: main thread holds the live window.
+        let native = unsafe { &*(pointer as *const NSWindow) };
+        if !crate::panel::should_restore(window.label(), native.isVisible()) || !native.isKindOfClass(NSPanel::class())
+        {
+            return Ok(false);
+        }
+        crate::panel::restore(window)?;
+        match window.label() {
+            "vibemon" => crate::vibemon::window::repair_position(native)?,
+            "bubble-menu-vibemon" => {
+                let parent = window.app_handle().get_webview_window("vibemon").ok_or("Bubble parent unavailable")?;
+                let pointer = parent.ns_window().map_err(|error| error.to_string())?;
+                // SAFETY: parent remains alive on the main thread throughout layout.
+                let parent = unsafe { &*(pointer as *const NSWindow) };
+                crate::vibemon::window::repair_bubble_position(native, parent)?;
+            }
+            _ => {}
+        }
+        native.orderFrontRegardless();
+        Ok(true)
     }
 }

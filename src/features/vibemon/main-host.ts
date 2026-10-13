@@ -8,7 +8,7 @@ import {
   sameBinding,
   syncVibemonResources,
   updateVibemonState
-} from "@alwith/module-vibemon"
+} from "@alwith/module-auth/pets/core"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
@@ -244,14 +244,19 @@ async function start() {
         })
       case "restore-pet":
         return serialize(async () => {
-          if ((await getVibemonState()).enabled) await ensurePet()
+          await refreshSettings()
+          if ((await getVibemonState()).pet) await ensurePet()
         })
       case "collapse": {
         if (request.from !== "chat") throw new Error("Only chat can collapse to a pet")
         return serialize(async () => {
           owner.requireSurface("chat", payload.sessionId)
-          await owner.collapse(payload.sessionId)
-          if ((await ensurePet()) !== "shown") throw new Error("Desktop pets are unavailable on this platform")
+          await refreshSettings()
+          const state = await getVibemonState()
+          if (state.pet) {
+            await owner.collapse(payload.sessionId)
+            if ((await ensurePet()) !== "shown") throw new Error("Desktop pets are unavailable on this platform")
+          }
           if (Date.now() >= request.deadline || request.scope !== petScope()) throw new Error("Vibemon request expired")
           owner.requireSurface("chat", payload.sessionId)
           const chat = await WebviewWindow.getByLabel("chat")
@@ -259,7 +264,7 @@ async function start() {
           await chat.hide()
           await syncChatWindowSurface()
           await owner.surface("chat", { sessionId: payload.sessionId, visible: false })
-          await command("bubble-open", (await getVibemonState()).pet)
+          if (state.pet) await command("bubble-open", (await getVibemonState()).pet)
         })
       }
       default:

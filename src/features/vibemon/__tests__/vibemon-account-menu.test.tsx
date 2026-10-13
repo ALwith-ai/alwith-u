@@ -1,5 +1,5 @@
 import { accountKey, type PetAccount } from "@alwith/module-auth/pets"
-import { configureVibemon, type VibemonHost } from "@alwith/module-vibemon"
+import { configureVibemon, type VibemonHost } from "@alwith/module-auth/pets/core"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"

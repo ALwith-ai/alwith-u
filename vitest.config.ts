@@ -11,7 +11,7 @@ export default mergeConfig(
       server: {
         // Shared UI packages import CSS; Vite must transform these imports for Node tests.
         deps: {
-          inline: ["@alwith/module-vibemon", "@alwith/module-chat", "@alwith/module-editor", "@alwith/module-drive"]
+          inline: ["@alwith/module-auth", "@alwith/module-chat", "@alwith/module-editor", "@alwith/module-drive"]
         }
       },
       projects: [

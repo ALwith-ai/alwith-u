@@ -1,4 +1,4 @@
-import { PetQuickReply } from "@alwith/module-vibemon/react"
+import { PetQuickReply } from "@alwith/module-auth/pets/react"
 import { bootstrapVibemonWindow } from "@/features/vibemon/bootstrap"
 import { bootstrapAuxWindow } from "@/lib/aux-window-bootstrap"
 

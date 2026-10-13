@@ -1,9 +1,33 @@
+import { afterEach, expect, test, vi } from "vitest"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
-import { afterEach, expect, test } from "vitest"
+import type { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { PhysicalPosition } from "@tauri-apps/api/window"
 import i18n, { initI18n } from "@/lib/i18n"
-import { petWindowCall } from "../window-client"
+import { createPetWindowClient, petWindowCall } from "../window-client"
 
-afterEach(clearMocks)
+const native = vi.hoisted(() => ({ onMoved: vi.fn() }))
+vi.mock("@tauri-apps/api/webviewWindow", () => ({
+  getCurrentWebviewWindow: () => ({ onMoved: native.onMoved })
+}))
+
+afterEach(() => {
+  clearMocks()
+  native.onMoved.mockReset()
+})
+
+test("native window moves reach the shared drag controller without pointer events", async () => {
+  const stop = vi.fn()
+  const position = new PhysicalPosition(120, 240)
+  native.onMoved.mockImplementationOnce(async (listener: Parameters<WebviewWindow["onMoved"]>[0]) => {
+    listener({ event: "tauri://move", id: 1, payload: position })
+    return stop
+  })
+  const listener = vi.fn()
+  const unsubscribe = await createPetWindowClient().moved(listener)
+  expect(listener).toHaveBeenCalledWith(position)
+  unsubscribe()
+  expect(stop).toHaveBeenCalledTimes(1)
+})
 
 test("native context menus read the current language each time they open", async () => {
   const requests: unknown[] = []
