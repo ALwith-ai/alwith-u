@@ -491,6 +491,24 @@ test("unmount releases a watch that finishes after workspace creation is cancell
   expect(await screen.findByRole("treeitem", { name: "one.txt", exact: true })).toBeInTheDocument()
 })
 
+test("cancelling application exit keeps the dirty document editable and allows a later exit", async () => {
+  native.nativeMode = true
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "one.txt", exact: true }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "unsaved" } })
+  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  fireEvent.click(await screen.findByRole("button", { name: "Cancel", exact: true }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_exit")).toHaveLength(0)
+  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("unsaved")
+  fireEvent.change(screen.getByRole("textbox", { name: "Code" }), { target: { value: "continued editing" } })
+  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  fireEvent.click(await screen.findByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
+  expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("continued editing")
+})
+
 test("saving on exit succeeds when the saved background document is deferred", async () => {
   native.nativeMode = true
   adapter = createMemoryAdapter(
