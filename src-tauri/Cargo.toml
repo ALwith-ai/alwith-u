@@ -79,5 +79,7 @@ debug = "line-tables-only"
 codegen-units = 1
 lto = true
 opt-level = "s"
-panic = "abort"
+# No `panic = "abort"`: wry and tauri-nspanel catch AppKit exceptions with objc2::exception::catch
+# (e.g. a WKURLSchemeTask that WebKit already stopped), and that only works if the exception can
+# unwind through their Rust frames. Under abort every such exception kills the app.
 strip = true
