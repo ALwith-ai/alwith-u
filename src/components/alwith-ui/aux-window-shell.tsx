@@ -4,6 +4,8 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
+const IS_WINDOWS = /Win/.test(navigator.platform)
+
 export function AuxWindowShell({
   title,
   sidebar,
@@ -20,8 +22,8 @@ export function AuxWindowShell({
   return (
     <div className={cn("bg-background flex h-screen", className)}>
       <aside className={cn("bg-sidebar border-border flex shrink-0 flex-col border-e", sidebarClassName)}>
-        {/* Traffic-light clearance + the sidebar's drag strip. */}
-        <div className="h-8 shrink-0" data-tauri-drag-region />
+        {/* Windows uses a native title bar outside the webview. */}
+        {!IS_WINDOWS && <div className="h-8 shrink-0" data-tauri-drag-region />}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{sidebar}</div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">

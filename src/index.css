@@ -393,6 +393,10 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
     transform var(--sidebar-fade-duration) ease-out,
     visibility 0s linear var(--sidebar-fade-duration);
 }
+/* Windows already reserves the title and status rows in the sidebar shell. */
+.windows-main-content [data-sidebar-presentation="floating"] .main-sidebar-viewport {
+  inset-block: 0;
+}
 [data-sidebar-presentation="floating"] .main-sidebar-panel {
   overflow: clip;
   border-radius: inherit;
