@@ -111,7 +111,7 @@
   "devDependencies": {
     "@alwith/native": "0.1.4",
     "@biomejs/biome": "^2.5.15",
-    "@nyssance/codex-acp-v2": "0.7.10",
+    "@nyssance/codex-acp-v2": "file:vendor/nyssance-codex-acp-v2-0.7.11-32247d004db8.tgz",
     "@openai/codex": "0.162.1",
     "@storybook/addon-a11y": "10.6.1",
     "@storybook/addon-docs": "10.6.1",
