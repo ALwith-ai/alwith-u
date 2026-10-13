@@ -71,6 +71,7 @@ import { groupThreads, QUICK_CHATS_GROUP, REVEAL_PAGE_SIZE } from "./thread-grou
 import { VirtualThreadRows } from "./virtual-thread-rows"
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
+import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { type SidebarView, useThreadsUiStore } from "./store"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
 
@@ -283,7 +284,10 @@ export function ThreadSidebar({
   const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
-  const groups = useMemo(() => groupThreads(threads, windowsTempDirectory), [threads, windowsTempDirectory])
+  const groups = useMemo(
+    () => (threadsLoaded ? groupThreads(threads, windowsTempDirectory) : []),
+    [threadsLoaded, threads, windowsTempDirectory]
+  )
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
 
@@ -544,6 +548,7 @@ export function ThreadSidebar({
           onClick={onSwitchScreen}>
           {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
         </Button>
+        <UpdateStatusButton />
         <SidebarAccountMenu onOpenSettings={onOpenSettings} />
       </SidebarFooter>
       <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>

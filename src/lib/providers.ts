@@ -98,7 +98,20 @@ export function providerGroups(
   ]
 }
 export function gatewayModelId(providerId: string, modelId: string): string {
-  return `gateway:${encodeURIComponent(providerId)}:${encodeURIComponent(modelId)}`
+  // Keep persisted IDs stable; the adapter accepts only [a-z0-9-]+. Match providers.rs.
+  const runtimeId = providerId.startsWith("custom_")
+    ? `custom-${Array.from(new TextEncoder().encode(providerId), byte => byte.toString(16).padStart(2, "0")).join("")}`
+    : providerId
+  return `gateway:${encodeURIComponent(runtimeId)}:${encodeURIComponent(modelId)}`
+}
+
+/** Desktop's default selection prefers a user-configured provider; native defaults stay engine-owned. */
+export function resolveSessionModel(model: string | null, snapshot: ProviderSnapshot): string | null {
+  const models = providerGroups(snapshot).flatMap(group =>
+    group.models.map(entry => gatewayModelId(group.id, entry.id))
+  )
+  if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
+  return models[0] ?? null
 }
 
 export function providerRegion(provider: Provider, regionId: string | null | undefined): ProviderRegion | null {

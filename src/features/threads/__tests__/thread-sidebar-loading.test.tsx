@@ -39,7 +39,7 @@ function showSidebar() {
   )
 }
 
-test("the first sidebar frame shows two project-shaped loading rows", async () => {
+test("the sidebar shows loading rows until the initial list completes, then keeps quick chats during refresh", async () => {
   client.store.setState({
     connection: "disconnected",
     connectionError: null,
@@ -50,14 +50,27 @@ test("the first sidebar frame shows two project-shaped loading rows", async () =
   const screen = showSidebar()
   const rows = screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')
   expect(rows).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "Quick chats" })).toBeNull()
   for (const row of rows) {
     expect(row.classList.contains("h-[var(--navigation-row-height)]")).toBe(true)
     expect(row.querySelector(".lucide-folder-closed")).not.toBeNull()
     expect(row.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(2)
   }
   await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0))
+    client.store.setState({ connection: "ready", threadsLoading: true })
   })
+  expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "Quick chats" })).toBeNull()
+  await act(async () => {
+    client.store.setState({ threadsLoaded: true, threadsLoading: false, threads: [] })
+  })
+  expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(0)
+  expect(screen.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "false")
+  await act(async () => {
+    client.store.setState({ threadsLoading: true })
+  })
+  expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(0)
+  expect(screen.getByRole("button", { name: "Quick chats" })).toBeTruthy()
 })
 
 test("a failed initial list offers retry instead of a permanent skeleton", async () => {
@@ -71,6 +84,7 @@ test("a failed initial list offers retry instead of a permanent skeleton", async
   expect(screen.container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0)
   expect(screen.getByText("Unavailable")).toBeTruthy()
   expect(screen.getByRole("button", { name: /retry|重试/i })).toBeTruthy()
+  expect(screen.queryByRole("button", { name: "Quick chats" })).toBeNull()
   await act(async () => {
     await new Promise(resolve => setTimeout(resolve, 0))
   })

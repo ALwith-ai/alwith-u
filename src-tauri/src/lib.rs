@@ -16,6 +16,7 @@ mod installed_apps;
 mod legacy_extensions;
 mod menu;
 mod native;
+mod panic_report;
 mod providers;
 mod runtime;
 mod updater;
@@ -109,6 +110,10 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            match app.path().app_log_dir() {
+                Ok(directory) => panic_report::install(directory.join("panic.log")),
+                Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
+            }
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
@@ -132,6 +137,9 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                extension_inbox::window_closed(webview.app_handle(), webview.label());
+            }
             if webview.label() == "bubble-menu-vibemon"
                 && matches!(payload.event(), tauri::webview::PageLoadEvent::Started)
                 && let Some(window) = webview.app_handle().get_webview_window(webview.label())
@@ -149,6 +157,9 @@ pub fn run() {
             // neither keep a headless U running nor stop chats when it is destroyed.
             tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
                 app.exit(0);
+            }
+            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
+                extension_inbox::window_closed(app, &label);
             }
             tauri::RunEvent::ExitRequested { api, code, .. } => {
                 let closing =
@@ -174,6 +185,8 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 extension_inbox::extension_inbox_scan,
+                extension_inbox::extension_inbox_scan_extension,
+                extension_inbox::extension_inbox_finish,
                 extension_inbox::extension_inbox_prepare,
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,

@@ -17,10 +17,18 @@ use tauri::Manager;
 pub(crate) struct InboxState {
     started: AtomicBool,
     active: Mutex<Option<String>>,
+    owner: Mutex<Option<InboxOwner>>,
+}
+
+struct InboxOwner {
+    window: String,
+    token: String,
 }
 
 #[derive(Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Scan {
+    operation_id: Option<String>,
     tasks: Vec<String>,
     errors: Vec<String>,
 }
@@ -40,9 +48,6 @@ pub(crate) struct PreparedTask {
 }
 
 fn roots(window: &tauri::Window) -> Result<(PathBuf, PathBuf)> {
-    if window.label() != "main" {
-        return Err("Only the main window processes startup imports".into());
-    }
     let root = window.path().app_local_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     plain(&root)?;
@@ -96,13 +101,94 @@ fn claim(inbox: &std::path::Path, processing: &std::path::Path, name: &str, expe
     Ok(task)
 }
 
+fn reserve(state: &InboxState, owner: &str) -> Result<String> {
+    let mut current = state.owner.lock().map_err(|e| e.to_string())?;
+    if current.is_some() {
+        return Err("Another extension inbox operation is active".into());
+    }
+    let token = uuid::Uuid::new_v4().to_string();
+    *current = Some(InboxOwner { window: owner.into(), token: token.clone() });
+    Ok(token)
+}
+
+fn lock_owner<'a>(
+    state: &'a InboxState, window: &str, token: &str,
+) -> Result<std::sync::MutexGuard<'a, Option<InboxOwner>>> {
+    let owner = state.owner.lock().map_err(|e| e.to_string())?;
+    if !owner.as_ref().is_some_and(|o| o.window == window && o.token == token) {
+        return Err("Extension inbox operation is no longer active in this window".into());
+    }
+    Ok(owner)
+}
+
+async fn scan_owned(window: &tauri::Window, extension_id: Option<&str>) -> Result<Scan> {
+    let (inbox, processing) = roots(window)?;
+    let state = window.state::<InboxState>();
+    let token = reserve(&state, window.label())?;
+    let result = scan_for_owned(&inbox, &processing, extension_id, Some((&state, window.label(), &token))).await;
+    match result {
+        Ok(mut result) => {
+            result.operation_id = Some(token);
+            Ok(result)
+        }
+        Err(error) => {
+            let mut owner = state.owner.lock().map_err(|e| e.to_string())?;
+            if owner.as_ref().is_some_and(|o| o.token == token) {
+                *owner = None;
+            }
+            Err(error)
+        }
+    }
+}
+
 #[tauri3_specta::command]
 pub(crate) async fn extension_inbox_scan(window: tauri::Window) -> Result<Scan> {
-    let (inbox, processing) = roots(&window)?;
-    if window.state::<InboxState>().started.swap(true, Ordering::SeqCst) {
-        return Ok(Scan { tasks: vec![], errors: vec![] });
+    if window.label() != "main" {
+        return Err("Only the main window starts automatic imports".into());
     }
-    scan(&inbox, &processing).await
+    let state = window.state::<InboxState>();
+    if state.started.load(Ordering::SeqCst) {
+        // A reloaded main WebView still needs its startup promise to settle.
+        return Ok(Scan { operation_id: Some(reserve(&state, window.label())?), tasks: vec![], errors: vec![] });
+    }
+    let result = scan_owned(&window, None).await?;
+    state.started.store(true, Ordering::SeqCst);
+    Ok(result)
+}
+
+#[tauri3_specta::command]
+pub(crate) async fn extension_inbox_scan_extension(window: tauri::Window, extension_id: String) -> Result<Scan> {
+    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
+    let installed = snapshot.installations.iter().find(|i| i.id == extension_id).ok_or("Extension is not installed")?;
+    if !installed.enabled || snapshot.pending.iter().any(|p| p.id == extension_id) {
+        return Err("Extension is disabled or transitioning".into());
+    }
+    scan_owned(&window, Some(&extension_id)).await
+}
+
+#[tauri3_specta::command]
+pub(crate) fn extension_inbox_finish(window: tauri::Window, operation_id: String) -> Result<()> {
+    let state = window.state::<InboxState>();
+    let mut owner = lock_owner(&state, window.label(), &operation_id)?;
+    if state.active.lock().map_err(|e| e.to_string())?.is_some() {
+        return Err("Extension inbox task is still active".into());
+    }
+    *owner = None;
+    Ok(())
+}
+
+pub(crate) fn window_closed(app: &tauri::AppHandle, label: &str) {
+    let state = app.state::<InboxState>();
+    cancel_window(&state, label);
+}
+
+fn cancel_window(state: &InboxState, label: &str) {
+    // Navigation and destruction cancel the old coordinator, not its persisted tasks.
+    let mut owner = state.owner.lock().expect("extension inbox owner lock poisoned");
+    if owner.as_ref().is_some_and(|o| o.window == label) {
+        *state.active.lock().expect("extension inbox active lock poisoned") = None;
+        *owner = None;
+    }
 }
 
 fn input_name(path: &std::path::Path) -> Result<Option<String>> {
@@ -113,8 +199,21 @@ fn input_name(path: &std::path::Path) -> Result<Option<String>> {
     Ok((!name.starts_with('.')).then(|| name.to_owned()))
 }
 
+#[cfg(test)]
 async fn scan(inbox: &std::path::Path, processing: &std::path::Path) -> Result<Scan> {
-    let mut result = Scan { tasks: vec![], errors: vec![] };
+    scan_for(inbox, processing, None).await
+}
+
+#[cfg(test)]
+async fn scan_for(inbox: &std::path::Path, processing: &std::path::Path, extension_id: Option<&str>) -> Result<Scan> {
+    scan_for_owned(inbox, processing, extension_id, None).await
+}
+
+async fn scan_for_owned(
+    inbox: &std::path::Path, processing: &std::path::Path, extension_id: Option<&str>,
+    operation: Option<(&InboxState, &str, &str)>,
+) -> Result<Scan> {
+    let mut result = Scan { operation_id: None, tasks: vec![], errors: vec![] };
     let mut counts = BTreeMap::<String, usize>::new();
     let mut recovered = Vec::new();
     for entry in fs::read_dir(processing).map_err(|e| e.to_string())? {
@@ -126,12 +225,23 @@ async fn scan(inbox: &std::path::Path, processing: &std::path::Path) -> Result<S
             }
         };
         match load(&path) {
-            Ok(task) if !task.cleaned => {
+            Ok(task) if !task.cleaned && extension_id.is_none_or(|id| id == task.extension_id) => {
                 *counts.entry(task.extension_id.clone()).or_default() += 1;
                 recovered.push(task);
             }
             Ok(_) => {}
-            Err(error) => result.errors.push(format!("{}: {error}", path.display())),
+            Err(error) if extension_id.is_none() => result.errors.push(format!("{}: {error}", path.display())),
+            Err(_) => {}
+        }
+    }
+    if extension_id.is_some() {
+        // Finish durable cleanup before considering a newer package for the same ID.
+        // Return one recovery task; the coordinator rescans after completing it.
+        recovered.sort_by(|a, b| a.id.cmp(&b.id));
+        if let Some(task) = recovered.iter().find(|task| task.committed) {
+            let _ownership = operation.map(|(state, window, token)| lock_owner(state, window, token)).transpose()?;
+            result.tasks.push(task.id.clone());
+            return Ok(result);
         }
     }
     let mut candidates = Vec::new();
@@ -151,12 +261,33 @@ async fn scan(inbox: &std::path::Path, processing: &std::path::Path) -> Result<S
                 continue;
             }
         };
+        if let Some(selected) = extension_id {
+            let matches = plain(&path).and_then(|_| {
+                let manifest = path.join("manifest.json");
+                plain(&manifest)?;
+                let metadata = fs::metadata(&manifest).map_err(|e| e.to_string())?;
+                if metadata.len() > 1024 * 1024 {
+                    return Err("Manifest is too large".into());
+                }
+                let value: serde_json::Value = serde_json::from_slice(&fs::read(&manifest).map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?;
+                Ok(value.get("id").and_then(|id| id.as_str()) == Some(selected))
+            });
+            match matches {
+                Ok(false) => continue,
+                Ok(true) => {}
+                Err(_) => continue,
+            }
+        }
         if candidates.len() >= 128 {
             result.errors.push("At most 128 input packages are processed per startup".into());
             break;
         }
         match tree(&path).and_then(|snapshot| Ok((manifest_id(&snapshot)?, snapshot))) {
             Ok((id, snapshot)) => {
+                if extension_id.is_some_and(|selected| selected != id) {
+                    continue;
+                }
                 // A persisted claim may still refer to its original inbox path after a crash.
                 if recovered.iter().any(|t| {
                     t.original == name
@@ -172,6 +303,9 @@ async fn scan(inbox: &std::path::Path, processing: &std::path::Path) -> Result<S
         }
     }
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    // Hold the ownership lock through synchronous claims; window close cannot release
+    // the reservation between this check and a source rename.
+    let _ownership = operation.map(|(state, window, token)| lock_owner(state, window, token)).transpose()?;
     recovered.sort_by(|a, b| a.id.cmp(&b.id));
     for task in recovered {
         if counts[&task.extension_id] > 1 && !task.committed {
@@ -215,43 +349,59 @@ fn verify_selected(window: &tauri::Window, task: &Task) -> Result<()> {
 }
 
 #[tauri3_specta::command]
-pub(crate) async fn extension_inbox_prepare(window: tauri::Window, task_id: String) -> Result<PreparedTask> {
-    let (inbox, processing) = roots(&window)?;
-    {
+pub(crate) async fn extension_inbox_prepare(
+    window: tauri::Window, task_id: String, operation_id: String,
+) -> Result<PreparedTask> {
+    let (root, mut task, source, package_path) = {
+        let (inbox, processing) = roots(&window)?;
         let state = window.state::<InboxState>();
-        let mut active = state.active.lock().map_err(|e| e.to_string())?;
-        if active.is_some() {
-            return Err("Another startup import is active".into());
+        let _ownership = lock_owner(&state, window.label(), &operation_id)?;
+        {
+            let state = window.state::<InboxState>();
+            let mut active = state.active.lock().map_err(|e| e.to_string())?;
+            if active.is_some() {
+                return Err("Another startup import is active".into());
+            }
+            *active = Some(task_id.clone());
         }
-        *active = Some(task_id.clone());
-    }
-    let root = task_root(&processing, &task_id)?;
-    let mut task = load(&root)?;
-    if task.cleaned {
-        return Err("Task is already cleaned".into());
-    }
-    if task.committed {
-        verify_selected(&window, &task)?;
-        return Ok(PreparedTask { id: task_id, phase: "committed".into(), package: None });
-    }
-    let source = root.join("source");
-    if !exists(&source)? {
-        let original = inbox.join(&task.original);
-        if tree(&original)?.fingerprint != task.fingerprint {
-            return Err("Claim source has changed; source retained".into());
+        let root = task_root(&processing, &task_id)?;
+        let task = load(&root)?;
+        if task.cleaned {
+            return Err("Task is already cleaned".into());
         }
-        fs::rename(&original, &source).map_err(|e| e.to_string())?;
-        sync_dir(&inbox)?;
-        sync_dir(&root)?;
-    }
-    if tree(&source)?.fingerprint != task.fingerprint {
-        return Err("Claimed input changed; source retained".into());
-    }
-    let package_path = root.join("package");
+        if task.committed {
+            verify_selected(&window, &task)?;
+            return Ok(PreparedTask { id: task_id, phase: "committed".into(), package: None });
+        }
+        let source = root.join("source");
+        if !exists(&source)? {
+            let original = inbox.join(&task.original);
+            if tree(&original)?.fingerprint != task.fingerprint {
+                return Err("Claim source has changed; source retained".into());
+            }
+            fs::rename(&original, &source).map_err(|e| e.to_string())?;
+            sync_dir(&inbox)?;
+            sync_dir(&root)?;
+        }
+        if tree(&source)?.fingerprint != task.fingerprint {
+            return Err("Claimed input changed; source retained".into());
+        }
+        let package_path = root.join("package");
+        if task.package.is_none() {
+            // A crash before preparation committed may leave an incomplete package, never an installed selection.
+            remove_tree(&package_path)?;
+        }
+        (root, task, source, package_path)
+    };
     if task.package.is_none() {
-        // A crash before preparation committed may leave an incomplete package, never an installed selection.
-        remove_tree(&package_path)?;
-        let staged = crate::legacy_extensions::importer::prepare_startup_package(window.clone(), &source).await?;
+        let state = window.state::<InboxState>();
+        let staged = crate::legacy_extensions::importer::prepare_startup_package(window.clone(), &source, || {
+            lock_owner(&state, window.label(), &operation_id)
+        })
+        .await?;
+        // Remote preparation can outlive its window; never mutate a recovered task
+        // after a different operation has acquired ownership.
+        let _ownership = lock_owner(&state, window.label(), &operation_id)?;
         copy_tree(&package_path, &tree(std::path::Path::new(&staged.path))?)?;
         task.package = Some(Package {
             id: staged.id,
@@ -263,6 +413,8 @@ pub(crate) async fn extension_inbox_prepare(window: tauri::Window, task_id: Stri
         task.error = None;
         save(&root, &task)?;
     }
+    let state = window.state::<InboxState>();
+    let _ownership = lock_owner(&state, window.label(), &operation_id)?;
     let package = task.package.as_ref().ok_or("Missing prepared package")?;
     if package.id != task.extension_id {
         return Err("Prepared identity differs from input".into());
@@ -331,9 +483,10 @@ fn cleanup(root: &std::path::Path, task: &mut Task) -> Result<()> {
 }
 
 #[tauri3_specta::command]
-pub(crate) fn extension_inbox_complete(window: tauri::Window, task_id: String) -> Result<()> {
+pub(crate) fn extension_inbox_complete(window: tauri::Window, task_id: String, operation_id: String) -> Result<()> {
     let (_, processing) = roots(&window)?;
     let state = window.state::<InboxState>();
+    let _ownership = lock_owner(&state, window.label(), &operation_id)?;
     let mut active = state.active.lock().map_err(|e| e.to_string())?;
     if active.as_deref() != Some(&task_id) {
         return Err("Task is not active".into());
@@ -350,8 +503,12 @@ pub(crate) fn extension_inbox_complete(window: tauri::Window, task_id: String) -
 }
 
 #[tauri3_specta::command]
-pub(crate) fn extension_inbox_failed(window: tauri::Window, task_id: String, message: String) -> Result<()> {
+pub(crate) fn extension_inbox_failed(
+    window: tauri::Window, task_id: String, message: String, operation_id: String,
+) -> Result<()> {
     let (_, processing) = roots(&window)?;
+    let state = window.state::<InboxState>();
+    let _ownership = lock_owner(&state, window.label(), &operation_id)?;
     {
         let state = window.state::<InboxState>();
         let mut active = state.active.lock().map_err(|e| e.to_string())?;

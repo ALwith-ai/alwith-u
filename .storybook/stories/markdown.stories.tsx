@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, waitFor } from "storybook/test"
+import { expect, fn, waitFor } from "storybook/test"
 import { CodexMarkdownRenderer } from "../../src/features/chat/codex/markdown-renderer"
+import { ChatDirectoryContext } from "../../src/features/chat/file-actions"
+import { WorkspaceContext, type WorkspaceActions } from "../../src/features/workspace/context"
 import { openExternal } from "../fixtures/open"
 
 const meta = { title: "Chat/Markdown", component: CodexMarkdownRenderer } satisfies Meta<typeof CodexMarkdownRenderer>
@@ -44,11 +46,42 @@ export const Arabic: Story = {
   }
 }
 
+const workspace = {
+  visible: true,
+  toggle: fn(),
+  openFile: fn<WorkspaceActions["openFile"]>().mockResolvedValue(undefined),
+  openProject: fn<WorkspaceActions["openProject"]>().mockResolvedValue(undefined),
+  revealEntry: fn<WorkspaceActions["revealEntry"]>().mockResolvedValue(undefined)
+} satisfies WorkspaceActions
+
 export const FileLink: Story = {
   args: { text: "Review [greeting.ts](/storybook/project/src/greeting.ts:1)." },
+  decorators: [
+    Story => (
+      <WorkspaceContext value={workspace}>
+        <ChatDirectoryContext value="/storybook/project">
+          <Story />
+        </ChatDirectoryContext>
+      </WorkspaceContext>
+    )
+  ],
   play: async ({ canvas, userEvent }) => {
+    workspace.openFile.mockClear()
     openExternal.mockClear()
     await userEvent.click(await canvas.findByRole("link", { name: "greeting.ts" }))
-    await expect(openExternal).toHaveBeenCalledWith("/storybook/project/src/greeting.ts:1")
+    await expect(workspace.openFile).toHaveBeenCalledWith("/storybook/project/src/greeting.ts", "/storybook/project", {
+      lineNumber: 1,
+      column: 1
+    })
+    await expect(openExternal).not.toHaveBeenCalled()
+  }
+}
+
+export const WebLink: Story = {
+  args: { text: "Read the [documentation](https://example.com/docs)." },
+  play: async ({ canvas, userEvent }) => {
+    openExternal.mockClear()
+    await userEvent.click(await canvas.findByRole("link", { name: "documentation" }))
+    await expect(openExternal).toHaveBeenCalledWith("https://example.com/docs")
   }
 }

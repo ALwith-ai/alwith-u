@@ -38,11 +38,18 @@ import { PluginsPage } from "@/features/plugins/plugins-page"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { selectThread } from "@/features/threads/select-thread"
+import { recentMainActivity } from "@/features/threads/recent-main-activity"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { installChatShortcut } from "@/lib/chat-shortcut"
-import { openChatWindow, releaseChatWindow, serveChatSurface, setChatWindowHostReady } from "@/lib/chat-window"
+import {
+  openChatWindow,
+  releaseChatWindow,
+  serveChatSurface,
+  setChatWindowHostReady,
+  syncChatWindowSurface
+} from "@/lib/chat-window"
 import { serveChatClient } from "@/lib/chat-window-client"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { watchForNotifications } from "@/lib/notifications"
@@ -148,13 +155,17 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         operation.run(() => setExtensionDraft(id, text, required, { ...dependencies, check }))
     })
   }, [openExtension, operation])
+  const [mainVisible, setMainVisible] = useState(false)
   const focused = useWindowFocus()
   useEffect(() => {
     let cancelled = false
     void (async () => {
       const window = getCurrentWebviewWindow()
       const visible = (focused || (await window.isVisible())) && !(await window.isMinimized())
-      if (!cancelled) await updateMainPetSurface(selectedId, visible && view === "chat")
+      if (!cancelled) {
+        setMainVisible(visible)
+        await updateMainPetSurface(selectedId, visible && view === "chat")
+      }
     })().catch(error => toast.error(describe(error)))
     return () => {
       cancelled = true
@@ -272,6 +283,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         stopSurface()
         return () => {}
       }
+      void syncChatWindowSurface().catch(error => toast.error(describe(error)))
       void shortcut
         .set(initialPreferences.chatWindowShortcut ?? "Alt+Space", false)
         .catch(error => toast.error(describe(error)))
@@ -293,15 +305,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const connect = useCallback(async () => {
     try {
       await client.connect()
-      // Providers join the model pickers before any thread opens, so a thread the user moved
-      // to one of them resumes there.
-      client.setGatewayModels(initialPreferences.sessionModels)
-      void applyProviders().catch((error: unknown) => toast.error(describe(error)))
+      // Restore choices must be checked against the applied provider catalog.
+      await applyProviders()
       void info(`connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
     } catch (error) {
       toast.error(describe(error))
     }
-  }, [initialPreferences.sessionModels])
+  }, [])
 
   useEffect(() => {
     if (connection === "ready") return watchThreadList(client)
@@ -325,15 +335,21 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     }
   }, [connection])
 
-  // Remember which chats run on a gateway model, so they reopen there after a restart.
+  // Passive history replay and draft initialization never overwrite the user's last choice.
   useEffect(() => {
-    const models = { ...initialPreferences.sessionModels }
-    return client.onSessionModel((sessionId, modelId, isGateway) => {
-      if (isGateway) models[sessionId] = modelId
-      else delete models[sessionId]
-      void savePreference("sessionModels", models)
+    client.setModelSelections(initialPreferences.modelSelections)
+    let saving = Promise.resolve()
+    const models = { ...initialPreferences.modelSelections }
+    return client.onConfirmedModel((owner, model) => {
+      models[owner] = model
+      const selection = { ...models }
+      saving = saving
+        .then(() => savePreference("modelSelections", selection))
+        .catch(error => {
+          toast.error(describe(error))
+        })
     })
-  }, [initialPreferences.sessionModels])
+  }, [initialPreferences.modelSelections])
 
   // The settings window has no agent connection of its own: it asks this window for the
   // engine identity and for sign-out, and provider keys saved there are applied here.
@@ -459,9 +475,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             cwd: session?.cwd ?? lastDirectory,
             draft: await exportDraft(selectedId ?? DRAFT_SESSION_ID)
           })
-          setSelectedId(null)
+          const replacement = recentMainActivity(client.state, selectedId)
+          setSelectedId(replacement?.sessionId ?? null)
           importDraft(DRAFT_SESSION_ID, null)
           setSurfaceGeneration(value => value + 1)
+          // The handoff is accepted before replacing the source, even when restoring history fails.
+          if (replacement) {
+            setLastDirectory(replacement.cwd)
+            await client.open(replacement.sessionId, replacement.cwd)
+          }
         })
         .catch(error => toast.error(describe(error)))
     }
@@ -527,7 +549,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             <ThreadSidebar
               screen={leading ? "leading" : "main"}
               leadingPage={leadingPage}
-              selectedId={leading ? null : selectedId}
+              selectedId={view === "chat" && mainVisible ? selectedId : null}
               onSelect={select}
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}

@@ -71,6 +71,9 @@ function setup(
       onRequest={(request: Request): void => {
         actions.push(request)
       }}
+      onReload={(id: string): void => {
+        actions.push({ reload: id })
+      }}
       onUninstall={(id: string, name: string): void => {
         actions.push({ uninstall: id, name })
       }}
@@ -223,7 +226,10 @@ test("bundled wallpaper can be disabled but has no manual update or uninstall ac
   snapshot.native.installations = [builtin]
   const view = setup(snapshot)
   expect(view.queryByText("Built-in")).toBeNull()
-  expect(view.queryByRole("button", { name: "More actions for Wallpaper" })).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "More actions for Wallpaper" }))
+  const menu = await view.findByRole("menu")
+  expect(within(menu).getByRole("menuitem", { name: "Reload" })).toBeTruthy()
+  expect(within(menu).queryByRole("menuitem", { name: "Update from folder" })).toBeNull()
   expect(view.queryByText("Uninstall")).toBeNull()
   await act(async () => {
     fireEvent.click(view.getByRole("switch"))
@@ -395,5 +401,30 @@ test("keeps Yup activation errors visible without a compatibility notice", () =>
   expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
   expect(view.getByText("Activation failed")).toBeTruthy()
   expect(view.getByRole("switch").getAttribute("aria-checked")).toBe("true")
+  expect(view.actions).toEqual([])
+})
+
+test("reload action appears above uninstall and targets only its extension", async () => {
+  const { actions } = setup()
+  fireEvent.click(
+    within(document.querySelector('section[aria-label="Alpha Notes"]') as HTMLElement).getByRole("button", {
+      name: "More actions for Alpha Notes"
+    })
+  )
+  const menu = await within(document.body).findByRole("menu")
+  const reload = within(menu).getByRole("menuitem", { name: "Reload" })
+  const items = within(menu).getAllByRole("menuitem")
+  expect(items.indexOf(reload)).toBeLessThan(items.indexOf(within(menu).getByRole("menuitem", { name: "Uninstall" })))
+  fireEvent.click(reload)
+  expect(actions).toEqual([{ reload: "alpha" }])
+})
+
+test("reload is disabled for an installed but disabled extension", async () => {
+  const snapshot = state()
+  snapshot.native.installations[0].enabled = false
+  const view = setup(snapshot)
+  fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" }))
+  const menu = await view.findByRole("menu")
+  expect(within(menu).getByRole("menuitem", { name: "Reload" })).toHaveAttribute("aria-disabled", "true")
   expect(view.actions).toEqual([])
 })

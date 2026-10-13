@@ -11,6 +11,7 @@ import { RemoteChatClient } from "@/lib/chat-window-client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 import { macProjectPaths } from "@/agent/project-path"
 import { isMac } from "@/lib/platform"
+import { applyProviders, resolveSessionModel } from "@/lib/providers"
 
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"
@@ -19,6 +20,7 @@ export const client =
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex" },
         projectPaths: isMac() ? macProjectPaths : undefined,
+        resolveModel: async model => resolveSessionModel(model, await applyProviders()),
         sessionContext: driveSessionContext
       })
 

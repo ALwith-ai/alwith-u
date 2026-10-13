@@ -2,7 +2,15 @@ import { parseManifestIcon, resolveManifestText } from "@alwith/module-extension
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import { BlocksIcon, CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import {
+  BlocksIcon,
+  CircleArrowUpIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  XIcon
+} from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -38,6 +46,7 @@ interface ExtensionsManagerProps {
   installPhase?: ExtensionInstallPhase | null
   onInstall(id?: string): void
   onRequest(request: Request): void
+  onReload?(id: string): void
   onUninstall(id: string, name: string): void
   onOpenSurface?(id: string): void
   renderSettings(view: ViewContribution): ReactNode
@@ -72,6 +81,7 @@ export function ExtensionsManager({
   onInstall,
   onRequest,
   onUninstall,
+  onReload,
   onOpenSurface,
   renderSettings
 }: ExtensionsManagerProps) {
@@ -230,7 +240,7 @@ export function ExtensionsManager({
                         )
                       }
                     />
-                    {(surfaces.length > 0 || actions.update || actions.uninstall) && (
+                    {(surfaces.length > 0 || actions.update || actions.uninstall || onReload) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -261,6 +271,15 @@ export function ExtensionsManager({
                             <DropdownMenuItem disabled={blocked} onClick={() => onInstall(item.id)}>
                               <CircleArrowUpIcon />
                               {t("extensions.update")}
+                            </DropdownMenuItem>
+                          )}
+                          {onReload && (
+                            <DropdownMenuItem
+                              disabled={blocked || !item.enabled}
+                              title={t("extensions.reloadHint")}
+                              onClick={() => onReload(item.id)}>
+                              <RefreshCwIcon />
+                              {t("extensions.reload")}
                             </DropdownMenuItem>
                           )}
                           {actions.uninstall && (

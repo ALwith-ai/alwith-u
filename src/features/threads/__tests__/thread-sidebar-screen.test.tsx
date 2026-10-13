@@ -5,6 +5,7 @@ import { type MainScreen, MainSidebarLayout } from "@/features/layout/components
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { usePlatformAuth } from "@/features/auth/store"
+import { useUpdaterStore } from "@/features/updater/store"
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 
@@ -12,17 +13,25 @@ await initI18n("en")
 const originalState = client.state
 const originalAuth = usePlatformAuth.getState()
 const originalUi = useThreadsUiStore.getState()
+const originalUpdater = useUpdaterStore.getState()
 afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
     usePlatformAuth.setState(originalAuth, true)
     useThreadsUiStore.setState(originalUi, true)
+    useUpdaterStore.setState(originalUpdater, true)
     await new Promise(resolve => setTimeout(resolve, 0))
   })
 })
 
 test("footer arrows switch screens, plugins are selected only on the leading screen, and new chat returns to main", async () => {
+  useUpdaterStore.setState({
+    state: {
+      type: "ready",
+      update: { version: "0.2.5", filename: "update.tar.gz", signature: "sig", contentLength: 100 }
+    }
+  })
   // The plugins entry is fixed navigation: it does not wait for the engine to connect.
   client.store.setState({ connection: "connecting", agent: null })
   function Harness() {
@@ -55,6 +64,9 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
   const view = render(<Harness />)
   const plugins = view.getByRole("button", { name: "Plugins" })
   const arrow = view.getByRole("button", { name: "Open -1 screen" })
+  const updateCard = view.getByRole("button", { name: /Relaunch to update/ })
+  expect(updateCard.closest('[data-slot="sidebar-footer"]')).toBe(arrow.closest('[data-slot="sidebar-footer"]'))
+  expect(arrow.nextElementSibling).toBe(updateCard)
   expect(arrow.closest('[data-slot="sidebar-footer"]')).not.toBeNull()
   expect(arrow.querySelector(".lucide-arrow-left")).toBeTruthy()
   expect(arrow.classList.contains("justify-start")).toBe(true)

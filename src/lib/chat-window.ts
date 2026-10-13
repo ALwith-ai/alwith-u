@@ -3,11 +3,15 @@ import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewW
 import { commands } from "@/bindings"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import i18n from "./i18n"
+import { client } from "./client"
+import { useChatWindowSurface, type ChatWindowSurface } from "./chat-window-state"
 import { createWindowController } from "./window-controller"
 
 export type ChatTransfer = { sessionId: string | null; cwd: string | null; draft: ComposerDraft | null }
 type SurfaceAction =
-  | { type: "present"; transfer?: ChatTransfer }
+  | { type: "present"; transfer?: ChatTransfer; sessionId?: string }
+  | ({ type: "surface" } & ChatWindowSurface)
+  | { type: "inspectSurface" }
   | { type: "release"; sessionId: string }
   | { type: "markRead"; sessionId: string }
   | { type: "shortcut"; shortcut: string }
@@ -50,10 +54,22 @@ export async function requestChatSurface(target: "main" | "chat", action: Surfac
 export async function serveChatSurface(
   handler: (action: SurfaceAction) => Promise<ChatTransfer | null>
 ): Promise<() => void> {
-  return getCurrentWebviewWindow().listen<SurfaceRequest>(REQUEST, async ({ payload }) => {
+  const window = getCurrentWebviewWindow()
+  return window.listen<SurfaceRequest>(REQUEST, async ({ payload }) => {
     if (!["main", "chat", "settings"].includes(payload.from)) return
     try {
-      const value = await handler(payload.action)
+      let value: ChatTransfer | null = null
+      const action = payload.action
+      if (action.type === "surface") {
+        if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface sender")
+        if ((action.sessionId !== null && typeof action.sessionId !== "string") || typeof action.visible !== "boolean")
+          throw new Error("Invalid chat surface state")
+        useChatWindowSurface.setState({ sessionId: action.sessionId, visible: action.visible })
+      } else if (action.type === "inspectSurface") {
+        if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
+        const visible = (await window.isVisible()) && !(await window.isMinimized())
+        await publishChatWindowSurface(useChatWindowSurface.getState().sessionId, visible)
+      } else value = await handler(action)
       await emitTo(payload.from, RESPONSE, { id: payload.id, value, error: null } satisfies SurfaceResponse)
     } catch (error) {
       await emitTo(payload.from, RESPONSE, {
@@ -63,6 +79,13 @@ export async function serveChatSurface(
       } satisfies SurfaceResponse)
     }
   })
+}
+
+function forgetChatWindow(): void {
+  useChatWindowSurface.setState({ sessionId: null, visible: false })
+  client.store.setState(state => ({
+    sessionWindows: Object.fromEntries(Object.entries(state.sessionWindows).filter(([, owner]) => owner !== "chat"))
+  }))
 }
 
 async function createChatWindow(): Promise<void> {
@@ -94,6 +117,7 @@ async function createChatWindow(): Promise<void> {
       skipTaskbar: true
     })
     created = window
+    await window.once("tauri://destroyed", forgetChatWindow)
     stopError = await window.once("tauri://error", ({ payload }) => fail(new Error(String(payload))))
     await promise
   } catch (error) {
@@ -134,4 +158,21 @@ export async function presentChatWindow(): Promise<void> {
 export async function releaseChatWindow(sessionId: string): Promise<ChatTransfer | null> {
   if (!(await WebviewWindow.getByLabel("chat"))) return null
   return requestChatSurface("chat", { type: "release", sessionId })
+}
+
+/** Report actual binding even when hidden; visibility only controls foreground grouping. */
+export async function publishChatWindowSurface(sessionId: string | null, visible: boolean): Promise<void> {
+  useChatWindowSurface.setState({ sessionId, visible })
+  await requestChatSurface("main", { type: "surface", sessionId, visible })
+}
+
+/** Rehydrate the projection when the main webview remounts around an existing chat window. */
+export async function syncChatWindowSurface(): Promise<void> {
+  const chat = await WebviewWindow.getByLabel("chat")
+  if (chat === null) forgetChatWindow()
+  else await requestChatSurface("chat", { type: "inspectSurface" })
+}
+
+export async function focusChatSession(sessionId: string): Promise<void> {
+  await requestChatSurface("chat", { type: "present", sessionId })
 }

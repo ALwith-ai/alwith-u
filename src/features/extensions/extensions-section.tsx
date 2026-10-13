@@ -9,6 +9,7 @@ import { executePreparedInstall } from "./install-service"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 import { showExtensionLimitations } from "./legacy/limitations"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
+import { updateAndReloadExtension } from "./startup-import-control"
 import { reportExtensionError, useExtensions } from "./runtime"
 
 export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string): void }) {
@@ -60,6 +61,14 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string
             if (!current.errors[request.id])
               showExtensionLimitations(current.native?.installations.find(item => item.id === request.id))
           }
+        })
+      }
+      onReload={id =>
+        run(async () => {
+          const outcome = await updateAndReloadExtension(runtime, id)
+          toast.success(
+            t(outcome === "updated" ? "extensions.updateReloadSuccess" : "extensions.reloadSuccess", { name: id })
+          )
         })
       }
       onUninstall={(id, name) =>

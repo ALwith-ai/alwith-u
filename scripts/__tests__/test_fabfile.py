@@ -325,7 +325,7 @@ class ToolchainTaskTests(unittest.TestCase):
         self.assertIn("Bun version must be an exact X.Y.Z version", stderr.getvalue())
         self.assertNotIn("Traceback", stderr.getvalue())
 
-    def test_rejects_wrong_local_bun_before_changing_manifest(self) -> None:
+    def test_bundled_bun_upgrade_does_not_require_that_bun_locally(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             package = root / "package.json"
@@ -337,10 +337,11 @@ class ToolchainTaskTests(unittest.TestCase):
             with patch("fabfile.ROOT", root), patch("builtins.input", side_effect=["9.8.7", ""]), \
                     patch("fabfile.subprocess.run") as process, patch("fabfile.run") as commands:
                 process.return_value.stdout = "1.4.0\n"
-                with self.assertRaisesRegex(Exit, "Bun 9.8.7"):
-                    toolchain(Context())
-                commands.assert_not_called()
-            self.assertEqual(package.read_text(), original)
+                toolchain(Context())
+                self.assertEqual(commands.call_count, 3)
+            manifest = json.loads(package.read_text())
+            self.assertEqual(manifest["packageManager"], json.loads(original)["packageManager"])
+            self.assertEqual(manifest["optionalDependencies"]["@oven/bun-darwin-aarch64"], "9.8.7")
 
     def test_downloads_missing_versioned_bun_license_before_updating_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -359,7 +360,7 @@ class ToolchainTaskTests(unittest.TestCase):
                     "https://raw.githubusercontent.com/oven-sh/bun/bun-v9.8.7/LICENSE.md", timeout=15
                 )
                 self.assertEqual(commands.call_count, 3)
-            self.assertEqual(json.loads(package.read_text())["packageManager"], "bun@9.8.7")
+            self.assertEqual(json.loads(package.read_text())["optionalDependencies"]["@oven/bun-darwin-aarch64"], "9.8.7")
             self.assertEqual(
                 (root / "src-tauri/resources/licenses/bun-9.8.7.md").read_text(),
                 "Source: https://github.com/oven-sh/bun/blob/bun-v9.8.7/LICENSE.md\n\nBun 9.8.7 license\n",
@@ -404,7 +405,7 @@ class ToolchainTaskTests(unittest.TestCase):
             package = root / "package.json"
             original = (ROOT / "package.json").read_text()
             package.write_text(original)
-            bun_version = json.loads(original)["packageManager"].removeprefix("bun@")
+            bun_version = json.loads(original)["optionalDependencies"]["@oven/bun-darwin-aarch64"]
             licenses = root / "src-tauri/resources/licenses"
             licenses.mkdir(parents=True)
             (licenses / f"bun-{bun_version}.md").write_text("license")
@@ -440,7 +441,7 @@ class ToolchainTaskTests(unittest.TestCase):
                     with self.assertRaisesRegex(Exit, "Dependency install failed"):
                         toolchain(Context())
 
-                self.assertEqual(json.loads(package.read_text())["packageManager"], "bun@9.8.7")
+                self.assertEqual(json.loads(package.read_text())["optionalDependencies"]["@oven/bun-darwin-aarch64"], "9.8.7")
                 self.assertEqual(json.loads(package.read_text())["devDependencies"]["@openai/codex"], "8.7.6")
                 commands.reset_mock(side_effect=True)
                 with patch("builtins.input", side_effect=["", ""]):
@@ -479,7 +480,7 @@ class ToolchainTaskTests(unittest.TestCase):
 
             manifest = json.loads(package.read_text())
             self.assertTrue(changed)
-            self.assertEqual(manifest["packageManager"], "bun@1.4.1")
+            self.assertEqual(manifest["packageManager"], "bun@1.4.0")
             self.assertEqual(manifest["devDependencies"]["@openai/codex"], "0.155.0")
             self.assertEqual(manifest["optionalDependencies"]["@oven/bun-darwin-aarch64"], "1.4.1")
             self.assertEqual(manifest["optionalDependencies"]["@oven/bun-linux-aarch64"], "1.4.1")

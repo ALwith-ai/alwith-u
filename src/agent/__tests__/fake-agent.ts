@@ -44,6 +44,13 @@ type GatewayGroup = { id: string; name: string; models: string[] }
 
 /** Model option as the adapter's catalog mode shapes it: a Codex group plus one group per gateway. */
 function modelOption(current: string, gateways: GatewayGroup[]): acp.SessionConfigOption {
+  const nativeOptions = [{ value: "gpt-5.6-sol", name: "GPT-5.6 Sol" }]
+  // The real adapter preserves unknown current values in the selector as synthetic choices.
+  if (
+    !nativeOptions.some(option => option.value === current) &&
+    !gateways.some(group => group.models.includes(current))
+  )
+    nativeOptions.unshift({ value: current, name: current })
   return {
     configId: "model",
     name: "Model",
@@ -51,7 +58,7 @@ function modelOption(current: string, gateways: GatewayGroup[]): acp.SessionConf
     type: "select",
     currentValue: current,
     options: [
-      { groupId: "chatgpt", name: "ChatGPT", options: [{ value: "gpt-5.6-sol", name: "GPT-5.6 Sol" }] },
+      { groupId: "chatgpt", name: "ChatGPT", options: nativeOptions },
       ...gateways.map(gateway => ({
         groupId: gateway.id,
         name: gateway.name,
@@ -184,6 +191,8 @@ export function createFakeAgent(): FakeAgent {
     await newSessionDelay.current?.(params.cwd)
     const hint = modelHintOf(params)
     const configuredGateway = hint !== null && gatewayGroups().some(group => group.models.includes(hint))
+    if (hint?.startsWith("gateway:") && !configuredGateway && sessionOptions.current === null)
+      throw acp.RequestError.invalidParams({ model: hint }, "The selected provider connection or model is unavailable")
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
     const id = sessionId()
     modelHints.set(id, hint)

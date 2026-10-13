@@ -1,5 +1,5 @@
 import type { DriveController, DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import {
   DriveBadge,
@@ -39,7 +39,7 @@ const controls: DriveControls = {
 function fixture(
   patch: Partial<Snapshot> = {},
   handle?: (request: DriveRequest) => Promise<DriveResponse>
-): { controller: DriveController; requests: DriveRequest[] } {
+): { controller: DriveController; requests: DriveRequest[]; update: (patch: Partial<Snapshot>) => void } {
   const snapshot: Snapshot = {
     version: 1,
     generation: 1,
@@ -57,12 +57,24 @@ function fixture(
     error: null,
     ...patch
   }
-  const state = { connected: true, snapshot, error: null }
+  let state = { connected: true, snapshot, error: null }
+  const listeners = new Set<() => void>()
   const requests: DriveRequest[] = []
   return {
     requests,
+    update: patch => {
+      state = { ...state, snapshot: { ...state.snapshot, ...patch } }
+      listeners.forEach(listener => {
+        listener()
+      })
+    },
     controller: {
-      subscribe: () => () => {},
+      subscribe: listener => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
+      },
       getSnapshot: () => state,
       attach: async () => {},
       refresh: async () => {},
@@ -199,4 +211,143 @@ test("failed mass deletion retains the dialog and never advances to another batc
   expect(screen.getByRole("alert")).toHaveTextContent("Server rejected deletion")
   expect(screen.getByRole("dialog")).toHaveAccessibleName("Delete 12 files from the cloud too?")
   expect(f.requests).toEqual([{ type: "confirmDeletes", projectId: 1 }])
+})
+
+test("status panel uses a state row and disables the sync icon while paused", async () => {
+  const f = fixture({
+    status: {
+      state: { kind: "paused" },
+      pending: 0,
+      uploading: 0,
+      downloading: 0,
+      synced: 1,
+      failed: 0,
+      conflicts: [],
+      errors: [],
+      lastSyncAt: null,
+      pushConnected: false
+    }
+  })
+  render(
+    <DrivePanel {...f} controls={controls} mode="status" onOpenProject={async () => {}} confirm={async () => true} />
+  )
+  expect(screen.getByText("State").tagName).toBe("DT")
+  expect(screen.getByRole("button", { name: "Sync now" })).toBeDisabled()
+  expect(screen.queryByRole("button", { name: "Re-check" })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Resume" }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "pause", paused: false }))
+})
+
+test("status panel exposes conflicts immediately and keeps re-check available for errors", async () => {
+  const reveal = vi.fn(async (_path: string) => {})
+  const f = fixture({
+    status: {
+      state: { kind: "error", message: "Sync unavailable" },
+      pending: 0,
+      uploading: 0,
+      downloading: 0,
+      synced: 1,
+      failed: 0,
+      conflicts: [
+        {
+          projectId: 1,
+          path: "report.md",
+          localPath: "/drive/report.md",
+          conflictCopyPath: "/drive/report.conflict.md",
+          remoteUpdatedBy: null,
+          at: "2026-10-12T06:00:00Z"
+        }
+      ],
+      errors: [],
+      lastSyncAt: null,
+      pushConnected: false
+    }
+  })
+  const host: DriveHost = {
+    readDirectory: async () => [],
+    pathExists: async () => true,
+    onOpenEntry: async () => {},
+    onRevealPath: reveal,
+    onOpenExternal: async () => {}
+  }
+  render(
+    <DrivePanel
+      {...f}
+      host={host}
+      controls={controls}
+      mode="status"
+      onOpenProject={async () => {}}
+      confirm={async () => true}
+    />
+  )
+  expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
+  expect(screen.getByText("report.md", { exact: false })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Reveal" }))
+  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/drive/report.conflict.md"))
+  fireEvent.click(screen.getByRole("button", { name: "Re-check" }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "reconcile", projectId: null }))
+})
+
+async function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
+  switch (request.type) {
+    case "maxAutoDownloadMb":
+      return { type: "maxAutoDownloadMb", data: 20 }
+    case "configuration":
+      return { type: "configuration", data: { deviceId: "device", userName: "Test", userId: "1", clientConfig: null } }
+    case "ownershipGuard":
+      return {
+        type: "ownershipGuard",
+        data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
+      }
+    case "skillMirrors":
+      return { type: "skillMirrors", data: [] }
+    default:
+      throw new Error(`Unexpected request ${request.type}`)
+  }
+}
+
+test("settings load login preferences before runtime and fetch runtime data when it starts", async () => {
+  const f = fixture({ running: false }, settingsResponse)
+  render(
+    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+  )
+  await screen.findByText(/device/)
+  expect(f.requests).toContainEqual({ type: "maxAutoDownloadMb" })
+  expect(f.requests).not.toContainEqual({ type: "ownershipGuard" })
+  expect(f.requests).not.toContainEqual({ type: "skillMirrors" })
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  await act(async () => f.update({ running: true }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "skillMirrors" }))
+  expect(f.requests).toContainEqual({ type: "ownershipGuard" })
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+test("settings clear a runtime load error after a successful restart", async () => {
+  let failed = true
+  const f = fixture({}, async request => {
+    if (failed && request.type === "skillMirrors") throw new Error("Drive is not running")
+    return settingsResponse(request)
+  })
+  render(
+    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+  )
+  expect(await screen.findByRole("alert")).toHaveTextContent("Drive is not running")
+  failed = false
+  await act(async () => f.update({ generation: 2 }))
+  await screen.findByText(/device/)
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument())
+})
+
+test("successful runtime loading does not clear a configuration failure", async () => {
+  const f = fixture({ running: false }, async request => {
+    if (request.type === "configuration") throw new Error("Cannot read configuration")
+    return settingsResponse(request)
+  })
+  render(
+    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+  )
+  expect(await screen.findByRole("alert")).toHaveTextContent("Cannot read configuration")
+  await act(async () => f.update({ running: true }))
+  await waitFor(() => expect(f.requests).toContainEqual({ type: "skillMirrors" }))
+  expect(screen.getByRole("alert")).toHaveTextContent("Cannot read configuration")
 })

@@ -12,11 +12,8 @@ export type Preferences = {
   lastProjectDirectory: string | null
   language: string | null
   zoomLevel: number | null
-  /**
-   * Session id → gateway model id for threads the user moved to DeepSeek. Codex only records
-   * the provider a thread was created with, so a moved thread is resumed with this hint.
-   */
-  sessionModels: Record<string, string>
+  /** Explicit model choices are independent for the main and floating chat slots. */
+  modelSelections: { main: string | null; chat: string | null }
   /** Sounds the user-message navigation rail plays (ALwith Desktop's navigation melody). */
   navigationSoundMode: NavigationSoundMode
   navigationInstrument: NavigationInstrument
@@ -31,7 +28,7 @@ export async function loadPreferences(): Promise<Preferences> {
     lastProjectDirectory,
     language,
     zoomLevel,
-    sessionModels,
+    modelSelections,
     navigationSoundMode,
     navigationInstrument,
     externalEditor,
@@ -40,7 +37,7 @@ export async function loadPreferences(): Promise<Preferences> {
     store.get<string>("lastProjectDirectory"),
     store.get<string>("language"),
     store.get<number>("zoomLevel"),
-    store.get<Record<string, string>>("sessionModels"),
+    store.get<Preferences["modelSelections"]>("modelSelections"),
     store.get<NavigationSoundMode>("navigationSoundMode"),
     store.get<NavigationInstrument>("navigationInstrument"),
     store.get<string>("externalEditor"),
@@ -52,7 +49,7 @@ export async function loadPreferences(): Promise<Preferences> {
     lastProjectDirectory: lastProjectDirectory ?? null,
     language: language ?? null,
     zoomLevel: zoomLevel ?? null,
-    sessionModels: sessionModels ?? {},
+    modelSelections: modelSelections ?? { main: null, chat: null },
     navigationSoundMode: navigationSoundMode ?? "scale",
     navigationInstrument: navigationInstrument ?? "acoustic_grand_piano",
     externalEditor: externalEditor ?? null

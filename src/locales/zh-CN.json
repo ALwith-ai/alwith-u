@@ -782,7 +782,11 @@
       "active": "运行中",
       "deactivating": "正在停止",
       "failed": "运行失败"
-    }
+    },
+    "reload": "重新加载",
+    "reloadHint": "检查此扩展的待安装包；没有新包时重新加载已安装版本。",
+    "reloadSuccess": "{{name}} 已重新加载",
+    "updateReloadSuccess": "{{name}} 已更新并重新加载"
   },
   "workspace": {
     "thumbnails": "页面缩略图",
