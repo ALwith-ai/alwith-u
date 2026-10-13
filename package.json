@@ -33,14 +33,13 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.8.0",
     "@alwith/api": "^0.3.0",
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.4-47717d0166ba.tgz",
-    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.10-e9ef5f598890.tgz",
+    "@alwith/module-auth": "0.1.4",
+    "@alwith/module-chat": "0.1.10",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.19-eeac87c10136.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-c12fe3c522f4.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
-    "@alwith/module-vibemon": "file:vendor/alwith-module-vibemon-0.1.5-ecf45664d066.tgz",
     "@alwith/runtime": "^0.1.9",
     "@base-ui/react": "^1.9.0",
     "@fontsource-variable/inter": "^5.3.0",
@@ -154,7 +153,7 @@
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.19-eeac87c10136.tgz",
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.4-47717d0166ba.tgz",
-    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.10-e9ef5f598890.tgz"
+    "@alwith/module-auth": "0.1.4",
+    "@alwith/module-chat": "0.1.10"
   }
 }
