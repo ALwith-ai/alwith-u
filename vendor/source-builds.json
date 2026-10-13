@@ -10,16 +10,6 @@
     "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files (excluding .alwith runtime data)"
   },
   {
-    "name": "@alwith/module-editor",
-    "file": "vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",
-    "sha256": "62cd712ab2f9561e0a25c8278c99d1a9304d430eb0509c0ae54177654ae36a27",
-    "source": "alwith-modules/packages/editor",
-    "baseCommit": "99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotSha256": "9690da07b91eeeee2bb485fe500058f12914f398ab10f70a2b460222d9c55635",
-    "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
-  },
-  {
     "name": "@alwith/module-vibemon",
     "file": "vendor/alwith-module-vibemon-0.1.5-ecf45664d066.tgz",
     "sha256": "ecf45664d06632d9d45dbdd377c0b87101a83b7843d31f65a6f58ec31180c645",

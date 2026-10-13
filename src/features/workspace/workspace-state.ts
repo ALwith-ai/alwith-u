@@ -1,8 +1,10 @@
+import type { SavedEditorWorkspace } from "@alwith/module-editor"
 import type { FileTreeProps } from "@alwith/module-file-tree"
 import { containsPath } from "@alwith/module-fs"
 
 export type IconTheme = NonNullable<FileTreeProps["iconTheme"]>
 export interface WorkspaceState {
+  tabLayout?: SavedEditorWorkspace
   tabs: { path: string; pinned: boolean }[]
   activePath: string | null
   expanded: string[]
@@ -35,6 +37,27 @@ function decodeState(root: string, raw: string): WorkspaceState {
     !iconThemes.includes(state.iconTheme as IconTheme)
   )
     throw new Error("Invalid workspace preferences")
+  if (state.tabLayout !== undefined) {
+    const layout = state.tabLayout as Partial<SavedEditorWorkspace> | null
+    if (
+      !layout ||
+      !Array.isArray(layout.tabs) ||
+      !layout.tabs.every(
+        tab =>
+          typeof tab === "object" &&
+          tab !== null &&
+          (tab.kind === "new" || (tab.kind === "file" && validPath(tab.path)))
+      ) ||
+      (layout.activeIndex !== null &&
+        (typeof layout.activeIndex !== "number" ||
+          !Number.isInteger(layout.activeIndex) ||
+          layout.activeIndex < 0 ||
+          layout.activeIndex >= layout.tabs.length))
+    )
+      throw new Error("Invalid workspace tab layout")
+    const paths = layout.tabs.filter(tab => tab.kind === "file").map(tab => tab.path)
+    if (new Set(paths).size !== paths.length) throw new Error("Duplicate workspace tabs")
+  }
   return state as unknown as WorkspaceState
 }
 

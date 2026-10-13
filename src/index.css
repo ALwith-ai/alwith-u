@@ -393,8 +393,17 @@ pre,
 .main-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
-.main-sidebar-toggle [data-slot="button"]:hover {
-  background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
+/* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
+:root {
+  --chrome-hover-background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+/* Trigger composition replaces data-slot, but preserves the shadcn button class. */
+.main-sidebar-panel :is([class~="group/button"], .chrome-hover):hover,
+.main-sidebar-toggle [data-slot="button"]:hover,
+.main-workspace-toolbar .file-workspace-toolbar button:hover,
+.main-extension-status button:hover,
+.main-client-version-button:hover {
+  background-color: var(--chrome-hover-background);
 }
 @media (prefers-reduced-motion: reduce) {
   .main-screen-track,

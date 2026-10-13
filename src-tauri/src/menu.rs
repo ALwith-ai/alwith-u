@@ -8,6 +8,9 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
 pub const OPEN_SETTINGS_ID: &str = "open_settings";
 pub const QUIT_ID: &str = "quit";
+pub const NEW_TAB_ID: &str = "new_tab";
+pub const CLOSE_TAB_ID: &str = "close_tab";
+pub const REOPEN_TAB_ID: &str = "reopen_tab";
 pub const NEW_CHAT_ID: &str = "new_chat";
 pub const PROJECT_TREE_ID: &str = "project_tree";
 pub const FIND_IN_CHAT_ID: &str = "find_in_chat";
@@ -24,6 +27,9 @@ pub const ACTUAL_SIZE_ID: &str = "actual_size";
 pub fn event_name(id: &str) -> Option<&'static str> {
     Some(match id {
         OPEN_SETTINGS_ID => <OpenSettings as tauri3_specta::Event>::NAME,
+        NEW_TAB_ID => <NewTab as tauri3_specta::Event>::NAME,
+        CLOSE_TAB_ID => <CloseTab as tauri3_specta::Event>::NAME,
+        REOPEN_TAB_ID => <ReopenTab as tauri3_specta::Event>::NAME,
         NEW_CHAT_ID => <NewChat as tauri3_specta::Event>::NAME,
         PROJECT_TREE_ID => <ProjectTree as tauri3_specta::Event>::NAME,
         FIND_IN_CHAT_ID => <FindInChat as tauri3_specta::Event>::NAME,
@@ -77,7 +83,9 @@ fn t(key: &str, lang: &str) -> &'static str {
         ("zh-CN", "app.showAll") => "全部显示",
         ("zh-CN", "app.quit") => "退出 ALwith U",
         ("zh-CN", "file.newChat") => "新建对话",
-        ("zh-CN", "file.closeWindow") => "关闭窗口",
+        ("zh-CN", "file.newTab") => "新建标签页",
+        ("zh-CN", "file.closeTab") => "关闭标签页",
+        ("zh-CN", "edit.reopenTab") => "重新打开关闭的标签页",
         ("zh-CN", "edit.undo") => "撤销",
         ("zh-CN", "edit.redo") => "重做",
         ("zh-CN", "edit.cut") => "剪切",
@@ -109,7 +117,9 @@ fn t(key: &str, lang: &str) -> &'static str {
         (_, "app.showAll") => "Show All",
         (_, "app.quit") => "Quit ALwith U",
         (_, "file.newChat") => "New Chat",
-        (_, "file.closeWindow") => "Close Window",
+        (_, "file.newTab") => "New Tab",
+        (_, "file.closeTab") => "Close Tab",
+        (_, "edit.reopenTab") => "Reopen Closed Tab",
         (_, "edit.undo") => "Undo",
         (_, "edit.redo") => "Redo",
         (_, "edit.cut") => "Cut",
@@ -159,10 +169,18 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
 
     let new_chat_item =
         MenuItemBuilder::with_id(NEW_CHAT_ID, t("file.newChat", lang)).accelerator("CmdOrCtrl+N").build(app)?;
+    let new_tab_item =
+        MenuItemBuilder::with_id(NEW_TAB_ID, t("file.newTab", lang)).accelerator("CmdOrCtrl+T").build(app)?;
+    let close_tab_item =
+        MenuItemBuilder::with_id(CLOSE_TAB_ID, t("file.closeTab", lang)).accelerator("CmdOrCtrl+W").build(app)?;
+    let reopen_tab_item = MenuItemBuilder::with_id(REOPEN_TAB_ID, t("edit.reopenTab", lang))
+        .accelerator("CmdOrCtrl+Shift+T")
+        .build(app)?;
     let file_submenu = SubmenuBuilder::new(app, t("menu.file", lang))
         .item(&new_chat_item)
+        .item(&new_tab_item)
         .separator()
-        .close_window_with_text(t("file.closeWindow", lang))
+        .item(&close_tab_item)
         .build()?;
 
     let find_item =
@@ -177,6 +195,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
     let edit_submenu = SubmenuBuilder::new(app, t("menu.edit", lang))
         .item(&undo_item)
         .item(&redo_item)
+        .item(&reopen_tab_item)
         .separator()
         .cut_with_text(t("edit.cut", lang))
         .copy_with_text(t("edit.copy", lang))
@@ -273,3 +292,25 @@ pub struct ActualSize;
 #[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
 #[event(name = "menu:project-tree")]
 pub struct ProjectTree;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:new-tab")]
+pub struct NewTab;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:close-tab")]
+pub struct CloseTab;
+
+#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
+#[event(name = "menu:reopen-closed-tab")]
+pub struct ReopenTab;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn editor_menu_events_target_tabs() {
+        assert_eq!(super::event_name(super::NEW_TAB_ID), Some("menu:new-tab"));
+        assert_eq!(super::event_name(super::CLOSE_TAB_ID), Some("menu:close-tab"));
+        assert_eq!(super::event_name(super::REOPEN_TAB_ID), Some("menu:reopen-closed-tab"));
+    }
+}

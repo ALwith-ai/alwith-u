@@ -11,9 +11,10 @@ import { DriveBadge, useDrive } from "@alwith/module-drive/react"
 import {
   type CloseDecision,
   createEditorController,
+  createEditorWorkspace,
+  type EditorWorkspaceController,
   type EditorController,
   type EditorLabels,
-  EditorWorkbench,
   ImagePreview
 } from "@alwith/module-editor"
 import {
@@ -44,9 +45,8 @@ import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
-import { FolderTree, Maximize2, Minimize2 } from "lucide-react"
+import { FolderTree } from "lucide-react"
 import {
-  type CSSProperties,
   lazy,
   type ReactNode,
   Suspense,
@@ -67,6 +67,9 @@ import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
 import { useHostDialog } from "./host-dialog"
 import { WorkspaceButton } from "./workspace-button"
+import { WorkspacePanels } from "./workspace-panels"
+import { PreviewSurface } from "./preview-surface"
+import { WorkspaceEditor } from "./workspace-editor"
 import "./workspace.css"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
 import { createHtmlPreviewHost } from "./html-preview"
@@ -86,6 +89,7 @@ interface Workspace {
   fs: FileSystem
   tree: FileTreeController
   editor: EditorController
+  tabs: EditorWorkspaceController
   treeOpener: ReturnType<typeof createTreeOpener>
   stopWatching: () => void
   stopDirty: () => void
@@ -148,15 +152,18 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
   const headerTarget = useContext(WorkspaceHeaderContext)
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
-    [viewMode, setViewMode] = useState(false),
-    [width, setWidth] = useState(58)
+    [viewMode, setViewMode] = useState(false)
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [navigation, setNavigation] = useState<{ path: string; position: FilePosition } | null>(null)
   const editorSnapshot = useSyncExternalStore(
     workspace ? workspace.editor.subscribe : noEditorSubscription,
     workspace ? workspace.editor.getSnapshot : emptyEditorSnapshot
   )
-  const activeDocument = editorSnapshot?.documents.find(document => document.id === editorSnapshot.activeId)
+  const tabSnapshot = useSyncExternalStore(
+    workspace ? workspace.tabs.subscribe : noEditorSubscription,
+    workspace ? workspace.tabs.getSnapshot : emptyEditorSnapshot
+  )
+  const activeDocument = editorSnapshot?.documents.find(document => document.id === tabSnapshot?.activeId)
   const activeCollaborationOwner = useCollaborationOwner(activeDocument?.path)
   const driveState = useDrive(drive).snapshot
   const driveRoot = activeDocument && driveState?.roots.find(root => containsPath(root.localPath, activeDocument.path))
@@ -226,7 +233,6 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
       })
     ]
   }, [workspace, t, contentHost])
-  const container = useRef<HTMLDivElement>(null)
   const reportedDirty = useRef(false)
   const requestGeneration = useRef(0),
     currentCwd = useRef(cwd)
@@ -379,21 +385,26 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
             void invoke("workspace_dirty", { dirty }).catch(report)
           }
         })
+        const tabs = createEditorWorkspace(editor, saved?.tabLayout)
         const created: Workspace = {
           root,
           fs,
           editor,
+          tabs,
           tree,
           stopWatching,
           stopDirty,
           stopState: () => {},
           iconTheme: saved?.iconTheme ?? "vscode-icons",
-          treeOpener: createTreeOpener(editor, path =>
-            prepareWorkspaceFile(path, {
-              readFile: async target =>
-                (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
-              openTarget: target => routeDriveTarget.current(target)
-            })
+          treeOpener: createTreeOpener(
+            editor,
+            path =>
+              prepareWorkspaceFile(path, {
+                readFile: async target =>
+                  (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
+                openTarget: target => routeDriveTarget.current(target)
+              }),
+            tabs
           )
         }
         let serialized = ""
@@ -406,7 +417,8 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
             expanded,
             showHidden: treeSnapshot.showHidden,
             showIgnored: treeSnapshot.showIgnored,
-            iconTheme: created.iconTheme
+            iconTheme: created.iconTheme,
+            tabLayout: created.tabs.serialize()
           }
           const next = JSON.stringify(state)
           if (next === serialized) return
@@ -417,10 +429,12 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
           })
         }
         const stopEditorState = editor.subscribe(persistState),
-          stopTreeState = tree.subscribe(persistState)
+          stopTreeState = tree.subscribe(persistState),
+          stopTabState = created.tabs.subscribe(persistState)
         created.stopState = () => {
           stopEditorState()
           stopTreeState()
+          stopTabState()
         }
         persistState()
         workspaces.current.set(requested, created)
@@ -470,8 +484,10 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
   const openDriveLink = useCallback((path: string): Promise<void> => routeDriveTarget.current(path), [])
   useDriveDeepLinks(openDriveLink)
   const toggle = useCallback((): void => {
-    if (visible) {
+    if (visible && !viewMode) {
       setVisible(false)
+      setViewMode(false)
+    } else if (visible) {
       setViewMode(false)
     } else {
       const generation = ++requestGeneration.current,
@@ -480,11 +496,12 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
         .then(value => {
           if (generation !== requestGeneration.current || owner !== currentCwd.current) return
           setWorkspace(value)
+          setViewMode(false)
           setVisible(true)
         })
         .catch(report)
     }
-  }, [cwd, ensure, visible])
+  }, [cwd, ensure, visible, viewMode])
   const showProjectTree = useCallback((): void => {
     const generation = ++requestGeneration.current,
       owner = cwd
@@ -614,6 +631,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
         value.stopState()
         value.treeOpener.dispose()
         value.tree.dispose()
+        value.tabs.dispose()
         value.editor.dispose()
       }
       if (instances.length)
@@ -652,6 +670,66 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
       void listener.then(stop => stop()).catch(report)
     }
   }, [workspace, visible])
+  useEffect(() => {
+    let disposed = false
+    const newTab = (): void => {
+      if (document.querySelector('[role="dialog"]')) return
+      const generation = ++requestGeneration.current
+      const owner = cwd
+      void ensure(cwd)
+        .then(target => {
+          if (disposed || generation !== requestGeneration.current || owner !== currentCwd.current) return
+          if (
+            target === workspace ||
+            target.tabs.getSnapshot().tabs.length !== 1 ||
+            target.tabs.getSnapshot().tabs[0].kind !== "new"
+          )
+            target.tabs.openNewTab()
+          setWorkspace(target)
+          setVisible(true)
+        })
+        .catch(report)
+    }
+    const closeTab = (): void => {
+      if (!workspace || document.querySelector('[role="dialog"]')) return
+      const id = workspace.tabs.getSnapshot().activeId
+      if (id !== null) void workspace.tabs.requestClose(id).catch(report)
+    }
+    const reopenTab = (): void => {
+      if (!workspace || document.querySelector('[role="dialog"]')) return
+      void workspace.tabs
+        .reopenClosed()
+        .then(() => {
+          if (!disposed) setVisible(true)
+        })
+        .catch(report)
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented || event.altKey || !(event.metaKey || event.ctrlKey)) return
+      const key = event.key.toLowerCase()
+      if (key === "t") {
+        event.preventDefault()
+        if (event.shiftKey) reopenTab()
+        else newTab()
+      } else if (key === "w" && !event.shiftKey && visible) {
+        event.preventDefault()
+        closeTab()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    const subscriptions = isTauri()
+      ? [
+          getCurrentWindow().listen("menu:new-tab", newTab),
+          getCurrentWindow().listen("menu:close-tab", closeTab),
+          getCurrentWindow().listen("menu:reopen-closed-tab", reopenTab)
+        ]
+      : []
+    return () => {
+      disposed = true
+      window.removeEventListener("keydown", onKeyDown)
+      for (const subscription of subscriptions) void subscription.then(stop => stop()).catch(report)
+    }
+  }, [cwd, ensure, visible, workspace])
   const revealEntry = useCallback(
     async (path: string, root: string): Promise<void> => {
       const target = await ensure(root)
@@ -664,8 +742,8 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
     [ensure]
   )
   const context = useMemo(
-    () => ({ visible, toggle, openFile, openProject, revealEntry }),
-    [visible, toggle, openFile, openProject, revealEntry]
+    () => ({ visible, viewMode, toggle, openFile, openProject, revealEntry }),
+    [visible, viewMode, toggle, openFile, openProject, revealEntry]
   )
   const treeLabels: FileTreeLabels = {
     files: t("workspace.files"),
@@ -718,222 +796,197 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
                 setCondenseScope(scope)
               }}
             />
-            {visible && workspace && (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="workspace-sidebar-toggle workspace-view-toggle"
-                aria-label={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                title={t(viewMode ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                aria-pressed={viewMode}
-                onClick={() => setViewMode(value => !value)}>
-                {viewMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
-              </Button>
-            )}
             <WorkspaceButton />
           </div>,
           headerTarget
         )}
-      <div
-        ref={container}
-        className="file-workspace-layout"
-        data-open={visible}
-        data-view-mode={visible && workspace !== null && viewMode}>
-        <div className="file-workspace-chat">{children}</div>
-        {visible && workspace && (
-          <>
-            <hr
-              tabIndex={0}
-              aria-label={t("workspace.resize")}
-              aria-orientation="vertical"
-              aria-valuenow={width}
-              aria-valuemin={30}
-              aria-valuemax={80}
-              className="file-workspace-resize"
-              onKeyDown={event => {
-                if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                  event.preventDefault()
-                  setWidth(value => Math.min(80, Math.max(30, value + (event.key === "ArrowLeft" ? 2 : -2))))
-                }
+      <WorkspacePanels
+        visible={visible && workspace !== null}
+        maximized={visible && workspace !== null && viewMode}
+        onMaximizedChange={setViewMode}
+        onVisibleChange={next => {
+          setVisible(next)
+          if (!next) setViewMode(false)
+        }}
+        chat={children}
+        preview={
+          workspace && (
+            <PreviewSurface
+              treeVisible={treeVisible}
+              onTreeVisibleChange={setTreeVisible}
+              maximized={viewMode}
+              onMaximize={() => setViewMode(value => !value)}
+              onClose={() => {
+                setVisible(false)
+                setViewMode(false)
               }}
-              onPointerDown={event => event.currentTarget.setPointerCapture(event.pointerId)}
-              onPointerMove={event => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId) && container.current) {
-                  const bounds = container.current.getBoundingClientRect()
-                  setWidth(Math.min(80, Math.max(30, ((bounds.right - event.clientX) / bounds.width) * 100)))
-                }
-              }}
-              onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}
-            />
-            <aside
-              id="file-workspace-panel"
-              className="file-workspace-panel"
-              style={{ "--workspace-width": `${width}%` } as CSSProperties}
-              aria-label={t("workspace.files")}>
-              <div className="flex min-h-0 flex-1">
-                <div className="min-w-0 flex-1">
-                  <DriveDocumentSurface host={contentHost} path={activeDocument?.path ?? null}>
-                    <ChatDirectoryContext.Provider value={workspace.root}>
-                      <EditorWorkbench
-                        readOnly={driveReadOnly}
-                        sourceReadOnly={driveFile?.state === "collab" || activeCollaborationOwner !== undefined}
-                        controller={workspace.editor}
-                        labels={editorLabels}
-                        compactToolbar
-                        rootPath={workspace.root}
-                        onRevealPath={path => workspace.tree.reveal(path)}
-                        onReveal={document => revealItemsInDir(document.path)}
-                        onCopyPath={document => navigator.clipboard.writeText(document.path)}
-                        tabLabels={{
-                          closeOthers: t("workspace.closeOthers"),
-                          closeRight: t("workspace.closeRight"),
-                          closeSaved: t("workspace.closeSaved"),
-                          closeAll: t("workspace.closeAll"),
-                          copyPath: t("workspace.copyPath"),
-                          reveal: t("workspace.reveal")
+              tree={
+                <FileTree
+                  controller={workspace.tree}
+                  collapsed={!treeVisible}
+                  explorerControl={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="workspace-explorer-toggle"
+                      aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
+                      title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
+                      aria-expanded={treeVisible}
+                      onClick={() => setTreeVisible(value => !value)}>
+                      <FolderTree />
+                    </Button>
+                  }
+                  isDark={resolvedTheme === "dark"}
+                  iconTheme={iconTheme ?? workspace.iconTheme}
+                  activePath={activeDocument ? activeDocument.path : null}
+                  labels={treeLabels}
+                  onError={report}
+                  onOpenFile={path => workspace.treeOpener.open(path)}
+                  renderActions={paths => {
+                    const path = paths[0]
+                    return paths.length === 1 &&
+                      path !== undefined &&
+                      driveState?.running &&
+                      driveState.roots.some(root => containsPath(root.localPath, path)) ? (
+                      <DriveTreeActions
+                        path={path}
+                        isDirectory={workspace.tree
+                          .getSnapshot()
+                          .rows.some(row => row.path === path && row.kind === "directory")}
+                        onSharing={setSharingPath}
+                        onCondense={scope => {
+                          setCondenseJob(undefined)
+                          setCondenseScope(scope)
                         }}
-                        actionsLabel={t("workspace.more")}
-                        onError={report}
-                        onOpenExternal={document => openExternal(document.path)}
-                        previews={previews}
-                        requestSaveAs={async document =>
-                          ask({
-                            title: t("workspace.saveAs"),
-                            detail: workspace.root,
-                            initial: document.path,
-                            choices: [{ label: t("workspace.save"), value: "save" }]
-                          })
-                        }
-                        renderTextEditor={props => (
-                          <Suspense
-                            fallback={
-                              <div className="text-muted-foreground p-6 text-sm">{t("workspace.loading")}</div>
-                            }>
-                            <CodeEditor
-                              {...props}
-                              controller={workspace.editor}
-                              settings={settings}
-                              onError={report}
-                              position={navigation?.path === props.document.path ? navigation.position : undefined}
-                            />
-                          </Suspense>
-                        )}
+                        onMove={(path, kind) => setMoveTarget({ path, kind })}
+                        saveDocument={saveDriveDocument}
                       />
-                    </ChatDirectoryContext.Provider>
-                  </DriveDocumentSurface>
-                </div>
-                <div className="file-workspace-tree" data-collapsed={!treeVisible}>
-                  <FileTree
-                    controller={workspace.tree}
-                    collapsed={!treeVisible}
-                    explorerControl={
-                      <Button
-                        className="workspace-explorer-toggle"
-                        aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                        title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                        aria-expanded={treeVisible}
-                        onClick={() => setTreeVisible(value => !value)}>
-                        <FolderTree />
-                      </Button>
-                    }
-                    isDark={resolvedTheme === "dark"}
-                    iconTheme={iconTheme ?? workspace.iconTheme}
-                    activePath={activeDocument ? activeDocument.path : null}
-                    labels={treeLabels}
-                    onError={report}
-                    onOpenFile={path => workspace.treeOpener.open(path)}
-                    renderActions={paths => {
-                      const path = paths[0]
-                      return paths.length === 1 &&
-                        path !== undefined &&
-                        driveState?.running &&
-                        driveState.roots.some(root => containsPath(root.localPath, path)) ? (
-                        <DriveTreeActions
-                          path={path}
-                          isDirectory={workspace.tree
-                            .getSnapshot()
-                            .rows.some(row => row.path === path && row.kind === "directory")}
-                          onSharing={setSharingPath}
-                          onCondense={scope => {
-                            setCondenseJob(undefined)
-                            setCondenseScope(scope)
-                          }}
-                          onMove={(path, kind) => setMoveTarget({ path, kind })}
-                          saveDocument={saveDriveDocument}
-                        />
-                      ) : null
-                    }}
-                    renderDecoration={row => (
-                      <DriveBadge
-                        controller={drive}
-                        path={row.path}
-                        isDirectory={row.kind === "directory"}
-                        locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
-                      />
-                    )}
-                    onPinFile={path => workspace.treeOpener.open(path, true)}
-                    onOpenExternal={openExternal}
-                    onReveal={path => revealItemsInDir(path)}
-                    onCopyPath={path => navigator.clipboard.writeText(path)}
-                    onMove={async paths => {
-                      setMoveSources({ owner: workspace, paths })
-                    }}
-                    onImport={async (destination, directory) => {
-                      const paths = await openDialog({
-                        directory,
-                        multiple: true,
-                        title: t(directory ? "workspace.importFolder" : "workspace.importFiles")
-                      })
-                      if (paths === null) return
-                      await invoke("workspace_import", { root: workspace.root, destination, paths })
-                      await workspace.tree.refresh()
-                    }}
-                    explorerLabels={{
-                      explorer: t("workspace.explorer"),
-                      search: t("workspace.search"),
-                      collapse: t("workspace.collapse"),
-                      more: t("workspace.more"),
-                      ignored: t("workspace.ignored"),
-                      newMarkdown: t("workspace.newMarkdown"),
-                      copyPath: t("workspace.copyPath"),
-                      copyRelativePath: t("workspace.copyRelativePath"),
-                      moveTo: t("workspace.moveTo"),
-                      reveal: t("workspace.reveal"),
-                      importFiles: t("workspace.importFiles"),
-                      importFolder: t("workspace.importFolder"),
-                      open: t("workspace.open"),
-                      closeSearch: t("workspace.closeSearch"),
-                      previousMatch: t("workspace.previousMatch"),
-                      nextMatch: t("workspace.nextMatch")
-                    }}
-                    requestName={(action, current) =>
-                      ask({
-                        title: t(
-                          action === "rename"
-                            ? "workspace.rename"
-                            : action === "file"
-                              ? "workspace.newFile"
-                              : "workspace.newFolder"
-                        ),
-                        detail: workspace.root,
-                        initial: current,
-                        choices: [{ label: t("workspace.confirm"), value: "confirm" }]
-                      })
-                    }
-                    confirmDelete={async paths =>
-                      (await ask({
-                        title: t("workspace.remove"),
-                        detail: paths.join("\n"),
-                        choices: [{ label: t("workspace.remove"), value: "delete" }]
-                      })) === "delete"
-                    }
-                  />
-                </div>
-              </div>
-            </aside>
-          </>
-        )}
-      </div>
+                    ) : null
+                  }}
+                  renderDecoration={row => (
+                    <DriveBadge
+                      controller={drive}
+                      path={row.path}
+                      isDirectory={row.kind === "directory"}
+                      locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
+                    />
+                  )}
+                  onPinFile={path => workspace.treeOpener.open(path, true)}
+                  onOpenExternal={openExternal}
+                  onReveal={path => revealItemsInDir(path)}
+                  onCopyPath={path => navigator.clipboard.writeText(path)}
+                  onMove={async paths => {
+                    setMoveSources({ owner: workspace, paths })
+                  }}
+                  onImport={async (destination, directory) => {
+                    const paths = await openDialog({
+                      directory,
+                      multiple: true,
+                      title: t(directory ? "workspace.importFolder" : "workspace.importFiles")
+                    })
+                    if (paths === null) return
+                    await invoke("workspace_import", { root: workspace.root, destination, paths })
+                    await workspace.tree.refresh()
+                  }}
+                  explorerLabels={{
+                    explorer: t("workspace.explorer"),
+                    search: t("workspace.search"),
+                    collapse: t("workspace.collapse"),
+                    more: t("workspace.more"),
+                    ignored: t("workspace.ignored"),
+                    newMarkdown: t("workspace.newMarkdown"),
+                    copyPath: t("workspace.copyPath"),
+                    copyRelativePath: t("workspace.copyRelativePath"),
+                    moveTo: t("workspace.moveTo"),
+                    reveal: t("workspace.reveal"),
+                    importFiles: t("workspace.importFiles"),
+                    importFolder: t("workspace.importFolder"),
+                    open: t("workspace.open"),
+                    closeSearch: t("workspace.closeSearch"),
+                    previousMatch: t("workspace.previousMatch"),
+                    nextMatch: t("workspace.nextMatch")
+                  }}
+                  requestName={(action, current) =>
+                    ask({
+                      title: t(
+                        action === "rename"
+                          ? "workspace.rename"
+                          : action === "file"
+                            ? "workspace.newFile"
+                            : "workspace.newFolder"
+                      ),
+                      detail: workspace.root,
+                      initial: current,
+                      choices: [{ label: t("workspace.confirm"), value: "confirm" }]
+                    })
+                  }
+                  confirmDelete={async paths =>
+                    (await ask({
+                      title: t("workspace.remove"),
+                      detail: paths.join("\n"),
+                      choices: [{ label: t("workspace.remove"), value: "delete" }]
+                    })) === "delete"
+                  }
+                />
+              }
+              editor={({ leading, trailing }) => (
+                <DriveDocumentSurface host={contentHost} path={activeDocument?.path ?? null}>
+                  <ChatDirectoryContext.Provider value={workspace.root}>
+                    <WorkspaceEditor
+                      tabs={workspace.tabs}
+                      leading={leading}
+                      trailing={trailing}
+                      iconTheme={iconTheme ?? workspace.iconTheme}
+                      isDark={resolvedTheme === "dark"}
+                      readOnly={driveReadOnly}
+                      sourceReadOnly={driveFile?.state === "collab" || activeCollaborationOwner !== undefined}
+                      controller={workspace.editor}
+                      labels={editorLabels}
+                      compactToolbar
+                      rootPath={workspace.root}
+                      onRevealPath={path => workspace.tree.reveal(path)}
+                      onReveal={document => revealItemsInDir(document.path)}
+                      onCopyPath={document => navigator.clipboard.writeText(document.path)}
+                      tabLabels={{
+                        closeOthers: t("workspace.closeOthers"),
+                        closeRight: t("workspace.closeRight"),
+                        closeSaved: t("workspace.closeSaved"),
+                        closeAll: t("workspace.closeAll"),
+                        copyPath: t("workspace.copyPath"),
+                        reveal: t("workspace.reveal")
+                      }}
+                      actionsLabel={t("workspace.more")}
+                      onError={report}
+                      onOpenExternal={document => openExternal(document.path)}
+                      previews={previews}
+                      requestSaveAs={async document =>
+                        ask({
+                          title: t("workspace.saveAs"),
+                          detail: workspace.root,
+                          initial: document.path,
+                          choices: [{ label: t("workspace.save"), value: "save" }]
+                        })
+                      }
+                      renderTextEditor={props => (
+                        <Suspense
+                          fallback={<div className="text-muted-foreground p-6 text-sm">{t("workspace.loading")}</div>}>
+                          <CodeEditor
+                            {...props}
+                            controller={workspace.editor}
+                            settings={settings}
+                            onError={report}
+                            position={navigation?.path === props.document.path ? navigation.position : undefined}
+                          />
+                        </Suspense>
+                      )}
+                    />
+                  </ChatDirectoryContext.Provider>
+                </DriveDocumentSurface>
+              )}
+            />
+          )
+        }
+      />
       {moveSources && (
         <MoveToDialog
           sources={moveSources.paths}

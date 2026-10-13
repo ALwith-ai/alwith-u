@@ -790,6 +790,9 @@
     "updateReloadSuccess": "{{name}} 已更新并重新加载"
   },
   "workspace": {
+    "closePreview": "关闭预览",
+    "previousPane": "上一个浮板",
+    "nextPane": "下一个浮板",
     "thumbnails": "页面缩略图",
     "imageFailed": "无法显示此图片",
     "zoomIn": "放大",
@@ -837,8 +840,8 @@
     "previousMatch": "上一个匹配",
     "nextMatch": "下一个匹配",
     "openWorkspace": "打开预览区",
-    "enterViewMode": "进入视图模式",
-    "exitViewMode": "退出视图模式",
+    "enterViewMode": "最大化",
+    "exitViewMode": "还原",
     "files": "文件",
     "filter": "筛选已加载的文件",
     "empty": "没有文件",
@@ -886,7 +889,12 @@
     "moveCrossProjectWarning": "跨库移动：将作为新文件上传到目标库，历史版本与评论保留在原库（可从原库回收站找回）",
     "expandFolder": "展开文件夹",
     "collapseFolder": "收起文件夹",
-    "moveToUnsyncedWarning": "这个库还没同步到本机：移动在云端完成（历史版本与评论跟着走），本地这一份会在下一轮同步后消失"
+    "moveToUnsyncedWarning": "这个库还没同步到本机：移动在云端完成（历史版本与评论跟着走），本地这一份会在下一轮同步后消失",
+    "newTab": "新标签页",
+    "emptyNewTab": "新建标签页",
+    "emptyOpenSettings": "打开\"设置\"",
+    "tutorialTitle": "了解 ALwith U",
+    "tutorialLink": "ALwith U 指南"
   },
   "pet": {
     "enable": "开启 Vibemon",

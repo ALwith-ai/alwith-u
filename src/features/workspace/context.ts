@@ -6,6 +6,7 @@ export interface FilePosition {
 
 export interface WorkspaceActions {
   visible: boolean
+  viewMode?: boolean
   toggle(): void
   openFile(path: string, root: string | null, position?: FilePosition): Promise<void>
   openProject(path: string): Promise<void>

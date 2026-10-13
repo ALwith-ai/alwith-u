@@ -1,0 +1,20 @@
+[23:03:09.582] [INFO] storybook v10.6.2
+[23:03:10.211] [DEBUG] Getting package.json info for /Users/finture/projects/alwith/alwith-u/package.json...
+[23:03:10.386] [DEBUG] Could not determine @babel/preset-env version in use. In case of runtime errors with @babel/preset-env, you may need to set the babelRemoveBugfixes feature flag in your `main.ts` file.
+[23:03:10.733] [INFO] Starting...
+[23:03:11.008] [DEBUG] Starting preview..
+[23:03:11.144] [INFO] Vite Re-optimizing dependencies because lockfile has changed
+[23:03:11.829] [DEBUG] Change detection enabled.
+[23:03:11.831] [DEBUG] Change detection: snapshotting Vite resolve config (restart required if vite.config.ts changes)
+[23:03:11.831] [DEBUG] Change detection: ignored 12 regex alias(es); related modules tracked as opaque-leaf.
+[23:03:11.831] [DEBUG] ChangeDetectionResolverFactory: skipped regex aliases [/^@storybook\/global$/, /^storybook\/test$/, /^storybook\/actions$/, /^storybook\/preview-api$/, /^storybook\/internal\/channels$/, /^storybook\/internal\/client-logger$/, /^storybook\/internal\/core-events$/, /^storybook\/internal\/preview-errors$/, /^storybook\/internal\/types$/, /^storybook\/internal\/preview-api$/, /^\/?@vite\/env/, /^\/?@vite\/client/]
+[23:03:11.849] [ERROR] [38;2;241;97;97mError: Failed to start server. Is port 6008 in use?[39m
+    at serve (unknown)
+    at <anonymous> (node:_http_server:412:35)
+    at <anonymous> (node:_http_server:385:33)
+    at listen (./node_modules/storybook/dist/core-server/index.js:7808:110)
+    at <anonymous> (./node_modules/storybook/dist/core-server/index.js:8603:39)
+    at new Promise (native:1:11)
+    at storybookDevServer (./node_modules/storybook/dist/core-server/index.js:8602:23)
+[23:03:11.850] [WARN] Broken build, fix the error above.
+You may need to refresh the browser.

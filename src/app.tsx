@@ -602,7 +602,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             </SidebarInset>
           }
           main={
-            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+            <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
                 <FileWorkspace cwd={session?.cwd ?? lastDirectory}>

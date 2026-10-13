@@ -790,6 +790,9 @@
     "updateReloadSuccess": "{{name}} updated and reloaded"
   },
   "workspace": {
+    "closePreview": "Close preview",
+    "previousPane": "Previous pane",
+    "nextPane": "Next pane",
     "thumbnails": "Page thumbnails",
     "imageFailed": "Unable to display this image",
     "zoomIn": "Zoom in",
@@ -837,8 +840,8 @@
     "previousMatch": "Previous match",
     "nextMatch": "Next match",
     "openWorkspace": "Open preview area",
-    "enterViewMode": "Enter view mode",
-    "exitViewMode": "Exit view mode",
+    "enterViewMode": "Maximize",
+    "exitViewMode": "Restore",
     "files": "Files",
     "filter": "Filter loaded files",
     "empty": "No files",
@@ -886,7 +889,12 @@
     "moveCrossProjectWarning": "Moving across libraries uploads this as a new file in the destination; version history and comments stay in the original library (recoverable from its trash)",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
-    "moveToUnsyncedWarning": "This library is not synced to this computer: the move happens in the cloud (version history and comments come along), and the local copy disappears once sync catches up"
+    "moveToUnsyncedWarning": "This library is not synced to this computer: the move happens in the cloud (version history and comments come along), and the local copy disappears once sync catches up",
+    "newTab": "New tab",
+    "emptyNewTab": "New tab",
+    "emptyOpenSettings": "Open Settings",
+    "tutorialTitle": "Discover ALwith U",
+    "tutorialLink": "ALwith U Guide"
   },
   "pet": {
     "enable": "Enable Vibemon",
