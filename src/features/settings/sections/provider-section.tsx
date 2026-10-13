@@ -326,7 +326,12 @@ function ProviderActions({
       {onTest && <p className="text-muted-foreground text-xs leading-relaxed">{t("provider.testDescription")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {onRemove && (
-          <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={busy} onClick={onRemove}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={busy}
+            onClick={onRemove}>
             {t("provider.remove")}
           </Button>
         )}
