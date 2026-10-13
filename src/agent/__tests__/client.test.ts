@@ -1185,3 +1185,27 @@ test("hosts without macOS aliases preserve distinct private and non-private dire
   expect(client.state.threads.map(thread => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
   expect((await client.listProjectThreads("/var/project")).map(thread => thread.sessionId)).toEqual(["one"])
 })
+
+test("plugin enablement uses the adapter extension with an explicit plugin ID", async () => {
+  const requests: unknown[] = []
+  const { client } = await make(fake =>
+    fake.app.onRequest(
+      "_codex/plugin_set_enabled",
+      value => value as { pluginId: string; enabled: boolean },
+      ({ params }) => {
+        requests.push(params)
+        return { enabled: params.enabled }
+      }
+    )
+  )
+  expect(await client.setPluginEnabled("example@market", false)).toEqual({ enabled: false })
+  expect(requests).toEqual([{ pluginId: "example@market", enabled: false }])
+  expect(await client.setPluginEnabled("supabase@openai-curated-remote", false, "plugin_supabase")).toEqual({
+    enabled: false
+  })
+  expect(requests.at(-1)).toEqual({
+    pluginId: "supabase@openai-curated-remote",
+    enabled: false,
+    remotePluginId: "plugin_supabase"
+  })
+})

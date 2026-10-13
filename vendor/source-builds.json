@@ -38,5 +38,15 @@
     "sourceSnapshotSha256": "4a5a86ad534e5b3939a508e9a6b261c76e8dfdeb6abf9d090a2975bff7921e5c",
     "sourceState": "uncommitted local changes on the base commit",
     "sourceSnapshotFormat": "SHA256 of compact JSON [repository-relative path, file SHA256] entries sorted by path: src, assets, licenses, package.json, tsconfig.json, README.md, LICENSE and THIRD_PARTY_NOTICES.md"
+  },
+  {
+    "name": "@nyssance/codex-acp-v2",
+    "file": "vendor/codex-acp-v2-0.7.11-alwith.2-ce1572ce0cae.tgz",
+    "sha256": "ce1572ce0caed18ee6be64472f804943c7b724d9f69adf3aa7049cb41ee7821b",
+    "source": "codex-acp-v2",
+    "baseCommit": "7ea6e9e4a62661c3311567167da27ca62ccac629",
+    "sourceSnapshotSha256": "c56ef5bb9c6ed3dab1dc23ecac25171717ff25db2ce2685949649c5f3c66c252",
+    "sourceState": "Uncommitted plugin enablement extension; reproducible changes in vendor/codex-acp-v2-plugin-enablement.patch",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries sorted by path: package.json, docs/protocol.md and src files"
   }
 ]

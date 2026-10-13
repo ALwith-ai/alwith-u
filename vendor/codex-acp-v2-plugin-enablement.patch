@@ -1,0 +1,339 @@
+diff --git a/docs/protocol.md b/docs/protocol.md
+index d106ddb..38fb0e2 100644
+--- a/docs/protocol.md
++++ b/docs/protocol.md
+@@ -332,6 +332,7 @@ Advertised as `capabilities._meta.codex.skills: true` and `capabilities._meta.co
+ | `_codex/plugin_installed` | `plugin/installed` | `PluginInstalledParams` → `PluginInstalledResponse` |
+ | `_codex/plugin_install` | `plugin/install` | `PluginInstallParams` → `PluginInstallResponse` |
+ | `_codex/plugin_uninstall` | `plugin/uninstall` | `PluginUninstallParams` → `{}` |
++| `_codex/plugin_set_enabled` | Local: `config/value/write`; remote: plugin-service and `plugin/reconcile` | `{pluginId: string, enabled: boolean, remotePluginId?: string}` → `{enabled: boolean}` |
+ | `_codex/plugin_read` | `plugin/read` | `PluginReadParams` → `PluginReadResponse` |
+ | `_codex/marketplace_add` | `marketplace/add` | `MarketplaceAddParams` → `MarketplaceAddResponse` |
+ | `_codex/marketplace_remove` | `marketplace/remove` | `MarketplaceRemoveParams` → `{}` |
+@@ -339,7 +340,7 @@ Advertised as `capabilities._meta.codex.skills: true` and `capabilities._meta.co
+ 
+ The agent sends the `_codex/skills_changed` notification (params `{}`) whenever Codex
+ emits `skills/changed`, and after each successful `_codex/skills_config_write`,
+-`_codex/plugin_install`, `_codex/plugin_uninstall` and `_codex/marketplace_*` request.
++`_codex/plugin_install`, `_codex/plugin_uninstall`, `_codex/plugin_set_enabled` and `_codex/marketplace_*` request.
+ Plugins ship skills, so one signal covers both catalogs; a host refetches on it.
+ The adapter's own skill snapshot and `available_commands_update` handling is unchanged.
+ 
+@@ -781,3 +782,17 @@ in the same turn, live updates and full-turn history omit the duplicate exit mes
+ Review exits are buffered until the terminal drain to cover either native event order.
+ A standalone or different review result remains visible. Item-level history retains
+ its per-item projection because the matching answer may be outside the requested page.
++
++### Plugin enablement
++
++`capabilities._meta.codex.pluginEnable: true` advertises `_codex/plugin_set_enabled`.
++For local plugins the adapter upserts only the requested plugin's `enabled` field
++through Codex's config API. For remote plugins clients must also pass the catalog's
++`remotePluginId`. The adapter calls ChatGPT plugin-service's enable/disable endpoint
++using credentials supplied by Codex, then calls `plugin/reconcile` and verifies
++the installed catalog. Remote state overrides local config in Codex. Credentials
++never cross the ACP boundary. It rejects malformed inputs and reports an
++error if a higher-priority configuration overrides a local write. It emits
++`_codex/skills_changed` after a saved change so clients can reload the effective catalog.
++Remote plugin read/install requests should pass the catalog's `remotePluginId`
++as `pluginName` when present; generated app aliases are not remote service IDs.
+diff --git a/package.json b/package.json
+index 07cdd3e..bc7378c 100644
+--- a/package.json
++++ b/package.json
+@@ -3,7 +3,7 @@
+   "publishConfig": {
+     "access": "public"
+   },
+-  "version": "0.7.11",
++  "version": "0.7.11-alwith.2",
+   "description": "Native ACP v2 agent for the OpenAI Codex app-server",
+   "packageManager": "bun@1.4.0",
+   "engines": {
+@@ -17,7 +17,8 @@
+     "README.md",
+     "CHANGELOG.md",
+     "LICENSE",
+-    "package.json"
++    "package.json",
++    "docs/protocol.md"
+   ],
+   "scripts": {
+     "prepublishOnly": "bun run build",
+diff --git a/src/__tests__/agent.test.ts b/src/__tests__/agent.test.ts
+index 4d39716..99ae792 100644
+--- a/src/__tests__/agent.test.ts
++++ b/src/__tests__/agent.test.ts
+@@ -1430,3 +1430,31 @@ it("retains a cancelled turn on its prompt before a subsequent turn starts", asy
+     turnCompleted(t.codex);
+     await t.settle();
+ });
++
++describe("plugin enablement", () => {
++    it("upserts a literal local plugin ID and invalidates skills", async () => {
++        const t = createTestAgent();
++        await t.initialize();
++        t.codex.respond("config/value/write", () => ({status: "ok"}));
++        expect(await t.agent.pluginSetEnabled({pluginId: "a.b@market", enabled: false})).toEqual({enabled: false});
++        expect(t.codex.lastParams("config/value/write")).toEqual({keyPath: 'plugins."a.b@market".enabled', value: false, mergeStrategy: "upsert"});
++        await t.settle();
++        expect(t.client.notifications.filter(entry => entry.method === "_codex/skills_changed")).toHaveLength(1);
++    });
++    it("reports overridden writes and propagates failures", async () => {
++        const t = createTestAgent();
++        await t.initialize();
++        t.codex.respond("config/value/write", () => ({status: "okOverridden"}));
++        await expect(t.agent.pluginSetEnabled({pluginId: "a@market", enabled: true})).rejects.toThrow("overridden");
++        t.codex.respond("config/value/write", () => { throw new Error("read-only"); });
++        await expect(t.agent.pluginSetEnabled({pluginId: "a@market", enabled: true})).rejects.toThrow("read-only");
++    });
++});
++
++it("validates plugin enablement at the extension boundary", async () => {
++    const {parsePluginSetEnabledParams} = await import("../agent/CodexAgent");
++    for (const value of [null, {}, {pluginId: "", enabled: true}, {pluginId: "a@market", enabled: "false"}, {pluginId: "a@market", enabled: false, remotePluginId: ""}]) {
++        expect(() => parsePluginSetEnabledParams(value)).toThrow();
++    }
++    expect(parsePluginSetEnabledParams({pluginId: "a@market", enabled: false, keyPath: "model"})).toEqual({pluginId: "a@market", enabled: false});
++});
+diff --git a/src/agent/CodexAgent.ts b/src/agent/CodexAgent.ts
+index f5c63fc..5fc1f4b 100644
+--- a/src/agent/CodexAgent.ts
++++ b/src/agent/CodexAgent.ts
+@@ -36,6 +36,7 @@ import {EventBridge, type CompletedPlan} from "../bridge/EventBridge";
+ import {mcpStartupFailed, ToolName} from "../bridge/toolCalls";
+ import {TurnStartRejectedError, type AppServerClient} from "../codex/AppServerClient";
+ import type {CodexProcess} from "../codex/process";
++import {setRemotePluginEnabled} from "../codex/remotePluginEnablement";
+ import {findAgentMode, initialAgentMode, withWritableRoots} from "../codex/modes";
+ import {
+     DEFAULT_COLLABORATION_MODE,
+@@ -234,7 +235,7 @@ export class CodexAgent {
+                 // pass-through surface for a host that manages Codex's catalogs itself.
+                 // rename / account / fuzzyFileSearch: `_codex/session_rename`, `_codex/account_read`,
+                 // `_codex/rate_limits` (+ `_codex/rate_limits_updated`) and `_codex/fuzzy_file_search`.
+-                _meta: {alwith: {tools: {version: 1}, turns: {version: 2}}, codex: {forkAtTurn: true, sessionLineage: true, archive: true, sessionList: {version: 1}, sessionHistory: {version: 2, items: true, modes: ["browse", "export"]}, seedHistory: true, skills: true, plugins: true, providerCatalog: true, rename: true, account: true, fuzzyFileSearch: true}},
++                _meta: {alwith: {tools: {version: 1}, turns: {version: 2}}, codex: {forkAtTurn: true, sessionLineage: true, archive: true, sessionList: {version: 1}, sessionHistory: {version: 2, items: true, modes: ["browse", "export"]}, seedHistory: true, skills: true, plugins: true, pluginEnable: true, providerCatalog: true, rename: true, account: true, fuzzyFileSearch: true}},
+             },
+             authMethods: authMethods(this.capabilities, this.env),
+         };
+@@ -968,6 +969,31 @@ export class CodexAgent {
+         return response;
+     }
+ 
++    async pluginSetEnabled(params: PluginSetEnabledParams): Promise<{enabled: boolean}> {
++        this.requireInitialized("_codex/plugin_set_enabled");
++        if (params.remotePluginId !== undefined) {
++            await this.withCodex(async () => {
++                await setRemotePluginEnabled(this.codex, params.remotePluginId!, params.enabled);
++                await this.codex.pluginReconcile({reason: "plugin-enabled-changed"});
++                const installed = await this.codex.pluginInstalled({});
++                const plugin = installed.marketplaces.flatMap(market => market.plugins).find(plugin => plugin.remotePluginId === params.remotePluginId);
++                if (!plugin || plugin.enabled !== params.enabled) throw new Error("Remote plugin state could not be synchronized; refresh the plugin catalog");
++            });
++            this.notifySkillsChanged();
++            return {enabled: params.enabled};
++        }
++        const response = await this.withCodex(() => this.codex.configValueWrite({
++            keyPath: `plugins.${JSON.stringify(params.pluginId)}.enabled`,
++            value: params.enabled,
++            mergeStrategy: "upsert",
++        }));
++        this.notifySkillsChanged();
++        if (response.status === "okOverridden") {
++            throw acp.RequestError.invalidRequest(undefined, "Plugin enablement is overridden by a higher-priority configuration");
++        }
++        return {enabled: params.enabled};
++    }
++
+     async pluginList(params: PluginListParams): Promise<PluginListResponse> {
+         this.requireInitialized("_codex/plugin_list");
+         return await this.withCodex(() => this.codex.pluginList(params));
+@@ -2000,3 +2026,19 @@ function forkTurnId(meta: acp.ForkSessionRequest["_meta"]): string | undefined {
+     }
+     return value;
+ }
++
++export type PluginSetEnabledParams = {pluginId: string; enabled: boolean; remotePluginId?: string};
++
++/** Validate the narrow plugin mutation before constructing a TOML key path. */
++export function parsePluginSetEnabledParams(value: unknown): PluginSetEnabledParams {
++    if (typeof value !== "object" || value === null) throw acp.RequestError.invalidParams(undefined, "Expected pluginId and enabled");
++    const params = value as Record<string, unknown>;
++    if (typeof params["pluginId"] !== "string" || !params["pluginId"].trim() || typeof params["enabled"] !== "boolean") {
++        throw acp.RequestError.invalidParams(undefined, "Expected a non-empty pluginId and boolean enabled");
++    }
++    const remotePluginId = params["remotePluginId"];
++    if (remotePluginId !== undefined && (typeof remotePluginId !== "string" || !remotePluginId.trim())) {
++        throw acp.RequestError.invalidParams(undefined, "Expected a non-empty remotePluginId");
++    }
++    return {pluginId: params["pluginId"], enabled: params["enabled"], ...(typeof remotePluginId === "string" ? {remotePluginId} : {})};
++}
+diff --git a/src/agent/createAgent.ts b/src/agent/createAgent.ts
+index b6cdad4..bfd5a7d 100644
+--- a/src/agent/createAgent.ts
++++ b/src/agent/createAgent.ts
+@@ -11,7 +11,7 @@ import type {
+     SkillsConfigWriteParams,
+     SkillsListParams,
+ } from "../app-server/v2";
+-import {CodexAgent, type CodexAgentOptions, objectParams, parseSessionListParams, parseFuzzyFileSearchParams, parseSessionIdParams, parseSessionRenameParams} from "./CodexAgent";
++import {CodexAgent, type CodexAgentOptions, objectParams, parseSessionListParams, parseFuzzyFileSearchParams, parseSessionIdParams, parseSessionRenameParams, parsePluginSetEnabledParams} from "./CodexAgent";
+ import {parseSessionHistoryParams, parseSessionHistoryItemsParams} from "./sessionHistory";
+ 
+ /**
+@@ -51,6 +51,7 @@ export function createAgentApp(options: CodexAgentOptions): acp.AgentApp {
+         .onRequest("_codex/plugin_installed", {parse: objectParams<PluginInstalledParams>()}, ctx => current().pluginInstalled(ctx.params))
+         .onRequest("_codex/plugin_install", {parse: objectParams<PluginInstallParams>()}, ctx => current().pluginInstall(ctx.params))
+         .onRequest("_codex/plugin_uninstall", {parse: objectParams<PluginUninstallParams>()}, ctx => current().pluginUninstall(ctx.params))
++        .onRequest("_codex/plugin_set_enabled", {parse: parsePluginSetEnabledParams}, ctx => current().pluginSetEnabled(ctx.params))
+         .onRequest("_codex/plugin_read", {parse: objectParams<PluginReadParams>()}, ctx => current().pluginRead(ctx.params))
+         .onRequest("_codex/marketplace_add", {parse: objectParams<MarketplaceAddParams>()}, ctx => current().marketplaceAdd(ctx.params))
+         .onRequest("_codex/marketplace_remove", {parse: objectParams<MarketplaceRemoveParams>()}, ctx => current().marketplaceRemove(ctx.params))
+diff --git a/src/codex/AppServerClient.ts b/src/codex/AppServerClient.ts
+index a502b17..88bfdeb 100644
+--- a/src/codex/AppServerClient.ts
++++ b/src/codex/AppServerClient.ts
+@@ -7,6 +7,8 @@ import type {
+     CancelLoginAccountResponse,
+     CommandExecutionRequestApprovalParams,
+     CommandExecutionRequestApprovalResponse,
++    ConfigValueWriteParams,
++    ConfigWriteResponse,
+     ConfigReadParams,
+     ConfigReadResponse,
+     FileChangeRequestApprovalParams,
+@@ -91,6 +93,8 @@ import type {
+ } from "../app-server/v2";
+ import type {ModeKind} from "../app-server/ModeKind";
+ import {logger} from "../util/logger";
++import type {GetAuthStatusParams, GetAuthStatusResponse} from "../app-server";
++import type {PluginReconcileParams, PluginReconcileResponse} from "../app-server/v2";
+ import {abortable} from "../util/abort";
+ 
+ export interface ApprovalHandler {
+@@ -600,6 +604,18 @@ export class AppServerClient {
+         return this.send({method: "skills/config/write", params});
+     }
+ 
++    configValueWrite(params: ConfigValueWriteParams): Promise<ConfigWriteResponse> {
++        return this.send({method: "config/value/write", params});
++    }
++
++    getAuthStatus(params: GetAuthStatusParams): Promise<GetAuthStatusResponse> {
++        return this.send({method: "getAuthStatus", params});
++    }
++
++    pluginReconcile(params: PluginReconcileParams): Promise<PluginReconcileResponse> {
++        return this.send({method: "plugin/reconcile", params});
++    }
++
+     pluginList(params: PluginListParams): Promise<PluginListResponse> {
+         return this.send({method: "plugin/list", params});
+     }
+diff --git a/src/codex/remotePluginEnablement.ts b/src/codex/remotePluginEnablement.ts
+new file mode 100644
+index 0000000..ff4d61e
+--- /dev/null
++++ b/src/codex/remotePluginEnablement.ts
+@@ -0,0 +1,35 @@
++import type {AppServerClient} from "./AppServerClient";
++
++/** Remote enablement belongs to plugin-service; local config is ignored for remote installs. */
++export async function setRemotePluginEnabled(codex: AppServerClient, remotePluginId: string, enabled: boolean): Promise<void> {
++    const account = await codex.accountRead({refreshToken: false});
++    const routing = account.workspaceRouting;
++    if (account.account?.type !== "chatgpt" || !routing) throw new Error("Sign in to ChatGPT to change remote plugins");
++    const origin = new URL(routing.backendOrigin);
++    if (origin.protocol !== "https:" || (origin.hostname !== "chatgpt.com" && !origin.hostname.endsWith(".chatgpt.com"))) {
++        throw new Error("Unsupported ChatGPT backend for remote plugins");
++    }
++    const url = new URL(`/backend-api/ps/plugins/${encodeURIComponent(remotePluginId)}/${enabled ? "enable" : "disable"}`, origin);
++    for (const refreshToken of [false, true]) {
++        const auth = await codex.getAuthStatus({includeToken: true, refreshToken});
++        if ((auth.authMethod !== "chatgpt" && auth.authMethod !== "chatgptAuthTokens") || !auth.authToken) {
++            throw new Error("ChatGPT credentials are unavailable; sign in again to change remote plugins");
++        }
++        const response = await fetch(url, {
++            method: "POST",
++            headers: {Authorization: `Bearer ${auth.authToken}`, "ChatGPT-Account-Id": routing.chatgptAccountId, "OpenAI-Product-SKU": "codex"},
++            redirect: "error",
++            signal: AbortSignal.any([codex.disconnectSignal, AbortSignal.timeout(30_000)]),
++        });
++        if (response.status === 401 && !refreshToken) { await response.body?.cancel(); continue; }
++        if (!response.ok) {
++            await response.body?.cancel();
++            throw new Error(`Remote plugin ${enabled ? "enable" : "disable"} failed (HTTP ${response.status})`);
++        }
++        const result: unknown = await response.json();
++        if (typeof result !== "object" || result === null || !("id" in result) || result.id !== remotePluginId || !("enabled" in result) || result.enabled !== enabled) {
++            throw new Error("Remote plugin service did not confirm the requested enabled state");
++        }
++        return;
++    }
++}
+diff --git a/src/__tests__/remotePluginEnablement.test.ts b/src/__tests__/remotePluginEnablement.test.ts
+new file mode 100644
+index 0000000..58cf79f
+--- /dev/null
++++ b/src/__tests__/remotePluginEnablement.test.ts
+@@ -0,0 +1,59 @@
++import {afterEach, describe, expect, it, vi} from "vitest";
++import {createTestAgent} from "./harness";
++
++const remotePluginId = "plugin_supabase";
++const params = {pluginId: "supabase@openai-curated-remote", remotePluginId, enabled: false};
++async function setup() {
++    const t = createTestAgent();
++    await t.initialize();
++    t.codex.respond("account/read", () => ({account: {type: "chatgpt"}, workspaceRouting: {backendOrigin: "https://chatgpt.com", chatgptAccountId: "workspace"}}));
++    t.codex.respond("getAuthStatus", () => ({authMethod: "chatgpt", authToken: "test-token"}));
++    t.codex.respond("plugin/reconcile", () => ({changedPlugins: [], failedRemotePluginIds: [], failedMaterializationRemotePluginIds: []}));
++    t.codex.respond("plugin/installed", () => ({marketplaces: [{plugins: [{id: params.pluginId, remotePluginId, installed: true, enabled: false}]}]}));
++    return t;
++}
++afterEach(() => vi.unstubAllGlobals());
++describe("remote plugin enablement", () => {
++    it.each([false, true])("changes remote state to %s, reconciles and checks readback without writing local config", async enabled => {
++        const t = await setup();
++        t.codex.respond("plugin/installed", () => ({marketplaces: [{plugins: [{remotePluginId, installed: true, enabled}]}]}));
++        const request = vi.fn().mockResolvedValue(Response.json({id: remotePluginId, enabled}));
++        vi.stubGlobal("fetch", request);
++        expect(await t.agent.pluginSetEnabled({...params, enabled})).toEqual({enabled});
++        expect(request.mock.calls[0]![0].toString()).toBe(`https://chatgpt.com/backend-api/ps/plugins/plugin_supabase/${enabled ? "enable" : "disable"}`);
++        expect(request.mock.calls[0]![1]).toMatchObject({method: "POST", headers: {Authorization: "Bearer test-token", "ChatGPT-Account-Id": "workspace"}, redirect: "error"});
++        expect(t.codex.calls("config/value/write")).toEqual([]);
++        expect(t.codex.calls("plugin/reconcile")).toHaveLength(1);
++        await t.settle();
++        expect(t.client.notifications.filter(n => n.method === "_codex/skills_changed")).toHaveLength(1);
++    });
++    it("refreshes expired credentials once", async () => {
++        const t = await setup();
++        const request = vi.fn().mockResolvedValueOnce(new Response(null, {status: 401})).mockResolvedValueOnce(Response.json({id: remotePluginId, enabled: false}));
++        vi.stubGlobal("fetch", request);
++        await t.agent.pluginSetEnabled(params);
++        expect(t.codex.calls("getAuthStatus").map(c => c.params)).toEqual([{includeToken: true, refreshToken: false}, {includeToken: true, refreshToken: true}]);
++    });
++    it("rejects service failure without exposing its response or a success notification", async () => {
++        const t = await setup();
++        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("sensitive response", {status: 403})));
++        await expect(t.agent.pluginSetEnabled(params)).rejects.toThrow("HTTP 403");
++        expect(t.codex.calls("plugin/reconcile")).toEqual([]);
++        expect(t.client.notifications.filter(n => n.method === "_codex/skills_changed")).toEqual([]);
++    });
++    it("rejects stale readback instead of reporting success", async () => {
++        const t = await setup();
++        t.codex.respond("plugin/installed", () => ({marketplaces: [{plugins: [{remotePluginId, enabled: true}]}]}));
++        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({id: remotePluginId, enabled: false})));
++        await expect(t.agent.pluginSetEnabled(params)).rejects.toThrow("could not be synchronized");
++    });
++    it("refuses to send ChatGPT credentials to a non-ChatGPT backend", async () => {
++        const t = await setup();
++        t.codex.respond("account/read", () => ({account: {type: "chatgpt"}, workspaceRouting: {backendOrigin: "https://example.com", chatgptAccountId: "workspace"}}));
++        const request = vi.fn();
++        vi.stubGlobal("fetch", request);
++        await expect(t.agent.pluginSetEnabled(params)).rejects.toThrow("Unsupported ChatGPT backend");
++        expect(t.codex.calls("getAuthStatus")).toEqual([]);
++        expect(request).not.toHaveBeenCalled();
++    });
++});

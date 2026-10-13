@@ -499,7 +499,9 @@
       "localPlugin": "From your personal marketplace on this machine",
       "enabledStatus": "Plugin enabled",
       "disabledStatus": "Plugin disabled",
-      "installedByAdmin": "Installed by admin"
+      "installedByAdmin": "Installed by admin",
+      "enable": "Enable {{pluginName}}",
+      "disable": "Disable {{pluginName}}"
     },
     "disabledReason": {
       "planNotEligible": "Not available on your plan",
@@ -512,7 +514,13 @@
       "refreshError": "Installed {{pluginName}}, but failed to refresh the plugin list",
       "uninstalled": "{{pluginName}} plugin uninstalled",
       "uninstallError": "Failed to uninstall plugin",
-      "skillsReloadError": "Plugin changed, but skills couldn't refresh. Reload skills before starting a new chat"
+      "uninstallNotApplied": "The plugin is still installed after refreshing. Please try again.",
+      "skillsReloadError": "Plugin changed, but skills couldn't refresh. Reload skills before starting a new chat",
+      "syncError": "The change was saved, but refreshing the list failed: {{message}}",
+      "toggleError": "Failed to update plugin",
+      "enabled": "{{pluginName}} plugin enabled",
+      "disabled": "{{pluginName}} plugin disabled",
+      "toggleNotApplied": "The refreshed plugin state does not match the requested change. Please try again."
     },
     "installModal": {
       "title": "Install {{pluginName}}",
@@ -652,7 +660,9 @@
       "pluginCount_other": "{{count}} plugins",
       "partialMore_one": "{{count}} more marketplace could not be loaded",
       "partialMore_other": "{{count}} more marketplaces could not be loaded"
-    }
+    },
+    "previousPage": "Previous",
+    "nextPage": "Next"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

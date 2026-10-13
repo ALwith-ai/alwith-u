@@ -35,6 +35,7 @@ export type PluginsApi = {
   listPlugins(params?: PluginListParams): Promise<PluginListResponse>
   installedPlugins(cwds?: string[]): Promise<PluginInstalledResponse>
   installPlugin(params: PluginInstallParams): Promise<PluginInstallResponse>
+  setPluginEnabled(pluginId: string, enabled: boolean, remotePluginId?: string): Promise<{ enabled: boolean }>
   uninstallPlugin(pluginId: string): Promise<void>
   readPlugin(params: PluginReadParams): Promise<PluginReadResponse>
   addMarketplace(params: MarketplaceAddParams): Promise<MarketplaceAddResponse>
@@ -47,6 +48,7 @@ export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplac
 
 export type PluginsState = {
   loading: boolean
+  upgrading: boolean
   /** Message of the last failed catalog load; the page shows a retry. */
   error: string | null
   /** Working directories the last refresh was scoped to (repo skills and marketplaces). */
@@ -59,13 +61,14 @@ export type PluginsState = {
   installed: PluginEntry[]
   skills: SkillMetadata[]
   skillErrors: SkillErrorInfo[]
-  /** Plugin ids with an install or uninstall in flight. */
-  busyIds: Record<string, "installing" | "uninstalling">
+  /** Plugin ids with an install, uninstall or enablement change in flight. */
+  busyIds: Record<string, "installing" | "uninstalling" | "toggling">
   /** Marketplace names with an upgrade or removal in flight. */
   busyMarketplaces: Record<string, true>
-  refresh(cwds?: string[], options?: { forceRefetch?: boolean }): Promise<void>
+  refresh(cwds?: string[], options?: { forceRefetch?: boolean; background?: boolean }): Promise<void>
   /** Installs and returns Codex's answer (apps that still need auth); throws on failure. */
   install(entry: PluginEntry): Promise<PluginInstallResponse>
+  setPluginEnabled(plugin: PluginSummary, enabled: boolean): Promise<void>
   uninstall(plugin: PluginSummary): Promise<void>
   readPlugin(entry: PluginEntry): Promise<PluginDetail>
   setSkillEnabled(skill: SkillMetadata, enabled: boolean): Promise<void>
@@ -110,7 +113,7 @@ export function installParams(entry: PluginEntry): PluginInstallParams {
   const { plugin, marketplace } = entry
   return {
     installAttemptId: crypto.randomUUID(),
-    pluginName: plugin.name,
+    pluginName: marketplace.path === null ? (plugin.remotePluginId ?? plugin.name) : plugin.name,
     ...(marketplace.path === null ? { remoteMarketplaceName: marketplace.name } : { marketplacePath: marketplace.path })
   }
 }
@@ -118,14 +121,20 @@ export function installParams(entry: PluginEntry): PluginInstallParams {
 export function readParams(entry: PluginEntry): PluginReadParams {
   const { plugin, marketplace } = entry
   return {
-    pluginName: plugin.name,
+    pluginName: marketplace.path === null ? (plugin.remotePluginId ?? plugin.name) : plugin.name,
     ...(marketplace.path === null ? { remoteMarketplaceName: marketplace.name } : { marketplacePath: marketplace.path })
   }
 }
 
 export function createPluginsStore(api: PluginsApi): PluginsStore {
   const store = createStore<PluginsState>((set, get) => {
-    const busy = (id: string, state: "installing" | "uninstalling" | null) =>
+    let pendingRefresh: { cwds: string[]; forceRefetch: boolean } | null = null
+    let refreshing: Promise<void> | null = null
+    const refreshAfterChange = async (forceRefetch = false) => {
+      await get().refresh(undefined, { forceRefetch, background: true })
+      if (get().error) throw new Error(i18n.t("plugins.toast.syncError", { message: get().error }))
+    }
+    const busy = (id: string, state: "installing" | "uninstalling" | "toggling" | null) =>
       set(current => {
         const next = { ...current.busyIds }
         if (state === null) delete next[id]
@@ -142,6 +151,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
 
     return {
       loading: false,
+      upgrading: false,
       error: null,
       cwds: [],
       marketplaces: [],
@@ -153,39 +163,55 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       busyIds: {},
       busyMarketplaces: {},
 
-      refresh: async (cwds = get().cwds, options = {}) => {
-        set({ loading: true, error: null, cwds })
-        try {
-          const [skills, plugins, installed] = await Promise.all([
-            api.listSkills(cwds, options.forceRefetch),
-            api.listPlugins({
-              ...(cwds.length > 0 ? { cwds } : {}),
-              ...(options.forceRefetch ? { forceRefetch: true } : {})
-            }),
-            api.installedPlugins(cwds)
-          ])
-          const merged = mergeSkills(skills)
-          set({
-            loading: false,
-            skills: merged.skills,
-            skillErrors: merged.errors,
-            marketplaces: plugins.marketplaces,
-            marketplaceLoadErrors: plugins.marketplaceLoadErrors,
-            featuredPluginIds: plugins.featuredPluginIds,
-            installed: installedEntries(installed)
-          })
-        } catch (error) {
-          set({ loading: false, error: describe(error) })
-        }
+      refresh: (cwds = get().cwds, options = {}) => {
+        pendingRefresh = { cwds, forceRefetch: options.forceRefetch === true || pendingRefresh?.forceRefetch === true }
+        set({ cwds, ...(!options.background ? { loading: true } : {}) })
+        if (refreshing) return refreshing
+        refreshing = (async () => {
+          while (pendingRefresh) {
+            const request = pendingRefresh
+            pendingRefresh = null
+            set({ error: null })
+            try {
+              const [skills, plugins, installed] = await Promise.all([
+                api.listSkills(request.cwds, request.forceRefetch),
+                api.listPlugins({
+                  ...(request.cwds.length > 0 ? { cwds: request.cwds } : {}),
+                  ...(request.forceRefetch ? { forceRefetch: true } : {})
+                }),
+                api.installedPlugins(request.cwds)
+              ])
+              // A newer scope or invalidation must settle before exposing a snapshot.
+              if (pendingRefresh) continue
+              const merged = mergeSkills(skills)
+              set({
+                skills: merged.skills,
+                skillErrors: merged.errors,
+                marketplaces: plugins.marketplaces,
+                marketplaceLoadErrors: plugins.marketplaceLoadErrors,
+                featuredPluginIds: plugins.featuredPluginIds,
+                installed: installedEntries(installed)
+              })
+            } catch (error) {
+              if (!pendingRefresh) set({ error: describe(error) })
+            }
+          }
+        })().finally(() => {
+          refreshing = null
+          set({ loading: false })
+        })
+        return refreshing
       },
 
       install: async entry => {
+        if (entry.plugin.id in get().busyIds) throw new Error("Plugin operation already in progress")
         const name = pluginTitle(entry.plugin)
         busy(entry.plugin.id, "installing")
         try {
           const response = await api.installPlugin(installParams(entry))
+          await refreshAfterChange()
+          busy(entry.plugin.id, null)
           toast.success(i18n.t("plugins.toast.installed", { pluginName: name }))
-          await get().refresh()
           return response
         } catch (error) {
           toast.error(`${i18n.t("plugins.toast.installError")}: ${describe(error)}`)
@@ -195,13 +221,55 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         }
       },
 
+      setPluginEnabled: async (plugin, enabled) => {
+        if (plugin.id in get().busyIds) return
+        busy(plugin.id, "toggling")
+        const update = (value: boolean) =>
+          set(state => ({
+            installed: state.installed.map(entry =>
+              entry.plugin.id === plugin.id ? { ...entry, plugin: { ...entry.plugin, enabled: value } } : entry
+            )
+          }))
+        update(enabled)
+        let effectiveEnabled = plugin.enabled
+        try {
+          const remotePluginId = plugin.source.type === "remote" ? plugin.remotePluginId : undefined
+          if (remotePluginId === null) throw new Error("Remote plugin ID is missing")
+          const response = await api.setPluginEnabled(plugin.id, enabled, remotePluginId)
+          effectiveEnabled = response.enabled
+          update(response.enabled)
+          await refreshAfterChange()
+          const refreshed = get().installed.find(entry => entry.plugin.id === plugin.id)
+          if (refreshed) effectiveEnabled = refreshed.plugin.enabled
+          if (!refreshed || effectiveEnabled !== enabled) {
+            throw new Error(i18n.t("plugins.toast.toggleNotApplied"))
+          }
+          busy(plugin.id, null)
+          toast.success(
+            i18n.t(enabled ? "plugins.toast.enabled" : "plugins.toast.disabled", { pluginName: pluginTitle(plugin) })
+          )
+        } catch (error) {
+          update(effectiveEnabled)
+          toast.error(`${i18n.t("plugins.toast.toggleError")}: ${describe(error)}`)
+        } finally {
+          busy(plugin.id, null)
+        }
+      },
+
       uninstall: async plugin => {
+        if (plugin.id in get().busyIds) return
         const name = pluginTitle(plugin)
         busy(plugin.id, "uninstalling")
         try {
-          await api.uninstallPlugin(plugin.id)
+          const uninstallId = plugin.source.type === "remote" ? plugin.remotePluginId : plugin.id
+          if (!uninstallId) throw new Error("Remote plugin ID is missing")
+          await api.uninstallPlugin(uninstallId)
+          await refreshAfterChange()
+          if (get().installed.some(entry => entry.plugin.id === plugin.id)) {
+            throw new Error(i18n.t("plugins.toast.uninstallNotApplied"))
+          }
+          busy(plugin.id, null)
           toast.success(i18n.t("plugins.toast.uninstalled", { pluginName: name }))
-          await get().refresh()
         } catch (error) {
           toast.error(`${i18n.t("plugins.toast.uninstallError")}: ${describe(error)}`)
         } finally {
@@ -235,12 +303,12 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
 
       addMarketplace: async params => {
         const response = await api.addMarketplace(params)
+        await refreshAfterChange(true)
         if (response.alreadyAdded) {
           toast.message(i18n.t("plugins.marketplace.alreadyAdded", { marketplaceName: response.marketplaceName }))
         } else {
           toast.success(i18n.t("plugins.marketplace.added", { marketplaceName: response.marketplaceName }))
         }
-        await get().refresh(undefined, { forceRefetch: true })
         return response
       },
 
@@ -248,8 +316,9 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         busyMarketplace(marketplaceName, true)
         try {
           await api.removeMarketplace(marketplaceName)
+          await refreshAfterChange()
+          busyMarketplace(marketplaceName, false)
           toast.success(i18n.t("plugins.marketplace.removed", { marketplaceName }))
-          await get().refresh()
         } catch (error) {
           toast.error(`${i18n.t("plugins.marketplace.removeError")}: ${describe(error)}`)
         } finally {
@@ -261,6 +330,8 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         busyMarketplace(marketplaceName, true)
         try {
           const response = await api.upgradeMarketplaces(marketplaceName)
+          await refreshAfterChange(true)
+          busyMarketplace(marketplaceName, false)
           if (response.errors.length > 0) {
             toast.error(
               `${i18n.t("plugins.marketplace.upgradeError")}: ${response.errors.map(failure => failure.message).join("; ")}`
@@ -268,7 +339,6 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           } else {
             toast.success(i18n.t("plugins.marketplace.upgraded", { marketplaceName }))
           }
-          await get().refresh(undefined, { forceRefetch: true })
         } catch (error) {
           toast.error(`${i18n.t("plugins.marketplace.upgradeError")}: ${describe(error)}`)
         } finally {
@@ -277,15 +347,18 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       },
 
       upgradeAll: async () => {
-        set({ loading: true })
+        if (get().upgrading) return
+        set({ upgrading: true })
         try {
           const response = await api.upgradeMarketplaces()
+          await refreshAfterChange(true)
+          set({ upgrading: false })
           if (response.errors.length > 0) toast.error(i18n.t("plugins.marketplace.upgradeAllError"))
           else toast.success(i18n.t("plugins.marketplace.upgradedAll"))
-          await get().refresh(undefined, { forceRefetch: true })
         } catch (error) {
-          set({ loading: false })
           toast.error(`${i18n.t("plugins.marketplace.upgradeAllRequestError")}: ${describe(error)}`)
+        } finally {
+          set({ upgrading: false })
         }
       }
     }
