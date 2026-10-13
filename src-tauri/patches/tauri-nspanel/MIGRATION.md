@@ -1,7 +1,7 @@
 # Tauri 3 adaptation
 
 Source: https://github.com/ahkohd/tauri-nspanel at
-`a3122e894383aa068ec5365a42994e3ac94ba1b6`. Original license notices are retained.
+`ef6e3090a6083c653955ca0b6e7f6c6ae1453d40` (v2.1.1). Original license notices are retained.
 
 Local changes update Tauri dependencies and the Wry extension API for Tauri 3.
 The existing plugin behavior and IPC names are preserved. This source snapshot

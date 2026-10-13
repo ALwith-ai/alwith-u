@@ -107,7 +107,7 @@ mod observer {
                 // SAFETY: main thread holds the live window.
                 let native = unsafe { &*(pointer as *const NSWindow) };
                 if native.isVisible() && native.isKindOfClass(NSPanel::class()) {
-                    crate::chat_window::restore(native);
+                    crate::chat_window::restore(&window);
                     native.orderFrontRegardless();
                 }
             }

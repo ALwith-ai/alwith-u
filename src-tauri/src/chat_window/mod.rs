@@ -80,7 +80,7 @@ fn initialize(window: &WebviewWindow) -> Result<(), String> {
     let pointer = window.ns_window().map_err(|error| error.to_string())?;
     // SAFETY: This is the same live window, class conversion has finished, and access is still on the main thread.
     let native = unsafe { &*(pointer as *const NSWindow) };
-    restore(native);
+    restore(window);
     // Detaching and reattaching WKWebView resets the responder; restore the original input target without changing the window's key status.
     assert!(native.makeFirstResponder(first_responder.as_deref()), "Failed to restore overlay input responder");
     Ok(())
@@ -88,16 +88,18 @@ fn initialize(window: &WebviewWindow) -> Result<(), String> {
 
 /// Restore properties only, without showing, moving, or stealing focus; safe for Space changes and wake events.
 #[cfg(target_os = "macos")]
-pub fn restore(window: &objc2_app_kit::NSWindow) {
-    use objc2::ClassType;
-    use objc2_app_kit::{NSPanel, NSWindowCollectionBehavior as Behavior, NSWindowStyleMask};
+pub fn restore(window: &WebviewWindow) {
+    use objc2_app_kit::{NSWindowCollectionBehavior as Behavior, NSWindowStyleMask};
+    use tauri_nspanel::ManagerExt;
 
     objc2::MainThreadMarker::new().expect("Overlay policy requires the main thread");
-    assert!(window.isKindOfClass(NSPanel::class()), "Overlay must be initialized before display");
-    let style = window.styleMask() | NSWindowStyleMask::NonactivatingPanel;
-    if window.styleMask() != style {
+    let panel =
+        window.app_handle().get_webview_panel(window.label()).expect("Overlay must be initialized before display");
+    let window = panel.as_panel();
+    if !window.styleMask().contains(NSWindowStyleMask::NonactivatingPanel) {
         let first_responder = window.firstResponder();
-        window.setStyleMask(style);
+        // Go through nspanel: a bare setStyleMask does not sync WindowServer's activation-prevention tag.
+        panel.add_style_mask(NSWindowStyleMask::NonactivatingPanel).expect("Failed to make overlay nonactivating");
         // Match Tao's toggle_style_mask: restore the keyboard responder chain after changing styles.
         assert!(
             window.makeFirstResponder(first_responder.as_deref()),
