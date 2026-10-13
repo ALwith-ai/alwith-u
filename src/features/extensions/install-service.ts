@@ -9,7 +9,7 @@ export type PreparedInstall =
 interface InstallOptions {
   update: boolean
   reload?: boolean
-  /** Omitted preserves the UI's existing behavior: enable new legacy imports only. */
+  /** Omitted enables new installations and preserves the state of updates. */
   enable?: boolean
 }
 
@@ -63,10 +63,7 @@ export async function executePreparedInstall(
           if (!port) throw new Error("Legacy installation port is required")
           return port.stageLegacy(selected.prepared.ticket, await convertLegacyExtension(selected.prepared))
         })()
-  return executeStagedInstall(runtime, staged, {
-    ...options,
-    enable: options.enable ?? (!existing && selected.format === "legacy")
-  })
+  return executeStagedInstall(runtime, staged, options)
 }
 
 export interface StagedInstall {
@@ -155,7 +152,7 @@ export async function executeStagedInstall(
     else inspect()
   })
   signal?.throwIfAborted()
-  if (options.enable) await bounded(runtime.request({ type: "enable", id }))
+  if (options.enable ?? !existing) await bounded(runtime.request({ type: "enable", id }))
   await bounded(runtime.settled())
   signal?.throwIfAborted()
   const installed = runtime.snapshot().native?.installations.find(item => item.id === id)

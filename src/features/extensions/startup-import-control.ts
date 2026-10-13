@@ -24,12 +24,7 @@ export function startStartupImports(): Promise<void> {
     await runStartupImports({
       ...inboxPort(),
       install: async pkg => {
-        const result = await executeStagedInstall(
-          runtime,
-          pkg,
-          { update: true, enable: false },
-          AbortSignal.timeout(120_000)
-        )
+        const result = await executeStagedInstall(runtime, pkg, { update: true }, AbortSignal.timeout(120_000))
         if (result.error) throw new Error(result.error.message)
       },
       report: message => toast.error(i18n.t("extensions.startupImportFailed", { message }), { duration: 12_000 })
