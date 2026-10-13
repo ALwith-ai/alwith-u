@@ -1,36 +1,38 @@
 import { drive } from "./controller"
+
 export { drive } from "./controller"
+
 import type { FailedUpload, RootInfo } from "@alwith/module-drive"
 import {
+  type DriveHost,
   DriveMassDeleteDialog,
   DrivePanel,
   DriveSharing,
-  useDrive,
   driveTranslator,
   summarize,
-  type DriveHost
+  useDrive
 } from "@alwith/module-drive/react"
 import "@alwith/module-drive/styles.css"
+import { type CondenseScope, DriveCondense } from "@alwith/module-drive/content"
+import { containsPath } from "@alwith/module-fs"
 import { isTauri } from "@tauri-apps/api/core"
 import { confirm, open } from "@tauri-apps/plugin-dialog"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { revealItemsInDir } from "@tauri-apps/plugin-opener"
+import { CloudIcon } from "lucide-react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { useTranslation } from "react-i18next"
-import { containsPath } from "@alwith/module-fs"
-import { DriveCondense, type CondenseScope } from "@alwith/module-drive/content"
-import { revealItemsInDir } from "@tauri-apps/plugin-opener"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useWorkspace } from "@/features/workspace/context"
 import { openExternal } from "@/lib/open"
+import { openSettingsWindow } from "@/lib/window-manager"
 import { driveControls } from "./controls"
 import { driveFileSystem, drivePathExists } from "./filesystem"
-import { saveDrivePins, useDrivePins } from "./pinned"
 import { DriveIntegrations } from "./integrations"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { saveDrivePins, useDrivePins } from "./pinned"
 import { useDriveVisible } from "./use-drive-visible"
-import { CloudIcon } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { openSettingsWindow } from "@/lib/window-manager"
-import { useWorkspace } from "@/features/workspace/context"
 
 export function useDriveConnection(start = true): void {
   useEffect(() => {

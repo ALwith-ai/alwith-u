@@ -5,9 +5,9 @@
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import {
-  Code2Icon,
-  CloudIcon,
   BlocksIcon,
+  CloudIcon,
+  Code2Icon,
   ContrastIcon,
   CpuIcon,
   InfoIcon,
@@ -19,22 +19,21 @@ import { useTranslation } from "react-i18next"
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
+import { DriveSettings } from "@/features/drive/drive"
+import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { ExtensionSettingsContent, ExtensionSettingsNavigation } from "@/features/extensions/extension-outlets"
 import { ExtensionMount } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { useExtensions } from "@/features/extensions/runtime"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"
 import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
-import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
-
-import { useDriveVisible } from "@/features/drive/use-drive-visible"
-import { DriveSettings } from "@/features/drive/drive"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,

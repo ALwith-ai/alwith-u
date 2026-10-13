@@ -2,11 +2,11 @@
 
 import { invoke as __t3Invoke } from "@tauri-apps/api/core"
 import {
-  listen as __t3Listen,
-  once as __t3Once,
+  type EventCallback as __t3Callback,
   emit as __t3Emit,
   emitTo as __t3EmitTo,
-  type EventCallback as __t3Callback,
+  listen as __t3Listen,
+  once as __t3Once,
   type EventTarget as __t3Target
 } from "@tauri-apps/api/event"
 

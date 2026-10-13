@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx"
+
 const scope = self as unknown as {
   onmessage: ((event: MessageEvent<Uint8Array>) => void) | null
   postMessage: (message: { book?: XLSX.WorkBook; error?: string }) => void

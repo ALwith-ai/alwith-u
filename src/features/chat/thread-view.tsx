@@ -16,8 +16,8 @@ import {
   ThreadUserMessageNavigationRail,
   toNavigationRailItems
 } from "./codex/navigation-rail"
-import { UserMessage } from "./codex/user-message"
 import { formatTurnTime } from "./codex/turn-time"
+import { UserMessage } from "./codex/user-message"
 import { ChatDirectoryContext } from "./file-actions"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { useThreadScroll } from "./lib/use-thread-scroll"

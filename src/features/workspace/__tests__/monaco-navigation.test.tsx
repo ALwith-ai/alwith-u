@@ -1,8 +1,8 @@
-import { render } from "@testing-library/react"
-import { expect, test, vi } from "vitest"
-import { createMonacoEngine } from "@alwith/module-editor/monaco"
 import type { EditorController, EditorDocument } from "@alwith/module-editor"
+import { createMonacoEngine } from "@alwith/module-editor/monaco"
+import { render } from "@testing-library/react"
 import type * as Monaco from "monaco-editor"
+import { expect, test, vi } from "vitest"
 
 test("line navigation applies on mount and repeat clicks without resetting a restored tab", () => {
   const position = { lineNumber: 2, column: 3 }

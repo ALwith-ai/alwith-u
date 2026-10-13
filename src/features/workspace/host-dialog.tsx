@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState, type ReactNode } from "react"
+import { type ReactNode, useCallback, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 export interface DialogRequest {
   title: string
   detail: string

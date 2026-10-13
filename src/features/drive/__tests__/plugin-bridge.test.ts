@@ -1,11 +1,11 @@
-import { expect, test, vi } from "vitest"
-import type { ExtensionData, Json, DataSnapshot } from "@alwith/module-extension"
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
+import type { DataSnapshot, ExtensionData, Json } from "@alwith/module-extension"
+import { expect, test, vi } from "vitest"
 import {
   assertPluginSessionArchiveAllowed,
+  type PluginBridgeHost,
   setDriveArchiveOwner,
-  syncDrivePlugin,
-  type PluginBridgeHost
+  syncDrivePlugin
 } from "../plugin-bridge"
 
 function fixture() {

@@ -16,6 +16,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ confirm: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { info: mocks.info } }))
 
 import { prepareWorkspaceFile } from "../files"
+
 const shortcut = (targetFileId: number, webUrl = "https://stored.example.test/file") =>
   new TextEncoder().encode(JSON.stringify({ targetFileId, name: "stale name", webUrl }))
 beforeEach(() => {

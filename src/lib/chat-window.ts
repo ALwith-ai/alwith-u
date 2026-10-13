@@ -2,9 +2,9 @@ import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { commands } from "@/bindings"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
-import i18n from "./i18n"
+import { type ChatWindowSurface, useChatWindowSurface } from "./chat-window-state"
 import { client } from "./client"
-import { useChatWindowSurface, type ChatWindowSurface } from "./chat-window-state"
+import i18n from "./i18n"
 import { createWindowController } from "./window-controller"
 
 export type ChatTransfer = { sessionId: string | null; cwd: string | null; draft: ComposerDraft | null }

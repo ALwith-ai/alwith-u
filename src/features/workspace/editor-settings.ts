@@ -1,4 +1,4 @@
-import { iconThemes, type IconTheme } from "./workspace-state"
+import { type IconTheme, iconThemes } from "./workspace-state"
 
 export interface EditorSettings {
   fontSize: number

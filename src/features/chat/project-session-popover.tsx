@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
-import { relativeTime } from "@/features/threads/thread-info-card"
-import { useProjectThreads } from "@/features/threads/use-project-threads"
 import { useThreadsUiStore } from "@/features/threads/store"
 import { isQuickChatDirectory } from "@/features/threads/thread-groups"
+import { relativeTime } from "@/features/threads/thread-info-card"
+import { useProjectThreads } from "@/features/threads/use-project-threads"
 import { basename } from "@/lib/path"
 
 type ProjectActions = {

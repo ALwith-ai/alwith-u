@@ -3,6 +3,109 @@ pub use objc2_app_kit::{
     NSAutoresizingMaskOptions, NSTrackingAreaOptions, NSWindowCollectionBehavior, NSWindowStyleMask,
 };
 
+#[doc(hidden)]
+pub fn resolve_tracking_area_options(
+    mut options: objc2_app_kit::NSTrackingAreaOptions,
+    auto_resize: bool,
+) -> objc2_app_kit::NSTrackingAreaOptions {
+    if auto_resize {
+        options |= objc2_app_kit::NSTrackingAreaOptions::InVisibleRect;
+    }
+
+    options
+}
+
+/// Teach elevated WebKit text input clients to report their containing window's level.
+///
+/// AppKit uses the optional `NSTextInputClient::windowLevel` method to place input-method UI
+/// above text clients whose windows are higher than `NSFloatingWindowLevel`. `WKWebView` does
+/// not currently implement that method, so candidate windows can otherwise appear behind an
+/// elevated panel.
+#[doc(hidden)]
+pub fn install_text_input_client_window_level(root: &objc2_app_kit::NSView) {
+    use std::ffi::CStr;
+
+    use objc2::runtime::AnyProtocol;
+
+    let protocol_name = CStr::from_bytes_with_nul(b"NSTextInputClient\0")
+        .expect("NSTextInputClient protocol name must be NUL-terminated");
+    let Some(text_input_client) = AnyProtocol::get(protocol_name) else {
+        return;
+    };
+
+    install_text_input_client_window_level_in_subtree(root, text_input_client);
+}
+
+fn install_text_input_client_window_level_in_subtree(
+    root: &objc2_app_kit::NSView,
+    text_input_client: &objc2::runtime::AnyProtocol,
+) {
+    use objc2_foundation::NSObjectProtocol;
+
+    if root.conformsToProtocol(text_input_client) {
+        let _ = install_window_level_method(stable_text_input_client_class(root.class()));
+    }
+
+    let subviews = root.subviews();
+    for subview in subviews.iter() {
+        install_text_input_client_window_level_in_subtree(&subview, text_input_client);
+    }
+}
+
+fn stable_text_input_client_class(
+    runtime_class: &objc2::runtime::AnyClass,
+) -> &objc2::runtime::AnyClass {
+    let mut candidate = runtime_class;
+
+    while let Some(superclass) = candidate.superclass() {
+        if superclass.name().to_bytes() == b"WKWebView" {
+            return candidate;
+        }
+        candidate = superclass;
+    }
+
+    runtime_class
+}
+
+fn install_window_level_method(class: &objc2::runtime::AnyClass) -> bool {
+    use objc2::runtime::{Imp, Sel};
+
+    let selector = objc2::sel!(windowLevel);
+    if class.instance_method(selector).is_some() {
+        return false;
+    }
+
+    unsafe extern "C-unwind" fn window_level(
+        view: &objc2_app_kit::NSView,
+        _selector: Sel,
+    ) -> objc2::ffi::NSInteger {
+        view.window().map_or(0, |window| window.level())
+    }
+
+    let implementation: unsafe extern "C-unwind" fn(
+        &objc2_app_kit::NSView,
+        Sel,
+    ) -> objc2::ffi::NSInteger = window_level;
+
+    // SAFETY: Objective-C method implementations erase their concrete function signature to
+    // `Imp`. The `q@:` encoding below matches `(id, SEL) -> NSInteger` on 64-bit macOS.
+    let implementation: Imp = unsafe { std::mem::transmute(implementation) };
+    let type_encoding = b"q@:\0";
+
+    // SAFETY: `class` is a registered Objective-C class, the selector has no explicit arguments,
+    // and the implementation and type encoding agree. Adding a method is safe for the lifetime of
+    // the process because Objective-C classes are never deallocated.
+    unsafe {
+        objc2::ffi::class_addMethod(
+            class as *const _ as *mut _,
+            selector,
+            implementation,
+            type_encoding.as_ptr().cast(),
+        )
+        .as_bool()
+    }
+}
+
 /// Macro to create a custom NSPanel class
 ///
 /// This macro generates a custom NSPanel subclass with the specified configuration.
@@ -30,29 +133,33 @@ pub use objc2_app_kit::{
 /// - `on_cursor_update()` - Called when cursor needs to be updated
 ///
 /// ## Usage:
-/// ```rust
-/// use tauri_nspanel::{panel, panel_event};
+/// ```no_run
+/// use tauri_nspanel::{tauri_panel, Panel, TrackingAreaOptions};
 ///
-/// // Define your custom panel class
-/// panel!(MyCustomPanel {
-///     // Config overrides - these affect compile-time behavior
-///     config: {
-///         can_become_key_window: true,
-///         can_become_main_window: false,
-///     },
-///     // Optional configurations
-///     with: {
-///         tracking_area: {
-///             options: NSTrackingAreaOptions::NSTrackingActiveAlways
-///                    | NSTrackingAreaOptions::NSTrackingMouseEnteredAndExited
-///                    | NSTrackingAreaOptions::NSTrackingMouseMoved,
-///             auto_resize: true,
+/// tauri_panel! {
+///     panel!(MyCustomPanel {
+///         config: {
+///             can_become_key_window: true,
+///             can_become_main_window: false
 ///         }
-///     }
-/// });
+///         with: {
+///             tracking_area: {
+///                 options: TrackingAreaOptions::new()
+///                     .active_always()
+///                     .mouse_entered_and_exited()
+///                     .mouse_moved(),
+///                 auto_resize: true
+///             }
+///         }
+///     })
+///
+///     panel_event!(MyPanelEventHandler {
+///         window_did_become_key(notification: &NSNotification) -> ()
+///     })
+/// }
 ///
 /// // In your Tauri app:
-/// fn create_panel(window: tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
+/// fn create_panel(window: &tauri::WebviewWindow) -> tauri::Result<()> {
 ///     // Convert existing Tauri window to your custom panel
 ///     let panel = MyCustomPanel::from_window(window)?;
 ///
@@ -63,18 +170,17 @@ pub use objc2_app_kit::{
 ///
 ///     // Create and attach an event handler
 ///     let handler = MyPanelEventHandler::new();
-///     handler.window_did_become_key(|args| {
+///     handler.window_did_become_key(|_notification| {
 ///         println!("Panel became key window");
-///         None
 ///     });
 ///
 ///     // If tracking_area is enabled, you can set mouse event callbacks
-///     handler.on_mouse_entered(|event| {
+///     handler.on_mouse_entered(|_event| {
 ///         println!("Mouse entered the panel");
 ///     });
 ///
 ///     handler.on_mouse_moved(|event| {
-///         let location = unsafe { event.locationInWindow() };
+///         let location = event.locationInWindow();
 ///         println!("Mouse moved to: x={}, y={}", location.x, location.y);
 ///     });
 ///
@@ -91,7 +197,6 @@ pub use objc2_app_kit::{
 /// - `set_floating_panel()`, `set_has_shadow()`, `set_opaque()`
 /// - `set_accepts_mouse_moved_events()`, `set_ignores_mouse_events()`
 /// - And many more...
-/// ```
 #[macro_export]
 macro_rules! panel {
     (
@@ -265,7 +370,9 @@ macro_rules! panel {
 
                     if let Some(_) = self.app_handle.remove_webview_panel(self.label.as_str()) {
                         self.set_event_handler(None);
-                        self.set_released_when_closed(true);
+                        // Tauri/Tao retains the native window and releases it during close.
+                        // AppKit must not release the same window independently.
+                        self.set_released_when_closed(false);
 
                         unsafe {
                             let target_class = if !self.original_class.is_null() {
@@ -514,10 +621,26 @@ macro_rules! panel {
                     }
                 }
 
-                fn set_style_mask(&self, style_mask: $crate::objc2_app_kit::NSWindowStyleMask) {
-                    unsafe {
-                        let _: () = $crate::objc2::msg_send![&*self.panel, setStyleMask: style_mask];
-                    }
+                fn set_style_mask(
+                    &self,
+                    style_mask: $crate::objc2_app_kit::NSWindowStyleMask,
+                ) -> Result<(), $crate::StyleMaskError> {
+                    $crate::catch_style_mask_exception(|| {
+                        unsafe {
+                            let _: () = $crate::objc2::msg_send![&*self.panel, setStyleMask: style_mask];
+
+                            // Class conversion skips NSPanel initialization, and setStyleMask:
+                            // does not synchronize WindowServer's activation-prevention tag.
+                            let selector = $crate::objc2::sel!(_setPreventsActivation:);
+                            let responds: bool = $crate::objc2::msg_send![&*self.panel, respondsToSelector: selector];
+                            if responds {
+                                let nonactivating = self.panel.styleMask().contains(
+                                    $crate::objc2_app_kit::NSWindowStyleMask::NonactivatingPanel,
+                                );
+                                let _: () = $crate::objc2::msg_send![&*self.panel, _setPreventsActivation: nonactivating];
+                            }
+                        }
+                    })
                 }
 
                 fn make_first_responder(&self, responder: Option<&$crate::objc2_app_kit::NSResponder>) -> bool {
@@ -610,6 +733,7 @@ macro_rules! panel {
                         // Enable auto-resizing for all subviews
                         let content_view: $crate::objc2::rc::Retained<$crate::objc2_app_kit::NSView> =
                             $crate::objc2::msg_send![&panel, contentView];
+                        $crate::panel::install_text_input_client_window_level(&content_view);
                         let subviews: $crate::objc2::rc::Retained<$crate::objc2_foundation::NSArray<$crate::objc2_app_kit::NSView>> =
                             $crate::objc2::msg_send![&content_view, subviews];
                         let count: usize = $crate::objc2::msg_send![&subviews, count];
@@ -623,7 +747,12 @@ macro_rules! panel {
                             let _: () = $crate::objc2::msg_send![&view, setAutoresizingMask: resize_mask];
                         }
 
-                        Ok($class_name::with_label(panel, label, original_class, window.app_handle().clone()))
+                        Ok($class_name::with_label(
+                            panel,
+                            label,
+                            original_class,
+                            tauri::Manager::app_handle(&window).clone(),
+                        ))
                     }
                 }
             }
@@ -662,6 +791,10 @@ macro_rules! panel {
                             $crate::objc2::msg_send![panel, contentView];
                         let bounds: $crate::objc2_foundation::NSRect =
                             $crate::objc2::msg_send![&content_view, bounds];
+                        let options = $crate::panel::resolve_tracking_area_options(
+                            options.into(),
+                            auto_resize,
+                        );
 
                         // Create tracking area
                         let tracking_area: $crate::objc2::rc::Retained<$crate::objc2_app_kit::NSTrackingArea> = {
@@ -672,19 +805,12 @@ macro_rules! panel {
                             let area: *mut $crate::objc2_app_kit::NSTrackingArea = $crate::objc2::msg_send![
                                 alloc,
                                 initWithRect: bounds,
-                                options: options.into(),
+                                options: options,
                                 owner: &*content_view,
                                 userInfo: $crate::objc2::ffi::nil
                             ];
                             $crate::objc2::rc::Retained::from_raw(area).unwrap()
                         };
-
-                        // Set auto-resizing if requested
-                        if auto_resize {
-                            let resize_mask = $crate::objc2_app_kit::NSAutoresizingMaskOptions::ViewWidthSizable
-                                | $crate::objc2_app_kit::NSAutoresizingMaskOptions::ViewHeightSizable;
-                            let _: () = $crate::objc2::msg_send![&content_view, setAutoresizingMask: resize_mask];
-                        }
 
                         // Add tracking area
                         let _: () = $crate::objc2::msg_send![&content_view, addTrackingArea: &*tracking_area];
@@ -693,4 +819,81 @@ macro_rules! panel {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::CStr;
+    use std::sync::OnceLock;
+
+    use objc2::{runtime::ClassBuilder, ClassType};
+    use objc2_app_kit::{NSTrackingAreaOptions, NSView};
+
+    use super::{
+        install_window_level_method, resolve_tracking_area_options, stable_text_input_client_class,
+    };
+
+    #[test]
+    fn auto_resize_tracks_the_visible_view_rect() {
+        let base = NSTrackingAreaOptions::ActiveAlways
+            | NSTrackingAreaOptions::MouseEnteredAndExited
+            | NSTrackingAreaOptions::MouseMoved;
+
+        let options = resolve_tracking_area_options(base, true);
+
+        assert!(options.contains(NSTrackingAreaOptions::InVisibleRect));
+        assert!(options.contains(base));
+    }
+
+    #[test]
+    fn fixed_tracking_area_preserves_the_requested_options() {
+        let base = NSTrackingAreaOptions::ActiveAlways
+            | NSTrackingAreaOptions::MouseEnteredAndExited
+            | NSTrackingAreaOptions::MouseMoved;
+
+        assert_eq!(resolve_tracking_area_options(base, false), base);
+    }
+
+    #[test]
+    fn window_level_method_is_installed_once() {
+        static CLASS: OnceLock<&'static objc2::runtime::AnyClass> = OnceLock::new();
+        let class = CLASS.get_or_init(|| {
+            let name = CStr::from_bytes_with_nul(b"TauriNSPanelTextInputClientTest\0")
+                .expect("test class name must be NUL-terminated");
+            ClassBuilder::new(name, NSView::class())
+                .expect("test class should only be registered once")
+                .register()
+        });
+
+        assert!(install_window_level_method(class));
+        assert!(class.instance_method(objc2::sel!(windowLevel)).is_some());
+        assert!(!install_window_level_method(class));
+    }
+
+    #[test]
+    fn window_level_method_targets_the_stable_webview_subclass() {
+        static CLASSES: OnceLock<(
+            &'static objc2::runtime::AnyClass,
+            &'static objc2::runtime::AnyClass,
+        )> = OnceLock::new();
+        let (webview, notifying_webview) = CLASSES.get_or_init(|| {
+            let wk_webview_name = CStr::from_bytes_with_nul(b"WKWebView\0").unwrap();
+            let wk_webview = objc2::runtime::AnyClass::get(wk_webview_name)
+                .expect("WebKit should be loaded by Tauri");
+            let webview_name =
+                CStr::from_bytes_with_nul(b"TauriNSPanelStableWebViewTest\0").unwrap();
+            let webview = ClassBuilder::new(webview_name, wk_webview)
+                .expect("stable test webview class should only be registered once")
+                .register();
+            let notifying_name =
+                CStr::from_bytes_with_nul(b"TauriNSPanelNotifyingWebViewTest\0").unwrap();
+            let notifying_webview = ClassBuilder::new(notifying_name, webview)
+                .expect("notifying test webview class should only be registered once")
+                .register();
+
+            (webview, notifying_webview)
+        });
+
+        assert_eq!(stable_text_input_client_class(notifying_webview), *webview);
+    }
 }

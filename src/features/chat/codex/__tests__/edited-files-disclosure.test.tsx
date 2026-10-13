@@ -1,9 +1,9 @@
+import type { ToolItem } from "@alwith/api"
 import { fireEvent, render } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 import { EditedFilesCard } from "../edited-files-card"
-import type { ToolItem } from "@alwith/api"
 
 await initI18n("en")
 const item: ToolItem = {

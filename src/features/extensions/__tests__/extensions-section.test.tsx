@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
-import type { InstallResult, PreparedInstall } from "../install-service"
 import { ExtensionsSection } from "../extensions-section"
+import type { InstallResult, PreparedInstall } from "../install-service"
 
 const ports = vi.hoisted(() => ({ prepare: vi.fn(), install: vi.fn(), report: vi.fn(), success: vi.fn() }))
 vi.mock("@/bindings", () => ({ commands: { extensionPrepareInstall: ports.prepare } }))

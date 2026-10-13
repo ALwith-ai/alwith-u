@@ -271,14 +271,13 @@ test("project path aliases share the popover cache and still show every matching
   }
 })
 
-test.each([
-  "/Users/mac/Documents/Codex",
-  "/private/var/folders/example/T/project",
-  "/var/folders/example/T/project"
-])("quick-chat directory %s does not expose a project popover", cwd => {
-  const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
-  expect(view.queryByRole("button")).toBeNull()
-})
+test.each(["/Users/mac/Documents/Codex", "/private/var/folders/example/T/project", "/var/folders/example/T/project"])(
+  "quick-chat directory %s does not expose a project popover",
+  cwd => {
+    const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
+    expect(view.queryByRole("button")).toBeNull()
+  }
+)
 
 test("custom Windows temporary sessions do not expose a project popover", () => {
   const original = useThreadsUiStore.getState().windowsTempDirectory

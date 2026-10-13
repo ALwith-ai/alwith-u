@@ -1,5 +1,5 @@
-import { LoaderCircleIcon, Minimize2Icon } from "lucide-react"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { LoaderCircleIcon, Minimize2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"

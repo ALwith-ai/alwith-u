@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 const transport = vi.hoisted(() => ({
   label: "settings",
   listeners: new Map<string, (event: { payload: unknown }) => void>(),
@@ -12,7 +13,9 @@ vi.mock("@tauri-apps/api/event", () => ({
   }),
   emitTo: transport.emit
 }))
+
 import { requestMainReload, serveMainReload } from "../reload-window"
+
 afterEach(() => {
   transport.listeners.clear()
   vi.clearAllMocks()

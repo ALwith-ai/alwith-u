@@ -1,12 +1,12 @@
 import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
 import { isEmbeddedResource, isImage, isResourceLink } from "@alwith/api"
 import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
-import { useState, type ReactElement } from "react"
+import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { chatFileName, downloadChatFile, useOpenChatLink } from "../file-actions"
 import { openImageLightbox } from "../dialogs/image-lightbox"
+import { chatFileName, downloadChatFile, useOpenChatLink } from "../file-actions"
 
 export function ResourceContent({ block }: { block: ContentBlock }): ReactElement | null {
   const { t } = useTranslation()

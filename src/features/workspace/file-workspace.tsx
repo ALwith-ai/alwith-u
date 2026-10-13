@@ -1,52 +1,54 @@
-import { rebaseDrivePins } from "@/features/drive/pinned"
-import { useDriveDeepLinks } from "@/features/drive/deep-links"
-import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
-import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
+import type { Job, RemoteId } from "@alwith/module-drive"
 import {
   ChatCondenseEntry,
+  type CondenseScope,
   DriveCondense,
   DriveMoveDialog,
   drivePreviewIntegrations,
-  type CondenseScope
+  resolveDriveRoot
 } from "@alwith/module-drive/content"
-import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
-import { openExternal } from "@/lib/open"
-import { driveFileSystem } from "@/features/drive/filesystem"
-import { resolveDriveRoot } from "@alwith/module-drive/content"
-import { prepareWorkspaceFile } from "@/features/drive/files"
-import { drive, DriveSharingDialog } from "@/features/drive/drive"
-import { DriveTreeActions } from "@/features/drive/tree-actions"
-import { driveControls } from "@/features/drive/controls"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { confirm } from "@tauri-apps/plugin-dialog"
-import type { Job, RemoteId } from "@alwith/module-drive"
 import { DriveBadge, useDrive } from "@alwith/module-drive/react"
-import { createFileSystem, containsPath, dirname, type FileSystem } from "@alwith/module-fs"
-import { createTauriAdapter } from "@alwith/module-fs/tauri"
+import {
+  type CloseDecision,
+  createEditorController,
+  type EditorController,
+  type EditorLabels,
+  EditorWorkbench,
+  ImagePreview
+} from "@alwith/module-editor"
 import {
   createFileTreeController,
   FileTree,
   type FileTreeController,
   type FileTreeLabels
 } from "@alwith/module-file-tree"
-import {
-  createEditorController,
-  EditorWorkbench,
-  ImagePreview,
-  type CloseDecision,
-  type EditorController,
-  type EditorLabels
-} from "@alwith/module-editor"
+import { containsPath, createFileSystem, dirname, type FileSystem } from "@alwith/module-fs"
+import { createTauriAdapter } from "@alwith/module-fs/tauri"
+import { confirm } from "@tauri-apps/plugin-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
+import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
+import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
+import { driveControls } from "@/features/drive/controls"
+import { useDriveDeepLinks } from "@/features/drive/deep-links"
+import { DriveSharingDialog, drive } from "@/features/drive/drive"
+import { prepareWorkspaceFile } from "@/features/drive/files"
+import { driveFileSystem } from "@/features/drive/filesystem"
+import { rebaseDrivePins } from "@/features/drive/pinned"
+import { DriveTreeActions } from "@/features/drive/tree-actions"
+import { openExternal } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
+import { getCurrentWindow } from "@tauri-apps/api/window"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
-import { getCurrentWindow } from "@tauri-apps/api/window"
 import { FolderTree, Maximize2, Minimize2 } from "lucide-react"
 import {
+  type CSSProperties,
   lazy,
+  type ReactNode,
   Suspense,
   useCallback,
   useContext,
@@ -54,30 +56,29 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
-  type CSSProperties,
-  type ReactNode
+  useSyncExternalStore
 } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
+import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
-import { WorkspaceButton } from "./workspace-button"
 import { useHostDialog } from "./host-dialog"
+import { WorkspaceButton } from "./workspace-button"
 import "./workspace.css"
-import { createTreeOpener } from "./tree-opener"
-import { createWorkspaceStateStore, type IconTheme, type WorkspaceState } from "./workspace-state"
-import { useEditorPreferences } from "./use-editor-preferences"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
-import { localPreviewProviders } from "./local-previews"
-import { resolvePreviewResource } from "./preview-resources"
 import { createHtmlPreviewHost } from "./html-preview"
+import { localPreviewProviders } from "./local-previews"
 import { MoveToDialog } from "./move-to-dialog"
 import { moveWorkspaceFiles, type WorkspaceMoveOutcome } from "./move-workspace-files"
+import { resolvePreviewResource } from "./preview-resources"
+import { createTreeOpener } from "./tree-opener"
+import { useEditorPreferences } from "./use-editor-preferences"
+import { createWorkspaceStateStore, type IconTheme, type WorkspaceState } from "./workspace-state"
 import "@alwith/module-editor/previews/styles.css"
+
 const loadMonaco = () => import("./monaco-editor")
 const CodeEditor = lazy(loadMonaco)
 interface Workspace {

@@ -1,7 +1,7 @@
-import { afterEach, expect, vi, test } from "vitest"
 import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith/module-vibemon"
 import { PetModeButton, PetQuickReply } from "@alwith/module-vibemon/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { afterEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
 
 let dispose = () => {}

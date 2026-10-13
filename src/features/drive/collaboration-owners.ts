@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react"
+
 const listeners = new Set<() => void>()
 const owners = new Map<string, Set<string>>()
 export function setCollaborationOwner(path: string, ownerId: string, active: boolean): void {

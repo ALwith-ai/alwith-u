@@ -3,8 +3,8 @@ import { CodexUserMessage } from "@alwith/module-chat/user-message"
 import { memo } from "react"
 import { messageText } from "../turns"
 import { useChatActivityHost } from "./activity-host"
-import { ResourceContent } from "./resource-content"
 import { questionReply, questionReplyParts } from "./question-reply"
+import { ResourceContent } from "./resource-content"
 
 export const UserMessage = memo(function UserMessage({
   item,

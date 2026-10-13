@@ -1,5 +1,5 @@
-import { vibemonLocales } from "@alwith/module-vibemon/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
+import { vibemonLocales } from "@alwith/module-vibemon/locales"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 import ar from "@/locales/ar.json"

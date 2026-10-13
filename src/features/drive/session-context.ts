@@ -1,6 +1,6 @@
-import type { ClientOptions } from "@/agent/client"
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
 import { invoke, isTauri } from "@tauri-apps/api/core"
+import type { ClientOptions } from "@/agent/client"
 
 async function request(value: DriveRequest): Promise<DriveResponse> {
   return invoke<DriveResponse>("drive_request", { request: value })

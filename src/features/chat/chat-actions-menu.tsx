@@ -34,8 +34,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { client, useApp } from "@/lib/client"
-import { McpDiagnostics } from "./mcp-diagnostics"
 import { openChatSearch } from "./dialogs/chat-search"
+import { McpDiagnostics } from "./mcp-diagnostics"
 import { ExternalEditorMenu, ProjectAppIcon, useProjectApps } from "./open-in-editor"
 
 // Keep the diagnostics implementation available while its menu entry is temporarily hidden.

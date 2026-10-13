@@ -1,8 +1,8 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { expect, test } from "vitest"
-import { type Attachment, PromptInputProvider } from "../prompt-input-context"
 import { PromptInputTextarea } from "../prompt-input"
+import { type Attachment, PromptInputProvider } from "../prompt-input-context"
 
 function Input() {
   const [files, setFiles] = useState<Attachment[]>([

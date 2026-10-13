@@ -1,12 +1,12 @@
-import { afterEach, expect, test } from "vitest"
 import { ResourceScope } from "@alwith/module-extension/host"
 import { clearMocks, mockWindows } from "@tauri-apps/api/mocks"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { Toaster, toast } from "sonner"
+import { afterEach, expect, test } from "vitest"
+import { setDriveArchiveOwner } from "@/features/drive/plugin-bridge"
 import { commonCapabilities } from "../capabilities/common"
 import { createLegacyHost } from "../legacy/host"
 import { showExtensionLimitations } from "../legacy/limitations"
-import { setDriveArchiveOwner } from "@/features/drive/plugin-bridge"
 
 afterEach(() => {
   toast.dismiss()

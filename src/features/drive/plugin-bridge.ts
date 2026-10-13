@@ -1,5 +1,5 @@
-import type { Dispose, ExtensionData, Json } from "@alwith/module-extension"
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
+import type { Dispose, ExtensionData, Json } from "@alwith/module-extension"
 
 interface PluginDataBinding {
   data: ExtensionData

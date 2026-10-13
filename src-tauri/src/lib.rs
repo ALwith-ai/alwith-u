@@ -159,6 +159,11 @@ pub fn run() {
                 app.exit(0);
             }
             tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
+                #[cfg(target_os = "macos")]
+                if chat_window::is_overlay(&label) {
+                    use tauri_nspanel::ManagerExt;
+                    drop(app.remove_webview_panel(&label));
+                }
                 extension_inbox::window_closed(app, &label);
             }
             tauri::RunEvent::ExitRequested { api, code, .. } => {

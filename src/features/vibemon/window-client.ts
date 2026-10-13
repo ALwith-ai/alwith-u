@@ -1,14 +1,14 @@
-import { sessionIcons } from "./session-icons"
-import { sessionIconSvg, type PetWindowHost, type PetBinding, type PetSessionChoice } from "@alwith/module-vibemon"
+import { type PetBinding, type PetSessionChoice, type PetWindowHost, sessionIconSvg } from "@alwith/module-vibemon"
 import { invoke } from "@tauri-apps/api/core"
+import { emitTo, listen } from "@tauri-apps/api/event"
 import { Image as TauriImage } from "@tauri-apps/api/image"
 import { Menu } from "@tauri-apps/api/menu"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LogicalPosition } from "@tauri-apps/api/window"
-import { emitTo, listen } from "@tauri-apps/api/event"
 import i18n from "@/lib/i18n"
-import { requestPet } from "./transport"
+import { sessionIcons } from "./session-icons"
 import { fitSessionMenuLabel } from "./session-menu-label"
+import { requestPet } from "./transport"
 
 let sessionMenu: Menu | null = null
 async function chooseSession(payload: {

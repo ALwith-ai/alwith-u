@@ -1,7 +1,8 @@
 // Ported from ALwith Desktop's image-lightbox.tsx: a full-screen view of one image.
 // Any image in the thread opens it through `openImageLightbox`.
-import { useTranslation } from "react-i18next"
+
 import { XIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { create } from "zustand"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"

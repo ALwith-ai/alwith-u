@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from "vitest"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
+import { afterEach, expect, test } from "vitest"
 import i18n, { initI18n } from "@/lib/i18n"
 import { petWindowCall } from "../window-client"
 
