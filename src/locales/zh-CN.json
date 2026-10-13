@@ -2,6 +2,7 @@
   "app": {
     "name": "ALwith U"
   },
+  "guide": { "title": "ALwith U 指南" },
   "errorBoundary": {
     "label": "错误",
     "componentStack": "组件堆栈",

@@ -23,6 +23,7 @@
   "app": {
     "name": "ALwith U"
   },
+  "guide": { "title": "ALwith U Guide" },
   "errorBoundary": {
     "label": "ERROR",
     "componentStack": "Component Stack",
