@@ -116,12 +116,12 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
-function Surface({ cwd }: { cwd: string }) {
+function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealRequest?: number }) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   return (
     <WorkspaceHeaderContext.Provider value={toolbar}>
       <div ref={setToolbar} data-testid="window-titlebar" />
-      <FileWorkspace cwd={cwd}>
+      <FileWorkspace cwd={cwd} chatRevealRequest={chatRevealRequest}>
         <ChatHeader title="Conversation" project={<span>Project</span>}>
           {null}
         </ChatHeader>
@@ -270,6 +270,23 @@ test("preview controls switch view mode and retain edits across hiding", async (
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("retained draft"))
   expect(layout).toHaveAttribute("data-view-mode", "false")
+})
+
+test("chat reveal requests restore the chat pane without closing the preview or losing edits", async () => {
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "retained draft" } })
+  fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+  const layout = required(document.querySelector(".file-workspace-layout"))
+  expect(layout).toHaveAttribute("data-view-mode", "true")
+  view.rerender(<Surface cwd="/a" />)
+  expect(layout).toHaveAttribute("data-view-mode", "true")
+  view.rerender(<Surface cwd="/a" chatRevealRequest={1} />)
+  await waitFor(() => expect(layout).toHaveAttribute("data-view-mode", "false"))
+  expect(screen.getByText("Chat /a")).toBeVisible()
+  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained draft")
+  expect(screen.getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
 })
 
 test("Desktop-style context menu, inline rename cancellation, and search keyboard controls", async () => {

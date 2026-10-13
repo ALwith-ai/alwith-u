@@ -84,6 +84,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
+  const [chatRevealRequest, setChatRevealRequest] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -222,6 +223,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
           setSurfaceGeneration(value => value + 1)
+          setChatRevealRequest(value => value + 1)
           setView("chat")
           setSelectedId(null)
         })
@@ -261,6 +263,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               setLastDirectory(transfer.cwd)
               setSelectedId(transfer.sessionId)
               setSurfaceGeneration(value => value + 1)
+              setChatRevealRequest(value => value + 1)
               setView("chat")
               const win = getCurrentWebviewWindow()
               await win.unminimize()
@@ -605,7 +608,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
-                <FileWorkspace cwd={session?.cwd ?? lastDirectory}>
+                <FileWorkspace cwd={session?.cwd ?? lastDirectory} chatRevealRequest={chatRevealRequest}>
                   <DriveDeleteConfirmation />
                   <div className="flex min-h-0 flex-1 flex-col">{main}</div>
                   {driveSidebar &&

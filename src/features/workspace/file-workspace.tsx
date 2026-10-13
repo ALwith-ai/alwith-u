@@ -101,7 +101,15 @@ const noEditorSubscription = (): (() => void) => () => {}
 function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))
 }
-export function FileWorkspace({ cwd, children }: { cwd: string | null; children: ReactNode }) {
+export function FileWorkspace({
+  cwd,
+  children,
+  chatRevealRequest = 0
+}: {
+  cwd: string | null
+  children: ReactNode
+  chatRevealRequest?: number
+}) {
   const { resolvedTheme } = useTheme()
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
@@ -153,6 +161,13 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false)
+  const previousChatRevealRequest = useRef(chatRevealRequest)
+  useEffect(() => {
+    if (previousChatRevealRequest.current === chatRevealRequest) return
+    previousChatRevealRequest.current = chatRevealRequest
+    // New and returned chats must be visible even when the chat pane was collapsed.
+    setViewMode(false)
+  }, [chatRevealRequest])
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [navigation, setNavigation] = useState<{ path: string; position: FilePosition } | null>(null)
   const editorSnapshot = useSyncExternalStore(
