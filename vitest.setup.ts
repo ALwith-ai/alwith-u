@@ -9,40 +9,6 @@ import { expect, vi } from "vitest"
 // resolve to a different instance.
 expect.extend(matchers)
 
-// Bun's Node runtime exposes a localStorage accessor without a backing file: the property exists
-// but reads as undefined, and zustand persist captures it at module init. Provide standard Storage.
-class MemoryStorage implements Storage {
-  private readonly values = new Map<string, string>()
-
-  get length(): number {
-    return this.values.size
-  }
-
-  clear(): void {
-    this.values.clear()
-  }
-
-  getItem(key: string): string | null {
-    const value = this.values.get(key)
-    return value === undefined ? null : value
-  }
-
-  key(index: number): string | null {
-    const value = [...this.values.keys()][index]
-    return value === undefined ? null : value
-  }
-
-  removeItem(key: string): void {
-    this.values.delete(key)
-  }
-
-  setItem(key: string, value: string): void {
-    this.values.set(key, value)
-  }
-}
-
-Object.defineProperty(globalThis, "localStorage", { configurable: true, value: new MemoryStorage() })
-
 if (typeof document !== "undefined") {
   const { ChatWorkerStub } = await import("@/features/chat/codex/__tests__/chat-worker-stub")
   // jsdom has no matchMedia or Web Animations; components only need the API surface.

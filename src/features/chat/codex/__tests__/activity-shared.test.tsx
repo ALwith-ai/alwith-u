@@ -94,7 +94,9 @@ test("shared activity renders the original ACP patch instead of reducing it to a
     toolKind: "edit",
     locations: [{ path: "a.txt" }],
     rawInput: {},
-    content: [{ type: "diff", changes: [{ path: "a.txt", operation: "modify" }], patch: { text: patch } }]
+    content: [
+      { type: "diff", changes: [{ path: "a.txt", operation: "modify" }], patch: { format: "git_patch", text: patch } }
+    ]
   })
   const view = mount(display(item))
   fireEvent.click(view.getByRole("button", { name: "Edited a.txt" }))

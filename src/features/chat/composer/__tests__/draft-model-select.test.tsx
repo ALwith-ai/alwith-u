@@ -15,7 +15,7 @@ test("draft shows the configured provider models before any session exists", asy
       snapshot={{
         revision: 1,
         appliedRevision: 1,
-        providers: { deepseek: { configured: true } },
+        providers: { deepseek: { configured: true, region: null, base_url: null } },
         customProviders: [],
         status: "applied",
         error: null

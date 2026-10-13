@@ -63,7 +63,7 @@ function WorkEntryView({
   }
 }
 
-export function TurnErrorView({ error }: { error: TurnError }) {
+function TurnErrorView({ error }: { error: TurnError }) {
   const detail = codexTurnError(error)
   const { t } = useTranslation()
   return (

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { must } from "@/lib/__tests__/must"
@@ -11,7 +11,7 @@ import { type MainScreen, MainSidebarLayout } from "../main-sidebar-layout"
 
 await initI18n("en")
 
-let save: ReturnType<typeof spyOn<typeof preferences, "savePreference">>
+let save: MockInstance<typeof preferences.savePreference>
 beforeEach(() => {
   save = vi.spyOn(preferences, "savePreference").mockResolvedValue()
 })

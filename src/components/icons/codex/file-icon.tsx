@@ -112,7 +112,7 @@ const BY_EXTENSION: Record<string, FileIconName> = {
   tsv: "table"
 }
 
-export function fileIconName(path: string): FileIconName {
+function fileIconName(path: string): FileIconName {
   const name = basename(path).toLowerCase()
   const exact = BY_BASENAME[name]
   if (exact) return exact

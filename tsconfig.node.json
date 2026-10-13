@@ -3,12 +3,13 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ESNext",
     "lib": ["ESNext", "DOM"],
-    "module": "esnext",
+    "module": "ESNext",
     "types": ["bun"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
+    "isolatedModules": true,
     "moduleDetection": "force",
     "resolveJsonModule": true,
     "noEmit": true,
@@ -22,13 +23,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "vite.config.ts",
-    "scripts",
-    "src/**/__tests__/*.ts",
-    "src/core",
-    "src/agent",
-    "vitest.config.ts",
-    "vitest.setup.ts"
-  ]
+  "include": ["vite.config.ts", "vitest.config.ts", "scripts"]
 }

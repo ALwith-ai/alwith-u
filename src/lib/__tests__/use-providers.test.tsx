@@ -1,6 +1,6 @@
 import * as events from "@tauri-apps/api/event"
 import { act, renderHook } from "@testing-library/react"
-import { afterEach, expect, test, vi } from "vitest"
+import { afterEach, expect, type MockInstance, test, vi } from "vitest"
 import type { ProviderSnapshot } from "../providers"
 import * as providers from "../providers"
 import { useProviders } from "../use-providers"
@@ -12,8 +12,8 @@ afterEach(() => {
   providersRead?.mockRestore()
   eventListen?.mockRestore()
 })
-let providersRead: ReturnType<typeof spyOn> | undefined
-let eventListen: ReturnType<typeof spyOn> | undefined
+let providersRead: MockInstance<typeof providers.loadProviders> | undefined
+let eventListen: MockInstance<typeof events.listen> | undefined
 function snapshot(revision: number, status: ProviderSnapshot["status"] = "applied"): ProviderSnapshot {
   return {
     revision,

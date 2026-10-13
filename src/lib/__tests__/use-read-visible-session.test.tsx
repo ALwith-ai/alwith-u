@@ -1,6 +1,6 @@
 import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, renderHook } from "@testing-library/react"
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import * as clientModule from "../client"
@@ -8,7 +8,8 @@ import { useReadVisibleSession } from "../use-read-visible-session"
 
 const originalState = clientModule.client.state
 let runtime: FakeHubPort
-let mark: ReturnType<typeof spyOn<typeof clientModule, "markRead">>
+let mark: MockInstance<typeof clientModule.markRead>
+type VisibleSession = { sessionId: string | null; visible: boolean }
 beforeEach(() => {
   runtime = new FakeHubPort(() => createFakeAgent().app)
   mark = vi.spyOn(clientModule, "markRead").mockImplementation(id => runtime.markRead(id))
@@ -55,11 +56,10 @@ test("drafts, running chats and action requests are never marked read; routing u
     runState("running", "running"),
     runState("action", "requires_action")
   ])
-  const view = renderHook(
-    ({ sessionId, visible }: { sessionId: string | null; visible: boolean }) =>
-      useReadVisibleSession(sessionId, visible),
-    { initialProps: { sessionId: null, visible: true } }
-  )
+  const initialProps: VisibleSession = { sessionId: null, visible: true }
+  const view = renderHook(({ sessionId, visible }: VisibleSession) => useReadVisibleSession(sessionId, visible), {
+    initialProps
+  })
   await act(async () => view.rerender({ sessionId: "running", visible: true }))
   await act(async () => view.rerender({ sessionId: "action", visible: true }))
   await act(async () => view.rerender({ sessionId: "first", visible: false }))

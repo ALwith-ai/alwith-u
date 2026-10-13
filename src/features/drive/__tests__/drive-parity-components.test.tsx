@@ -268,7 +268,9 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
     pathExists: async () => true,
     onOpenEntry: async () => {},
     onRevealPath: reveal,
-    onOpenExternal: async () => {}
+    onOpenExternal: async () => {},
+    pinnedDocs: [],
+    onPinnedDocsChange: async () => {}
   }
   render(
     <DrivePanel

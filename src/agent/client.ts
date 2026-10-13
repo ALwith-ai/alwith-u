@@ -26,7 +26,10 @@ import type {
   FuzzyFileSearchSessionUpdated,
   MarketplaceAddParams,
   MarketplaceAddResponse,
+  MarketplaceRemoveParams,
+  MarketplaceUpgradeParams,
   MarketplaceUpgradeResponse,
+  PluginInstalledParams,
   PluginInstalledResponse,
   PluginInstallParams,
   PluginInstallResponse,
@@ -34,10 +37,12 @@ import type {
   PluginListResponse,
   PluginReadParams,
   PluginReadResponse,
+  PluginUninstallParams,
   RateLimitSnapshot,
   RateLimitsResponse,
   SkillsConfigWriteParams,
   SkillsConfigWriteResponse,
+  SkillsListParams,
   SkillsListResponse
 } from "./codex-extensions"
 import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensions"
@@ -51,7 +56,7 @@ import { setRunStateSource } from "./run-state-source"
  */
 export const NATIVE_MODEL_GROUP = { id: "chatgpt", name: "ChatGPT" } as const
 
-export type ConnectionState = "disconnected" | "connecting" | "ready" | "failed"
+type ConnectionState = "disconnected" | "connecting" | "ready" | "failed"
 
 /** A model the gateway serves; Codex cannot list them, the client says what exists. */
 export type GatewayModel = { id: string; label?: string; description?: string }
@@ -1222,7 +1227,7 @@ export class CodexClient {
     return this.live().request<SkillsListResponse>("_codex/skills_list", {
       ...(cwds && cwds.length > 0 ? { cwds } : {}),
       ...(forceReload ? { forceReload } : {})
-    })
+    } satisfies SkillsListParams)
   }
 
   setSkillEnabled(params: SkillsConfigWriteParams): Promise<SkillsConfigWriteResponse> {
@@ -1236,7 +1241,7 @@ export class CodexClient {
   installedPlugins(cwds?: string[]): Promise<PluginInstalledResponse> {
     return this.live().request<PluginInstalledResponse>(
       "_codex/plugin_installed",
-      cwds && cwds.length > 0 ? { cwds } : {}
+      (cwds && cwds.length > 0 ? { cwds } : {}) satisfies PluginInstalledParams
     )
   }
 
@@ -1245,7 +1250,7 @@ export class CodexClient {
   }
 
   async uninstallPlugin(pluginId: string): Promise<void> {
-    await this.live().request("_codex/plugin_uninstall", { pluginId })
+    await this.live().request("_codex/plugin_uninstall", { pluginId } satisfies PluginUninstallParams)
   }
 
   readPlugin(params: PluginReadParams): Promise<PluginReadResponse> {
@@ -1257,13 +1262,13 @@ export class CodexClient {
   }
 
   async removeMarketplace(marketplaceName: string): Promise<void> {
-    await this.live().request("_codex/marketplace_remove", { marketplaceName })
+    await this.live().request("_codex/marketplace_remove", { marketplaceName } satisfies MarketplaceRemoveParams)
   }
 
   upgradeMarketplaces(marketplaceName?: string): Promise<MarketplaceUpgradeResponse> {
     return this.live().request<MarketplaceUpgradeResponse>(
       "_codex/marketplace_upgrade",
-      marketplaceName ? { marketplaceName } : {}
+      (marketplaceName ? { marketplaceName } : {}) satisfies MarketplaceUpgradeParams
     )
   }
 

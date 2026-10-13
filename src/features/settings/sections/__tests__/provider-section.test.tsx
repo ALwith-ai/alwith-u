@@ -19,7 +19,7 @@ function snapshot(revision: number, region = "intl"): ProviderSnapshot {
     status: "applied",
     error: null,
     customProviders: [],
-    providers: { qwen: { configured: true, region } }
+    providers: { qwen: { configured: true, region, base_url: null } }
   }
 }
 
@@ -28,7 +28,7 @@ test("an untouched row follows loaded regions and submits the revision it displa
   const view = render(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "cn" }}
+      saved={{ configured: true, region: "cn", base_url: null }}
       revision={1}
       busy={false}
       onSave={save}
@@ -37,7 +37,7 @@ test("an untouched row follows loaded regions and submits the revision it displa
   view.rerender(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "intl" }}
+      saved={{ configured: true, region: "intl", base_url: null }}
       revision={2}
       busy={false}
       onSave={save}
@@ -69,7 +69,7 @@ test("a dirty row keeps its loaded revision across another window's save and ret
   const view = render(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "cn" }}
+      saved={{ configured: true, region: "cn", base_url: null }}
       revision={1}
       busy={false}
       onSave={save}
@@ -83,7 +83,7 @@ test("a dirty row keeps its loaded revision across another window's save and ret
   view.rerender(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "intl" }}
+      saved={{ configured: true, region: "intl", base_url: null }}
       revision={2}
       busy={false}
       onSave={save}
@@ -129,7 +129,7 @@ test("a successful save advances the base without erasing text typed while it wa
   view.rerender(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "cn" }}
+      saved={{ configured: true, region: "cn", base_url: null }}
       revision={2}
       busy={false}
       onSave={save}
@@ -149,7 +149,7 @@ test("a built-in provider saves a page-configured API base URL", async () => {
   const view = render(
     <ProviderRow
       provider={provider}
-      saved={{ configured: true, region: "intl" }}
+      saved={{ configured: true, region: "intl", base_url: null }}
       revision={1}
       busy={false}
       onSave={save}
@@ -182,7 +182,7 @@ test("provider tabs show configuration state and switch the single active panel"
       <>
         <ProviderTabs
           activeId={active}
-          keys={{ deepseek: { configured: true } }}
+          keys={{ deepseek: { configured: true, region: null, base_url: null } }}
           customProviders={[custom]}
           onSelect={setActive}
           onAdd={() => setActive("new")}

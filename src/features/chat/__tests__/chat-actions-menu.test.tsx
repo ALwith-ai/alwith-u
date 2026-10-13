@@ -70,12 +70,12 @@ test("delete requires confirmation, keeps the dialog on failure and reports the 
     })
     expect(remove).not.toHaveBeenCalled()
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Delete", exact: true }))
+      fireEvent.click(view.getByRole("button", { name: "Delete" }))
     })
     expect(deleted).toEqual([])
     expect(view.getByRole("dialog")).toBeDefined()
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Delete", exact: true }))
+      fireEvent.click(view.getByRole("button", { name: "Delete" }))
     })
     await waitFor(() => expect(deleted).toEqual(["floating-id"]))
     expect(remove).toHaveBeenCalledWith("floating-id")
@@ -190,7 +190,7 @@ test("floating menu opens a new project after New chat and keeps the action avai
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "More actions" }))
   })
-  expect(view.queryByRole("menuitem", { name: "New chat", exact: true })).toBeNull()
+  expect(view.queryByRole("menuitem", { name: "New chat" })).toBeNull()
   await act(async () => {
     fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
   })

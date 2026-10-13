@@ -1,12 +1,12 @@
 import path from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig, type UserConfig } from "vite"
 
 const host = process.env.TAURI_DEV_HOST
 const debug = process.env.TAURI_ENV_DEBUG === "true"
 
-export default defineConfig({
+export const config = (): UserConfig => ({
   plugins: [react(), tailwindcss()],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"],
@@ -64,3 +64,5 @@ export default defineConfig({
     sourcemap: debug
   }
 })
+
+export default defineConfig(config)

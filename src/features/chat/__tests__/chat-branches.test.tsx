@@ -156,7 +156,7 @@ test("the inherited-history divider returns to the exact parent and stays before
     )
   })
   expect(read).not.toHaveBeenCalled()
-  const button = view.getByRole("button", { name: "Continue from original chat", exact: true })
+  const button = view.getByRole("button", { name: "Continue from original chat" })
   expect(view.queryByText("Original")).toBeNull()
   expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
   await act(async () => {

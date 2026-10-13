@@ -17,7 +17,7 @@ const MODE_ICONS: Record<string, LucideIcon> = {
   "agent-full-access": TriangleAlertIcon
 }
 
-export function modeConfigOption(options: acp.SessionConfigOption[]): SelectOption | undefined {
+function modeConfigOption(options: acp.SessionConfigOption[]): SelectOption | undefined {
   return options.find(option => option.category === "mode" && isSelectOption(option)) as SelectOption | undefined
 }
 

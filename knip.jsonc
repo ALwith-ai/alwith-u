@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/bindings.ts",
+    "src/**/__tests__/**/*.{ts,tsx}",
+    "scripts/**/*.ts",
+    ".storybook/fixtures/open.ts",
+    "src/features/story/use-story-available.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],
+  "ignoreIssues": {
+    // registry components are kept whole, as upstream ships them
+    "src/components/ui/**": ["files", "exports", "types", "duplicates"]
+  },
+  "ignoreDependencies": [
+    // Bundled into the app by scripts/stage.ts from the pinned package versions
+    "@openai/codex",
+    "@nyssance/codex-acp-v2",
+    // only imported by the unused registry component ui/message-scroller
+    "@shadcn/react"
+  ],
+  // scripts/stage.ts reads the host target triple from rustc
+  "ignoreBinaries": ["rustc"]
+}

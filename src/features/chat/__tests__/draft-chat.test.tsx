@@ -161,7 +161,7 @@ test.each([
     await waitFor(() => expect(env.ready()).toBe(true))
     await act(() => env.present())
     await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
-    const previous = must(Object.keys(env.real.state.draftSessions)[0])
+    const previous = must(Object.keys(env.real.state.draftSessions)[0], "the first draft session")
     await act(async () => {
       fireEvent.input(view.getByRole("textbox"), { target: { value: "First message" } })
       fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
@@ -171,7 +171,7 @@ test.each([
     await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
     await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New chat" })))
     await waitFor(() => {
-      const id = must(Object.keys(env.real.state.draftSessions)[0])
+      const id = must(Object.keys(env.real.state.draftSessions)[0], "the new draft session")
       expect(id).not.toBe(previous)
       expect(env.real.session(id).cwd).toBe(expected)
     })

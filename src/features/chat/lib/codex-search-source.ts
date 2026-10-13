@@ -8,8 +8,6 @@ import { isText } from "@alwith/api"
 import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"
 import type { Turn } from "../turns"
 
-export type { SearchSourceMatch as CodexSearchSourceMatch } from "@alwith/module-chat/search-source"
-
 function stringsInValue(value: unknown): string[] {
   if (typeof value === "string") return [value]
   if (Array.isArray(value)) return value.flatMap(stringsInValue)

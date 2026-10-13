@@ -23,7 +23,7 @@ import {
 import { SettingGroup, SettingLabel } from "./shared"
 
 /** Desktop's `UsageLimitRow`: label, a long bar, "n% used", then the reset time under it. */
-export function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
+function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
   const { t } = useTranslation()
   const percent = window ? Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
   const resets =

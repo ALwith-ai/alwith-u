@@ -4,7 +4,7 @@ import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experiment
 import { Agent } from "@alwith/api"
 import { runtimeClient } from "@/lib/runtime"
 
-export const STORY_MODULE = "alwith-story"
+const STORY_MODULE = "alwith-story"
 
 export interface FrameSection {
   key: string

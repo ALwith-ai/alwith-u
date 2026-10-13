@@ -45,14 +45,14 @@ test("main header preloads apps before opening its menu and remounts use the res
     act(() => {
       fireEvent.click(view.getByRole("button", { name: "More actions" }))
     })
-    expect(view.getByRole("menuitem", { name: "Open", exact: true })).toBeDefined()
+    expect(view.getByRole("menuitem", { name: "Open" })).toBeDefined()
     act(() => {
       fireEvent.keyDown(view.getByRole("menu"), { key: "Escape" })
     })
     act(() => {
       fireEvent.click(view.getByRole("button", { name: "More actions" }))
     })
-    expect(view.getByRole("menuitem", { name: "Open", exact: true })).toBeDefined()
+    expect(view.getByRole("menuitem", { name: "Open" })).toBeDefined()
     // This assertion runs before the cached Promise's continuation can update React state.
     const cached = renderHook(() => useExternalApps())
     expect(cached.result.current).toEqual(apps)
@@ -90,7 +90,7 @@ test("main chat menu uses installed app shortcuts, remembers the choice and open
       fireEvent.click(view.getByRole("button", { name: "More actions" }))
     })
     expect(view.queryByRole("menuitem", { name: "Open project folder" })).toBeNull()
-    const open = await view.findByRole("menuitem", { name: "Open", exact: true })
+    const open = await view.findByRole("menuitem", { name: "Open" })
     await act(async () => {
       fireEvent.click(open)
     })

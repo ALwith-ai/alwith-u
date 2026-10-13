@@ -31,7 +31,7 @@ test("rejects stored paths outside the project and malformed preferences", async
 })
 
 test("propagates failed persistence and allows a later save", async () => {
-  const write = vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => {
+  const write = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
     throw new Error("disk full")
   })
   const store = createWorkspaceStateStore()

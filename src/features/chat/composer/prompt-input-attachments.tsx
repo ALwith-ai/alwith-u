@@ -4,7 +4,7 @@ import {
 } from "@alwith/module-chat/composer-attachments"
 import { useTranslation } from "react-i18next"
 
-export { PromptInputAttachments, type PromptInputAttachmentsProps } from "@alwith/module-chat/composer-attachments"
+export { PromptInputAttachments } from "@alwith/module-chat/composer-attachments"
 export type PromptInputAttachmentProps = Omit<SharedAttachmentProps, "t">
 export function PromptInputAttachment(props: PromptInputAttachmentProps) {
   const { t } = useTranslation()

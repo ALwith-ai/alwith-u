@@ -63,12 +63,11 @@ function PanelItemTitle({ className, children, ...props }: ComponentProps<typeof
 
 export {
   // Bare Item: compose special cases without default hover styles, such as session group headers.
-  Item,
+
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemMedia,
-  ItemTitle,
   PanelItem,
   PanelItemTitle,
   PanelList

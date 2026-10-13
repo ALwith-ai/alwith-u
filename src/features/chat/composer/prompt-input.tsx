@@ -8,20 +8,12 @@ import { toast } from "sonner"
 export * from "@alwith/module-chat/composer"
 export {
   type Attachment,
-  type AttachmentsContext,
   type FileUIPart,
-  type PromptInputControllerProps,
   PromptInputProvider,
-  type PromptInputProviderProps,
-  type TextInputContext,
   usePromptInputAttachments,
   usePromptInputController
 } from "./prompt-input-context"
-export {
-  PromptInputTextarea,
-  type PromptInputTextareaHandle,
-  type PromptInputTextareaProps
-} from "./prompt-input-textarea"
+export { PromptInputTextarea, type PromptInputTextareaHandle } from "./prompt-input-textarea"
 
 export type PromptInputProps = Omit<
   SharedPromptInputProps,
