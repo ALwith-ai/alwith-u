@@ -124,8 +124,8 @@ test("plugin controls and skill scopes follow a language change without remounti
   animation.mockRestore()
   expect(panel.getByRole("heading", { name: "插件" })).toBeDefined()
   expect(panel.getByRole("heading", { name: "技能" })).toBeDefined()
-  expect(panel.getByText("插件已启用")).toBeDefined()
-  expect(panel.getByText("插件已禁用")).toBeDefined()
+  expect(panel.getByRole("switch", { name: "禁用 Installed example" })).toBeDefined()
+  expect(panel.getByRole("switch", { name: "启用 Disabled example" })).toBeDefined()
   for (const scope of ["用户", "项目", "系统", "管理员"]) expect(panel.getByText(scope)).toBeDefined()
   expect(panel.getAllByRole("switch", { name: "禁用技能" })).toHaveLength(3)
   expect(panel.getByRole("switch", { name: "启用技能" })).toBeDefined()
@@ -138,7 +138,7 @@ test("plugin controls and skill scopes follow a language change without remounti
     await i18n.changeLanguage("en")
   })
   expect(panel.getByRole("heading", { name: "Skills" })).toBeDefined()
-  expect(panel.getByText("Plugin enabled")).toBeDefined()
+  expect(panel.getByRole("switch", { name: "Disable Installed example" })).toBeDefined()
   for (const scope of ["User", "Project", "System", "Admin"]) expect(panel.getByText(scope)).toBeDefined()
   expect(view.container.textContent).not.toMatch(/plugins\.|returned an object/)
 })
@@ -180,4 +180,54 @@ test("plugin icons use the same local Figma asset in marketplace and installed l
   expect(view.container.querySelector("#plugin-ladybug")).toBe(definition)
   await act(async () => i18n.changeLanguage("zh-CN"))
   expect(must(view.container.querySelector("use"), "localized plugin icon").getAttribute("href")).toBe(href)
+})
+
+test("search paginates large catalogs and a new query resets the page", async () => {
+  const plugins = Array.from({ length: 6000 }, (_, index) => plugin(`Searchable ${index}`))
+  pluginsStore.setState({
+    marketplaces: [{ name: "Remote", path: null, interface: null, plugins }],
+    featuredPluginIds: [plugins[0].id]
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(1)
+  await act(async () =>
+    fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable" } })
+  )
+  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(48)
+  expect(view.queryByText("Searchable 48")).toBeNull()
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Next", exact: true })))
+  expect(view.getByText("Searchable 48")).toBeDefined()
+  await act(async () =>
+    fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable 5999" } })
+  )
+  expect(view.getByText("Searchable 5999")).toBeDefined()
+  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(1)
+})
+
+test("the upgrade spinner belongs only to an upgrade, not plugin mutations or catalog refresh", async () => {
+  const view = render(<PluginsPage cwd={null} active />)
+  const upgrade = view.getByRole("button", { name: "Upgrade" })
+  await act(async () => pluginsStore.setState({ busyIds: { alpha: "installing" }, loading: true }))
+  expect(upgrade).toHaveAttribute("aria-busy", "false")
+  expect(upgrade).toBeEnabled()
+  await act(async () => pluginsStore.setState({ upgrading: true }))
+  expect(upgrade).toHaveAttribute("aria-busy", "true")
+  expect(upgrade).toBeDisabled()
+  await act(async () => pluginsStore.setState({ upgrading: false }))
+  expect(upgrade).toBeEnabled()
+})
+
+test("installed plugins have functional switches disabled while the plugin is busy", async () => {
+  const target = plugin("Example", true)
+  const marketplace: PluginMarketplaceEntry = { name: "local", path: "/local", interface: null, plugins: [target] }
+  const toggle = vi.fn().mockResolvedValue(undefined)
+  pluginsStore.setState({ installed: [{ plugin: target, marketplace }], setPluginEnabled: toggle })
+  const view = render(<PluginsPage cwd={null} active />)
+  await act(async () => fireEvent.click(view.getByRole("tab", { name: "Installed" })))
+  const control = view.getByRole("switch", { name: "Disable Example" })
+  expect(control).toBeChecked()
+  await act(async () => fireEvent.click(control))
+  expect(toggle).toHaveBeenCalledWith(target, false)
+  await act(async () => pluginsStore.setState({ busyIds: { Example: "toggling" } }))
+  expect(control).toHaveAttribute("aria-disabled", "true")
 })

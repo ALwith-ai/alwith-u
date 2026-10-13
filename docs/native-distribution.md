@@ -13,6 +13,10 @@ U's source can be public. Private implementations such as Auth are not published
 
 The native libraries are produced by the CI of the private alwith-modules repository, with arm64 and x64 artifacts for macOS, Windows and Linux. A platform package contains only the dynamic library, `artifact.json` and licence notices; no Auth Rust source. The build scripts of `@alwith/native` never run in the WebView.
 
+Pet, bubble, and chat windows are managed by U's Tauri host. On macOS they share the local `tauri-nspanel` integration, including focus, input-method support, and window lifecycle. Pet state, animation, and assets remain in the shared frontend packages. `@alwith/native` stays pinned to the published `0.1.4` packages without local platform overrides.
+
+Pet request deduplication also lives in U's Rust host. Claims remain in memory for the process lifetime, after the host validates the calling window and the Runtime's session owner and execution state. U does not call pet methods in the native library.
+
 ## Unchanged behaviour
 
 - Auth stays separate from the Runtime; no new resident process.

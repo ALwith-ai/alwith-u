@@ -1,4 +1,4 @@
-import { PetCenter } from "@alwith/module-vibemon/react"
+import { PetCenter } from "@alwith/module-auth/pets/react"
 import { usePlatformAuth } from "@/features/auth/store"
 
 export function VibemonCenter() {

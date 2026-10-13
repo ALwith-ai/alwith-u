@@ -1,4 +1,4 @@
-import { configureVibemon, initializeSettings } from "@alwith/module-vibemon"
+import { configureVibemon, initializeSettings } from "@alwith/module-auth/pets/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { toast } from "sonner"

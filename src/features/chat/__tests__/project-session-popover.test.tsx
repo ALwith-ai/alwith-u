@@ -3,7 +3,6 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
-import { useThreadsUiStore } from "@/features/threads/store"
 import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
@@ -285,7 +284,7 @@ test("project path aliases share the popover cache and still show every matching
   }
 })
 
-test.each(["/Users/mac/Documents/Codex", "/private/var/folders/example/T/project", "/var/folders/example/T/project"])(
+test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith U"])(
   "quick-chat directory %s does not expose a project popover",
   cwd => {
     const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
@@ -293,16 +292,15 @@ test.each(["/Users/mac/Documents/Codex", "/private/var/folders/example/T/project
   }
 )
 
-test("custom Windows temporary sessions do not expose a project popover", () => {
-  const original = useThreadsUiStore.getState().windowsTempDirectory
-  useThreadsUiStore.setState({ windowsTempDirectory: String.raw`D:\Scratch` })
-  try {
-    const view = render(
-      <ProjectSessionPopover cwd={String.raw`D:\Scratch\project`} onSelect={() => {}} onNewChat={() => {}} />
-    )
-    expect(view.queryByRole("button")).toBeNull()
-    view.unmount()
-  } finally {
-    useThreadsUiStore.setState({ windowsTempDirectory: original })
-  }
+test.each([
+  "/private/var/folders/example/T/project",
+  "/var/folders/example/T/project",
+  String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
+  String.raw`C:\Windows\Temp\project`,
+  String.raw`D:\Scratch\project`
+])("temporary directory %s exposes its project chats", async cwd => {
+  client.store.setState({ threads: threads(cwd) })
+  const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+  expect(view.getByText("7 chats")).toBeDefined()
 })

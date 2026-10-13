@@ -15,7 +15,7 @@ for (const base of ["/", "./"]) {
       await writeFile(join(root, "vibemon.html"), html)
       await writeFile(
         join(root, "main.js"),
-        'import { PetCenter, PetWindow } from "@alwith/module-vibemon/react"; import "@alwith/module-vibemon/styles.css"; window.components = { PetCenter, PetWindow };'
+        'import { PetCenter, PetWindow } from "@alwith/module-auth/pets/react"; import "@alwith/module-auth/pets/styles.css"; window.components = { PetCenter, PetWindow };'
       )
       const result = await build({
         root,
@@ -56,7 +56,7 @@ for (const base of ["/", "./"]) {
       for (const file of result.output) {
         const source = file.type === "chunk" ? file.code : typeof file.source === "string" ? file.source : ""
         expect(source).not.toMatch(/["']\/(?:vibemon|card-draw)\//)
-        expect(source).not.toContain("node_modules/@alwith/module-vibemon/assets")
+        expect(source).not.toContain("node_modules/@alwith/module-auth/assets")
         for (const match of source.matchAll(/([^"'`\s()]+-[\w-]{8}\.(?:png|webp|svg|mp4|webm|woff2))/g)) {
           const url = new URL(match[1], `https://fixture.invalid/${file.fileName}`)
           expect(files.has(url.pathname.slice(1))).toBe(true)

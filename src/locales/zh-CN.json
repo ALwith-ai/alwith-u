@@ -499,7 +499,9 @@
       "localPlugin": "来自此设备上的个人插件市场",
       "enabledStatus": "插件已启用",
       "disabledStatus": "插件已禁用",
-      "installedByAdmin": "由管理员安装"
+      "installedByAdmin": "由管理员安装",
+      "enable": "启用 {{pluginName}}",
+      "disable": "禁用 {{pluginName}}"
     },
     "disabledReason": {
       "planNotEligible": "你的套餐不支持",
@@ -512,7 +514,13 @@
       "refreshError": "已安装 {{pluginName}}，但刷新插件列表失败",
       "uninstalled": "{{pluginName}} 插件已卸载",
       "uninstallError": "插件卸载失败",
-      "skillsReloadError": "插件已更改，但无法刷新技能。请先重新加载技能，再开始新聊天"
+      "uninstallNotApplied": "刷新后插件仍处于已安装状态，请重试。",
+      "skillsReloadError": "插件已更改，但无法刷新技能。请先重新加载技能，再开始新聊天",
+      "syncError": "操作已保存，但列表刷新失败：{{message}}",
+      "toggleError": "无法更新插件",
+      "enabled": "{{pluginName}} 插件已启用",
+      "disabled": "{{pluginName}} 插件已禁用",
+      "toggleNotApplied": "刷新后的插件状态与请求不一致，请重试。"
     },
     "installModal": {
       "title": "安装 {{pluginName}}",
@@ -652,7 +660,9 @@
       "pluginCount_other": "{{count}} 个插件",
       "partialMore_one": "还有 {{count}} 个市场无法加载",
       "partialMore_other": "还有 {{count}} 个市场无法加载"
-    }
+    },
+    "previousPage": "上一页",
+    "nextPage": "下一页"
   },
   "shortcuts": {
     "title": "键盘快捷键",

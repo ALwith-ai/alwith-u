@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
-import { useThreadsUiStore } from "@/features/threads/store"
 import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
@@ -23,8 +22,7 @@ type ProjectActions = {
 
 /** Default-directory chats have session cards, but no project card. */
 export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactElement }) {
-  const windowsTempDirectory = useThreadsUiStore(state => state.windowsTempDirectory)
-  if (isQuickChatDirectory(props.cwd, windowsTempDirectory)) return props.trigger ?? null
+  if (isQuickChatDirectory(props.cwd)) return props.trigger ?? null
   return <ProjectPopover {...props} />
 }
 

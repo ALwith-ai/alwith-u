@@ -5,13 +5,14 @@ import { convertFileSrc } from "@tauri-apps/api/core"
 // (`_codex/plugin_*`, `_codex/skills_*`); Desktop's registry fetch, zip download progress
 // and version-diff "update" state have no counterpart here and are dropped.
 import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, SparklesIcon, Trash2Icon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
+  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
@@ -24,6 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -92,7 +94,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
       className="w-20"
       disabled={unavailable}
       title={unavailable ? t("plugins.disabledReason.unknown") : undefined}
-      onClick={() => void install({ plugin, marketplace })}>
+      onClick={() => void install({ plugin, marketplace }).catch(() => {})}>
       {t("plugins.card.install")}
     </Button>
   )
@@ -130,20 +132,160 @@ function PluginRow({
   )
 }
 
-function matchesPlugin(plugin: PluginSummary, q: string): boolean {
-  if (!q) return true
-  const haystack = [
-    pluginTitle(plugin),
-    pluginDescription(plugin),
-    plugin.interface?.developerName ?? "",
-    ...plugin.keywords
-  ]
-  return haystack.some(text => text.toLowerCase().includes(q))
-}
-
 /** Catalog data comes from Codex: until the engine is connected the page is loading. */
 function usePluginsReady(): boolean {
   return useApp(state => state.connection === "ready" && hasPluginStore(state.agent))
+}
+
+const PAGE_SIZE = 48
+
+function MarketplaceSection({
+  marketplace,
+  plugins
+}: {
+  marketplace: PluginMarketplaceEntry
+  plugins: PluginSummary[]
+}) {
+  const { t } = useTranslation()
+  const removeMarketplace = useStore(pluginsStore, state => state.removeMarketplace)
+
+  const [selectedPage, setPage] = useState(0)
+  const page = Math.min(selectedPage, Math.max(0, Math.ceil(plugins.length / PAGE_SIZE) - 1))
+  if (plugins.length === 0) return null
+  return (
+    <section key={marketplace.name} className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 px-2">
+        <h2 className="text-muted-foreground text-xs font-medium">
+          {marketplace.interface?.displayName ?? marketplace.name}
+        </h2>
+        <span className="text-muted-foreground text-xs opacity-60">{plugins.length}</span>
+        {marketplace.path !== null && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground ms-auto"
+                  aria-label={t("plugins.pageActions")}
+                />
+              }>
+              <MoreVerticalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[140px]">
+              <DropdownMenuItem className="text-destructive" onClick={() => void removeMarketplace(marketplace.name)}>
+                <Trash2Icon className="me-2 size-3.5" />
+                {t("plugins.marketplace.remove")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+      <PanelList className="grid grid-cols-2 gap-2">
+        {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(plugin => (
+          <PluginRow
+            key={plugin.remotePluginId ?? plugin.id}
+            plugin={plugin}
+            marketplace={marketplace}
+            actions={<PluginActionButton plugin={plugin} marketplace={marketplace} />}
+          />
+        ))}
+      </PanelList>
+      {plugins.length > PAGE_SIZE && (
+        <div className="flex items-center justify-end gap-2 px-2">
+          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
+            {t("plugins.previousPage")}
+          </Button>
+          <span className="text-muted-foreground text-xs">
+            {page + 1} / {Math.ceil(plugins.length / PAGE_SIZE)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={(page + 1) * PAGE_SIZE >= plugins.length}
+            onClick={() => setPage(page + 1)}>
+            {t("plugins.nextPage")}
+          </Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
+const MarketplaceResults = memo(function MarketplaceResults({ query }: { query: string }) {
+  const { t } = useTranslation()
+  const marketplaces = useStore(pluginsStore, state => state.marketplaces)
+  const featuredIds = useStore(pluginsStore, state => state.featuredPluginIds)
+  const index = useMemo(
+    () =>
+      marketplaces.map(marketplace => ({
+        marketplace,
+        entries: marketplace.plugins.map(plugin => ({
+          plugin,
+          text: [
+            plugin.name,
+            pluginTitle(plugin),
+            pluginDescription(plugin),
+            plugin.interface?.developerName ?? "",
+            ...plugin.keywords
+          ]
+            .join("\n")
+            .toLowerCase()
+        }))
+      })),
+    [marketplaces]
+  )
+  const sections = useMemo(() => {
+    const featured = new Set(featuredIds)
+    return index.map(({ marketplace, entries }) => ({
+      marketplace,
+      plugins: entries
+        .filter(({ plugin, text }) =>
+          query === "" ? marketplace.path !== null || featured.has(plugin.id) : text.includes(query)
+        )
+        .map(({ plugin }) => plugin)
+    }))
+  }, [index, featuredIds, query])
+  return (
+    <>
+      {sections.map(({ marketplace, plugins }) => (
+        <MarketplaceSection
+          key={JSON.stringify([marketplace.name, marketplace.path, query])}
+          marketplace={marketplace}
+          plugins={plugins}
+        />
+      ))}
+      {query && sections.every(section => section.plugins.length === 0) && (
+        <p className="text-muted-foreground px-2 py-6 text-center text-sm">{t("plugins.empty")}</p>
+      )}
+    </>
+  )
+})
+
+function MarketplaceSkeleton() {
+  const { t } = useTranslation()
+  return (
+    <div role="status" aria-label={t("plugins.loading")} className="mx-2 my-3 flex flex-col gap-3">
+      <Skeleton className="h-4 w-36" />
+      <PanelList className="grid grid-cols-2 gap-2 px-0" aria-hidden="true">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(id => (
+          <Item key={id} size="xs">
+            <ItemMedia>
+              <Skeleton className="size-10 rounded-sm" />
+            </ItemMedia>
+            <ItemContent className="min-w-0 group-data-[size=xs]/item:gap-2">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-1/3" />
+            </ItemContent>
+            <ItemActions>
+              <Skeleton className="h-8 w-20" />
+            </ItemActions>
+          </Item>
+        ))}
+      </PanelList>
+    </div>
+  )
 }
 
 function MarketplaceTab() {
@@ -151,14 +293,15 @@ function MarketplaceTab() {
   const ready = usePluginsReady()
   const marketplaces = useStore(pluginsStore, state => state.marketplaces)
   const loadErrors = useStore(pluginsStore, state => state.marketplaceLoadErrors)
-  const featuredIds = useStore(pluginsStore, state => state.featuredPluginIds)
+  const error = useStore(pluginsStore, state => state.error)
+  const refresh = useStore(pluginsStore, state => state.refresh)
   const loading = useStore(pluginsStore, state => state.loading) || !ready
   const addMarketplace = useStore(pluginsStore, state => state.addMarketplace)
-  const removeMarketplace = useStore(pluginsStore, state => state.removeMarketplace)
   const upgrade = useStore(pluginsStore, state => state.upgradeAll)
+  const upgrading = useStore(pluginsStore, state => state.upgrading)
   const [query, setQuery] = useState("")
   const [source, setSource] = useState("")
-  const q = query.trim().toLowerCase()
+  const q = useDeferredValue(query.trim().toLowerCase())
 
   const submitSource = () => {
     const value = source.trim()
@@ -171,9 +314,13 @@ function MarketplaceTab() {
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
         <Input value={query} onChange={e => setQuery(e.target.value)} placeholder={t("plugins.search")} />
-        {loading && <Spinner className="text-muted-foreground shrink-0" />}
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => void upgrade()}>
-          <CircleArrowUpIcon data-icon="inline-start" />
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!ready || upgrading}
+          aria-busy={upgrading}
+          onClick={() => void upgrade()}>
+          {upgrading ? <Spinner /> : <CircleArrowUpIcon data-icon="inline-start" />}
           {t("plugins.marketplace.upgradeAll")}
         </Button>
       </div>
@@ -193,63 +340,22 @@ function MarketplaceTab() {
       </div>
       <Pane>
         <div className="flex flex-col gap-4">
+          {error && (
+            <div role="alert" className="text-destructive px-2 text-xs">
+              <p>
+                {t("plugins.loadError.title")}: {error}
+              </p>
+              <Button size="sm" variant="outline" disabled={loading} onClick={() => void refresh()}>
+                {t("plugins.loadError.retry")}
+              </Button>
+            </div>
+          )}
           {loadErrors.map(error => (
             <p key={error.marketplacePath} className="text-destructive px-2 text-xs">
               {error.marketplacePath}: {error.message}
             </p>
           ))}
-          {marketplaces.map(marketplace => {
-            // The remote catalog holds thousands of entries; like the official client, show
-            // its featured plugins until a search narrows the whole catalog.
-            const remote = marketplace.path === null
-            const plugins = marketplace.plugins.filter(plugin =>
-              q === "" && remote ? featuredIds.includes(plugin.id) : matchesPlugin(plugin, q)
-            )
-            if (plugins.length === 0) return null
-            return (
-              <section key={marketplace.name} className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 px-2">
-                  <h2 className="text-muted-foreground text-xs font-medium">
-                    {marketplace.interface?.displayName ?? marketplace.name}
-                  </h2>
-                  <span className="text-muted-foreground text-xs opacity-60">{plugins.length}</span>
-                  {marketplace.path !== null && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="text-muted-foreground ms-auto"
-                            aria-label={t("plugins.pageActions")}
-                          />
-                        }>
-                        <MoreVerticalIcon />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="min-w-[140px]">
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => void removeMarketplace(marketplace.name)}>
-                          <Trash2Icon className="me-2 size-3.5" />
-                          {t("plugins.marketplace.remove")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-                <PanelList className="grid grid-cols-2 gap-2">
-                  {plugins.map(plugin => (
-                    <PluginRow
-                      key={plugin.id}
-                      plugin={plugin}
-                      marketplace={marketplace}
-                      actions={<PluginActionButton plugin={plugin} marketplace={marketplace} />}
-                    />
-                  ))}
-                </PanelList>
-              </section>
-            )
-          })}
+          {loading ? <MarketplaceSkeleton /> : <MarketplaceResults query={q} />}
           {!loading && marketplaces.every(marketplace => marketplace.plugins.length === 0) && (
             <p className="text-muted-foreground px-2 py-6 text-center text-sm">{t("plugins.empty")}</p>
           )}
@@ -298,6 +404,7 @@ function InstalledTab() {
   const installed = useStore(pluginsStore, state => state.installed)
   const busyIds = useStore(pluginsStore, state => state.busyIds)
   const uninstall = useStore(pluginsStore, state => state.uninstall)
+  const setPluginEnabled = useStore(pluginsStore, state => state.setPluginEnabled)
   const skills = useStore(pluginsStore, state => state.skills)
   const skillErrors = useStore(pluginsStore, state => state.skillErrors)
   return (
@@ -319,10 +426,14 @@ function InstalledTab() {
                   actions={
                     <>
                       {plugin.id in busyIds && <Spinner className="text-muted-foreground size-3.5" />}
-                      {/* Codex has no plugin enable request; the state is shown, not switched. */}
-                      <Badge variant={plugin.enabled ? "secondary" : "outline"} className="text-[10px]">
-                        {t(plugin.enabled ? "plugins.card.enabledStatus" : "plugins.card.disabledStatus")}
-                      </Badge>
+                      <Switch
+                        checked={plugin.enabled}
+                        disabled={plugin.id in busyIds || plugin.availability !== "AVAILABLE"}
+                        aria-label={t(plugin.enabled ? "plugins.card.disable" : "plugins.card.enable", {
+                          pluginName: pluginTitle(plugin)
+                        })}
+                        onCheckedChange={enabled => void setPluginEnabled(plugin, enabled)}
+                      />
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -386,7 +497,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
     // The screen arrow is available even before the engine has connected.
     if (!active || !ready) return
     void refresh(cwd === null ? [] : [cwd])
-    return client.onSkillsChanged(() => void refresh())
+    return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
   }, [active, ready, refresh, cwd])
 
   return (

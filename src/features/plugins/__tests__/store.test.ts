@@ -1,14 +1,16 @@
-import { describe, expect, test, vi } from "vitest"
+import { toast } from "sonner"
+import { beforeEach, describe, expect, test, vi } from "vitest"
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
-import { createPluginsStore, installParams, type PluginsApi } from "../store"
+import i18n from "@/lib/i18n"
+import { createPluginsStore, installParams, readParams, type PluginsApi } from "../store"
 
-vi.mock("sonner", () => ({ toast: { success: () => undefined, error: () => undefined, message: () => undefined } }))
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }))
 
 function plugin(id: string, installed: boolean): PluginSummary {
   return {
     id,
-    remotePluginId: null,
+    remotePluginId: id,
     version: "1.0.0",
     localVersion: null,
     name: id,
@@ -72,6 +74,13 @@ function fakeApi(): PluginsApi & { calls: string[]; installed: Set<string> } {
       installed.add(params.pluginName)
       return { authPolicy: "ON_USE", appsNeedingAuth: [] }
     },
+    async setPluginEnabled(pluginId, enabled) {
+      calls.push(`enabled:${pluginId}:${enabled}`)
+      const target = catalog.plugins.find(plugin => plugin.id === pluginId)
+      if (!target) throw new Error("Missing fake plugin")
+      target.enabled = enabled
+      return { enabled }
+    },
     async uninstallPlugin(pluginId) {
       calls.push(`uninstall:${pluginId}`)
       installed.delete(pluginId)
@@ -133,6 +142,58 @@ describe("plugins store", () => {
     expect(store.getState().installed.find(entry => entry.plugin.id === "alpha")).toBeUndefined()
   })
 
+  test("remote uninstall uses the backend ID while tracking loading by the catalog ID", async () => {
+    const api = fakeApi()
+    const store = createPluginsStore(api)
+    await store.getState().refresh()
+    const target = { ...plugin("alpha", true), remotePluginId: "plugin_supabase" }
+    api.uninstallPlugin = vi.fn(async id => {
+      expect(id).toBe("plugin_supabase")
+      expect(store.getState().busyIds).toEqual({ alpha: "uninstalling" })
+      expect(store.getState().upgrading).toBe(false)
+      api.installed.delete("alpha")
+    })
+    await store.getState().uninstall(target)
+    expect(store.getState().installed).toEqual([])
+    expect(store.getState().busyIds).toEqual({})
+    expect(toast.success).toHaveBeenCalledOnce()
+  })
+
+  test("local uninstall keeps its catalog ID even when remote metadata is present", async () => {
+    const api = fakeApi()
+    const store = createPluginsStore(api)
+    await store.getState().refresh()
+    await store.getState().uninstall({
+      ...plugin("alpha", true),
+      source: { type: "local", path: "/plugins/alpha" },
+      remotePluginId: "plugin_alpha"
+    })
+    expect(api.calls).toContain("uninstall:alpha")
+    expect(store.getState().installed).toEqual([])
+  })
+
+  test("uninstall does not report success when the refreshed catalog still contains the plugin", async () => {
+    const api = fakeApi()
+    api.uninstallPlugin = vi.fn().mockResolvedValue(undefined)
+    const store = createPluginsStore(api)
+    await store.getState().refresh()
+    await store.getState().uninstall(plugin("alpha", true))
+    expect(store.getState().installed).toHaveLength(1)
+    expect(store.getState().busyIds).toEqual({})
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledOnce()
+  })
+
+  test("remote uninstall refuses a missing backend ID instead of falling through to local uninstall", async () => {
+    const api = fakeApi()
+    const store = createPluginsStore(api)
+    await store.getState().refresh()
+    await store.getState().uninstall({ ...plugin("alpha", true), remotePluginId: null })
+    expect(api.calls.filter(call => call.startsWith("uninstall:"))).toEqual([])
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledOnce()
+  })
+
   test("skill toggle is optimistic and settles on Codex's effective state", async () => {
     const api = fakeApi()
     const store = createPluginsStore(api)
@@ -145,4 +206,160 @@ describe("plugins store", () => {
     expect(api.calls).toContain("skill:/a/.codex/s2:true")
     expect(store.getState().skills.find(s => s.path === "/a/.codex/s2")?.enabled).toBe(true)
   })
+})
+
+beforeEach(() => vi.resetAllMocks())
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+test("remote app aliases use the service ID for install and read; local sources keep the name", () => {
+  const target = { ...plugin("app-alias", false), remotePluginId: "plugin_asdk_app_actual" }
+  const marketplace: PluginMarketplaceEntry = {
+    name: "openai-curated-remote",
+    path: null,
+    interface: null,
+    plugins: [target]
+  }
+  expect(installParams({ plugin: target, marketplace })).toMatchObject({
+    pluginName: target.remotePluginId,
+    remoteMarketplaceName: marketplace.name
+  })
+  expect(readParams({ plugin: target, marketplace })).toEqual({
+    pluginName: target.remotePluginId,
+    remoteMarketplaceName: marketplace.name
+  })
+  expect(
+    installParams({ plugin: target, marketplace: { ...marketplace, path: "/local/marketplace.json" } })
+  ).toMatchObject({ pluginName: target.name, marketplacePath: "/local/marketplace.json" })
+})
+
+test.each(["install", "uninstall", "upgrade"] as const)(
+  "%s waits for the refreshed snapshot and clears its own busy state before success",
+  async action => {
+    const api = fakeApi()
+    const store = createPluginsStore(api)
+    await store.getState().refresh()
+    const refresh = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+    const snapshot = await api.listPlugins()
+    api.listPlugins = vi.fn(() => refresh.promise)
+    vi.mocked(toast.success).mockImplementation(() => {
+      expect(store.getState().busyIds).toEqual({})
+      expect(store.getState().upgrading).toBe(false)
+      expect(store.getState().loading).toBe(false)
+      return "toast"
+    })
+    const operation =
+      action === "install"
+        ? store.getState().install({ plugin: plugin("beta", false), marketplace: snapshot.marketplaces[0] })
+        : action === "uninstall"
+          ? store.getState().uninstall(plugin("alpha", true))
+          : store.getState().upgradeAll()
+    await vi.waitFor(() => expect(api.listPlugins).toHaveBeenCalled())
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(store.getState().upgrading).toBe(action === "upgrade")
+    expect(store.getState().loading).toBe(false)
+    if (action !== "upgrade") expect(Object.keys(store.getState().busyIds)).toHaveLength(1)
+    refresh.resolve(snapshot)
+    await operation
+    expect(toast.success).toHaveBeenCalledOnce()
+  }
+)
+
+test("plugin toggles settle on the refreshed state and failures roll back without a second write", async () => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  store.getState().installed[0].plugin.remotePluginId = "plugin_supabase"
+  const toggle = vi.spyOn(api, "setPluginEnabled")
+  await store.getState().setPluginEnabled(store.getState().installed[0].plugin, false)
+  expect(store.getState().installed[0].plugin.enabled).toBe(false)
+  expect(toggle).toHaveBeenCalledWith("alpha", false, "plugin_supabase")
+  store.getState().installed[0].plugin.remotePluginId = "plugin_supabase"
+  const request = deferred<{ enabled: boolean }>()
+  api.setPluginEnabled = vi.fn(() => request.promise)
+  const target = store.getState().installed[0].plugin
+  const operation = store.getState().setPluginEnabled(target, true)
+  expect(store.getState().installed[0].plugin.enabled).toBe(true)
+  await store.getState().setPluginEnabled(target, false)
+  expect(api.setPluginEnabled).toHaveBeenCalledOnce()
+  request.resolve({ enabled: true })
+  await operation
+  api.setPluginEnabled = vi.fn().mockRejectedValue(new Error("read-only"))
+  await store.getState().setPluginEnabled(store.getState().installed[0].plugin, true)
+  expect(store.getState().installed[0].plugin.enabled).toBe(false)
+  expect(store.getState().busyIds).toEqual({})
+  expect(toast.error).toHaveBeenCalled()
+})
+
+test.each([true, false])("plugin toggle to %s announces success only after refresh and loading end", async enabled => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  const target = store.getState().installed[0].plugin
+  const refresh = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const snapshot = await api.listPlugins()
+  api.listPlugins = vi.fn(() => refresh.promise)
+  vi.mocked(toast.success).mockImplementation(() => {
+    expect(store.getState().busyIds).toEqual({})
+    expect(store.getState().installed[0].plugin.enabled).toBe(enabled)
+    return "toast"
+  })
+  const operation = store.getState().setPluginEnabled(target, enabled)
+  await vi.waitFor(() => expect(api.listPlugins).toHaveBeenCalled())
+  expect(toast.success).not.toHaveBeenCalled()
+  refresh.resolve(snapshot)
+  await operation
+  expect(toast.success).toHaveBeenCalledExactlyOnceWith(
+    i18n.t(enabled ? "plugins.toast.enabled" : "plugins.toast.disabled", { pluginName: "alpha" })
+  )
+})
+
+test("plugin toggle with mismatched readback reports failure and preserves the actual state", async () => {
+  const api = fakeApi()
+  api.setPluginEnabled = vi.fn().mockResolvedValue({ enabled: false })
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  await store.getState().setPluginEnabled(store.getState().installed[0].plugin, false)
+  expect(store.getState().installed[0].plugin.enabled).toBe(true)
+  expect(store.getState().busyIds).toEqual({})
+  expect(toast.success).not.toHaveBeenCalled()
+  expect(toast.error).toHaveBeenCalledOnce()
+})
+
+test("refresh coalesces notifications and does not expose an obsolete scope", async () => {
+  const api = fakeApi()
+  const first = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const snapshot = await api.listPlugins()
+  api.listPlugins = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(snapshot)
+  const store = createPluginsStore(api)
+  const a = store.getState().refresh(["/a"])
+  const b = store.getState().refresh(["/b"], { background: true, forceRefetch: true })
+  const notification = store.getState().refresh(undefined, { background: true })
+  expect(notification).toBe(b)
+  expect(a).toBe(b)
+  first.resolve({ ...snapshot, marketplaces: [] })
+  await b
+  expect(api.listPlugins).toHaveBeenCalledTimes(2)
+  expect(api.listPlugins).toHaveBeenLastCalledWith({ cwds: ["/b"], forceRefetch: true })
+  expect(store.getState().cwds).toEqual(["/b"])
+  expect(store.getState().marketplaces).toEqual(snapshot.marketplaces)
+})
+
+test("a failed post-mutation refresh clears loading and does not announce success", async () => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  api.listPlugins = vi.fn().mockRejectedValue(new Error("offline"))
+  await store.getState().upgradeAll()
+  expect(store.getState().upgrading).toBe(false)
+  expect(store.getState().loading).toBe(false)
+  expect(store.getState().error).toBe("offline")
+  expect(toast.success).not.toHaveBeenCalled()
+  expect(toast.error).toHaveBeenCalled()
 })

@@ -256,7 +256,6 @@ export function ThreadSidebar({
   const archivedCursor = useApp(state => state.archivedCursor)
   const runStates = useApp(state => state.runStates)
   // Keep expansion state in the shared in-memory store, as in Desktop; preserve it while the app runs and reset it on restart.
-  const windowsTempDirectory = useThreadsUiStore(s => s.windowsTempDirectory)
   const revealed = useThreadsUiStore(s => s.revealed)
   const reveal = useThreadsUiStore(s => s.reveal)
   const projectOpen = useThreadsUiStore(s => s.projectOpen)
@@ -284,10 +283,7 @@ export function ThreadSidebar({
   const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
-  const groups = useMemo(
-    () => (threadsLoaded ? groupThreads(threads, windowsTempDirectory) : []),
-    [threadsLoaded, threads, windowsTempDirectory]
-  )
+  const groups = useMemo(() => (threadsLoaded ? groupThreads(threads) : []), [threadsLoaded, threads])
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
 

@@ -1249,6 +1249,14 @@ export class CodexClient {
     return this.live().request<PluginInstallResponse>("_codex/plugin_install", params)
   }
 
+  setPluginEnabled(pluginId: string, enabled: boolean, remotePluginId?: string): Promise<{ enabled: boolean }> {
+    return this.live().request("_codex/plugin_set_enabled", {
+      pluginId,
+      enabled,
+      ...(remotePluginId ? { remotePluginId } : {})
+    })
+  }
+
   async uninstallPlugin(pluginId: string): Promise<void> {
     await this.live().request("_codex/plugin_uninstall", { pluginId } satisfies PluginUninstallParams)
   }

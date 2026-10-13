@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
-import { useThreadsUiStore } from "@/features/threads/store"
 import { initI18n } from "@/lib/i18n"
 import { DraftProjectPicker } from "../draft-project-picker"
 
@@ -66,9 +65,7 @@ test("outside-project selection resolves to the host default and hides it from r
   expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
 })
 
-test("project choices exclude quick-chat directories, including the current directory and custom Windows temp root", async () => {
-  const original = useThreadsUiStore.getState().windowsTempDirectory
-  useThreadsUiStore.setState({ windowsTempDirectory: String.raw`D:\Scratch` })
+test("project choices exclude quick-chat directories but retain temporary workspaces", async () => {
   const onChange = vi.fn()
   const view = render(
     <DraftProjectPicker
@@ -91,6 +88,11 @@ test("project choices exclude quick-chat directories, including the current dire
   try {
     await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
     expect(view.getAllByRole("menuitemradio").map(item => item.textContent)).toEqual([
+      "current",
+      "project",
+      "project",
+      "project",
+      "project",
       "recent",
       "real-project",
       "ordinary"
@@ -99,6 +101,5 @@ test("project choices exclude quick-chat directories, including the current dire
     expect(onChange.mock.calls[0]?.[0]).toBe("/work/recent")
   } finally {
     view.unmount()
-    useThreadsUiStore.setState({ windowsTempDirectory: original })
   }
 })

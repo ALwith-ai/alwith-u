@@ -1,5 +1,5 @@
-import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith/module-vibemon"
-import { PetModeButton, PetQuickReply } from "@alwith/module-vibemon/react"
+import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith/module-auth/pets/core"
+import { PetModeButton, PetQuickReply } from "@alwith/module-auth/pets/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
@@ -82,6 +82,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     windows: {
       call,
       geometry: async () => () => {},
+      moved: async () => () => {},
       openPet: async () => "shown",
       closePet: async () => {},
       openRecharge: async () => {},

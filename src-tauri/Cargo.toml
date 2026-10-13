@@ -63,9 +63,17 @@ uuid = { version = "1", features = ["v4"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
-# Same Tauri 3 adaptation snapshot as Desktop (upstream a3122e894383aa068ec5365a42994e3ac94ba1b6; see patches/tauri-nspanel/MIGRATION.md).
+# Tauri 3 adaptation of tauri-nspanel v2.1.1; see patches/tauri-nspanel/MIGRATION.md.
 tauri-nspanel = { path = "patches/tauri-nspanel" }
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics"] }
+
+objc2-quartz-core = { version = "0.3", default-features = false, features = ["std", "CALayer", "CAShapeLayer", "CATransaction", "objc2-core-foundation", "objc2-core-graphics"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGAffineTransform", "CGGeometry", "CGPath"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio"] }
+window-vibrancy = "0.8"
+raw-window-handle = "0.6"
 
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]

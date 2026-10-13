@@ -146,7 +146,7 @@ async function windowEnvironment() {
 }
 
 test.each([
-  ["/private/var/folders/example/T/project", "/tmp/ALwith U"],
+  ["/private/var/folders/example/T/project", "/private/var/folders/example/T/project"],
   ["/Users/mac/Documents/Codex/project", "/tmp/ALwith U"],
   ["/work/project", "/work/project"]
 ])("floating new chat from %s prepares in %s", async (cwd, expected) => {
