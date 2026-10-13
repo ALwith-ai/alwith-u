@@ -28,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useWorkspace } from "@/features/workspace/context"
 import { openExternal } from "@/lib/open"
 import { openSettingsWindow } from "@/lib/window-manager"
-import { driveControls } from "./controls"
+import { driveControls, driveDialogClassName } from "./controls"
 import { driveFileSystem, drivePathExists } from "./filesystem"
 import { DriveIntegrations } from "./integrations"
 import { saveDrivePins, useDrivePins } from "./pinned"
@@ -121,7 +121,7 @@ export function DrivePage({
         onOpenChange={open => {
           if (!open) setCondense(null)
         }}>
-        <DialogContent className="max-h-[80vh] overflow-auto">
+        <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{driveTranslator(locale)("condense.action")}</DialogTitle>
           </DialogHeader>
@@ -152,7 +152,7 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
       onOpenChange={open => {
         if (!open) onClose()
       }}>
-      <DialogContent className="max-h-[80vh] overflow-auto">
+      <DialogContent className={driveDialogClassName}>
         <DialogHeader>
           <DialogTitle>{t("grants.title")}</DialogTitle>
           <DialogDescription>{path}</DialogDescription>

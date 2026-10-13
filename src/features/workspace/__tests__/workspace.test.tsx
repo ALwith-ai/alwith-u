@@ -7,12 +7,15 @@ import { StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { initI18n } from "@/lib/i18n"
+import { openGuideWindow } from "@/features/guide/guide-window"
 import { WorkspaceHeaderContext } from "../context"
 import { FileWorkspace } from "../file-workspace"
 
+vi.mock("@/features/guide/guide-window", () => ({ openGuideWindow: vi.fn() }))
+
 const native = vi.hoisted(() => ({
   invoke: vi.fn(),
-  listen: vi.fn(async () => (): void => {}),
+  listen: vi.fn(async (_event: string, _handler: () => void) => (): void => {}),
   nativeMode: false,
   close: null as ((event: { preventDefault(): void }) => void) | null
 }))
@@ -183,7 +186,7 @@ test("switching projects retains unsaved documents and cancelling close retains 
   await screen.findByRole("treeitem", { name: /two.txt/ })
   view.rerender(<Surface cwd="/a" />)
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("draft"))
-  fireEvent.click(screen.getByRole("button", { name: "Close one.txt" }))
+  fireEvent.click(required(screen.getByRole("tab", { name: "one.txt •" }).querySelector(".alwith-workspace-tab-close")))
   await screen.findByRole("dialog")
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
@@ -234,25 +237,36 @@ test("discarding on main-window close takes the approved native exit path", asyn
 
 test("preview controls switch view mode and retain edits across hiding", async () => {
   render(<Surface cwd="/a" />)
-  expect(screen.queryByRole("button", { name: "Enter view mode" })).toBeNull()
+  expect(screen.queryByRole("button", { name: "Maximize" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   fireEvent.click(await screen.findByRole("treeitem", { name: /one.txt/ }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "retained draft" } })
-  expect(screen.getByRole("button", { name: "Enter view mode" }).querySelector(".lucide-maximize-2")).not.toBeNull()
-  fireEvent.click(screen.getByRole("button", { name: "Enter view mode" }))
-  expect(document.querySelector(".file-workspace-chat header")).toContainOneByText("Conversation")
-  expect(screen.getByTestId("window-titlebar")).toContainOneByRole("button", { name: "Exit view mode" })
-  expect(screen.getByTestId("window-titlebar")).toContainOneByRole("button", { name: "Close workspace" })
+  expect(screen.getByRole("button", { name: "Maximize" }).querySelector(".lucide-maximize-2")).not.toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+  const chat = required(document.querySelector(".file-workspace-chat"))
+  expect(chat.querySelector("header")).toHaveTextContent("Conversation")
+  expect(chat.closest(".file-workspace-slide")).toHaveAttribute("aria-hidden", "true")
+  expect(chat.closest(".file-workspace-slide")).toHaveAttribute("inert")
+  expect(document.querySelector(".alwith-workspace-tabbar")).toContainOneByRole("button", {
+    name: "Restore"
+  })
+  const titlebar = within(screen.getByTestId("window-titlebar"))
+  expect(titlebar.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "true")
   const layout = document.querySelector(".file-workspace-layout")
   expect(layout).toHaveAttribute("data-view-mode", "true")
-  fireEvent.click(screen.getByRole("button", { name: "Exit view mode" }))
+  fireEvent.click(titlebar.getByRole("button", { name: "Open preview area" }))
   expect(layout).toHaveAttribute("data-view-mode", "false")
+  expect(chat.closest(".file-workspace-slide")).toHaveAttribute("aria-hidden", "false")
+  expect(chat.closest(".file-workspace-slide")).not.toHaveAttribute("inert")
   const tree = screen.getByRole("tree")
   const editor = screen.getByRole("textbox", { name: "Code" })
   expect(editor.compareDocumentPosition(tree) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
-  fireEvent.click(screen.getByRole("button", { name: "Enter view mode" }))
-  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
-  expect(screen.queryByRole("button", { name: "Enter view mode" })).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+  fireEvent.click(screen.getByRole("button", { name: "Restore" }))
+  expect(layout).toHaveAttribute("data-view-mode", "false")
+  fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+  fireEvent.click(screen.getByRole("button", { name: "Close preview" }))
+  expect(screen.queryByRole("button", { name: "Maximize" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("retained draft"))
   expect(layout).toHaveAttribute("data-view-mode", "false")
@@ -375,7 +389,7 @@ test("tab strip accepts horizontal trackpad and vertical wheel scrolling", async
   render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
-  const tabs = screen.getByRole("tablist")
+  const tabs = required(document.querySelector<HTMLElement>(".alwith-workspace-tab-scroll"))
   Object.defineProperties(tabs, { scrollWidth: { value: 800 }, clientWidth: { value: 200 } })
   fireEvent.wheel(tabs, { deltaX: 60, deltaY: 0 })
   expect(tabs.scrollLeft).toBe(60)
@@ -429,15 +443,19 @@ test("single-click replaces a clean preview, double-click pins it, and editing p
   expect(document.body).toContainOneByRole("tab", { name: "alpha.txt •" })
 })
 
-test("workspace switch uses dashed closed icon and solid open icon", async () => {
+test("workspace switch opens and closes the preview while retaining the chat", async () => {
   render(<Surface cwd="/a" />)
   const closed = screen.getByRole("button", { name: "Open preview area" })
-  expect(closed.querySelector(".lucide-panel-right-dashed")).not.toBeNull()
+  expect(closed).toHaveAttribute("aria-expanded", "false")
+  expect(closed).toHaveAttribute("aria-controls", "file-workspace-panel")
   fireEvent.click(closed)
   await screen.findByRole("treeitem", { name: "one.txt" })
   const opened = screen.getByRole("button", { name: "Close workspace" })
-  expect(opened.querySelector(".lucide-panel-right")).not.toBeNull()
-  expect(opened.querySelector(".lucide-panel-right-dashed")).toBeNull()
+  expect(opened).toHaveAttribute("aria-expanded", "true")
+  fireEvent.click(opened)
+  expect(screen.queryByRole("tree")).toBeNull()
+  expect(screen.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+  expect(screen.getByText("Chat /a")).toBeVisible()
 })
 
 test("row drag prevents native text selection without blocking inline rename input", async () => {
@@ -493,6 +511,24 @@ test("unmount releases a watch that finishes after workspace creation is cancell
   )
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   expect(await screen.findByRole("treeitem", { name: "one.txt" })).toBeInTheDocument()
+})
+
+test("cancelling application exit keeps the dirty document editable and allows a later exit", async () => {
+  native.nativeMode = true
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "one.txt" }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "unsaved" } })
+  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  fireEvent.click(await screen.findByRole("button", { name: "Cancel" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_exit")).toHaveLength(0)
+  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("unsaved")
+  fireEvent.change(screen.getByRole("textbox", { name: "Code" }), { target: { value: "continued editing" } })
+  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  fireEvent.click(await screen.findByRole("button", { name: "Save" }))
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
+  expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("continued editing")
 })
 
 test("saving on exit succeeds when the saved background document is deferred", async () => {
@@ -587,4 +623,68 @@ test("project tree shortcut ignores a response belonging to a previous project",
   fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
   expect(await screen.findByRole("treeitem", { name: /two.txt/ })).toBeVisible()
   expect(screen.queryByRole("treeitem", { name: /one.txt/ })).toBeNull()
+})
+
+test("new tabs keep the existing preview, support middle close and restore their selection", async () => {
+  await adapter.writeFile("/a/two.txt", new TextEncoder().encode("second"), { mode: "create" })
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  expect(await screen.findByRole("tab", { name: "New tab" })).toHaveAttribute("aria-selected", "true")
+  expect(screen.getByRole("button", { name: "Discover ALwith U ALwith U Guide" })).toBeVisible()
+  fireEvent.click(screen.getByRole("treeitem", { name: "one.txt" }))
+  await screen.findByRole("tab", { name: "one.txt" })
+  fireEvent.click(screen.getByRole("button", { name: "New tab" }))
+  fireEvent.click(screen.getByRole("treeitem", { name: "two.txt" }))
+  await screen.findByRole("tab", { name: "two.txt" })
+  expect(screen.getByRole("tab", { name: "one.txt" })).toBeVisible()
+  expect(screen.queryByRole("tab", { name: "New tab" })).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "New tab" }))
+  await waitFor(() => expect(JSON.parse(required(localStorage.getItem("workspace:/a"))).tabLayout.activeIndex).toBe(2))
+  view.unmount()
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  expect(await screen.findByRole("tab", { name: "New tab" })).toHaveAttribute("aria-selected", "true")
+  fireEvent(screen.getByRole("tab", { name: "New tab" }), new MouseEvent("auxclick", { bubbles: true, button: 1 }))
+  await waitFor(() => expect(screen.queryByRole("tab", { name: "New tab" })).toBeNull())
+  expect(screen.getByRole("tab", { name: "two.txt" })).toHaveAttribute("aria-selected", "true")
+})
+
+test("the new-tab card opens the ALwith U guide", async () => {
+  vi.mocked(openGuideWindow).mockResolvedValueOnce()
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Discover ALwith U ALwith U Guide" }))
+  await waitFor(() => expect(openGuideWindow).toHaveBeenCalledTimes(1))
+  expect(screen.queryByRole("dialog")).toBeNull()
+})
+
+test("workspace keyboard shortcuts open, close and reopen a file without losing its contents", async () => {
+  render(<Surface cwd="/a" />)
+  fireEvent.keyDown(window, { key: "t", metaKey: true })
+  expect(await screen.findByRole("tab", { name: "New tab" })).toHaveAttribute("aria-selected", "true")
+  fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
+  await screen.findByRole("tab", { name: "one.txt" })
+  fireEvent.keyDown(window, { key: "w", metaKey: true })
+  await waitFor(() => expect(screen.queryByRole("tab", { name: "one.txt" })).toBeNull())
+  fireEvent.keyDown(window, { key: "t", metaKey: true, shiftKey: true })
+  expect(await screen.findByRole("textbox", { name: "Code" })).toHaveValue("first")
+  expect(screen.getByRole("tab", { name: "one.txt" }).closest("[data-transient]")).toHaveAttribute(
+    "data-transient",
+    "false"
+  )
+})
+
+test("native new-tab menu opens the workspace and close-tab preserves the chat", async () => {
+  native.nativeMode = true
+  render(<Surface cwd="/a" />)
+  const handler = (): (() => void) =>
+    required(native.listen.mock.calls.find(([name]) => name === "menu:new-tab")?.[1] as (() => void) | undefined)
+  act(() => handler()())
+  await screen.findByRole("tab", { name: "New tab" })
+  const close = native.listen.mock.calls.filter(([name]) => name === "menu:close-tab").at(-1)?.[1] as
+    (() => void) | undefined
+  act(() => required(close)())
+  await waitFor(() => expect(screen.queryByRole("tab")).toBeNull())
+  expect(screen.getByText("Chat /a")).toBeInTheDocument()
+  expect(native.invoke.mock.calls.some(([command]) => command === "workspace_exit")).toBe(false)
 })

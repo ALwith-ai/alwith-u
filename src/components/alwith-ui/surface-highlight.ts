@@ -11,7 +11,7 @@
  */
 
 /** Codex list token: 8% on hover, 5% when selected; hover is stronger than static selection. */
-export const ROW_HIGHLIGHT = "hover:bg-foreground/8 data-[active=true]:bg-foreground/5"
+export const ROW_HIGHLIGHT = "chrome-hover hover:bg-foreground/8 data-[active=true]:bg-foreground/5"
 
 /** Navigation menu buttons. */
-export const MENU_HIGHLIGHT = "hover:bg-foreground/8 data-active:bg-foreground/5"
+export const MENU_HIGHLIGHT = "chrome-hover hover:bg-foreground/8 data-active:bg-foreground/5"

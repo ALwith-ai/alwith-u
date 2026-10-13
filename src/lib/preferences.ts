@@ -1,5 +1,6 @@
 // Small per-user preferences. Codex owns every conversation; this file only
 // remembers what the user was looking at and which language they chose.
+import { invoke } from "@tauri-apps/api/core"
 import { emit } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LazyStore } from "@tauri-apps/plugin-store"
@@ -43,10 +44,24 @@ export async function loadPreferences(): Promise<Preferences> {
     store.get<string>("externalEditor"),
     store.get<boolean>("sidebarPinned")
   ])
+  let restoredDirectory = lastProjectDirectory ?? null
+  if (restoredDirectory !== null) {
+    try {
+      await invoke<string>("draft_directory", { cwd: restoredDirectory })
+    } catch (error: unknown) {
+      // Only an unavailable saved directory resets startup to the default workspace.
+      // Bridge and host failures must not erase a valid project preference.
+      const message = error instanceof Error ? error.message : String(error)
+      if (message !== `Project directory is unavailable: ${restoredDirectory}`) throw error
+      await store.delete("lastProjectDirectory")
+      await store.save()
+      restoredDirectory = null
+    }
+  }
   return {
     sidebarPinned: sidebarPinned ?? false,
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
-    lastProjectDirectory: lastProjectDirectory ?? null,
+    lastProjectDirectory: restoredDirectory,
     language: language ?? null,
     zoomLevel: zoomLevel ?? null,
     modelSelections: modelSelections ?? { main: null, chat: null },

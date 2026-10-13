@@ -1,66 +1,126 @@
+.main-chat-surface.main-workspace-surface,
+[data-wallpaper="active"] .main-chat-surface.main-workspace-surface {
+  background: transparent;
+  border-radius: 0;
+  margin-inline: 4px;
+}
+
 .file-workspace-layout {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
   min-width: 0;
+}
+.file-workspace-viewport {
+  width: 100%;
   overflow: hidden;
 }
-.file-workspace-chat {
+.file-workspace-track {
   display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
+  height: 100%;
+  touch-action: pan-y pinch-zoom;
+}
+.file-workspace-slide {
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
   min-width: 0;
 }
+/* Desktop's Slab: each region contributes half of the 8px gap. */
+.file-workspace-slab {
+  width: 100%;
+  height: 100%;
+  padding-inline: 4px;
+  overflow: clip;
+}
+.file-workspace-slide[aria-hidden="true"],
+.file-workspace-slab[aria-hidden="true"] {
+  visibility: hidden;
+}
+.file-workspace-chat,
 .file-workspace-panel {
-  width: var(--workspace-width);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  min-width: 360px;
+  width: 100%;
+  height: 100%;
   min-height: 0;
+  overflow: clip;
+  border: 1px solid var(--border);
+  border-radius: var(--main-surface-radius);
   background: var(--background);
 }
+[data-wallpaper="active"] .file-workspace-chat,
+[data-wallpaper="active"] .file-workspace-panel {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+}
 .file-workspace-resize {
-  flex-shrink: 0;
-  height: auto;
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  z-index: 10;
+  height: 100%;
+  width: 2px;
+  transform: translateX(-50%);
   border: 0;
   margin: 0;
-  width: 5px;
   cursor: col-resize;
-  background: var(--border);
+  background: transparent;
   touch-action: none;
+  user-select: none;
+}
+.file-workspace-resize:dir(rtl) {
+  transform: translateX(50%);
 }
 .file-workspace-resize:hover,
 .file-workspace-resize:focus-visible {
   background: var(--ring);
   outline: none;
 }
-.file-workspace-tree {
-  width: 280px;
-  min-width: 240px;
-  flex-shrink: 0;
-  border-inline-start: 1px solid var(--border);
+.file-workspace-tree,
+.file-workspace-editor {
+  position: relative;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
 }
-@media (max-width: 900px) {
-  .file-workspace-layout[data-open="true"] .file-workspace-chat {
-    display: none;
-  }
-  .file-workspace-panel {
-    width: 100%;
-    min-width: 0;
-  }
-  .file-workspace-resize {
-    display: none;
-  }
-  .file-workspace-tree {
-    width: 185px;
-  }
+.file-workspace-panel {
+  --separator-border: var(--border);
+  --focus-border: var(--ring);
+  --sash-hover-size: 2px;
 }
-@media (max-width: 560px) {
-  .file-workspace-tree {
-    width: 160px;
+.file-workspace-tree .alwith-tree-toolbar {
+  height: 40px;
+  flex-shrink: 0;
+  padding-block: 0;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-page-arrow {
+  position: absolute;
+  z-index: 20;
+  top: 50%;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.workspace-page-arrow:hover,
+.workspace-page-arrow:focus-visible,
+.file-workspace-layout[data-edge="start"] > .workspace-page-previous,
+.file-workspace-layout[data-edge="end"] > .workspace-page-next {
+  opacity: 1;
+}
+.workspace-page-previous {
+  inset-inline-start: 8px;
+}
+.workspace-page-next {
+  inset-inline-end: 8px;
+}
+.workspace-page-arrow:dir(rtl) svg {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-page-arrow {
+    transition: none;
   }
 }
 
@@ -86,15 +146,6 @@
   right: 84px;
 }
 
-.file-workspace-layout[data-view-mode="true"] .file-workspace-chat,
-.file-workspace-layout[data-view-mode="true"] .file-workspace-resize {
-  display: none;
-}
-.file-workspace-layout[data-view-mode="true"] .file-workspace-panel {
-  width: 100%;
-  min-width: 0;
-}
-
 /* Workspace controls follow the host toolbar rather than primary action styling. */
 .file-workspace-toolbar .workspace-sidebar-toggle {
   width: 24px;
@@ -105,17 +156,10 @@
 .file-workspace-toolbar .workspace-sidebar-toggle:hover {
   background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
-.workspace-view-toggle {
-  color: var(--muted-foreground);
-}
 
-.file-workspace-tree[data-collapsed="true"] {
-  width: 36px;
-  min-width: 36px;
-}
 .workspace-explorer-toggle {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 3px;
   border: 0;
   box-shadow: none;
@@ -126,4 +170,69 @@
 .workspace-explorer-toggle:hover {
   background: var(--accent);
   color: var(--foreground);
+}
+
+.workspace-new-tab-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.workspace-empty-editor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+.workspace-empty-actions {
+  display: grid;
+  gap: 4px;
+}
+.workspace-empty-actions > button {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  box-shadow: none;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 400;
+}
+.workspace-empty-shortcut {
+  display: flex;
+  gap: 6px;
+}
+.workspace-empty-shortcut kbd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 4px;
+  border-radius: 5px;
+  background: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+}
+.file-workspace-panel,
+.file-workspace-panel .alwith-editor {
+  background: var(--background);
+}
+.file-workspace-tree .alwith-file-tree {
+  background: transparent;
+}
+.alwith-workspace-tabbar > [data-slot="button"] {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.alwith-workspace-tabbar > [data-slot="button"]:hover {
+  background: var(--accent);
+}
+.alwith-workspace-tabbar > [data-slot="button"] svg {
+  width: 16px;
+  height: 16px;
 }

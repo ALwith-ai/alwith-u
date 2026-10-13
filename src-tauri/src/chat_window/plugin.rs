@@ -8,6 +8,7 @@ pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
     if window.label() != "chat" {
         return Err("Only the chat window may present itself".into());
     }
+    crate::window::ensure_open(window.app_handle())?;
     super::prepare(&window).await?;
     #[cfg(target_os = "macos")]
     {
@@ -16,6 +17,7 @@ pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
         window
             .run_on_main_thread(move || {
                 let result = (|| {
+                    crate::window::ensure_open(handle.app_handle())?;
                     let pointer = handle.ns_window().map_err(|e| e.to_string())?;
                     // SAFETY: prepared, retained window on AppKit's main thread.
                     let native = unsafe { &*(pointer as *const objc2_app_kit::NSWindow) };
@@ -30,6 +32,7 @@ pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
     }
     #[cfg(not(target_os = "macos"))]
     {
+        crate::window::ensure_open(window.app_handle())?;
         window.unminimize().map_err(|e| e.to_string())?;
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
@@ -99,6 +102,9 @@ mod observer {
         let app = APP.get().expect("Window observer installed");
         let handle = app.clone();
         if let Err(error) = app.run_on_main_thread(move || {
+            if crate::window::is_closing(&handle) {
+                return;
+            }
             let mut pet_restored = false;
             // Child layout must use the repaired parent frame, never HashMap iteration order.
             for label in ["chat", "vibemon", "bubble-menu-vibemon"] {

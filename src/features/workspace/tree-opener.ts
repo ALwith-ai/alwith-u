@@ -1,9 +1,10 @@
-import type { EditorController } from "@alwith/module-editor"
+import type { EditorController, EditorWorkspaceController } from "@alwith/module-editor"
 
 /** Desktop selectFile policy: one transient preview; double-click and edits pin it. */
 export function createTreeOpener(
   editor: EditorController,
-  prepare: (path: string) => Promise<string | null> = async path => path
+  prepare: (path: string) => Promise<string | null> = async path => path,
+  tabs?: EditorWorkspaceController
 ): {
   open(path: string, pinned?: boolean): Promise<void>
   dispose(): void
@@ -11,9 +12,7 @@ export function createTreeOpener(
   let preview: string | null = editor.getSnapshot().documents.find(document => !document.pinned)?.id ?? null
   let pending: Promise<void> = Promise.resolve()
   const unsubscribe = editor.subscribe(() => {
-    if (preview === null) return
-    const document = editor.getSnapshot().documents.find(doc => doc.id === preview)
-    if (!document || document.dirty || document.pinned) preview = null
+    preview = editor.getSnapshot().documents.find(document => !document.pinned && !document.dirty)?.id ?? null
   })
   return {
     open(path, pinned = false) {
@@ -22,7 +21,7 @@ export function createTreeOpener(
         if (destination === null) return
         path = destination
         const existing = editor.getSnapshot().documents.find(doc => doc.path === path)
-        const previous = preview
+        const previous = tabs?.getSnapshot().tabs.at(-1)?.kind === "new" ? null : preview
         const document = await editor.open(path)
         if (pinned) {
           editor.pin(document.id)
@@ -32,9 +31,11 @@ export function createTreeOpener(
         if (existing) return
         if (previous !== null && preview === previous) {
           const old = editor.getSnapshot().documents.find(doc => doc.id === previous)
-          if (old && !old.pinned && !old.dirty && !old.saving) await editor.requestClose(previous)
+          if (old && !old.pinned && !old.dirty && !old.saving) {
+            tabs?.reorder(document.id, previous)
+            await editor.requestClose(previous)
+          }
         }
-        if (!document.dirty) preview = document.id
       }
       // Both branches run the next user action; each returned rejection is still reported by the caller.
       pending = pending.then(open, open)

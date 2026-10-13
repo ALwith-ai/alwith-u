@@ -213,6 +213,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
     let app = window.app_handle();
     match action.as_str() {
         "create-pet" | "create-bubble" => {
+            crate::window::ensure_open(app)?;
             if window.label() != "main" {
                 return Err("Only main creates Vibemon windows".into());
             }

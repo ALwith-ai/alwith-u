@@ -12,7 +12,6 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/age
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
@@ -25,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Item } from "@/components/ui/item"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"

@@ -6,6 +6,10 @@ Built on ALwith’s ready-made components. Powered by Codex CLI. Designed by you
 
 Your brand. Your experience. Your edge.
 
+## User guide
+
+Read the [ALwith U Guide](guide/index.md), or click the question-mark button next to your account in the app. The English guide is bundled with the application and opens in its own window.
+
 ## Install from source
 
 Install the Bun version pinned in `package.json`, Rust stable, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. macOS requires 26.0+ on Apple Silicon.

@@ -189,19 +189,19 @@ test("search paginates large catalogs and a new query resets the page", async ()
     featuredPluginIds: [plugins[0].id]
   })
   const view = render(<PluginsPage cwd={null} active />)
-  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(1)
+  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(1)
   await act(async () =>
     fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable" } })
   )
-  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(48)
+  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(48)
   expect(view.queryByText("Searchable 48")).toBeNull()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Next", exact: true })))
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Next" })))
   expect(view.getByText("Searchable 48")).toBeDefined()
   await act(async () =>
     fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable 5999" } })
   )
   expect(view.getByText("Searchable 5999")).toBeDefined()
-  expect(view.getAllByRole("button", { name: "Install", exact: true })).toHaveLength(1)
+  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(1)
 })
 
 test("the upgrade spinner belongs only to an upgrade, not plugin mutations or catalog refresh", async () => {

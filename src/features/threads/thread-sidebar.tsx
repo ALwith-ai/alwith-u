@@ -35,6 +35,7 @@ import { toast } from "sonner"
 import type { ThreadSummary } from "@/agent/client"
 import { hasRename } from "@/agent/codex-extensions"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import { GuideButton } from "@/features/guide/guide-button"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
@@ -545,7 +546,12 @@ export function ThreadSidebar({
           {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
         </Button>
         <UpdateStatusButton />
-        <SidebarAccountMenu onOpenSettings={onOpenSettings} />
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <SidebarAccountMenu onOpenSettings={onOpenSettings} />
+          </div>
+          <GuideButton />
+        </div>
       </SidebarFooter>
       <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
         <DialogContent>

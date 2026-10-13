@@ -53,6 +53,9 @@
       "resources/licenses": "licenses",
       "resources/native": "native",
       "resources/deepseek": "deepseek",
+      "resources/qwen": "qwen",
+      "resources/openrouter": "openrouter",
+      "resources/xai": "xai",
       "resources/extensions": "extensions"
     },
     "icon": [

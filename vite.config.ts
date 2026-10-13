@@ -57,7 +57,8 @@ export const config = (): UserConfig => ({
         chat: path.resolve(import.meta.dirname, "chat.html"),
         vibemon: path.resolve(import.meta.dirname, "vibemon.html"),
         vibemonBubble: path.resolve(import.meta.dirname, "vibemon-bubble.html"),
-        settings: path.resolve(import.meta.dirname, "settings.html")
+        settings: path.resolve(import.meta.dirname, "settings.html"),
+        guide: path.resolve(import.meta.dirname, "guide.html")
       }
     },
     minify: !debug,

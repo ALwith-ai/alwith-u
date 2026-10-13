@@ -5,6 +5,7 @@
   "windows": [
     "main",
     "settings",
+    "guide",
     "chat"
   ],
   "permissions": [

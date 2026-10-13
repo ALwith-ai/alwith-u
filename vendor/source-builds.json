@@ -1,15 +1,5 @@
 [
   {
-    "name": "@alwith/module-editor",
-    "file": "vendor/alwith-module-editor-0.1.0-rc.11-62cd712ab2f9.tgz",
-    "sha256": "62cd712ab2f9561e0a25c8278c99d1a9304d430eb0509c0ae54177654ae36a27",
-    "source": "alwith-modules/packages/editor",
-    "baseCommit": "99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotSha256": "9690da07b91eeeee2bb485fe500058f12914f398ab10f70a2b460222d9c55635",
-    "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
-  },
-  {
     "name": "@alwith/module-fs",
     "file": "vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "sha256": "5f43be16d6bcf9d986259abbb120c987875f580fab4e8a61ccba923e708418eb",
@@ -18,5 +8,27 @@
     "sourceSnapshotSha256": "f0c75cb585fcbe3e841a49049122feac1c6fedc1c2148fc6611fc3376989a3f4",
     "sourceSnapshotFormat": "SHA256 of compact JSON [path, SHA256] entries: packages/fs/package.json, crates/fs/Cargo.toml, sorted crates/fs/src Rust files, sorted packages/fs/src files",
     "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f"
+  },
+  {
+    "name": "@alwith/module-drive",
+    "file": "vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
+    "sha256": "2737c59854dfee95ad94d5c35c76016bbe5dfb708be3fd9580d7af5affaaa44e",
+    "source": "alwith-modules/packages/drive",
+    "baseCommit": "a6b641cbfd10a182e423f1e0f1c4bc860ce92b47",
+    "sourceSnapshotSha256": "12033adb242ef7c5c978e629e1834941cd9c4f9e4ad31bb170f76ec674474a56",
+    "sourceState": "working-tree snapshot; condense upload feedback, retained task lifecycle and host notifications; native condense errors remain request-scoped; includes prior configuration reconciliation and dialog fixes; built with build-npm.ts; Rust service.rs rebuilt from shared source, remaining Rust distribution preserved",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files",
+    "nativeServiceSha256": "6594fd823d07e3eae2303456d72550b529ccc5ebbe3700840b6f77e9076c9efd",
+    "sourceCommit": "9f144caef0e8281314a25e01d81cee442e8c94b1"
+  },
+  {
+    "name": "@alwith/module-extension",
+    "file": "vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
+    "sha256": "f06f7fcdafca574a786cc9f2ce7ed66550f072a06947801f64290bb73cd51262",
+    "source": "alwith-modules/packages/extension",
+    "baseCommit": "228219cfb5b3c9f657d2a8ce8807c749ef0684d4",
+    "sourceSnapshotSha256": "b377e8acb1abc2cf5419aefb59ae7cf5501cc7f26265539dffe038f6353cf3b5",
+    "sourceState": "committed; extension package source tree clean at 228219cfb5b3c9f657d2a8ce8807c749ef0684d4; built with build-npm.ts and bun pm pack; Rust distribution unchanged",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
   }
 ]
