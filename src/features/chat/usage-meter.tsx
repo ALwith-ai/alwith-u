@@ -25,7 +25,7 @@ function norm(value: number | null | undefined): number {
 }
 
 /** Ring colour steps from Desktop's `contextRingStats`; the percentage is capped at 100. */
-export function contextRingStats(used: number, size: number): { pct: number; className: string } {
+function contextRingStats(used: number, size: number): { pct: number; className: string } {
   const pct = Math.min(100, (used / size) * 100)
   const className = pct >= 90 ? "text-destructive" : pct >= 70 ? "text-foreground" : "text-muted-foreground"
   return { pct, className }

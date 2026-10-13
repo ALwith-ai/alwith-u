@@ -1,13 +1,15 @@
 import { defineConfig, mergeConfig } from "vitest/config"
-import viteConfig from "./vite.config"
+import { config as viteConfig } from "./vite.config.ts"
 
 // Same runner as Desktop and Board: vitest + jsdom + jest-dom. Vite options (plugins, dedupe,
 // aliases) come from vite.config so tests resolve modules exactly like the app does.
 export default mergeConfig(
-  viteConfig,
+  viteConfig(),
   defineConfig({
     test: {
       globals: true,
+      // Browser storage belongs to each jsdom window, not Node's process-global Web Storage.
+      execArgv: ["--no-experimental-webstorage"],
       server: {
         // Shared UI packages import CSS; Vite must transform these imports for Node tests.
         deps: {
@@ -21,7 +23,7 @@ export default mergeConfig(
             name: "frontend",
             environment: "jsdom",
             setupFiles: ["./vitest.setup.ts"],
-            include: ["src/**/__tests__/*.test.{ts,tsx}"],
+            include: ["src/**/__tests__/**/*.{test,spec}.{ts,tsx}"],
             exclude: ["**/node_modules/**", "**/dist/**", "src/agent/**", "src/core/**"]
           }
         },
@@ -31,7 +33,7 @@ export default mergeConfig(
             name: "engine",
             environment: "node",
             setupFiles: ["./vitest.setup.ts"],
-            include: ["src/{agent,core}/**/__tests__/*.test.ts"]
+            include: ["src/{agent,core}/**/__tests__/**/*.{test,spec}.ts"]
           }
         }
       ]

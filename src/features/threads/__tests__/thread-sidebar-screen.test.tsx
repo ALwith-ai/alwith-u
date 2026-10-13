@@ -90,7 +90,13 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
 })
 
 test("extensions sit below plugins, select their own leading page and remain available without Codex plugins", async () => {
-  client.store.setState({ agent: { protocolVersion: 2, capabilities: { _meta: { codex: { plugins: true } } } } })
+  client.store.setState({
+    agent: {
+      info: { name: "test", version: "1" },
+      protocolVersion: 2,
+      capabilities: { _meta: { codex: { plugins: true } } }
+    }
+  })
   function Harness() {
     const [screen, setScreen] = useState<MainScreen>("main")
     const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions">("plugins")

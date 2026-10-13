@@ -9,11 +9,11 @@ test("a failed save restores the store's memory before selection refresh and pub
   let fail = true
   let changes = 0
   mockIPC((command, args) => {
-    const key = args.key as string
+    const { key, value } = args as { key: string; value: unknown }
     if (command === "plugin:store|load") return 1
     if (command === "plugin:store|get") return [data.get(key), data.has(key)]
     if (command === "plugin:store|set") {
-      data.set(key, args.value)
+      data.set(key, value)
       return null
     }
     if (command === "plugin:store|delete") return data.delete(key)
@@ -51,11 +51,11 @@ test("a later failed write preserves the preceding successful selection", async 
   })
   let saves = 0
   mockIPC(async (command, args) => {
-    const key = args.key as string
+    const { key, value } = args as { key: string; value: unknown }
     if (command === "plugin:store|load") return 1
     if (command === "plugin:store|get") return [data.get(key), data.has(key)]
     if (command === "plugin:store|set") {
-      data.set(key, args.value)
+      data.set(key, value)
       return null
     }
     if (command === "plugin:store|save") {

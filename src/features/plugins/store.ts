@@ -46,7 +46,7 @@ export type PluginsApi = {
 /** A plugin together with the marketplace it was listed under (needed to install and read). */
 export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplaceEntry }
 
-export type PluginsState = {
+type PluginsState = {
   loading: boolean
   upgrading: boolean
   /** Message of the last failed catalog load; the page shows a retry. */
@@ -84,12 +84,12 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function pluginTitle(plugin: PluginSummary): string {
+function pluginTitle(plugin: PluginSummary): string {
   return plugin.interface?.displayName ?? plugin.name
 }
 
 /** Skills for several cwds overlap (user and system scopes repeat); one row per path. */
-export function mergeSkills(response: SkillsListResponse): { skills: SkillMetadata[]; errors: SkillErrorInfo[] } {
+function mergeSkills(response: SkillsListResponse): { skills: SkillMetadata[]; errors: SkillErrorInfo[] } {
   const byPath = new Map<string, SkillMetadata>()
   const errors = new Map<string, SkillErrorInfo>()
   for (const entry of response.data) {
@@ -100,7 +100,7 @@ export function mergeSkills(response: SkillsListResponse): { skills: SkillMetada
 }
 
 /** Installed plugins across marketplaces, newest install first, as the official Manage tab sorts. */
-export function installedEntries(response: PluginInstalledResponse): PluginEntry[] {
+function installedEntries(response: PluginInstalledResponse): PluginEntry[] {
   const entries: PluginEntry[] = []
   for (const marketplace of response.marketplaces) {
     for (const plugin of marketplace.plugins) if (plugin.installed) entries.push({ plugin, marketplace })
@@ -118,7 +118,7 @@ export function installParams(entry: PluginEntry): PluginInstallParams {
   }
 }
 
-export function readParams(entry: PluginEntry): PluginReadParams {
+function readParams(entry: PluginEntry): PluginReadParams {
   const { plugin, marketplace } = entry
   return {
     pluginName: marketplace.path === null ? (plugin.remotePluginId ?? plugin.name) : plugin.name,

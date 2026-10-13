@@ -65,7 +65,7 @@ test("project popover shows the full count, expands beyond five chats and routes
     expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
     expect(view.queryByRole("button", { name: /collection|favorite/i })).toBeNull()
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Chat 0", exact: true }))
+      fireEvent.click(view.getByRole("button", { name: "Chat 0" }))
     })
     expect(selected[0]?.sessionId).toBe("chat-0")
     expect(selected[0]?.cwd).toBe("/tmp/project")
@@ -140,7 +140,14 @@ test("changing projects selects from the latest shared snapshot", async () => {
   )
   await act(async () =>
     client.store.setState({
-      threads: [...threads(), { ...must(threads("/tmp/other")[0]), sessionId: "other", title: "Other project" }]
+      threads: [
+        ...threads(),
+        {
+          ...must(threads("/tmp/other")[0], "a thread in the other project"),
+          sessionId: "other",
+          title: "Other project"
+        }
+      ]
     })
   )
   expect(view.getByText("1 chat")).toBeDefined()
@@ -175,7 +182,10 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
     })
     expect(toggles).toEqual([true])
     expect(sidebar.queryByRole("dialog")).toBeNull()
-    const trigger = must(sidebar.container.querySelector<HTMLElement>('[data-slot="popover-trigger"]'))
+    const trigger = must(
+      sidebar.container.querySelector<HTMLElement>('[data-slot="popover-trigger"]'),
+      "the popover trigger"
+    )
     await act(async () => {
       fireEvent.pointerEnter(trigger, { pointerType: "mouse" })
       fireEvent.mouseEnter(trigger)
@@ -205,7 +215,7 @@ test("a changed project list invalidates its closed popup before reopening", asy
       fireEvent.click(view.getByRole("button", { name: "project" }))
     })
     await act(async () => {
-      client.store.setState({ threads: [{ ...must(threads()[0]), title: "Renamed" }] })
+      client.store.setState({ threads: [{ ...must(threads()[0], "the first thread"), title: "Renamed" }] })
     })
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "project" }))
@@ -220,12 +230,16 @@ test("a changed project list invalidates its closed popup before reopening", asy
 test("session-card title and path scroll only on hover and the path opens its own cwd", async () => {
   const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   try {
-    const thread = { ...must(threads()[0]), title: "A long session title", cwd: "/tmp/a/long/project/path" }
+    const thread = {
+      ...must(threads()[0], "the first thread"),
+      title: "A long session title",
+      cwd: "/tmp/a/long/project/path"
+    }
     const view = render(<ThreadInfoCard thread={thread} />)
     for (const text of [thread.title, thread.cwd]) {
       const content = view.getByText(text)
       Object.defineProperties(content, { scrollWidth: { value: 360 }, clientWidth: { value: 100 } })
-      const viewport = must(content.parentElement)
+      const viewport = must(content.parentElement, "the scroll viewport")
       expect(content.style.transform).toBe("translateX(0px)")
       fireEvent.mouseEnter(viewport)
       expect(content.style.transform).toBe("translateX(-260px)")

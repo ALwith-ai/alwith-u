@@ -20,7 +20,9 @@ function items(count: number): NavigationRailItem[] {
     id: `user-${index}`,
     turnKey: `turn:user:user-${index}`,
     label: `question ${index}`,
-    response: `answer ${index}`
+    response: `answer ${index}`,
+    inputTokens: 0,
+    outputTokens: 0
   }))
 }
 

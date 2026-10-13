@@ -145,7 +145,9 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     "ResizeObserver",
     class {
       private elements = new Set<Element>()
-      constructor(private callback: ResizeObserverCallback) {
+      private callback: ResizeObserverCallback
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
         observers.set(callback, this.elements)
       }
       observe(element: Element) {
@@ -173,8 +175,11 @@ test("group expansion, load more and collapse update the scrollbar without scrol
       }))
     })
     const view = showSidebar()
-    const viewport = must(view.container.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]'))
-    const content = must(viewport.firstElementChild)
+    const viewport = must(
+      view.container.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]'),
+      "the scroll viewport"
+    )
+    const content = must(viewport.firstElementChild, "the viewport content")
     let contentHeight = 100
     Object.defineProperties(viewport, {
       clientHeight: { value: 320 },
@@ -198,7 +203,10 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
     contentHeight = 3300
     await deliverResize(content)
-    const scrollbar = must(view.container.querySelector<HTMLElement>('[data-slot="scroll-area-scrollbar"]'))
+    const scrollbar = must(
+      view.container.querySelector<HTMLElement>('[data-slot="scroll-area-scrollbar"]'),
+      "the scrollbar"
+    )
     Object.defineProperty(scrollbar, "offsetHeight", { value: 320 })
     await deliverResize(content)
     const expandedThumb = Number.parseFloat(scrollbar.style.getPropertyValue("--scroll-area-thumb-height"))

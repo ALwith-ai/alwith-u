@@ -30,7 +30,7 @@ export function runtimeClient(): Promise<TauriRuntimeClient<CodexProvider>> {
 }
 
 /** Forgets the current port and closes it; the next `runtimeClient()` starts over. */
-export function resetHubPort(): void {
+function resetHubPort(): void {
   const stale = port
   port = null
   stale?.close()

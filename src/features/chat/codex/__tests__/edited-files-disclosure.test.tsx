@@ -20,7 +20,12 @@ const item: ToolItem = {
   locations: [],
   rawInput: null,
   rawOutput: null,
-  content: [{ type: "diff", changes: Array.from({ length: 5 }, (_, i) => ({ path: `/project/file-${i}.txt` })) }]
+  content: [
+    {
+      type: "diff",
+      changes: Array.from({ length: 5 }, (_, i) => ({ path: `/project/file-${i}.txt`, operation: "modify" as const }))
+    }
+  ]
 }
 
 test("shows three files by default, expands the rest and can collapse again", () => {

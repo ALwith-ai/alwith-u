@@ -36,6 +36,7 @@ test.each(
   const records: SessionRunState[] = ["foreground", "background"].map(sessionId => ({
     sessionId,
     state: sessionId === "background" ? state : "running",
+    reusableDraft: false,
     cwd: "/tmp",
     title: sessionId,
     owner: "stdio",

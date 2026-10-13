@@ -242,6 +242,19 @@ def build_story_archive() -> None:
     print("Extract and serve with a static web server. Browser JavaScript remains inspectable.")
 
 
+def workspace_packages() -> list[str]:
+    """`-p` arguments for cargo fmt: every workspace member. Not `--all`, which follows path
+    dependencies into the third-party snapshots under patches/ that the workspace excludes."""
+    metadata = subprocess.run(
+        ("cargo", "metadata", "--no-deps", "--format-version", "1"),
+        cwd=ROOT / "src-tauri",
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return [arg for package in json.loads(metadata)["packages"] for arg in ("-p", package["name"])]
+
+
 @task
 def check(_context: object) -> None:
     """Run the CI gates shared by Desktop, U and Board, reporting every failure at the end.
@@ -253,11 +266,12 @@ def check(_context: object) -> None:
         ("lint", ["bun", "run", "lint"], ROOT),
         ("knip", ["bun", "run", "knip"], ROOT),
         ("tests", ["bun", "run", "test"], ROOT),
-        ("rustfmt", ["cargo", "fmt", "--", "--check"], ROOT / "src-tauri"),
-        ("clippy", ["cargo", "clippy", "--locked", "--all-targets", "--", "-D", "warnings"], ROOT / "src-tauri"),
+        ("rustfmt", ["cargo", "fmt", *workspace_packages(), "--", "--check"], ROOT / "src-tauri"),
+        ("clippy", ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--", "-D", "warnings"], ROOT / "src-tauri"),
         ("rust compile surface", ["cargo", "check", "--locked", "--workspace", "--all-targets"], ROOT / "src-tauri"),
         ("rust tests", ["cargo", "test", "--locked", "--workspace", "--lib"], ROOT / "src-tauri"),
         ("Python tests", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "scripts/__tests__"], ROOT),
+        ("toolchain", ["bun", "run", "check:toolchain"], ROOT),
     ]
     failures = []
     for name, command, directory in steps:
@@ -332,7 +346,7 @@ def format_code(_context: object) -> None:
     assist action only) rather than a full `biome check`, which would also apply formatting and lint
     fixes. It runs before prettier so the lines it moves get formatted afterwards. Prettier uses the
     experimental CLI from the package.json format script (parallel, content cache on by default)."""
-    run("cargo", "fmt", cwd=ROOT / "src-tauri")
+    run("cargo", "fmt", *workspace_packages(), cwd=ROOT / "src-tauri")
     subprocess.run(
         ("bunx", "biome", "check", "--formatter-enabled=false", "--linter-enabled=false", "--only=organizeImports", "--write", "./src"),
         cwd=ROOT,

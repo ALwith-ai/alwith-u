@@ -25,7 +25,6 @@
       }
     ],
     "security": {
-      "csp": null,
       "assetProtocol": {
         "enable": true,
         "scope": ["$HOME/.codex/**"]
@@ -46,7 +45,6 @@
   "bundle": {
     "active": true,
     "publisher": "alwith.ai",
-    "targets": "all",
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "externalBin": ["binaries/alwith-runtime", "binaries/bun", "binaries/codex", "binaries/codex-code-mode-host", "binaries/alwith-codex-launcher"],

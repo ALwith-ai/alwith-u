@@ -87,5 +87,12 @@ debug = "line-tables-only"
 codegen-units = 1
 lto = true
 opt-level = "s"
-panic = "abort"
-strip = true
+# No `panic = "abort"`: wry and tauri-nspanel catch AppKit exceptions with objc2::exception::catch
+# (e.g. a WKURLSchemeTask that WebKit already stopped), and that only works if the exception can
+# unwind through their Rust frames. Under abort every such exception kills the app.
+# The source is public, so symbols are not hidden: function names stay in the binary (crash
+# reports and panic.log name the frame), and file:line tables go to a separate alwith-u.dSYM /
+# alwith_u.pdb that the release workflow attaches to each release for `atos` lookups.
+debug = "line-tables-only"
+split-debuginfo = "packed"
+strip = "debuginfo"

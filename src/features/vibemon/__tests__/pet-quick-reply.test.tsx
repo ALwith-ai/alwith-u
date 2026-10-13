@@ -59,7 +59,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
   const send = vi.fn(() => pending.promise)
   const answer = vi.fn(async () => {})
   const openChat = vi.fn(async () => {})
-  const call = vi.fn(async <T,>(_action: string, _payload?: Record<string, unknown>) => undefined as T)
+  const call = async <T,>(_action: string, _payload?: Record<string, unknown>): Promise<T> => undefined as T
   dispose = configureVibemon({
     account: () => ({ apiHost: "test", userId: "user", revision: 1 }),
     assets: {} as VibemonHost["assets"],

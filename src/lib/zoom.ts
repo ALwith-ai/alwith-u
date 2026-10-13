@@ -4,7 +4,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { createStore } from "zustand/vanilla"
 import { savePreference } from "@/lib/preferences"
 
-export const ZOOM_LEVELS = [0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0] as const
+const ZOOM_LEVELS = [0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0] as const
 const DEFAULT_LEVEL = 1
 
 function clampToStep(level: number): number {

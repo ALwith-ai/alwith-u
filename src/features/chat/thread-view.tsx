@@ -31,7 +31,7 @@ const CODEX_ANCHOR_TOP_OFFSET_PX = 64
  * whatever height is missing below it is provided by a spacer. Streaming content consumes
  * that space, and the remainder is cleared when the turn finishes.
  */
-export function codexAnchorPlan(input: {
+function codexAnchorPlan(input: {
   turnTopPx: number
   scrollHeightPx: number
   viewportHeightPx: number

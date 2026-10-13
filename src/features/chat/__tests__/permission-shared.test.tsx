@@ -9,9 +9,9 @@ import { initI18n } from "@/lib/i18n"
 import { ActionCard } from "../action-card"
 
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.
-globalThis.TransformStream = TransformStream as typeof globalThis.TransformStream
-globalThis.ReadableStream = ReadableStream as typeof globalThis.ReadableStream
-globalThis.WritableStream = WritableStream as typeof globalThis.WritableStream
+vi.stubGlobal("TransformStream", TransformStream)
+vi.stubGlobal("ReadableStream", ReadableStream)
+vi.stubGlobal("WritableStream", WritableStream)
 await initI18n("en")
 const clients: CodexClient[] = []
 const mounted: ReturnType<typeof render>[] = []

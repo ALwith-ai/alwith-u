@@ -15,7 +15,11 @@ beforeEach(async () => {
   pluginsStore.setState({ ...initialState, refresh: async () => {} }, true)
   client.store.setState({
     connection: "ready",
-    agent: { protocolVersion: 2, capabilities: { _meta: { codex: { plugins: true, skills: true } } } }
+    agent: {
+      info: { name: "test", version: "1" },
+      protocolVersion: 2,
+      capabilities: { _meta: { codex: { plugins: true, skills: true } } }
+    }
   })
 })
 afterEach(() => {
@@ -89,8 +93,8 @@ test("plugin controls and skill scopes follow a language change without remounti
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByRole("tab", { name: "Marketplace" })).toBeDefined()
   expect(view.getByPlaceholderText("Search plugins")).toBeDefined()
-  expect(view.getByRole("button", { name: "Installed", exact: true })).toBeDefined()
-  expect(view.getByRole("button", { name: "Installing", exact: true })).toBeDefined()
+  expect(view.getByRole("button", { name: "Installed" })).toBeDefined()
+  expect(view.getByRole("button", { name: "Installing" })).toBeDefined()
 
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
@@ -102,9 +106,9 @@ test("plugin controls and skill scopes follow a language change without remounti
   expect(view.getByPlaceholderText("openai/plugins 或 git@github.com:org/repo.git")).toBeDefined()
   expect(view.getByRole("button", { name: "升级" })).toBeDefined()
   expect(view.getByRole("button", { name: "添加插件市场" })).toBeDefined()
-  expect(view.getAllByRole("button", { name: "安装", exact: true })).toHaveLength(2)
-  expect(view.getByRole("button", { name: "已安装", exact: true })).toBeDefined()
-  expect(view.getByRole("button", { name: "正在安装", exact: true })).toBeDefined()
+  expect(view.getAllByRole("button", { name: "安装" })).toHaveLength(2)
+  expect(view.getByRole("button", { name: "已安装" })).toBeDefined()
+  expect(view.getByRole("button", { name: "正在安装" })).toBeDefined()
   expect(view.getByTitle("不可用").hasAttribute("disabled")).toBe(true)
   await act(async () => fireEvent.click(view.getByRole("button", { name: "页面操作" })))
   expect(view.getByRole("menuitem", { name: "移除市场" })).toBeDefined()
@@ -126,7 +130,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   expect(panel.getAllByRole("switch", { name: "禁用技能" })).toHaveLength(3)
   expect(panel.getByRole("switch", { name: "启用技能" })).toBeDefined()
   const actions = panel.getAllByRole("button", { name: "更多操作" })
-  await act(async () => fireEvent.click(must(actions[0])))
+  await act(async () => fireEvent.click(must(actions[0], "the first plugin action")))
   expect(view.getByRole("menuitem", { name: "卸载" })).toBeDefined()
   await act(async () => fireEvent.keyDown(view.getByRole("menu", { name: "更多操作" }), { key: "Escape" }))
 

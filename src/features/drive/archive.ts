@@ -1,6 +1,6 @@
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
 
-export interface ArchiveSource {
+interface ArchiveSource {
   list(
     check: () => void
   ): Promise<Array<{ sessionId: string; cwd: string; title: string | null; updatedAt: string | null }>>

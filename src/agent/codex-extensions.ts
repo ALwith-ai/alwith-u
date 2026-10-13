@@ -5,9 +5,9 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import type { TurnError } from "@alwith/api"
 
-export type SkillScope = "user" | "repo" | "system" | "admin"
+type SkillScope = "user" | "repo" | "system" | "admin"
 
-export type SkillInterface = {
+type SkillInterface = {
   displayName?: string
   shortDescription?: string
   /** Absolute paths of the skill's own icon files (Codex `AbsolutePathBuf`). */
@@ -33,7 +33,7 @@ export type SkillMetadata = {
 
 export type SkillErrorInfo = { path: string; message: string }
 
-export type SkillsListEntry = { cwd: string; skills: SkillMetadata[]; errors: SkillErrorInfo[] }
+type SkillsListEntry = { cwd: string; skills: SkillMetadata[]; errors: SkillErrorInfo[] }
 
 export type SkillsListParams = { cwds?: string[]; forceReload?: boolean }
 export type SkillsListResponse = { data: SkillsListEntry[] }
@@ -41,17 +41,17 @@ export type SkillsListResponse = { data: SkillsListEntry[] }
 export type SkillsConfigWriteParams = { path?: string | null; name?: string | null; enabled: boolean }
 export type SkillsConfigWriteResponse = { effectiveEnabled: boolean }
 
-export type PluginSource =
+type PluginSource =
   | { type: "local"; path: string }
   | { type: "git"; url: string; path: string | null; refName: string | null; sha: string | null }
   | { type: "npm"; package: string; version: string | null; registry: string | null }
   | { type: "remote" }
 
-export type PluginInstallPolicy = "NOT_AVAILABLE" | "AVAILABLE" | "INSTALLED_BY_DEFAULT"
-export type PluginAvailability = "AVAILABLE" | "DISABLED_BY_ADMIN"
-export type PluginAuthPolicy = "ON_INSTALL" | "ON_USE"
+type PluginInstallPolicy = "NOT_AVAILABLE" | "AVAILABLE" | "INSTALLED_BY_DEFAULT"
+type PluginAvailability = "AVAILABLE" | "DISABLED_BY_ADMIN"
+type PluginAuthPolicy = "ON_INSTALL" | "ON_USE"
 
-export type PluginInterface = {
+type PluginInterface = {
   displayName: string | null
   shortDescription: string | null
   longDescription: string | null
@@ -76,10 +76,10 @@ export type PluginInterface = {
   screenshotUrls: string[]
 }
 
-export type PluginInstallPolicySource = "WORKSPACE_SETTING" | "IMPLICIT_CANONICAL_APP"
-export type PluginDisabledReason = "PLAN_NOT_ELIGIBLE" | "REQUIRED_APP_UNAVAILABLE" | "UNKNOWN"
+type PluginInstallPolicySource = "WORKSPACE_SETTING" | "IMPLICIT_CANONICAL_APP"
+type PluginDisabledReason = "PLAN_NOT_ELIGIBLE" | "REQUIRED_APP_UNAVAILABLE" | "UNKNOWN"
 
-export type PluginShareContext = {
+type PluginShareContext = {
   remotePluginId: string
   remoteVersion: string | null
   shareUrl: string | null
@@ -140,7 +140,7 @@ export type PluginInstallParams = {
   installAttemptId?: string | null
   pluginName: string
 }
-export type AppSummary = {
+type AppSummary = {
   id: string
   name: string
   description: string | null
@@ -156,7 +156,7 @@ export type PluginReadParams = {
   remoteMarketplaceName?: string | null
   pluginName: string
 }
-export type SkillSummary = {
+type SkillSummary = {
   name: string
   description: string
   shortDescription: string | null
@@ -164,8 +164,8 @@ export type SkillSummary = {
   path: string | null
   enabled: boolean
 }
-export type PluginHookSummary = { key: string; eventName: string }
-export type ScheduledTaskSummary = { key: string; name: string; prompt: string }
+type PluginHookSummary = { key: string; eventName: string }
+type ScheduledTaskSummary = { key: string; name: string; prompt: string }
 export type PluginDetail = {
   marketplaceName: string
   marketplacePath: string | null
@@ -184,7 +184,7 @@ export type MarketplaceAddParams = { source: string; refName?: string | null; sp
 export type MarketplaceAddResponse = { marketplaceName: string; installedRoot: string; alreadyAdded: boolean }
 export type MarketplaceRemoveParams = { marketplaceName: string }
 export type MarketplaceUpgradeParams = { marketplaceName?: string | null }
-export type MarketplaceUpgradeErrorInfo = { marketplaceName: string; message: string }
+type MarketplaceUpgradeErrorInfo = { marketplaceName: string; message: string }
 export type MarketplaceUpgradeResponse = {
   selectedMarketplaces: string[]
   upgradedRoots: string[]
@@ -193,7 +193,7 @@ export type MarketplaceUpgradeResponse = {
 
 // ── Account, rate limits, rename, file search (codex-acp-v2 0.6.0 pass-throughs) ──
 
-export type PlanType =
+type PlanType =
   | "free"
   | "go"
   | "plus"
@@ -212,7 +212,7 @@ export type PlanType =
   | "edu_pro"
   | "unknown"
 
-export type CodexAccount =
+type CodexAccount =
   | { type: "apiKey" }
   | { type: "chatgpt"; email: string | null; planType: PlanType }
   | { type: "amazonBedrock"; usesCodexManagedCredentials: boolean }
@@ -225,7 +225,7 @@ export type RateLimitWindow = {
   /** Unix seconds. */
   resetsAt: number | null
 }
-export type CreditsSnapshot = { hasCredits: boolean; unlimited: boolean; balance: string | null }
+type CreditsSnapshot = { hasCredits: boolean; unlimited: boolean; balance: string | null }
 export type RateLimitSnapshot = {
   limitId: string | null
   limitName: string | null
