@@ -1,13 +1,16 @@
 import type { DriveController, DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import { DriveCondense, DriveMoveDialog } from "@alwith/module-drive/content"
 import {
   DriveBadge,
   type DriveControls,
   type DriveHost,
   DriveMassDeleteDialog,
+  DriveNotificationProvider,
   DrivePanel
 } from "@alwith/module-drive/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+import { driveControls } from "../controls"
 
 const controls: DriveControls = {
   Button: ({ variant: _variant, size: _size, ...props }) => <button type="button" {...props} />,
@@ -288,6 +291,96 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
   await waitFor(() => expect(f.requests).toContainEqual({ type: "reconcile", projectId: null }))
 })
 
+test("condense dialog separates its scope from the title and groups actions in the footer", async () => {
+  const f = fixture({}, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  const onClose = vi.fn()
+  render(
+    <DriveCondense
+      controller={f.controller}
+      scope={{ projectId: 1, projectName: "admin的个人知识库", scopePath: null }}
+      controls={driveControls}
+      locale="zh-CN"
+      onClose={onClose}
+      onOpenFile={async () => {}}
+      onOpenExternal={async () => {}}
+    />
+  )
+  await act(async () => {})
+  expect(screen.getByText("沉淀范围")).toBeInTheDocument()
+  expect(screen.getByText("admin的个人知识库")).toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: /沉淀为知识/ })).not.toBeInTheDocument()
+  const close = screen.getByRole("button", { name: "关闭", exact: true })
+  const condense = screen.getByRole("button", { name: "沉淀为知识", exact: true })
+  expect(close.parentElement).toHaveClass("alwith-drive-dialog-actions")
+  expect(close.nextElementSibling).toBe(condense)
+  expect(close).toHaveClass("bg-background")
+  expect(condense).toHaveClass("bg-primary")
+  fireEvent.click(close)
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(f.requests).toEqual([{ type: "proposedCondense", projectId: 1 }])
+})
+
+test("condense preflight keeps the safe exit before proceeding with missing uploads", async () => {
+  const f = fixture({ running: true }, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    if (request.type === "condensePreflight")
+      return { type: "unsynced", data: { pending: 1, failed: 1, paths: ["report.md"] } }
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  const onClose = vi.fn()
+  render(
+    <DriveCondense
+      controller={f.controller}
+      scope={{ projectId: 1, projectName: "Reports", scopePath: null }}
+      controls={driveControls}
+      locale="zh-CN"
+      onClose={onClose}
+      onOpenFile={async () => {}}
+      onOpenExternal={async () => {}}
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "沉淀为知识", exact: true }))
+  expect(await screen.findByText("report.md")).toBeInTheDocument()
+  const wait = screen.getByRole("button", { name: "先等等" })
+  const proceed = screen.getByRole("button", { name: "仍然沉淀" })
+  expect(wait.nextElementSibling).toBe(proceed)
+  expect(wait.parentElement).toHaveClass("alwith-drive-dialog-actions")
+  expect(wait).toHaveClass("bg-background")
+  expect(proceed).toHaveClass("bg-primary")
+  fireEvent.click(wait)
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(f.requests).not.toContainEqual({ type: "condenseStart", projectId: 1, scopePath: null })
+})
+
+test("move dialog groups the secondary cancel action before the primary move action", () => {
+  const f = fixture()
+  const onClose = vi.fn()
+  render(
+    <DriveMoveDialog
+      path="/drive/report.md"
+      kind="file"
+      controller={f.controller}
+      controls={driveControls}
+      locale="zh-CN"
+      host={{ confirm: async () => true, prepareMove: async () => true, onMoved: async () => {} }}
+      onClose={onClose}
+    />
+  )
+  const cancel = screen.getByRole("button", { name: "取消" })
+  const move = screen.getByRole("button", { name: "移动", exact: true })
+  expect(cancel.parentElement).toHaveClass("alwith-drive-dialog-actions")
+  expect(cancel.nextElementSibling).toBe(move)
+  expect(cancel).toHaveClass("bg-background")
+  expect(move).toHaveClass("bg-primary")
+  expect(move).toBeDisabled()
+  fireEvent.click(cancel)
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(f.requests).toEqual([])
+})
+
 async function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
   switch (request.type) {
     case "maxAutoDownloadMb":
@@ -305,6 +398,43 @@ async function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
       throw new Error(`Unexpected request ${request.type}`)
   }
 }
+
+test.each(["device", null])(
+  "settings distinguish pending device information from registration (%s)",
+  async deviceId => {
+    let resolveConfiguration!: (response: DriveResponse) => void
+    const configuration = new Promise<DriveResponse>(resolve => {
+      resolveConfiguration = resolve
+    })
+    const f = fixture({ configured: false, running: false }, request =>
+      request.type === "configuration" ? configuration : settingsResponse(request)
+    )
+    render(<DrivePanel {...f} locale="zh-CN" controls={controls} mode="settings" confirm={async () => true} />)
+    await act(async () => f.update({ configured: true, generation: 2 }))
+    expect(screen.getByText("已登录 · 正在读取设备信息…")).toBeInTheDocument()
+    expect(screen.queryByText("已登录 · 设备未注册")).not.toBeInTheDocument()
+    await act(async () => {
+      resolveConfiguration({
+        type: "configuration",
+        data: { deviceId, userName: "Test", userId: "1", clientConfig: null }
+      })
+    })
+    expect(screen.getByText(deviceId ? "已登录 · 设备 device" : "已登录 · 设备未注册")).toBeInTheDocument()
+    expect(screen.queryByText("已登录 · 正在读取设备信息…")).not.toBeInTheDocument()
+  }
+)
+
+test("failed device information loading never claims the device is unregistered", async () => {
+  const f = fixture({ running: false }, async request => {
+    if (request.type === "configuration") throw new Error("Cannot read configuration")
+    return settingsResponse(request)
+  })
+  render(<DrivePanel {...f} locale="zh-CN" controls={controls} mode="settings" confirm={async () => true} />)
+  expect(await screen.findByRole("alert")).toHaveTextContent("Cannot read configuration")
+  expect(screen.getByText("已登录 · 设备信息读取失败")).toBeInTheDocument()
+  expect(screen.queryByText("已登录 · 设备未注册")).not.toBeInTheDocument()
+  expect(screen.queryByText("已登录 · 正在读取设备信息…")).not.toBeInTheDocument()
+})
 
 test("settings load login preferences before runtime and fetch runtime data when it starts", async () => {
   const f = fixture({ running: false }, settingsResponse)
@@ -388,4 +518,266 @@ test.each([
   expect(f.requests).toContainEqual({ type: "resolveRootOwnership", generation: 2, accept })
   expect(f.requests.filter(request => request.type === method)).toHaveLength(1)
   expect(f.requests.some(request => request.type === "start")).toBe(accept)
+})
+
+test("condense shows only the current project upload and resumes after closing", async () => {
+  let settle!: (response: DriveResponse) => void
+  const f = fixture({}, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    if (request.type === "condensePreflight")
+      return new Promise(resolve => {
+        settle = resolve
+      })
+    if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  const props = {
+    controller: f.controller,
+    scope: { projectId: 1, projectName: "Reports", scopePath: null },
+    controls,
+    locale: "zh-CN" as const,
+    onClose: vi.fn(),
+    onOpenFile: async () => {},
+    onOpenExternal: async () => {}
+  }
+  const view = render(<DriveCondense {...props} />)
+  fireEvent.click(screen.getByRole("button", { name: "沉淀为知识", exact: true }))
+  act(() =>
+    f.update({
+      files: [
+        { projectId: 2, path: "other.md", localPath: "/drive/other.md", state: "uploading" },
+        { projectId: 1, path: "current.md", localPath: "/drive/current.md", state: "uploading" }
+      ]
+    })
+  )
+  expect(screen.getByText("current.md")).toBeInTheDocument()
+  expect(screen.queryByText("other.md")).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "取消任务" })).toBeEnabled()
+  fireEvent.click(screen.getByRole("button", { name: "关闭", exact: true }))
+  view.unmount()
+  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  render(<DriveCondense {...props} />)
+  expect(screen.getByRole("button", { name: "取消任务" })).toBeEnabled()
+  expect(screen.queryByRole("button", { name: "沉淀为知识", exact: true })).not.toBeInTheDocument()
+  expect(f.requests.filter(request => request.type === "condenseStart")).toHaveLength(1)
+  act(() => f.update({ generation: 2 }))
+})
+
+test("cancelling during upload prevents job creation after the upload finishes", async () => {
+  let settle!: (response: DriveResponse) => void
+  const f = fixture({}, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    if (request.type === "condensePreflight")
+      return new Promise(resolve => {
+        settle = resolve
+      })
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  render(
+    <DriveCondense
+      controller={f.controller}
+      scope={{ projectId: 1, projectName: "Reports", scopePath: null }}
+      controls={controls}
+      locale="zh-CN"
+      onClose={() => {}}
+      onOpenFile={async () => {}}
+      onOpenExternal={async () => {}}
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "沉淀为知识", exact: true }))
+  fireEvent.click(screen.getByRole("button", { name: "取消任务" }))
+  expect(screen.queryByText("已取消")).not.toBeInTheDocument()
+  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  expect(screen.getByText("已取消")).toBeInTheDocument()
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  expect(f.requests.some(request => request.type === "condenseStart")).toBe(false)
+})
+
+test("cancel acknowledgement is not completion and terminal cancellation is not a failure", async () => {
+  vi.useFakeTimers()
+  try {
+    let status: "RUNNING" | "CANCELLED" = "RUNNING"
+    const f = fixture({}, async request => {
+      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+      if (request.type === "cancelJob") return { type: "done" }
+      if (request.type === "job") return { type: "job", data: { id: 7, status } }
+      throw new Error(`Unexpected request ${request.type}`)
+    })
+    render(
+      <DriveCondense
+        controller={f.controller}
+        scope={{ projectId: 1, projectName: "Reports", scopePath: null }}
+        initialJob={{ id: 7, status: "RUNNING" }}
+        controls={controls}
+        locale="zh-CN"
+        onClose={() => {}}
+        onOpenFile={async () => {}}
+        onOpenExternal={async () => {}}
+      />
+    )
+    await act(async () => {})
+    fireEvent.click(screen.getByRole("button", { name: "取消任务" }))
+    await act(async () => {})
+    expect(screen.queryByText("已取消")).not.toBeInTheDocument()
+    status = "CANCELLED"
+    await act(async () => vi.advanceTimersByTimeAsync(2000))
+    expect(screen.getByText("已取消")).toBeInTheDocument()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test("launcher keeps synchronization errors out of navigation while status retains them", async () => {
+  const f = fixture({ error: "Conflict: /drive/report.md" })
+  const props = { controller: f.controller, controls, onOpenProject: async () => {}, confirm: async () => true }
+  const notify = { error: vi.fn(), success: vi.fn() }
+  const view = render(
+    <DriveNotificationProvider notify={notify}>
+      <DrivePanel {...props} mode="launcher" />
+    </DriveNotificationProvider>
+  )
+  await act(async () => {})
+  expect(screen.queryByText("Conflict: /drive/report.md")).not.toBeInTheDocument()
+  expect(notify.error).toHaveBeenCalledWith("Conflict: /drive/report.md")
+  view.rerender(<DrivePanel {...props} mode="status" />)
+  expect(screen.getByText("Conflict: /drive/report.md")).toBeInTheDocument()
+})
+
+test("a conflict during preflight stays in the dialog and does not include another project", async () => {
+  let settle!: (response: DriveResponse) => void
+  const f = fixture({}, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    if (request.type === "condensePreflight")
+      return new Promise(resolve => {
+        settle = resolve
+      })
+    if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  render(
+    <DriveCondense
+      controller={f.controller}
+      scope={{ projectId: 1, projectName: "Reports", scopePath: null }}
+      controls={controls}
+      locale="zh-CN"
+      onClose={() => {}}
+      onOpenFile={async () => {}}
+      onOpenExternal={async () => {}}
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "沉淀为知识", exact: true }))
+  act(() =>
+    f.update({
+      files: [
+        { projectId: 1, path: "conflicted.md", localPath: "/drive/conflicted.md", state: "conflict" },
+        { projectId: 2, path: "unrelated.md", localPath: "/drive/unrelated.md", state: "conflict" }
+      ]
+    })
+  )
+  expect(screen.getByRole("alert")).toHaveTextContent("conflicted.md")
+  expect(screen.queryByText("unrelated.md")).not.toBeInTheDocument()
+  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  expect(screen.getByRole("alert")).toHaveTextContent("conflicted.md")
+  act(() => f.update({ generation: 2 }))
+})
+
+test("a closed condense task finishes once and reopening preserves its result", async () => {
+  vi.useFakeTimers()
+  try {
+    const f = fixture({}, async request => {
+      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+      if (request.type === "job")
+        return {
+          type: "job",
+          data: {
+            id: 7,
+            status: "SUCCEEDED",
+            result: { knowledgeFileId: 9, knowledgeTitle: "Draft", humanUrl: "https://drive.test/draft" }
+          }
+        }
+      if (request.type === "localPath") return { type: "path", data: "/drive/draft.md" }
+      throw new Error(`Unexpected request ${request.type}`)
+    })
+    const notify = { error: vi.fn(), success: vi.fn() }
+    const open = vi.fn(async () => {})
+    const props = {
+      controller: f.controller,
+      scope: { projectId: 1, projectName: "Reports", scopePath: null },
+      initialJob: { id: 7, status: "RUNNING" as const },
+      controls,
+      locale: "zh-CN" as const,
+      onClose: () => {},
+      onOpenFile: open,
+      onOpenExternal: async () => {}
+    }
+    const view = render(
+      <DriveNotificationProvider notify={notify}>
+        <DriveCondense {...props} />
+      </DriveNotificationProvider>
+    )
+    await act(async () => {})
+    view.unmount()
+    await act(async () => vi.advanceTimersByTimeAsync(2000))
+    expect(notify.success).toHaveBeenCalledOnce()
+    expect(open).not.toHaveBeenCalled()
+    render(
+      <DriveNotificationProvider notify={notify}>
+        <DriveCondense {...props} />
+      </DriveNotificationProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByText("沉淀成功")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "打开草稿" }))
+    await act(async () => {})
+    expect(open).toHaveBeenCalledWith("/drive/draft.md")
+    expect(notify.success).toHaveBeenCalledOnce()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test("a rejected knowledge source remains actionable inside the dialog", async () => {
+  const f = fixture({}, async request => {
+    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+    if (request.type === "condensePreflight") return { type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }
+    if (request.type === "condenseStart") throw new Error("HTTP 400: SOURCE_IS_KNOWLEDGE_PROJECT: source is knowledge")
+    throw new Error(`Unexpected request ${request.type}`)
+  })
+  render(
+    <DriveCondense
+      controller={f.controller}
+      scope={{ projectId: 1, projectName: "Knowledge", scopePath: null }}
+      controls={controls}
+      locale="zh-CN"
+      onClose={() => {}}
+      onOpenFile={async () => {}}
+      onOpenExternal={async () => {}}
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "沉淀为知识", exact: true }))
+  expect(await screen.findByText("沉淀失败")).toBeInTheDocument()
+  expect(screen.getByRole("alert")).toHaveTextContent("SOURCE_IS_KNOWLEDGE_PROJECT")
+  expect(screen.getByRole("button", { name: "重试" })).toBeEnabled()
+})
+
+test("repeated background synchronization errors produce one toast", async () => {
+  const f = fixture({ error: "Conflict: report.md" })
+  const notify = { error: vi.fn(), success: vi.fn() }
+  render(
+    <DriveNotificationProvider notify={notify}>
+      <DrivePanel
+        controller={f.controller}
+        controls={controls}
+        mode="launcher"
+        onOpenProject={async () => {}}
+        confirm={async () => true}
+      />
+    </DriveNotificationProvider>
+  )
+  await act(async () => {})
+  act(() => f.update({ error: null }))
+  act(() => f.update({ error: "Conflict: report.md" }))
+  expect(notify.error).toHaveBeenCalledTimes(1)
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 })

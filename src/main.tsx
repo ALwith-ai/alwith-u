@@ -3,6 +3,7 @@ import { tempDir } from "@tauri-apps/api/path"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
+import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
 import { App } from "@/app"
@@ -23,6 +24,15 @@ import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { hydrateZoom } from "@/lib/zoom"
 import "./index.css"
+
+const driveNotices = {
+  error(message: string): void {
+    toast.error(message, { id: "drive-background-error" })
+  },
+  success(message: string): void {
+    toast.success(message, { id: "drive-task-completed" })
+  }
+}
 
 function describe(value: unknown): string {
   return value instanceof Error ? `${value.message}\n${value.stack ?? ""}` : String(value)
@@ -74,9 +84,11 @@ async function bootstrap(): Promise<void> {
         <ThemeProvider>
           <TooltipProvider>
             <ErrorBoundary>
-              <AuthGate>
-                <App initialPreferences={preferences} />
-              </AuthGate>
+              <DriveNotificationProvider notify={driveNotices}>
+                <AuthGate>
+                  <App initialPreferences={preferences} />
+                </AuthGate>
+              </DriveNotificationProvider>
             </ErrorBoundary>
             <Toaster position="bottom-right" />
           </TooltipProvider>

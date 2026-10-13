@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
 import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
-import { driveControls } from "@/features/drive/controls"
+import { driveControls, driveDialogClassName } from "@/features/drive/controls"
 import { useDriveDeepLinks } from "@/features/drive/deep-links"
 import { DriveSharingDialog, drive } from "@/features/drive/drive"
 import { prepareWorkspaceFile } from "@/features/drive/files"
@@ -980,7 +980,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
         onOpenChange={open => {
           if (!open) setCondenseScope(null)
         }}>
-        <DialogContent>
+        <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{i18n.language.startsWith("zh") ? "沉淀为知识" : "Condense into knowledge"}</DialogTitle>
           </DialogHeader>
@@ -1006,7 +1006,7 @@ export function FileWorkspace({ cwd, children }: { cwd: string | null; children:
         onOpenChange={open => {
           if (!open) setMoveTarget(null)
         }}>
-        <DialogContent>
+        <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{i18n.language.startsWith("zh") ? "移动到其他项目" : "Move to another project"}</DialogTitle>
           </DialogHeader>

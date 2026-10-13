@@ -50,6 +50,18 @@
     "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
   },
   {
+    "name": "@alwith/module-drive",
+    "file": "vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
+    "sha256": "2737c59854dfee95ad94d5c35c76016bbe5dfb708be3fd9580d7af5affaaa44e",
+    "source": "alwith-modules/packages/drive",
+    "baseCommit": "a6b641cbfd10a182e423f1e0f1c4bc860ce92b47",
+    "sourceSnapshotSha256": "12033adb242ef7c5c978e629e1834941cd9c4f9e4ad31bb170f76ec674474a56",
+    "sourceState": "working-tree snapshot; condense upload feedback, retained task lifecycle and host notifications; native condense errors remain request-scoped; includes prior configuration reconciliation and dialog fixes; built with build-npm.ts; Rust service.rs rebuilt from shared source, remaining Rust distribution preserved",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files",
+    "nativeServiceSha256": "6594fd823d07e3eae2303456d72550b529ccc5ebbe3700840b6f77e9076c9efd",
+    "sourceCommit": "9f144caef0e8281314a25e01d81cee442e8c94b1"
+  },
+  {
     "name": "@alwith/module-extension",
     "file": "vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
     "sha256": "f06f7fcdafca574a786cc9f2ce7ed66550f072a06947801f64290bb73cd51262",

@@ -7,6 +7,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import "./dialog.css"
+
+export const driveDialogClassName = "alwith-drive-dialog max-h-[80vh] overflow-auto"
 
 export const driveControls: DriveControls = {
   Button,
@@ -63,7 +66,7 @@ export const driveControls: DriveControls = {
   ),
   Dialog: ({ open, onOpenChange, title, description, children }): ReactNode => (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] overflow-auto">
+      <DialogContent className={driveDialogClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
