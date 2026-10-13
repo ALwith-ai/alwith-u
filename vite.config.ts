@@ -22,7 +22,7 @@ export default defineConfig({
       "@alwith/module-file-tree",
       "@alwith/module-editor",
       "@alwith/module-drive",
-      "@alwith/module-vibemon"
+      "@alwith/module-auth"
     ],
     // Excluded shared packages load Milkdown lazily. Prebundle its dependency
     // graph so CommonJS dependencies such as debug expose valid ESM bindings.

@@ -1,4 +1,9 @@
-import { type PetBinding, type PetSessionChoice, type PetWindowHost, sessionIconSvg } from "@alwith/module-vibemon"
+import {
+  type PetBinding,
+  type PetSessionChoice,
+  type PetWindowHost,
+  sessionIconSvg
+} from "@alwith/module-auth/pets/core"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { Image as TauriImage } from "@tauri-apps/api/image"
@@ -46,9 +51,6 @@ async function chooseSession(payload: {
         icon: icons[index],
         text: fitSessionMenuLabel(
           [
-            i18n.t(candidate.windowLabel === "main" ? "navigation.mainWindow" : "navigation.chatWindow", {
-              ns: "common"
-            }),
             candidate.cwd.split(/[\\/]/).filter(Boolean).at(-1),
             candidate.title || i18n.t("collection.defaultChatTitle", { ns: "common" })
           ]
@@ -84,6 +86,9 @@ export function createPetWindowClient(): PetWindowHost {
       return () => {
         for (const stop of stops) stop()
       }
+    },
+    moved(listener) {
+      return getCurrentWebviewWindow().onMoved(({ payload }) => listener(payload))
     },
     commands(listener) {
       let disposed = false

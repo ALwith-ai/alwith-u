@@ -128,7 +128,7 @@ extern "C-unwind" fn application_will_terminate(
 
 fn input_panel(application: &NSApplication) -> Option<Retained<NSWindow>> {
     let window = application.keyWindow()?;
-    if !window.isKeyWindow() || !window.isVisible() || !window.isKindOfClass(super::RawDesktopChatPanel::class()) {
+    if !window.isKeyWindow() || !window.isVisible() || !crate::panel::is_input_panel(&window) {
         return None;
     }
     // An input context may be absent during focus changes; do not lazily create or activate a new context for the view.

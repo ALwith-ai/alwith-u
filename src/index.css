@@ -4,7 +4,7 @@
 @import "@fontsource-variable/inter";
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
-@import "@alwith/module-vibemon/styles.css";
+@import "@alwith/module-auth/pets/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
@@ -45,7 +45,7 @@ pre,
   background-color: color-mix(in oklab, var(--link) 14%, transparent);
   text-decoration: underline;
 }
-@source "../node_modules/@alwith/module-vibemon/dist";
+@source "../node_modules/@alwith/module-auth/dist/pets";
 
 @custom-variant dark (&:is(.dark *));
 

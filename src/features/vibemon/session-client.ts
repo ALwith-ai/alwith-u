@@ -1,4 +1,4 @@
-import type { PetObservation, PetSessionHost } from "@alwith/module-vibemon"
+import type { PetObservation, PetSessionHost } from "@alwith/module-auth/pets/core"
 import { listen } from "@tauri-apps/api/event"
 import { inspectPet, requestPet } from "./transport"
 

@@ -20,16 +20,6 @@
     "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
   },
   {
-    "name": "@alwith/module-vibemon",
-    "file": "vendor/alwith-module-vibemon-0.1.5-ecf45664d066.tgz",
-    "sha256": "ecf45664d06632d9d45dbdd377c0b87101a83b7843d31f65a6f58ec31180c645",
-    "source": "alwith-modules/crates/vibemon/guest-js",
-    "baseCommit": "99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotSha256": "34a78fbcf5ca691ab6ce12ef4bd37ca09e35029625a0a8ced612a93fa95eb09c",
-    "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
-  },
-  {
     "name": "@alwith/module-fs",
     "file": "vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "sha256": "5f43be16d6bcf9d986259abbb120c987875f580fab4e8a61ccba923e708418eb",
@@ -38,5 +28,15 @@
     "sourceSnapshotSha256": "f0c75cb585fcbe3e841a49049122feac1c6fedc1c2148fc6611fc3376989a3f4",
     "sourceSnapshotFormat": "SHA256 of compact JSON [path, SHA256] entries: packages/fs/package.json, crates/fs/Cargo.toml, sorted crates/fs/src Rust files, sorted packages/fs/src files",
     "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f"
+  },
+  {
+    "name": "@alwith/module-auth",
+    "file": "vendor/alwith-module-auth-0.1.4-47717d0166ba.tgz",
+    "sha256": "47717d0166baa99490ec5ef2423f4c88764d037f40ba6fc68c0d4c75ca03a091",
+    "source": "alwith-modules/crates/auth/guest-js",
+    "baseCommit": "00514eb8b0b6f8b0519787ef5896cc3ad2b63ad6",
+    "sourceSnapshotSha256": "4a5a86ad534e5b3939a508e9a6b261c76e8dfdeb6abf9d090a2975bff7921e5c",
+    "sourceState": "uncommitted local changes on the base commit",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [repository-relative path, file SHA256] entries sorted by path: src, assets, licenses, package.json, tsconfig.json, README.md, LICENSE and THIRD_PARTY_NOTICES.md"
   }
 ]

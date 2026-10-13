@@ -1,4 +1,4 @@
-import type { SessionIcons } from "@alwith/module-vibemon"
+import type { SessionIcons } from "@alwith/module-auth/pets/core"
 
 // Lucide (ISC): match U main-window and floating-window controls.
 export const sessionIcons: SessionIcons = {

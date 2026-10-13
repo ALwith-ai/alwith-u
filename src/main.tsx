@@ -1,7 +1,5 @@
 import { isTauri } from "@tauri-apps/api/core"
-import { tempDir } from "@tauri-apps/api/path"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
-import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
@@ -15,7 +13,6 @@ import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
-import { useThreadsUiStore } from "@/features/threads/store"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
@@ -54,7 +51,6 @@ async function bootstrap(): Promise<void> {
   const preferences = await loadPreferences()
   await initI18n(preferences.language)
   if (isTauri()) {
-    if (platform() === "windows") useThreadsUiStore.setState({ windowsTempDirectory: await tempDir() })
     void startStartupImports().catch(failure => surfaceGlobalError(describe(failure)))
     void useUpdaterStore
       .getState()

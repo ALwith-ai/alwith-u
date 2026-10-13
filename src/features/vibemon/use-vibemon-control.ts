@@ -1,5 +1,5 @@
 import { accountKey } from "@alwith/module-auth/pets"
-import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-vibemon"
+import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-auth/pets/core"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"

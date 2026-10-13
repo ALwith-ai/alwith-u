@@ -19,7 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { useThreadsUiStore } from "@/features/threads/store"
 import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { basename } from "@/lib/path"
 
@@ -38,7 +37,6 @@ export function DraftProjectPicker({
   onChange: (cwd: string) => void
 }) {
   const { t } = useTranslation()
-  const windowsTempDirectory = useThreadsUiStore(state => state.windowsTempDirectory)
   const [defaultCwd, setDefaultCwd] = useState<string | null>(null)
   useEffect(() => {
     let active = true
@@ -55,7 +53,7 @@ export function DraftProjectPicker({
     }
   }, [])
   const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter(path => path !== cwd)].filter(
-    path => path !== defaultCwd && !isQuickChatDirectory(path, windowsTempDirectory)
+    path => path !== defaultCwd && !isQuickChatDirectory(path)
   )
   return (
     <DropdownMenu>

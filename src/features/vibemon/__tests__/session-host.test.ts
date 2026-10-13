@@ -7,6 +7,8 @@ import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
 import { must } from "@/lib/__tests__/must"
 import { createPetSessionOwner } from "../session-host"
+import { runStateSource } from "@/agent/run-state-source"
+import type { PetObservation } from "@alwith/module-auth/pets/core"
 
 const clients: CodexClient[] = []
 afterEach(() => {
@@ -41,11 +43,12 @@ async function fixture() {
     expect(id).toBe(a.id)
   })
   const openChat = vi.fn(async (_id: string | null, _window: "main" | "chat") => {})
+  const agentForSession = vi.fn(async () => agent)
   const host = createPetSessionOwner({
     state: () => client.state,
     agentId: "codex",
-    source: () => "event",
-    agentForSession: async () => agent,
+    source: () => runStateSource(client.state.runStates),
+    agentForSession,
     claim: async id => {
       if (claimed.has(id)) return false
       claimed.add(id)
@@ -63,6 +66,7 @@ async function fixture() {
     run,
     prompt,
     openChat,
+    agentForSession,
     setAgent: (value: string | null) => {
       agent = value
     }
@@ -171,11 +175,62 @@ test("a changed or closed float cannot be hidden by a pending collapse", async (
 
 test("opening an old binding cannot focus a different current main conversation", async () => {
   const f = await fixture()
-  await f.host.surface("main", { sessionId: f.b.id, visible: false })
-  await f.host.collapse(f.a.id)
+  await f.host.surface("main", { sessionId: f.a.id, visible: false })
+  await f.host.select(must(f.host.snapshot(), "pet observation").binding, f.a.id)
   const binding = must(f.host.snapshot(), "pet observation").binding
-  await expect(f.host.openChat(binding)).rejects.toThrow("no longer current")
+  await f.host.surface("main", { sessionId: f.b.id, visible: false })
+  await expect(f.host.openChat(binding)).rejects.toThrow("changed")
   expect(f.openChat).not.toHaveBeenCalled()
+})
+
+test("every live transition is published before a pending ownership lookup completes", async () => {
+  const f = await fixture()
+  await f.host.surface("main", { sessionId: f.a.id, visible: false })
+  const observed: PetObservation[] = []
+  f.host.subscribe(value => {
+    if (value !== null) observed.push(value)
+  })
+  const ownership = Promise.withResolvers<string | null>()
+  f.agentForSession.mockImplementation(() => ownership.promise)
+  const pending: Promise<void>[] = []
+  for (const state of ["running", "done", "idle"] as const) {
+    f.client.applyRunStates([{ ...f.run(f.a.id), state }])
+    pending.push(f.host.refresh())
+  }
+  expect(observed.map(value => value.state)).toEqual(["running", "done", "idle"])
+  expect(observed.every(value => value.source === "event")).toBe(true)
+  ownership.resolve("codex")
+  await Promise.all(pending)
+  expect(observed.map(value => value.state)).toEqual(["running", "done", "idle"])
+})
+
+test("a cold binding remains a snapshot while overlapping ownership queries resolve", async () => {
+  const f = await fixture()
+  const first = Promise.withResolvers<string | null>()
+  const second = Promise.withResolvers<string | null>()
+  f.agentForSession.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+  const initial = f.host.surface("main", { sessionId: f.a.id, visible: false })
+  f.client.applyRunStates([{ ...f.run(f.a.id), state: "done" }])
+  const completion = f.host.refresh()
+  expect(f.host.snapshot()).toBeNull()
+  second.resolve("codex")
+  await completion
+  expect(f.host.snapshot()).toMatchObject({ state: "done", source: "snapshot" })
+  first.resolve("foreign")
+  await initial
+  expect(f.host.snapshot()).toMatchObject({ state: "done", binding: { agentId: "codex" } })
+})
+
+test("the selected main window follows its replacement while hidden and releases stale actions", async () => {
+  const f = await fixture()
+  await f.host.surface("main", { sessionId: f.a.id, visible: false })
+  await f.host.surface("chat", { sessionId: f.b.id, visible: false })
+  await f.host.select(must(f.host.snapshot(), "pet observation").binding, f.a.id)
+  const old = must(f.host.snapshot(), "pet observation").binding
+  await f.host.surface("main", { sessionId: f.b.id, visible: false })
+  expect(must(f.host.snapshot(), "pet observation").binding.sessionId).toBe(f.b.id)
+  await expect(f.host.send(old, "stale", "hello")).rejects.toThrow("changed")
+  expect(f.prompt).not.toHaveBeenCalled()
 })
 
 test("a once-only pet answer resolves the original fake agent approval and keeps session ownership", async () => {
