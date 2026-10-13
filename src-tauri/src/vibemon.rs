@@ -69,6 +69,9 @@ async fn native(
     let (send, receive) = tokio::sync::oneshot::channel();
     window.run_on_main_thread(move || {
         let result = (|| {
+            if matches!(operation.as_str(), "present" | "focus" | "bubble") {
+                crate::window::ensure_open(handle.app_handle())?;
+            }
             #[cfg(target_os = "macos")]
             let pointer = handle.ns_window().map_err(|e| e.to_string())? as usize;
             #[cfg(target_os = "windows")]
@@ -256,6 +259,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
     let app = window.app_handle();
     match action.as_str() {
         "create-pet" | "create-bubble" => {
+            crate::window::ensure_open(app)?;
             if window.label() != "main" {
                 return Err("Only main creates Vibemon windows".into());
             }

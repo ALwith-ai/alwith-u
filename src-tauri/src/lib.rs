@@ -45,6 +45,9 @@ pub fn run() {
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             log::info!("second instance argv={argv:?} cwd={cwd:?}");
+            if window::is_closing(app) {
+                return;
+            }
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
                 let _ = window.show();
@@ -75,8 +78,8 @@ pub fn run() {
         // Settings has a fixed logical size; cached physical sizes must not override it.
         .plugin(
             tauri_plugin_window_state::Builder::new()
-                // Shutdown hides windows while services drain; that visibility is not a
-                // startup preference. Restore geometry without hiding the next main window.
+                // Shutdown hides windows before draining IPC. Each launch must still
+                // show main according to its config, rather than restore that hidden state.
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
@@ -96,6 +99,9 @@ pub fn run() {
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
                 app.exit(0);
+                return;
+            }
+            if window::is_closing(app) {
                 return;
             }
             if event.id().0 == "vibemon-close" {
@@ -167,8 +173,7 @@ pub fn run() {
                 extension_inbox::window_closed(app, &label);
             }
             tauri::RunEvent::ExitRequested { api, code, .. } => {
-                let closing =
-                    app.state::<runtime::RuntimeState>().is_closing() || app.state::<drive::DriveState>().is_closing();
+                let closing = window::is_closing(app);
                 if (!closing && workspace::prevent_exit(app))
                     || drive::prevent_exit(app, code)
                     || runtime::prevent_exit(app, code)

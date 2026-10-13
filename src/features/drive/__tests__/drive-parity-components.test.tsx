@@ -351,3 +351,41 @@ test("successful runtime loading does not clear a configuration failure", async 
   await waitFor(() => expect(f.requests).toContainEqual({ type: "skillMirrors" }))
   expect(screen.getByRole("alert")).toHaveTextContent("Cannot read configuration")
 })
+
+test.each([
+  [false, "login"],
+  [true, "login"],
+  [false, "ssoLogin"],
+  [true, "ssoLogin"]
+] as const)("directory adoption requires explicit confirmation (%s, %s)", async (accept, method) => {
+  const f = fixture({ configured: false, running: false }, async request => {
+    if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
+    if (request.type === method)
+      return { type: "rootOwnershipConfirmation", data: { generation: 2, localRoot: "/drive" } }
+    return { type: "done" }
+  })
+  render(
+    <DrivePanel
+      {...f}
+      locale="zh-CN"
+      controls={controls}
+      mode="settings"
+      onOpenProject={async () => {}}
+      confirm={async () => true}
+    />
+  )
+  if (method === "login") {
+    fireEvent.change(screen.getByPlaceholderText("个人访问令牌"), { target: { value: "test-token" } })
+    fireEvent.click(screen.getByRole("button", { name: "注册此设备" }))
+  } else {
+    fireEvent.click(await screen.findByRole("button", { name: "SSO 登录" }))
+  }
+  const dialog = await screen.findByRole("dialog", { name: "继续使用该目录？" })
+  expect(dialog).toHaveTextContent("可能上传到当前账号")
+  expect(f.requests).not.toContainEqual({ type: "start" })
+  fireEvent.click(screen.getByRole("button", { name: accept ? "继续" : "取消", exact: true }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(f.requests).toContainEqual({ type: "resolveRootOwnership", generation: 2, accept })
+  expect(f.requests.filter(request => request.type === method)).toHaveLength(1)
+  expect(f.requests.some(request => request.type === "start")).toBe(accept)
+})

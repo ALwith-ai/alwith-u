@@ -1,12 +1,13 @@
 // Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdtempSync, writeFileSync } from "node:fs"
+import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { delimiter, join, resolve } from "node:path"
 import manifest from "../package.json"
 import { assertVersion, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
 import { ProcessRuntimeClient } from "@alwith/api/node"
+import providers from "../src/lib/provider-catalog.json"
 
 const argument = process.argv[2]
 if (!argument)
@@ -64,7 +65,6 @@ const adapterVersion = await withCleanup(
     }
     const bootstrap = join(codexHome, "codex-bootstrap.mjs")
     copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), bootstrap)
-    writeFileSync(join(codexHome, "gateway-models.json"), '{"models":[]}')
     await checkInitialize(bootstrap)
     return adapterVersion
   },
@@ -82,7 +82,10 @@ async function checkInitialize(adapter: string): Promise<void> {
         env: {
           CODEX_PATH: join(directory, `alwith-codex-launcher${suffix}`),
           ALWITH_U_CODEX_PATH: join(directory, `codex${suffix}`),
-          CODEX_ACP_MODEL_CATALOGS: join(codexHome, "gateway-models.json")
+          CODEX_ACP_MODEL_CATALOGS: providers.map(provider => join(resources, provider.catalog)).join(delimiter),
+          TMPDIR: codexHome,
+          TEMP: codexHome,
+          TMP: codexHome
         }
       }
     },

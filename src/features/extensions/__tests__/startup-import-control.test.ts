@@ -15,7 +15,8 @@ const fixture = vi.hoisted(() => ({
   complete: vi.fn(),
   failed: vi.fn(),
   finish: vi.fn(),
-  scan: vi.fn()
+  scan: vi.fn(),
+  startupTasks: [] as string[]
 }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: fixture.label }) }))
 vi.mock("../runtime", () => ({ startExtensionRuntime: async () => fixture.runtime }))
@@ -31,7 +32,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("@/lib/i18n", () => ({ default: { t: (key: string) => key } }))
 vi.mock("@/bindings", () => ({
   commands: {
-    extensionInboxScan: async () => ({ operationId: "startup", tasks: [], errors: [] }),
+    extensionInboxScan: async () => ({ operationId: "startup", tasks: fixture.startupTasks, errors: [] }),
     extensionInboxScanExtension: fixture.scan,
     extensionInboxPrepare: async () => ({
       id: "task",
@@ -47,6 +48,7 @@ beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   fixture.label = "settings"
+  fixture.startupTasks = []
 })
 
 test("settings never installs locally and returns only the main result", async () => {
@@ -74,4 +76,19 @@ test("main activation failure retains the input and reports failure to settings"
     message: "Main activation failed"
   })
   expect(fixture.finish).toHaveBeenLastCalledWith({ operationId: "manual" })
+})
+
+test("startup inbox uses the shared default enable policy", async () => {
+  fixture.label = "main"
+  fixture.startupTasks = ["task"]
+  fixture.install.mockResolvedValue({ error: null })
+  const { startStartupImports } = await import("../startup-import-control")
+  await startStartupImports()
+  expect(fixture.install).toHaveBeenCalledWith(
+    fixture.runtime,
+    expect.objectContaining({ id: "notes" }),
+    { update: true },
+    expect.any(AbortSignal)
+  )
+  expect(fixture.complete).toHaveBeenCalledWith({ taskId: "task", operationId: "startup" })
 })

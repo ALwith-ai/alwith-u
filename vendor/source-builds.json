@@ -38,5 +38,15 @@
     "sourceSnapshotSha256": "f0c75cb585fcbe3e841a49049122feac1c6fedc1c2148fc6611fc3376989a3f4",
     "sourceSnapshotFormat": "SHA256 of compact JSON [path, SHA256] entries: packages/fs/package.json, crates/fs/Cargo.toml, sorted crates/fs/src Rust files, sorted packages/fs/src files",
     "sourceState": "committed; source tree clean at 99239fa2272e35e51fa22daedceee222b000700f"
+  },
+  {
+    "name": "@nyssance/codex-acp-v2",
+    "file": "vendor/nyssance-codex-acp-v2-0.7.11-32247d004db8.tgz",
+    "sha256": "32247d004db88f763a7e047ab45968d68ae55d896f46edadfc8d133da2a8e5c5",
+    "source": "../codex-acp-v2",
+    "baseCommit": "7ea6e9e4a62661c3311567167da27ca62ccac629",
+    "sourceState": "working-tree snapshot based on v0.7.11, including local capability and command fixes; built in sibling codex-acp-v2 with bun run build and bun pm pack",
+    "sourceSnapshotSha256": "919302fcc1f3fb80dfa10a95bb4c5a99286e7adcf7e39e5a7758ec2ec9d011b3",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
   }
 ]
