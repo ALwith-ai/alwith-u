@@ -213,8 +213,7 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
               <Button key={index} variant="outline" className="guide-topic-card" onClick={() => navigate(index)}>
                 <Icon />
                 <span>
-                  <strong>{chapters[index].title}</strong>
-                  <span>{details[index].summary}</span>
+                  <strong>{chapters[index].title}</strong> <span>{details[index].summary}</span>
                 </span>
                 <ArrowRightIcon />
               </Button>
