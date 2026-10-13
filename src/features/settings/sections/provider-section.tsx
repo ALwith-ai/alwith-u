@@ -49,6 +49,7 @@ export function ProviderSection() {
   const keys = snapshot?.providers ?? {}
   const [busy, setBusy] = useState<string | null>(null)
   const [activeId, setActiveId] = useState(PROVIDERS[0]?.id ?? "")
+  const [customDraftVersion, setCustomDraftVersion] = useState(0)
   const [testResults, setTestResults] = useState<Record<string, ProviderTestResult>>({})
 
   const save = async (
@@ -186,10 +187,14 @@ export function ProviderSection() {
             ))}
             <div hidden={activeId !== "new"}>
               <CustomProviderEditor
+                key={customDraftVersion}
                 provider={null}
                 revision={snapshot.revision}
                 busy={busy !== null}
-                onSaved={setActiveId}
+                onSaved={id => {
+                  setCustomDraftVersion(version => version + 1)
+                  setActiveId(id)
+                }}
                 onSave={saveCustom}
               />
             </div>
