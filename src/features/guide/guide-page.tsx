@@ -115,7 +115,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
           <div className="guide-interface-project">
             <FolderIcon /> My project
           </div>
-          <Button variant="secondary" onClick={() => navigate(2)} aria-label="Explore navigation">
+          <Button variant="secondary" onClick={() => navigate(2)}>
             <MessageSquareIcon /> First task
           </Button>
           <div className="guide-interface-account">Account & settings</div>
@@ -133,11 +133,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
               Review the result.
             </span>
           </div>
-          <Button
-            variant="outline"
-            className="guide-interface-compose"
-            onClick={() => navigate(3)}
-            aria-label="Explore chat">
+          <Button variant="outline" className="guide-interface-compose" onClick={() => navigate(3)}>
             Describe your next task
             <ArrowRightIcon />
           </Button>
@@ -148,7 +144,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
           <div />
           <div />
           <div />
-          <Button variant="ghost" onClick={() => navigate(5)} aria-label="Explore project files">
+          <Button variant="ghost" onClick={() => navigate(5)}>
             Open files
           </Button>
         </div>
@@ -214,12 +210,7 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
           {[3, 4, 5, 6, 7, 9].map(index => {
             const Icon = details[index].icon
             return (
-              <Button
-                key={index}
-                variant="outline"
-                className="guide-topic-card"
-                aria-label={`Read: ${chapters[index].title}`}
-                onClick={() => navigate(index)}>
+              <Button key={index} variant="outline" className="guide-topic-card" onClick={() => navigate(index)}>
                 <Icon />
                 <span>
                   <strong>{chapters[index].title}</strong>

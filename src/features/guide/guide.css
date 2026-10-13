@@ -1,4 +1,5 @@
 .guide-window {
+  --muted-foreground: color-mix(in srgb, var(--foreground) 75%, var(--background));
   font-size: 14px;
 }
 .guide-sidebar {

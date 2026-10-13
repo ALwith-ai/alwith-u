@@ -10,7 +10,7 @@ afterEach(cleanup)
 
 test("home cards and the interface map open chapters and return to the guide home", () => {
   const view = render(<GuidePage />)
-  fireEvent.click(view.getByRole("button", { name: "Explore project files" }))
+  fireEvent.click(view.getByRole("button", { name: "Open files" }))
   expect(view.getByRole("main", { name: "Work with project files" })).toBeTruthy()
   fireEvent.click(view.getByRole("button", { name: "Guide home" }))
   fireEvent.click(view.getByRole("button", { name: "Read: Choose a model" }))
