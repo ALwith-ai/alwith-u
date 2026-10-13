@@ -1,7 +1,7 @@
-import { useEffect } from "react"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
+import { useEffect } from "react"
 import { toast } from "sonner"
 import { drive, driveTransport } from "./controller"
 import { getDrivePluginData, setDriveArchiveOwner, subscribeDrivePluginData, syncDrivePlugin } from "./plugin-bridge"

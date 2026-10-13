@@ -1,10 +1,10 @@
-import { isSelectOption, textOf, type BooleanOption, type SelectOption, type Session } from "@alwith/api"
+import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
-import { CodexClient, type ClientOptions, type GatewayModel } from "../client"
+import { type ClientOptions, CodexClient, type GatewayModel } from "../client"
+import { macProjectPaths, type ProjectPaths } from "../project-path"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
-import { macProjectPaths, type ProjectPaths } from "../project-path"
 
 /**
  * `providers/set` in catalog mode (codex-acp-v2 0.5.0): the gateway's models join every

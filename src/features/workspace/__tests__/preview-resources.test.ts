@@ -1,7 +1,8 @@
-import { expect, test } from "vitest"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
+import { expect, test } from "vitest"
 import { resolvePreviewResource } from "../preview-resources"
+
 function setup() {
   return createFileSystem({
     adapter: createMemoryAdapter({

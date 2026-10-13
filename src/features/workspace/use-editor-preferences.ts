@@ -2,10 +2,10 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
   defaultEditorSettings,
+  type EditorSettings,
   loadEditorIconTheme,
   loadEditorSettings,
-  subscribeEditorSettings,
-  type EditorSettings
+  subscribeEditorSettings
 } from "./editor-settings"
 import type { IconTheme } from "./workspace-state"
 

@@ -5,11 +5,14 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
+import { usePlatformAuth } from "@/features/auth/store"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
+import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
+import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
 import {
   announceChatReady,
   type ChatTransfer,
@@ -18,8 +21,6 @@ import {
   requestChatSurface,
   serveChatSurface
 } from "@/lib/chat-window"
-import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
-import { usePlatformAuth } from "@/features/auth/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
 import { useProviders } from "@/lib/use-providers"
@@ -28,7 +29,6 @@ import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
 import { resetZoom, zoomIn, zoomOut } from "@/lib/zoom"
 import { WindowResizeEdges } from "./window-resize-edges"
-import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
 
 function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))

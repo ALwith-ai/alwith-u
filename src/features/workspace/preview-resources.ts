@@ -1,5 +1,5 @@
-import { containsPath, dirname, normalizePath, type FileSystem } from "@alwith/module-fs"
 import type { PreviewResource } from "@alwith/module-editor/previews"
+import { containsPath, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
 
 const mimeTypes: Record<string, string> = {
   css: "text/css",

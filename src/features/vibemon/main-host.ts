@@ -1,14 +1,13 @@
-import { sessionIcons } from "./session-icons"
 import {
   configureVibemon,
   getVibemonState,
   initializeSettings,
-  refreshSettings,
-  updateVibemonState,
-  syncVibemonResources,
-  sameBinding,
   type PetBinding,
-  type PetWindowHost
+  type PetWindowHost,
+  refreshSettings,
+  sameBinding,
+  syncVibemonResources,
+  updateVibemonState
 } from "@alwith/module-vibemon"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
@@ -24,7 +23,8 @@ import { openChatWindow, syncChatWindowSurface } from "@/lib/chat-window"
 import { client } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 import { createPetSessionOwner, type PetSurface } from "./session-host"
-import { petScope, servePetRequests, type PetRequest } from "./transport"
+import { sessionIcons } from "./session-icons"
+import { type PetRequest, petScope, servePetRequests } from "./transport"
 import { createPetWindowClient, petWindowCall } from "./window-client"
 
 const report = (failure: unknown) => toast.error(failure instanceof Error ? failure.message : String(failure))

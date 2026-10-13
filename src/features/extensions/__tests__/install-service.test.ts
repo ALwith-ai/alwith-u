@@ -1,7 +1,7 @@
-import { expect, test } from "vitest"
 import { parseManifest } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
+import { expect, test } from "vitest"
 import { executePreparedInstall, executeReload, executeStagedInstall } from "../install-service"
 
 const manifest = parseManifest({

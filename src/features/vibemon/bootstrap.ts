@@ -1,12 +1,12 @@
-import { sessionIcons } from "./session-icons"
 import { configureVibemon, initializeSettings } from "@alwith/module-vibemon"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { toast } from "sonner"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
-import { requestPet } from "./transport"
 import { createPetSessionClient } from "./session-client"
+import { sessionIcons } from "./session-icons"
+import { requestPet } from "./transport"
 import { createPetWindowClient } from "./window-client"
 
 export async function bootstrapVibemonWindow(): Promise<void> {

@@ -36,6 +36,7 @@ vi.mock("../controller", () => ({
 vi.mock("../filesystem", () => ({ driveFileSystem: vi.fn() }))
 vi.mock("@/lib/open", () => ({ openExternal: mock.external }))
 vi.mock("sonner", () => ({ toast: { error: mock.error, info: mock.info } }))
+
 import { useDriveDeepLinks } from "../deep-links"
 
 beforeEach(() => {

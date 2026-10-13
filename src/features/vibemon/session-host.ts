@@ -1,6 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { isText, isToolCallSubject } from "@alwith/api"
-import { sameBinding, type PetBinding, type PetObservation, type PetSessionChoice } from "@alwith/module-vibemon"
+import { type PetBinding, type PetObservation, type PetSessionChoice, sameBinding } from "@alwith/module-vibemon"
 import type { AppState } from "@/agent/client"
 import { petAnswer, petPrompt } from "./pet-prompt"
 

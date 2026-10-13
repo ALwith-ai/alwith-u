@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from "vitest"
 import { act, cleanup, renderHook } from "@testing-library/react"
+import { afterEach, expect, test } from "vitest"
 import type { SkillsListResponse } from "@/agent/codex-extensions"
 import { useSkillCatalog } from "../skills/use-skill-catalog"
 

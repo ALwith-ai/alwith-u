@@ -2,11 +2,11 @@
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
 // dialog. The host prepares the default workspace when no previous project was selected.
 import { invoke } from "@tauri-apps/api/core"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,9 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { basename } from "@/lib/path"
 import { useThreadsUiStore } from "@/features/threads/store"
 import { isQuickChatDirectory } from "@/features/threads/thread-groups"
+import { basename } from "@/lib/path"
 
 export async function chooseFolder(defaultPath: string | null): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false, defaultPath: defaultPath ?? undefined })

@@ -1,11 +1,11 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
+import { usePlatformAuth } from "@/features/auth/store"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
+import { useUpdaterStore } from "@/features/updater/store"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
-import { usePlatformAuth } from "@/features/auth/store"
-import { useUpdaterStore } from "@/features/updater/store"
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 

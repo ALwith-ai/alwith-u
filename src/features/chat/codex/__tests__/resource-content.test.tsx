@@ -1,18 +1,18 @@
-import { afterEach, expect, vi, test } from "vitest"
-import { createSession, addPrompt, type ToolItem } from "@alwith/api"
+import { addPrompt, createSession, type ToolItem } from "@alwith/api"
 import * as core from "@tauri-apps/api/core"
-import * as preview from "../../dialogs/file-preview-modal"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
+import { afterEach, expect, test, vi } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
+import { WorkspaceContext } from "@/features/workspace/context"
 import { initI18n } from "@/lib/i18n"
-import { ChatDirectoryContext } from "../../file-actions"
 import { formatMentionUri } from "../../composer/mention-uri"
+import * as preview from "../../dialogs/file-preview-modal"
 import { ImageLightbox } from "../../dialogs/image-lightbox"
+import { ChatDirectoryContext } from "../../file-actions"
 import { ActivityGroup } from "../activity-group"
 import { ResourceContent } from "../resource-content"
 import { UserMessage } from "../user-message"
-import { WorkspaceContext } from "@/features/workspace/context"
 
 vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
 

@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { commands } from "@/bindings"
 import { ExtensionMount } from "./extension-view"
-import { ExtensionsManager, type ExtensionInstallPhase } from "./extensions-manager"
+import { type ExtensionInstallPhase, ExtensionsManager } from "./extensions-manager"
 import { executePreparedInstall } from "./install-service"
-import { LEGACY_SOURCE } from "./legacy/profiles"
 import { showExtensionLimitations } from "./legacy/limitations"
+import { LEGACY_SOURCE } from "./legacy/profiles"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
-import { updateAndReloadExtension } from "./startup-import-control"
 import { reportExtensionError, useExtensions } from "./runtime"
+import { updateAndReloadExtension } from "./startup-import-control"
 
 export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string): void }) {
   const { t } = useTranslation()

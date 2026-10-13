@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest"
 import { useStore } from "zustand"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient, type AppState } from "@/agent/client"
+import { type AppState, CodexClient } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 

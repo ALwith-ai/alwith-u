@@ -8,17 +8,17 @@
 import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
-  MessagesSquareIcon,
-  CloudIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   BlocksIcon,
+  CloudIcon,
   FolderClosedIcon,
   FolderIcon,
   FolderOpenIcon,
   GitForkIcon,
+  MessagesSquareIcon,
   PawPrintIcon,
   PencilIcon,
   PictureInPicture2Icon,
@@ -27,8 +27,6 @@ import {
   SearchIcon,
   Trash2Icon
 } from "lucide-react"
-import { DriveArchiveAction } from "@/features/drive/archive-action"
-import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { motion } from "motion/react"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -55,25 +53,27 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/compone
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
+import { DriveArchiveAction } from "@/features/drive/archive-action"
+import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { client, stopSession, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
-import { groupThreads, QUICK_CHATS_GROUP, REVEAL_PAGE_SIZE } from "./thread-groups"
-import { VirtualThreadRows } from "./virtual-thread-rows"
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
-import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { type SidebarView, useThreadsUiStore } from "./store"
+import { groupThreads, QUICK_CHATS_GROUP, REVEAL_PAGE_SIZE } from "./thread-groups"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
+import { VirtualThreadRows } from "./virtual-thread-rows"
 
 function report(promise: Promise<unknown>) {
   return promise.then(

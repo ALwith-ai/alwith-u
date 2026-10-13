@@ -1,5 +1,5 @@
-import { expect, test } from "vitest"
 import { ResourceScope } from "@alwith/module-extension/host"
+import { expect, test } from "vitest"
 import { createPluginEvents } from "../events"
 
 test("isolates plugin events by extension and releases listeners on unload", async () => {

@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, expect, test } from "vitest"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { afterEach, beforeEach, expect, test } from "vitest"
 import { initI18n } from "@/lib/i18n"
 import { ExtensionSkills } from "../skills/extension-skills"
 

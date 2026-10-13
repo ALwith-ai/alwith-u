@@ -1,6 +1,7 @@
-import { parsePinnedDocs, type PinnedDoc } from "@alwith/module-drive/react"
-import { toast } from "sonner"
+import { type PinnedDoc, parsePinnedDocs } from "@alwith/module-drive/react"
 import { useSyncExternalStore } from "react"
+import { toast } from "sonner"
+
 const listeners = new Set<() => void>()
 const cache = new Map<string, PinnedDoc[]>()
 function read(profile: string): PinnedDoc[] {

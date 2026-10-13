@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
-import { legacyMessageSkills } from "../adapters"
 import { assertAvailableSkills, inspectRequiredSkills } from "../../chat/skills"
+import { legacyMessageSkills } from "../adapters"
 
 test("business prompts require enabled Codex skills and reject Desktop's old catalog", () => {
   const names = legacyMessageSkills("yup-kb", "按 yup-kb skill §6 分析，参考 bi-monthly-report skill")

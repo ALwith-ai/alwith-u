@@ -15,9 +15,9 @@ import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
 import { drafts, registerComposerWriter } from "./composer/drafts"
 import { MentionChips } from "./composer/mention-chips"
-import { NativeFileDrop, nativeAttachmentPolicy } from "./composer/native-file-drop"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
+import { NativeFileDrop, nativeAttachmentPolicy } from "./composer/native-file-drop"
 import { PermissionModeSelect } from "./composer/permission-mode-select"
 import {
   type Attachment,

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
-import { EditorSettingsSection } from "../editor-settings-dialog"
 import { defaultEditorSettings, loadEditorSettings } from "../editor-settings"
+import { EditorSettingsSection } from "../editor-settings-dialog"
 import { useEditorPreferences } from "../use-editor-preferences"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))

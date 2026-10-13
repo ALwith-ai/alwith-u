@@ -1,14 +1,13 @@
+import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { toast } from "sonner"
 import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { executeReload, executeStagedInstall } from "./install-service"
-import { startExtensionRuntime } from "./runtime"
-import type { ExtensionRuntime } from "@alwith/module-extension/host"
-import { runExtensionReload, type ReloadOutcome } from "./reload-service"
-import { runStartupImports, type StartupImportPort } from "./startup-import"
-
+import { type ReloadOutcome, runExtensionReload } from "./reload-service"
 import { requestMainReload, serveMainReload } from "./reload-window"
+import { startExtensionRuntime } from "./runtime"
+import { runStartupImports, type StartupImportPort } from "./startup-import"
 
 let startup: Promise<void> | undefined
 let stopReload: (() => void) | undefined

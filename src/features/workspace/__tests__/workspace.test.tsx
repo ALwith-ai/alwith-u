@@ -1,14 +1,14 @@
-import { StrictMode, useState } from "react"
-import { WorkspaceHeaderContext } from "../context"
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
-import { createMemoryAdapter } from "@alwith/module-fs/testing"
+import type { TextEditorProps } from "@alwith/module-editor"
 import type { FsAdapter, WriteOptions } from "@alwith/module-fs"
 import type { NativeRequest } from "@alwith/module-fs/tauri"
-import type { TextEditorProps } from "@alwith/module-editor"
-import { initI18n } from "@/lib/i18n"
-import { FileWorkspace } from "../file-workspace"
+import { createMemoryAdapter } from "@alwith/module-fs/testing"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { StrictMode, useState } from "react"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { ChatHeader } from "@/features/chat/chat-header"
+import { initI18n } from "@/lib/i18n"
+import { WorkspaceHeaderContext } from "../context"
+import { FileWorkspace } from "../file-workspace"
 
 const native = vi.hoisted(() => ({ invoke: vi.fn(), listen: vi.fn(async () => (): void => {}) }))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))

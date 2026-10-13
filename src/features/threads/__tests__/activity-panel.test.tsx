@@ -3,11 +3,11 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
-import { isMac } from "@/lib/platform"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
-import { useThreadsUiStore } from "../store"
+import { isMac } from "@/lib/platform"
 import { ActivityPanel } from "../activity-panel"
+import { useThreadsUiStore } from "../store"
 
 await initI18n("en")
 vi.mock("@/lib/platform", () => ({ isMac: vi.fn(() => false) }))

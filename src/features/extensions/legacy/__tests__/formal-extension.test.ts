@@ -1,8 +1,8 @@
-import { expect, test } from "vitest"
 import { type ExtensionManifest, extensionApiVersion } from "@alwith/module-extension"
 import { createCommonJsEvaluator, ExtensionHost, ResourceScope } from "@alwith/module-extension/host"
 import * as plugin from "@alwith/module-extension/plugin"
 import { createMemoryData } from "@alwith/module-extension/testing"
+import { expect, test } from "vitest"
 import { createLegacyBridge } from "../bridge"
 
 test("a formal Plugin entry runs on U's common host without a legacy import certificate", async () => {

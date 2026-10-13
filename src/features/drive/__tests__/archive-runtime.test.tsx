@@ -1,5 +1,5 @@
-import { act, renderHook, waitFor } from "@testing-library/react"
 import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
@@ -34,8 +34,9 @@ vi.mock("../controller", async () => {
   const { createDriveController } = await import("@alwith/module-drive")
   return { drive: createDriveController({ request: mocks.request, subscribe: async () => () => {} }) }
 })
-import { drive } from "../controller"
+
 import { DRIVE_ARCHIVE_SYNC, useDriveArchive } from "../archive-runtime"
+import { drive } from "../controller"
 
 const snapshot: Snapshot = {
   version: 1,

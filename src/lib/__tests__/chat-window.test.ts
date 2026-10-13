@@ -1,6 +1,6 @@
 import type * as eventApi from "@tauri-apps/api/event"
-import type * as windowApi from "@tauri-apps/api/webviewWindow"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
+import type * as windowApi from "@tauri-apps/api/webviewWindow"
 import { expect, test, vi } from "vitest"
 
 type Handler = (event: Event<unknown>) => void | Promise<void>

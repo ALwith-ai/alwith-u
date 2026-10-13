@@ -1,5 +1,5 @@
-import { containsPath } from "@alwith/module-fs"
 import type { FileTreeProps } from "@alwith/module-file-tree"
+import { containsPath } from "@alwith/module-fs"
 
 export type IconTheme = NonNullable<FileTreeProps["iconTheme"]>
 export interface WorkspaceState {

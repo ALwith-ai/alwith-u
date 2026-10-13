@@ -17,9 +17,9 @@ import { ChatBranchProvider } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
-import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DiffModal } from "./dialogs/diff-modal"
 import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
+import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { ImageLightbox } from "./dialogs/image-lightbox"
 
 function isFormAction(action: PendingAction): action is FormAction {

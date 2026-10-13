@@ -1,8 +1,8 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
-import { afterEach, expect, test, vi } from "vitest"
 import { toast } from "sonner"
+import { afterEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
-import { useUpdaterStore, type UpdaterState } from "../../store"
+import { type UpdaterState, useUpdaterStore } from "../../store"
 import { UpdateStatusButton } from "../update-status-button"
 
 await initI18n("en")

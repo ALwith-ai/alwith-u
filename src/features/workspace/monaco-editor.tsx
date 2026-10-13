@@ -1,16 +1,17 @@
+import type { EditorController, TextEditorProps } from "@alwith/module-editor"
+import type { MonacoAction } from "@alwith/module-editor/monaco"
+import { createMonacoEngine } from "@alwith/module-editor/monaco"
 import * as monaco from "monaco-editor"
 import EditorWorker from "monaco-editor/editor/editor.worker?worker"
-import JsonWorker from "monaco-editor/language/json/json.worker?worker"
 import CssWorker from "monaco-editor/language/css/css.worker?worker"
 import HtmlWorker from "monaco-editor/language/html/html.worker?worker"
+import JsonWorker from "monaco-editor/language/json/json.worker?worker"
 import TsWorker from "monaco-editor/language/typescript/ts.worker?worker"
-import { createMonacoEngine } from "@alwith/module-editor/monaco"
-import type { EditorController, TextEditorProps } from "@alwith/module-editor"
 import { useEffect, useMemo, useRef } from "react"
 import { useTheme } from "@/components/theme-provider"
-import type { MonacoAction } from "@alwith/module-editor/monaco"
 import type { FilePosition } from "./context"
 import type { EditorSettings } from "./editor-settings"
+
 self.MonacoEnvironment = {
   getWorker(_id, label) {
     if (label === "json") return new JsonWorker()

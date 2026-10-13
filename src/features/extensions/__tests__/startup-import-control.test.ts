@@ -1,5 +1,6 @@
-import { beforeEach, expect, test, vi } from "vitest"
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
+import { beforeEach, expect, test, vi } from "vitest"
+
 const fixture = vi.hoisted(() => ({
   label: "settings",
   handler: undefined as undefined | ((id: string) => Promise<string>),

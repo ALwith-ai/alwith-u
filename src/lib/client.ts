@@ -1,17 +1,17 @@
 // The app-wide CodexClient instance and the React bindings to its store.
 
-import { driveSessionContext } from "@/features/drive/session-context"
 import type { Session } from "@alwith/api"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 import type { AppState } from "@/agent/client"
-import { DesktopCodexClient } from "@/lib/desktop-client"
-import { RemoteChatClient } from "@/lib/chat-window-client"
-import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 import { macProjectPaths } from "@/agent/project-path"
+import { driveSessionContext } from "@/features/drive/session-context"
+import { RemoteChatClient } from "@/lib/chat-window-client"
+import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
 import { applyProviders, resolveSessionModel } from "@/lib/providers"
+import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"

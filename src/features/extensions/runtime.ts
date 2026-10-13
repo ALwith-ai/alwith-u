@@ -19,6 +19,7 @@ import * as jsxRuntime from "react/jsx-runtime"
 import * as reactDom from "react-dom/client"
 import { toast } from "sonner"
 import { commands } from "@/bindings"
+import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
 import i18n from "@/lib/i18n"
 import { version as hostVersion } from "../../../package.json"
 import { ensureBundledExtensions } from "./bundled"
@@ -26,7 +27,6 @@ import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
 import * as extensionUi from "./ui"
-import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
 
 let startup: Promise<ExtensionRuntime> | undefined
 let runtime: ExtensionRuntime | undefined
