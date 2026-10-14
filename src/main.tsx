@@ -1,11 +1,13 @@
 import { isTauri } from "@tauri-apps/api/core"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
+import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
 import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
 import { App } from "@/app"
 import { AppDirectionProvider } from "@/components/alwith-ui/app-direction-provider"
+import { WindowsMainWindowShell } from "@/components/alwith-ui/windows-main-window-shell"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
@@ -56,6 +58,9 @@ window.addEventListener("error", event => {
 })
 
 async function bootstrap(): Promise<void> {
+  if (isTauri() && platform() === "windows") {
+    document.documentElement.dataset.windowBackdrop = "acrylic"
+  }
   await attachConsole()
   await info("frontend booting")
   const preferences = await loadPreferences()
@@ -81,9 +86,11 @@ async function bootstrap(): Promise<void> {
           <TooltipProvider>
             <ErrorBoundary>
               <DriveNotificationProvider notify={driveNotices}>
-                <AuthGate>
-                  <App initialPreferences={preferences} />
-                </AuthGate>
+                <WindowsMainWindowShell>
+                  <AuthGate>
+                    <App initialPreferences={preferences} />
+                  </AuthGate>
+                </WindowsMainWindowShell>
               </DriveNotificationProvider>
             </ErrorBoundary>
             <Toaster position="bottom-right" />

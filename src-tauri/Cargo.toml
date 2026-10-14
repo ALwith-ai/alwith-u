@@ -71,6 +71,7 @@ objc2-quartz-core = { version = "0.3", default-features = false, features = ["st
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGAffineTransform", "CGGeometry", "CGPath"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
@@ -78,7 +79,7 @@ raw-window-handle = "0.6"
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel", "patches/wry"]
+exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration"]
 
 [patch.crates-io]
 # Keep WebKit response delivery and task cancellation on the main thread.

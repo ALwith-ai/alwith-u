@@ -189,6 +189,31 @@ test("an already initialized window reconnects the owner after Runtime disconnec
   }
 })
 
+test("an existing floating client reconnects after its main window bridge is replaced", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  let stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const id = await remote.newSession("/tmp/floating-reconnect")
+    stop()
+    await new Promise<void>(resolve => queueMicrotask(resolve))
+    expect(remote.state.connection).toBe("disconnected")
+    stop = await serveChatClient(owner, transport)
+    await remote.connect()
+    expect(remote.state.connection).toBe("ready")
+    expect(remote.session(id).cwd).toBe("/tmp/floating-reconnect")
+    expect(port.started).toEqual(["codex"])
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("a disposed StrictMode initialization cannot disconnect its replacement", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

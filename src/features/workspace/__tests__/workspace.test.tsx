@@ -5,6 +5,7 @@ import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { initI18n } from "@/lib/i18n"
 import { openGuideWindow } from "@/features/guide/guide-window"
@@ -115,6 +116,30 @@ test("remount restores pinned files, active file and expanded folders without dr
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+})
+test("Windows moves only the workspace toggle into the title bar and preserves its action", async () => {
+  const target = document.createElement("div")
+  document.body.append(target)
+  try {
+    const view = render(
+      <WindowsWorkspaceControlsContext.Provider value={target}>
+        <Surface cwd="/a" />
+      </WindowsWorkspaceControlsContext.Provider>
+    )
+    fireEvent.click(within(target).getByRole("button", { name: "Open preview area" }))
+    await screen.findByRole("treeitem", { name: /one.txt/ })
+    expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "true")
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "false")
+    fireEvent.click(within(target).getByRole("button", { name: "Close workspace" }))
+    expect(within(target).getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+    view.unmount()
+    expect(target).toBeEmptyDOMElement()
+  } finally {
+    target.remove()
+  }
 })
 function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealRequest?: number }) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)

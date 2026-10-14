@@ -136,6 +136,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
+ "tauri-plugin-decoration",
  "tauri-plugin-deep-link",
  "tauri-plugin-dialog",
  "tauri-plugin-global-shortcut",
@@ -5208,6 +5209,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-decoration"
+version = "3.0.5"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "gtk",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "raw-window-handle",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tokio",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "tauri-plugin-deep-link"
 version = "3.0.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5671,7 +5691,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

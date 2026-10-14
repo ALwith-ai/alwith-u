@@ -4,15 +4,18 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useRef,
   useState
 } from "react"
+import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 import { SidebarOverlayContext } from "@/components/alwith-ui/sidebar-overlay-context"
+import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { Button } from "@/components/ui/button"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { isMac } from "@/lib/platform"
@@ -38,6 +41,7 @@ export function MainSidebarLayout({
 }) {
   const { t } = useTranslation()
   const zoom = useStore(zoomStore, state => state.level)
+  const titlebar = useContext(WindowsTitleBarContext)
   const [pinned, setPinned] = useState(initialPinned)
   const [leadingSidebarOpen, setLeadingSidebarOpen] = useState(true)
   const [preview, setPreview] = useState(false)
@@ -157,6 +161,38 @@ export function MainSidebarLayout({
       ? PanelRightIcon
       : PanelRightDashedIcon
 
+  const sidebarToggle = (
+    <div
+      className={titlebar ? "windows-sidebar-toggle" : "main-sidebar-toggle"}
+      style={titlebar ? { width: 24 / zoom, height: 24 / zoom } : undefined}
+      onPointerEnter={enterSidebar}
+      onPointerLeave={leaveSidebar}
+      onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
+      <Button
+        ref={toggle}
+        variant="ghost"
+        size="icon-xs"
+        role="switch"
+        aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
+        aria-checked={docked}
+        aria-expanded={visible}
+        aria-controls={panelId}
+        title={t(
+          mainActive
+            ? pinned
+              ? "sidebar.unpin"
+              : "sidebar.pin"
+            : leadingSidebarOpen
+              ? "sidebar.hideRight"
+              : "sidebar.showRight"
+        )}
+        className="text-sidebar-foreground"
+        onClick={() => changePinned(!docked)}>
+        <ToggleIcon className="size-4 rtl:-scale-x-100" />
+      </Button>
+    </div>
+  )
+
   return (
     <SidebarProvider
       open={docked}
@@ -200,34 +236,7 @@ export function MainSidebarLayout({
           {main}
         </div>
       </div>
-      <div
-        className="main-sidebar-toggle"
-        onPointerEnter={enterSidebar}
-        onPointerLeave={leaveSidebar}
-        onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
-        <Button
-          ref={toggle}
-          variant="ghost"
-          size="icon-xs"
-          role="switch"
-          aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
-          aria-checked={docked}
-          aria-expanded={visible}
-          aria-controls={panelId}
-          title={t(
-            mainActive
-              ? pinned
-                ? "sidebar.unpin"
-                : "sidebar.pin"
-              : leadingSidebarOpen
-                ? "sidebar.hideRight"
-                : "sidebar.showRight"
-          )}
-          className="text-sidebar-foreground"
-          onClick={() => changePinned(!docked)}>
-          <ToggleIcon className="size-4 rtl:-scale-x-100" />
-        </Button>
-      </div>
+      {titlebar ? createPortal(sidebarToggle, titlebar) : sidebarToggle}
       {children}
     </SidebarProvider>
   )

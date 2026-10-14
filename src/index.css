@@ -188,6 +188,38 @@ pre,
     background: transparent;
   }
 }
+/* Stabilize contrast over Windows Acrylic while retaining the native backdrop texture. */
+html[data-window-backdrop="acrylic"] body {
+  background-color: color-mix(in srgb, var(--sidebar) 60%, transparent);
+}
+html[data-window-backdrop="acrylic"] {
+  --tauri-plugin-decoration-z-index: 60;
+}
+/* The native recovery frame already supplies its own title bar. */
+html[data-window-backdrop="acrylic"]:not(:has([data-tauri-plugin-decoration-active])) .windows-main-titlebar {
+  display: none;
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control] {
+  width: calc(46px / var(--main-window-zoom, 1));
+  min-width: 0;
+  height: var(--tauri-plugin-decoration-titlebar-height, 32px);
+  color: var(--foreground);
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control]:hover,
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-hover] {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control="close"]:hover,
+html[data-window-backdrop="acrylic"]
+  [data-tauri-plugin-decoration-root]
+  [data-tauri-decoration-control="close"][data-tauri-decoration-hover] {
+  color: var(--primary-foreground);
+  background: var(--destructive);
+}
+/* Login and startup screens share the space below the custom title bar. */
+.windows-main-content > :first-child {
+  height: 100%;
+}
 /* Match Desktop: native vibrancy shows through around the persistent navigation and main panel. */
 [data-slot="sidebar-wrapper"] {
   background-color: transparent;
@@ -216,6 +248,29 @@ pre,
   border-radius: var(--main-surface-radius);
   background-color: var(--background);
   box-shadow: none;
+}
+/* The Windows frame already reserves the full-width title bar above the content. */
+.windows-main-content [data-sidebar-presentation] {
+  min-height: 0;
+}
+html[data-window-backdrop="acrylic"] .main-chat-surface {
+  margin-block-start: 0;
+}
+html[data-window-backdrop="acrylic"] .main-chat-drag-region {
+  display: none;
+}
+html[data-window-backdrop="acrylic"] .main-extension-status {
+  inset-inline: 0;
+  height: var(--main-surface-block-gutter);
+  padding-inline: 12px;
+  display: flex;
+  align-items: center;
+}
+html[data-window-backdrop="acrylic"] .main-sidebar-shell {
+  height: calc(100% - var(--main-surface-block-gutter));
+}
+html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-footer"] {
+  padding-bottom: 8px;
 }
 
 /* The 32px gap above the main panel also serves as a native drag region without controls. */
@@ -338,6 +393,10 @@ pre,
     transform var(--sidebar-fade-duration) ease-out,
     visibility 0s linear var(--sidebar-fade-duration);
 }
+/* Windows already reserves the title and status rows in the sidebar shell. */
+.windows-main-content [data-sidebar-presentation="floating"] .main-sidebar-viewport {
+  inset-block: 0;
+}
 [data-sidebar-presentation="floating"] .main-sidebar-panel {
   overflow: clip;
   border-radius: inherit;
@@ -389,8 +448,17 @@ pre,
   transform: scale(var(--sidebar-control-scale));
   transform-origin: top left;
 }
+.windows-sidebar-toggle {
+  display: flex;
+  align-items: center;
+}
+.windows-sidebar-toggle [data-slot="button"] {
+  transform: scale(calc(1 / var(--main-window-zoom, 1)));
+  transform-origin: top left;
+}
 /* Pin/preview state is conveyed by ARIA; only pointer hover paints this control. */
-.main-sidebar-toggle [data-slot="button"] {
+.main-sidebar-toggle [data-slot="button"],
+.windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
 /* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
@@ -400,6 +468,7 @@ pre,
 /* Trigger composition replaces data-slot, but preserves the shadcn button class. */
 .main-sidebar-panel :is([class~="group/button"], .chrome-hover):hover,
 .main-sidebar-toggle [data-slot="button"]:hover,
+.windows-sidebar-toggle [data-slot="button"]:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
 .main-extension-status button:hover,
 .main-client-version-button:hover {

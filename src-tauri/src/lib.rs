@@ -24,6 +24,8 @@ mod runtime;
 mod updater;
 mod vibemon;
 mod window;
+#[cfg(target_os = "windows")]
+mod windows_frame;
 mod workspace;
 mod workspace_move;
 
@@ -62,6 +64,9 @@ pub fn run() {
 
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
+
+    #[cfg(target_os = "windows")]
+    let builder = builder.plugin(tauri_plugin_decoration::init());
 
     let builder = builder
         .plugin(chat_window::init())
@@ -126,15 +131,21 @@ pub fn run() {
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
-            // The window is transparent; macOS paints the sidebar glass behind it (ALwith
-            // Desktop's native_window_effects). Panels that must stay opaque paint their own
-            // background in CSS.
+            // Native materials paint behind the transparent page. Panels that must stay
+            // opaque paint their own background in CSS.
             #[cfg(target_os = "macos")]
             {
                 use tauri::window::{Effect, EffectsBuilder};
                 app.get_webview_window("main")
                     .expect("main window exists at setup")
                     .set_effects(EffectsBuilder::new().effect(Effect::UnderWindowBackground).build())?;
+            }
+            #[cfg(target_os = "windows")]
+            {
+                use tauri::window::{Effect, EffectsBuilder};
+                let window = app.get_webview_window("main").expect("main window exists at setup");
+                window.hide()?;
+                window.set_effects(EffectsBuilder::new().effect(Effect::Acrylic).build())?;
             }
             // Windows draws no app-level menu (it would surface on every window); macOS wants
             // one NSApp menu and Linux a per-window one. Built here, not in `Builder::menu`,
@@ -145,6 +156,11 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
+            #[cfg(target_os = "windows")]
+            if webview.label() == "main" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let window = webview.app_handle().get_webview_window("main").expect("main window exists on page load");
+                tauri::async_runtime::spawn(windows_frame::activate(window));
+            }
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
                 extension_inbox::window_closed(webview.app_handle(), webview.label());
             }

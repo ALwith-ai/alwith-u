@@ -36,6 +36,7 @@ export function ChatHeader({
   return (
     <header
       className="border-border @container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b px-1"
+      data-main-chat-header
       data-tauri-drag-region>
       {content}
     </header>

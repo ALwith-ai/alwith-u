@@ -20,8 +20,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 ]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"
 
-const IS_WINDOWS = /Win/.test(navigator.platform)
-
 /** The current theme's --background as [r, g, b] for the native window ground, so the
  *  new window never flashes white before its first frame (Desktop's themeBackgroundRGB). */
 function themeBackgroundRGB(): [number, number, number] {
@@ -66,7 +64,6 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
     fullscreen: false,
     hiddenTitle: true,
     titleBarStyle: "overlay",
-    ...(IS_WINDOWS ? { decorations: false } : {}),
     backgroundColor: themeBackgroundRGB(),
     // Shown by the native attach (child windows must not pop up as stages first).
     ...(attachToMain ? { visible: false } : {})

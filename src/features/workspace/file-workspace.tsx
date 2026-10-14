@@ -61,6 +61,7 @@ import {
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
@@ -110,6 +111,7 @@ export function FileWorkspace({
   children: ReactNode
   chatRevealRequest?: number
 }) {
+  const windowsControls = useContext(WindowsWorkspaceControlsContext)
   const { resolvedTheme } = useTheme()
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
@@ -811,9 +813,16 @@ export function FileWorkspace({
                 setCondenseScope(scope)
               }}
             />
-            <WorkspaceButton />
+            {windowsControls === null && <WorkspaceButton />}
           </div>,
           headerTarget
+        )}
+      {windowsControls !== null &&
+        createPortal(
+          <div className="file-workspace-toolbar">
+            <WorkspaceButton />
+          </div>,
+          windowsControls
         )}
       <WorkspacePanels
         visible={visible && workspace !== null}

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
+import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as preferences from "@/lib/preferences"
@@ -352,4 +353,32 @@ test("returning to a collapsed main sidebar moves focus from its now hidden cont
   view.showScreen("main")
   expect(view.mode()).toBe("hidden")
   expect(document.activeElement).toBe(view.toggle)
+})
+
+test("the Windows titlebar hosts the same working sidebar switch", () => {
+  const target = document.createElement("div")
+  document.body.appendChild(target)
+  try {
+    const view = render(
+      <WindowsTitleBarContext.Provider value={target}>
+        <MainSidebarLayout
+          initialPinned={true}
+          screen="main"
+          sidebar={<div>Sidebar</div>}
+          leading={null}
+          main={<main>Chat</main>}
+        />
+      </WindowsTitleBarContext.Provider>
+    )
+    const toggle = view.getByRole("switch")
+    expect(target).toContainElement(toggle)
+    expect(toggle).toHaveAttribute("aria-checked", "true")
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-checked", "false")
+    expect(view.container.querySelector("[data-sidebar-mode]")).toHaveAttribute("data-sidebar-mode", "hidden")
+    view.unmount()
+    expect(target).toBeEmptyDOMElement()
+  } finally {
+    target.remove()
+  }
 })
