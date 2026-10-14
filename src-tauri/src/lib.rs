@@ -91,6 +91,14 @@ pub fn run() {
                     tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
                 .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon"])
+                // Windows guide windows must not restore their legacy undecorated state.
+                .map_label(|label| {
+                    if cfg!(target_os = "windows") && label == "guide" {
+                        "guide-native"
+                    } else {
+                        label
+                    }
+                })
                 .build(),
         )
         .manage(legacy_extensions::files::LegacyFiles::default())

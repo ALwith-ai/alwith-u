@@ -8,12 +8,14 @@ const IS_WINDOWS = /Win/.test(navigator.platform)
 
 export function AuxWindowShell({
   title,
+  showTitleBar = true,
   sidebar,
   sidebarClassName,
   className,
   children
 }: {
   title?: ReactNode
+  showTitleBar?: boolean
   sidebar: ReactNode
   sidebarClassName?: string
   className?: string
@@ -27,14 +29,16 @@ export function AuxWindowShell({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{sidebar}</div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="relative flex h-8 shrink-0 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
-          {title && (
-            <span className="text-muted-foreground absolute start-1/2 -translate-x-1/2 text-[13px] font-semibold rtl:translate-x-1/2">
-              {title}
-            </span>
-          )}
-          <div className="h-full flex-1" data-tauri-drag-region />
-        </div>
+        {showTitleBar && (
+          <div className="relative flex h-8 shrink-0 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
+            {title && (
+              <span className="text-muted-foreground absolute start-1/2 -translate-x-1/2 text-[13px] font-semibold rtl:translate-x-1/2">
+                {title}
+              </span>
+            )}
+            <div className="h-full flex-1" data-tauri-drag-region />
+          </div>
+        )}
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
     </div>

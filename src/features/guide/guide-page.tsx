@@ -258,6 +258,7 @@ export function GuidePage() {
   return (
     <AuxWindowShell
       title="ALwith U Guide"
+      showTitleBar={!/Win/.test(navigator.platform)}
       sidebarClassName="guide-sidebar"
       className="guide-window"
       sidebar={
