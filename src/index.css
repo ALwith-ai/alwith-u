@@ -336,6 +336,13 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   left: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
   right: 12px;
 }
+.windows-extension-controls [role="toolbar"] {
+  width: calc(100% * var(--main-window-zoom, 1));
+  zoom: calc(1 / var(--main-window-zoom, 1));
+}
+.windows-extension-controls [data-extension-alignment] {
+  -webkit-app-region: no-drag;
+}
 
 /* Extension status widgets occupy the visible content gutter, clear of either sidebar. */
 .main-extension-status {
@@ -470,6 +477,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 .main-sidebar-toggle [data-slot="button"]:hover,
 .windows-sidebar-toggle [data-slot="button"]:hover,
 .main-extension-toolbar button:hover,
+.windows-extension-controls button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
 .main-extension-status button:hover,
 .main-client-version-button:hover {
