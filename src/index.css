@@ -469,6 +469,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 .main-sidebar-panel :is([class~="group/button"], .chrome-hover):hover,
 .main-sidebar-toggle [data-slot="button"]:hover,
 .windows-sidebar-toggle [data-slot="button"]:hover,
+.main-extension-toolbar button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
 .main-extension-status button:hover,
 .main-client-version-button:hover {

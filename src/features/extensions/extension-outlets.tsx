@@ -67,12 +67,12 @@ export function ExtensionActions({
         key={action.id}
         variant="ghost"
         size="icon-xs"
-        className="shrink-0"
+        className="text-sidebar-foreground shrink-0"
         aria-label={action.title}
         title={available ? action.title : t("extensions.targetUnavailable", { name: action.title })}
         disabled={!available}
         onClick={run}>
-        <Icon />
+        <Icon className="size-4" />
       </Button>
     ) : (
       <NavigationItemButton
