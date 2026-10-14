@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-u"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "alwith-api",
  "alwith-drive",
