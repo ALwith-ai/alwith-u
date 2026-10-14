@@ -1,14 +1,14 @@
 // @vitest-environment node
 
 import { isText, type SessionRunState } from "@alwith/api"
+import type { PetObservation } from "@alwith/module-auth/pets/core"
 import { afterEach, expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
+import { runStateSource } from "@/agent/run-state-source"
 import { must } from "@/lib/__tests__/must"
 import { createPetSessionOwner } from "../session-host"
-import { runStateSource } from "@/agent/run-state-source"
-import type { PetObservation } from "@alwith/module-auth/pets/core"
 
 const clients: CodexClient[] = []
 afterEach(() => {

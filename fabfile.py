@@ -6,15 +6,15 @@ import re
 import shutil
 import subprocess
 import sys
-import tomllib
-import urllib.request
+lazy import tomllib
+lazy import urllib.request
 from pathlib import Path
 
 from fabric import task
-from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
-from invoke import Context
-from invoke.exceptions import Exit
+lazy from InquirerPy import inquirer
+lazy from InquirerPy.base.control import Choice
+lazy from invoke import Context
+lazy from invoke.exceptions import Exit
 
 
 ROOT = Path(__file__).resolve().parent

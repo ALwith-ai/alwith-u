@@ -1,12 +1,12 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { isText, isToolCallSubject } from "@alwith/api"
 import {
-  PetSessionContext,
-  sameBinding,
   type PetBinding,
   type PetObservation,
   type PetSessionChoice,
-  type PetSurface
+  PetSessionContext,
+  type PetSurface,
+  sameBinding
 } from "@alwith/module-auth/pets/core"
 import type { AppState } from "@/agent/client"
 import { petAnswer, petPrompt } from "./pet-prompt"

@@ -1,12 +1,12 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { isFormElicitation } from "@alwith/api"
+import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import {
   elicitationFields,
   elicitationLabels,
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
-import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import type { PendingAction } from "@/agent/client"
 
 /** Mirrors Desktop's quick-answer boundary; complex forms retain their full context. */

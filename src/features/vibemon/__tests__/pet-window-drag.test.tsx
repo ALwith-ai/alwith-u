@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render } from "@testing-library/react"
-import { afterEach, expect, test, vi } from "vitest"
 import { createPetAssets, type PetAssetsHost } from "@alwith/module-auth/pets"
 import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/pets/core"
 import { PetWindow } from "@alwith/module-auth/pets/react"
+import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { afterEach, expect, test, vi } from "vitest"
 
 let disposeHost: (() => void) | undefined
 let disposeSettings: (() => void) | undefined

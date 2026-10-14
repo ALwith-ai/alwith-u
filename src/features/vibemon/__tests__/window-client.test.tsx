@@ -1,7 +1,7 @@
-import { afterEach, expect, test, vi } from "vitest"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import type { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { PhysicalPosition } from "@tauri-apps/api/window"
+import { afterEach, expect, test, vi } from "vitest"
 import i18n, { initI18n } from "@/lib/i18n"
 import { createPetWindowClient, petWindowCall } from "../window-client"
 
