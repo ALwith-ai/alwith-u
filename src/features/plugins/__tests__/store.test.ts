@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
+import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import i18n from "@/lib/i18n"
 import { createPluginsStore, installParams, type PluginsApi, readParams } from "../store"
@@ -218,7 +218,7 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-test("remote app aliases use the service ID for install and read; local sources keep the name", () => {
+test("remote app aliases use the service ID for install and read; local sources keep the name", async () => {
   const target = { ...plugin("app-alias", false), remotePluginId: "plugin_asdk_app_actual" }
   const marketplace: PluginMarketplaceEntry = {
     name: "openai-curated-remote",
@@ -230,7 +230,23 @@ test("remote app aliases use the service ID for install and read; local sources 
     pluginName: target.remotePluginId,
     remoteMarketplaceName: marketplace.name
   })
-  expect(readParams({ plugin: target, marketplace })).toEqual({
+  const detail: PluginDetail = {
+    marketplaceName: marketplace.name,
+    marketplacePath: null,
+    summary: target,
+    shareUrl: null,
+    description: null,
+    skills: [],
+    hooks: [],
+    apps: [],
+    mcpServers: [],
+    scheduledTasks: null
+  }
+  const api = fakeApi()
+  api.readPlugin = vi.fn(async () => ({ plugin: detail }))
+  const store = createPluginsStore(api)
+  expect(await store.getState().readPlugin({ plugin: target, marketplace })).toEqual(detail)
+  expect(api.readPlugin).toHaveBeenCalledWith({
     pluginName: target.remotePluginId,
     remoteMarketplaceName: marketplace.name
   })

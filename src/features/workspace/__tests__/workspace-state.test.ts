@@ -48,3 +48,30 @@ test("propagates failed persistence and allows a later save", async () => {
   expect(await store.load("/a")).toEqual(state)
   write.mockRestore()
 })
+
+test("rejects malformed mixed-tab state and paths escaping the workspace", async () => {
+  const state = {
+    tabs: [],
+    activePath: null,
+    expanded: ["/a"],
+    showHidden: false,
+    showIgnored: false,
+    iconTheme: "vscode-icons"
+  }
+  for (const tabLayout of [
+    { tabs: [{ kind: "file", path: "/b/secret.txt" }], activeIndex: 0 },
+    { tabs: [{ kind: "new" }], activeIndex: 1 },
+    { tabs: [{ kind: "new" }], activeIndex: -1 },
+    { tabs: [{ kind: "unknown" }], activeIndex: 0 },
+    {
+      tabs: [
+        { kind: "file", path: "/a/file.txt" },
+        { kind: "file", path: "/a/file.txt" }
+      ],
+      activeIndex: 0
+    }
+  ]) {
+    localStorage.setItem("workspace:/a", JSON.stringify({ ...state, tabLayout }))
+    await expect(createWorkspaceStateStore().load("/a")).rejects.toThrow()
+  }
+})

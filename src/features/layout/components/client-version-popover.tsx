@@ -39,7 +39,7 @@ export function ClientVersionPopover() {
           <Button
             variant="ghost"
             size="icon-sm"
-            className="text-muted-foreground hover:bg-foreground/8 hover:text-foreground"
+            className="main-client-version-button text-muted-foreground hover:text-foreground"
             aria-label={t("settings.about")}
             title={t("settings.about")}
           />

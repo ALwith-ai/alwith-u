@@ -1,9 +1,10 @@
 import type { ExtensionHost, ViewContribution } from "@alwith/module-extension/host"
 import { ExtensionView, useHostSnapshot } from "@alwith/module-extension/react"
-import { type ReactElement, useCallback, useState } from "react"
+import { type ReactElement, useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { reportExtensionError, useExtensions } from "./runtime"
+import { openExtensionConsent } from "./legacy/startup-consent"
 
 export function ExtensionMount({ id }: { id: string }): ReactElement {
   const { runtime } = useExtensions()
@@ -22,6 +23,11 @@ export function ExtensionViewContent({
   const { t } = useTranslation()
   const snapshot = useHostSnapshot(host)
   const view = snapshot.views.find(item => item.id === id)
+  useEffect(() => {
+    if (view?.kind === "surfaces" || view?.kind === "settingsPages") {
+      void openExtensionConsent(view.extensionId).catch(onError)
+    }
+  }, [view?.extensionId, view?.kind, onError])
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [failure, setFailure] = useState<{ view: ViewContribution | undefined; error: unknown } | null>(null)
   const failed = failure !== null && failure.view === view

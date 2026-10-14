@@ -136,6 +136,9 @@ pub async fn perform(
 }
 
 fn apply(host: &WebviewWindow, operation: &str, parent: Option<WebviewWindow>, extra: Value) -> Result<(), String> {
+    if matches!(operation, "present" | "focus" | "bubble") {
+        crate::window::ensure_open(host.app_handle())?;
+    }
     #[cfg(target_os = "macos")]
     let handle = host.ns_window().map_err(|error| error.to_string())? as usize;
     #[cfg(target_os = "macos")]

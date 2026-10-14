@@ -263,3 +263,33 @@ test("a canceled reload cannot report the old active instance as a successful re
   item.commit("old")
   await rejected
 })
+
+test("folder installs enable fresh modern packages by default", async () => {
+  const item = boundary()
+  const result = await executePreparedInstall(item.runtime, selected, { update: false })
+  expect(result).toMatchObject({ installed: true, enabled: true, activeInMainWindow: true, error: null })
+  expect(item.writes()).toBe(2)
+})
+
+test("inbox installs enable fresh staged packages by default", async () => {
+  const item = boundary()
+  const result = await executeStagedInstall(item.runtime, { ...selected, source: "local" }, { update: true })
+  expect(result).toMatchObject({ enabled: true, activeInMainWindow: true, error: null })
+  expect(item.writes()).toBe(2)
+})
+
+for (const enabled of [false, true]) {
+  test(`updates preserve existing enabled=${enabled} and installation configuration identity`, async () => {
+    const item = boundary(true)
+    const installed = item.state.native?.installations[0]
+    if (!installed) throw new Error("Missing fixture installation")
+    installed.enabled = enabled
+    const previous = { installationId: installed.installationId, dataGeneration: installed.dataGeneration }
+    const operation = executeStagedInstall(item.runtime, { ...selected, source: "local" }, { update: true })
+    if (enabled) item.host.instances = [{ id: "notes", revision: "new", status: "active", errors: [] }]
+    item.commit()
+    expect(await operation).toMatchObject({ enabled, error: null })
+    expect(item.state.native?.installations[0]).toMatchObject({ ...previous, enabled })
+    expect(item.writes()).toBe(1)
+  })
+}

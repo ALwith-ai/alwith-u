@@ -2,11 +2,11 @@
 
 import { invoke as __t3Invoke } from "@tauri-apps/api/core"
 import {
-  type EventCallback as __t3Callback,
-  emit as __t3Emit,
-  emitTo as __t3EmitTo,
   listen as __t3Listen,
   once as __t3Once,
+  emit as __t3Emit,
+  emitTo as __t3EmitTo,
+  type EventCallback as __t3Callback,
   type EventTarget as __t3Target
 } from "@tauri-apps/api/event"
 
@@ -301,6 +301,27 @@ export const events = {
     emit: (payload: NewChat) => __t3Emit("menu:new-chat", payload),
     emitTo: (target: string | __t3Target, payload: NewChat) => __t3EmitTo(target, "menu:new-chat", payload)
   },
+  "menu:new-tab": {
+    name: "menu:new-tab",
+    listen: (handler: __t3Callback<NewTab>) => __t3Listen<NewTab>("menu:new-tab", handler),
+    once: (handler: __t3Callback<NewTab>) => __t3Once<NewTab>("menu:new-tab", handler),
+    emit: (payload: NewTab) => __t3Emit("menu:new-tab", payload),
+    emitTo: (target: string | __t3Target, payload: NewTab) => __t3EmitTo(target, "menu:new-tab", payload)
+  },
+  "menu:close-tab": {
+    name: "menu:close-tab",
+    listen: (handler: __t3Callback<CloseTab>) => __t3Listen<CloseTab>("menu:close-tab", handler),
+    once: (handler: __t3Callback<CloseTab>) => __t3Once<CloseTab>("menu:close-tab", handler),
+    emit: (payload: CloseTab) => __t3Emit("menu:close-tab", payload),
+    emitTo: (target: string | __t3Target, payload: CloseTab) => __t3EmitTo(target, "menu:close-tab", payload)
+  },
+  "menu:reopen-closed-tab": {
+    name: "menu:reopen-closed-tab",
+    listen: (handler: __t3Callback<ReopenTab>) => __t3Listen<ReopenTab>("menu:reopen-closed-tab", handler),
+    once: (handler: __t3Callback<ReopenTab>) => __t3Once<ReopenTab>("menu:reopen-closed-tab", handler),
+    emit: (payload: ReopenTab) => __t3Emit("menu:reopen-closed-tab", payload),
+    emitTo: (target: string | __t3Target, payload: ReopenTab) => __t3EmitTo(target, "menu:reopen-closed-tab", payload)
+  },
   "menu:project-tree": {
     name: "menu:project-tree",
     listen: (handler: __t3Callback<ProjectTree>) => __t3Listen<ProjectTree>("menu:project-tree", handler),
@@ -402,6 +423,8 @@ export type ChatImage = {
   data: string
   mimeType: string
 }
+
+export type CloseTab = null
 
 export type CommandPalette = null
 
@@ -522,6 +545,8 @@ export type MoveToOutcome = {
 
 export type NewChat = null
 
+export type NewTab = null
+
 export type Number = number
 
 export type OpenHotkeys = null
@@ -582,6 +607,8 @@ export type RefreshedTokens = {
   access_token: string
   refresh_token: string
 }
+
+export type ReopenTab = null
 
 export type ReplaceInFile = null
 

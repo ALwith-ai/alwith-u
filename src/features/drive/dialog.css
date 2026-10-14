@@ -1,0 +1,126 @@
+.alwith-drive-dialog > [data-slot="dialog-close"] {
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.alwith-drive-dialog > [data-slot="dialog-header"] {
+  padding-right: 1.5rem;
+}
+
+.alwith-drive-dialog [data-slot="dialog-description"] {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.alwith-drive-dialog .alwith-drive-actions,
+.alwith-drive-dialog .alwith-drive-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.alwith-drive-dialog .alwith-drive-form > .alwith-drive-actions,
+.alwith-drive-dialog > .alwith-drive-actions,
+.alwith-drive-dialog .alwith-drive-dialog-actions {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.alwith-drive-dialog .alwith-drive-condense,
+.alwith-drive-dialog .alwith-drive-move {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.alwith-drive-dialog .alwith-drive-condense button {
+  margin: 0;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-summary {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  padding: 0.75rem 1rem;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-summary > p:first-child {
+  margin-bottom: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-summary > .alwith-drive-dialog-scope {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.alwith-drive-dialog .alwith-drive-condense p,
+.alwith-drive-dialog .alwith-drive-move p {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-notice > h4,
+.alwith-drive-dialog .alwith-drive-sharing h4 {
+  font-weight: 500;
+}
+
+.alwith-drive-dialog .alwith-drive-task-hint {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-notice details {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.alwith-drive-dialog .alwith-drive-dialog-notice summary {
+  cursor: pointer;
+}
+
+.alwith-drive-dialog [role="alert"] {
+  color: var(--destructive);
+}
+
+.alwith-drive-dialog .alwith-drive-move-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.alwith-drive-dialog .alwith-drive-sharing > section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.alwith-drive-dialog .alwith-drive-sharing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0;
+}
+
+.alwith-drive-dialog .alwith-drive-sharing > section > button:last-child {
+  align-self: flex-end;
+}
