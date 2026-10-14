@@ -63,6 +63,7 @@
     "answerOther": "Lainnya"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "general": "Umum",
     "title": "Pengaturan",
     "appearance": "Tampilan",

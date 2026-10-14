@@ -4,6 +4,7 @@ import { createWindowController } from "@/lib/window-controller"
 const controller = createWindowController<void>({
   exists: async () => (await WebviewWindow.getByLabel("guide")) !== null,
   create: async () => {
+    const windows = /Win/.test(navigator.platform)
     const window = new WebviewWindow("guide", {
       url: "/guide.html",
       title: "ALwith U Guide",
@@ -12,9 +13,8 @@ const controller = createWindowController<void>({
       minWidth: 640,
       minHeight: 480,
       center: true,
-      hiddenTitle: true,
-      titleBarStyle: "overlay",
-      ...(/Win/.test(navigator.platform) ? { decorations: false } : {}),
+      hiddenTitle: !windows,
+      titleBarStyle: windows ? "visible" : "overlay",
       visible: false
     })
     let ready!: () => void

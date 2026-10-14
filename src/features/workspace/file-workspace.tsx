@@ -23,7 +23,7 @@ import {
   type FileTreeController,
   type FileTreeLabels
 } from "@alwith/module-file-tree"
-import { containsPath, createFileSystem, dirname, type FileSystem } from "@alwith/module-fs"
+import { containsPath, createFileSystem, dirname, normalizePath, type FileSystem } from "@alwith/module-fs"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -61,6 +61,7 @@ import {
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
@@ -110,6 +111,7 @@ export function FileWorkspace({
   children: ReactNode
   chatRevealRequest?: number
 }) {
+  const windowsControls = useContext(WindowsWorkspaceControlsContext)
   const { resolvedTheme } = useTheme()
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
@@ -811,9 +813,16 @@ export function FileWorkspace({
                 setCondenseScope(scope)
               }}
             />
-            <WorkspaceButton />
+            {windowsControls === null && <WorkspaceButton />}
           </div>,
           headerTarget
+        )}
+      {windowsControls !== null &&
+        createPortal(
+          <div className="file-workspace-toolbar">
+            <WorkspaceButton />
+          </div>,
+          windowsControls
         )}
       <WorkspacePanels
         visible={visible && workspace !== null}
@@ -958,7 +967,7 @@ export function FileWorkspace({
                       controller={workspace.editor}
                       labels={editorLabels}
                       compactToolbar
-                      rootPath={workspace.root}
+                      rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
                       onRevealPath={path => workspace.tree.reveal(path)}
                       onReveal={document => revealItemsInDir(document.path)}
                       onCopyPath={document => navigator.clipboard.writeText(document.path)}

@@ -17,6 +17,8 @@ tauri-build = { version = "3.0.0-alpha.3", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-gamepad = { path = "../node_modules/@alwith/module-gamepad/rust", features = ["desktop"] }
+open = { version = "5", features = ["shellexecute-on-windows"] }
 alwith-drive = { path = "../node_modules/@alwith/module-drive/rust" }
 alwith-fs = { path = "../node_modules/@alwith/module-fs/rust", default-features = false, features = ["workspace"] }
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
@@ -61,6 +63,7 @@ tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+macos-privacy = "0.1"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
 # Tauri 3 adaptation of tauri-nspanel v2.1.1; see patches/tauri-nspanel/MIGRATION.md.
@@ -71,6 +74,7 @@ objc2-quartz-core = { version = "0.3", default-features = false, features = ["st
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGAffineTransform", "CGGeometry", "CGPath"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
@@ -78,7 +82,7 @@ raw-window-handle = "0.6"
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel", "patches/wry"]
+exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration"]
 
 [patch.crates-io]
 # Keep WebKit response delivery and task cancellation on the main thread.

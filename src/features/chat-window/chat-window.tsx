@@ -151,8 +151,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       win.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow().catch(report))
     ])
     void (async () => {
-      await client.connect()
-      if (disposed) return
+      // A hidden window must accept presents even after the main host reloads or
+      // the previous connection fails. Connect inside the request, once main is ready.
       stopSurface = await serveChatSurface(action =>
         operation.run(async () => {
           switch (action.type) {

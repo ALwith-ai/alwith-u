@@ -2,7 +2,7 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U 指南" },
+  "guide": { "title": "ALwith U 指南", "help": "帮助", "userGuide": "用户指南" },
   "errorBoundary": {
     "label": "错误",
     "componentStack": "组件堆栈",
@@ -314,6 +314,7 @@
     "always": "始终"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "drive": "云盘",
     "extensions": "应用扩展",
     "general": "通用",
@@ -907,8 +908,8 @@
     "tutorialLink": "ALwith U 指南"
   },
   "pet": {
-    "enable": "开启 Vibemon",
-    "disable": "关闭 Vibemon",
+    "enable": "显示 Vibémon",
+    "disable": "隐藏 Vibémon",
     "show": "显示桌宠",
     "hide": "关闭桌宠",
     "selectFirst": "请先在装配页选择桌宠",

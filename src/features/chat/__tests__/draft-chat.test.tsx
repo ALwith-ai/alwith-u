@@ -1020,6 +1020,7 @@ test("floating background sessions reopen in their host and returning one hides 
   )
   try {
     await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => client.connect())
     let first = ""
     let second = ""
     await act(async () => {
@@ -1050,6 +1051,36 @@ test("floating background sessions reopen in their host and returning one hides 
     await act(() => env.real.close(first))
     expect(env.real.state.sessionWindows[first]).toBeUndefined()
     expect(env.real.state.sessionWindows[second]).toBe("chat")
+  } finally {
+    await act(async () => view.unmount())
+    env.restore()
+  }
+})
+
+test("floating window readiness survives a failed connection and a later explicit open", async () => {
+  const env = await windowEnvironment()
+  const connect = vi.mocked(client.connect)
+  connect.mockImplementationOnce(async () => {
+    throw new Error("Main host is not ready")
+  })
+  const view = render(
+    <ThemeProvider>
+      <ChatWindow preferences={windowPreferences} />
+    </ThemeProvider>
+  )
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    expect(connect).not.toHaveBeenCalled()
+    expect(chatWindow.announceChatReady).toHaveBeenCalled()
+    await act(async () => {
+      await expect(env.present()).rejects.toThrow("Main host is not ready")
+    })
+    expect(env.ready()).toBe(true)
+    expect(env.hidden).toBe(true)
+    await act(() => env.present())
+    expect(env.hidden).toBe(false)
+    await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
+    expect(env.real.state.connection).toBe("ready")
   } finally {
     await act(async () => view.unmount())
     env.restore()

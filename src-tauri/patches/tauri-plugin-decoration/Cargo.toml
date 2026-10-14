@@ -1,0 +1,68 @@
+[package]
+name = "tauri-plugin-decoration"
+version = "3.0.5"
+authors = ["oovz"]
+description = "Native window controls, custom decorations, and Windows 11 Snap Layout for Tauri 2 desktop apps."
+edition = "2021"
+rust-version = "1.88"
+include = [
+    "/src/**/*.rs",
+    "/src/**/*.js",
+    "/src/**/*.css",
+    "/permissions/**/*.toml",
+    "/permissions/**/*.json",
+    "/permissions/**/*.md",
+    "/build.rs",
+    "/README.md",
+    "/docs/**/*.md",
+    "/LICENSE",
+]
+links = "tauri-plugin-decoration"
+license = "MIT"
+homepage = "https://github.com/oovz/tauri-plugin-decoration"
+repository = "https://github.com/oovz/tauri-plugin-decoration"
+
+[features]
+default = []
+macos-transparency = ["objc2-app-kit/NSColor"]
+
+[dependencies]
+tauri = { version = "3.0.0-alpha.4", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tokio = { version = "1.52.3", features = ["sync", "time"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6", features = ["exception"] }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = [
+    "std",
+    "NSButton",
+    "NSControl",
+    "NSResponder",
+    "NSView",
+    "NSWindow",
+] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = [
+    "std",
+    "NSGeometry",
+] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+raw-window-handle = "0.6"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+base64 = "=0.22.1"
+gtk = { version = "=0.18.2", features = ["v3_24"] }
+
+[build-dependencies]
+tauri-plugin = { version = "3.0.0-alpha.3", features = ["build"] }

@@ -1,6 +1,6 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useContext, useEffect, useRef, useState } from "react"
 import { createPortal, flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -12,6 +12,7 @@ import { events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
+import { WindowsExtensionControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
@@ -69,6 +70,7 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
+  const extensionControls = useContext(WindowsExtensionControlsContext)
   useDriveConnection()
   useDrivePluginBridge()
   useDriveArchive()
@@ -81,6 +83,36 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // user opens one.
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!workspaceToolbar || document.documentElement.dataset.windowBackdrop !== "acrylic") return
+    const host = workspaceToolbar.parentElement
+    if (!host) throw new Error("Workspace toolbar has no layout parent")
+    const chat = host.querySelector<HTMLElement>(".file-workspace-chat")
+    if (!chat) throw new Error("Workspace toolbar has no chat column")
+    const update = (): void => {
+      host.style.setProperty(
+        "--windows-workspace-controls-width",
+        `${workspaceToolbar.getBoundingClientRect().width}px`
+      )
+      const chatRect = chat.getBoundingClientRect()
+      const surface = chat.closest<HTMLElement>(".main-chat-surface")
+      if (!surface) throw new Error("Workspace chat has no main surface")
+      const anchor = chatRect.width > 0 ? chatRect : surface.getBoundingClientRect()
+      host.style.setProperty(
+        "--windows-workspace-controls-end",
+        `${host.getBoundingClientRect().right - anchor.right + 16}px`
+      )
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(workspaceToolbar)
+    observer.observe(chat)
+    update()
+    return () => {
+      observer.disconnect()
+      host.style.removeProperty("--windows-workspace-controls-width")
+      host.style.removeProperty("--windows-workspace-controls-end")
+    }
+  }, [workspaceToolbar])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
@@ -541,6 +573,14 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       ))}
     </div>
   )
+  const extensionActions = (
+    <ExtensionActions
+      host={extensions}
+      placement="topBar"
+      onOpenSurface={openExtension}
+      onError={reportExtensionError}
+    />
+  )
 
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
@@ -647,14 +687,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           />
           <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
           <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
-          <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
-            <ExtensionActions
-              host={extensions}
-              placement="topBar"
-              onOpenSurface={openExtension}
-              onError={reportExtensionError}
-            />
-          </div>
+          {extensionControls ? (
+            createPortal(extensionActions, extensionControls)
+          ) : (
+            <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
+              {extensionActions}
+            </div>
+          )}
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
             <DriveStatus />
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />

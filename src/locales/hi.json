@@ -70,6 +70,7 @@
     "answerOther": "अन्य"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "general": "सामान्य",
     "title": "सेटिंग्स",
     "appearance": "दिखावट",

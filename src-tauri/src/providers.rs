@@ -41,7 +41,7 @@ struct CustomProvider {
     models: Vec<CustomModel>,
     api_key: String,
 }
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Clone, Default, Debug, Deserialize, Serialize)]
 struct Saved {
     revision: u64,
     #[serde(default)]
@@ -455,6 +455,29 @@ pub async fn providers_apply(app: AppHandle) -> Result<Snapshot, String> {
     apply_locked(&app, &client).await?;
     Ok(app.state::<Providers>().inner.lock().await.snapshot())
 }
+/// Configure only a newly created Gamepad agent; credentials never leave the native host.
+#[tauri3_specta::command]
+pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) -> Result<(), String> {
+    if !matches!(window.label(), "main" | "settings" | "gamepad") {
+        return Err("Gamepad AI is unavailable in this window".into());
+    }
+    let suffix = agent_id.strip_prefix("gamepad-config-").ok_or("Invalid Gamepad AI agent")?;
+    if suffix.len() != 36 || !suffix.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return Err("Invalid Gamepad AI agent".into());
+    }
+    let app = window.app_handle();
+    let runtime = app.state::<crate::runtime::RuntimeState>();
+    let _admission = runtime.admission.lock().await;
+    let client = runtime.current()?;
+    if !client.agents().await.map_err(crate::runtime::request_error)?.iter().any(|agent| agent["agentId"] == agent_id) {
+        return Err("Gamepad AI agent is not running".into());
+    }
+    let saved = app.state::<Providers>().inner.lock().await.saved.clone();
+    let mut ephemeral = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+    let resource_dir = app.path().resource_dir().map_err(|error| error.to_string())?;
+    reconcile_target(&mut ephemeral, &client, &resource_dir, &agent_id, false).await
+}
+
 pub fn schedule_apply(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -477,15 +500,22 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
 }
 
 async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path) -> Result<(), String> {
+    reconcile_target(inner, client, resource_dir, "codex", true).await
+}
+
+async fn reconcile_target(
+    inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str, require_idle: bool,
+) -> Result<(), String> {
     if inner.applied_revision == Some(inner.saved.revision) {
         return Ok(());
     }
-    if client
-        .run_states()
-        .await
-        .map_err(crate::runtime::request_error)?
-        .iter()
-        .any(|s| matches!(s.state, RunState::Running | RunState::RequiresAction))
+    if require_idle
+        && client
+            .run_states()
+            .await
+            .map_err(crate::runtime::request_error)?
+            .iter()
+            .any(|s| matches!(s.state, RunState::Running | RunState::RequiresAction))
     {
         return Err("Provider settings are pending; finish or stop active turns before starting another turn".into());
     }
@@ -532,14 +562,14 @@ async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std
             if let Some(catalog) = bundled_catalog {
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
             }
-            client.acp_request("codex", "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
+            client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
                 "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
                 .await.map_err(|e| format!("Provider {id} could not be applied ({}); retry at an idle boundary", e.code))?;
             inner.applied.insert(id.clone(), selected.clone());
         }
         let removed: Vec<_> = inner.applied.keys().filter(|id| !desired.contains_key(*id)).cloned().collect();
         for id in removed {
-            client.acp_request("codex", "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
+            client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
                 .await.map_err(|e| format!("Provider {id} could not be removed ({}); retry at an idle boundary", e.code))?;
             inner.applied.remove(&id);
         }
@@ -909,6 +939,26 @@ mod tests {
         });
         (client, calls)
     }
+    #[tokio::test]
+    async fn gamepad_catalog_targets_only_ephemeral_agent_while_main_turn_runs() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
+        let main = pending_provider();
+        let before = serde_json::to_value(main.snapshot()).unwrap();
+        let mut ephemeral =
+            Inner { saved: main.saved.clone(), applied: BTreeMap::new(), applied_revision: None, error: None };
+        reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test", false)
+            .await
+            .unwrap();
+        assert_eq!(serde_json::to_value(main.snapshot()).unwrap(), before);
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0]["params"]["agentId"], "gamepad-config-test");
+        assert_eq!(calls[0]["params"]["method"], "providers/set");
+        assert_eq!(ephemeral.applied_revision, Some(main.saved.revision));
+        assert_eq!(main.applied_revision, None);
+    }
+
     #[tokio::test]
     async fn active_turn_pins_old_revision_until_idle_then_applies_latest_once() {
         use std::sync::atomic::{AtomicBool, Ordering};

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
@@ -76,9 +77,12 @@ export function SettingsPage() {
     const win = getCurrentWebviewWindow()
     const stop = win.onCloseRequested(event => {
       event.preventDefault()
-      void win.hide()
+      void win.hide().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     })
-    return () => void stop.then(fn => fn())
+    return () =>
+      void stop
+        .then(fn => fn())
+        .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }, [])
 
   const content =

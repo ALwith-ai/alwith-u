@@ -1,3 +1,4 @@
+import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { vibemonLocales } from "@alwith/module-auth/pets/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
 import i18n from "i18next"
@@ -56,6 +57,7 @@ export function initI18n(language: string | null): Promise<unknown> {
     resources: {
       en: {
         translation: en,
+        gamepad: gamepadResources.en,
         alwithChat: chatLocales.en,
         ...vibemonLocales.en,
         common: {
@@ -68,9 +70,10 @@ export function initI18n(language: string | null): Promise<unknown> {
           }
         }
       },
-      ar: { translation: ar, alwithChat: chatLocales.ar },
+      ar: { gamepad: gamepadResources.ar, translation: ar, alwithChat: chatLocales.ar },
       "zh-CN": {
         translation: zhCN,
+        gamepad: gamepadResources["zh-CN"],
         alwithChat: chatLocales["zh-CN"],
         ...vibemonLocales["zh-CN"],
         common: {
@@ -88,6 +91,13 @@ export function initI18n(language: string | null): Promise<unknown> {
     fallbackLng: "en",
     interpolation: { escapeValue: false }
   })
+}
+
+// Tool-window catalogs must not change the main chat's resolved fallback locale.
+export function registerGamepadLocales(): void {
+  for (const [language, catalog] of Object.entries(gamepadResources)) {
+    i18n.addResourceBundle(language, "gamepad", catalog)
+  }
 }
 
 export default i18n

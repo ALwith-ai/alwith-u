@@ -1,10 +1,11 @@
 import type { TextEditorProps } from "@alwith/module-editor"
-import type { FsAdapter, WriteOptions } from "@alwith/module-fs"
+import { normalizePath, type FsAdapter, type WriteOptions } from "@alwith/module-fs"
 import type { NativeRequest } from "@alwith/module-fs/tauri"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { initI18n } from "@/lib/i18n"
 import { openGuideWindow } from "@/features/guide/guide-window"
@@ -116,6 +117,30 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
+test("Windows moves only the workspace toggle into the title bar and preserves its action", async () => {
+  const target = document.createElement("div")
+  document.body.append(target)
+  try {
+    const view = render(
+      <WindowsWorkspaceControlsContext.Provider value={target}>
+        <Surface cwd="/a" />
+      </WindowsWorkspaceControlsContext.Provider>
+    )
+    fireEvent.click(within(target).getByRole("button", { name: "Open preview area" }))
+    await screen.findByRole("treeitem", { name: /one.txt/ })
+    expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "true")
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }))
+    expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "false")
+    fireEvent.click(within(target).getByRole("button", { name: "Close workspace" }))
+    expect(within(target).getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+    view.unmount()
+    expect(target).toBeEmptyDOMElement()
+  } finally {
+    target.remove()
+  }
+})
 function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealRequest?: number }) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   return (
@@ -130,6 +155,43 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
     </WorkspaceHeaderContext.Provider>
   )
 }
+
+test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share\alwith-u`])(
+  "Windows breadcrumbs use relative paths and reveal the real folder for %s",
+  async root => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32")
+    const normalizedRoot = normalizePath(root)
+    adapter = createMemoryAdapter({ [`${normalizedRoot}/folder/bunfig.toml`]: "content" })
+    authorize = async () => root
+    render(<Surface cwd={root} />)
+    fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+    const project = await screen.findByRole("treeitem", { name: /alwith-u/ })
+    fireEvent.click(project)
+    fireEvent.keyDown(project, { key: "ArrowRight" })
+    const folder = await screen.findByRole("treeitem", { name: /folder/ })
+    fireEvent.click(folder)
+    fireEvent.keyDown(folder, { key: "ArrowRight" })
+    fireEvent.click(await screen.findByRole("treeitem", { name: /bunfig.toml/ }))
+    await screen.findByRole("textbox", { name: "Code" })
+    const breadcrumbs = screen.getByRole("navigation", { name: "File path" })
+    expect(
+      within(breadcrumbs)
+        .getAllByRole("button")
+        .map(button => button.textContent)
+    ).toEqual(["folder", "bunfig.toml"])
+    expect(breadcrumbs).toHaveAttribute("title", `${normalizedRoot}/folder/bunfig.toml`)
+    native.invoke.mockClear()
+    fireEvent.click(within(breadcrumbs).getByRole("button", { name: "folder" }))
+    await waitFor(() =>
+      expect(native.invoke).toHaveBeenCalledWith("workspace_file", {
+        request: expect.objectContaining({ operation: "readDirectory", root, path: normalizedRoot })
+      })
+    )
+    await waitFor(() =>
+      expect(screen.getByRole("treeitem", { name: /folder/ })).toHaveAttribute("aria-selected", "true")
+    )
+  }
+)
 
 test("right workspace edits, renames and saves through installed packages", async () => {
   render(<Surface cwd="/a" />)

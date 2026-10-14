@@ -23,6 +23,19 @@ export const commands = {
   extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  gamepadRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("gamepad_request", args),
+  gamepadPermission: (args: { operation: string }): Promise<JsonValue> =>
+    __t3Invoke<JsonValue>("gamepad_permission", args),
+  gamepadCapture: (args: { start: boolean }): Promise<null> => __t3Invoke<null>("gamepad_capture", args),
+  /**
+   *  Native catalogs use cached snapshots while refreshing application icons off-thread.
+   */
+  gamepadCatalog: (args: { operation: string; path: string | null }): Promise<JsonValue> =>
+    __t3Invoke<JsonValue>("gamepad_catalog", args),
+  /**
+   *  Configure only a newly created Gamepad agent; credentials never leave the native host.
+   */
+  gamepadAiPrepare: (args: { agentId: string }): Promise<null> => __t3Invoke<null>("gamepad_ai_prepare", args),
   driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
@@ -199,6 +212,11 @@ export type CommandErrors = {
   extensionInboxComplete: string
   extensionInboxFailed: string
   draftDirectory: string
+  gamepadRequest: string
+  gamepadPermission: string
+  gamepadCapture: string
+  gamepadCatalog: string
+  gamepadAiPrepare: string
   driveRequest: string
   drivePathExists: string
   chatSaveFile: string

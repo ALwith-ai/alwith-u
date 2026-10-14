@@ -1,6 +1,42 @@
 use super::*;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+fn gamepad_request(method: &str, agent_id: &str) -> Request {
+    serde_json::from_value(
+        json!({ "id": 1, "method": "acpRequest", "params": { "agentId": agent_id, "method": method, "params": {} } }),
+    )
+    .unwrap()
+}
+
+#[test]
+fn only_dedicated_gamepad_creation_and_prompt_skip_main_catalog_admission() {
+    let id = "gamepad-config-12345678-1234-1234-1234-123456789abc";
+    for method in ["session/new", "session/prompt"] {
+        let request = gamepad_request(method, id);
+        assert!(is_admission(&request), "the admission lock must remain held");
+        assert_eq!(gamepad_admission_target("gamepad", &request), Some(id));
+        for sender in ["main", "settings", "chat", "untrusted"] {
+            assert_eq!(gamepad_admission_target(sender, &request), None);
+        }
+        assert_eq!(gamepad_admission_target("gamepad", &gamepad_request(method, "codex")), None);
+        assert_eq!(gamepad_admission_target("gamepad", &gamepad_request(method, "gamepad-config-invalid")), None);
+        assert_eq!(
+            gamepad_admission_target(
+                "gamepad",
+                &gamepad_request(method, "gamepad-config-------------------------------------")
+            ),
+            None
+        );
+    }
+    for method in ["session/resume", "session/fork", "session/load", "providers/set"] {
+        assert_eq!(gamepad_admission_target("gamepad", &gamepad_request(method, id)), None);
+    }
+    let start: Request =
+        serde_json::from_value(json!({"id": 1, "method": "start", "params": {"agentId": id}})).unwrap();
+    assert!(!is_admission(&start));
+    assert_eq!(gamepad_admission_target("gamepad", &start), None);
+}
+
 #[test]
 fn shutdown_keeps_the_executor_available_until_the_peer_closes() {
     tauri::async_runtime::block_on(async {

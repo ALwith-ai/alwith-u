@@ -124,6 +124,7 @@
     "answerOther": "آخر"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "general": "عام",
     "versionLabel": "الإصدار",
     "title": "الإعدادات",

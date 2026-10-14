@@ -23,7 +23,7 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U Guide" },
+  "guide": { "title": "ALwith U Guide", "help": "Help", "userGuide": "User guide" },
   "errorBoundary": {
     "label": "ERROR",
     "componentStack": "Component Stack",
@@ -314,6 +314,7 @@
     "always": "always"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "drive": "Drive",
     "extensions": "App extensions",
     "general": "General",
@@ -907,8 +908,8 @@
     "tutorialLink": "ALwith U Guide"
   },
   "pet": {
-    "enable": "Enable Vibemon",
-    "disable": "Disable Vibemon",
+    "enable": "Show Vibémon",
+    "disable": "Hide Vibémon",
     "show": "Show desktop pet",
     "hide": "Close desktop pet",
     "selectFirst": "Select a pet from the equip page first",
