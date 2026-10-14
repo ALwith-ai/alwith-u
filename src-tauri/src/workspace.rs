@@ -71,8 +71,25 @@ pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Res
         return Err("Workspace root has not been authorized".into());
     }
     request.root = root.clone();
-    let _operation = OPERATIONS.lock().await;
     let fs = FileSystem::new([root])?;
+    execute_workspace_request(
+        &fs,
+        request,
+        collaboration_owner,
+        window.app_handle().state::<crate::drive::DriveState>().service()?,
+    )
+    .await
+}
+
+async fn execute_workspace_request(
+    fs: &FileSystem, request: Request, collaboration_owner: Option<String>, drive: &alwith_drive::service::DriveService,
+) -> Result<Value, String> {
+    // Preview reads must not queue behind mutations waiting for a whole Drive sync round.
+    // The filesystem still enforces the authorized root; writes keep their existing coordination.
+    if matches!(request.operation.as_str(), "stat" | "readFile" | "readDirectory") {
+        return execute(fs, request).await;
+    }
+    let _operation = OPERATIONS.lock().await;
     let mut writes = Vec::new();
     let mut removed = Vec::new();
     match request.operation.as_str() {
@@ -89,10 +106,7 @@ pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Res
         removed.push(request.path.clone());
     }
     if request.operation == "move"
-        && window
-            .app_handle()
-            .state::<crate::drive::DriveState>()
-            .service()?
+        && drive
             .move_between_projects(
                 &fs.authorize_path(&request.path)?,
                 &fs.authorize_path(request.to.as_ref().ok_or("Destination is required")?)?,
@@ -105,19 +119,9 @@ pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Res
         && let Some(owner) = collaboration_owner
     {
         let path = fs.authorize_path(&request.path)?;
-        return window
-            .app_handle()
-            .state::<crate::drive::DriveState>()
-            .service()?
-            .with_collaborative_filesystem(&path, &owner, execute(&fs, request))
-            .await;
+        return drive.with_collaborative_filesystem(&path, &owner, execute(fs, request)).await;
     }
-    window
-        .app_handle()
-        .state::<crate::drive::DriveState>()
-        .service()?
-        .with_filesystem(&writes, &removed, execute(&fs, request))
-        .await
+    drive.with_filesystem(&writes, &removed, execute(fs, request)).await
 }
 
 static WATCHERS: OnceLock<Mutex<HashMap<PathBuf, WorkspaceWatcher>>> = OnceLock::new();
@@ -267,6 +271,67 @@ pub async fn workspace_import(
 #[cfg(test)]
 mod workspace_tests {
     use super::*;
+
+    #[tokio::test]
+    async fn preview_reads_do_not_wait_for_drive_or_queued_mutations() {
+        use alwith_drive::service::{DriveService, ServiceOptions};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::time::timeout;
+
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        let path = root.join("note.txt");
+        std::fs::write(&path, "preview").unwrap();
+        let fs = FileSystem::new([root.clone()]).unwrap();
+        let drive = DriveService::new(ServiceOptions {
+            data_directory: root.join("data"),
+            ownership_directory: root.join("owners"),
+            default_root: root.join("drive"),
+            reserved_roots: vec![],
+            device_name: "test".into(),
+            client_version: "test".into(),
+            open_url: Arc::new(|_| Err("No browser in tests".into())),
+        })
+        .unwrap();
+        let request = |operation: &str, path: &Path| {
+            serde_json::from_value::<Request>(serde_json::json!({
+                "root": root, "operation": operation, "path": path,
+                "showHidden": false, "showIgnored": false
+            }))
+            .unwrap()
+        };
+        // Hold the Drive coordinator as a slow sync round would, then queue a host mutation.
+        let mut sync = Box::pin(drive.with_filesystem(&[], &[], std::future::pending::<Result<(), String>>()));
+        assert!(timeout(Duration::from_millis(10), &mut sync).await.is_err());
+        let mutation_guard = OPERATIONS.lock().await;
+        for (operation, target) in [("stat", &path), ("readFile", &path), ("readDirectory", &root)] {
+            let value = timeout(
+                Duration::from_millis(100),
+                execute_workspace_request(&fs, request(operation, target), None, &drive),
+            )
+            .await
+            .expect("Preview reads must not wait for synchronization")
+            .unwrap();
+            match operation {
+                "stat" => assert_eq!(value["kind"], "file"),
+                "readFile" => assert_eq!(value, serde_json::json!(b"preview")),
+                "readDirectory" => assert!(value.as_array().unwrap().iter().any(|entry| entry["name"] == "note.txt")),
+                _ => unreachable!(),
+            }
+        }
+        assert!(execute_workspace_request(&fs, request("stat", root.parent().unwrap()), None, &drive).await.is_err());
+        let destination = root.join("created");
+        let mut mutation =
+            Box::pin(execute_workspace_request(&fs, request("createDirectory", &destination), None, &drive));
+        assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());
+        drop(mutation_guard);
+        assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());
+        assert!(!destination.exists());
+        drop(sync);
+        timeout(Duration::from_millis(100), mutation).await.unwrap().unwrap();
+        assert!(destination.is_dir());
+    }
 
     #[test]
     fn opening_a_workspace_requires_an_existing_directory() {
