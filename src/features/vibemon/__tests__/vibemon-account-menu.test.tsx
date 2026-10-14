@@ -5,8 +5,14 @@ import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 import { usePlatformAuth } from "@/features/auth/store"
 import { SidebarAccountMenu } from "@/features/threads/sidebar-account-menu"
+import { savePreference } from "@/lib/preferences"
 import { must } from "@/lib/__tests__/must"
+import { openGamepadWindow } from "@/lib/window-manager"
 import i18n, { initI18n } from "@/lib/i18n"
+
+vi.mock("@/lib/window-manager", () => ({ openGamepadWindow: vi.fn(async () => {}) }))
+
+vi.mock("@/lib/preferences", () => ({ savePreference: vi.fn(async () => {}) }))
 
 const originalAuth = usePlatformAuth.getState()
 let dispose = () => {}
@@ -83,21 +89,39 @@ async function openMenu() {
   return view
 }
 
-test("the manual switch sits above Settings and follows successful pet operations", async () => {
+test("the account menu groups settings and language above tools and sign out", async () => {
   await initI18n("en")
   const f = fixture(false)
   const view = await openMenu()
   await waitFor(() =>
-    expect(view.getByRole("menuitem", { name: "Enable Vibemon" }).getAttribute("aria-disabled")).not.toBe("true")
+    expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
-  expect(view.getByRole("menuitem", { name: "Enable Vibemon" }).nextElementSibling).toBe(
-    view.getByRole("menuitem", { name: "Settings" })
+  expect(view.getAllByRole("menuitem").map(item => item.textContent)).toEqual([
+    "Settings",
+    "Language",
+    "Show Vibémon",
+    "Gamepad",
+    "Sign out"
+  ])
+  expect(view.getByRole("menuitem", { name: "Settings" }).parentElement).toBe(
+    view.getByRole("menuitem", { name: "Language" }).parentElement
   )
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Enable Vibemon" })))
+  expect(view.getByRole("menuitem", { name: "Gamepad" }).parentElement).toBe(
+    view.getByRole("menuitem", { name: "Show Vibémon" }).parentElement
+  )
+  expect(view.getByRole("menuitem", { name: "Settings" }).parentElement?.nextElementSibling).toHaveAttribute(
+    "role",
+    "separator"
+  )
+  expect(view.getByRole("menuitem", { name: "Gamepad" }).parentElement?.nextElementSibling).toHaveAttribute(
+    "role",
+    "separator"
+  )
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" })))
   expect(f.openPet).toHaveBeenCalledTimes(1)
   await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Disable Vibemon" })).toBeTruthy())
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Disable Vibemon" })))
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Hide Vibémon" })))
   expect(f.closePet).toHaveBeenCalledTimes(1)
 })
 
@@ -105,13 +129,13 @@ test("closing from the pet updates the account menu and language changes transla
   await initI18n("en")
   const f = fixture(true)
   const view = await openMenu()
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Disable Vibemon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
   await act(async () => f.closeExternally())
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Enable Vibemon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
   })
-  expect(view.getByRole("menuitem", { name: "开启 Vibemon" })).toBeTruthy()
+  expect(view.getByRole("menuitem", { name: "显示 Vibémon" })).toBeTruthy()
   expect(f.openPet).not.toHaveBeenCalled()
   expect(f.closePet).not.toHaveBeenCalled()
 })
@@ -120,9 +144,9 @@ test("account changes display the new account's switch state", async () => {
   await initI18n("en")
   const f = fixture(true)
   const view = await openMenu()
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Disable Vibemon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
   await act(async () => f.switchAccount())
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Enable Vibemon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
 })
 
 test("failed presentation reports the error and keeps the saved switch disabled", async () => {
@@ -132,14 +156,33 @@ test("failed presentation reports the error and keeps the saved switch disabled"
   try {
     const view = await openMenu()
     await waitFor(() =>
-      expect(view.getByRole("menuitem", { name: "Enable Vibemon" }).getAttribute("aria-disabled")).not.toBe("true")
+      expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
     )
-    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Enable Vibemon" })))
+    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" })))
     expect(f.openPet).toHaveBeenCalledTimes(1)
     expect(error).toHaveBeenCalledWith("Display unavailable")
     await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
-    expect(view.getByRole("menuitem", { name: "Enable Vibemon" })).toBeTruthy()
+    expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy()
   } finally {
     error.mockRestore()
   }
+})
+
+test("the Gamepad menu action opens its dedicated window", async () => {
+  await initI18n("en")
+  fixture(false)
+  const view = await openMenu()
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Gamepad" })))
+  expect(openGamepadWindow).toHaveBeenCalledOnce()
+})
+
+test("the language submenu marks the current language and saves a new selection", async () => {
+  await initI18n("en")
+  fixture(false)
+  const view = await openMenu()
+  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Language" })))
+  expect(view.getByRole("menuitemradio", { name: "English" })).toHaveAttribute("aria-checked", "true")
+  await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: "简体中文" })))
+  expect(i18n.language).toBe("zh-CN")
+  expect(savePreference).toHaveBeenCalledWith("language", "zh-CN")
 })

@@ -1,5 +1,5 @@
-import { LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
-import { useState } from "react"
+import { GlobeIcon, Gamepad2Icon, LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
+import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
@@ -12,13 +12,22 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
 
-export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => void }) {
-  const { t } = useTranslation()
+import { LANGUAGES } from "@/lib/i18n"
+import { savePreference } from "@/lib/preferences"
+import { openGamepadWindow } from "@/lib/window-manager"
+
+export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => void }): ReactNode {
+  const { t, i18n } = useTranslation()
   const user = usePlatformAuth(state => state.user)
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
@@ -56,6 +65,37 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             <span className="min-w-0 truncate">{displayName}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="mx-0 my-2" />
+        </DropdownMenuGroup>
+        <DropdownMenuGroup>
+          <DropdownMenuItem className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5" onClick={onOpenSettings}>
+            <SettingsIcon className="text-muted-foreground" />
+            {t("sidebar.settings")}
+          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5">
+              <GlobeIcon className="text-muted-foreground" />
+              {t("settings.language")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={i18n.language}
+                onValueChange={value => {
+                  void (async () => {
+                    await i18n.changeLanguage(value)
+                    await savePreference("language", value)
+                  })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+                }}>
+                {LANGUAGES.map(language => (
+                  <DropdownMenuRadioItem key={language.code} value={language.code}>
+                    {language.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="mx-0 my-2" />
+        <DropdownMenuGroup>
           <DropdownMenuItem
             disabled={busy || vibemon.disabled}
             className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
@@ -63,10 +103,19 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             <PawPrintIcon className="text-muted-foreground" />
             {t(vibemon.enabled ? "pet.disable" : "pet.enable")}
           </DropdownMenuItem>
-          <DropdownMenuItem className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5" onClick={onOpenSettings}>
-            <SettingsIcon className="text-muted-foreground" />
-            {t("sidebar.settings")}
+          <DropdownMenuItem
+            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            onClick={() =>
+              void openGamepadWindow().catch((error: unknown) =>
+                toast.error(error instanceof Error ? error.message : String(error))
+              )
+            }>
+            <Gamepad2Icon className="text-muted-foreground" />
+            {t("settings.gamepad")}
           </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="mx-0 my-2" />
+        <DropdownMenuGroup>
           <DropdownMenuItem
             disabled={busy}
             className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
