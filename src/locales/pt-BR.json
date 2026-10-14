@@ -69,6 +69,7 @@
     "answerOther": "Outro"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "general": "Geral",
     "title": "Configurações",
     "appearance": "Aparência",

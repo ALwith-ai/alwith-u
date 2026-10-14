@@ -1,5 +1,6 @@
 // On-demand windows, reduced from ALwith Desktop's window-manager to the one this app has.
 
+import { platform } from "@tauri-apps/plugin-os"
 import { emitTo } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { commands } from "@/bindings"
@@ -74,5 +75,40 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
       await win.show()
       await win.setFocus()
     }
+  })
+}
+
+// Gamepad retains Desktop's independent, full-width tool window.
+let openingGamepad: Promise<void> | null = null
+export function openGamepadWindow(): Promise<void> {
+  openingGamepad ??= createGamepadWindow().finally(() => {
+    openingGamepad = null
+  })
+  return openingGamepad
+}
+async function createGamepadWindow(): Promise<void> {
+  const existing = await WebviewWindow.getByLabel("gamepad")
+  if (existing) {
+    await existing.show()
+    await existing.setFocus()
+    return
+  }
+  const win = new WebviewWindow("gamepad", {
+    url: "/gamepad.html",
+    title: "ALwith Gamepad",
+    ...(platform() === "windows" ? { decorations: false } : {}),
+    width: 1250,
+    height: 800,
+    minWidth: 1250,
+    minHeight: 750,
+    minimizable: false,
+    transparent: false,
+    hiddenTitle: true,
+    titleBarStyle: "overlay",
+    backgroundColor: themeBackgroundRGB()
+  })
+  await new Promise<void>((resolve, reject) => {
+    void win.once("tauri://created", () => resolve()).catch(reject)
+    void win.once("tauri://error", event => reject(new Error(String(event.payload)))).catch(reject)
   })
 }

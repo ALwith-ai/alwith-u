@@ -295,7 +295,13 @@ pub async fn runtime_send(
     let client = state.current()?;
     let lifecycle = is_admission(&request);
     let _admission = if lifecycle { Some(state.admission.lock().await) } else { None };
-    if lifecycle {
+    let temporary_gamepad = match gamepad_admission_target(window.label(), &request) {
+        Some(agent_id) => {
+            client.agents().await.map_err(request_error)?.iter().any(|agent| agent["agentId"] == agent_id)
+        }
+        None => false,
+    };
+    if lifecycle && !temporary_gamepad {
         crate::providers::apply_locked(window.app_handle(), &client).await?;
     }
     if !current_connection() {
@@ -309,7 +315,7 @@ pub async fn runtime_send(
         return Err("Window connection replaced".into());
     }
     drop(_admission);
-    if lifecycle {
+    if lifecycle && !temporary_gamepad {
         crate::providers::schedule_apply(window.app_handle());
     }
     let response = match outcome {
@@ -330,6 +336,28 @@ fn is_admission(request: &Request) -> bool {
                 request.params.as_ref().and_then(|p| p.get("method")).and_then(Value::as_str),
                 Some("session/new" | "session/resume" | "session/load" | "session/fork" | "session/prompt")
             ))
+}
+
+/// The dedicated Gamepad agent receives its own catalog from gamepad_ai_prepare.
+/// Keep admission serialization, without applying pending settings to the main agent.
+fn gamepad_admission_target<'a>(window_label: &str, request: &'a Request) -> Option<&'a str> {
+    if window_label != "gamepad" || request.method != "acpRequest" {
+        return None;
+    }
+    let params = request.params.as_ref()?;
+    if !matches!(params.get("method").and_then(Value::as_str), Some("session/new" | "session/prompt")) {
+        return None;
+    }
+    let id = params.get("agentId")?.as_str()?;
+    let suffix = id.strip_prefix("gamepad-config-")?;
+    if suffix.len() != 36
+        || !suffix.bytes().enumerate().all(|(index, byte)| {
+            if matches!(index, 8 | 13 | 18 | 23) { byte == b'-' } else { byte.is_ascii_hexdigit() }
+        })
+    {
+        return None;
+    }
+    Some(id)
 }
 
 fn private_request(line: &str) -> bool {

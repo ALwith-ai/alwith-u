@@ -11,6 +11,7 @@ mod drive;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
+mod gamepad;
 mod html_preview;
 mod installed_apps;
 mod legacy_extensions;
@@ -130,6 +131,7 @@ pub fn run() {
             app.manage(native::Native::load(app.handle())?);
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
+            gamepad::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // Native materials paint behind the transparent page. Panels that must stay
             // opaque paint their own background in CSS.
@@ -186,6 +188,10 @@ pub fn run() {
                 #[cfg(target_os = "macos")]
                 panel::closed(app, &label);
                 extension_inbox::window_closed(app, &label);
+                gamepad::window_destroyed(app, &label);
+            }
+            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Focused(false), .. } => {
+                gamepad::window_inactive(app, &label);
             }
             tauri::RunEvent::ExitRequested { api, code, .. } => {
                 let closing = window::is_closing(app);
@@ -197,6 +203,7 @@ pub fn run() {
                 }
             }
             tauri::RunEvent::Exit => {
+                gamepad::shutdown(app);
                 app.state::<runtime::RuntimeState>().kill_on_exit();
             }
             _ => {}
@@ -216,6 +223,11 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
+                gamepad::gamepad_request,
+                gamepad::gamepad_permission,
+                gamepad::gamepad_capture,
+                gamepad::gamepad_catalog,
+                providers::gamepad_ai_prepare,
                 drive::drive_request,
                 drive::drive_path_exists,
                 chat_files::chat_save_file,

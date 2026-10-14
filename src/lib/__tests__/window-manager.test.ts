@@ -4,12 +4,14 @@ import type { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 const host = vi.hoisted(() => ({
   mac: false,
   existing: false,
+  creationError: null as string | null,
   create: vi.fn(),
   show: vi.fn(),
   focus: vi.fn(),
   attach: vi.fn(),
   emit: vi.fn()
 }))
+vi.mock("@tauri-apps/plugin-os", () => ({ platform: () => (host.mac ? "macos" : "windows") }))
 vi.mock("../platform", () => ({ isMac: () => host.mac }))
 vi.mock("../i18n", () => ({ default: { t: () => "Settings" } }))
 vi.mock("@/bindings", () => ({ commands: { attachWindowToMain: host.attach } }))
@@ -22,15 +24,22 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
     static async getByLabel() {
       return host.existing ? { show: host.show, setFocus: host.focus } : null
     }
-    async once() {}
+    show = host.show
+    setFocus = host.focus
+    async once(event: string, handler: (event: { payload: string }) => void) {
+      if (event === (host.creationError === null ? "tauri://created" : "tauri://error"))
+        handler({ payload: host.creationError ?? "" })
+      return () => {}
+    }
   }
 }))
-import { openSettingsWindow } from "../window-manager"
+import { openGamepadWindow, openSettingsWindow } from "../window-manager"
 
 beforeEach(() => {
   vi.clearAllMocks()
   host.mac = false
   host.existing = false
+  host.creationError = null
   document.documentElement.style.setProperty("--background", "white")
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
     fillStyle: "",
@@ -77,4 +86,36 @@ test("reopening hidden Windows settings reuses the window and selects the reques
   expect(host.show).toHaveBeenCalledOnce()
   expect(host.focus).toHaveBeenCalledOnce()
   expect(host.emit).toHaveBeenCalledWith("settings", "settings-change-tab", "appearance")
+})
+
+test("Gamepad opens Desktop's full-size dedicated window", async () => {
+  await openGamepadWindow()
+  expect(host.create).toHaveBeenCalledWith(
+    "gamepad",
+    expect.objectContaining({
+      url: "/gamepad.html",
+      title: "ALwith Gamepad",
+      minWidth: 1250,
+      minHeight: 750,
+      minimizable: false,
+      decorations: false,
+      transparent: false
+    })
+  )
+})
+
+test("Gamepad reuses and focuses its existing window", async () => {
+  host.existing = true
+  await openGamepadWindow()
+  expect(host.create).not.toHaveBeenCalled()
+  expect(host.show).toHaveBeenCalledOnce()
+  expect(host.focus).toHaveBeenCalledOnce()
+})
+
+test("Gamepad creation errors reject the menu action and allow retry", async () => {
+  host.creationError = "Window creation unavailable"
+  await expect(openGamepadWindow()).rejects.toThrow("Window creation unavailable")
+  host.creationError = null
+  await openGamepadWindow()
+  expect(host.create).toHaveBeenCalledTimes(2)
 })

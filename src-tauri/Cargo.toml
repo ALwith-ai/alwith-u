@@ -17,6 +17,8 @@ tauri-build = { version = "3.0.0-alpha.3", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-gamepad = { path = "../node_modules/@alwith/module-gamepad/rust", features = ["desktop"] }
+open = { version = "5", features = ["shellexecute-on-windows"] }
 alwith-drive = { path = "../node_modules/@alwith/module-drive/rust" }
 alwith-fs = { path = "../node_modules/@alwith/module-fs/rust", default-features = false, features = ["workspace"] }
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
@@ -61,6 +63,7 @@ tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+macos-privacy = "0.1"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
 # Tauri 3 adaptation of tauri-nspanel v2.1.1; see patches/tauri-nspanel/MIGRATION.md.

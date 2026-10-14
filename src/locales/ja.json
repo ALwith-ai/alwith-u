@@ -71,6 +71,7 @@
     "answerOther": "その他"
   },
   "settings": {
+    "gamepad": "Gamepad",
     "general": "一般",
     "title": "設定",
     "appearance": "外観",

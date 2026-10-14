@@ -18,6 +18,7 @@ export const config = (): UserConfig => ({
   // directly so dependency optimization cannot retain an older JS implementation.
   optimizeDeps: {
     exclude: [
+      "@alwith/module-gamepad",
       "@alwith/module-fs",
       "@alwith/module-file-tree",
       "@alwith/module-editor",
@@ -57,6 +58,7 @@ export const config = (): UserConfig => ({
         chat: path.resolve(import.meta.dirname, "chat.html"),
         vibemon: path.resolve(import.meta.dirname, "vibemon.html"),
         vibemonBubble: path.resolve(import.meta.dirname, "vibemon-bubble.html"),
+        gamepad: path.resolve(import.meta.dirname, "gamepad.html"),
         settings: path.resolve(import.meta.dirname, "settings.html"),
         guide: path.resolve(import.meta.dirname, "guide.html")
       }
