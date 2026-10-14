@@ -2,6 +2,7 @@ import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 import type { ThreadSummary } from "@/agent/client"
+import { commands } from "@/bindings"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
@@ -18,6 +19,7 @@ vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
 
 await initI18n("en")
 const connect = vi.spyOn(client, "connect").mockResolvedValue()
+const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith U")
 const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
   apps: [],
   active: undefined,
@@ -28,6 +30,7 @@ const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => (
 // Restore this shared singleton before subsequent test files run.
 afterAll(() => {
   connect.mockRestore()
+  directory.mockRestore()
   apps.mockRestore()
 })
 beforeEach(() => client.store.setState({ threads: [], archivedThreads: [], threadsLoaded: true, threadsError: null }))
@@ -285,10 +288,13 @@ test("project path aliases share the popover cache and still show every matching
 })
 
 test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith U"])(
-  "quick-chat directory %s does not expose a project popover",
-  cwd => {
+  "quick-chat directory %s exposes the shared quick-chat popover",
+  async cwd => {
+    client.store.setState({ threads: threads("/Users/mac/Documents/Codex/nested") })
     const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
-    expect(view.queryByRole("button")).toBeNull()
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    expect(view.getByText("7 chats")).toBeVisible()
+    expect(view.getByText("/Users/mac/Documents/ALwith U")).toBeVisible()
   }
 )
 

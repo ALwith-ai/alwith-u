@@ -1,5 +1,4 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -27,7 +26,6 @@ import { useProviders } from "@/lib/use-providers"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
-import { resetZoom, zoomIn, zoomOut } from "@/lib/zoom"
 import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
@@ -144,12 +142,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       void hide().catch(report)
     })
     const menu = win.listen<null>(events["menu:new-chat"].name, newChat)
-    const zoom = Promise.all([
-      win.listen<null>(events["menu:zoom-in"].name, () => void zoomIn().catch(report)),
-      win.listen<null>(events["menu:zoom-out"].name, () => void zoomOut().catch(report)),
-      win.listen<null>(events["menu:actual-size"].name, () => void resetZoom().catch(report)),
-      win.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow().catch(report))
-    ])
+    const settings = win.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow().catch(report))
     void (async () => {
       // A hidden window must accept presents even after the main host reloads or
       // the previous connection fails. Connect inside the request, once main is ready.
@@ -231,9 +224,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       stopSurface?.()
       void close.then(stop => stop())
       void menu.then(stop => stop())
-      void zoom.then(stops => {
-        for (const stop of stops) stop()
-      })
+      void settings.then(stop => stop())
       client.disconnect()
     }
   }, [capture, hide, newChat, operation, reconnect])
@@ -297,14 +288,6 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
         <ChatWindowPetButton sessionId={selectedId} />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title={t("actions.close")}
-          aria-label={t("actions.close")}
-          onClick={() => void hide().catch(report)}>
-          <XIcon />
-        </Button>
       </header>
       {ready &&
         (connection === "disconnected" || connection === "failed" || (selectedId !== null && session === null)) && (

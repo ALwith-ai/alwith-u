@@ -313,12 +313,17 @@
     "answerOther": "Other",
     "always": "always"
   },
+  "zoom": {
+    "label": "Interface zoom",
+    "reset": "Reset"
+  },
   "settings": {
     "gamepad": "Gamepad",
     "drive": "Drive",
     "extensions": "App extensions",
     "general": "General",
     "versionLabel": "Version",
+    "petAutostart": "Start Vibémon at login",
     "accountDesc": "Codex keeps the login on this machine.",
     "updates": "Updates",
     "engine": "Engine",
@@ -908,6 +913,11 @@
     "tutorialLink": "ALwith U Guide"
   },
   "pet": {
+    "restoreFailed": "Could not restore Vibémon. Retry or check the pet center.",
+    "syncFailed": "Some Vibémon resources could not be updated. Downloaded resources are preserved.",
+    "retry": "Retry",
+    "collapse": "Collapse",
+    "setupTitle": "Equip a Vibémon to continue",
     "enable": "Show Vibémon",
     "disable": "Hide Vibémon",
     "show": "Show desktop pet",

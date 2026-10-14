@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ZoomFeedback } from "@/features/appearance/zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
@@ -16,12 +17,14 @@ import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences, type Preferences } from "@/lib/preferences"
 import { hydrateZoom } from "@/lib/zoom"
+import { startZoomViewport } from "@/lib/zoom-viewport"
 import "../index.css"
 
 export function bootstrapAuxWindow(opts: {
   component: ComponentType<{ preferences: Preferences }>
   logTag: string
   toaster?: boolean
+  zoomControls?: "feedback" | "silent"
   setup?: () => Promise<void>
   transparent?: boolean
 }): void {
@@ -36,6 +39,7 @@ export function bootstrapAuxWindow(opts: {
     })
     const preferences = await loadPreferences()
     await initI18n(preferences.language)
+    if (opts.zoomControls) await startZoomViewport()
     await hydrateZoom(preferences.zoomLevel)
     hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
     void startPreferenceSync()
@@ -55,6 +59,7 @@ export function bootstrapAuxWindow(opts: {
               <ErrorBoundary>
                 <AuthGate auxiliary>
                   <Component preferences={preferences} />
+                  {opts.zoomControls ? <ZoomFeedback showFeedback={opts.zoomControls === "feedback"} /> : null}
                 </AuthGate>
               </ErrorBoundary>
               {opts.toaster ? <Toaster position="top-center" /> : null}

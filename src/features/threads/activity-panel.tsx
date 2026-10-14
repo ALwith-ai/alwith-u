@@ -160,7 +160,7 @@ export function ActivityPanel({
   }
 
   return (
-    <Pane viewportClassName="px-1 py-1">
+    <Pane viewportClassName="pb-1">
       <NavigationStack>
         {groups.map(group =>
           group.key === "foreground" ? (

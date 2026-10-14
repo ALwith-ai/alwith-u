@@ -207,7 +207,7 @@ test("the collapse icon and loading state match Desktop and use the current lang
   await fixture()
   await initI18n("zh-CN")
   const view = render(<PetModeButton busy={false} onClick={() => {}} />)
-  const button = view.getByRole("button", { name: "收起到 vibemon" })
+  const button = view.getByRole("button", { name: "收起到 Vibémon" })
   expect(button.querySelector(".lucide-minimize-2")).not.toBeNull()
   view.rerender(<PetModeButton busy={true} onClick={() => {}} />)
   expect((button as HTMLButtonElement).disabled).toBe(true)

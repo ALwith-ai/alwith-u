@@ -12,16 +12,19 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ZoomFeedback } from "@/features/appearance/zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
+import { reportExtensionError } from "@/features/extensions/runtime"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { hydrateZoom } from "@/lib/zoom"
+import { startZoomViewport } from "@/lib/zoom-viewport"
 import "./index.css"
 
 const driveNotices = {
@@ -66,12 +69,13 @@ async function bootstrap(): Promise<void> {
   const preferences = await loadPreferences()
   await initI18n(preferences.language)
   if (isTauri()) {
-    void startStartupImports().catch(failure => surfaceGlobalError(describe(failure)))
+    void startStartupImports().catch(reportExtensionError)
     void useUpdaterStore
       .getState()
       .init()
       .catch((error: unknown) => surfaceGlobalError(describe(error)))
   }
+  await startZoomViewport()
   await hydrateZoom(preferences.zoomLevel)
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
@@ -89,6 +93,7 @@ async function bootstrap(): Promise<void> {
                 <WindowsMainWindowShell>
                   <AuthGate>
                     <App initialPreferences={preferences} />
+                    <ZoomFeedback />
                   </AuthGate>
                 </WindowsMainWindowShell>
               </DriveNotificationProvider>

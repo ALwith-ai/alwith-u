@@ -11,6 +11,7 @@ import { requestChatSurface } from "@/lib/chat-window"
 import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
 import { SettingGroup, SettingRow } from "./shared"
+import { AutostartRow } from "./autostart-row"
 
 export function GeneralSection() {
   const { t } = useTranslation()
@@ -109,6 +110,8 @@ export function GeneralSection() {
           </SettingRow>
         </>
       )}
+      <Separator />
+      <AutostartRow />
     </SettingGroup>
   )
 }

@@ -3,4 +3,4 @@
 import { SettingsPage } from "@/features/settings/settings-page"
 import { bootstrapAuxWindow } from "@/lib/aux-window-bootstrap"
 
-bootstrapAuxWindow({ component: SettingsPage, logTag: "settings", toaster: true })
+bootstrapAuxWindow({ component: SettingsPage, logTag: "settings", toaster: true, zoomControls: "silent" })

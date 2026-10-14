@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dialog"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
@@ -235,7 +236,7 @@ export function ThreadSidebar({
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
-  onNewProjectChat: (cwd: string) => void
+  onNewProjectChat: (cwd: string | null) => void
   onSearch: () => void
   onOpenWindow: () => void
   onOpenVibemon?: () => void
@@ -302,7 +303,10 @@ export function ThreadSidebar({
   )
 
   return (
-    <Sidebar collapsible="none" className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px]">
+    <Sidebar
+      collapsible="none"
+      // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
+      className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]">
       <SidebarHeader className={cn("shrink-0", isMac() && "pt-9")} data-tauri-drag-region>
         <div className="flex items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
@@ -343,33 +347,35 @@ export function ThreadSidebar({
             </TooltipContent>
           </Tooltip>
         </div>
-        <NavigationItemButton
-          active={screen === "leading" && leadingPage === "plugins"}
-          className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-          onClick={onOpenPlugins}>
-          <PuzzleIcon />
-          <span>{t("sidebar.plugins")}</span>
-        </NavigationItemButton>
-        <NavigationItemButton
-          active={screen === "leading" && leadingPage === "extensions"}
-          className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-          onClick={onOpenExtensions}>
-          <BlocksIcon />
-          <span>{t("sidebar.extensions")}</span>
-        </NavigationItemButton>
-        {onOpenVibemon && (
+        <div className="flex flex-col gap-1">
           <NavigationItemButton
-            active={screen === "leading" && leadingPage === "vibemon"}
+            active={screen === "leading" && leadingPage === "plugins"}
             className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-            onClick={onOpenVibemon}>
-            <PawPrintIcon />
-            <span>Vibemon</span>
+            onClick={onOpenPlugins}>
+            <PuzzleIcon />
+            <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
-        )}
+          <NavigationItemButton
+            active={screen === "leading" && leadingPage === "extensions"}
+            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            onClick={onOpenExtensions}>
+            <BlocksIcon />
+            <span>{t("sidebar.extensions")}</span>
+          </NavigationItemButton>
+          {onOpenVibemon && (
+            <NavigationItemButton
+              active={screen === "leading" && leadingPage === "vibemon"}
+              className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+              onClick={onOpenVibemon}>
+              <PawPrintIcon />
+              <span>Vibémon</span>
+            </NavigationItemButton>
+          )}
+        </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden">
-        <div className="relative mx-2 flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">
+      <SidebarContent className="gap-0 overflow-hidden px-2">
+        <div className="relative flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">
           <div
             role="tablist"
             className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-[30px] w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
@@ -414,6 +420,7 @@ export function ThreadSidebar({
               })}
           </div>
         </div>
+        <Separator className="bg-foreground/5 dark:bg-border my-1" />
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
@@ -424,7 +431,7 @@ export function ThreadSidebar({
         {view === "drive" ? null : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <Pane viewportRef={setViewport} viewportClassName="px-1 py-1">
+          <Pane viewportRef={setViewport} viewportClassName="pb-1">
             {/* Observe content height as groups expand, collapse or reveal more rows. */}
             <ScrollArea.Content render={<NavigationStack />} style={{ minWidth: 0 }}>
               {!threadsLoaded &&
@@ -462,18 +469,14 @@ export function ThreadSidebar({
                   // Two levels: collapsible project groups, then their sessions. Expansion is controlled by the shared store.
                   <NavigationGroup
                     key={cwd}
-                    wrapHeader={
-                      quick
-                        ? undefined
-                        : header => (
-                            <ProjectSessionPopover
-                              cwd={cwd}
-                              trigger={header}
-                              onSelect={onSelect}
-                              onNewChat={() => onNewProjectChat(cwd)}
-                            />
-                          )
-                    }
+                    wrapHeader={header => (
+                      <ProjectSessionPopover
+                        cwd={quick ? null : cwd}
+                        trigger={header}
+                        onSelect={onSelect}
+                        onNewChat={() => onNewProjectChat(quick ? null : cwd)}
+                      />
+                    )}
                     open={isOpen}
                     onOpenChange={open => setProjectOpen(new Map(projectOpen).set(cwd, open))}
                     leading={
@@ -533,11 +536,12 @@ export function ThreadSidebar({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="shrink-0 pb-[var(--main-surface-block-gutter)]">
+      <SidebarFooter className="shrink-0 gap-1 pb-[var(--main-surface-block-gutter)]">
+        <Separator className="bg-foreground/5 dark:bg-border mb-1" />
         <Button
           variant="ghost"
           className={cn(
-            "hover:bg-foreground/5 h-10 w-full rounded-lg px-2",
+            "hover:bg-foreground/5 h-[30px] w-full rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
             screen === "main" ? "justify-start" : "justify-end"
           )}
           aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}

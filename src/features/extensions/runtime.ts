@@ -17,7 +17,7 @@ import { useEffect, useSyncExternalStore } from "react"
 import * as jsxDevRuntime from "react/jsx-dev-runtime"
 import * as jsxRuntime from "react/jsx-runtime"
 import * as reactDom from "react-dom/client"
-import { toast } from "sonner"
+import { reportBackgroundError } from "@/lib/background-errors"
 import { commands } from "@/bindings"
 import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
 import i18n from "@/lib/i18n"
@@ -38,7 +38,7 @@ export function reportExtensionError(error: unknown): void {
       : typeof error === "object" && error !== null && "message" in error
         ? String(error.message)
         : String(error)
-  toast.error(message)
+  reportBackgroundError("extension-runtime", error, { message })
 }
 
 function getRuntime(): ExtensionRuntime {

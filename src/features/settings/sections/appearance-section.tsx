@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useStore } from "zustand"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,11 +17,13 @@ import {
   setNavigationInstrument,
   setNavigationSoundMode
 } from "@/features/chat/codex/navigation-sound-store"
+import { setZoomLevel, ZOOM_LEVELS, zoomStore } from "@/lib/zoom"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AppearanceSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
+  const zoom = useStore(zoomStore, state => state.level)
   const navigationInstrument = useStore(navigationSoundStore, state => state.instrument)
   const navigationSoundMode = useStore(navigationSoundStore, state => state.soundMode)
   const navigationInstrumentGroup = NAVIGATION_INSTRUMENT_GROUPS.find(group =>
@@ -45,6 +48,30 @@ export function AppearanceSection() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+      </SettingRow>
+      <Separator />
+      <SettingRow title={t("zoom.label")}>
+        <Select
+          value={String(zoom)}
+          onValueChange={value => {
+            if (value === null) throw new Error("Zoom level cannot be empty")
+            void setZoomLevel(Number(value)).catch((error: unknown) =>
+              toast.error(error instanceof Error ? error.message : String(error))
+            )
+          }}>
+          <SelectTrigger className="w-32" aria-label={t("zoom.label")}>
+            <SelectValue>{Math.round(zoom * 100)}%</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {ZOOM_LEVELS.map(level => (
+                <SelectItem key={level} value={String(level)}>
+                  {Math.round(level * 100)}%
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </SettingRow>
       <Separator />
       <SettingRow title={t("settings.navigationSoundMode")}>

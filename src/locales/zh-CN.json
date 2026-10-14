@@ -313,12 +313,17 @@
     "answerOther": "其他",
     "always": "始终"
   },
+  "zoom": {
+    "label": "界面缩放",
+    "reset": "重置"
+  },
   "settings": {
     "gamepad": "Gamepad",
     "drive": "云盘",
     "extensions": "应用扩展",
     "general": "通用",
     "versionLabel": "版本",
+    "petAutostart": "开机启动 Vibémon",
     "accountDesc": "登录状态由 Codex 保存在本机。",
     "updates": "更新",
     "engine": "引擎",
@@ -908,6 +913,11 @@
     "tutorialLink": "ALwith U 指南"
   },
   "pet": {
+    "restoreFailed": "未能恢复 Vibémon，请重试或前往宠物中心检查。",
+    "syncFailed": "部分 Vibémon 资源未能更新，已下载的资源会保留。",
+    "retry": "重试",
+    "collapse": "收起",
+    "setupTitle": "先装配一只 Vibémon",
     "enable": "显示 Vibémon",
     "disable": "隐藏 Vibémon",
     "show": "显示桌宠",

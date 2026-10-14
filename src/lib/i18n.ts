@@ -65,6 +65,7 @@ export function initI18n(language: string | null): Promise<unknown> {
           navigation: { mainWindow: "Main window", chatWindow: "Floating window" },
           petMode: {
             ...vibemonLocales.en.common.petMode,
+            enter: "Collapse to Vibémon",
             openMain: "Open conversation in main window",
             openChat: "Open conversation in floating window"
           }
@@ -81,6 +82,7 @@ export function initI18n(language: string | null): Promise<unknown> {
           navigation: { mainWindow: "主窗", chatWindow: "独立浮窗" },
           petMode: {
             ...vibemonLocales["zh-CN"].common.petMode,
+            enter: "收起到 Vibémon",
             openMain: "在主窗中打开会话",
             openChat: "在独立浮窗中打开会话"
           }

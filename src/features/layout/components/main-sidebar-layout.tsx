@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { isMac } from "@/lib/platform"
 import { savePreference } from "@/lib/preferences"
+import { useWindowFullscreen } from "@/lib/use-window-fullscreen"
 import { zoomStore } from "@/lib/zoom"
 
 export type MainScreen = "main" | "leading"
@@ -42,6 +43,7 @@ export function MainSidebarLayout({
   const { t } = useTranslation()
   const zoom = useStore(zoomStore, state => state.level)
   const titlebar = useContext(WindowsTitleBarContext)
+  const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
   const [leadingSidebarOpen, setLeadingSidebarOpen] = useState(true)
   const [preview, setPreview] = useState(false)
@@ -206,8 +208,8 @@ export function MainSidebarLayout({
           "--main-sidebar-width": pinned ? "var(--sidebar-width)" : "0px",
           "--leading-sidebar-width": leadingSidebarOpen ? "var(--sidebar-width)" : "0px",
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
-          "--sidebar-toggle-left": `${(isMac() ? 80 : 8) / zoom}px`,
-          "--sidebar-control-scale": 1 / zoom
+          // Native window controls keep their size when page content zooms.
+          "--sidebar-toggle-left": isMac() && !fullscreen ? "calc(80px * var(--window-zoom-correction))" : "8px"
         } as CSSProperties
       }>
       <div className="main-screen-track">

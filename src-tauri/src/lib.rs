@@ -11,6 +11,8 @@ mod drive;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
+#[cfg(target_os = "macos")]
+mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
 mod installed_apps;
@@ -64,7 +66,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
     #[cfg(target_os = "macos")]
-    let builder = builder.plugin(tauri_nspanel::init());
+    let builder = builder.plugin(tauri_nspanel::init()).plugin(fullscreen_controls::init());
 
     #[cfg(target_os = "windows")]
     let builder = builder.plugin(tauri_plugin_decoration::init());
@@ -81,6 +83,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::AppleScript, None))
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
@@ -93,13 +96,7 @@ pub fn run() {
                 )
                 .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon"])
                 // Windows guide windows must not restore their legacy undecorated state.
-                .map_label(|label| {
-                    if cfg!(target_os = "windows") && label == "guide" {
-                        "guide-native"
-                    } else {
-                        label
-                    }
-                })
+                .map_label(|label| if cfg!(target_os = "windows") && label == "guide" { "guide-native" } else { label })
                 .build(),
         )
         .manage(legacy_extensions::files::LegacyFiles::default())

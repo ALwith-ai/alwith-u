@@ -37,7 +37,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
 
   const displayName = user.nickname || user.login_email
   const avatar = (
-    <Avatar className="size-7 after:border-0">
+    <Avatar className="size-6 after:border-0">
       <AvatarImage src={user.avatar} alt="" />
       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
         {Array.from(displayName).slice(0, 2).join("").toLocaleUpperCase()}
@@ -52,27 +52,27 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
           <Button
             variant="ghost"
             disabled={busy}
-            className="text-muted-foreground hover:bg-foreground/5 data-popup-open:bg-foreground/5 h-10 w-full justify-start gap-2.5 rounded-lg px-2 font-normal"
+            className="text-muted-foreground hover:bg-foreground/5 data-popup-open:bg-foreground/5 h-8 w-full justify-start gap-2 rounded-[10px] px-2 font-normal [corner-shape:superellipse(1.5)]"
           />
         }>
         {avatar}
         <span className="min-w-0 truncate">{displayName}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="rounded-2xl p-2 shadow-lg ring-0">
+      <DropdownMenuContent side="top" align="start" sideOffset={8}>
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-popover-foreground flex h-12 items-center gap-3 px-2 text-sm font-medium">
+          <DropdownMenuLabel className="text-popover-foreground flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium">
             {avatar}
             <span className="min-w-0 truncate">{displayName}</span>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator className="mx-0 my-2" />
+          <DropdownMenuSeparator />
         </DropdownMenuGroup>
         <DropdownMenuGroup>
-          <DropdownMenuItem className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5" onClick={onOpenSettings}>
+          <DropdownMenuItem className="h-8 py-0" onClick={onOpenSettings}>
             <SettingsIcon className="text-muted-foreground" />
             {t("sidebar.settings")}
           </DropdownMenuItem>
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5">
+            <DropdownMenuSubTrigger className="h-8 py-0">
               <GlobeIcon className="text-muted-foreground" />
               {t("settings.language")}
             </DropdownMenuSubTrigger>
@@ -94,17 +94,17 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator className="mx-0 my-2" />
+        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem
             disabled={busy || vibemon.disabled}
-            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            className="h-8 py-0"
             onClick={() => void vibemon.toggle()}>
             <PawPrintIcon className="text-muted-foreground" />
             {t(vibemon.enabled ? "pet.disable" : "pet.enable")}
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            className="h-8 py-0"
             onClick={() =>
               void openGamepadWindow().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))
@@ -114,11 +114,11 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             {t("settings.gamepad")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator className="mx-0 my-2" />
+        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem
             disabled={busy}
-            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            className="h-8 py-0"
             onClick={() => {
               setBusy(true)
               void logoutPlatform()

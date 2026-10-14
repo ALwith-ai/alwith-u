@@ -21,7 +21,7 @@ export function GuideButton(): ReactNode {
             <Button
               variant="ghost"
               size="icon-sm"
-              className="shrink-0"
+              className="shrink-0 rounded-[10px] [corner-shape:superellipse(1.5)]"
               aria-label={t("guide.help")}
               title={t("guide.help")}
             />

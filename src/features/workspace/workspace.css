@@ -125,6 +125,8 @@
 }
 
 .main-workspace-toolbar {
+  --spacing: 4px;
+  --radius: 10px;
   position: absolute;
   top: 0;
   inset-inline-end: 12px;
