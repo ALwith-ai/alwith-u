@@ -6,7 +6,10 @@ vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme
 vi.mock("@alwith/module-chat/markdown", () => ({
   CodexMarkdownRenderer: ({ text }: { text: string }) => <div>{text}</div>
 }))
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 test("home cards and the interface map open chapters and return to the guide home", () => {
   const view = render(<GuidePage />)
@@ -39,4 +42,14 @@ test("the bundled English guide starts at welcome and navigates to complete chap
     expect(view.getByRole("main", { name: chapter }).textContent?.length).toBeGreaterThan(200)
     expect(view.queryByRole("main", { name: "Welcome" })).toBeNull()
   }
+})
+
+test.each(["Win32", "MacIntel"])("%s uses the appropriate guide title bar", platform => {
+  vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
+  const view = render(<GuidePage />)
+  const header = view.container.querySelector(".guide-window > div > [data-tauri-drag-region]")
+  if (platform === "Win32") expect(header).toBeNull()
+  else expect(header).toHaveTextContent("ALwith U Guide")
+  expect(view.getByRole("navigation", { name: "Guide chapters" })).toBeVisible()
+  expect(view.getByRole("main", { name: "Welcome" })).toBeVisible()
 })

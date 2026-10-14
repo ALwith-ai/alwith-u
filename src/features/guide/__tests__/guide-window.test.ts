@@ -33,6 +33,7 @@ afterEach(() => {
   state.exists = false
   state.failure = false
   vi.clearAllMocks()
+  vi.restoreAllMocks()
 })
 
 test("repeated opens create one bundled guide window and restore its focus", async () => {
@@ -55,4 +56,18 @@ test("creation failures reach the caller and a later click can retry", async () 
   await openGuideWindow()
   expect(state.created).toHaveBeenCalledTimes(2)
   expect(state.focus).toHaveBeenCalledOnce()
+})
+
+test.each(["Win32", "MacIntel"])("%s retains native guide window controls", async platform => {
+  vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
+  await openGuideWindow()
+  expect(state.created).toHaveBeenCalledWith(
+    "guide",
+    expect.objectContaining({
+      title: "ALwith U Guide",
+      hiddenTitle: platform !== "Win32",
+      titleBarStyle: platform === "Win32" ? "visible" : "overlay"
+    })
+  )
+  expect(state.created.mock.calls[0]?.[1].decorations).not.toBe(false)
 })

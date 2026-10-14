@@ -23,7 +23,7 @@ import {
   type FileTreeController,
   type FileTreeLabels
 } from "@alwith/module-file-tree"
-import { containsPath, createFileSystem, dirname, type FileSystem } from "@alwith/module-fs"
+import { containsPath, createFileSystem, dirname, normalizePath, type FileSystem } from "@alwith/module-fs"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -967,7 +967,7 @@ export function FileWorkspace({
                       controller={workspace.editor}
                       labels={editorLabels}
                       compactToolbar
-                      rootPath={workspace.root}
+                      rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
                       onRevealPath={path => workspace.tree.reveal(path)}
                       onReveal={document => revealItemsInDir(document.path)}
                       onCopyPath={document => navigator.clipboard.writeText(document.path)}
