@@ -14,6 +14,7 @@ import i18n from "@/lib/i18n"
 import { sessionIcons } from "./session-icons"
 import { fitSessionMenuLabel } from "./session-menu-label"
 import { requestPet } from "./transport"
+import type { PetCollapseResult } from "./collapse"
 
 let sessionMenu: Menu | null = null
 async function chooseSession(payload: {
@@ -118,8 +119,8 @@ export async function registerPetSurface(
 ): Promise<void> {
   await requestPet("surface", { label, sessionId, visible })
 }
-export async function collapseChatToPet(sessionId: string | null, signal?: AbortSignal): Promise<void> {
-  await requestPet("collapse", { sessionId }, signal)
+export async function collapseChatToPet(sessionId: string | null, signal?: AbortSignal): Promise<PetCollapseResult> {
+  return requestPet("collapse", { sessionId }, signal)
 }
 export async function restorePetAfterChat(): Promise<void> {
   await requestPet("restore-pet")

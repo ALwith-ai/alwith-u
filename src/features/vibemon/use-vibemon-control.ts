@@ -2,8 +2,8 @@ import { accountKey } from "@alwith/module-auth/pets"
 import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-auth/pets/core"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
 import { usePlatformAuth } from "@/features/auth/store"
+import { reportPetError } from "./display-error"
 
 export function useVibemonControl() {
   const { t } = useTranslation()
@@ -50,7 +50,7 @@ export function useVibemonControl() {
         if ((await host.windows.openPet()) === "unavailable") throw new Error(t("pet.unavailable"))
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
+      reportPetError(error)
     } finally {
       pending.current = false
       setBusy(false)

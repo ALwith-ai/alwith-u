@@ -1,5 +1,6 @@
 //! U pet host. Shared packages own pet state, rendering, and assets.
 mod claims;
+mod download;
 pub(crate) mod window;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
@@ -173,21 +174,7 @@ pub async fn vibemon_download(window: WebviewWindow, url: String) -> Result<Stri
     if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() {
         return Err("Vibemon resources require HTTPS".into());
     }
-    let client =
-        reqwest::Client::builder().timeout(std::time::Duration::from_secs(90)).build().map_err(|e| e.to_string())?;
-    let mut response =
-        client.get(url).send().await.map_err(|e| e.to_string())?.error_for_status().map_err(|e| e.to_string())?;
-    const LIMIT: usize = 32 * 1024 * 1024;
-    if response.content_length().is_some_and(|size| size > LIMIT as u64) {
-        return Err("Vibemon resource exceeds 32 MiB".into());
-    }
-    let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-        if bytes.len() + chunk.len() > LIMIT {
-            return Err("Vibemon resource exceeds 32 MiB".into());
-        }
-        bytes.extend_from_slice(&chunk);
-    }
+    let bytes = download::download(url).await?;
     Ok(STANDARD.encode(bytes))
 }
 

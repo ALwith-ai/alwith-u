@@ -279,7 +279,7 @@ test("Vibemon sits below extensions and selects its own leading page without an 
     )
   }
   const view = render(<Harness />)
-  const vibemon = view.getByRole("button", { name: "Vibemon" })
+  const vibemon = view.getByRole("button", { name: "Vibémon" })
   const extensions = view.getByRole("button", { name: "Extensions" })
   expect(extensions.nextElementSibling).toBe(vibemon)
   expect(vibemon.closest('[data-slot="sidebar-header"]')).not.toBeNull()

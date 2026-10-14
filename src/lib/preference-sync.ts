@@ -6,7 +6,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { navigationSoundStore } from "@/features/chat/codex/navigation-sound-store"
 import i18n, { isLanguageCode } from "@/lib/i18n"
 import { PREFERENCES_CHANGED, type PreferenceChange } from "@/lib/preferences"
-import { zoomStore } from "@/lib/zoom"
+import { syncZoomLevel } from "@/lib/zoom"
 import { setProjectAppPreference } from "./project-app-preference"
 
 export function startPreferenceSync(): Promise<() => void> {
@@ -24,9 +24,8 @@ export function startPreferenceSync(): Promise<() => void> {
         return
       }
       case "zoomLevel": {
-        const level = typeof change.value === "number" ? change.value : 1
-        zoomStore.setState({ level })
-        await getCurrentWebviewWindow().setZoom(level)
+        if (change.value !== null && typeof change.value !== "number") throw new Error("Invalid zoom preference")
+        await syncZoomLevel(change.value ?? 1)
         return
       }
       case "navigationSoundMode":

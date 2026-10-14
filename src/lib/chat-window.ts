@@ -15,6 +15,7 @@ type SurfaceAction =
   | { type: "release"; sessionId: string }
   | { type: "markRead"; sessionId: string }
   | { type: "shortcut"; shortcut: string }
+  | { type: "vibemon"; view: "pull" | "equip" }
 type SurfaceRequest = { id: string; from: "main" | "chat" | "settings"; action: SurfaceAction }
 type SurfaceResponse = { id: string; value: ChatTransfer | null; error: string | null }
 const REQUEST = "chat:surface-request"

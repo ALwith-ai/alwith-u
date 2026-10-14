@@ -32,7 +32,7 @@ test("the bundled English guide starts at welcome and navigates to complete chap
     "Choose a model",
     "Work with project files",
     "Plugins and extensions",
-    "Cloud files and Vibemon",
+    "Cloud files and Vibémon",
     "Settings and shortcuts",
     "Troubleshooting"
   ]) {

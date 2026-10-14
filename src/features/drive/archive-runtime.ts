@@ -1,7 +1,7 @@
+import { reportBackgroundError } from "@/lib/background-errors"
 import { isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { useEffect } from "react"
-import { toast } from "sonner"
 import { client } from "@/lib/client"
 import { createDriveArchive } from "./archive"
 import { drive } from "./controller"
@@ -15,7 +15,7 @@ export function useDriveArchive(): void {
         list: check => client.listHistorySessions(check),
         export: (id, check, signal) => client.exportHistory(id, check, signal)
       },
-      onError: error => toast.error(String(error))
+      onError: error => reportBackgroundError("drive-archive", error)
     })
     const ready = (): boolean => {
       const { connected, snapshot } = drive.getSnapshot()
@@ -23,7 +23,7 @@ export function useDriveArchive(): void {
     }
     const sync = (): void => {
       if (!ready()) return
-      void archive.sync().catch((error: unknown) => toast.error(String(error)))
+      void archive.sync().catch((error: unknown) => reportBackgroundError("drive-archive", error))
     }
     const timer = setInterval(sync, 5 * 60 * 1000)
     const stop = listen(DRIVE_ARCHIVE_SYNC, sync)
@@ -41,7 +41,7 @@ export function useDriveArchive(): void {
       unsubscribe()
       stopClient()
       archive.dispose()
-      void stop.then(fn => fn()).catch((error: unknown) => toast.error(String(error)))
+      void stop.then(fn => fn()).catch((error: unknown) => reportBackgroundError("drive-archive", error))
     }
   }, [])
 }

@@ -44,7 +44,7 @@ You have finished this exercise when you can identify the project, the chosen mo
 ## Find your way around
 
 ### Essentials
-The left sidebar contains plugins, extensions, Vibemon, and your conversations. The chat, activity, and cloud icons switch the sidebar's content; cloud features appear when available for your account.
+The left sidebar contains plugins, extensions, Vibémon, and your conversations. The chat, activity, and cloud icons switch the sidebar's content; cloud features appear when available for your account.
 
 - **Search:** find conversations and available commands.
 - **Window icon:** open the separate chat window.
@@ -238,14 +238,14 @@ For example, a skill that supplies writing instructions may affect how the assis
 
 Record the item's name, enabled state, error text, and the task that triggered the problem. Check configuration and startup diagnostics before reinstalling. If you disable an item to investigate, verify whether the original task can still be completed without it.
 
-## Cloud files and Vibemon
+## Cloud files and Vibémon
 
 ### Essentials
 Cloud features appear when enabled and available to your account. Use the cloud sidebar and status entry to inspect synchronization and transfer failures. A local edit and a completed upload are different events: check the status before assuming a file is available elsewhere.
 
 If synchronization fails, inspect the affected item and its error, confirm connectivity and account access, and retry through the available controls. Keep a local copy of important work while resolving a transfer problem.
 
-Vibemon provides the pet experience associated with your ALwith account. Open **Vibemon** from the sidebar to see the available options. Use the account menu to enable or disable the pet.
+Vibémon provides the pet experience associated with your ALwith account. Open **Vibémon** from the sidebar to see the available options. Use the account menu to enable or disable the pet.
 
 ### Check a transfer from beginning to end
 
@@ -263,7 +263,7 @@ Keep the local content while investigating. Check whether the failure concerns a
 
 ### Manage the companion
 
-Open **Vibemon** to browse the experience available to your account. The account menu's pet control enables or disables the companion. This setting is separate from model access and conversation history.
+Open **Vibémon** to browse the experience available to your account. The account menu's pet control enables or disables the companion. This setting is separate from model access and conversation history.
 
 If the companion is unavailable, check ALwith account access and any error displayed in its own interface. Changing a conversation's model is not a pet-account configuration step.
 

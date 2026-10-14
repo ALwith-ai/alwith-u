@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import i18n from "@/lib/i18n"
-import { createPluginsStore, installParams, type PluginsApi, readParams } from "../store"
+import { createPluginsStore, installParams, type PluginsApi } from "../store"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }))
 

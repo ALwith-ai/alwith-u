@@ -1,9 +1,9 @@
 import { configureVibemon, initializeSettings } from "@alwith/module-auth/pets/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { toast } from "sonner"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
+import { reportPetError } from "./display-error"
 import { createPetSessionClient } from "./session-client"
 import { sessionIcons } from "./session-icons"
 import { requestPet } from "./transport"
@@ -32,7 +32,7 @@ export async function bootstrapVibemonWindow(): Promise<void> {
     sessions,
     windows: createPetWindowClient(),
     synchronizeResources: () => requestPet("sync-resources"),
-    onError: error => toast.error(error instanceof Error ? error.message : String(error))
+    onError: reportPetError
   })
   await initializeSettings()
   const window = getCurrentWebviewWindow()

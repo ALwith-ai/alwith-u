@@ -1,3 +1,4 @@
+import { reportBackgroundError } from "@/lib/background-errors"
 import { drive } from "./controller"
 
 export { drive } from "./controller"
@@ -47,7 +48,7 @@ export function useDriveConnection(start = true): void {
         }
       })
       .catch((error: unknown) => {
-        if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
+        if (!disposed) reportBackgroundError("drive-startup", error)
       })
     return () => {
       disposed = true

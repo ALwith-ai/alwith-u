@@ -90,12 +90,12 @@ test("a failed initial list offers retry instead of a permanent skeleton", async
   })
 })
 
-test("empty quick chats stays first and collapsed without a project hover card", () => {
+test("empty quick chats stays first and collapsed with a project hover card", () => {
   client.store.setState({ threadsLoaded: true, threads: [] })
   const view = showSidebar()
   const quick = view.getByRole("button", { name: "Quick chats" })
   expect(quick).toHaveAttribute("aria-expanded", "false")
-  expect(quick.closest('[data-slot="popover-trigger"]')).toBeNull()
+  expect(quick.closest('[data-slot="popover-trigger"]')).not.toBeNull()
   const groups = view.getAllByRole("button").filter(button => button.hasAttribute("aria-expanded"))
   expect(groups[0]).toBe(quick)
 })

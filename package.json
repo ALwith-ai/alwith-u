@@ -33,7 +33,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.8.0",
     "@alwith/api": "^0.3.0",
-    "@alwith/module-auth": "0.1.4",
+    "@alwith/module-auth": "0.1.5",
     "@alwith/module-chat": "0.1.10",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
@@ -56,6 +56,7 @@
     "@shadcn/react": "^0.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "^3.0.0-alpha.2",
+    "@tauri-apps/plugin-autostart": "3.0.0-alpha.2",
     "@tauri-apps/plugin-deep-link": "^3.0.0-alpha.2",
     "@tauri-apps/plugin-dialog": "^3.0.0-alpha.3",
     "@tauri-apps/plugin-global-shortcut": "^3.0.0-alpha.2",
@@ -156,7 +157,7 @@
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19-12ea25bf6079.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
-    "@alwith/module-auth": "0.1.4",
+    "@alwith/module-auth": "0.1.5",
     "@alwith/module-chat": "0.1.10"
   }
 }

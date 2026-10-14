@@ -1,5 +1,6 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
+import { logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
 import { useCallback, useContext, useEffect, useRef, useState } from "react"
 import { createPortal, flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
@@ -19,7 +20,7 @@ import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
-import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
+import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { useDriveArchive } from "@/features/drive/archive-runtime"
 import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } from "@/features/drive/drive"
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
@@ -41,6 +42,7 @@ import { selectThread } from "@/features/threads/select-thread"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
+import { requestVibemonView } from "@alwith/module-auth/pets/core"
 import { WorkspaceHeaderContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { installChatShortcut } from "@/lib/chat-shortcut"
@@ -63,7 +65,6 @@ import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
-import { resetZoom, zoomIn, zoomOut } from "@/lib/zoom"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -246,11 +247,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [])
 
   const newChatInDirectory = useCallback(
-    (cwd?: string) => {
+    (cwd?: string | null) => {
       if (operation.busy) return
       void operation
         .run(async () => {
-          const directory = newChatDirectory(cwd ?? extensionSession.current?.cwd ?? lastDirectory)
+          const directory = newChatDirectory(cwd === undefined ? (extensionSession.current?.cwd ?? lastDirectory) : cwd)
           await client.discardDraft("main")
           chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
@@ -279,6 +280,18 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
       const stopSurface = await serveChatSurface(async action => {
         switch (action.type) {
+          case "vibemon": {
+            if (action.view !== "pull" && action.view !== "equip") throw new Error("Invalid Vibémon view")
+            flushSync(() => {
+              requestVibemonView(action.view)
+              openVibemon()
+            })
+            const win = getCurrentWebviewWindow()
+            await win.unminimize()
+            await win.show()
+            await win.setFocus()
+            return null
+          }
           case "present":
             return operation.run(async () => {
               const transfer = action.transfer
@@ -333,7 +346,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
       void shortcut.dispose().catch(error => toast.error(describe(error)))
     }
-  }, [initialPreferences.chatWindowShortcut, operation])
+  }, [initialPreferences.chatWindowShortcut, openVibemon, operation])
 
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.
@@ -344,7 +357,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       await applyProviders()
       void info(`connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
     } catch (error) {
-      toast.error(describe(error))
+      if (client.state.connection === "failed" || client.state.connection === "disconnected")
+        logBackgroundError("runtime-connect", error)
+      else reportBackgroundError("provider-startup", error)
     }
   }, [])
 
@@ -440,10 +455,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       webview.listen<null>(events["menu:new-chat"].name, () => void newChat()),
       webview.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow()),
       webview.listen<null>(events["menu:command-palette"].name, () => setPaletteOpen(open => !open)),
-      webview.listen<null>(events["menu:open-hotkeys"].name, () => setHotkeysOpen(true)),
-      webview.listen<null>(events["menu:zoom-in"].name, () => void zoomIn()),
-      webview.listen<null>(events["menu:zoom-out"].name, () => void zoomOut()),
-      webview.listen<null>(events["menu:actual-size"].name, () => void resetZoom())
+      webview.listen<null>(events["menu:open-hotkeys"].name, () => setHotkeysOpen(true))
     ])
     return () => {
       void listeners.then(stops => {
@@ -465,15 +477,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       } else if (event.key === ",") {
         event.preventDefault()
         void openSettingsWindow()
-      } else if (event.key === "=" || event.key === "+") {
-        event.preventDefault()
-        void zoomIn()
-      } else if (event.key === "-") {
-        event.preventDefault()
-        void zoomOut()
-      } else if (event.key === "0") {
-        event.preventDefault()
-        void resetZoom()
       } else if (event.key === "/") {
         event.preventDefault()
         setHotkeysOpen(true)
@@ -532,7 +535,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         <ChatView
           key={`${session.id}-${surfaceGeneration}`}
           session={session}
-          projectMenu={<ProjectSessionPopover cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
+          projectMenu={<ChatProjectMenu cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
           onSelectThread={select}
           onOpenWindow={moveToWindow}
           onNewChat={newProjectChat}
@@ -547,11 +550,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
-          projectMenu={
-            lastDirectory === null ? null : (
-              <ProjectSessionPopover cwd={lastDirectory} onSelect={select} onNewChat={newProjectChat} />
-            )
-          }
+          projectMenu={<ChatProjectMenu cwd={lastDirectory} onSelect={select} onNewChat={newProjectChat} />}
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onSendingChange={(id, sending) =>

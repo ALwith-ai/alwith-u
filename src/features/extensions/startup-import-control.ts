@@ -1,6 +1,6 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { toast } from "sonner"
+import { reportBackgroundError } from "@/lib/background-errors"
 import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { executeReload, executeStagedInstall } from "./install-service"
@@ -26,7 +26,10 @@ export function startStartupImports(): Promise<void> {
         const result = await executeStagedInstall(runtime, pkg, { update: true }, AbortSignal.timeout(120_000))
         if (result.error) throw new Error(result.error.message)
       },
-      report: message => toast.error(i18n.t("extensions.startupImportFailed", { message }), { duration: 12_000 })
+      report: message =>
+        reportBackgroundError("extension-startup", message, {
+          message: i18n.t("extensions.startupImportFailed", { message })
+        })
     })
   })()
   return startup

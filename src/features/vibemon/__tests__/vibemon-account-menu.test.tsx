@@ -151,7 +151,7 @@ test("account changes display the new account's switch state", async () => {
 
 test("failed presentation reports the error and keeps the saved switch disabled", async () => {
   await initI18n("en")
-  const f = fixture(false, new Error("Display unavailable"))
+  const f = fixture(false, new Error("Vibemon display unavailable"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "toast")
   try {
     const view = await openMenu()
@@ -160,7 +160,7 @@ test("failed presentation reports the error and keeps the saved switch disabled"
     )
     await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" })))
     expect(f.openPet).toHaveBeenCalledTimes(1)
-    expect(error).toHaveBeenCalledWith("Display unavailable")
+    expect(error).toHaveBeenCalledWith("Vibémon display unavailable", expect.objectContaining({ id: "pet-operation" }))
     await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
     expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy()
   } finally {

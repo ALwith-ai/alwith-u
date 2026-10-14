@@ -1,8 +1,8 @@
+import { reportBackgroundError } from "@/lib/background-errors"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { useEffect } from "react"
-import { toast } from "sonner"
 import { drive, driveTransport } from "./controller"
 import { getDrivePluginData, setDriveArchiveOwner, subscribeDrivePluginData, syncDrivePlugin } from "./plugin-bridge"
 
@@ -57,7 +57,10 @@ export function useDrivePluginBridge(): void {
               () => closed
             )
           } catch (error) {
-            if (!closed) toast.error(`Knowledge plugin bridge failed: ${String(error)}`)
+            if (!closed)
+              reportBackgroundError("drive-plugin-bridge", error, {
+                message: `Knowledge plugin bridge failed: ${String(error)}`
+              })
           }
         }
       })().finally(() => {
@@ -88,7 +91,7 @@ export function useDrivePluginBridge(): void {
         }
       })
       .catch(error => {
-        if (!closed) toast.error(String(error))
+        if (!closed) reportBackgroundError("drive-plugin-bridge", error)
       })
     schedule()
     return () => {

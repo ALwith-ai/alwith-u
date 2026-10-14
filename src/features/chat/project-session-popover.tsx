@@ -2,6 +2,7 @@ import { FolderClosedIcon, MessageSquareIcon, PlusIcon } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ThreadSummary } from "@/agent/client"
+import { commands } from "@/bindings"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { Pane } from "@/components/alwith-ui/pane"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
@@ -9,25 +10,75 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
-import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
 import { basename } from "@/lib/path"
+import { newChatDirectory } from "./new-chat-directory"
 
 type ProjectActions = {
-  cwd: string
+  cwd: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
 }
 
-/** Default-directory chats have session cards, but no project card. */
+type DirectoryState =
+  { status: "loading" } | { status: "ready"; cwd: string } | { status: "failed"; error: string; retry: () => void }
+
+/** Quick chats share the sidebar group; the host's default workspace is only the folder action. */
+export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?: ReactElement }) {
+  const project = newChatDirectory(cwd)
+  const [directory, setDirectory] = useState<DirectoryState>({ status: "loading" })
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    if (project !== null) return
+    // A retry belongs to this directory request, not a subsequently selected project.
+    void attempt
+    let active = true
+    setDirectory({ status: "loading" })
+    void commands.draftDirectory({ cwd: null }).then(
+      cwd => {
+        if (active) setDirectory({ status: "ready", cwd })
+      },
+      error => {
+        if (active)
+          setDirectory({
+            status: "failed",
+            error: error instanceof Error ? error.message : String(error),
+            retry: () => setAttempt(value => value + 1)
+          })
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [project, attempt])
+  return (
+    <ProjectPopover
+      {...actions}
+      cwd={project}
+      directory={project === null ? directory : { status: "ready", cwd: project }}
+    />
+  )
+}
+
+/** Sidebar hover and header click resolve the same group and folder. */
 export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactElement }) {
-  if (isQuickChatDirectory(props.cwd)) return props.trigger ?? null
-  return <ProjectPopover {...props} />
+  return <ChatProjectMenu {...props} />
 }
 
 /** Header click and sidebar hover share the same list and actions, as in Desktop. */
-function ProjectPopover({ cwd, onSelect, onNewChat, trigger }: ProjectActions & { trigger?: ReactElement }) {
+function ProjectPopover({
+  cwd,
+  directory,
+  onSelect,
+  onNewChat,
+  trigger
+}: ProjectActions & {
+  directory: DirectoryState
+  trigger?: ReactElement
+}) {
+  const { t } = useTranslation()
+  const label = cwd === null ? t("sidebar.quickChats") : basename(cwd)
   const [open, setOpen] = useState(false)
   useSidebarOverlay(open)
   const skipFocus = useRef(false)
@@ -104,8 +155,8 @@ function ProjectPopover({ cwd, onSelect, onNewChat, trigger }: ProjectActions & 
               variant="ghost"
               size="icon-sm"
               className="hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8 shrink-0 transition-colors duration-150 ease-out"
-              aria-label={basename(cwd)}
-              title={cwd}
+              aria-label={label}
+              title={cwd ?? label}
             />
           }>
           <FolderClosedIcon />
@@ -124,14 +175,15 @@ function ProjectPopover({ cwd, onSelect, onNewChat, trigger }: ProjectActions & 
         ref={popupRef}
         side={trigger === undefined ? "bottom" : "inline-end"}
         align="start"
-        aria-label={basename(cwd)}
+        aria-label={label}
         initialFocus={trigger === undefined ? popupRef : false}
         finalFocus={() => !skipFocus.current}
         className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden px-0 py-1">
         {open && (
           <ProjectContents
-            key={cwd}
+            key={cwd ?? "quick-chats"}
             cwd={cwd}
+            directory={directory}
             showHeading={trigger === undefined}
             expanded={expanded}
             onExpand={(x, y) => {
@@ -156,6 +208,7 @@ function distanceToPopup(point: { x: number; y: number }, bounds: DOMRect): numb
 
 function ProjectContents({
   cwd,
+  directory,
   onSelect,
   onNewChat,
   onOpened,
@@ -163,6 +216,7 @@ function ProjectContents({
   expanded,
   onExpand
 }: ProjectActions & {
+  directory: DirectoryState
   onOpened: () => void
   showHeading: boolean
   expanded: boolean
@@ -176,7 +230,9 @@ function ProjectContents({
       {showHeading && (
         <div className="flex min-h-8 items-center gap-2 px-3 py-1.5">
           <FolderClosedIcon className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-semibold">{basename(cwd)}</span>
+          <span className="min-w-0 flex-1 truncate font-semibold">
+            {cwd === null ? t("sidebar.quickChats") : basename(cwd)}
+          </span>
           <span className="text-muted-foreground shrink-0 text-xs" aria-live="polite">
             {result?.status === "ready" ? t("chat.project.chatCount", { count: result.threads.length }) : null}
           </span>
@@ -238,7 +294,22 @@ function ProjectContents({
         </Button>
       )}
       <Separator />
-      <ProjectPathAction cwd={cwd} onOpened={onOpened} />
+      {directory.status === "ready" && <ProjectPathAction cwd={directory.cwd} onOpened={onOpened} />}
+      {directory.status === "loading" && (
+        <p role="status" className="text-muted-foreground px-3 py-2 text-sm">
+          {t("chat.project.loading")}
+        </p>
+      )}
+      {directory.status === "failed" && (
+        <div className="px-3 py-2">
+          <p role="alert" className="text-muted-foreground text-sm">
+            {directory.error}
+          </p>
+          <Button variant="ghost" size="sm" onClick={directory.retry}>
+            {t("actions.retry")}
+          </Button>
+        </div>
+      )}
       <Separator />
       <Button
         variant="ghost"

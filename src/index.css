@@ -272,6 +272,18 @@ html[data-window-backdrop="acrylic"] .main-sidebar-shell {
 html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-footer"] {
   padding-bottom: 8px;
 }
+/* Docked navigation already supplies the 8px inset at the content-facing edge. */
+[data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
+  margin-inline-start: 0;
+}
+[data-sidebar-mode="pinned"] .main-screen-leading > .main-chat-surface {
+  margin-inline-end: 0;
+}
+/* All sidebar tabs share the host's horizontal inset, including the shared drive launcher. */
+.main-sidebar-panel .alwith-drive-launcher {
+  padding-inline: 0;
+  padding-block-start: 0;
+}
 
 /* The 32px gap above the main panel also serves as a native drag region without controls. */
 [data-sidebar-presentation] {
@@ -322,18 +334,18 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 .main-chat-drag-region {
   inset-inline-start: max(
     calc(var(--main-sidebar-width) + var(--main-surface-gutter)),
-    calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale))
+    calc(var(--sidebar-toggle-left) + 32px)
   );
   inset-inline-end: var(--main-surface-gutter);
   transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
 }
 [data-main-screen="leading"] .main-chat-drag-region {
-  inset-inline-start: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+  inset-inline-start: calc(var(--sidebar-toggle-left) + 32px);
 }
 
 /* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
 .main-extension-toolbar {
-  left: calc(var(--sidebar-toggle-left) + 32px * var(--sidebar-control-scale));
+  left: calc(var(--sidebar-toggle-left) + 32px);
   right: 12px;
 }
 .windows-extension-controls [role="toolbar"] {
@@ -448,12 +460,21 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   width: 3px;
 }
 .main-sidebar-toggle {
+  --spacing: 4px;
+  --radius: 10px;
   position: absolute;
-  top: calc(4px * var(--sidebar-control-scale));
+  display: flex;
+  top: 4px;
   left: var(--sidebar-toggle-left);
   z-index: 31;
-  transform: scale(var(--sidebar-control-scale));
-  transform-origin: top left;
+}
+/* Fixed chrome uses pixel tokens so WebKit's rem metrics at extreme page zoom cannot resize it. */
+.zoom-feedback {
+  --spacing: 4px;
+  --radius: 10px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  zoom: var(--window-zoom-correction);
 }
 .windows-sidebar-toggle {
   display: flex;
@@ -470,6 +491,9 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 }
 /* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
 :root {
+  --native-viewport-width: 100vw;
+  /* The renderer updates 100vw with native page zoom; no React/IPC timing participates in compensation. */
+  --window-zoom-correction: calc(100vw / var(--native-viewport-width));
   --chrome-hover-background: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 /* Trigger composition replaces data-slot, but preserves the shadcn button class. */

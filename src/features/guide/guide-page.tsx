@@ -79,7 +79,7 @@ const details = [
   },
   {
     icon: CloudIcon,
-    summary: "Check cloud transfers and manage your Vibemon companion.",
+    summary: "Check cloud transfers and manage your Vibémon companion.",
     group: "Make it yours",
     takeaway: "Verify transfer status before relying on a cloud copy."
   },
