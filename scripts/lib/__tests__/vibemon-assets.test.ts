@@ -28,7 +28,7 @@ for (const base of ["/", "./"]) {
           write: false,
           assetsInlineLimit: 0,
           target: "safari13",
-          rollupOptions: { input: [join(root, "index.html"), join(root, "vibemon.html")] }
+          rolldownOptions: { input: [join(root, "index.html"), join(root, "vibemon.html")] }
         }
       })
       if (Array.isArray(result) || !("output" in result)) throw new Error("Expected one frontend build")

@@ -41,11 +41,6 @@ fn application_context() -> tauri::Context {
 }
 
 pub fn run() {
-    // HTTP and WebSocket dependencies enable both providers; select one before TLS clients start.
-    rustls::crypto::aws_lc_rs::default_provider()
-        .install_default()
-        .expect("install process-wide rustls crypto provider");
-
     let login_launch = autostart::LoginLaunch::new(std::env::args());
     let mut context = application_context();
     if login_launch.started_hidden() {
