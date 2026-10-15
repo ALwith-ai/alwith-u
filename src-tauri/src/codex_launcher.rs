@@ -1,5 +1,5 @@
 //! A CODEX_PATH proxy: serve U's prepared catalog for the adapter's exact lookup;
-//! forward every other invocation to the original Codex executable.
+//! forward other invocations with U's supported interactive capabilities.
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -35,6 +35,9 @@ fn run() -> io::Result<()> {
         return Err(io::Error::other("ALWITH_U_CODEX_PATH must name the original Codex executable"));
     }
     let mut command = std::process::Command::new(binary);
+    // U renders ACP form elicitations in both collaboration modes. Enable Codex's
+    // default-mode question tool for this process only, without editing user config.
+    command.args(["--enable", "default_mode_request_user_input"]);
     command.args(args);
     #[cfg(unix)]
     {

@@ -1,7 +1,6 @@
 //! Native application menu (macOS and Linux). Windows draws no app-level menu, matching
 //! ALwith Desktop. Menu clicks reach the focused webview as `menu:*` events.
 
-#[cfg(not(target_os = "windows"))]
 use tauri::AppHandle;
 #[cfg(not(target_os = "windows"))]
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
@@ -47,8 +46,7 @@ pub fn event_name(id: &str) -> Option<&'static str> {
 
 /// The UI language saved by the webview (`preferences.json` → `language`), else the system
 /// locale. Only `en` and `zh-CN` exist.
-#[cfg(not(target_os = "windows"))]
-fn detect_locale(app: &AppHandle) -> &'static str {
+pub(crate) fn detect_locale(app: &AppHandle) -> &'static str {
     use tauri::Manager;
     let saved = app
         .path()

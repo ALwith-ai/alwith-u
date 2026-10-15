@@ -11,6 +11,15 @@ import {
 } from "@tauri-apps/api/event"
 
 export const commands = {
+  autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
+  autostartSet: (args: { enabled: boolean }): Promise<null> => __t3Invoke<null>("autostart_set", args),
+  autostartLaunch: (): Promise<boolean> => __t3Invoke<boolean>("autostart_launch"),
+  autostartComplete: (args: { restored: boolean }): Promise<null> => __t3Invoke<null>("autostart_complete", args),
+  /**
+   *  Every explicit main-window open restores the interactive application role.
+   */
+  showMainWindow: (): Promise<null> => __t3Invoke<null>("show_main_window"),
+  trayPetReady: (): Promise<null> => __t3Invoke<null>("tray_pet_ready"),
   extensionInboxScan: (): Promise<Scan> => __t3Invoke<Scan>("extension_inbox_scan"),
   extensionInboxScanExtension: (args: { extensionId: string }): Promise<Scan> =>
     __t3Invoke<Scan>("extension_inbox_scan_extension", args),
@@ -205,6 +214,12 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
+  autostartStatus: string
+  autostartSet: string
+  autostartLaunch: never
+  autostartComplete: string
+  showMainWindow: string
+  trayPetReady: string
   extensionInboxScan: string
   extensionInboxScanExtension: string
   extensionInboxFinish: string
@@ -419,6 +434,11 @@ export type AppInfo = {
   name: string
   bundle_id: string
   icon: string | null
+}
+
+export type AutostartStatus = {
+  supported: boolean
+  enabled: boolean
 }
 
 export type BundledExtension = {

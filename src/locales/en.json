@@ -324,6 +324,7 @@
     "general": "General",
     "versionLabel": "Version",
     "petAutostart": "Start Vibémon at login",
+    "petAutostartInstalled": "Available in the installed app. Sign in and equip a Vibémon to restore it at login.",
     "accountDesc": "Codex keeps the login on this machine.",
     "updates": "Updates",
     "engine": "Engine",

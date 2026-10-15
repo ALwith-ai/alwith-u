@@ -28,13 +28,13 @@ export function GuideButton(): ReactNode {
           }>
           <CircleHelpIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-60 rounded-2xl p-2 shadow-lg ring-0">
-          <DropdownMenuItem className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5" onClick={() => setHotkeysOpen(true)}>
+        <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-60">
+          <DropdownMenuItem className="h-8 py-0" onClick={() => setHotkeysOpen(true)}>
             <KeyboardIcon className="text-muted-foreground" />
             {t("shortcuts.title")}
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="h-10 gap-3 rounded-lg px-2 [&_svg]:size-5"
+            className="h-8 py-0"
             onClick={() =>
               void openGuideWindow().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))

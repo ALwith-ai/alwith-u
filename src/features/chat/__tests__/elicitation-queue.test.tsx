@@ -44,8 +44,24 @@ test("queued forms advance on accept, decline and cancel without answering anoth
       requestedSchema: {
         type: "object",
         title,
-        properties: { choice: { type: "string", enum: ["Alpha", "Beta"] } },
-        required: ["choice"]
+        properties: {
+          choice: {
+            type: "string",
+            title: "Scope",
+            description: "Which implementation should be used?",
+            oneOf: [
+              { const: "Alpha", title: "Alpha", description: "Use the source application" },
+              { const: "Beta", title: "Beta", description: "Include installed extensions" }
+            ],
+            _meta: { codex: { isOther: true, isSecret: false } }
+          },
+          choice__other: {
+            type: "string",
+            title: "Other (Scope)",
+            _meta: { codex: { questionId: "choice", isOtherAnswer: true, isSecret: false } }
+          }
+        },
+        required: []
       }
     })
   const replies = [request(first, "Question one"), request(first, "Question two"), request(first, "Question three")]
@@ -58,12 +74,14 @@ test("queued forms advance on accept, decline and cancel without answering anoth
   )
   try {
     expect(view.getAllByRole("dialog")).toHaveLength(1)
+    expect(view.getByText("Which implementation should be used?")).toBeVisible()
+    expect(view.getByText("Include installed extensions")).toBeVisible()
     expect(view.getByText("1 / 3")).toBeInTheDocument()
-    fireEvent.click(view.getByRole("radio", { name: "Beta" }))
+    fireEvent.click(view.getByRole("radio", { name: /^Beta/ }))
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Submit" })))
     expect(await replies[0]).toMatchObject({ action: "accept", content: { choice: "Beta" } })
     await waitFor(() => expect(view.getByRole("heading", { name: "Question two" })).toBeInTheDocument())
-    expect(view.getByRole("radio", { name: "Alpha" })).toBeChecked()
+    expect(view.getByRole("radio", { name: /^Alpha/ })).toBeChecked()
     expect(view.getByText("1 / 2")).toBeInTheDocument()
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Decline" })))
     expect(await replies[1]).toMatchObject({ action: "decline" })

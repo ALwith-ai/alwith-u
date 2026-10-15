@@ -1,11 +1,11 @@
 import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
-import { isEnabled } from "@tauri-apps/plugin-autostart"
+import { commands } from "@/bindings"
 import { beforeEach, expect, test, vi } from "vitest"
 import { reportBackgroundError } from "@/lib/background-errors"
 import { restorePetOnStartup, runPetRestoration } from "../startup"
 
 vi.mock("@alwith/module-auth/pets/core", () => ({ getVibemonState: vi.fn(), refreshSettings: vi.fn() }))
-vi.mock("@tauri-apps/plugin-autostart", () => ({ isEnabled: vi.fn() }))
+vi.mock("@/bindings", () => ({ commands: { autostartLaunch: vi.fn() } }))
 vi.mock("@/lib/background-errors", () => ({ reportBackgroundError: vi.fn() }))
 vi.mock("@/lib/i18n", () => ({ default: { t: (key: string) => key } }))
 beforeEach(() => vi.resetAllMocks())
@@ -14,28 +14,28 @@ test.each([
   [true, false, true],
   [false, true, true],
   [false, false, false]
-])("restores an equipped pet with enabled=%s and login item=%s", async (enabled, autostart, expected) => {
+])("restores an equipped pet with enabled=%s and login launch=%s", async (enabled, autostart, expected) => {
   vi.mocked(getVibemonState).mockResolvedValue({ pet: "pet", enabled, position: null })
-  vi.mocked(isEnabled).mockResolvedValue(autostart)
+  vi.mocked(commands.autostartLaunch).mockResolvedValue(autostart)
   const present = vi.fn()
-  await restorePetOnStartup(present, () => "account")
+  expect(await restorePetOnStartup(present, () => "account")).toBe(expected)
   expect(present).toHaveBeenCalledTimes(expected ? 1 : 0)
 })
 
 test("logged out or unequipped startup never opens a pet or a setup dialog", async () => {
   const present = vi.fn()
-  await restorePetOnStartup(present, () => null)
+  expect(await restorePetOnStartup(present, () => null)).toBe(false)
   expect(refreshSettings).not.toHaveBeenCalled()
   vi.mocked(getVibemonState).mockResolvedValue({ pet: "", enabled: true, position: null })
-  await restorePetOnStartup(present, () => "account")
-  expect(isEnabled).not.toHaveBeenCalled()
+  expect(await restorePetOnStartup(present, () => "account")).toBe(false)
+  expect(commands.autostartLaunch).not.toHaveBeenCalled()
   expect(present).not.toHaveBeenCalled()
 })
 
-test("an account change during the login-item query cancels restoration", async () => {
+test("an account change during the launch query cancels restoration", async () => {
   let account = "first"
   vi.mocked(getVibemonState).mockResolvedValue({ pet: "pet", enabled: false, position: null })
-  vi.mocked(isEnabled).mockImplementation(async () => {
+  vi.mocked(commands.autostartLaunch).mockImplementation(async () => {
     account = "second"
     return true
   })
