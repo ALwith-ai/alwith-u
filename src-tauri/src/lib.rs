@@ -3,6 +3,7 @@ mod codex_launcher;
 
 mod appearance;
 mod auth;
+mod autostart;
 mod bundled_extensions;
 mod chat_files;
 mod chat_window;
@@ -24,6 +25,7 @@ mod panel;
 mod panic_report;
 mod providers;
 mod runtime;
+mod tray;
 mod updater;
 mod vibemon;
 mod window;
@@ -44,7 +46,22 @@ pub fn run() {
         .install_default()
         .expect("install process-wide rustls crypto provider");
 
+    let login_launch = autostart::LoginLaunch::new(std::env::args());
+    let mut context = application_context();
+    if login_launch.started_hidden() {
+        let main = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|window| window.label == "main")
+            .expect("main window is configured");
+        main.visible = false;
+        main.focus = false;
+    }
+
     let builder = tauri::Builder::default()
+        .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
@@ -55,10 +72,11 @@ pub fn run() {
             if window::is_closing(app) {
                 return;
             }
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
+            if argv.iter().any(|argument| argument == autostart::ARGUMENT) {
+                return;
+            }
+            if let Err(error) = window::show_main_window(app.clone()) {
+                log::error!("Cannot reopen main window: {error}");
             }
         }))
         .plugin(tauri_plugin_deep_link::init())
@@ -83,7 +101,10 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::AppleScript, None))
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![autostart::ARGUMENT]),
+        ))
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
@@ -108,7 +129,7 @@ pub fn run() {
     #[cfg(feature = "hasgard-testing")]
     let builder = builder.plugin(tauri_plugin_hasgard::init());
 
-    builder
+    let app = builder
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
                 app.exit(0);
@@ -159,6 +180,7 @@ pub fn run() {
             // because the locale lookup needs the path resolver, which exists only after build.
             #[cfg(not(target_os = "windows"))]
             app.set_menu(menu::build_app_menu(app.handle())?)?;
+            tray::initialize(app.handle())?;
             updater::init(app);
             Ok(())
         })
@@ -181,38 +203,56 @@ pub fn run() {
             let _ = webview;
         })
         .invoke_handler(bindings().invoke_handler())
-        .build(application_context())
-        .expect("error while building ALwith U")
-        .run(|app, event| match event {
-            // U's main window owns the application lifetime. A hidden settings window must
-            // neither keep a headless U running nor stop chats when it is destroyed.
-            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
-                app.exit(0);
+        .build(context)
+        .expect("error while building ALwith U");
+    app.run(|app, event| match event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } if !window::is_closing(app) => {
+            if let Err(error) = window::show_main_window(app.clone()) {
+                log::error!("Cannot reopen main window: {error}");
             }
-            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
-                #[cfg(target_os = "macos")]
-                panel::closed(app, &label);
-                extension_inbox::window_closed(app, &label);
-                gamepad::window_destroyed(app, &label);
+        }
+        // The main webview hosts background services and remains alive when closed.
+        tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::CloseRequested { api, .. }, .. }
+            if label == "main" =>
+        {
+            api.prevent_close();
+            let window = app.get_webview_window("main").expect("main window exists on close");
+            if let Err(error) = window.hide() {
+                log::error!("Cannot hide main window: {error}");
             }
-            tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Focused(false), .. } => {
-                gamepad::window_inactive(app, &label);
+        }
+        // Unexpected destruction cannot leave background services without their host.
+        tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == "main" => {
+            app.exit(0);
+        }
+        tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
+            if label == "vibemon" {
+                tray::set_pet_checked(app, false);
             }
-            tauri::RunEvent::ExitRequested { api, code, .. } => {
-                let closing = window::is_closing(app);
-                if (!closing && workspace::prevent_exit(app))
-                    || drive::prevent_exit(app, code)
-                    || runtime::prevent_exit(app, code)
-                {
-                    api.prevent_exit();
-                }
+            #[cfg(target_os = "macos")]
+            panel::closed(app, &label);
+            extension_inbox::window_closed(app, &label);
+            gamepad::window_destroyed(app, &label);
+        }
+        tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Focused(false), .. } => {
+            gamepad::window_inactive(app, &label);
+        }
+        tauri::RunEvent::ExitRequested { api, code, .. } => {
+            let closing = window::is_closing(app);
+            if (!closing && workspace::prevent_exit(app))
+                || drive::prevent_exit(app, code)
+                || runtime::prevent_exit(app, code)
+            {
+                api.prevent_exit();
             }
-            tauri::RunEvent::Exit => {
-                gamepad::shutdown(app);
-                app.state::<runtime::RuntimeState>().kill_on_exit();
-            }
-            _ => {}
-        });
+        }
+        tauri::RunEvent::Exit => {
+            gamepad::shutdown(app);
+            app.state::<runtime::RuntimeState>().kill_on_exit();
+        }
+        _ => {}
+    });
 }
 
 /// The native handler and TypeScript exporter use this same command and event graph.
@@ -221,6 +261,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
         ($($platform:path),* $(,)?) => {
             tauri3_specta::commands![
                 $($platform,)*
+                autostart::autostart_status,
+                autostart::autostart_set,
+                autostart::autostart_launch,
+                autostart::autostart_complete,
+                window::show_main_window,
+                tray::tray_pet_ready,
                 extension_inbox::extension_inbox_scan,
                 extension_inbox::extension_inbox_scan_extension,
                 extension_inbox::extension_inbox_finish,

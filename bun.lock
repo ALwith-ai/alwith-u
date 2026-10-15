@@ -30,7 +30,6 @@
         "@shadcn/react": "^0.3.1",
         "@tailwindcss/vite": "^4.3.3",
         "@tauri-apps/api": "^3.0.0-alpha.2",
-        "@tauri-apps/plugin-autostart": "3.0.0-alpha.2",
         "@tauri-apps/plugin-deep-link": "^3.0.0-alpha.2",
         "@tauri-apps/plugin-dialog": "^3.0.0-alpha.3",
         "@tauri-apps/plugin-global-shortcut": "^3.0.0-alpha.2",
@@ -782,8 +781,6 @@
     "@tauri-apps/cli-win32-ia32-msvc": ["@tauri-apps/cli-win32-ia32-msvc@3.0.0-alpha.4", "https://registry.npmmirror.com/@tauri-apps/cli-win32-ia32-msvc/-/cli-win32-ia32-msvc-3.0.0-alpha.4.tgz", { "os": "win32", "cpu": "ia32" }, "sha512-v8J3IgwgFsOiuDPLCScYGAQjQZKj+46o1mMRVcx4gYo1JV9P6o/hblJX5nMT/oTTGdsAgao5PZNxUlX8WJGMFA=="],
 
     "@tauri-apps/cli-win32-x64-msvc": ["@tauri-apps/cli-win32-x64-msvc@3.0.0-alpha.4", "https://registry.npmmirror.com/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-3.0.0-alpha.4.tgz", { "os": "win32", "cpu": "x64" }, "sha512-BfEHaKBdNImxb9KOVji9hROEVnPWl2ImshQmV9ASC61jraX2/xCJ+YNdaAi7yA18qAyQVb/CszsfhFWJHT+YbA=="],
-
-    "@tauri-apps/plugin-autostart": ["@tauri-apps/plugin-autostart@3.0.0-alpha.2", "", { "dependencies": { "@tauri-apps/api": "^3.0.0-alpha.1" } }, "sha512-Xls2PhGlDPVwz5aXxbeIJSWMfCR5Jr3Z46sGBZ/kdhXuLasp3T0fLiBxfcOP9d4vgmZqDsDCWFYkHJE0ZVZrJg=="],
 
     "@tauri-apps/plugin-deep-link": ["@tauri-apps/plugin-deep-link@3.0.0-alpha.2", "https://registry.npmmirror.com/@tauri-apps/plugin-deep-link/-/plugin-deep-link-3.0.0-alpha.2.tgz", { "dependencies": { "@tauri-apps/api": "^3.0.0-alpha.1" } }, "sha512-XSDlYwnBZaTZjNMGeGwbSGk6Z3OjJaE/oicYhiDdCVcyqtRl0fCjQQz7SWfaTeSvcu3V9OX/dbA8+JKoQYRYPw=="],
 

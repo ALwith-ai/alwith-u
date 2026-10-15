@@ -16,6 +16,7 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 import { runStateSource } from "@/agent/run-state-source"
+import { commands } from "@/bindings"
 import { openPlatformAccount } from "@/features/auth/open-account"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
@@ -63,11 +64,7 @@ async function start() {
     respond: (token, answer) => client.respond(token, answer),
     async openChat(id, windowLabel) {
       if (windowLabel === "main") {
-        const main = await WebviewWindow.getByLabel("main")
-        if (main === null) throw new Error("Main window unavailable")
-        await main.show()
-        await main.unminimize()
-        await main.setFocus()
+        await commands.showMainWindow()
       } else if (id === null || (await WebviewWindow.getByLabel("chat")) !== null) await openChatWindow()
       else {
         const session = client.state.sessions[id]
@@ -309,6 +306,19 @@ async function start() {
   await listen("vibemon:close", () => {
     void windows.closePet().catch(report)
   })
+  await listen("tray:toggle-pet", () => {
+    void serialize(async () => {
+      const pet = await WebviewWindow.getByLabel("vibemon")
+      if (pet !== null && (await pet.isVisible())) await closePet()
+      else await ensurePet()
+    })
+      .catch(async error => {
+        await commands.showMainWindow()
+        report(error)
+      })
+      .catch(report)
+  })
+  await commands.trayPetReady()
   function currentAccount() {
     return assets.account() === null ? null : petScope()
   }
@@ -318,14 +328,19 @@ async function start() {
     })
   }
   const restore = async () => {
-    if (assets.account() === null) return
-    void syncVibemonResources()
-    await restoreInBackground(() =>
-      restorePetOnStartup(ensurePet, () => (assets.account() === null ? null : petScope()))
-    )
+    if (usePlatformAuth.getState().isLoading) return
+    if (assets.account() !== null) void syncVibemonResources()
+    let restored = false
+    try {
+      await restoreInBackground(async () => {
+        restored = await restorePetOnStartup(ensurePet, currentAccount)
+      })
+    } finally {
+      await commands.autostartComplete({ restored })
+    }
   }
   usePlatformAuth.subscribe((state, previous) => {
-    if (state.user?.user_uuid !== previous.user?.user_uuid) {
+    if (state.user?.user_uuid !== previous.user?.user_uuid || (previous.isLoading && !state.isLoading)) {
       owner.invalidate()
       observeResourceSync("idle")
       toast.dismiss("pet-startup")
@@ -335,5 +350,5 @@ async function start() {
       }).catch(report)
     }
   })
-  if (assets.account() !== null) void serialize(restore).catch(report)
+  void serialize(restore).catch(report)
 }

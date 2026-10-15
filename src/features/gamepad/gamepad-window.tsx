@@ -1,4 +1,4 @@
-import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { platform } from "@tauri-apps/plugin-os"
 import { XIcon } from "lucide-react"
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { commands } from "@/bindings"
 import { GamepadSettings } from "./gamepad"
 import { GAMEPAD_SOCIAL_LINKS } from "./social-links"
 import { useMainWindowVisible } from "./use-main-window-visible"
@@ -16,11 +17,7 @@ function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))
 }
 async function showMain(): Promise<void> {
-  const main = await WebviewWindow.getByLabel("main")
-  if (main === null) throw new Error("Main window unavailable")
-  await main.show()
-  await main.unminimize()
-  await main.setFocus()
+  await commands.showMainWindow()
 }
 
 // Desktop's auxiliary shell: 32px title bar, full-height content, 32px footer.

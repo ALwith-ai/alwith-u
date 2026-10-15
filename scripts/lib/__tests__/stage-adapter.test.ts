@@ -28,6 +28,20 @@ test("the staged toolchain runs with explicit resources outside the executable d
   )
 
   const suffix = process.platform === "win32" ? ".exe" : ""
+  const features = Bun.spawnSync(
+    [join(import.meta.dir, `../../../src-tauri/binaries/alwith-codex-launcher-${triple}${suffix}`), "features", "list"],
+    {
+      env: {
+        ...process.env,
+        ALWITH_U_CODEX_PATH: join(import.meta.dir, `../../../src-tauri/binaries/codex-${triple}${suffix}`)
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 10_000
+    }
+  )
+  expect(features.exitCode, features.stderr.toString()).toBe(0)
+  expect(features.stdout.toString()).toMatch(/^default_mode_request_user_input\s+.*\s+true$/m)
   for (const provider of providers) {
     if (!provider.catalog) continue
     const path = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)

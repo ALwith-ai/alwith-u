@@ -2,6 +2,17 @@
 
 use tauri::Manager;
 
+/// Every explicit main-window open cancels the pending login-launch exit.
+#[tauri3_specta::command]
+pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    ensure_open(&app)?;
+    app.state::<crate::autostart::LoginLaunch>().finish();
+    let window = app.get_webview_window("main").expect("main window is retained for the application lifetime");
+    window.unminimize().map_err(|error| error.to_string())?;
+    window.show().map_err(|error| error.to_string())?;
+    window.set_focus().map_err(|error| error.to_string())
+}
+
 pub fn is_closing(app: &tauri::AppHandle) -> bool {
     // Native window notifications may arrive before setup has installed DriveState.
     app.try_state::<crate::drive::DriveState>().is_some_and(|state| state.is_closing())

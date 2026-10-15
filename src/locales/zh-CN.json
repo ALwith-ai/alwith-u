@@ -324,6 +324,7 @@
     "general": "通用",
     "versionLabel": "版本",
     "petAutostart": "开机启动 Vibémon",
+    "petAutostartInstalled": "请在安装版中开启。登录账户并装配桌宠后，开机时会自动恢复。",
     "accountDesc": "登录状态由 Codex 保存在本机。",
     "updates": "更新",
     "engine": "引擎",

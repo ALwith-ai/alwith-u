@@ -590,7 +590,6 @@ export function FileWorkspace({
   }, [workspace])
   useEffect(() => {
     if (!isTauri()) return
-    const win = getCurrentWindow()
     let closing = false
     const requestExit = (): void => {
       if (closing) return
@@ -623,12 +622,7 @@ export function FileWorkspace({
         })
     }
     const exitListener = listen("workspace:shutdown", requestExit)
-    const listener = win.onCloseRequested(event => {
-      event.preventDefault()
-      requestExit()
-    })
     return () => {
-      void listener.then(stop => stop()).catch(report)
       void exitListener.then(stop => stop()).catch(report)
     }
   }, [])

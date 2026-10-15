@@ -1,4 +1,4 @@
-import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart"
+import { commands } from "@/bindings"
 import { LoaderCircleIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -11,6 +11,7 @@ export function AutostartRow() {
   const { t } = useTranslation()
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [pending, setPending] = useState(true)
+  const [supported, setSupported] = useState(true)
   const working = useRef(false)
   const mounted = useRef(false)
   const read = useCallback(async (value?: boolean) => {
@@ -18,9 +19,12 @@ export function AutostartRow() {
     working.current = true
     setPending(true)
     try {
-      if (value !== undefined) await (value ? enable() : disable())
-      const actual = await isEnabled()
-      if (mounted.current) setEnabled(actual)
+      if (value !== undefined) await commands.autostartSet({ enabled: value })
+      const actual = await commands.autostartStatus()
+      if (mounted.current) {
+        setEnabled(actual.enabled)
+        setSupported(actual.supported)
+      }
     } catch (error) {
       if (mounted.current) {
         setEnabled(null)
@@ -42,13 +46,13 @@ export function AutostartRow() {
     }
   }, [read])
   return (
-    <SettingRow title={t("settings.petAutostart")}>
+    <SettingRow title={t("settings.petAutostart")} desc={supported ? undefined : t("settings.petAutostartInstalled")}>
       <div className="flex items-center gap-2">
         {pending && <LoaderCircleIcon className="text-muted-foreground size-4 animate-spin" aria-hidden="true" />}
         <Switch
           aria-label={t("settings.petAutostart")}
           checked={enabled === true}
-          disabled={pending || enabled === null}
+          disabled={pending || enabled === null || !supported}
           onCheckedChange={value => void read(value)}
         />
       </div>

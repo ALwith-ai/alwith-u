@@ -280,18 +280,30 @@ test("native dirty state follows the aggregate across workspace switches", async
   expect(notifications.at(-1)).toEqual(["workspace_dirty", { dirty: true }])
 })
 
-test("discarding on main-window close takes the approved native exit path", async () => {
+function requestExit(): void {
+  required(native.listen.mock.calls.find(([name]) => name === "workspace:shutdown")?.[1])()
+}
+
+test("main-window close is left to the resident host without prompting or approving exit", async () => {
+  native.nativeMode = true
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "one.txt" }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "kept in memory" } })
+  expect(native.close).toBeNull()
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(native.invoke).not.toHaveBeenCalledWith("workspace_exit")
+  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("kept in memory")
+})
+
+test("discarding on explicit quit takes the approved native exit path", async () => {
   native.nativeMode = true
   render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   fireEvent.click(await screen.findByRole("treeitem", { name: /one.txt/ }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "draft" } })
-  const preventDefault = vi.fn()
-  await act(async () => {
-    if (native.close === null) throw new Error("Close listener was not registered")
-    native.close({ preventDefault })
-  })
-  expect(preventDefault).toHaveBeenCalledOnce()
+  expect(native.close).toBeNull()
+  await act(async () => requestExit())
   fireEvent.click(await screen.findByRole("button", { name: "Discard" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
   expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("first")
@@ -598,13 +610,13 @@ test("cancelling application exit keeps the dirty document editable and allows a
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "one.txt" }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "unsaved" } })
-  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  await act(async () => requestExit())
   fireEvent.click(await screen.findByRole("button", { name: "Cancel" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_exit")).toHaveLength(0)
   expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("unsaved")
   fireEvent.change(screen.getByRole("textbox", { name: "Code" }), { target: { value: "continued editing" } })
-  await act(async () => required(native.close)({ preventDefault: vi.fn() }))
+  await act(async () => requestExit())
   fireEvent.click(await screen.findByRole("button", { name: "Save" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
   expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("continued editing")
@@ -624,7 +636,7 @@ test("saving on exit succeeds when the saved background document is deferred", a
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue(`body ${index}`))
   }
   await act(async () => {
-    required(native.close)({ preventDefault: vi.fn() })
+    requestExit()
   })
   fireEvent.click(await screen.findByRole("button", { name: "Save" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
@@ -641,7 +653,7 @@ test("edits to an approved project while another exit prompt is open prevent exi
   fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "two.txt" }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "second draft" } })
   await act(async () => {
-    required(native.close)({ preventDefault: vi.fn() })
+    requestExit()
   })
   fireEvent.click(await screen.findByRole("button", { name: "Discard" }))
   await waitFor(() => expect(screen.getByRole("dialog")).toHaveTextContent("/b/two.txt"))

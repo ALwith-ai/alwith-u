@@ -58,7 +58,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
         {avatar}
         <span className="min-w-0 truncate">{displayName}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8}>
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-popover-foreground flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium">
             {avatar}

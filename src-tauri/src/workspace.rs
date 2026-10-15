@@ -168,6 +168,10 @@ pub fn prevent_exit(app: &tauri::AppHandle) -> bool {
     if !DIRTY.load(std::sync::atomic::Ordering::Acquire) {
         return false;
     }
+    // Quit is also available while main is hidden; make its save confirmation reachable.
+    if let Err(error) = crate::window::show_main_window(app.clone()) {
+        log::error!("Cannot show workspace shutdown confirmation: {error}");
+    }
     if let Err(error) = app.emit_to("main", "workspace:shutdown", ()) {
         log::error!("Cannot request workspace shutdown: {error}");
     }

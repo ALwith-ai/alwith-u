@@ -284,6 +284,9 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             }
             let parent = if action == "drag" { app.get_webview_window("bubble-menu-vibemon") } else { None };
             window_action(&window, &action, parent, Value::Null).await?;
+            if window.label() == "vibemon" && matches!(action.as_str(), "present" | "hide" | "focus") {
+                crate::tray::set_pet_checked(app, window.is_visible().map_err(|error| error.to_string())?);
+            }
             if action == "drag" {
                 app.emit_to("main", "vibemon:position", window.outer_position().map_err(|e| e.to_string())?)
                     .map_err(|e| e.to_string())?;
