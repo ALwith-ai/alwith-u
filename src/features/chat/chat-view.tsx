@@ -1,7 +1,7 @@
 import type { Session } from "@alwith/api"
 import { isFormElicitation } from "@alwith/api"
 import { LockIcon, UnplugIcon } from "lucide-react"
-import { type ReactNode, useRef } from "react"
+import { type ReactNode, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
@@ -18,6 +18,7 @@ import { ChatHeader } from "./chat-header"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
+import { ChatOpenSessionContext } from "./file-actions"
 import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { ImageLightbox } from "./dialogs/image-lightbox"
@@ -59,76 +60,84 @@ export function ChatView({
       .open(session.id, session.cwd)
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }
+  // A subagent's thread lives in the same Codex home; it opens like any thread of this project.
+  const openSession = useCallback(
+    (sessionId: string, title: string): void =>
+      onSelectThread?.({ sessionId, cwd: session.cwd, title, updatedAt: null, archived: false }),
+    [onSelectThread, session.cwd]
+  )
   return (
     <ChatBranchProvider key={session.id} session={session} onSelect={onSelectThread}>
-      <div data-chat-drop-zone ref={rootRef} className="flex h-full min-h-0 flex-col">
-        <ChatHeader
-          target={headerTarget}
-          title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
-          project={projectMenu}>
-          <ChatActionsMenu
-            surface={headerTarget === undefined ? "main" : "floating"}
-            onOpenWindow={onOpenWindow}
-            onReturnToMain={onReturnToMain}
-            session={session}
-            cwd={session.cwd}
-            onNewChat={onNewChat}
-            onNewProject={onNewProject}
-            onDeleted={onDeleted}
-          />
-        </ChatHeader>
-        <ChatSearch rootRef={rootRef} sessionId={session.id} />
-        {connected && !session.attached && !session.restoring && (
-          <div className="px-4 pb-2">
-            <Alert>
-              <UnplugIcon />
-              <AlertTitle>{t("chat.stopped")}</AlertTitle>
-              <AlertDescription>
-                <Button size="sm" variant="outline" onClick={reopen}>
-                  {t("connection.reconnect")}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-        {session.readOnly && (
-          <div className="px-4 pb-2">
-            <Alert>
-              <LockIcon />
-              <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
-              <AlertDescription className="flex flex-wrap items-center gap-2">
-                {t("chat.readOnly.description")}
-                <Button size="sm" variant="outline" onClick={reopen}>
-                  {t("chat.readOnly.retry")}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-        {session.items.length === 0 && session.attached && !session.restoring && session.state === "idle" ? (
-          // A draft session (Desktop semantics): live Codex session, nothing said yet.
-          <Empty className="flex-1">
-            <EmptyHeader>
-              <EmptyTitle>{t("welcome.title")}</EmptyTitle>
-              <EmptyDescription>{t("welcome.description")}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ChatBody session={session} />
-        )}
-        {inline.length > 0 && (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
-            {inline.map(action => (
-              <ActionCard key={action.id} action={action} />
-            ))}
-          </div>
-        )}
-        <Composer session={session} />
-        {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
-        <DiffModal />
-        <FilePreviewModal />
-        <ImageLightbox />
-      </div>
+      <ChatOpenSessionContext value={openSession}>
+        <div data-chat-drop-zone ref={rootRef} className="flex h-full min-h-0 flex-col">
+          <ChatHeader
+            target={headerTarget}
+            title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
+            project={projectMenu}>
+            <ChatActionsMenu
+              surface={headerTarget === undefined ? "main" : "floating"}
+              onOpenWindow={onOpenWindow}
+              onReturnToMain={onReturnToMain}
+              session={session}
+              cwd={session.cwd}
+              onNewChat={onNewChat}
+              onNewProject={onNewProject}
+              onDeleted={onDeleted}
+            />
+          </ChatHeader>
+          <ChatSearch rootRef={rootRef} sessionId={session.id} />
+          {connected && !session.attached && !session.restoring && (
+            <div className="px-4 pb-2">
+              <Alert>
+                <UnplugIcon />
+                <AlertTitle>{t("chat.stopped")}</AlertTitle>
+                <AlertDescription>
+                  <Button size="sm" variant="outline" onClick={reopen}>
+                    {t("connection.reconnect")}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          {session.readOnly && (
+            <div className="px-4 pb-2">
+              <Alert>
+                <LockIcon />
+                <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
+                <AlertDescription className="flex flex-wrap items-center gap-2">
+                  {t("chat.readOnly.description")}
+                  <Button size="sm" variant="outline" onClick={reopen}>
+                    {t("chat.readOnly.retry")}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          {session.items.length === 0 && session.attached && !session.restoring && session.state === "idle" ? (
+            // A draft session (Desktop semantics): live Codex session, nothing said yet.
+            <Empty className="flex-1">
+              <EmptyHeader>
+                <EmptyTitle>{t("welcome.title")}</EmptyTitle>
+                <EmptyDescription>{t("welcome.description")}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <ChatBody session={session} />
+          )}
+          {inline.length > 0 && (
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
+              {inline.map(action => (
+                <ActionCard key={action.id} action={action} />
+              ))}
+            </div>
+          )}
+          <Composer session={session} />
+          {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
+          <DiffModal />
+          <FilePreviewModal />
+          <ImageLightbox />
+        </div>
+      </ChatOpenSessionContext>
     </ChatBranchProvider>
   )
 }

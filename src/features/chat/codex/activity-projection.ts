@@ -1,6 +1,6 @@
 import { type MessageItem, type Terminal, type ToolItem, terminalOf, textOf } from "@alwith/api"
 import type { CodexActivityBlock } from "@alwith/module-chat/group-blocks"
-import type { CollabAgent, CollabTool } from "@alwith/module-chat/types"
+import type { CollabAgent, CollabTool, SubagentActivityKind } from "@alwith/module-chat/types"
 
 /** Adapt display data only; session updates, tool patches and terminal streams are folded by @alwith/api. */
 export function projectActivity(
@@ -27,6 +27,8 @@ export function projectActivity(
       id: item.id,
       // Codex names a subagent by the last segment of its path, as the adapter's title does.
       name: agentName(input.agentPath, item.id),
+      threadId: requiredString(input.agentThreadId, "agentThreadId", item.id),
+      activity: subagentActivity(input.activity, item.id),
       model: nullableString(input.model, "model", item.id),
       reasoningEffort: nullableString(input.reasoningEffort, "reasoningEffort", item.id),
       status: item.status ?? "pending",
@@ -98,4 +100,14 @@ function agentName(path: unknown, itemId: string): string {
   const name = typeof path === "string" ? path.split("/").filter(Boolean).at(-1) : undefined
   if (name === undefined) throw new Error(`Subagent ${itemId} has no agent path`)
   return name
+}
+
+function requiredString(value: unknown, field: string, itemId: string): string {
+  if (typeof value === "string") return value
+  throw new Error(`Tool call ${itemId} has no ${field}`)
+}
+
+function subagentActivity(value: unknown, itemId: string): SubagentActivityKind {
+  if (value === "started" || value === "interacted" || value === "interrupted" || value === "completed") return value
+  throw new Error(`Subagent ${itemId} has an unknown activity ${String(value)}`)
 }
