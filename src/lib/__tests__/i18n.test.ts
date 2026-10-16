@@ -1,3 +1,4 @@
+import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
 import { expect, test } from "vitest"
 import i18n, { initI18n, LANGUAGES } from "@/lib/i18n"
@@ -26,7 +27,13 @@ test("every English UI message has an explicit Simplified Chinese translation", 
   await initI18n("zh-CN")
 
   expect(resourceContract(zhCN)).toEqual(resourceContract(en))
-  expect(resourceContract(chatLocales["zh-CN"])).toEqual(resourceContract(chatLocales.en))
+  // Singular messages can spell out one or interpolate count depending on the language.
+  const chatContract = (tree: TranslationTree) =>
+    resourceContract(tree).map(([key, placeholders]) => [
+      key,
+      key.endsWith("_one") ? placeholders.filter(name => name !== "count") : placeholders
+    ])
+  expect(chatContract(chatLocales["zh-CN"])).toEqual(chatContract(chatLocales.en))
   expect(i18n.t("chat.project.chatCount", { count: 1 })).toBe("1 个会话")
   expect(i18n.t("chat.project.chatCount", { count: 7 })).toBe("7 个会话")
 })
@@ -39,7 +46,7 @@ test("the Simplified Chinese activity sidebar uses translated labels", async () 
 })
 
 test("supported locales use the ALwith U product name", async () => {
-  for (const language of ["en", "zh-CN"]) {
+  for (const { code: language } of LANGUAGES) {
     await initI18n(language)
 
     expect(i18n.t("app.name")).toBe("ALwith U")
@@ -47,15 +54,30 @@ test("supported locales use the ALwith U product name", async () => {
   }
 })
 
-test("incomplete languages display the complete English UI without mixing translations", async () => {
-  for (const { code } of LANGUAGES) {
-    if (code === "en" || code === "zh-CN" || code === "ar") continue
-    await initI18n(code)
+test.each(LANGUAGES)("$code loads application, chat and gamepad catalogs", async ({ code }) => {
+  await initI18n(code)
 
-    expect(i18n.language).toBe(code)
-    expect(i18n.t("settings.title")).toBe("Settings")
-    expect(i18n.t("actions.copy", { ns: "alwithChat" })).toBe("Copy")
+  expect(i18n.language).toBe(code)
+  expect(i18n.resolvedLanguage).toBe(code)
+  expect(i18n.getResourceBundle(code, "alwithChat")).toEqual(chatLocales[code])
+  expect(i18n.getResourceBundle(code, "gamepad")).toEqual(gamepadResources[code])
+  const catalog = i18n.getResourceBundle(code, "translation") as TranslationTree
+  const source = new Map(resourceContract(en))
+  for (const [key, placeholders] of resourceContract(catalog)) {
+    expect(source.has(key), `${code}: unknown key ${key}`).toBe(true)
+    expect(placeholders, `${code}: placeholders for ${key}`).toEqual(source.get(key))
   }
+  for (const key of ["settings.title", "sidebar.newChat", "welcome.title", "composer.hint", "chatWindow.open"]) {
+    expect(i18n.getResource(code, "translation", key), `${code}: ${key}`).toBeTruthy()
+    if (code !== "en") expect(i18n.t(key)).not.toBe(i18n.t(key, { lng: "en" }))
+  }
+})
+
+test("missing messages fall back to English without changing the selected locale", async () => {
+  await initI18n("fr")
+  i18n.addResource("en", "fallbackTest", "message", "Fallback message")
+  expect(i18n.t("message", { ns: "fallbackTest" })).toBe("Fallback message")
+  expect(i18n.resolvedLanguage).toBe("fr")
 })
 
 test("Arabic loads existing app and shared chat translations with English for missing messages", async () => {

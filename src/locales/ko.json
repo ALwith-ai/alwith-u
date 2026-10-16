@@ -1,32 +1,77 @@
 {
+  "platformAuth": {
+    "email": "이메일",
+    "code": "인증 코드",
+    "signIn": "로그인",
+    "signOut": "ALwith U에서 로그아웃"
+  },
+  "guide": {
+    "help": "도움 받기"
+  },
+  "errorBoundary": {
+    "retry": "다시 시도"
+  },
+  "mcpDiagnostics": {
+    "pending": "대기 중"
+  },
   "actions": {
     "copy": "복사",
     "copied": "복사됨",
     "cancel": "취소",
     "close": "닫기",
     "retry": "다시 시도",
+    "send": "보내기",
     "stop": "중지",
     "activity": "활동",
+    "background": "배경",
     "submit": "제출",
     "open": "열기",
-    "reveal": "파일 관리자에서 보기"
+    "reveal": "파일 관리자에서 보기",
+    "decline": "거절",
+    "more": "추가 작업",
+    "foreground": "포그라운드"
   },
   "connection": {
-    "reconnect": "다시 연결"
+    "reconnect": "다시 연결",
+    "connecting": "채팅 서비스 시작 중",
+    "disconnected": "채팅 서비스가 실행 중이 아닙니다",
+    "failed": "채팅 서비스를 시작하지 못했습니다",
+    "signIn": "ChatGPT로 로그인",
+    "signInDevice": "기기 코드로 로그인",
+    "signInApiKey": "API 키 사용"
   },
   "sidebar": {
+    "quickChats": "빠른 채팅",
     "plugins": "플러그인",
+    "activity": "활동",
+    "background": "배경",
     "newChat": "새 채팅",
     "chats": "채팅",
     "untitled": "새 채팅",
     "unarchive": "복원",
     "delete": "삭제",
+    "rename": "이름 바꾸기",
     "search": "채팅 검색",
     "stop": "중지",
-    "settings": "설정"
+    "settings": "설정",
+    "pin": "사이드바 고정",
+    "unpin": "사이드바 접기",
+    "toggleRight": "오른쪽 사이드바 전환",
+    "showRight": "오른쪽 사이드바 표시",
+    "hideRight": "오른쪽 사이드바 숨기기",
+    "backToMain": "메인 화면으로 돌아가기",
+    "archived": "보관됨",
+    "archive": "보관",
+    "loadMore": "더 불러오기",
+    "fork": "분기 만들기",
+    "deleteTitle": "이 채팅을 삭제할까요?",
+    "deleteDescription": "이 채팅은 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "noResults": "채팅을 찾을 수 없습니다"
   },
   "welcome": {
-    "chooseFolder": "폴더 선택"
+    "chooseFolder": "폴더 선택",
+    "title": "무엇을 만들고 싶으신가요?",
+    "description": "프로젝트 폴더를 선택하여 채팅을 시작하세요."
   },
   "chat": {
     "thinking": "생각 중",
@@ -61,29 +106,83 @@
       "failed": "실패",
       "output": "출력",
       "input": "입력"
-    }
+    },
+    "working": "작업 중",
+    "thought": "생각 완료",
+    "steerPlaceholder": "현재 턴에 지침 추가"
   },
   "composer": {
     "mode": "권한",
-    "model": "모델"
+    "model": "모델",
+    "effort": "추론",
+    "collaboration": "협업",
+    "fastMode": "빠른 모드",
+    "hint": "Enter로 전송 · Shift+Enter로 줄바꿈"
   },
   "approval": {
-    "answerOther": "기타"
+    "answerOther": "기타",
+    "needed": "입력이 필요합니다"
+  },
+  "zoom": {
+    "reset": "재설정"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "일반",
+    "versionLabel": "버전",
+    "engine": "엔진",
     "title": "설정",
     "appearance": "모양",
     "theme": "테마",
     "themeLight": "라이트 모드",
     "themeDark": "다크 모드",
+    "themeSystem": "시스템",
+    "navigationSoundMode": "탐색 멜로디",
+    "navigationSoundModes": {
+      "none": "없음",
+      "scale": "음계",
+      "auto": "자동"
+    },
+    "navigationInstrument": "음색",
+    "navigationInstrumentGroups": {
+      "piano": "피아노",
+      "chromaticPercussion": "건반 타악기",
+      "organ": "오르간",
+      "guitar": "기타",
+      "bass": "베이스",
+      "strings": "현악기",
+      "ensemble": "앙상블",
+      "brass": "금관악기",
+      "reed": "리드 악기",
+      "pipe": "관악기",
+      "synthLead": "신스 리드",
+      "synthPad": "신스 패드",
+      "synthEffects": "신스 효과",
+      "ethnic": "민속 악기",
+      "percussive": "타악기",
+      "soundEffects": "음향 효과"
+    },
     "language": "언어",
-    "about": "정보"
+    "about": "정보",
+    "editor": "에디터",
+    "drive": "드라이브",
+    "extensions": "앱 확장 기능",
+    "account": "계정",
+    "provider": "모델 제공업체",
+    "externalEditor": "프로젝트를 열 앱",
+    "licensesTitle": "라이선스",
+    "version": "버전 {{version}}"
+  },
+  "usage": {
+    "usage": "사용량",
+    "resetsAt": "{{time}}에 초기화",
+    "notSignedIn": "로그인되지 않음"
   },
   "provider": {
-    "model": "모델",
-    "restoreButton": "복원"
+    "testButton": "연결 테스트",
+    "customButton": "커스텀",
+    "saveButton": "저장",
+    "remove": "제거"
   },
   "updater": {
     "relaunchConfirmTitle": "업데이트를 위해 다시 시작할까요?",
@@ -94,11 +193,88 @@
   },
   "plugins": {
     "title": "플러그인",
-    "plugins": "플러그인",
-    "skills": "스킬",
-    "uninstall": "제거"
+    "sections": {
+      "installed": "설치됨"
+    },
+    "loadError": {
+      "retry": "다시 시도"
+    },
+    "card": {
+      "install": "설치",
+      "uninstall": "제거",
+      "installTooltip": "플러그인 설치"
+    },
+    "installModal": {
+      "about": "정보",
+      "includesSkills": "스킬",
+      "includesApps": "앱",
+      "includesMcpServers": "MCP 서버",
+      "connected": "연결됨"
+    },
+    "detail": {
+      "root": "플러그인",
+      "install": "플러그인 설치",
+      "uninstall": "제거",
+      "skills": "스킬",
+      "apps": "앱",
+      "mcpServers": "MCP 서버",
+      "developer": "개발자",
+      "category": "카테고리",
+      "version": "버전",
+      "website": "웹사이트",
+      "privacyPolicy": "개인정보 보호정책"
+    },
+    "manageTabs": {
+      "plugins": "플러그인",
+      "skills": "스킬",
+      "marketplace": "마켓플레이스"
+    },
+    "headings": {
+      "plugins": "플러그인",
+      "skills": "스킬",
+      "marketplace": "마켓플레이스"
+    },
+    "skills": {
+      "scope": {
+        "user": "사용자",
+        "system": "시스템",
+        "repo": "프로젝트"
+      },
+      "installed": "설치됨",
+      "open": "열기",
+      "revealInFinder": "Finder에서 보기",
+      "details": "세부 정보"
+    },
+    "marketplace": {
+      "loadErrorRetry": "다시 시도",
+      "partialRetry": "다시 시도",
+      "removeConfirm": "제거",
+      "removeCancel": "취소",
+      "sourceLabel": "소스",
+      "addCancel": "취소"
+    },
+    "previousPage": "이전",
+    "nextPage": "다음"
+  },
+  "shortcuts": {
+    "title": "단축키",
+    "groups": {
+      "general": "일반"
+    },
+    "items": {
+      "newChat": "새 채팅",
+      "commandPalette": "커맨드 팔레트",
+      "openSettings": "설정 열기",
+      "openHotkeys": "단축키",
+      "zoomIn": "확대",
+      "zoomOut": "축소",
+      "actualSize": "실제 크기",
+      "sendMessage": "메시지 전송"
+    }
   },
   "palette": {
+    "hotkeys": "단축키",
+    "placeholder": "채팅 검색",
     "actions": "액션",
     "chats": "채팅",
     "newChat": "새 채팅",
@@ -107,5 +283,80 @@
   "time": {
     "today": "오늘",
     "yesterday": "어제"
+  },
+  "story": {
+    "open": "열기",
+    "stop": "중지",
+    "send": "보내기",
+    "current": "현재"
+  },
+  "chatWindow": {
+    "shortcutOff": "꺼짐",
+    "returnToMain": "메인 창으로 돌아가기",
+    "open": "채팅 창 열기",
+    "shortcut": "채팅 창 단축키",
+    "shortcutSave": "단축키 저장"
+  },
+  "extensions": {
+    "details": {
+      "version": "버전"
+    },
+    "install": "폴더에서 설치",
+    "uninstall": "제거",
+    "status": {
+      "active": "실행 중",
+      "failed": "실패"
+    },
+    "reload": "다시 로드"
+  },
+  "workspace": {
+    "zoomIn": "확대",
+    "zoomOut": "축소",
+    "resetZoom": "확대/축소 재설정",
+    "page": "페이지",
+    "closeOthers": "다른 탭 닫기",
+    "closeRight": "오른쪽 닫기",
+    "closeSaved": "저장된 항목 닫기",
+    "closeAll": "모두 닫기",
+    "retry": "다시 시도",
+    "iconTheme": "파일 아이콘 테마",
+    "collapse": "모두 접기",
+    "copyPath": "경로 복사",
+    "copyRelativePath": "상대 경로 복사",
+    "reveal": "파일 관리자에서 표시",
+    "open": "열기",
+    "enterViewMode": "최대화",
+    "exitViewMode": "복원",
+    "files": "파일",
+    "loading": "로드 중…",
+    "newFile": "새 파일",
+    "newFolder": "새 폴더",
+    "rename": "이름 바꾸기",
+    "remove": "삭제",
+    "copy": "복사",
+    "hidden": "숨김 파일 표시",
+    "save": "저장",
+    "saveAs": "다른 이름으로 저장",
+    "saving": "저장 중…",
+    "close": "닫기",
+    "edit": "편집",
+    "preview": "미리보기",
+    "reload": "다시 로드",
+    "cancel": "취소",
+    "confirm": "확인",
+    "source": "소스",
+    "newTab": "새 탭",
+    "emptyNewTab": "새 탭",
+    "more": "추가 작업"
+  },
+  "pet": {
+    "retry": "다시 시도"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "입력이 필요합니다",
+    "finished": "작업 완료"
   }
 }

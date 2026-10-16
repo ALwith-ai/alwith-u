@@ -1,32 +1,76 @@
 {
+  "platformAuth": {
+    "code": "Kode verifikasi",
+    "signIn": "Masuk",
+    "signOut": "Keluar dari ALwith U"
+  },
+  "guide": {
+    "help": "Dapatkan bantuan"
+  },
+  "errorBoundary": {
+    "retry": "Coba lagi"
+  },
+  "mcpDiagnostics": {
+    "pending": "Tertunda"
+  },
   "actions": {
     "copy": "Salin",
     "copied": "Disalin",
     "cancel": "Batal",
     "close": "Tutup",
     "retry": "Coba lagi",
+    "send": "Kirim",
     "stop": "Hentikan",
     "activity": "Aktivitas",
+    "background": "Latar",
     "submit": "Kirim",
     "open": "Buka",
-    "reveal": "Tampilkan di Manajer File"
+    "reveal": "Tampilkan di Manajer File",
+    "decline": "Tolak",
+    "more": "Tindakan lainnya",
+    "foreground": "Latar depan"
   },
   "connection": {
-    "reconnect": "Hubungkan kembali"
+    "reconnect": "Hubungkan kembali",
+    "connecting": "Memulai layanan obrolan",
+    "disconnected": "Layanan obrolan tidak berjalan",
+    "failed": "Gagal memulai layanan obrolan",
+    "signIn": "Masuk dengan ChatGPT",
+    "signInDevice": "Masuk dengan kode perangkat",
+    "signInApiKey": "Gunakan kunci API"
   },
   "sidebar": {
+    "quickChats": "Chat cepat",
     "plugins": "Plugin",
+    "activity": "Aktivitas",
+    "background": "Latar",
     "newChat": "Obrolan baru",
     "chats": "Obrolan",
     "untitled": "Obrolan baru",
     "unarchive": "Pulihkan",
     "delete": "Hapus",
+    "rename": "Ganti nama",
     "search": "Cari Obrolan…",
     "stop": "Hentikan",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "pin": "Sematkan bilah samping",
+    "unpin": "Ciutkan bilah samping",
+    "toggleRight": "Alihkan bilah samping kanan",
+    "showRight": "Tampilkan bilah samping kanan",
+    "hideRight": "Sembunyikan bilah samping kanan",
+    "backToMain": "Kembali ke layar utama",
+    "archived": "Diarsipkan",
+    "archive": "Arsipkan",
+    "loadMore": "Muat lebih banyak",
+    "fork": "Buat cabang",
+    "deleteTitle": "Hapus obrolan ini?",
+    "deleteDescription": "Obrolan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
+    "noResults": "Tidak ada obrolan ditemukan"
   },
   "welcome": {
-    "chooseFolder": "Pilih folder"
+    "chooseFolder": "Pilih folder",
+    "title": "Apa yang ingin Anda buat?",
+    "description": "Pilih folder proyek untuk memulai obrolan."
   },
   "chat": {
     "thinking": "Berpikir",
@@ -54,27 +98,78 @@
       "running": "Berjalan",
       "stopped": "Berhenti",
       "failed": "Gagal"
-    }
+    },
+    "working": "Sedang bekerja",
+    "thought": "Selesai berpikir",
+    "steerPlaceholder": "Tambahkan arahan untuk giliran saat ini"
   },
   "composer": {
-    "mode": "Izin"
+    "mode": "Izin",
+    "effort": "Penalaran",
+    "collaboration": "Kolaborasi",
+    "fastMode": "Mode cepat",
+    "hint": "Enter untuk mengirim · Shift+Enter untuk baris baru"
   },
   "approval": {
-    "answerOther": "Lainnya"
+    "answerOther": "Lainnya",
+    "needed": "Masukan Anda diperlukan"
+  },
+  "zoom": {
+    "reset": "Atur ulang"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "Umum",
+    "versionLabel": "Versi",
     "title": "Pengaturan",
     "appearance": "Tampilan",
     "theme": "Tema",
     "themeLight": "Terang",
     "themeDark": "Gelap",
+    "themeSystem": "Sistem",
+    "navigationSoundMode": "Melodi navigasi",
+    "navigationSoundModes": {
+      "none": "Tidak ada",
+      "scale": "Tangga nada",
+      "auto": "Otomatis"
+    },
+    "navigationInstrument": "Warna suara",
+    "navigationInstrumentGroups": {
+      "chromaticPercussion": "Perkusi kromatik",
+      "guitar": "Gitar",
+      "bass": "Bas",
+      "strings": "Alat musik gesek",
+      "ensemble": "Ansambel",
+      "brass": "Alat musik tiup logam",
+      "reed": "Alat musik buluh",
+      "pipe": "Alat musik tiup",
+      "synthLead": "Lead synthesizer",
+      "synthPad": "Pad synthesizer",
+      "synthEffects": "Efek synthesizer",
+      "ethnic": "Alat musik dunia",
+      "percussive": "Perkusi",
+      "soundEffects": "Efek suara"
+    },
     "language": "Bahasa",
-    "about": "Tentang"
+    "about": "Tentang",
+    "drive": "Drive",
+    "extensions": "Ekstensi aplikasi",
+    "account": "Akun",
+    "provider": "Penyedia model",
+    "externalEditor": "Buka proyek dengan",
+    "licensesTitle": "Lisensi",
+    "version": "Versi {{version}}"
+  },
+  "usage": {
+    "usage": "Penggunaan",
+    "resetsAt": "Atur ulang {{time}}",
+    "notSignedIn": "Belum masuk"
   },
   "provider": {
-    "restoreButton": "Pulihkan"
+    "testButton": "Uji koneksi",
+    "customButton": "Kustom",
+    "saveButton": "Simpan",
+    "remove": "Hapus"
   },
   "updater": {
     "relaunchConfirmTitle": "Luncurkan ulang untuk memperbarui?",
@@ -85,11 +180,86 @@
   },
   "plugins": {
     "title": "Plugin",
-    "plugins": "Plugin",
-    "skills": "Skill",
-    "uninstall": "Hapus instalasi"
+    "sections": {
+      "installed": "Terpasang"
+    },
+    "loadError": {
+      "retry": "Coba lagi"
+    },
+    "card": {
+      "install": "Instal",
+      "uninstall": "Hapus instalasi",
+      "installTooltip": "Pasang plugin"
+    },
+    "installModal": {
+      "about": "Tentang",
+      "includesSkills": "Skill",
+      "includesApps": "Aplikasi",
+      "includesMcpServers": "MCP server",
+      "connected": "Terhubung"
+    },
+    "detail": {
+      "root": "Plugin",
+      "install": "Pasang plugin",
+      "uninstall": "Hapus instalasi",
+      "skills": "Skill",
+      "apps": "Aplikasi",
+      "mcpServers": "MCP server",
+      "developer": "Pengembang",
+      "category": "Kategori",
+      "version": "Versi",
+      "website": "Situs web",
+      "privacyPolicy": "kebijakan privasi"
+    },
+    "manageTabs": {
+      "plugins": "Plugin",
+      "skills": "Skill"
+    },
+    "headings": {
+      "plugins": "Plugin",
+      "skills": "Skill"
+    },
+    "skills": {
+      "scope": {
+        "user": "Pengguna",
+        "system": "Sistem",
+        "repo": "Proyek"
+      },
+      "installed": "Terpasang",
+      "open": "Buka",
+      "revealInFinder": "Tampilkan di Finder",
+      "details": "Detail"
+    },
+    "marketplace": {
+      "loadErrorRetry": "Coba lagi",
+      "partialRetry": "Coba lagi",
+      "removeConfirm": "Hapus",
+      "removeCancel": "Batal",
+      "sourceLabel": "Sumber",
+      "addCancel": "Batal"
+    },
+    "previousPage": "Sebelumnya",
+    "nextPage": "Berikutnya"
+  },
+  "shortcuts": {
+    "title": "Pintasan",
+    "groups": {
+      "general": "Umum"
+    },
+    "items": {
+      "newChat": "Obrolan baru",
+      "commandPalette": "Palet perintah",
+      "openSettings": "Buka pengaturan",
+      "openHotkeys": "Pintasan",
+      "zoomIn": "Perbesar",
+      "zoomOut": "Perkecil",
+      "actualSize": "Ukuran asli",
+      "sendMessage": "Kirim pesan"
+    }
   },
   "palette": {
+    "hotkeys": "Pintasan",
+    "placeholder": "Cari chat",
     "actions": "Tindakan",
     "chats": "Obrolan",
     "newChat": "Obrolan baru",
@@ -98,5 +268,79 @@
   "time": {
     "today": "Hari ini",
     "yesterday": "Kemarin"
+  },
+  "story": {
+    "open": "Buka",
+    "stop": "Hentikan",
+    "send": "Kirim",
+    "current": "saat ini"
+  },
+  "chatWindow": {
+    "shortcutOff": "Mati",
+    "returnToMain": "Kembali ke jendela utama",
+    "open": "Buka jendela obrolan",
+    "shortcut": "Pintasan jendela obrolan",
+    "shortcutSave": "Simpan pintasan"
+  },
+  "extensions": {
+    "details": {
+      "version": "Versi"
+    },
+    "install": "Instal dari folder",
+    "uninstall": "Hapus instalasi",
+    "status": {
+      "active": "Berjalan",
+      "failed": "Gagal"
+    },
+    "reload": "Muat ulang"
+  },
+  "workspace": {
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil",
+    "resetZoom": "Setel ulang zoom",
+    "page": "Halaman",
+    "closeOthers": "Tutup lainnya",
+    "closeRight": "Tutup ke kanan",
+    "closeSaved": "Tutup yang tersimpan",
+    "closeAll": "Tutup semua",
+    "retry": "Coba lagi",
+    "iconTheme": "Tema ikon berkas",
+    "collapse": "Ciutkan semua",
+    "copyPath": "Salin jalur",
+    "copyRelativePath": "Salin jalur relatif",
+    "reveal": "Tampilkan di file manager",
+    "open": "Buka",
+    "enterViewMode": "Maksimalkan",
+    "exitViewMode": "Pulihkan",
+    "files": "Berkas",
+    "loading": "Memuat…",
+    "newFile": "File baru",
+    "newFolder": "Folder baru",
+    "rename": "Ganti nama",
+    "remove": "Hapus",
+    "copy": "Salin",
+    "hidden": "Tampilkan file tersembunyi",
+    "save": "Simpan",
+    "saveAs": "Simpan sebagai",
+    "saving": "Menyimpan…",
+    "close": "Tutup",
+    "preview": "Pratinjau",
+    "reload": "Muat ulang",
+    "cancel": "Batal",
+    "confirm": "Konfirmasi",
+    "source": "Sumber",
+    "newTab": "Tab baru",
+    "emptyNewTab": "Tab baru",
+    "more": "Tindakan lainnya"
+  },
+  "pet": {
+    "retry": "Coba lagi"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "Masukan Anda diperlukan",
+    "finished": "Tugas selesai"
   }
 }

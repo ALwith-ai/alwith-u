@@ -1,33 +1,77 @@
 {
+  "platformAuth": {
+    "code": "Код подтверждения",
+    "signIn": "Войти",
+    "signOut": "Выйти из ALwith U"
+  },
+  "guide": {
+    "help": "Получить помощь"
+  },
+  "errorBoundary": {
+    "retry": "Повторить"
+  },
+  "mcpDiagnostics": {
+    "pending": "В ожидании"
+  },
   "actions": {
     "copy": "Копировать",
     "copied": "Скопировано",
     "cancel": "Отмена",
     "close": "Закрыть",
     "retry": "Повторить",
+    "send": "Отправить",
     "stop": "Остановить",
     "activity": "Активность",
+    "background": "Фон",
     "submit": "Отправить",
     "open": "Открыть",
-    "reveal": "Показать в файловом менеджере"
+    "reveal": "Показать в файловом менеджере",
+    "decline": "Отклонить",
+    "more": "Другие действия",
+    "foreground": "Передний план"
   },
   "connection": {
     "reconnect": "Переподключить",
-    "apiKeyTitle": "API-ключ"
+    "apiKeyTitle": "API-ключ",
+    "connecting": "Запуск службы чата",
+    "disconnected": "Служба чата не запущена",
+    "failed": "Не удалось запустить службу чата",
+    "signIn": "Войти через ChatGPT",
+    "signInDevice": "Войти с кодом устройства",
+    "signInApiKey": "Использовать ключ API"
   },
   "sidebar": {
+    "quickChats": "Быстрые чаты",
     "plugins": "Плагины",
+    "activity": "Активность",
+    "background": "Фон",
     "newChat": "Новый чат",
     "chats": "Чаты",
     "untitled": "Новый чат",
     "unarchive": "Восстановить",
     "delete": "Удалить",
+    "rename": "Переименовать",
     "search": "Поиск чатов",
     "stop": "Остановить",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "pin": "Закрепить боковую панель",
+    "unpin": "Свернуть боковую панель",
+    "toggleRight": "Переключить правую боковую панель",
+    "showRight": "Показать правую боковую панель",
+    "hideRight": "Скрыть правую боковую панель",
+    "backToMain": "На главный экран",
+    "archived": "В архиве",
+    "archive": "Архивировать",
+    "loadMore": "Загрузить ещё",
+    "fork": "Создать ветку",
+    "deleteTitle": "Удалить этот чат?",
+    "deleteDescription": "Этот чат будет удалён навсегда. Это действие нельзя отменить.",
+    "noResults": "Чаты не найдены"
   },
   "welcome": {
-    "chooseFolder": "Выбрать папку"
+    "chooseFolder": "Выбрать папку",
+    "title": "Что вы хотите создать?",
+    "description": "Выберите папку проекта, чтобы начать чат."
   },
   "chat": {
     "thinking": "Думаю",
@@ -53,7 +97,8 @@
       "cachedRead": "Чтение из кеша",
       "cachedWrite": "Запись в кеш",
       "cacheHitRate": "Попадание в кеш",
-      "total": "Итого"
+      "total": "Итого",
+      "context": "Окно контекста"
     },
     "tool": {
       "running": "Выполняется",
@@ -61,30 +106,85 @@
       "failed": "Ошибка",
       "output": "Вывод",
       "input": "Ввод"
-    }
+    },
+    "working": "Выполняется",
+    "thought": "Обдумано",
+    "steerPlaceholder": "Добавить указание для текущего хода"
   },
   "composer": {
     "mode": "Разрешения",
-    "model": "Модель"
+    "model": "Модель",
+    "effort": "Рассуждение",
+    "collaboration": "Совместная работа",
+    "fastMode": "Быстрый режим",
+    "hint": "Enter — отправить · Shift+Enter — новая строка"
   },
   "approval": {
-    "answerOther": "Другое"
+    "answerOther": "Другое",
+    "needed": "Требуется ваш ответ"
+  },
+  "zoom": {
+    "reset": "Сбросить"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "Общие",
+    "versionLabel": "Версия",
+    "engine": "Движок",
     "title": "Настройки",
     "appearance": "Внешний вид",
     "theme": "Тема",
     "themeLight": "Светлая",
     "themeDark": "Темный",
+    "themeSystem": "Система",
+    "navigationSoundMode": "Навигационная мелодия",
+    "navigationSoundModes": {
+      "none": "Нет",
+      "scale": "Гамма",
+      "auto": "Авто"
+    },
+    "navigationInstrument": "Тембр",
+    "navigationInstrumentGroups": {
+      "piano": "Фортепиано",
+      "chromaticPercussion": "Хроматические ударные",
+      "organ": "Орган",
+      "guitar": "Гитара",
+      "bass": "Бас",
+      "strings": "Струнные",
+      "ensemble": "Ансамбль",
+      "brass": "Медные духовые",
+      "reed": "Язычковые",
+      "pipe": "Духовые",
+      "synthLead": "Синтезаторный лид",
+      "synthPad": "Синтезаторный пэд",
+      "synthEffects": "Синтезаторные эффекты",
+      "ethnic": "Этнические инструменты",
+      "percussive": "Ударные",
+      "soundEffects": "Звуковые эффекты"
+    },
     "language": "Язык",
-    "about": "О программе"
+    "about": "О программе",
+    "editor": "Редактор",
+    "drive": "Диск",
+    "extensions": "Расширения приложения",
+    "account": "Аккаунт",
+    "provider": "Поставщик моделей",
+    "externalEditor": "Открывать проекты в",
+    "licensesTitle": "Лицензии",
+    "version": "Версия {{version}}"
+  },
+  "usage": {
+    "usage": "Использование",
+    "resetsAt": "Сброс {{time}}",
+    "notSignedIn": "Не выполнен вход",
+    "apiKey": "API-ключ"
   },
   "provider": {
     "apiKey": "API-ключ",
-    "model": "Модель",
-    "restoreButton": "Восстановить"
+    "testButton": "Проверить соединение",
+    "customButton": "Пользовательский",
+    "saveButton": "Сохранить",
+    "remove": "Удалить"
   },
   "updater": {
     "relaunchConfirmTitle": "Перезапустить для обновления?",
@@ -95,11 +195,84 @@
   },
   "plugins": {
     "title": "Плагины",
-    "plugins": "Плагины",
-    "skills": "Навыки",
-    "uninstall": "Удалить"
+    "sections": {
+      "installed": "Установлено"
+    },
+    "loadError": {
+      "retry": "Повторить"
+    },
+    "card": {
+      "install": "Установить",
+      "uninstall": "Удалить",
+      "installTooltip": "Установить плагин"
+    },
+    "installModal": {
+      "about": "О программе",
+      "includesSkills": "Навыки",
+      "includesApps": "Приложения",
+      "connected": "Подключено"
+    },
+    "detail": {
+      "root": "Плагины",
+      "install": "Установить плагин",
+      "uninstall": "Удалить",
+      "skills": "Навыки",
+      "apps": "Приложения",
+      "developer": "Разработчик",
+      "category": "Категория",
+      "version": "Версия",
+      "website": "Сайт",
+      "privacyPolicy": "политику конфиденциальности"
+    },
+    "manageTabs": {
+      "plugins": "Плагины",
+      "skills": "Навыки"
+    },
+    "headings": {
+      "plugins": "Плагины",
+      "skills": "Навыки"
+    },
+    "skills": {
+      "scope": {
+        "user": "Пользователь",
+        "system": "Система",
+        "repo": "Проект"
+      },
+      "installed": "Установлено",
+      "open": "Открыть",
+      "revealInFinder": "Показать в Finder",
+      "details": "Подробности"
+    },
+    "marketplace": {
+      "loadErrorRetry": "Повторить",
+      "partialRetry": "Повторить",
+      "removeConfirm": "Удалить",
+      "removeCancel": "Отмена",
+      "sourceLabel": "Исходник",
+      "addCancel": "Отмена"
+    },
+    "previousPage": "Предыдущее",
+    "nextPage": "Следующее"
+  },
+  "shortcuts": {
+    "title": "Горячие клавиши",
+    "groups": {
+      "general": "Общие"
+    },
+    "items": {
+      "newChat": "Новый чат",
+      "commandPalette": "Палитра команд",
+      "openSettings": "Открыть настройки",
+      "openHotkeys": "Горячие клавиши",
+      "zoomIn": "Увеличить",
+      "zoomOut": "Уменьшить",
+      "actualSize": "Реальный размер",
+      "sendMessage": "Отправить сообщение"
+    }
   },
   "palette": {
+    "hotkeys": "Горячие клавиши",
+    "placeholder": "Поиск чатов",
     "actions": "Действия",
     "chats": "Чаты",
     "newChat": "Новый чат",
@@ -108,5 +281,80 @@
   "time": {
     "today": "Сегодня",
     "yesterday": "Вчера"
+  },
+  "story": {
+    "open": "Открыть",
+    "stop": "Остановить",
+    "send": "Отправить",
+    "current": "текущий"
+  },
+  "chatWindow": {
+    "shortcutOff": "Выключен",
+    "returnToMain": "Вернуться в главное окно",
+    "open": "Открыть окно чата",
+    "shortcut": "Сочетание клавиш для окна чата",
+    "shortcutSave": "Сохранить сочетание клавиш"
+  },
+  "extensions": {
+    "details": {
+      "version": "Версия"
+    },
+    "install": "Установить из папки",
+    "uninstall": "Удалить",
+    "status": {
+      "active": "Выполняется",
+      "failed": "Не удалось"
+    },
+    "reload": "Перезагрузить"
+  },
+  "workspace": {
+    "zoomIn": "Увеличить",
+    "zoomOut": "Уменьшить",
+    "resetZoom": "Сбросить масштаб",
+    "page": "Страница",
+    "closeOthers": "Закрыть другие",
+    "closeRight": "Закрыть справа",
+    "closeSaved": "Закрыть сохранённые",
+    "closeAll": "Закрыть все",
+    "retry": "Повторить",
+    "iconTheme": "Тема иконок файлов",
+    "collapse": "Свернуть всё",
+    "copyPath": "Скопировать путь",
+    "copyRelativePath": "Скопировать относительный путь",
+    "reveal": "Показать в файловом менеджере",
+    "open": "Открыть",
+    "enterViewMode": "Развернуть",
+    "exitViewMode": "Восстановить",
+    "files": "Файлы",
+    "loading": "Загрузка…",
+    "newFile": "Новый файл",
+    "newFolder": "Новая папка",
+    "rename": "Переименовать",
+    "remove": "Удалить",
+    "copy": "Копировать",
+    "hidden": "Показывать скрытые файлы",
+    "save": "Сохранить",
+    "saveAs": "Сохранить как",
+    "saving": "Сохранение…",
+    "close": "Закрыть",
+    "edit": "Правка",
+    "preview": "Предпросмотр",
+    "reload": "Перезагрузить",
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "source": "Исходник",
+    "newTab": "Новая вкладка",
+    "emptyNewTab": "Новая вкладка",
+    "more": "Другие действия"
+  },
+  "pet": {
+    "retry": "Повторить"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "Требуется ваш ответ",
+    "finished": "Задача завершена"
   }
 }

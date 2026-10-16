@@ -1,32 +1,77 @@
 {
+  "platformAuth": {
+    "email": "ईमेल",
+    "code": "सत्यापन कोड",
+    "signIn": "साइन इन",
+    "signOut": "ALwith U से साइन आउट करें"
+  },
+  "guide": {
+    "help": "सहायता प्राप्त करें"
+  },
+  "errorBoundary": {
+    "retry": "पुनः प्रयास करें"
+  },
+  "mcpDiagnostics": {
+    "pending": "लंबित"
+  },
   "actions": {
     "copy": "कॉपी करें",
     "copied": "कॉपी किया गया",
     "cancel": "रद्द करें",
     "close": "बंद करें",
     "retry": "फिर से कोशिश करें",
+    "send": "भेजें",
     "stop": "रोकें",
     "activity": "गतिविधि",
+    "background": "पृष्ठभूमि",
     "submit": "सबमिट करें",
     "open": "खोलें",
-    "reveal": "फ़ाइल मैनेजर में दिखाएँ"
+    "reveal": "फ़ाइल मैनेजर में दिखाएँ",
+    "decline": "अस्वीकार करें",
+    "more": "और कार्रवाइयाँ",
+    "foreground": "अग्रभूमि"
   },
   "connection": {
-    "reconnect": "फिर से कनेक्ट करें"
+    "reconnect": "फिर से कनेक्ट करें",
+    "connecting": "चैट सेवा शुरू हो रही है",
+    "disconnected": "चैट सेवा नहीं चल रही है",
+    "failed": "चैट सेवा शुरू नहीं हो सकी",
+    "signIn": "ChatGPT से साइन इन करें",
+    "signInDevice": "डिवाइस कोड से साइन इन करें",
+    "signInApiKey": "API कुंजी का उपयोग करें"
   },
   "sidebar": {
+    "quickChats": "त्वरित चैट",
     "plugins": "प्लगइन्स",
+    "activity": "गतिविधि",
+    "background": "पृष्ठभूमि",
     "newChat": "नई चैट",
     "chats": "चैट",
     "untitled": "नई चैट",
     "unarchive": "रीस्टोर करें",
     "delete": "हटाएं",
+    "rename": "नाम बदलें",
     "search": "चैट खोजें",
     "stop": "रोकें",
-    "settings": "सेटिंग्स"
+    "settings": "सेटिंग्स",
+    "pin": "साइडबार पिन करें",
+    "unpin": "साइडबार समेटें",
+    "toggleRight": "दायाँ साइडबार टॉगल करें",
+    "showRight": "दायाँ साइडबार दिखाएँ",
+    "hideRight": "दायाँ साइडबार छिपाएँ",
+    "backToMain": "मुख्य स्क्रीन पर लौटें",
+    "archived": "संग्रहीत",
+    "archive": "संग्रहित करें",
+    "loadMore": "और लोड करें",
+    "fork": "शाखा बनाएँ",
+    "deleteTitle": "यह चैट हटाएँ?",
+    "deleteDescription": "यह चैट स्थायी रूप से हटा दी जाएगी। इसे पूर्ववत नहीं किया जा सकता।",
+    "noResults": "कोई चैट नहीं मिली"
   },
   "welcome": {
-    "chooseFolder": "फ़ोल्डर चुनें"
+    "chooseFolder": "फ़ोल्डर चुनें",
+    "title": "आप क्या बनाना चाहेंगे?",
+    "description": "चैट शुरू करने के लिए प्रोजेक्ट फ़ोल्डर चुनें।"
   },
   "chat": {
     "thinking": "सोच रहा है",
@@ -52,7 +97,8 @@
       "cachedRead": "कैश पढ़ना",
       "cachedWrite": "कैश लिखना",
       "cacheHitRate": "कैश हिट",
-      "total": "कुल"
+      "total": "कुल",
+      "context": "Context विंडो"
     },
     "tool": {
       "running": "चल रहा है",
@@ -60,29 +106,83 @@
       "failed": "फेल हुआ",
       "output": "आउटपुट",
       "input": "इनपुट"
-    }
+    },
+    "working": "कार्य जारी है",
+    "thought": "विचार पूरा हुआ",
+    "steerPlaceholder": "वर्तमान चरण में निर्देश जोड़ें"
   },
   "composer": {
     "mode": "अनुमतियाँ",
-    "model": "मॉडल"
+    "model": "मॉडल",
+    "effort": "तर्क",
+    "collaboration": "सहयोग",
+    "fastMode": "तेज़ मोड",
+    "hint": "भेजने के लिए Enter · नई पंक्ति के लिए Shift+Enter"
   },
   "approval": {
-    "answerOther": "अन्य"
+    "answerOther": "अन्य",
+    "needed": "आपके इनपुट की आवश्यकता है"
+  },
+  "zoom": {
+    "reset": "रीसेट करें"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "सामान्य",
+    "versionLabel": "संस्करण",
+    "engine": "इंजन",
     "title": "सेटिंग्स",
     "appearance": "दिखावट",
     "theme": "थीम",
     "themeLight": "लाइट",
     "themeDark": "गहरा",
+    "themeSystem": "सिस्टम",
+    "navigationSoundMode": "नेविगेशन धुन",
+    "navigationSoundModes": {
+      "none": "कोई नहीं",
+      "scale": "स्वरक्रम",
+      "auto": "स्वतः"
+    },
+    "navigationInstrument": "ध्वनि रंग",
+    "navigationInstrumentGroups": {
+      "piano": "पियानो",
+      "chromaticPercussion": "क्रोमैटिक तालवाद्य",
+      "organ": "ऑर्गन",
+      "guitar": "गिटार",
+      "bass": "बास",
+      "strings": "तार वाद्य",
+      "ensemble": "समूह",
+      "brass": "पीतल वाद्य",
+      "reed": "रीड वाद्य",
+      "pipe": "वायु वाद्य",
+      "synthLead": "सिंथ लीड",
+      "synthPad": "सिंथ पैड",
+      "synthEffects": "सिंथ प्रभाव",
+      "ethnic": "विश्व वाद्य",
+      "percussive": "तालवाद्य",
+      "soundEffects": "ध्वनि प्रभाव"
+    },
     "language": "भाषा",
-    "about": "के बारे में"
+    "about": "के बारे में",
+    "editor": "एडिटर",
+    "drive": "ड्राइव",
+    "extensions": "ऐप एक्सटेंशन",
+    "account": "खाता",
+    "provider": "मॉडल प्रदाता",
+    "externalEditor": "प्रोजेक्ट खोलने के लिए ऐप",
+    "licensesTitle": "लाइसेंस",
+    "version": "संस्करण {{version}}"
+  },
+  "usage": {
+    "usage": "उपयोग",
+    "resetsAt": "{{time}} रीसेट होगा",
+    "notSignedIn": "साइन इन नहीं किया गया"
   },
   "provider": {
-    "model": "मॉडल",
-    "restoreButton": "पुनर्स्थापित करें"
+    "testButton": "कनेक्शन परीक्षण",
+    "customButton": "कस्टम",
+    "saveButton": "सहेजें",
+    "remove": "हटाएँ"
   },
   "updater": {
     "relaunchConfirmTitle": "अपडेट के लिए फिर से लॉन्च करें?",
@@ -93,11 +193,84 @@
   },
   "plugins": {
     "title": "प्लगइन्स",
-    "plugins": "प्लगइन्स",
-    "skills": "स्किल्स",
-    "uninstall": "अनइंस्टॉल करें"
+    "sections": {
+      "installed": "इंस्टॉल किया गया"
+    },
+    "loadError": {
+      "retry": "पुनः प्रयास करें"
+    },
+    "card": {
+      "install": "इंस्टॉल करें",
+      "uninstall": "अनइंस्टॉल करें",
+      "installTooltip": "प्लगइन इंस्टॉल करें"
+    },
+    "installModal": {
+      "about": "के बारे में",
+      "includesSkills": "स्किल्स",
+      "includesApps": "ऐप्स",
+      "connected": "जुड़ा हुआ"
+    },
+    "detail": {
+      "root": "प्लगइन",
+      "install": "प्लगइन इंस्टॉल करें",
+      "uninstall": "अनइंस्टॉल करें",
+      "skills": "स्किल्स",
+      "apps": "ऐप्स",
+      "developer": "डेवलपर",
+      "category": "श्रेणी",
+      "version": "संस्करण",
+      "website": "वेबसाइट",
+      "privacyPolicy": "गोपनीयता नीति"
+    },
+    "manageTabs": {
+      "plugins": "प्लगइन",
+      "skills": "स्किल्स"
+    },
+    "headings": {
+      "plugins": "प्लगइन",
+      "skills": "स्किल्स"
+    },
+    "skills": {
+      "scope": {
+        "user": "उपयोगकर्ता",
+        "system": "सिस्टम",
+        "repo": "प्रोजेक्ट"
+      },
+      "installed": "इंस्टॉल किया गया",
+      "open": "खोलें",
+      "revealInFinder": "Finder में दिखाएं",
+      "details": "विवरण"
+    },
+    "marketplace": {
+      "loadErrorRetry": "पुनः प्रयास करें",
+      "partialRetry": "पुनः प्रयास करें",
+      "removeConfirm": "हटाएँ",
+      "removeCancel": "रद्द करें",
+      "sourceLabel": "सोर्स",
+      "addCancel": "रद्द करें"
+    },
+    "previousPage": "पिछला",
+    "nextPage": "अगला"
+  },
+  "shortcuts": {
+    "title": "हॉटकी",
+    "groups": {
+      "general": "सामान्य"
+    },
+    "items": {
+      "newChat": "नई चैट",
+      "commandPalette": "कमांड पैलेट",
+      "openSettings": "सेटिंग्स खोलें",
+      "openHotkeys": "हॉटकी",
+      "zoomIn": "ज़ूम इन करें",
+      "zoomOut": "ज़ूम आउट करें",
+      "actualSize": "वास्तविक आकार",
+      "sendMessage": "संदेश भेजें"
+    }
   },
   "palette": {
+    "hotkeys": "हॉटकी",
+    "placeholder": "चैट खोजें",
     "actions": "क्रियाएँ",
     "chats": "चैट",
     "newChat": "नई चैट",
@@ -106,5 +279,80 @@
   "time": {
     "today": "आज",
     "yesterday": "कल"
+  },
+  "story": {
+    "open": "खोलें",
+    "stop": "रोकें",
+    "send": "भेजें",
+    "current": "वर्तमान"
+  },
+  "chatWindow": {
+    "shortcutOff": "बंद",
+    "returnToMain": "मुख्य विंडो पर लौटें",
+    "open": "चैट विंडो खोलें",
+    "shortcut": "चैट विंडो शॉर्टकट",
+    "shortcutSave": "शॉर्टकट सहेजें"
+  },
+  "extensions": {
+    "details": {
+      "version": "संस्करण"
+    },
+    "install": "फ़ोल्डर से इंस्टॉल करें",
+    "uninstall": "अनइंस्टॉल करें",
+    "status": {
+      "active": "चल रहा है",
+      "failed": "विफल"
+    },
+    "reload": "फिर से लोड करें"
+  },
+  "workspace": {
+    "zoomIn": "ज़ूम इन करें",
+    "zoomOut": "ज़ूम आउट करें",
+    "resetZoom": "ज़ूम रीसेट करें",
+    "page": "पेज",
+    "closeOthers": "अन्य बंद करें",
+    "closeRight": "दाईं ओर बंद करें",
+    "closeSaved": "सहेजे गए बंद करें",
+    "closeAll": "सभी बंद करें",
+    "retry": "पुनः प्रयास करें",
+    "iconTheme": "फ़ाइल आइकन थीम",
+    "collapse": "सभी संक्षिप्त करें",
+    "copyPath": "पथ कॉपी करें",
+    "copyRelativePath": "सापेक्ष पथ कॉपी करें",
+    "reveal": "फ़ाइल मैनेजर में दिखाएँ",
+    "open": "खोलें",
+    "enterViewMode": "बड़ा करें",
+    "exitViewMode": "पुनर्स्थापित करें",
+    "files": "फ़ाइलें",
+    "loading": "लोड हो रहा है…",
+    "newFile": "नई फ़ाइल",
+    "newFolder": "नया फ़ोल्डर",
+    "rename": "नाम बदलें",
+    "remove": "हटाएं",
+    "copy": "कॉपी करें",
+    "hidden": "छिपी हुई फ़ाइलें दिखाएं",
+    "save": "सहेजें",
+    "saveAs": "इस रूप में सहेजें",
+    "saving": "सहेजा जा रहा है…",
+    "close": "बंद करें",
+    "edit": "संपादित करें",
+    "preview": "पूर्वावलोकन",
+    "reload": "फिर से लोड करें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "source": "सोर्स",
+    "newTab": "नया टैब",
+    "emptyNewTab": "नया टैब",
+    "more": "और कार्रवाइयाँ"
+  },
+  "pet": {
+    "retry": "पुनः प्रयास करें"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "आपके इनपुट की आवश्यकता है",
+    "finished": "कार्य पूरा हुआ"
   }
 }

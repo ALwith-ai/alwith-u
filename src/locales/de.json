@@ -1,31 +1,76 @@
 {
+  "platformAuth": {
+    "email": "E-Mail",
+    "code": "Bestätigungscode",
+    "signIn": "Anmelden",
+    "signOut": "Von ALwith U abmelden"
+  },
+  "guide": {
+    "help": "Hilfe erhalten"
+  },
+  "errorBoundary": {
+    "retry": "Wiederholen"
+  },
+  "mcpDiagnostics": {
+    "pending": "Ausstehend"
+  },
   "actions": {
     "copy": "Kopieren",
     "copied": "Kopiert",
     "cancel": "Abbrechen",
     "close": "Schließen",
     "retry": "Wiederholen",
+    "send": "Senden",
     "stop": "Stopp",
     "activity": "Aktivität",
+    "background": "Hintergrund",
     "submit": "Senden",
     "open": "Öffnen",
-    "reveal": "Im Dateimanager anzeigen"
+    "reveal": "Im Dateimanager anzeigen",
+    "decline": "Ablehnen",
+    "more": "Weitere Aktionen",
+    "foreground": "Vordergrund"
   },
   "connection": {
     "reconnect": "Erneut verbinden",
-    "apiKeyTitle": "API-Schlüssel"
+    "apiKeyTitle": "API-Schlüssel",
+    "connecting": "Chatdienst wird gestartet",
+    "disconnected": "Chatdienst läuft nicht",
+    "failed": "Chatdienst konnte nicht gestartet werden",
+    "signIn": "Mit ChatGPT anmelden",
+    "signInDevice": "Mit Gerätecode anmelden",
+    "signInApiKey": "API-Schlüssel verwenden"
   },
   "sidebar": {
+    "quickChats": "Schnelle Chats",
+    "activity": "Aktivität",
+    "background": "Hintergrund",
     "newChat": "Neuer Chat",
     "untitled": "Neuer Chat",
     "unarchive": "Wiederherstellen",
     "delete": "Löschen",
+    "rename": "Umbenennen",
     "search": "Chats suchen",
     "stop": "Stopp",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "pin": "Seitenleiste anheften",
+    "unpin": "Seitenleiste einklappen",
+    "toggleRight": "Rechte Seitenleiste umschalten",
+    "showRight": "Rechte Seitenleiste anzeigen",
+    "hideRight": "Rechte Seitenleiste ausblenden",
+    "backToMain": "Zurück zum Hauptbildschirm",
+    "archived": "Archiviert",
+    "archive": "Archivieren",
+    "loadMore": "Mehr laden",
+    "fork": "Verzweigen",
+    "deleteTitle": "Diesen Chat löschen?",
+    "deleteDescription": "Dieser Chat wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "noResults": "Keine Chats gefunden"
   },
   "welcome": {
-    "chooseFolder": "Ordner wählen"
+    "chooseFolder": "Ordner wählen",
+    "title": "Was möchtest du erstellen?",
+    "description": "Wähle einen Projektordner, um einen Chat zu starten."
   },
   "chat": {
     "thinking": "Denkt nach",
@@ -60,14 +105,25 @@
       "failed": "Fehlgeschlagen",
       "output": "Ausgabe",
       "input": "Eingabe"
-    }
+    },
+    "working": "In Bearbeitung",
+    "thought": "Nachgedacht",
+    "steerPlaceholder": "Eine Anweisung zum aktuellen Durchlauf hinzufügen"
   },
   "composer": {
     "mode": "Berechtigungen",
-    "model": "Modell"
+    "model": "Modell",
+    "effort": "Denkaufwand",
+    "collaboration": "Zusammenarbeit",
+    "fastMode": "Schnellmodus",
+    "hint": "Enter zum Senden · Umschalt+Enter für eine neue Zeile"
   },
   "approval": {
-    "answerOther": "Andere"
+    "answerOther": "Andere",
+    "needed": "Deine Eingabe wird benötigt"
+  },
+  "zoom": {
+    "reset": "Zurücksetzen"
   },
   "settings": {
     "gamepad": "Gamepad",
@@ -76,13 +132,51 @@
     "appearance": "Darstellung",
     "themeLight": "Hell",
     "themeDark": "Dunkel",
+    "navigationSoundMode": "Navigationsmelodie",
+    "navigationSoundModes": {
+      "none": "Keine",
+      "scale": "Tonleiter",
+      "auto": "Automatisch"
+    },
+    "navigationInstrument": "Klangfarbe",
+    "navigationInstrumentGroups": {
+      "piano": "Klavier",
+      "chromaticPercussion": "Chromatisches Schlagwerk",
+      "organ": "Orgel",
+      "guitar": "Gitarre",
+      "strings": "Streicher",
+      "brass": "Blechbläser",
+      "reed": "Rohrblattinstrumente",
+      "pipe": "Flöten",
+      "synthLead": "Synthesizer-Lead",
+      "synthPad": "Synthesizer-Pad",
+      "synthEffects": "Synthesizer-Effekte",
+      "ethnic": "Weltinstrumente",
+      "percussive": "Schlaginstrumente",
+      "soundEffects": "Soundeffekte"
+    },
     "language": "Sprache",
-    "about": "Über"
+    "about": "Über",
+    "drive": "Laufwerk",
+    "extensions": "App-Erweiterungen",
+    "account": "Konto",
+    "provider": "Modellanbieter",
+    "externalEditor": "Projekte öffnen mit",
+    "licensesTitle": "Lizenzen",
+    "version": "Version {{version}}"
+  },
+  "usage": {
+    "usage": "Nutzung",
+    "resetsAt": "Zurücksetzung {{time}}",
+    "notSignedIn": "Nicht angemeldet",
+    "apiKey": "API-Schlüssel"
   },
   "provider": {
     "apiKey": "API-Schlüssel",
-    "model": "Modell",
-    "restoreButton": "Wiederherstellen"
+    "testButton": "Verbindung testen",
+    "customButton": "Benutzerdefiniert",
+    "saveButton": "Speichern",
+    "remove": "Entfernen"
   },
   "updater": {
     "relaunchConfirmTitle": "Neu starten zum Aktualisieren?",
@@ -92,9 +186,67 @@
     "install": "Zum Installieren und Neustarten klicken"
   },
   "plugins": {
-    "uninstall": "Deinstallieren"
+    "sections": {
+      "installed": "Installiert"
+    },
+    "loadError": {
+      "retry": "Wiederholen"
+    },
+    "card": {
+      "install": "Installieren",
+      "uninstall": "Deinstallieren",
+      "installTooltip": "Plugin installieren"
+    },
+    "installModal": {
+      "about": "Über",
+      "connected": "Verbunden"
+    },
+    "detail": {
+      "install": "Plugin installieren",
+      "uninstall": "Deinstallieren",
+      "developer": "Entwickler",
+      "category": "Kategorie",
+      "privacyPolicy": "Datenschutzrichtlinie"
+    },
+    "skills": {
+      "scope": {
+        "user": "Nutzer",
+        "repo": "Projekt"
+      },
+      "installed": "Installiert",
+      "open": "Öffnen",
+      "revealInFinder": "Im Finder anzeigen"
+    },
+    "marketplace": {
+      "loadErrorRetry": "Wiederholen",
+      "partialRetry": "Wiederholen",
+      "removeConfirm": "Entfernen",
+      "removeCancel": "Abbrechen",
+      "sourceLabel": "Quelle",
+      "addCancel": "Abbrechen"
+    },
+    "previousPage": "Vorherige",
+    "nextPage": "Nächste"
+  },
+  "shortcuts": {
+    "title": "Tastenkombinationen",
+    "groups": {
+      "general": "Allgemein"
+    },
+    "items": {
+      "newChat": "Neuer Chat",
+      "commandPalette": "Befehlspalette",
+      "openSettings": "Einstellungen öffnen",
+      "openHotkeys": "Tastenkombinationen",
+      "zoomIn": "Vergrößern",
+      "zoomOut": "Verkleinern",
+      "actualSize": "Tatsächliche Größe",
+      "sendMessage": "Nachricht senden"
+    }
   },
   "palette": {
+    "hotkeys": "Tastenkombinationen",
+    "placeholder": "Chats suchen",
     "actions": "Aktionen",
     "newChat": "Neuer Chat",
     "settings": "Einstellungen öffnen"
@@ -102,5 +254,77 @@
   "time": {
     "today": "Heute",
     "yesterday": "Gestern"
+  },
+  "story": {
+    "open": "Öffnen",
+    "stop": "Stopp",
+    "send": "Senden",
+    "current": "aktuell"
+  },
+  "chatWindow": {
+    "shortcutOff": "Aus",
+    "returnToMain": "Zum Hauptfenster zurückkehren",
+    "open": "Chatfenster öffnen",
+    "shortcut": "Tastenkürzel für Chatfenster",
+    "shortcutSave": "Tastenkürzel speichern"
+  },
+  "extensions": {
+    "install": "Aus Ordner installieren",
+    "uninstall": "Deinstallieren",
+    "status": {
+      "active": "Läuft",
+      "failed": "Fehlgeschlagen"
+    },
+    "reload": "Neu laden"
+  },
+  "workspace": {
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "resetZoom": "Zoom zurücksetzen",
+    "page": "Seite",
+    "closeOthers": "Andere schließen",
+    "closeRight": "Rechte schließen",
+    "closeSaved": "Gespeicherte schließen",
+    "closeAll": "Alle schließen",
+    "retry": "Wiederholen",
+    "iconTheme": "Dateisymbol-Thema",
+    "collapse": "Alle einklappen",
+    "copyPath": "Pfad kopieren",
+    "copyRelativePath": "Relativen Pfad kopieren",
+    "reveal": "Im Dateimanager anzeigen",
+    "open": "Öffnen",
+    "enterViewMode": "Maximieren",
+    "exitViewMode": "Wiederherstellen",
+    "files": "Dateien",
+    "loading": "Lädt…",
+    "newFile": "Neue Datei",
+    "newFolder": "Neuer Ordner",
+    "rename": "Umbenennen",
+    "remove": "Löschen",
+    "copy": "Kopieren",
+    "hidden": "Versteckte Dateien anzeigen",
+    "save": "Speichern",
+    "saveAs": "Speichern unter",
+    "saving": "Speichert…",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "preview": "Vorschau",
+    "reload": "Neu laden",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "source": "Quelle",
+    "newTab": "Neuer Tab",
+    "emptyNewTab": "Neuer Tab",
+    "more": "Weitere Aktionen"
+  },
+  "pet": {
+    "retry": "Wiederholen"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "Deine Eingabe wird benötigt",
+    "finished": "Aufgabe abgeschlossen"
   }
 }

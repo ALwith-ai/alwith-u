@@ -1,4 +1,21 @@
 {
+  "platformAuth": {
+    "passwordLogin": "كلمة المرور",
+    "email": "بريد إلكتروني",
+    "code": "رمز التحقق",
+    "password": "كلمة المرور",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج من ALwith U"
+  },
+  "guide": {
+    "help": "احصل على المساعدة"
+  },
+  "errorBoundary": {
+    "retry": "أعد المحاولة"
+  },
+  "mcpDiagnostics": {
+    "pending": "قيد الانتظار"
+  },
   "actions": {
     "copy": "نسخ",
     "copied": "تم النسخ",
@@ -8,39 +25,76 @@
     "send": "إرسال",
     "stop": "إيقاف",
     "activity": "النشاط",
-    "foreground": "في المقدمة",
+    "foreground": "المقدمة",
     "background": "في الخلفية",
     "submit": "إرسال",
     "open": "فتح",
     "reveal": "إظهار في مدير الملفات",
     "showMore": "عرض المزيد",
-    "showLess": "عرض أقل"
+    "showLess": "عرض أقل",
+    "decline": "رفض",
+    "more": "المزيد من الإجراءات"
   },
   "connection": {
     "reconnect": "أعد الاتصال",
     "signOut": "تسجيل الخروج",
-    "apiKeyTitle": "مفتاح واجهة برمجة التطبيقات"
+    "apiKeyTitle": "مفتاح واجهة برمجة التطبيقات",
+    "connecting": "جارٍ بدء خدمة الدردشة",
+    "disconnected": "خدمة الدردشة لا تعمل",
+    "failed": "تعذر بدء خدمة الدردشة",
+    "signIn": "تسجيل الدخول باستخدام ChatGPT",
+    "signInDevice": "تسجيل الدخول برمز الجهاز",
+    "signInApiKey": "استخدام مفتاح API"
   },
   "sidebar": {
+    "quickChats": "دردشات سريعة",
+    "signOut": "تسجيل الخروج",
     "plugins": "المكونات الإضافية",
+    "extensions": "ملحقات",
+    "activity": "نشاط",
+    "background": "الخلفية",
     "newChat": "دردشة جديدة",
     "chats": "الدردشات",
     "untitled": "دردشة جديدة",
+    "archive": "أرشفة",
     "unarchive": "استعادة",
     "delete": "حذف",
+    "rename": "إعادة تسمية",
     "search": "البحث في الدردشات…",
     "stop": "إيقاف",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "pin": "تثبيت الشريط الجانبي",
+    "unpin": "طي الشريط الجانبي",
+    "toggleRight": "تبديل الشريط الجانبي الأيمن",
+    "showRight": "إظهار الشريط الجانبي الأيمن",
+    "hideRight": "إخفاء الشريط الجانبي الأيمن",
+    "backToMain": "العودة إلى الشاشة الرئيسية",
+    "archived": "مؤرشفة",
+    "loadMore": "تحميل المزيد",
+    "fork": "إنشاء فرع",
+    "deleteTitle": "حذف هذه الدردشة؟",
+    "deleteDescription": "ستُحذف هذه الدردشة نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
+    "noResults": "لم يتم العثور على دردشات"
   },
   "welcome": {
-    "chooseFolder": "اختر المجلد"
+    "chooseFolder": "اختر المجلد",
+    "title": "ماذا تريد أن تنشئ؟",
+    "description": "اختر مجلد مشروع لبدء دردشة."
   },
   "chat": {
-    "working": "عمل",
+    "project": {
+      "chatCount_one": "{{count}} محادثة",
+      "chatCount_other": "{{count}} محادثات"
+    },
+    "draft": {
+      "selectProject": "حدد المشروع",
+      "newProject": "مشروع جديد"
+    },
+    "working": "جارٍ العمل",
     "worked": "تم",
     "workedFor": "تمت المعالجة لمدة {{duration}}",
     "thinking": "جارٍ التفكير",
-    "thought": "قام بالتفكير",
+    "thought": "اكتمل التفكير",
     "thoughtFor": "قام بالتفكير لمدة {{duration}}",
     "interrupted": "تم الإيقاف",
     "contextCompacted": "تم ضغط السياق",
@@ -114,34 +168,96 @@
     },
     "plan": {
       "title": "الخطة"
-    }
+    },
+    "steerPlaceholder": "إضافة توجيه إلى الجولة الحالية"
   },
   "composer": {
     "mode": "الأذونات",
-    "model": "النموذج"
+    "model": "النموذج",
+    "effort": "الاستدلال",
+    "collaboration": "التعاون",
+    "fastMode": "الوضع السريع",
+    "hint": "Enter للإرسال · Shift+Enter لسطر جديد"
   },
   "approval": {
-    "answerOther": "آخر"
+    "answerOther": "آخر",
+    "needed": "يلزم إدخالك"
+  },
+  "zoom": {
+    "reset": "إعادة ضبط"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "عام",
     "versionLabel": "الإصدار",
+    "engine": "المحرك",
     "title": "الإعدادات",
     "appearance": "المظهر",
     "theme": "المظهر",
     "themeLight": "ضوء",
     "themeDark": "داكن",
     "themeSystem": "النظام",
+    "navigationSoundMode": "لحن التنقل",
+    "navigationSoundModes": {
+      "none": "لا أحد",
+      "scale": "السلم الموسيقي",
+      "auto": "آلي"
+    },
+    "navigationInstrument": "الطابع الصوتي",
+    "navigationInstrumentGroups": {
+      "piano": "بيانو",
+      "chromaticPercussion": "إيقاع لحني",
+      "organ": "أورغن",
+      "guitar": "غيتار",
+      "bass": "باس",
+      "strings": "وتريات",
+      "ensemble": "مجموعة",
+      "brass": "نحاسيات",
+      "reed": "آلات القصب",
+      "pipe": "آلات النفخ",
+      "synthLead": "صوت رئيسي مركب",
+      "synthPad": "وسادة مركبة",
+      "synthEffects": "مؤثرات مركبة",
+      "ethnic": "آلات عالمية",
+      "percussive": "إيقاع",
+      "soundEffects": "مؤثرات صوتية"
+    },
     "language": "اللغة",
-    "about": "عن"
+    "about": "عن",
+    "editor": "محرر",
+    "drive": "القرص",
+    "extensions": "إضافات التطبيق",
+    "account": "الحساب",
+    "provider": "مزود النماذج",
+    "externalEditor": "فتح المشاريع باستخدام",
+    "licensesTitle": "التراخيص",
+    "version": "الإصدار {{version}}"
+  },
+  "usage": {
+    "title": "حدود استخدام الخطة",
+    "usage": "الاستخدام",
+    "used": "{{percent}}٪ مستخدم",
+    "resetsAt": "يعيد{{time}}",
+    "notSignedIn": "لم يتم تسجيل الدخول",
+    "apiKey": "مفتاح واجهة برمجة التطبيقات",
+    "plan": {
+      "free": "حر",
+      "team": "الفريق"
+    }
   },
   "provider": {
     "label": "مزود",
     "apiKey": "مفتاح واجهة برمجة التطبيقات",
-    "model": "نموذج",
-    "apply": "اعتماد",
-    "restoreButton": "استعادة"
+    "baseUrl": "عنوان URL الأساسي لواجهة برمجة التطبيقات",
+    "testButton": "اتصال الاختبار",
+    "customButton": "مخصص",
+    "region": "منطقة",
+    "regions": {
+      "intl": "دولي",
+      "cn": "الصين"
+    },
+    "saveButton": "يحفظ",
+    "remove": "يزيل"
   },
   "updater": {
     "upToDate": "محدّث",
@@ -153,21 +269,93 @@
   },
   "plugins": {
     "title": "المكونات الإضافية",
-    "marketplace": "المتجر",
-    "installedTab": "تم التثبيت",
-    "plugins": "المكونات الإضافية",
-    "skills": "المهارات",
-    "install": "تثبيت",
-    "installed": "تم التثبيت",
-    "uninstall": "إلغاء التثبيت",
-    "searchPlaceholder": "بحث في المكونات الإضافية",
-    "enabled": "مفعّل",
-    "scope": {
-      "user": "المستخدم",
-      "system": "النظام"
+    "search": "البحث عن plugins",
+    "sections": {
+      "installed": "تم التثبيت",
+      "showLess": "عرض أقل"
+    },
+    "loadError": {
+      "retry": "أعد المحاولة"
+    },
+    "card": {
+      "install": "ثَبَّتَ",
+      "uninstall": "إلغاء التثبيت",
+      "installTooltip": "تثبيت البرنامج المساعد"
+    },
+    "installModal": {
+      "about": "عن",
+      "includesSkills": "مهارات",
+      "includesApps": "تطبيقات",
+      "includesMcpServers": "خوادم MCP",
+      "connected": "متصل"
+    },
+    "detail": {
+      "root": "الإضافات",
+      "install": "تثبيت البرنامج المساعد",
+      "uninstall": "إلغاء التثبيت",
+      "loading": "تحميل",
+      "skills": "مهارات",
+      "apps": "تطبيقات",
+      "mcpServers": "خوادم MCP",
+      "developer": "المطور",
+      "category": "فئة",
+      "version": "إصدار",
+      "website": "موقع إلكتروني",
+      "privacyPolicy": "سياسة الخصوصية"
+    },
+    "manageTabs": {
+      "plugins": "الإضافات",
+      "skills": "مهارات",
+      "marketplace": "السوق"
+    },
+    "headings": {
+      "plugins": "الإضافات",
+      "skills": "مهارات",
+      "marketplace": "السوق"
+    },
+    "skills": {
+      "scope": {
+        "user": "مستخدم",
+        "repo": "المشروع",
+        "system": "نظام"
+      },
+      "installed": "تم التثبيت",
+      "refresh": "تحديث",
+      "open": "يفتح",
+      "revealInFinder": "كشف في الباحث",
+      "details": "تفاصيل"
+    },
+    "marketplace": {
+      "loadErrorRetry": "أعد المحاولة",
+      "partialRetry": "أعد المحاولة",
+      "removeConfirm": "يزيل",
+      "removeCancel": "يلغي",
+      "sourceLabel": "مصدر",
+      "addCancel": "يلغي"
+    },
+    "previousPage": "سابق",
+    "nextPage": "التالي"
+  },
+  "shortcuts": {
+    "title": "مفاتيح الاختصار",
+    "groups": {
+      "general": "عام",
+      "chat": "محادثة"
+    },
+    "items": {
+      "newChat": "محادثة جديدة",
+      "commandPalette": "لوحة الأوامر",
+      "openSettings": "افتح الإعدادات",
+      "openHotkeys": "مفاتيح الاختصار",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "actualSize": "الحجم الفعلي",
+      "sendMessage": "أرسل رسالة"
     }
   },
   "palette": {
+    "hotkeys": "مفاتيح الاختصار",
+    "placeholder": "البحث في المحادثات",
     "actions": "الإجراءات",
     "chats": "الدردشات",
     "newChat": "دردشة جديدة",
@@ -176,5 +364,95 @@
   "time": {
     "today": "اليوم",
     "yesterday": "أمس"
+  },
+  "story": {
+    "open": "يفتح",
+    "stop": "قف",
+    "send": "يرسل",
+    "current": "حاضِر"
+  },
+  "chatWindow": {
+    "shortcutOff": "عن",
+    "returnToMain": "العودة إلى النافذة الرئيسية",
+    "open": "فتح نافذة الدردشة",
+    "shortcut": "اختصار نافذة الدردشة",
+    "shortcutSave": "حفظ الاختصار"
+  },
+  "extensions": {
+    "skills": {
+      "enabled": "مفعّل"
+    },
+    "details": {
+      "version": "إصدار"
+    },
+    "search": "ملحقات البحث",
+    "install": "التثبيت من المجلد",
+    "uninstall": "إلغاء التثبيت",
+    "status": {
+      "active": "جري",
+      "deactivating": "وقف",
+      "failed": "فشل"
+    },
+    "reload": "إعادة تحميل"
+  },
+  "workspace": {
+    "closePreview": "إغلاق المعاينة",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "resetZoom": "إعادة ضبط التكبير",
+    "page": "صفحة",
+    "closeOthers": "أغلق الآخرين",
+    "closeRight": "قريب من اليمين",
+    "closeSaved": "تم الحفظ",
+    "closeAll": "إغلاق الكل",
+    "retry": "أعد المحاولة",
+    "iconTheme": "موضوع أيقونة الملف",
+    "explorer": "إكسبلورر",
+    "search": "بحث في الملفات",
+    "collapse": "طي الكل",
+    "copyPath": "نسخ المسار",
+    "copyRelativePath": "نسخ المسار النسبي",
+    "reveal": "تكشف في مدير الملفات",
+    "open": "يفتح",
+    "enterViewMode": "تعظيم",
+    "exitViewMode": "استعادة",
+    "files": "ملفات",
+    "loading": "تحميل…",
+    "refresh": "تحديث",
+    "newFile": "ملف جديد",
+    "newFolder": "مجلد جديد",
+    "rename": "إعادة تسمية",
+    "remove": "يمسح",
+    "copy": "ينسخ",
+    "cut": "يقطع",
+    "paste": "لصق",
+    "hidden": "إظهار الملفات المخفية",
+    "save": "يحفظ",
+    "saveAs": "حفظ باسم",
+    "saving": "توفير…",
+    "close": "إغلاق",
+    "edit": "تعديل",
+    "preview": "معاينة",
+    "reload": "إعادة تحميل",
+    "cancel": "يلغي",
+    "confirm": "تأكيد",
+    "discard": "تجاهل",
+    "source": "مصدر",
+    "viewMode": "وضع العرض",
+    "move": "نقل",
+    "newTab": "علامة تبويب جديدة",
+    "emptyNewTab": "علامة تبويب جديدة",
+    "more": "المزيد من الإجراءات"
+  },
+  "pet": {
+    "retry": "أعد المحاولة",
+    "enable": "إظهار Vibémon"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "يلزم إدخالك",
+    "finished": "اكتملت المهمة"
   }
 }

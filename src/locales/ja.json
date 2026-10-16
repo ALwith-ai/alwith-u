@@ -1,32 +1,77 @@
 {
+  "platformAuth": {
+    "email": "メールアドレス",
+    "code": "認証コード",
+    "signIn": "サインイン",
+    "signOut": "ALwith U からログアウト"
+  },
+  "guide": {
+    "help": "ヘルプを取得"
+  },
+  "errorBoundary": {
+    "retry": "再試行"
+  },
+  "mcpDiagnostics": {
+    "pending": "保留中"
+  },
   "actions": {
     "copy": "コピー",
     "copied": "コピーしました",
     "cancel": "キャンセル",
     "close": "閉じる",
     "retry": "再試行",
+    "send": "送信",
     "stop": "停止",
     "activity": "アクティビティ",
+    "background": "背景",
     "submit": "送信",
     "open": "開く",
-    "reveal": "ファイルマネージャーで表示"
+    "reveal": "ファイルマネージャーで表示",
+    "decline": "拒否",
+    "more": "その他の操作",
+    "foreground": "フォアグラウンド"
   },
   "connection": {
-    "reconnect": "再接続"
+    "reconnect": "再接続",
+    "connecting": "チャットサービスを起動中",
+    "disconnected": "チャットサービスは停止しています",
+    "failed": "チャットサービスを起動できませんでした",
+    "signIn": "ChatGPT でログイン",
+    "signInDevice": "デバイスコードでログイン",
+    "signInApiKey": "API キーを使用"
   },
   "sidebar": {
+    "quickChats": "クイックチャット",
     "plugins": "プラグイン",
+    "activity": "アクティビティ",
+    "background": "背景",
     "newChat": "新しいチャット",
     "chats": "チャット",
     "untitled": "新しいチャット",
     "unarchive": "復元",
     "delete": "削除",
+    "rename": "名前を変更",
     "search": "チャットを検索",
     "stop": "停止",
-    "settings": "設定"
+    "settings": "設定",
+    "pin": "サイドバーを固定",
+    "unpin": "サイドバーを折りたたむ",
+    "toggleRight": "右サイドバーを切り替え",
+    "showRight": "右サイドバーを表示",
+    "hideRight": "右サイドバーを非表示",
+    "backToMain": "メイン画面に戻る",
+    "archived": "アーカイブ済み",
+    "archive": "アーカイブ",
+    "loadMore": "さらに読み込む",
+    "fork": "分岐を作成",
+    "deleteTitle": "このチャットを削除しますか？",
+    "deleteDescription": "このチャットは完全に削除されます。この操作は取り消せません。",
+    "noResults": "チャットが見つかりません"
   },
   "welcome": {
-    "chooseFolder": "フォルダを選択"
+    "chooseFolder": "フォルダを選択",
+    "title": "何を作りたいですか？",
+    "description": "プロジェクトフォルダーを選択してチャットを開始します。"
   },
   "chat": {
     "thinking": "考え中",
@@ -61,29 +106,83 @@
       "failed": "失敗",
       "output": "出力",
       "input": "入力"
-    }
+    },
+    "working": "処理中",
+    "thought": "思考完了",
+    "steerPlaceholder": "現在のターンに指示を追加"
   },
   "composer": {
     "mode": "権限",
-    "model": "モデル"
+    "model": "モデル",
+    "effort": "推論",
+    "collaboration": "コラボレーション",
+    "fastMode": "高速モード",
+    "hint": "Enter で送信 · Shift+Enter で改行"
   },
   "approval": {
-    "answerOther": "その他"
+    "answerOther": "その他",
+    "needed": "入力が必要です"
+  },
+  "zoom": {
+    "reset": "リセット"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "一般",
+    "versionLabel": "バージョン",
+    "engine": "エンジン",
     "title": "設定",
     "appearance": "外観",
     "theme": "テーマ",
     "themeLight": "ライト",
     "themeDark": "ダーク",
+    "themeSystem": "システム",
+    "navigationSoundMode": "ナビゲーションメロディ",
+    "navigationSoundModes": {
+      "none": "なし",
+      "scale": "音階",
+      "auto": "自動"
+    },
+    "navigationInstrument": "音色",
+    "navigationInstrumentGroups": {
+      "piano": "ピアノ",
+      "chromaticPercussion": "鍵盤打楽器",
+      "organ": "オルガン",
+      "guitar": "ギター",
+      "bass": "ベース",
+      "strings": "弦楽器",
+      "ensemble": "アンサンブル",
+      "brass": "金管楽器",
+      "reed": "リード楽器",
+      "pipe": "管楽器",
+      "synthLead": "シンセリード",
+      "synthPad": "シンセパッド",
+      "synthEffects": "シンセエフェクト",
+      "ethnic": "民族楽器",
+      "percussive": "打楽器",
+      "soundEffects": "効果音"
+    },
     "language": "言語",
-    "about": "概要"
+    "about": "概要",
+    "editor": "エディタ",
+    "drive": "ドライブ",
+    "extensions": "アプリ拡張機能",
+    "account": "アカウント",
+    "provider": "モデルプロバイダー",
+    "externalEditor": "プロジェクトを開くアプリ",
+    "licensesTitle": "ライセンス",
+    "version": "バージョン {{version}}"
+  },
+  "usage": {
+    "usage": "使用量",
+    "resetsAt": "{{time}}にリセット",
+    "notSignedIn": "ログインしていません"
   },
   "provider": {
-    "model": "モデル",
-    "restoreButton": "元に戻す"
+    "testButton": "接続テスト",
+    "customButton": "カスタム",
+    "saveButton": "保存",
+    "remove": "削除"
   },
   "updater": {
     "relaunchConfirmTitle": "更新のため再起動しますか?",
@@ -94,11 +193,86 @@
   },
   "plugins": {
     "title": "プラグイン",
-    "plugins": "プラグイン",
-    "skills": "スキル",
-    "uninstall": "アンインストール"
+    "sections": {
+      "installed": "インストール済み"
+    },
+    "loadError": {
+      "retry": "再試行"
+    },
+    "card": {
+      "install": "インストール",
+      "uninstall": "アンインストール",
+      "installTooltip": "プラグインをインストール"
+    },
+    "installModal": {
+      "about": "概要",
+      "includesSkills": "スキル",
+      "includesApps": "アプリ",
+      "connected": "接続済み"
+    },
+    "detail": {
+      "root": "プラグイン",
+      "install": "プラグインをインストール",
+      "uninstall": "アンインストール",
+      "skills": "スキル",
+      "apps": "アプリ",
+      "developer": "開発者",
+      "category": "カテゴリ",
+      "version": "バージョン",
+      "website": "Webサイト",
+      "privacyPolicy": "プライバシーポリシー"
+    },
+    "manageTabs": {
+      "plugins": "プラグイン",
+      "skills": "スキル",
+      "marketplace": "マーケットプレイス"
+    },
+    "headings": {
+      "plugins": "プラグイン",
+      "skills": "スキル",
+      "marketplace": "マーケットプレイス"
+    },
+    "skills": {
+      "scope": {
+        "user": "ユーザー",
+        "system": "システム",
+        "repo": "プロジェクト"
+      },
+      "installed": "インストール済み",
+      "open": "開く",
+      "revealInFinder": "Finderで表示",
+      "details": "詳細"
+    },
+    "marketplace": {
+      "loadErrorRetry": "再試行",
+      "partialRetry": "再試行",
+      "removeConfirm": "削除",
+      "removeCancel": "キャンセル",
+      "sourceLabel": "ソース",
+      "addCancel": "キャンセル"
+    },
+    "previousPage": "前へ",
+    "nextPage": "次へ"
+  },
+  "shortcuts": {
+    "title": "ホットキー",
+    "groups": {
+      "general": "一般"
+    },
+    "items": {
+      "newChat": "新しいチャット",
+      "commandPalette": "コマンドパレット",
+      "openSettings": "設定を開く",
+      "openHotkeys": "ホットキー",
+      "zoomIn": "拡大",
+      "zoomOut": "縮小",
+      "actualSize": "実際のサイズ",
+      "sendMessage": "メッセージを送信"
+    }
   },
   "palette": {
+    "hotkeys": "ホットキー",
+    "placeholder": "チャットを検索",
     "actions": "アクション",
     "chats": "チャット",
     "newChat": "新しいチャット",
@@ -107,5 +281,80 @@
   "time": {
     "today": "今日",
     "yesterday": "昨日"
+  },
+  "story": {
+    "open": "開く",
+    "stop": "停止",
+    "send": "送信",
+    "current": "現在"
+  },
+  "chatWindow": {
+    "shortcutOff": "オフ",
+    "returnToMain": "メインウィンドウに戻る",
+    "open": "チャットウィンドウを開く",
+    "shortcut": "チャットウィンドウのショートカット",
+    "shortcutSave": "ショートカットを保存"
+  },
+  "extensions": {
+    "details": {
+      "version": "バージョン"
+    },
+    "install": "フォルダからインストール",
+    "uninstall": "アンインストール",
+    "status": {
+      "active": "実行中",
+      "failed": "失敗"
+    },
+    "reload": "再読み込み"
+  },
+  "workspace": {
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "resetZoom": "ズームをリセット",
+    "page": "ページ",
+    "closeOthers": "他を閉じる",
+    "closeRight": "右側を閉じる",
+    "closeSaved": "保存済みを閉じる",
+    "closeAll": "すべて閉じる",
+    "retry": "再試行",
+    "iconTheme": "ファイルアイコンテーマ",
+    "collapse": "すべて折りたたむ",
+    "copyPath": "パスをコピー",
+    "copyRelativePath": "相対パスをコピー",
+    "reveal": "ファイルマネージャーで表示",
+    "open": "開く",
+    "enterViewMode": "最大化",
+    "exitViewMode": "元に戻す",
+    "files": "ファイル",
+    "loading": "読み込み中…",
+    "newFile": "新しいファイル",
+    "newFolder": "新しいフォルダ",
+    "rename": "名前を変更",
+    "remove": "削除",
+    "copy": "コピー",
+    "hidden": "隠しファイルを表示",
+    "save": "保存",
+    "saveAs": "名前を付けて保存",
+    "saving": "保存中…",
+    "close": "閉じる",
+    "edit": "編集",
+    "preview": "プレビュー",
+    "reload": "再読み込み",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "source": "ソース",
+    "newTab": "新しいタブ",
+    "emptyNewTab": "新しいタブ",
+    "more": "その他の操作"
+  },
+  "pet": {
+    "retry": "再試行"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "入力が必要です",
+    "finished": "タスク完了"
   }
 }

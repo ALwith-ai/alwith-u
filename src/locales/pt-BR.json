@@ -1,31 +1,76 @@
 {
+  "platformAuth": {
+    "email": "E-mail",
+    "code": "Código de verificação",
+    "signIn": "Entrar",
+    "signOut": "Sair do ALwith U"
+  },
+  "guide": {
+    "help": "Obter ajuda"
+  },
+  "errorBoundary": {
+    "retry": "Tentar novamente"
+  },
+  "mcpDiagnostics": {
+    "pending": "Pendente"
+  },
   "actions": {
     "copy": "Copiar",
     "copied": "Copiado",
     "cancel": "Cancelar",
     "close": "Fechar",
     "retry": "Tentar novamente",
+    "send": "Enviar",
     "stop": "Parar",
     "activity": "Atividade",
+    "background": "Fundo",
     "submit": "Enviar",
     "open": "Abrir",
-    "reveal": "Mostrar no gerenciador de arquivos"
+    "reveal": "Mostrar no gerenciador de arquivos",
+    "decline": "Recusar",
+    "more": "Mais ações",
+    "foreground": "Primeiro plano"
   },
   "connection": {
     "reconnect": "Reconectar",
-    "apiKeyTitle": "Chave de API"
+    "apiKeyTitle": "Chave de API",
+    "connecting": "Iniciando o serviço de chat",
+    "disconnected": "O serviço de chat não está em execução",
+    "failed": "Não foi possível iniciar o serviço de chat",
+    "signIn": "Entrar com ChatGPT",
+    "signInDevice": "Entrar com um código de dispositivo",
+    "signInApiKey": "Usar uma chave de API"
   },
   "sidebar": {
+    "quickChats": "Chats rápidos",
+    "activity": "Atividade",
+    "background": "Fundo",
     "newChat": "Novo chat",
     "untitled": "Novo chat",
     "unarchive": "Restaurar",
     "delete": "Excluir",
+    "rename": "Renomear",
     "search": "Pesquisar chats…",
     "stop": "Parar",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "pin": "Fixar barra lateral",
+    "unpin": "Recolher barra lateral",
+    "toggleRight": "Alternar barra lateral direita",
+    "showRight": "Mostrar barra lateral direita",
+    "hideRight": "Ocultar barra lateral direita",
+    "backToMain": "Voltar à tela principal",
+    "archived": "Arquivadas",
+    "archive": "Arquivar",
+    "loadMore": "Carregar mais",
+    "fork": "Criar ramificação",
+    "deleteTitle": "Excluir esta conversa?",
+    "deleteDescription": "Esta conversa será excluída permanentemente. Esta ação não pode ser desfeita.",
+    "noResults": "Nenhuma conversa encontrada"
   },
   "welcome": {
-    "chooseFolder": "Escolher pasta"
+    "chooseFolder": "Escolher pasta",
+    "title": "O que você gostaria de criar?",
+    "description": "Escolha uma pasta de projeto para iniciar uma conversa."
   },
   "chat": {
     "thinking": "Pensando",
@@ -59,30 +104,81 @@
       "failed": "Falhou",
       "output": "Saída",
       "input": "Entrada"
-    }
+    },
+    "working": "Trabalhando",
+    "thought": "Raciocínio concluído",
+    "steerPlaceholder": "Adicione uma orientação à rodada atual"
   },
   "composer": {
     "mode": "Permissões",
-    "model": "Modelo"
+    "model": "Modelo",
+    "effort": "Raciocínio",
+    "collaboration": "Colaboração",
+    "fastMode": "Modo rápido",
+    "hint": "Enter para enviar · Shift+Enter para nova linha"
   },
   "approval": {
-    "answerOther": "Outro"
+    "answerOther": "Outro",
+    "needed": "Sua intervenção é necessária"
+  },
+  "zoom": {
+    "reset": "Redefinir"
   },
   "settings": {
     "gamepad": "Gamepad",
     "general": "Geral",
+    "versionLabel": "Versão",
     "title": "Configurações",
     "appearance": "Aparência",
     "theme": "Tema",
     "themeLight": "Claro",
     "themeDark": "Escuro",
+    "themeSystem": "Sistema",
+    "navigationSoundMode": "Melodia de navegação",
+    "navigationSoundModes": {
+      "none": "Nenhum",
+      "scale": "Escala",
+      "auto": "Automático"
+    },
+    "navigationInstrumentGroups": {
+      "chromaticPercussion": "Percussão cromática",
+      "organ": "Órgão",
+      "guitar": "Guitarra",
+      "bass": "Baixo",
+      "strings": "Cordas",
+      "ensemble": "Conjunto",
+      "brass": "Metais",
+      "reed": "Palhetas",
+      "pipe": "Flautas",
+      "synthLead": "Lead de sintetizador",
+      "synthPad": "Pad de sintetizador",
+      "synthEffects": "Efeitos de sintetizador",
+      "ethnic": "Instrumentos do mundo",
+      "percussive": "Percussão",
+      "soundEffects": "Efeitos sonoros"
+    },
     "language": "Idioma",
-    "about": "Sobre"
+    "about": "Sobre",
+    "drive": "Unidade",
+    "extensions": "Extensões do aplicativo",
+    "account": "Conta",
+    "provider": "Provedor de modelos",
+    "externalEditor": "Abrir projetos com",
+    "licensesTitle": "Licenças",
+    "version": "Versão {{version}}"
+  },
+  "usage": {
+    "usage": "Uso",
+    "resetsAt": "Reinicia {{time}}",
+    "notSignedIn": "Não conectado",
+    "apiKey": "Chave de API"
   },
   "provider": {
     "apiKey": "Chave de API",
-    "model": "Modelo",
-    "restoreButton": "Restaurar"
+    "testButton": "Testar conexão",
+    "customButton": "Personalizado",
+    "saveButton": "Salvar",
+    "remove": "Remover"
   },
   "updater": {
     "relaunchConfirmTitle": "Reiniciar para atualizar?",
@@ -92,9 +188,71 @@
     "install": "Clique para instalar e reiniciar"
   },
   "plugins": {
-    "uninstall": "Desinstalar"
+    "sections": {
+      "installed": "Instalado"
+    },
+    "loadError": {
+      "retry": "Tentar novamente"
+    },
+    "card": {
+      "install": "Instalar",
+      "uninstall": "Desinstalar",
+      "installTooltip": "Instalar plugin"
+    },
+    "installModal": {
+      "about": "Sobre",
+      "connected": "Conectado"
+    },
+    "detail": {
+      "install": "Instalar plugin",
+      "uninstall": "Desinstalar",
+      "developer": "Desenvolvedor",
+      "category": "Categoria",
+      "version": "Versão",
+      "website": "Site",
+      "privacyPolicy": "política de privacidade"
+    },
+    "skills": {
+      "scope": {
+        "user": "Usuário",
+        "system": "Sistema",
+        "repo": "Projeto"
+      },
+      "installed": "Instalado",
+      "open": "Abrir",
+      "revealInFinder": "Mostrar no Finder",
+      "details": "Detalhes"
+    },
+    "marketplace": {
+      "loadErrorRetry": "Tentar novamente",
+      "partialRetry": "Tentar novamente",
+      "removeConfirm": "Remover",
+      "removeCancel": "Cancelar",
+      "sourceLabel": "Código-fonte",
+      "addCancel": "Cancelar"
+    },
+    "previousPage": "Anterior",
+    "nextPage": "Próximo"
+  },
+  "shortcuts": {
+    "title": "Atalhos",
+    "groups": {
+      "general": "Geral"
+    },
+    "items": {
+      "newChat": "Novo chat",
+      "commandPalette": "Paleta de comandos",
+      "openSettings": "Abrir configurações",
+      "openHotkeys": "Atalhos",
+      "zoomIn": "Aumentar zoom",
+      "zoomOut": "Diminuir zoom",
+      "actualSize": "Tamanho real",
+      "sendMessage": "Enviar mensagem"
+    }
   },
   "palette": {
+    "hotkeys": "Atalhos",
+    "placeholder": "Buscar chats",
     "actions": "Ações",
     "newChat": "Novo chat",
     "settings": "Abrir configurações"
@@ -102,5 +260,80 @@
   "time": {
     "today": "Hoje",
     "yesterday": "Ontem"
+  },
+  "story": {
+    "open": "Abrir",
+    "stop": "Parar",
+    "send": "Enviar",
+    "current": "atual"
+  },
+  "chatWindow": {
+    "shortcutOff": "Desligado",
+    "returnToMain": "Voltar à janela principal",
+    "open": "Abrir janela de chat",
+    "shortcut": "Atalho da janela de chat",
+    "shortcutSave": "Salvar atalho"
+  },
+  "extensions": {
+    "details": {
+      "version": "Versão"
+    },
+    "install": "Instalar da pasta",
+    "uninstall": "Desinstalar",
+    "status": {
+      "active": "Em execução",
+      "failed": "Falhou"
+    },
+    "reload": "Recarregar"
+  },
+  "workspace": {
+    "zoomIn": "Aumentar zoom",
+    "zoomOut": "Diminuir zoom",
+    "resetZoom": "Redefinir zoom",
+    "page": "Página",
+    "closeOthers": "Fechar outras",
+    "closeRight": "Fechar à direita",
+    "closeSaved": "Fechar salvas",
+    "closeAll": "Fechar todas",
+    "retry": "Tentar novamente",
+    "iconTheme": "Tema de ícones de arquivo",
+    "collapse": "Recolher tudo",
+    "copyPath": "Copiar caminho",
+    "copyRelativePath": "Copiar caminho relativo",
+    "reveal": "Mostrar no gerenciador de arquivos",
+    "open": "Abrir",
+    "enterViewMode": "Maximizar",
+    "exitViewMode": "Restaurar",
+    "files": "Arquivos",
+    "loading": "Carregando…",
+    "newFile": "Novo arquivo",
+    "newFolder": "Nova pasta",
+    "rename": "Renomear",
+    "remove": "Excluir",
+    "copy": "Copiar",
+    "hidden": "Mostrar arquivos ocultos",
+    "save": "Salvar",
+    "saveAs": "Salvar como",
+    "saving": "Salvando…",
+    "close": "Fechar",
+    "edit": "Editar",
+    "preview": "Visualização",
+    "reload": "Recarregar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "source": "Código-fonte",
+    "newTab": "Nova aba",
+    "emptyNewTab": "Nova aba",
+    "more": "Mais ações"
+  },
+  "pet": {
+    "retry": "Tentar novamente"
+  },
+  "app": {
+    "name": "ALwith U"
+  },
+  "notify": {
+    "needsInput": "Sua intervenção é necessária",
+    "finished": "Tarefa concluída"
   }
 }

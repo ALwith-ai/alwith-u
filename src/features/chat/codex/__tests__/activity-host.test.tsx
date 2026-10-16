@@ -8,12 +8,17 @@ function HostLanguage() {
   return <span>{host.i18n.language}</span>
 }
 
-test("chat activity formatting uses the resolved English fallback locale", async () => {
+test.each(LANGUAGES)("chat activity formatting uses the selected $code locale", async ({ code }) => {
+  await initI18n(code)
+  const view = render(<HostLanguage />)
+
+  expect(view.getByText(code)).toBeTruthy()
+  view.unmount()
+})
+
+test("chat activity formatting uses English for an unsupported locale", async () => {
   await initI18n("en")
-  // Pick a listed language that ships no resources yet, whichever one that is as locales get registered.
-  const unregistered = LANGUAGES.find(language => !i18n.hasResourceBundle(language.code, "translation"))
-  if (unregistered === undefined) throw new Error("Every listed language has resources; this fallback test is obsolete")
-  await i18n.changeLanguage(unregistered.code)
+  await i18n.changeLanguage("xx")
   const view = render(<HostLanguage />)
 
   expect(view.getByText("en")).toBeTruthy()

@@ -1,10 +1,20 @@
 import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { vibemonLocales } from "@alwith/module-auth/pets/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
-import i18n from "i18next"
+import i18n, { type Resource } from "i18next"
 import { initReactI18next } from "react-i18next"
 import ar from "@/locales/ar.json"
+import de from "@/locales/de.json"
 import en from "@/locales/en.json"
+import es from "@/locales/es.json"
+import fr from "@/locales/fr.json"
+import hi from "@/locales/hi.json"
+import id from "@/locales/id.json"
+import it from "@/locales/it.json"
+import ja from "@/locales/ja.json"
+import ko from "@/locales/ko.json"
+import ptBR from "@/locales/pt-BR.json"
+import ru from "@/locales/ru.json"
 import zhCN from "@/locales/zh-CN.json"
 
 /** Supported application languages, shared with ALwith Desktop. */
@@ -52,50 +62,62 @@ function systemLanguage(): LanguageCode {
   return mapSystemLocale(navigator.language) ?? "en"
 }
 
+const translations = { en, "zh-CN": zhCN, fr, de, it, es, ja, ko, ru, ar, "pt-BR": ptBR, hi, id } satisfies Record<
+  LanguageCode,
+  object
+>
+
 export function initI18n(language: string | null): Promise<unknown> {
-  return i18n.use(initReactI18next).init({
-    resources: {
-      en: {
-        translation: en,
-        gamepad: gamepadResources.en,
-        alwithChat: chatLocales.en,
-        ...vibemonLocales.en,
-        common: {
-          ...vibemonLocales.en.common,
-          navigation: { mainWindow: "Main window", chatWindow: "Floating window" },
-          petMode: {
-            ...vibemonLocales.en.common.petMode,
-            enter: "Collapse to Vibémon",
-            openMain: "Open conversation in main window",
-            openChat: "Open conversation in floating window"
-          }
-        }
-      },
-      ar: { gamepad: gamepadResources.ar, translation: ar, alwithChat: chatLocales.ar },
-      "zh-CN": {
-        translation: zhCN,
-        gamepad: gamepadResources["zh-CN"],
-        alwithChat: chatLocales["zh-CN"],
-        ...vibemonLocales["zh-CN"],
-        common: {
-          ...vibemonLocales["zh-CN"].common,
-          navigation: { mainWindow: "主窗", chatWindow: "独立浮窗" },
-          petMode: {
-            ...vibemonLocales["zh-CN"].common.petMode,
-            enter: "收起到 Vibémon",
-            openMain: "在主窗中打开会话",
-            openChat: "在独立浮窗中打开会话"
-          }
-        }
+  const resources: Resource = Object.fromEntries(
+    LANGUAGES.map(({ code }) => [
+      code,
+      {
+        translation: translations[code],
+        gamepad: gamepadResources[code],
+        alwithChat: chatLocales[code],
+        ...(code === "en" || code === "zh-CN" ? vibemonLocales[code] : {})
       }
-    },
+    ])
+  )
+
+  // Window actions belong to U; pet catalogs are supplied by the shared module.
+  resources.en = {
+    ...resources.en,
+    common: {
+      ...vibemonLocales.en.common,
+      navigation: { mainWindow: "Main window", chatWindow: "Floating window" },
+      petMode: {
+        ...vibemonLocales.en.common.petMode,
+        enter: "Collapse to Vibémon",
+        openMain: "Open conversation in main window",
+        openChat: "Open conversation in floating window"
+      }
+    }
+  }
+  resources["zh-CN"] = {
+    ...resources["zh-CN"],
+    common: {
+      ...vibemonLocales["zh-CN"].common,
+      navigation: { mainWindow: "主窗", chatWindow: "独立浮窗" },
+      petMode: {
+        ...vibemonLocales["zh-CN"].common.petMode,
+        enter: "收起到 Vibémon",
+        openMain: "在主窗中打开会话",
+        openChat: "在独立浮窗中打开会话"
+      }
+    }
+  }
+
+  return i18n.use(initReactI18next).init({
+    resources,
+    supportedLngs: LANGUAGES.map(({ code }) => code),
     lng: language !== null && isLanguageCode(language) ? language : systemLanguage(),
     fallbackLng: "en",
     interpolation: { escapeValue: false }
   })
 }
 
-// Tool-window catalogs must not change the main chat's resolved fallback locale.
+// Tool windows can register their namespace after the main app initializes.
 export function registerGamepadLocales(): void {
   for (const [language, catalog] of Object.entries(gamepadResources)) {
     i18n.addResourceBundle(language, "gamepad", catalog)
