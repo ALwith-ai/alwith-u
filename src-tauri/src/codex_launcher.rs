@@ -38,6 +38,8 @@ fn run() -> io::Result<()> {
     // U renders ACP form elicitations in both collaboration modes. Enable Codex's
     // default-mode question tool for this process only, without editing user config.
     command.args(["--enable", "default_mode_request_user_input"]);
+    // Suppress the experimental-feature banner only for U's Codex process.
+    command.args(["-c", "suppress_unstable_features_warning=true"]);
     command.args(args);
     #[cfg(unix)]
     {
