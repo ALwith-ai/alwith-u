@@ -193,6 +193,95 @@ def check_tauri_versions(root: Path) -> None:
         raise ValueError("Found version mismatched Tauri packages:\n" + "\n".join(mismatches))
 
 
+def semver_key(version: str) -> tuple:
+    """Order SemVer strings by precedence: releases above their prereleases, numeric identifiers below text."""
+    core, _, prerelease = version.split("+", 1)[0].partition("-")
+    numbers = tuple(int(part) for part in core.split("."))
+    if not prerelease:
+        return numbers, (1,)
+    identifiers = tuple((0, int(part), "") if part.isdigit() else (1, 0, part) for part in prerelease.split("."))
+    return numbers, (0, identifiers)
+
+
+def direct_crates(root: Path) -> dict[str, tuple[str, str]]:
+    """Map each registry crate the app declares to its requirement and resolved version."""
+    manifest = tomllib.loads((root / "src-tauri/Cargo.toml").read_text())
+    lock = tomllib.loads((root / "src-tauri/Cargo.lock").read_text())
+    tables = [manifest.get(kind, {}) for kind in ("dependencies", "build-dependencies", "dev-dependencies")]
+    for target in manifest.get("target", {}).values():
+        tables += [target.get(kind, {}) for kind in ("dependencies", "build-dependencies", "dev-dependencies")]
+    requirements = {}
+    for table in tables:
+        for key, spec in table.items():
+            spec = {"version": spec} if isinstance(spec, str) else spec
+            # Path and git dependencies are vendored or pinned by source, not by registry releases.
+            if "path" in spec or "git" in spec or "version" not in spec:
+                continue
+            requirements[spec.get("package", key)] = spec["version"]
+
+    app = manifest["package"]["name"]
+    packages = lock.get("package", [])
+    versions: dict[str, list[str]] = {}
+    for package in packages:
+        versions.setdefault(package["name"], []).append(package["version"])
+    resolved = {}
+    for entry in next(package for package in packages if package["name"] == app).get("dependencies", []):
+        name, _, version = entry.partition(" ")
+        if name in requirements:
+            resolved[name] = version or versions[name][0]
+    return {name: (requirements[name], resolved[name]) for name in requirements if name in resolved}
+
+
+def crate_releases(name: str) -> list[str]:
+    """Read a crate's unyanked versions from the crates.io sparse index."""
+    lowered = name.lower()
+    if len(lowered) <= 2:
+        prefix = str(len(lowered))
+    elif len(lowered) == 3:
+        prefix = f"3/{lowered[0]}"
+    else:
+        prefix = f"{lowered[:2]}/{lowered[2:4]}"
+    with urllib.request.urlopen(f"https://index.crates.io/{prefix}/{lowered}", timeout=15) as response:
+        lines = response.read().decode("utf-8").splitlines()
+    return [entry["vers"] for entry in map(json.loads, filter(None, lines)) if not entry.get("yanked")]
+
+
+def report_outdated_crates(root: Path) -> None:
+    """Print declared crates whose newest release is beyond what Cargo may resolve.
+
+    Reads the manifests instead of rewriting them, so vendored patches with exact pins cannot break the report.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    crates = direct_crates(root)
+
+    def newest(name: str) -> str | None:
+        current = crates[name][1]
+        candidates = [version for version in crate_releases(name) if "-" in current or "-" not in version]
+        latest = max(candidates, key=semver_key, default=None)
+        return latest if latest and semver_key(latest) > semver_key(current) else None
+
+    rows, failures = [], []
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        futures = {name: pool.submit(newest, name) for name in sorted(crates)}
+    for name, future in futures.items():
+        try:
+            latest = future.result()
+        except (OSError, UnicodeError, ValueError) as error:
+            failures.append(f"{name} ({error})")
+            continue
+        if latest:
+            rows.append((name, crates[name][0], crates[name][1], latest))
+    if rows:
+        widths = [max(len(row[column]) for row in [("Crate", "Requirement", "Current", "Latest"), *rows]) for column in range(4)]
+        for row in [("Crate", "Requirement", "Current", "Latest"), *rows]:
+            print("  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip())
+    else:
+        print("All declared crates are on their newest releases.")
+    if failures:
+        print("Could not check: " + ", ".join(failures), file=sys.stderr)
+
+
 @task
 def tauri(_context: object) -> None:
     """Start the dev instance through Tauri's build hooks."""
@@ -302,11 +391,8 @@ def upgrade(context: Context) -> None:
         # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
         with context.cd("src-tauri"):
             context.run("cargo update")
-            # Report releases outside Cargo's declared ranges without upgrading them.
-            # Limit reporting depth without dropping local patches or external path dependencies.
-            if not context.run("command -v cargo-outdated", warn=True, hide=True).ok:
-                context.run("cargo install cargo-outdated")
-            context.run("cargo outdated --depth 1 --workspace", warn=True)
+        # Report releases outside Cargo's declared ranges without upgrading them.
+        report_outdated_crates(ROOT)
         # Compare the final installed JavaScript packages with the updated Cargo lockfile.
         try:
             check_tauri_versions(ROOT)
