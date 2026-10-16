@@ -34,7 +34,7 @@
     "@agentclientprotocol/sdk": "^1.8.0",
     "@alwith/api": "^0.3.0",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.10",
+    "@alwith/module-chat": "^0.1.12",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
@@ -76,18 +76,18 @@
     "dompurify": "^3.4.17",
     "embla-carousel-react": "^8.6.0",
     "highlight.js": "^11.12.0",
-    "i18next": "^26.4.5",
+    "i18next": "^26.4.6",
     "katex": "^0.19.0",
     "ldrs": "^1.1.9",
     "lucide-react": "^1.57.0",
     "marked": "^18.1.1",
     "monaco-editor": "^0.57.0",
-    "motion": "^14.2.0",
+    "motion": "^14.3.0",
     "next-themes": "^0.4.6",
     "pdfjs-dist": "^6.4.299",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-i18next": "^17.0.16",
+    "react-i18next": "^17.0.18",
     "react-player": "^3.4.0",
     "semver": "^7.8.5",
     "shadcn": "^4.21.5",
@@ -107,8 +107,8 @@
   "devDependencies": {
     "@alwith/native": "^0.1.4",
     "@biomejs/biome": "^2.5.15",
-    "@nyssance/codex-acp-v2": "^0.7.13",
-    "@openai/codex": "0.162.1",
+    "@nyssance/codex-acp-v2": "^0.7.15",
+    "@openai/codex": "0.163.0",
     "@storybook/addon-a11y": "^10.6.2",
     "@storybook/addon-docs": "^10.6.2",
     "@storybook/addon-themes": "^10.6.2",
@@ -125,8 +125,8 @@
     "@types/semver": "^7.8.0",
     "@types/utif": "^3.0.6",
     "@vitejs/plugin-react": "^6.1.2",
-    "@vitest/browser-playwright": "^5.0.4",
-    "jsdom": "^30.1.2",
+    "@vitest/browser-playwright": "^5.0.5",
+    "jsdom": "^30.1.3",
     "knip": "^6.41.0",
     "less": "^4.9.1",
     "oxlint": "^1.88.0",
@@ -136,7 +136,7 @@
     "storybook": "^10.6.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "optionalDependencies": {
     "@oven/bun-darwin-aarch64": "1.4.3",
@@ -144,11 +144,11 @@
     "@oven/bun-linux-x64-baseline": "1.4.3",
     "@oven/bun-windows-x64-baseline": "1.4.3",
     "@oven/bun-windows-aarch64": "1.4.3",
-    "@openai/codex-darwin-arm64": "npm:@openai/codex@0.162.1-darwin-arm64",
-    "@openai/codex-linux-x64": "npm:@openai/codex@0.162.1-linux-x64",
-    "@openai/codex-linux-arm64": "npm:@openai/codex@0.162.1-linux-arm64",
-    "@openai/codex-win32-x64": "npm:@openai/codex@0.162.1-win32-x64",
-    "@openai/codex-win32-arm64": "npm:@openai/codex@0.162.1-win32-arm64"
+    "@openai/codex-darwin-arm64": "npm:@openai/codex@0.163.0-darwin-arm64",
+    "@openai/codex-linux-x64": "npm:@openai/codex@0.163.0-linux-x64",
+    "@openai/codex-linux-arm64": "npm:@openai/codex@0.163.0-linux-arm64",
+    "@openai/codex-win32-x64": "npm:@openai/codex@0.163.0-win32-x64",
+    "@openai/codex-win32-arm64": "npm:@openai/codex@0.163.0-win32-arm64"
   },
   "overrides": {
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
@@ -157,6 +157,6 @@
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.10"
+    "@alwith/module-chat": "^0.1.12"
   }
 }
