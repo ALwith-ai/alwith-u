@@ -179,3 +179,59 @@ test.each(["failed", "cancelled", "interrupted"] as const)(
     expect(view.queryByRole("button", { name: "Ran echo hello" })).toBeNull()
   }
 )
+
+test("names a subagent by its path and shows the model it was created with", () => {
+  const view = render(
+    display(
+      tool({
+        name: "subagent",
+        title: "Start subagent worker",
+        toolKind: "other",
+        rawInput: {
+          model: "gpt-6.1-sol",
+          reasoningEffort: "high",
+          agentThreadId: "t9",
+          agentPath: "root/worker",
+          activity: "started"
+        }
+      })
+    )
+  )
+  mounted.push(view)
+  expect(view.getByText("worker finished · GPT-6.1 Sol · High")).toBeTruthy()
+})
+
+test("presents a collaboration call the way Codex does", () => {
+  const view = render(
+    display(
+      tool({
+        name: "collab",
+        title: "spawnAgent",
+        toolKind: "other",
+        rawInput: { prompt: "Inspect the parser", model: null, reasoningEffort: null },
+        _meta: {
+          codex: {
+            collaboration: {
+              tool: "spawnAgent",
+              agents: [
+                {
+                  threadId: "t2",
+                  nickname: "Bob",
+                  role: null,
+                  model: "gpt-6.1-sol",
+                  reasoningEffort: "medium",
+                  state: null
+                }
+              ]
+            }
+          }
+        }
+      })
+    )
+  )
+  mounted.push(view)
+  fireEvent.click(view.getByRole("button", { name: "Created an agent" }))
+  expect(must(view.container.querySelector(".codex-collab-row"), "collaboration row").textContent).toBe(
+    "Created Bob · GPT-6.1 Sol · Medium with the instructions: Inspect the parser"
+  )
+})
