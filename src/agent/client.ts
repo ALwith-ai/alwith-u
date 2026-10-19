@@ -8,10 +8,14 @@ import {
   AgentRequests,
   Agents,
   assertPromptSupported,
+  ConfigStaleError,
   configOptionRequest,
+  configRevisionOf,
+  configStaleOf,
   createSession,
   isBooleanOption,
   markDisconnected,
+  promptConfigMeta,
   replayCursorFor,
   replayIdOf,
   replayReceiptOf,
@@ -698,7 +702,8 @@ export class CodexClient {
         const session: Session = {
           ...createSession(response.sessionId, cwd),
           attached: true,
-          configOptions: response.configOptions ?? []
+          configOptions: response.configOptions ?? [],
+          configRevision: configRevisionOf(response)
         }
         this.publishSession(session)
         if (owner === null) this.listSession(session)
@@ -925,6 +930,7 @@ export class CodexClient {
         cwd,
         readOnly: isReadOnlyResume(response),
         configOptions: response.configOptions ?? [],
+        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision,
         error: null
       })
       this.noteModel(this.sessions.get(id))
@@ -960,11 +966,25 @@ export class CodexClient {
     // Once a request leaves the client, transport failure cannot prove it was not accepted.
     // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
     this.materializeDraft(id)
-    const response = await agent.request<acp.PromptResponse>("session/prompt", {
-      sessionId: id,
-      prompt,
-      _meta: { codex: { messageSentAt: sentAt } }
-    })
+    const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
+    let response: acp.PromptResponse
+    try {
+      response = await agent.request<acp.PromptResponse>("session/prompt", {
+        sessionId: id,
+        prompt,
+        _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
+      })
+    } catch (error) {
+      // The config moved past what the user saw: take the agent's actual options, say so, and let the user resend.
+      const stale = configStaleOf(error)
+      if (stale === null) throw error
+      this.publishSession({
+        ...this.sessions.get(id),
+        configOptions: stale.configOptions,
+        configRevision: stale.actual
+      })
+      throw new ConfigStaleError(stale)
+    }
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
   }
@@ -985,7 +1005,8 @@ export class CodexClient {
       )
       this.publishSession({
         ...this.sessions.get(id),
-        configOptions: response.configOptions
+        configOptions: response.configOptions,
+        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision
       })
       this.noteModel(this.sessions.get(id))
       if (response.configOptions.some(option => option.configId === configId && option.category === "model"))
