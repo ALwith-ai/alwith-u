@@ -47,11 +47,10 @@ function themeBackgroundRGB(): [number, number, number] {
 export async function openSettingsWindow(section?: SettingsSection): Promise<void> {
   const existing = await WebviewWindow.getByLabel("settings")
   if (existing) {
+    // Attach re-parents a window that was detached; a hidden window still needs show and focus.
     if (isMac()) await commands.attachWindowToMain({ label: "settings" })
-    else {
-      await existing.show()
-      await existing.setFocus()
-    }
+    await existing.show()
+    await existing.setFocus()
     if (section !== undefined) await emitTo("settings", SETTINGS_CHANGE_TAB, section)
     return
   }

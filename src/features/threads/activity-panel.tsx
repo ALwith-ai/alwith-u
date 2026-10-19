@@ -148,6 +148,7 @@ export function ActivityPanel({
         key={row.sid}
         thread={row.thread}
         state={row.record.state}
+        interruption={row.record.interruption}
         active={row.sid === selectedId}
         tasks={row.record.tasks}
         listeningPorts={row.record.listeningPorts}
@@ -190,6 +191,7 @@ export function ActivityPanel({
 function ActivityRow({
   thread,
   state,
+  interruption,
   active,
   tasks,
   listeningPorts,
@@ -200,6 +202,7 @@ function ActivityRow({
 }: {
   thread: ThreadSummary
   state: RunState
+  interruption: string | null
   active: boolean
   /** Running subagent tasks parsed by Runtime, rendered as indented children and removed from updates on completion. */
   tasks: SessionTask[]
@@ -241,6 +244,7 @@ function ActivityRow({
           }
         }}
         state={state}
+        interruption={interruption}
         listeningPorts={listeningPorts}
         title={title}
         accessory={

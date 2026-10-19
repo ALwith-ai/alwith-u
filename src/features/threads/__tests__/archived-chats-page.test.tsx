@@ -162,7 +162,8 @@ test("batch delete retries only failures and skips chats restored after the conf
     fireEvent.click(within(view.getByRole("dialog")).getByRole("button", { name: "Delete permanently" }))
   )
   expect(deleted).toEqual(["quick", "project"])
-  expect(view.queryByRole("dialog")).not.toBeInTheDocument()
+  // The dialog leaves after its exit transition.
+  await waitFor(() => expect(view.queryByRole("dialog")).not.toBeInTheDocument())
   await act(async () => client.store.setState({ archivedThreads: chats }))
   fireEvent.click(view.getByRole("button", { name: "Delete all" }))
   await act(async () => client.store.setState({ archivedThreads: [] }))

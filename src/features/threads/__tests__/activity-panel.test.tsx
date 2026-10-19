@@ -212,3 +212,10 @@ test("background conversations retain their floating host across selection chang
   await act(async () => fireEvent.click(view.getByText("first")))
   expect(selected).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "first" }))
 })
+
+test("the state dot carries Runtime's interruption as its title", async () => {
+  client.store.setState({ threads: [], draftSessions: {} })
+  client.applyRunStates([{ ...record("paused", false, "requires_action"), interruption: "runtime restarted" }])
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />)
+  expect(view.getByTitle("runtime restarted")).toBeInTheDocument()
+})

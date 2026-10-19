@@ -25,6 +25,8 @@ export function useNavigationHoverCardPin(): (pinned: boolean) => void {
 type NavigationSessionItemProps = Omit<ComponentProps<"div">, "title"> & {
   active?: boolean
   state?: RunState
+  /** Runtime's reason the session stopped in `state`, e.g. "runtime restarted"; null when it stopped on its own. */
+  interruption?: string | null
   leased?: boolean
   media?: ReactNode
   title: ReactNode
@@ -41,6 +43,7 @@ type NavigationSessionItemProps = Omit<ComponentProps<"div">, "title"> & {
 export function NavigationSessionItem({
   active = false,
   state,
+  interruption = null,
   leased = false,
   media,
   title,
@@ -67,7 +70,9 @@ export function NavigationSessionItem({
         className
       )}
       {...props}>
-      <NavigationLeading>{state != null ? <SessionStateDot state={state} /> : media}</NavigationLeading>
+      <NavigationLeading>
+        {state != null ? <SessionStateDot state={state} title={interruption ?? undefined} /> : media}
+      </NavigationLeading>
       <span className="flex min-w-0 flex-1 flex-col">
         <OverflowMarquee className={cn("leading-none", state === "done" && "font-semibold")}>{title}</OverflowMarquee>
         {subtitle != null && <OverflowMarquee className="text-muted-foreground text-xs">{subtitle}</OverflowMarquee>}

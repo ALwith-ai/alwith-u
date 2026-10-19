@@ -60,6 +60,7 @@ import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensio
 import { forkTitle } from "./fork-title"
 import { exportConversation } from "./history"
 import { setRunStateSource } from "./run-state-source"
+import { SessionOperations } from "./session-operations"
 
 /**
  * Model group of the ChatGPT models the codex adapter serves next to gateway groups. Named after the
@@ -242,8 +243,8 @@ export class CodexClient {
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
   private threadsRequest: Promise<void> | null = null
-  /** One resume per session at a time: a second `open` while it runs waits for the same one. */
-  private readonly replays = new Map<string, Promise<void>>()
+  /** open / close / delete lane per session: adjacent equal opens share one replay; close and delete revoke queued opens. */
+  private readonly operations = new SessionOperations()
   /** Sessions being created (`session/new`, `session/fork`): their ids are unknown until the response, so their first frames wait in `unborn`. */
   private creating = 0
   private readonly unborn = new Map<string, acp.SessionUpdate[]>()
@@ -901,11 +902,14 @@ export class CodexClient {
     this.bindSlot(owner, id)
     ++this.slotVersions[owner]
     const existing = this.sessions.sessions.get(id)
-    if (existing?.attached) {
+    // A replay in flight already carries this open. A read-only attach (another client holds the
+    // writer) is resumed again: the writer may have let go since.
+    if (existing?.restoring) return
+    if (existing?.attached && !existing.readOnly) {
       this.followModel(owner, existing)
       return
     }
-    await (this.replays.get(id) ?? this.replay(id, cwd, owner))
+    await this.replay(id, cwd, owner)
   }
 
   /**
@@ -920,13 +924,7 @@ export class CodexClient {
   }
 
   private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
-    const running = this.replays.get(id)
-    if (running) return running
-    const replay = this.runReplay(id, cwd, owner).finally(() => {
-      if (this.replays.get(id) === replay) this.replays.delete(id)
-    })
-    this.replays.set(id, replay)
-    return replay
+    return this.operations.open(id, cwd, () => this.runReplay(id, cwd, owner))
   }
 
   private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
@@ -1068,7 +1066,17 @@ export class CodexClient {
     // (and forms cancelled) — otherwise they hang in the agent and the Runtime and come back
     // as zombie prompts on the next attach.
     this.requests.cancelSession(id)
-    await this.live().notify("session/cancel", { sessionId: id })
+    await this.stopWithAccessRevocation(id, () => this.live().notify("session/cancel", { sessionId: id }))
+  }
+
+  private async stopWithAccessRevocation(id: string, stop: () => Promise<unknown>): Promise<void> {
+    // A native cleanup failure must not leave the Codex turn running. Start
+    // revocation first, attempt both operations, and report every failure.
+    const revoke = Promise.resolve().then(() => this.options.revokeSessionAccess?.(id))
+    const results = await Promise.allSettled([revoke, Promise.resolve().then(stop)])
+    const errors = results.flatMap(result => (result.status === "rejected" ? [result.reason] : []))
+    if (errors.length === 1) throw errors[0]
+    if (errors.length > 1) throw new AggregateError(errors, "Session stop failed")
   }
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
@@ -1183,40 +1191,46 @@ export class CodexClient {
   }
 
   async close(id: string): Promise<void> {
-    await this.enqueueSession(id, async () => {
-      this.requests.cancelSession(id)
-      await this.options.revokeSessionAccess?.(id)
-      await this.live().request("session/close", { sessionId: id })
-      this.dropSession(id)
-    })
+    await this.operations.close(id, () =>
+      this.enqueueSession(id, async () => {
+        this.requests.cancelSession(id)
+        await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
+        this.dropSession(id)
+      })
+    )
   }
 
   /** End the live session while retaining its transcript, as Desktop's Activity stop does. */
   async stopSession(id: string): Promise<void> {
-    await this.enqueueSession(id, async () => {
-      this.requests.cancelSession(id)
-      await this.options.revokeSessionAccess?.(id)
-      await this.live().request("session/close", { sessionId: id })
-      this.updates.remove(id)
-      const session = this.sessions.sessions.get(id)
-      // Activity can also contain sessions that this window has never opened.
-      if (session) {
-        this.publishSession({ ...session, attached: false, restoring: false, readOnly: false, state: "idle" })
-      }
-    })
+    await this.operations.close(id, () =>
+      this.enqueueSession(id, async () => {
+        this.requests.cancelSession(id)
+        await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
+        this.updates.remove(id)
+        const session = this.sessions.sessions.get(id)
+        // Activity can also contain sessions that this window has never opened.
+        if (session) {
+          this.publishSession({ ...session, attached: false, restoring: false, readOnly: false, state: "idle" })
+        }
+      })
+    )
   }
 
   async archive(id: string): Promise<void> {
-    await this.live().request("_codex/session_archive", { sessionId: id })
-    this.dropSession(id)
-    this.store.setState(state => {
-      const thread = state.threads.find(item => item.sessionId === id)
-      return {
-        threads: state.threads.filter(item => item.sessionId !== id),
-        archivedThreads: thread
-          ? [{ ...thread, archived: true }, ...state.archivedThreads.filter(item => item.sessionId !== id)]
-          : state.archivedThreads
-      }
+    await this.operations.delete(id, async () => {
+      // Host access is revoked before the lifecycle changes; a failed revocation leaves the session as it was.
+      await this.options.revokeSessionAccess?.(id)
+      await this.live().request("_codex/session_archive", { sessionId: id })
+      this.dropSession(id)
+      this.store.setState(state => {
+        const thread = state.threads.find(item => item.sessionId === id)
+        return {
+          threads: state.threads.filter(item => item.sessionId !== id),
+          archivedThreads: thread
+            ? [{ ...thread, archived: true }, ...state.archivedThreads.filter(item => item.sessionId !== id)]
+            : state.archivedThreads
+        }
+      })
     })
   }
 
@@ -1232,12 +1246,15 @@ export class CodexClient {
   }
 
   async delete(id: string): Promise<void> {
-    await this.live().request("session/delete", { sessionId: id })
-    this.dropSession(id)
-    this.store.setState(state => ({
-      threads: state.threads.filter(item => item.sessionId !== id),
-      archivedThreads: state.archivedThreads.filter(item => item.sessionId !== id)
-    }))
+    await this.operations.delete(id, async () => {
+      await this.options.revokeSessionAccess?.(id)
+      await this.live().request("session/delete", { sessionId: id })
+      this.dropSession(id)
+      this.store.setState(state => ({
+        threads: state.threads.filter(item => item.sessionId !== id),
+        archivedThreads: state.archivedThreads.filter(item => item.sessionId !== id)
+      }))
+    })
   }
 
   fork(id: string, cwd: string, lastTurnId?: string): Promise<string> {
@@ -1442,7 +1459,6 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
-    this.replays.delete(id)
     this.contextRevisions.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)

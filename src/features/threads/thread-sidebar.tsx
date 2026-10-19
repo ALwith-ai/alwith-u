@@ -91,6 +91,7 @@ function ThreadRow({
   thread,
   active,
   state,
+  interruption,
   onSelect,
   onForked,
   onDelete,
@@ -99,6 +100,7 @@ function ThreadRow({
   thread: ThreadSummary
   active: boolean
   state?: RunState
+  interruption: string | null
   onSelect: () => void
   onForked: (thread: ThreadSummary) => void
   onDelete: () => void
@@ -120,6 +122,7 @@ function ThreadRow({
         }
       }}
       state={state}
+      interruption={interruption}
       title={title}
       onHoverCardOpenChange={onHoverCardOpenChange}
       hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} />}
@@ -291,6 +294,7 @@ export function ThreadSidebar({
   const groups = useMemo(() => (threadsLoaded ? groupThreads(threads) : []), [threadsLoaded, threads])
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
+  const interruptionOf = (thread: ThreadSummary): string | null => runStates[thread.sessionId]?.interruption ?? null
 
   const renderRow = (thread: ThreadSummary, onHoverCardOpenChange: (open: boolean) => void) => (
     <ThreadRow
@@ -299,6 +303,7 @@ export function ThreadSidebar({
       thread={thread}
       active={thread.sessionId === selectedId}
       state={stateOf(thread)}
+      interruption={interruptionOf(thread)}
       onSelect={() => onSelect(thread)}
       onForked={onSelect}
       onDelete={() => setPendingDelete(thread)}

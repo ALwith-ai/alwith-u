@@ -14,11 +14,14 @@ import { cn } from "@/lib/utils"
 export function SessionStateDot({
   state,
   className,
-  pulse = true
+  pulse = true,
+  title
 }: {
   state?: RunState
   className?: string
   pulse?: boolean
+  /** Why the session stopped where it is (Runtime `interruption`), shown as the native hover title. */
+  title?: string
 }) {
   // Disconnected / not running: no state means no gray dot, keeping historical session rows clean.
   if (state === undefined) return null
@@ -31,6 +34,7 @@ export function SessionStateDot({
     // Center and ring share one color source (currentColor from text-yellow-500).
     return (
       <span
+        title={title}
         className={cn(
           "relative inline-flex size-1.5 shrink-0 items-center justify-center",
           RUN_STATE_TEXT.running,
@@ -43,5 +47,5 @@ export function SessionStateDot({
       </span>
     )
   }
-  return <span className={cn("size-2 shrink-0 rounded-full", color, className)} />
+  return <span title={title} className={cn("size-2 shrink-0 rounded-full", color, className)} />
 }
