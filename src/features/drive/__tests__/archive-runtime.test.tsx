@@ -98,7 +98,10 @@ test("a real archive preference failure after attachment remains visible", async
   const view = renderHook(() => useDriveArchive())
   await act(() => drive.attach())
   await waitFor(() =>
-    expect(mocks.error).toHaveBeenCalledWith("Preference storage unavailable", { id: "drive-archive", action: undefined })
+    expect(mocks.error).toHaveBeenCalledWith("Preference storage unavailable", {
+      id: "drive-archive",
+      action: undefined
+    })
   )
   expect(mocks.list).not.toHaveBeenCalled()
   view.unmount()

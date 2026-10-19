@@ -76,7 +76,8 @@ test("real terminal data feeds the shared command card, with ANSI escaped and ex
     command: "echo hello",
     cwd: "/tmp",
     output: "\u001b[31m<script>hello</script>\u001b[0m",
-    exitStatus: { exitCode: 2 }
+    exitStatus: { exitCode: 2 },
+    _meta: null
   }
   const view = mount(display(item, { term: terminal }))
   fireEvent.click(view.getByRole("button", { name: "Ran echo hello" }))

@@ -55,6 +55,9 @@ beforeEach(async () => {
   vi.clearAllMocks()
   vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(600)
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(280)
+  // @tanstack/react-virtual 3.14.21 measures the scroll element with clientHeight / clientWidth.
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600)
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(280)
   native.nativeMode = false
   native.close = null
   await initI18n("en")
