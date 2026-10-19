@@ -12,7 +12,9 @@ let mark: MockInstance<typeof clientModule.markRead>
 type VisibleSession = { sessionId: string | null; visible: boolean }
 beforeEach(() => {
   runtime = new FakeHubPort(() => createFakeAgent().app)
-  mark = vi.spyOn(clientModule, "markRead").mockImplementation(id => runtime.markRead(id))
+  mark = vi
+    .spyOn(clientModule, "markRead")
+    .mockImplementation(id => runtime.markRead(id, clientModule.client.state.runStates[id]?.version ?? null))
 })
 afterEach(() => {
   cleanup()
@@ -33,7 +35,9 @@ function runState(sessionId: string, state: SessionRunState["state"]): SessionRu
     listeningPorts: [],
     executionId: null,
     executionRole: null,
-    lastActivityAt: 0
+    lastActivityAt: 0,
+    version: 1,
+    interruption: null
   }
 }
 

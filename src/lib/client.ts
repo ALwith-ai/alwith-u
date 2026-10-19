@@ -38,10 +38,11 @@ export async function watchRunStates(): Promise<() => void> {
   return stop
 }
 
-/** `done` clears only through the Runtime: a session someone looked at is read everywhere. */
+/** `done` clears only through the Runtime: a session someone looked at is read everywhere. The
+ *  confirmation names the version on screen: a session that finished again since keeps its new `done`. */
 export async function markRead(sessionId: string): Promise<void> {
   const port = await runtimeClient()
-  await port.markRead(sessionId)
+  await port.markRead(sessionId, client.state.runStates[sessionId]?.version ?? null)
 }
 
 /** Close only this session; Runtime.stopSession would kill the shared Codex agent. */

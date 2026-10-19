@@ -6,7 +6,7 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "^1.9.0",
-        "@alwith/api": "^0.4.2",
+        "@alwith/api": "^0.4.8",
         "@alwith/module-auth": "^0.1.5",
         "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.14-voice.1.tgz",
         "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
@@ -82,7 +82,7 @@
       "devDependencies": {
         "@alwith/native": "^0.1.4",
         "@biomejs/biome": "^2.5.15",
-        "@nyssance/codex-acp-v2": "^0.7.18",
+        "@nyssance/codex-acp-v2": "^0.7.20",
         "@openai/codex": "0.163.0",
         "@storybook/addon-a11y": "^10.6.2",
         "@storybook/addon-docs": "^10.6.2",
@@ -141,7 +141,7 @@
 
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.9.0", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-1.9.0.tgz", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-saCOTPYBK1iqWqJFAYHXbg3+zCoFXyZZFoqQAwdTWkbrZZPpAETr80QOnYr2l+dzPwL0jpNhn3eDY8MoEIDbUA=="],
 
-    "@alwith/api": ["@alwith/api@0.4.2", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.8.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-tGDNSr/JeUBb4zBfuoTiHZxZfluqeOp7+TScJ47y+7FxpqapTjwMIc7WQad92KJdsG+wBWZnDYMwdvlvvsl3rg=="],
+    "@alwith/api": ["@alwith/api@0.4.8", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=1.8.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-sJWXGAm9hVoH2Knf/hLfv/plFKLq+K0xOXu7AEVEjmRxBURCgkypPxENDv9IX5a+Sfc10OEFlth8TSSBBUAutA=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.5", "", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-Be08nkt0SlVKyDQOReQ18z6XvXesuL9ENf8roh8HnQ6dWpyV3xTiqIOwGPnqEtTONvaPlagyr+1h/agf9StskA=="],
 
@@ -447,7 +447,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.18", "", { "dependencies": { "@agentclientprotocol/sdk": "^1.9.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-vFxA9YvLpQqcGActqBF2p4CFB0bQ5m5CWNHz2T9VJ3cfTZ8TiEaym9CQ/rlwHB8Y5aebolSnUOrAc2IuA8T5hg=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.20", "", { "dependencies": { "@agentclientprotocol/sdk": "^1.9.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-Uob6XpzrR8yoCpSu3Fl8eB+xAvjtgLzhQKfEITd8083CbqHwdchOF8M17zFx1bbIhzMZBqb5Sn0eAMdPFkUWzA=="],
 
     "@openai/codex": ["@openai/codex@0.163.0", "https://registry.npmmirror.com/@openai/codex/-/codex-0.163.0.tgz", { "optionalDependencies": { "@openai/codex-darwin-arm64": "npm:@openai/codex@0.163.0-darwin-arm64", "@openai/codex-darwin-x64": "npm:@openai/codex@0.163.0-darwin-x64", "@openai/codex-linux-arm64": "npm:@openai/codex@0.163.0-linux-arm64", "@openai/codex-linux-x64": "npm:@openai/codex@0.163.0-linux-x64", "@openai/codex-win32-arm64": "npm:@openai/codex@0.163.0-win32-arm64", "@openai/codex-win32-x64": "npm:@openai/codex@0.163.0-win32-x64" }, "bin": { "codex": "bin/codex.js" } }, "sha512-HNd7vR9oTK6M2ikxFnvNDCdYUgAsyo9VVnd5KnEd2ON0GYI++7MiX9XNPUkhtdgGKFPsWS+CEppQ1UU63uVhUw=="],
 

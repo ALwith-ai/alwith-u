@@ -26,6 +26,7 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
   readonly started: string[] = []
   readonly attached: string[] = []
   readonly marked: string[] = []
+  readonly markedVersions: Array<number | null> = []
   private readonly processes = new Map<string, Agent>()
   private readonly lineHandlers = new Set<(payload: RuntimeInboundPayload) => void>()
   private readonly exitHandlers = new Set<(payload: RuntimeExitPayload) => void>()
@@ -67,7 +68,9 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
       listeningPorts: [],
       executionId: null,
       executionRole: null,
-      lastActivityAt: 0
+      lastActivityAt: 0,
+      version: 1,
+      interruption: null
     })
     this.pending[sessionId] = { agentId, engine: "fake", provider: "", providerRevision: null, pendingAgentRequests }
   }
@@ -158,8 +161,9 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
 
   async releaseSession(): Promise<void> {}
   async stopSession(): Promise<void> {}
-  async markRead(sessionId: string): Promise<void> {
+  async markRead(sessionId: string, version: number | null): Promise<void> {
     this.marked.push(sessionId)
+    this.markedVersions.push(version)
   }
   async setSessionTitle(): Promise<void> {}
   async sessionLifecycle() {

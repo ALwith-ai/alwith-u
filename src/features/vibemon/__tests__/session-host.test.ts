@@ -34,7 +34,9 @@ async function fixture() {
     reusableDraft: false,
     tasks: [],
     listeningPorts: [],
-    lastActivityAt: 10
+    lastActivityAt: 10,
+    version: 1,
+    interruption: null
   })
   client.applyRunStates([run(a.id), run(b.id)], "snapshot")
   let agent: string | null = "codex"

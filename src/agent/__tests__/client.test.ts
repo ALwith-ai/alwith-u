@@ -694,7 +694,7 @@ test("model changes after restoring a session wait for the previous configuratio
 
   const first = client.setConfig("h1", "model", "deepseek-flash")
   await until(() => enteredFirst)
-  const second = client.setConfig("h1", "model", "gpt-5.6-sol")
+  const second = client.setConfig("h1", "model", "gpt-6.1-sol")
   const results = Promise.allSettled([first, second])
   await new Promise(resolve => setTimeout(resolve, 20))
   releaseFirst()
@@ -702,9 +702,9 @@ test("model changes after restoring a session wait for the previous configuratio
     { status: "fulfilled", value: undefined },
     { status: "fulfilled", value: undefined }
   ])
-  expect(fake.configChanges).toEqual(["deepseek-flash", "gpt-5.6-sol"])
+  expect(fake.configChanges).toEqual(["deepseek-flash", "gpt-6.1-sol"])
   const model = client.session("h1").configOptions.find(option => option.configId === "model")
-  expect(model?.currentValue).toBe("gpt-5.6-sol")
+  expect(model?.currentValue).toBe("gpt-6.1-sol")
 })
 
 test("several gateways register under their own ids and can be removed one at a time", async () => {
@@ -810,7 +810,7 @@ test("precreated drafts expose real models without entering thread indexes", asy
   ])
   expect(duplicate).toBe(first)
   expect(fake.modelHints.size).toBe(1)
-  expect(client.session(first).configOptions[0]?.currentValue).toBe("gpt-5.6-sol")
+  expect(client.session(first).configOptions[0]?.currentValue).toBe("gpt-6.1-sol")
   expect(client.state.draftSessions[first]).toBe("main")
   fake.listSessions.current = () => ({ sessions: [{ sessionId: first, cwd: "/tmp/draft" }] })
   await client.listThreads({ reset: true })

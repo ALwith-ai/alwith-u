@@ -33,7 +33,9 @@ function record(state: SessionRunState["state"]): SessionRunState {
     tasks: [],
     listeningPorts: [],
     executionId: null,
-    executionRole: null
+    executionRole: null,
+    version: 1,
+    interruption: null
   }
 }
 

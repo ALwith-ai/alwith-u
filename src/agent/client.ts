@@ -8,9 +8,17 @@ import {
   AgentRequests,
   Agents,
   assertPromptSupported,
+  ConfigStaleError,
   configOptionRequest,
+  configRevisionOf,
+  configStaleOf,
   createSession,
   isBooleanOption,
+  markDisconnected,
+  promptConfigMeta,
+  replayCursorFor,
+  replayIdOf,
+  replayReceiptOf,
   isGroupedSelect,
   isSelectOption,
   type PendingRequest,
@@ -223,6 +231,11 @@ export class CodexClient {
   private threadsRequest: Promise<void> | null = null
   /** One resume per session at a time: a second `open` while it runs waits for the same one. */
   private readonly replays = new Map<string, Promise<void>>()
+  /** Sessions being created (`session/new`, `session/fork`): their ids are unknown until the response, so their first frames wait in `unborn`. */
+  private creating = 0
+  private readonly unborn = new Map<string, acp.SessionUpdate[]>()
+  /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
+  private readonly activeReplays = new Map<string, string>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -321,6 +334,16 @@ export class CodexClient {
           case "_codex/fuzzy_file_search_updated":
             for (const listener of this.fileSearchListeners) listener(params as FuzzyFileSearchSessionUpdated)
             break
+          case "_alwith/replay_started": {
+            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
+            this.activeReplays.set(sessionId, replayId)
+            break
+          }
+          case "_alwith/replay_ended": {
+            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
+            if (this.activeReplays.get(sessionId) === replayId) this.activeReplays.delete(sessionId)
+            break
+          }
           // `$/cancel_request` (the agent withdraws a permission / form) and `elicitation/complete`
           default:
             this.requests.onNotification(method, params)
@@ -382,13 +405,7 @@ export class CodexClient {
     this.requests.release()
     const sessions: Record<string, Session> = {}
     for (const session of this.sessions.sessions.values()) {
-      const detached: Session = {
-        ...session,
-        attached: false,
-        restoring: false,
-        readOnly: false,
-        state: "idle"
-      }
+      const detached = markDisconnected(session)
       this.sessions.set(detached)
       sessions[session.id] = detached
     }
@@ -418,7 +435,16 @@ export class CodexClient {
   }
 
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
-    if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
+    // A frame of a replay this session is no longer waiting for arrived late; the one it waits for carries its own id.
+    const replayId = replayIdOf(update)
+    if (replayId !== null && this.activeReplays.get(sessionId) !== replayId) return
+    if (!this.sessions.sessions.has(sessionId)) {
+      // A frame for a session this client does not hold. While a session is being created its id is not known yet, so the
+      // frame waits for the response and is applied right after it; otherwise the session was closed here and this is the
+      // agent's tail after our close, which belongs to nobody any more.
+      if (this.creating > 0) this.unborn.set(sessionId, [...(this.unborn.get(sessionId) ?? []), update])
+      return
+    }
     const session = this.sessions.accept(sessionId, update)
     if (!session.restoring && SessionUpdateGuard.isUserMessage(update)) {
       // Use native turn time when available; replay must never look like new activity.
@@ -669,25 +695,46 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
-    const response = await this.live().request<acp.NewSessionResponse>("session/new", {
-      cwd,
-      mcpServers: [],
-      ...(await this.sessionContext(cwd, model))
-    })
-    const existing = this.sessions.sessions.get(response.sessionId)
-    const session: Session = {
-      ...(existing ?? createSession(response.sessionId, cwd)),
-      cwd,
-      attached: true,
-      restoring: false,
-      configOptions: response.configOptions ?? [],
-      error: null
+    const context = await this.sessionContext(cwd, model)
+    const response = await this.born(
+      () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
+      response => {
+        const session: Session = {
+          ...createSession(response.sessionId, cwd),
+          attached: true,
+          configOptions: response.configOptions ?? [],
+          configRevision: configRevisionOf(response)
+        }
+        this.publishSession(session)
+        if (owner === null) this.listSession(session)
+        else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
+      }
+    )
+    this.noteModel(this.sessions.get(response.sessionId))
+    return response.sessionId
+  }
+
+  /**
+   * Creates a session: the response names it, `settle` records it, and the frames the agent sent for it before the response
+   * (held in `unborn`) are applied right after, in order. Frames held for ids that were never born are dropped once nothing is
+   * being created.
+   */
+  private async born<Response extends { sessionId: string }>(
+    request: () => Promise<Response>,
+    settle: (response: Response) => void
+  ): Promise<Response> {
+    this.creating++
+    try {
+      const response = await request()
+      settle(response)
+      const queued = this.unborn.get(response.sessionId) ?? []
+      this.unborn.delete(response.sessionId)
+      for (const update of queued) this.onUpdate(response.sessionId, update)
+      return response
+    } finally {
+      this.creating--
+      if (this.creating === 0) this.unborn.clear()
     }
-    this.publishSession(session)
-    if (owner === null) this.listSession(session)
-    else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
-    this.noteModel(session)
-    return session.id
   }
 
   private listSession(session: Session): void {
@@ -861,26 +908,29 @@ export class CodexClient {
 
   private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
-    this.sessions.beginReplay(id)
+    const agent = this.live()
+    // From where this session has the record when the agent can continue from a position; otherwise from the start.
+    const cursor = replayCursorFor(agent.initialized, this.sessions.get(id))
+    this.sessions.beginReplay(id, cursor.type === "start" ? "start" : cursor.after)
     this.publishSession(this.sessions.get(id))
     try {
       const model =
         owner !== undefined
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
-      const response = await this.live().request<acp.ResumeSessionResponse>("session/resume", {
+      const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
-        replayFrom: { type: "start" },
+        replayFrom: cursor,
         ...(await this.sessionContext(cwd, model))
       })
+      this.sessions.endReplay(id, replayReceiptOf(response))
       this.publishSession({
         ...this.sessions.get(id),
         cwd,
-        attached: true,
-        restoring: false,
         readOnly: isReadOnlyResume(response),
         configOptions: response.configOptions ?? [],
+        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision,
         error: null
       })
       this.noteModel(this.sessions.get(id))
@@ -935,11 +985,25 @@ export class CodexClient {
     // Once a request leaves the client, transport failure cannot prove it was not accepted.
     // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
     this.materializeDraft(id)
-    const response = await agent.request<acp.PromptResponse>("session/prompt", {
-      sessionId: id,
-      prompt,
-      _meta: { codex: { messageSentAt: sentAt } }
-    })
+    const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
+    let response: acp.PromptResponse
+    try {
+      response = await agent.request<acp.PromptResponse>("session/prompt", {
+        sessionId: id,
+        prompt,
+        _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
+      })
+    } catch (error) {
+      // The config moved past what the user saw: take the agent's actual options, say so, and let the user resend.
+      const stale = configStaleOf(error)
+      if (stale === null) throw error
+      this.publishSession({
+        ...this.sessions.get(id),
+        configOptions: stale.configOptions,
+        configRevision: stale.actual
+      })
+      throw new ConfigStaleError(stale)
+    }
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
     return response.messageId
@@ -955,21 +1019,14 @@ export class CodexClient {
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
-      const configOptions = this.sessions.get(id).configOptions
-      const option = configOptions.find(candidate => candidate.configId === configId)
-      // A provider catalog (codex-acp-v2 `providerCatalog`) accepts gateway model ids the broadcast
-      // option does not list; every other write must be one the session offers.
-      const request =
-        option?.category === "model" && this.providerCatalog && typeof value === "string"
-          ? { sessionId: id, configId, type: "id" as const, value }
-          : configOptionRequest(id, configOptions, configId, value)
       const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
         "session/set_config_option",
-        request
+        configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
       )
       this.publishSession({
         ...this.sessions.get(id),
-        configOptions: response.configOptions
+        configOptions: response.configOptions,
+        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision
       })
       this.noteModel(this.sessions.get(id))
       if (response.configOptions.some(option => option.configId === configId && option.category === "model"))
@@ -1140,16 +1197,20 @@ export class CodexClient {
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
     const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
-    const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
-      sessionId: id,
-      cwd,
-      ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
-      _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
-    })
-    const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)
+    const response = await this.born(
+      () =>
+        this.live().request<acp.ForkSessionResponse>("session/fork", {
+          sessionId: id,
+          cwd,
+          ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
+          _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
+        }),
+      // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
+      response => this.sessions.set(createSession(response.sessionId, cwd))
+    )
+    const forked = this.sessions.get(response.sessionId)
     this.publishSession({
       ...forked,
-      // Fork history arrives before its new session id is returned, so it cannot beginReplay in advance.
       items: forked.items.map(item => ({ ...item, replayed: true })),
       cwd,
       attached: true,

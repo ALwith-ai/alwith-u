@@ -42,6 +42,8 @@ test.each(
     owner: "stdio",
     since: 0,
     lastActivityAt: 0,
+    version: 1,
+    interruption: null,
     tasks: [],
     listeningPorts: [],
     executionId: null,
