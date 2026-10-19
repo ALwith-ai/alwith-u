@@ -327,7 +327,8 @@
     },
     "plan": {
       "title": "Plan"
-    }
+    },
+    "predictionUnavailable": "Input suggestions unavailable"
   },
   "composer": {
     "mode": "Permissions",
@@ -394,6 +395,8 @@
       "soundEffects": "Sound effects"
     },
     "language": "Language",
+    "composerPredictions": "Show input suggestions",
+    "composerPredictionsDesc": "Suggest your next message after a reply. Press Tab to insert it as an editable draft.",
     "externalEditor": "Open projects with",
     "externalEditorDesc": "The app used by \"Open in\" on a chat's project folder.",
     "account": "Account",

@@ -42,6 +42,7 @@ import {
 } from "./composer/prompt-input"
 import { PromptInputAttachment, PromptInputAttachments } from "./composer/prompt-input-attachments"
 import { SlashCommandButton } from "./composer/slash-command-button"
+import { useComposerPrediction } from "./composer/use-composer-prediction"
 import { UsageMeter } from "./usage-meter"
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"]
@@ -156,6 +157,13 @@ export function Composer({
   const active = session.state !== "idle"
   const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
   const inputReady = !session.readOnly && (allowPendingInput || ready)
+  const prediction = useComposerPrediction(
+    session,
+    ready && !sending && !dropping && !slashMenuOpen,
+    text.length > 0 || attachments.length > 0 || mentions.length > 0
+  )
+
+  const invalidatePrediction = prediction.invalidate
 
   useEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
@@ -210,6 +218,7 @@ export function Composer({
           const receipt = await client.promptReceipt(session.id, prompt)
           observeReceipt(receipt)
         }
+        invalidatePrediction()
         setMentions(current => (current === mentions ? [] : current))
         textareaRef.current?.resetHeight()
       } finally {
@@ -217,7 +226,7 @@ export function Composer({
         textareaRef.current?.focus()
       }
     },
-    [session.id, mentions, onSubmit]
+    [session.id, mentions, onSubmit, invalidatePrediction]
   )
 
   const stop = () => {
@@ -296,15 +305,39 @@ export function Composer({
             />
             <PromptInputAttachments>{attachment => <PromptInputAttachment data={attachment} />}</PromptInputAttachments>
           </PromptInputHeader>
-          <PromptInputBody className="mb-1 min-h-10 px-3">
+          <PromptInputBody
+            className="mb-1 min-h-10 px-3"
+            onKeyDownCapture={event => {
+              if (
+                !prediction.text ||
+                event.nativeEvent.isComposing ||
+                event.nativeEvent.keyCode === 229 ||
+                event.shiftKey ||
+                event.ctrlKey ||
+                event.altKey ||
+                event.metaKey ||
+                event.target !== textareaRef.current?.getTextarea()
+              )
+                return
+              if (event.key === "Tab") {
+                event.preventDefault()
+                event.stopPropagation()
+                setText(prediction.text)
+              }
+            }}>
             <PromptInputTextarea
               className="min-h-10"
               ref={textareaRef}
               rows={2}
               disabled={!inputReady}
-              placeholder={active ? t("chat.steerPlaceholder") : t("chat.placeholder")}
+              placeholder={prediction.text || (active ? t("chat.steerPlaceholder") : t("chat.placeholder"))}
               aria-label={t("chat.placeholder")}
             />
+            {prediction.error && (
+              <span className="text-muted-foreground text-xs" role="status" title={prediction.error}>
+                {t("chat.predictionUnavailable")}
+              </span>
+            )}
           </PromptInputBody>
           <PromptInputFooter className="@container/input-footer mt-0 mb-4 w-full min-w-0 p-0">
             <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-[5px] px-2">

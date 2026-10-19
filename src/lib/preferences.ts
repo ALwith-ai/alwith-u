@@ -8,6 +8,7 @@ import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/
 import { setProjectAppPreference } from "./project-app-preference"
 
 export type Preferences = {
+  composerPredictions?: boolean
   sidebarPinned: boolean
   chatWindowShortcut?: string
   lastProjectDirectory: string | null
@@ -23,6 +24,7 @@ export type Preferences = {
 }
 
 const preferenceKeys: Record<keyof Preferences, string> = {
+  composerPredictions: "chat.composerPredictions",
   sidebarPinned: "appearance.sidebarPinned",
   chatWindowShortcut: "chat.windowShortcut",
   lastProjectDirectory: "general.lastProjectDirectory",
@@ -74,6 +76,7 @@ export async function loadPreferences(): Promise<Preferences> {
     }
   }
   return {
+    composerPredictions: (await store.get<boolean>("composerPredictions")) ?? true,
     sidebarPinned: sidebarPinned ?? false,
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
     lastProjectDirectory: restoredDirectory,

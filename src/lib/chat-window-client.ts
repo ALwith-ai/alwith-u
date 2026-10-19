@@ -33,6 +33,7 @@ const METHODS = [
   "setConfig",
   "respond",
   "readRateLimits",
+  "requestPrediction",
   "fuzzyFileSearch",
   "renameSession",
   "delete"
@@ -309,6 +310,9 @@ export class RemoteChatClient extends CodexClient {
   override respond(...args: Parameters<CodexClient["respond"]>): void {
     // Existing approval UI uses synchronous respond; surface asynchronous failures globally.
     void this.request("respond", args)
+  }
+  override requestPrediction(...args: Parameters<CodexClient["requestPrediction"]>): Promise<void> {
+    return this.request("requestPrediction", args)
   }
   override readRateLimits(): Promise<RateLimitSnapshot> {
     return this.request("readRateLimits", [])

@@ -1,3 +1,6 @@
+import { useStore } from "zustand"
+import { Switch } from "@/components/ui/switch"
+import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { getVersion } from "@tauri-apps/api/app"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -15,6 +18,8 @@ import { AutostartRow } from "./autostart-row"
 
 export function GeneralSection() {
   const { t } = useTranslation()
+  const predictions = useStore(predictionPreference, state => state.enabled)
+  const [savingPredictions, setSavingPredictions] = useState(false)
   const [version, setVersion] = useState("")
   useEffect(() => {
     void getVersion().then(setVersion)
@@ -110,6 +115,20 @@ export function GeneralSection() {
           </SettingRow>
         </>
       )}
+      <Separator />
+      <SettingRow title={t("settings.composerPredictions")} desc={t("settings.composerPredictionsDesc")} aligned>
+        <Switch
+          aria-label={t("settings.composerPredictions")}
+          checked={predictions}
+          disabled={savingPredictions}
+          onCheckedChange={enabled => {
+            setSavingPredictions(true)
+            void setPredictionsEnabled(enabled)
+              .catch((error: unknown) => toast.error(String(error)))
+              .finally(() => setSavingPredictions(false))
+          }}
+        />
+      </SettingRow>
       <Separator />
       <AutostartRow />
     </SettingGroup>

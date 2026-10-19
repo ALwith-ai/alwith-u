@@ -251,6 +251,7 @@ export type FuzzyFileSearchSessionUpdated = { sessionId: string; query: string; 
 
 /** What the adapter advertised under `capabilities._meta.codex`. */
 export type CodexExtensionCapabilities = {
+  composerPredictions: boolean
   forkAtTurn: boolean
   sessionLineage: boolean
   skills: boolean
@@ -264,6 +265,7 @@ export function codexExtensionCapabilities(agent: acp.InitializeResponse | null)
   const codex = agent?.capabilities?._meta?.codex
   const flags = typeof codex === "object" && codex !== null ? (codex as Record<string, unknown>) : {}
   return {
+    composerPredictions: flags.composerPredictions === true,
     forkAtTurn: flags.forkAtTurn === true,
     sessionLineage: flags.sessionLineage === true,
     skills: flags.skills === true,
@@ -335,4 +337,25 @@ export function codexTurnError(error: TurnError): CodexTurnError {
     category: typeof fields?.category === "string" ? fields.category : null,
     retryable: fields?.retryable === true
   }
+}
+
+export type ComposerPrediction = {
+  sourceTurnId: string
+  result: { type: "completed"; text: string | null } | { type: "failed" }
+}
+
+export function composerPrediction(meta: Record<string, unknown> | null): ComposerPrediction | null {
+  const codex = meta?.codex
+  if (typeof codex !== "object" || codex === null) return null
+  const prediction = (codex as Record<string, unknown>).prediction
+  if (prediction === undefined || prediction === null) return null
+  if (typeof prediction !== "object") throw new Error("Invalid composer prediction")
+  const { sourceTurnId, result } = prediction as Record<string, unknown>
+  if (typeof sourceTurnId !== "string" || !sourceTurnId || typeof result !== "object" || result === null)
+    throw new Error("Invalid composer prediction")
+  const value = result as Record<string, unknown>
+  if (value.type === "failed") return { sourceTurnId, result: { type: "failed" } }
+  if (value.type === "completed" && (value.text === null || typeof value.text === "string"))
+    return { sourceTurnId, result: { type: "completed", text: value.text } }
+  throw new Error("Invalid composer prediction result")
 }

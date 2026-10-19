@@ -1,3 +1,4 @@
+import { RequestError } from "@agentclientprotocol/sdk/experimental/v2"
 import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
@@ -1252,4 +1253,52 @@ test("tracked prompt receipt names the retained authoritative turn", async () =>
   expect(["acknowledged", "adopted"]).toContain(prompt && "echo" in prompt ? prompt.echo : null)
   expect(must(client.state.sessions[id], "receipt session").items.filter(item => item.kind === "user")).toHaveLength(1)
   await client.cancel(id)
+})
+
+test("composer predictions cross the Runtime extension boundary and keep session ownership", async () => {
+  const { client, fake } = await make(fake => {
+    fake.app.onRequest(
+      "_codex/session_prediction_request",
+      value => value as { sessionId: string; sourceTurnId: string },
+      ({ params }) => {
+        expect(params).toEqual({ sessionId: "s0", sourceTurnId: "turn-1" })
+        return {}
+      }
+    )
+  })
+  const agent = must(client.state.agent, "agent")
+  client.store.setState({
+    agent: { ...agent, capabilities: { ...agent.capabilities, _meta: { codex: { composerPredictions: true } } } }
+  })
+  const first = await client.newSession("/tmp")
+  const second = await client.newSession("/tmp")
+  await client.requestPrediction(first, "turn-1")
+  const prediction = { sourceTurnId: "turn-1", result: { type: "completed", text: "Run tests" } }
+  await fake.pushUpdate(first, { sessionUpdate: "session_info_update", _meta: { codex: { prediction } } })
+  await until(() => (client.session(first)._meta?.codex as { prediction?: unknown })?.prediction !== undefined)
+  expect(client.session(first)._meta).toMatchObject({ codex: { prediction } })
+  expect(client.session(second)._meta).not.toMatchObject({ codex: { prediction } })
+  expect(client.session(first).state).toBe("idle")
+  client.store.setState({ agent: { ...agent, capabilities: {} } })
+  await expect(client.requestPrediction(first, "turn-1")).rejects.toThrow("does not support")
+})
+
+test("prediction errors propagate without disabling future requests", async () => {
+  let calls = 0
+  const { client } = await make(fake => {
+    fake.app.onRequest(
+      "_codex/session_prediction_request",
+      value => value as Record<string, unknown>,
+      () => {
+        calls++
+        throw RequestError.internalError(undefined, "Prediction unavailable")
+      }
+    )
+  })
+  // Request failures do not change connection capabilities.
+  const agent = must(client.state.agent, "agent")
+  client.store.setState({ agent: { ...agent, capabilities: { _meta: { codex: { composerPredictions: true } } } } })
+  await expect(client.requestPrediction("s", "turn")).rejects.toThrow()
+  await expect(client.requestPrediction("s", "turn-2")).rejects.toThrow("Prediction unavailable")
+  expect(calls).toBe(2)
 })

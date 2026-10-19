@@ -87,3 +87,12 @@ test.each([undefined, false, true])("sidebar pin preference restores %p", async 
   settingsFixture(saved === undefined ? {} : { "appearance.sidebarPinned": saved })
   expect((await loadPreferences()).sidebarPinned).toBe(saved ?? false)
 })
+
+test("input suggestions default to enabled and preserve an explicit saved choice", async () => {
+  const values = savedProject(undefined)
+  expect((await loadPreferences()).composerPredictions).toBe(true)
+  values.set("chat.composerPredictions", false)
+  expect((await loadPreferences()).composerPredictions).toBe(false)
+  values.set("chat.composerPredictions", true)
+  expect((await loadPreferences()).composerPredictions).toBe(true)
+})

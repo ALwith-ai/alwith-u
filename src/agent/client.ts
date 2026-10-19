@@ -1345,6 +1345,12 @@ export class CodexClient {
     if (session) this.publishSession({ ...session, title: name })
   }
 
+  async requestPrediction(sessionId: string, sourceTurnId: string): Promise<void> {
+    if (!codexExtensionCapabilities(this.state.agent).composerPredictions)
+      throw new Error("The agent does not support composer predictions")
+    await this.live().request("_codex/session_prediction_request", { sessionId, sourceTurnId })
+  }
+
   readAccount(): Promise<AccountReadResponse> {
     return this.live().request<AccountReadResponse>("_codex/account_read", {})
   }
