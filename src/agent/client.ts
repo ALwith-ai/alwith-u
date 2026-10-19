@@ -11,6 +11,7 @@ import {
   configOptionRequest,
   createSession,
   isBooleanOption,
+  markDisconnected,
   isGroupedSelect,
   isSelectOption,
   type PendingRequest,
@@ -223,6 +224,9 @@ export class CodexClient {
   private threadsRequest: Promise<void> | null = null
   /** One resume per session at a time: a second `open` while it runs waits for the same one. */
   private readonly replays = new Map<string, Promise<void>>()
+  /** Sessions being created (`session/new`, `session/fork`): their ids are unknown until the response, so their first frames wait in `unborn`. */
+  private creating = 0
+  private readonly unborn = new Map<string, acp.SessionUpdate[]>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -382,13 +386,7 @@ export class CodexClient {
     this.requests.release()
     const sessions: Record<string, Session> = {}
     for (const session of this.sessions.sessions.values()) {
-      const detached: Session = {
-        ...session,
-        attached: false,
-        restoring: false,
-        readOnly: false,
-        state: "idle"
-      }
+      const detached = markDisconnected(session)
       this.sessions.set(detached)
       sessions[session.id] = detached
     }
@@ -418,7 +416,13 @@ export class CodexClient {
   }
 
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
-    if (!this.sessions.sessions.has(sessionId)) this.sessions.set(createSession(sessionId, ""))
+    if (!this.sessions.sessions.has(sessionId)) {
+      // A frame for a session this client does not hold. While a session is being created its id is not known yet, so the
+      // frame waits for the response and is applied right after it; otherwise the session was closed here and this is the
+      // agent's tail after our close, which belongs to nobody any more.
+      if (this.creating > 0) this.unborn.set(sessionId, [...(this.unborn.get(sessionId) ?? []), update])
+      return
+    }
     const session = this.sessions.accept(sessionId, update)
     if (!session.restoring && SessionUpdateGuard.isUserMessage(update)) {
       // Use native turn time when available; replay must never look like new activity.
@@ -669,25 +673,45 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
-    const response = await this.live().request<acp.NewSessionResponse>("session/new", {
-      cwd,
-      mcpServers: [],
-      ...(await this.sessionContext(cwd, model))
-    })
-    const existing = this.sessions.sessions.get(response.sessionId)
-    const session: Session = {
-      ...(existing ?? createSession(response.sessionId, cwd)),
-      cwd,
-      attached: true,
-      restoring: false,
-      configOptions: response.configOptions ?? [],
-      error: null
+    const context = await this.sessionContext(cwd, model)
+    const response = await this.born(
+      () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
+      response => {
+        const session: Session = {
+          ...createSession(response.sessionId, cwd),
+          attached: true,
+          configOptions: response.configOptions ?? []
+        }
+        this.publishSession(session)
+        if (owner === null) this.listSession(session)
+        else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
+      }
+    )
+    this.noteModel(this.sessions.get(response.sessionId))
+    return response.sessionId
+  }
+
+  /**
+   * Creates a session: the response names it, `settle` records it, and the frames the agent sent for it before the response
+   * (held in `unborn`) are applied right after, in order. Frames held for ids that were never born are dropped once nothing is
+   * being created.
+   */
+  private async born<Response extends { sessionId: string }>(
+    request: () => Promise<Response>,
+    settle: (response: Response) => void
+  ): Promise<Response> {
+    this.creating++
+    try {
+      const response = await request()
+      settle(response)
+      const queued = this.unborn.get(response.sessionId) ?? []
+      this.unborn.delete(response.sessionId)
+      for (const update of queued) this.onUpdate(response.sessionId, update)
+      return response
+    } finally {
+      this.creating--
+      if (this.creating === 0) this.unborn.clear()
     }
-    this.publishSession(session)
-    if (owner === null) this.listSession(session)
-    else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
-    this.noteModel(session)
-    return session.id
   }
 
   private listSession(session: Session): void {
@@ -935,17 +959,9 @@ export class CodexClient {
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
-      const configOptions = this.sessions.get(id).configOptions
-      const option = configOptions.find(candidate => candidate.configId === configId)
-      // A provider catalog (codex-acp-v2 `providerCatalog`) accepts gateway model ids the broadcast
-      // option does not list; every other write must be one the session offers.
-      const request =
-        option?.category === "model" && this.providerCatalog && typeof value === "string"
-          ? { sessionId: id, configId, type: "id" as const, value }
-          : configOptionRequest(id, configOptions, configId, value)
       const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
         "session/set_config_option",
-        request
+        configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
       )
       this.publishSession({
         ...this.sessions.get(id),
@@ -1120,16 +1136,20 @@ export class CodexClient {
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
     const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
-    const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
-      sessionId: id,
-      cwd,
-      ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
-      _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
-    })
-    const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)
+    const response = await this.born(
+      () =>
+        this.live().request<acp.ForkSessionResponse>("session/fork", {
+          sessionId: id,
+          cwd,
+          ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
+          _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
+        }),
+      // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
+      response => this.sessions.set(createSession(response.sessionId, cwd))
+    )
+    const forked = this.sessions.get(response.sessionId)
     this.publishSession({
       ...forked,
-      // Fork history arrives before its new session id is returned, so it cannot beginReplay in advance.
       items: forked.items.map(item => ({ ...item, replayed: true })),
       cwd,
       attached: true,

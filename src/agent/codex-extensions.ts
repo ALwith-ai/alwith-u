@@ -3,7 +3,7 @@
 // client reads. Keep in step with `@nyssance/codex-acp-v2` docs/protocol.md.
 
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import type { TurnError } from "@alwith/api"
+import { DISCONNECTED, type TurnError } from "@alwith/api"
 
 type SkillScope = "user" | "repo" | "system" | "admin"
 
@@ -329,7 +329,9 @@ export function codexTurnError(error: TurnError): CodexTurnError {
         ? error.error.message
         : typeof fields?.message === "string"
           ? fields.message
-          : `Turn ended: ${error.stopReason}`,
+          : error.stopReason === DISCONNECTED
+            ? "Codex disconnected while this turn was running"
+            : `Turn ended: ${error.stopReason}`,
     category: typeof fields?.category === "string" ? fields.category : null,
     retryable: fields?.retryable === true
   }

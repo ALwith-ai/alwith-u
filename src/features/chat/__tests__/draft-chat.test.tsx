@@ -449,7 +449,7 @@ test("the composer stays visible while initial providers and the native draft ar
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect(view.getByRole("textbox")).toBe(input)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("saved input")
-    expect(view.getByTestId("model-trigger").textContent).toContain("GPT-5.6 Sol")
+    expect(view.getByTestId("model-trigger").textContent).toContain("GPT-6.1 Sol")
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
     expect(Object.keys(real.state.sessions)).toHaveLength(1)
     expect(real.state.threads).toHaveLength(0)
@@ -523,7 +523,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     </StrictMode>
   )
   try {
-    await waitFor(() => expect(view.getByTestId("model-trigger").textContent).toContain("GPT-5.6 Sol"))
+    await waitFor(() => expect(view.getByTestId("model-trigger").textContent).toContain("GPT-6.1 Sol"))
     await waitFor(() => expect(view.getByRole("textbox").hasAttribute("disabled")).toBe(false))
     expect(selected).not.toBeNull()
     expect(fake.modelHints.size).toBe(1)
@@ -531,7 +531,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     expect(real.session(must<string>(selected, "selected draft")).items).toEqual([])
     expect(real.state.threads).toEqual([])
     await act(async () => fireEvent.click(view.getByTestId("model-trigger")))
-    expect(view.getByRole("menuitemradio", { name: "GPT-5.6 Sol" })).toBeTruthy()
+    expect(view.getByRole("menuitemradio", { name: "GPT-6.1 Sol" })).toBeTruthy()
   } finally {
     await act(async () => view.unmount())
     restore()
