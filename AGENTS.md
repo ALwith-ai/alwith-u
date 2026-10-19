@@ -123,3 +123,9 @@ Origin: explicit user instruction (2026-09-13).
 Comments and documentation are English only. README, docs and other published text carry no internal platform planning or its terms; that planning lives in the private Desktop repository (`docs/plans`).
 
 Origin: explicit user instruction (2026-09-30).
+
+## Commit messages: English only, one commit per change
+
+- Write commit messages in English only. No Chinese in subjects or bodies, in any repo.
+- Squash churn before pushing: one commit per logical change. Never leave an add-then-remove sequence (a feature commit followed by its revert, or a dependency pinned and re-pinned) in history; rewrite it into the net result.
+- Origin: user instruction (2026-10-20).
