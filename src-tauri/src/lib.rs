@@ -7,6 +7,7 @@ mod autostart;
 mod bundled_extensions;
 mod chat_files;
 mod chat_window;
+mod computer;
 mod draft_directory;
 mod drive;
 mod extension_capabilities;
@@ -153,6 +154,7 @@ pub fn run() {
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
+            computer::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // Native materials paint behind the transparent page. Panels that must stay
             // opaque paint their own background in CSS.
@@ -243,6 +245,7 @@ pub fn run() {
             }
         }
         tauri::RunEvent::Exit => {
+            app.state::<alwith_computer::ComputerHost>().kill_on_exit();
             gamepad::shutdown(app);
             app.state::<runtime::RuntimeState>().kill_on_exit();
         }
@@ -257,6 +260,18 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 autostart::autostart_status,
+                computer::computer_status,
+                computer::computer_start,
+                computer::computer_stop,
+                computer::computer_context,
+                computer::computer_revision,
+                computer::computer_bind,
+                computer::computer_ready,
+                computer::computer_stop_session,
+                computer::computer_subscribe,
+                computer::computer_focus,
+                computer::computer_unsubscribe,
+                computer::computer_request_permissions,
                 autostart::autostart_set,
                 autostart::autostart_launch,
                 autostart::autostart_complete,
@@ -332,6 +347,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 installed_apps::open_path_in_app
             ]
             .event::<runtime::RuntimeLines>()
+            .event::<computer::ComputerPreview>()
             .event::<runtime::RuntimeExit>()
             .event::<providers::Snapshot>()
             .event::<updater::state::State>()

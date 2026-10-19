@@ -17,6 +17,7 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-gamepad = { path = "../node_modules/@alwith/module-gamepad/rust", features = ["desktop"] }
 open = { version = "5", features = ["shellexecute-on-windows"] }
 alwith-drive = { path = "../node_modules/@alwith/module-drive/rust" }

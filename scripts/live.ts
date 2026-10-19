@@ -7,6 +7,7 @@ import { join } from "node:path"
 import { WebSocketRuntimeClient } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 import { CodexClient } from "../src/agent/client"
+import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
 import { isFormElicitation, isStringProperty, isText, type Session } from "@alwith/api"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
@@ -90,7 +91,7 @@ async function check(transport: "stdio" | "ws") {
   console.log(`runtime: ${runtime?.url ?? "stdio"}`)
   const client = new CodexClient(async () => port, {
     agentId: "codex",
-    launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+    launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
   })
   let second: CodexClient | undefined
   try {
@@ -159,7 +160,7 @@ async function check(transport: "stdio" | "ws") {
     await until(async () => !(await port.agents()).some(agent => agent.agentId === "codex"), 10_000, "agent exit")
     second = new CodexClient(async () => port, {
       agentId: "codex",
-      launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+      launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
     })
     await second.connect()
     await verifyHistory(second, directory, replies)
@@ -218,7 +219,7 @@ async function check(transport: "stdio" | "ws") {
       )
       second = new CodexClient(async () => port, {
         agentId: "codex",
-        launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+        launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
       const immediatelySaved = await second.readThreadSummary(forked)
@@ -248,7 +249,7 @@ async function check(transport: "stdio" | "ws") {
       )
       second = new CodexClient(async () => port, {
         agentId: "codex",
-        launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
+        launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
       if (!(await second.listProjectThreads(directory)).some(thread => thread.sessionId === forked))

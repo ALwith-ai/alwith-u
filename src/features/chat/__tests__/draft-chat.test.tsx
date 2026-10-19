@@ -215,6 +215,8 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
     await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New project" })))
     await waitFor(() => expect(release).toBeDefined())
+    // Escape belongs to the menu until its exit transition removes it.
+    await waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull())
     await act(async () => fireEvent.keyDown(window, { key: "Escape" }))
     expect(env.hidden).toBe(true)
     expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(original, false)

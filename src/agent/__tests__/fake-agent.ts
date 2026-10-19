@@ -32,6 +32,7 @@ export type FakeAgent = {
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
+  resumeResponse: { current: (() => Promise<acp.ResumeSessionResponse>) | null }
   replayUpdates: acp.SessionUpdate[]
 }
 
@@ -92,6 +93,7 @@ export function createFakeAgent(): FakeAgent {
   const changingConfig = new Set<string>()
   const renamed = new Map<string, string>()
   const fileSearches: string[] = []
+  const resumeResponse: FakeAgent["resumeResponse"] = { current: null }
   const replayUpdates: acp.SessionUpdate[] = []
   let link: acp.AgentContext | null = null
   const gatewayGroups = (): GatewayGroup[] =>
@@ -268,6 +270,7 @@ export function createFakeAgent(): FakeAgent {
         content: [{ type: "text", text: `restored:${params.sessionId}` }]
       }
     })
+    if (resumeResponse.current) return resumeResponse.current()
     const origin = origins.get(params.sessionId)
     return { configOptions: optionsFor(hint), ...(origin ? { _meta: { codex: origin } } : {}) }
   })
@@ -428,6 +431,7 @@ export function createFakeAgent(): FakeAgent {
     renamed,
     fileSearches,
     replayUpdates,
+    resumeResponse,
     pushRateLimits,
     requestForm: async params => {
       if (link === null) throw new Error("Fake agent is not connected")

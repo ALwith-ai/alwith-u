@@ -617,3 +617,13 @@ body,
 [data-wallpaper="active"] .main-chat-surface {
   background: color-mix(in srgb, var(--background) 88%, transparent);
 }
+
+/* ALwith U agent identity, shared with the compiled native cursor artwork. */
+:root {
+  --computer-brand: rgb(79 92 255);
+  --computer-brand-soft: rgb(161 143 255);
+  --computer-brand-foreground: white;
+}
+.computer-agent-cursor {
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--foreground) 25%, transparent));
+}

@@ -8,9 +8,10 @@ import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
 export type SettingsSection =
-  "general" | "editor" | "appearance" | "account" | "provider" | "extensions" | "drive" | "about"
+  "computer" | "general" | "editor" | "appearance" | "account" | "provider" | "extensions" | "drive" | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   "general",
+  "computer",
   "appearance",
   "editor",
   "account",
@@ -46,10 +47,8 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
   const existing = await WebviewWindow.getByLabel("settings")
   if (existing) {
     if (isMac()) await commands.attachWindowToMain({ label: "settings" })
-    else {
-      await existing.show()
-      await existing.setFocus()
-    }
+    await existing.show()
+    await existing.setFocus()
     if (section !== undefined) await emitTo("settings", SETTINGS_CHANGE_TAB, section)
     return
   }

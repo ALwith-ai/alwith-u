@@ -2,6 +2,10 @@
   "identifier": "ai.alwith.u.dev",
   "productName": "ALwith U Dev",
   "bundle": {
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    }
   }
 }

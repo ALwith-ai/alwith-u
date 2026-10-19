@@ -84,6 +84,9 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
     if state.begin_shutdown() {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
+            if let Err(error) = app.state::<alwith_computer::ComputerHost>().shutdown().await {
+                log::error!("Computer shutdown failed: {error}");
+            }
             app.state::<RuntimeState>().shutdown().await;
             app.exit(code.unwrap_or(0));
         });
@@ -238,6 +241,10 @@ pub async fn runtime_start(
             for event in burst {
                 match event {
                     ClientEvent::Closed { reason } => {
+                        if let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await {
+                            log::error!("Computer cleanup after Runtime exit failed: {error}");
+                        }
+                        app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
                         if !lines.is_empty() {
                             let _ = RuntimeLines(std::mem::take(&mut lines)).emit(&app);
                         }
@@ -252,6 +259,28 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
+                        if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
+                            && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
+                        {
+                            log::error!("Computer cleanup after Codex exit failed: {error}");
+                        }
+                        if let alwith_api::RuntimeEvent::RunStates { sessions } = &event {
+                            app.state::<crate::computer::ComputerGateway>().gateway.sync_running(
+                                sessions
+                                    .iter()
+                                    .filter(|s| {
+                                        matches!(
+                                            s.state,
+                                            alwith_api::RunState::Running | alwith_api::RunState::RequiresAction
+                                        )
+                                    })
+                                    .map(|s| s.session_id.clone())
+                                    .collect(),
+                            );
+                        }
+                        if matches!(&event, alwith_api::RuntimeEvent::Exit {agent_id} if agent_id=="codex") {
+                            app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
+                        }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { .. }) {
                             app.state::<crate::providers::Providers>().reset().await;

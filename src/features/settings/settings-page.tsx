@@ -11,6 +11,7 @@ import {
   ContrastIcon,
   CpuIcon,
   InfoIcon,
+  MonitorIcon,
   SlidersHorizontalIcon,
   UserIcon
 } from "lucide-react"
@@ -33,11 +34,13 @@ import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/
 import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
+import { ComputerSection } from "./sections/computer-section"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,
+  computer: MonitorIcon,
   drive: CloudIcon,
   general: SlidersHorizontalIcon,
   editor: Code2Icon,
@@ -101,6 +104,8 @@ export function SettingsPage() {
             return <AccountSection />
           case "editor":
             return <EditorSettingsSection />
+          case "computer":
+            return <ComputerSection />
           case "general":
             return <GeneralSection />
           case "appearance":

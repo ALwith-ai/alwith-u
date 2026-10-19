@@ -18,6 +18,7 @@ import {
   SessionStore
 } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
+import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 import type {
   AccountReadResponse,
@@ -105,7 +106,21 @@ export type ClientOptions = {
   /** Resolve a slot selection against the host's applied provider configuration. */
   resolveModel?: (model: string | null) => Promise<string | null>
   /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
-  sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
+  sessionContext?: (
+    cwd: string,
+    operation: SessionOperation
+  ) => Promise<{
+    mcpServers: acp.McpServer[]
+    appendSystemPrompt?: string
+    revision?: string
+    bind?: (sessionId: string) => Promise<void>
+  }>
+  /** Current host tool configuration; existing sessions refresh before their next prompt. */
+  sessionContextRevision?: () => Promise<string>
+  /** Verify the explicit session connection before dispatch; a failed check gets one fresh connection. */
+  prepareSessionTools?: (sessionId: string) => Promise<void>
+  /** Revoke native execution before cancelling or closing the explicit session. */
+  revokeSessionAccess?: (sessionId: string) => Promise<void>
   /** Host-specific path identity, independent of whether a historical directory still exists. */
   projectPaths?: import("./project-path").ProjectPaths
 }
@@ -214,6 +229,7 @@ export class CodexClient {
   /** Main and floating windows allocate counted titles through the same owner. */
   private forkQueue: Promise<unknown> = Promise.resolve()
   /** The adapter rejects overlapping configuration writes to one session. */
+  private readonly contextRevisions = new Map<string, string | undefined>()
   private readonly sessionOperations = new Map<string, Promise<void>>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
@@ -650,19 +666,27 @@ export class CodexClient {
 
   private async sessionContext(
     cwd: string,
-    model: string | null
+    model: string | null,
+    operation: SessionOperation
   ): Promise<{
+    revision?: string
+    bind?: (sessionId: string) => Promise<void>
     mcpServers?: acp.McpServer[]
     _meta?: { alwith: { model?: string; appendSystemPrompt?: string } }
   }> {
     const hint = modelHint(model)
     if (!this.options.sessionContext) return hint
-    const context = await this.options.sessionContext(cwd)
+    const context = await this.options.sessionContext(cwd, operation)
     const alwith = {
       ...hint._meta?.alwith,
       ...(context.appendSystemPrompt ? { appendSystemPrompt: context.appendSystemPrompt } : {})
     }
-    return { mcpServers: context.mcpServers, ...(Object.keys(alwith).length ? { _meta: { alwith } } : {}) }
+    return {
+      revision: context.revision,
+      bind: context.bind,
+      mcpServers: context.mcpServers,
+      ...(Object.keys(alwith).length ? { _meta: { alwith } } : {})
+    }
   }
 
   async newSession(cwd: string, model: string | null = null, owner: DraftOwner = "main"): Promise<string> {
@@ -673,11 +697,14 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
+    const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" })
     const response = await this.live().request<acp.NewSessionResponse>("session/new", {
       cwd,
       mcpServers: [],
-      ...(await this.sessionContext(cwd, model))
+      ...context
     })
+    await bind?.(response.sessionId)
+    this.contextRevisions.set(response.sessionId, revision)
     const existing = this.sessions.sessions.get(response.sessionId)
     const session: Session = {
       ...(existing ?? createSession(response.sessionId, cwd)),
@@ -836,7 +863,7 @@ export class CodexClient {
     ++this.slotVersions[owner]
     const existing = this.sessions.sessions.get(id)
     if (existing?.restoring) return
-    if (existing?.attached) {
+    if (existing?.attached && !existing.readOnly) {
       this.followModel(owner, existing)
       return
     }
@@ -863,12 +890,15 @@ export class CodexClient {
         owner !== undefined
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
+      const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
       const response = await this.live().request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
         replayFrom: { type: "start" },
-        ...(await this.sessionContext(cwd, model))
+        ...context
       })
+      await bind?.(id)
+      this.contextRevisions.set(id, revision)
       this.publishSession({
         ...this.sessions.get(id),
         cwd,
@@ -895,9 +925,38 @@ export class CodexClient {
   }
 
   private async sendPrompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
-    const session = this.sessions.get(id)
-    if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
+    let session = this.sessions.get(id)
+    if (!session.attached) throw new Error("Open the chat before sending")
+    if (
+      this.options.sessionContextRevision &&
+      this.contextRevisions.get(id) !== (await this.options.sessionContextRevision())
+    ) {
+      const run = this.state.runStates[id]?.state
+      if (run === "running" || run === "requires_action")
+        throw new Error("Wait for the current task to finish before refreshing computer tools")
+      await this.live().request("session/close", { sessionId: id })
+      this.updates.remove(id)
+      this.publishSession({ ...this.sessions.get(id), attached: false })
+      await this.replay(id, session.cwd)
+      session = this.sessions.get(id)
+    }
+    if (this.options.prepareSessionTools) {
+      const run = this.state.runStates[id]?.state
+      if (run !== "running" && run !== "requires_action") {
+        try {
+          await this.options.prepareSessionTools(id)
+        } catch {
+          // Retry only before dispatch. Never replay a prompt or a native action.
+          await this.live().request("session/close", { sessionId: id })
+          this.updates.remove(id)
+          this.publishSession({ ...this.sessions.get(id), attached: false })
+          await this.replay(id, session.cwd)
+          await this.options.prepareSessionTools(id)
+          session = this.sessions.get(id)
+        }
+      }
+    }
     // The user's message goes on screen now, under a local id. The receipt says which id the
     // agent inserted it under (codex-acp-v2 mints it and hands it to Codex as
     // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
@@ -923,7 +982,17 @@ export class CodexClient {
     // (and forms cancelled) — otherwise they hang in the agent and the Runtime and come back
     // as zombie prompts on the next attach.
     this.requests.cancelSession(id)
-    await this.live().notify("session/cancel", { sessionId: id })
+    await this.stopWithAccessRevocation(id, () => this.live().notify("session/cancel", { sessionId: id }))
+  }
+
+  private async stopWithAccessRevocation(id: string, stop: () => Promise<unknown>): Promise<void> {
+    // A native cleanup failure must not leave the Codex turn running. Start
+    // revocation first, attempt both operations, and report every failure.
+    const revoke = Promise.resolve().then(() => this.options.revokeSessionAccess?.(id))
+    const results = await Promise.allSettled([revoke, Promise.resolve().then(stop)])
+    const errors = results.flatMap(result => (result.status === "rejected" ? [result.reason] : []))
+    if (errors.length === 1) throw errors[0]
+    if (errors.length > 1) throw new AggregateError(errors, "Session stop failed")
   }
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
@@ -1041,7 +1110,7 @@ export class CodexClient {
   async close(id: string): Promise<void> {
     await this.enqueueSession(id, async () => {
       this.requests.cancelSession(id)
-      await this.live().request("session/close", { sessionId: id })
+      await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
       this.dropSession(id)
     })
   }
@@ -1050,7 +1119,7 @@ export class CodexClient {
   async stopSession(id: string): Promise<void> {
     await this.enqueueSession(id, async () => {
       this.requests.cancelSession(id)
-      await this.live().request("session/close", { sessionId: id })
+      await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
       this.updates.remove(id)
       const session = this.sessions.sessions.get(id)
       // Activity can also contain sessions that this window has never opened.
@@ -1061,6 +1130,7 @@ export class CodexClient {
   }
 
   async archive(id: string): Promise<void> {
+    await this.options.revokeSessionAccess?.(id)
     await this.live().request("_codex/session_archive", { sessionId: id })
     this.dropSession(id)
     this.store.setState(state => {
@@ -1086,6 +1156,7 @@ export class CodexClient {
   }
 
   async delete(id: string): Promise<void> {
+    await this.options.revokeSessionAccess?.(id)
     await this.live().request("session/delete", { sessionId: id })
     this.dropSession(id)
     this.store.setState(state => ({
@@ -1106,13 +1177,18 @@ export class CodexClient {
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
-    const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
+    const { revision, bind, ...hint } = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null, {
+      kind: "fork",
+      sourceSessionId: id
+    })
     const response = await this.live().request<acp.ForkSessionResponse>("session/fork", {
       sessionId: id,
       cwd,
       ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
       _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
     })
+    await bind?.(response.sessionId)
+    this.contextRevisions.set(response.sessionId, revision)
     const forked = this.sessions.sessions.get(response.sessionId) ?? createSession(response.sessionId, cwd)
     this.publishSession({
       ...forked,
@@ -1281,6 +1357,7 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
+    this.contextRevisions.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)

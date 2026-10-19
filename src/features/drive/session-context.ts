@@ -7,7 +7,7 @@ async function request(value: DriveRequest): Promise<DriveResponse> {
 }
 
 /** Drive contributes REST-backed knowledge; optional connectors are configured independently. */
-export const driveSessionContext: NonNullable<ClientOptions["sessionContext"]> = async cwd => {
+export const driveSessionContext = (async (cwd: string) => {
   if (!isTauri()) return { mcpServers: [] }
   const snapshot = await request({ type: "snapshot" })
   if (snapshot.type !== "snapshot") throw new Error("Invalid Drive snapshot response")
@@ -28,4 +28,4 @@ export const driveSessionContext: NonNullable<ClientOptions["sessionContext"]> =
     mcpServers: [],
     ...(appendSystemPrompt ? { appendSystemPrompt } : {})
   }
-}
+}) satisfies NonNullable<ClientOptions["sessionContext"]>

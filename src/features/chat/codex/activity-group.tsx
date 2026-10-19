@@ -3,6 +3,8 @@ import { isContentEntry, isEmbeddedResource, isResourceLink } from "@alwith/api"
 import { CodexActivityGroup } from "@alwith/module-chat/activity"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { memo, type ReactElement, useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
 import { useChatActivityHost } from "./activity-host"
 import { projectActivity } from "./activity-projection"
 import { ResourceContent } from "./resource-content"
@@ -33,10 +35,16 @@ export const ActivityGroup = memo(function ActivityGroup({
   streamingThoughtId: string | null
 }) {
   const host = useChatActivityHost()
+  const { t } = useTranslation()
   const blocks = useMemo(
     () =>
-      items.map(item => projectActivity(item, terminals, item.kind === "thought" && item.id === streamingThoughtId)),
-    [items, terminals, streamingThoughtId]
+      items.map(item => {
+        const block = projectActivity(item, terminals, item.kind === "thought" && item.id === streamingThoughtId)
+        if (block.type !== "tool_use") return block
+        const action = privateComputerAction(block.name) ?? privateComputerAction(block.title)
+        return action ? { ...block, kind: "other" as const, title: t(computerActionKey(action)) } : block
+      }),
+    [items, terminals, streamingThoughtId, t]
   )
   return (
     <ActivityHostProvider host={host}>

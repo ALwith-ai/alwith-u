@@ -1,0 +1,92 @@
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { commands } from "@/bindings"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { useComputerStatus } from "@/features/computer/computer-control"
+import { enableComputer, stopComputer } from "@/features/computer/operations"
+import { isMac } from "@/lib/platform"
+import { SettingGroup, SettingLabel, SettingRow } from "./shared"
+
+export function ComputerSection() {
+  const { t } = useTranslation()
+  const { status, error: statusError } = useComputerStatus()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const permitted = status?.permissions.accessibility && status.permissions.screenCapture
+  const perform = async (operation: () => Promise<unknown>) => {
+    setError(null)
+    try {
+      await operation()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error))
+    }
+  }
+  const toggle = async (enabled: boolean) => {
+    setPending(true)
+    try {
+      await perform(enabled ? enableComputer : stopComputer)
+    } finally {
+      setPending(false)
+    }
+  }
+  return (
+    <div className="space-y-6">
+      <div>
+        <SettingLabel>{t("computer.title")}</SettingLabel>
+        <SettingGroup>
+          <SettingRow title={t("computer.title")} desc={t("computer.description")}>
+            <Switch
+              aria-label={t("computer.enable")}
+              checked={status?.enabled === true}
+              disabled={
+                pending || (!status?.enabled && (!status?.available || !status.permissions.supported || !permitted))
+              }
+              onCheckedChange={value => void toggle(value)}
+            />
+          </SettingRow>
+          <p className="text-muted-foreground pb-3 text-xs">{t("computer.scope")}</p>
+          {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
+          {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
+          {status?.permissions.supported && !permitted && (
+            <p className="text-muted-foreground text-sm">{t("computer.permissions")}</p>
+          )}
+          {isMac() &&
+            status?.permissions.supported &&
+            (["accessibility", "screenCapture"] as const).map(permission => (
+              <SettingRow
+                key={permission}
+                title={t(`computer.${permission}`)}
+                desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}>
+                <div className="flex gap-2">
+                  {!status.permissions[permission] && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void perform(() => commands.computerRequestPermissions({ permission, request: true }))
+                      }>
+                      {t("computer.grantPermissions")}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      void perform(() => commands.computerRequestPermissions({ permission, request: false }))
+                    }>
+                    {t("computer.openSettings")}
+                  </Button>
+                </div>
+              </SettingRow>
+            ))}
+          {(error || statusError) && (
+            <p role="alert" className="text-destructive text-sm">
+              {error ?? statusError}
+            </p>
+          )}
+        </SettingGroup>
+      </div>
+    </div>
+  )
+}

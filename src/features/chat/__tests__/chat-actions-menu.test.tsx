@@ -115,7 +115,7 @@ test("menu search opens the current chat search and keeps focus in its input", a
       fireEvent.click(view.getByRole("menuitem", { name: "Find in chat" }))
     })
     await waitFor(() => expect(document.activeElement).toBe(view.getByRole("textbox")))
-    expect(view.queryByRole("menu")).toBeNull()
+    await waitFor(() => expect(view.queryByRole("menu")).toBeNull())
   } finally {
     view.unmount()
     await act(async () => {

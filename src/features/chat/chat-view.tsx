@@ -15,6 +15,8 @@ import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatBody } from "./chat-body"
 import { ChatBranchProvider } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
+import { SessionPreview } from "@/features/computer/session-preview"
+import { ComputerControl } from "@/features/computer/computer-control"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
@@ -74,6 +76,7 @@ export function ChatView({
             target={headerTarget}
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
             project={projectMenu}>
+            {headerTarget !== undefined && <ComputerControl />}
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}
@@ -86,6 +89,7 @@ export function ChatView({
             />
           </ChatHeader>
           <ChatSearch rootRef={rootRef} sessionId={session.id} />
+          <SessionPreview key={session.id} sessionId={session.id} />
           {connected && !session.attached && !session.restoring && (
             <div className="px-4 pb-2">
               <Alert>
@@ -106,8 +110,8 @@ export function ChatView({
                 <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
                 <AlertDescription className="flex flex-wrap items-center gap-2">
                   {t("chat.readOnly.description")}
-                  <Button size="sm" variant="outline" onClick={reopen}>
-                    {t("chat.readOnly.retry")}
+                  <Button size="sm" variant="outline" onClick={reopen} disabled={!connected || session.restoring}>
+                    {t(session.restoring ? "chat.restoring" : "chat.readOnly.retry")}
                   </Button>
                 </AlertDescription>
               </Alert>

@@ -1,3 +1,4 @@
+import { commands } from "@/bindings"
 // The app-wide CodexClient instance and the React bindings to its store.
 
 import type { Session } from "@alwith/api"
@@ -6,7 +7,8 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { driveSessionContext } from "@/features/drive/session-context"
+import { hostSessionContext, computerContextRevision, prepareComputerTools } from "@/features/computer/session-context"
+import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -18,10 +20,15 @@ export const client =
     ? new RemoteChatClient()
     : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
-        launch: { engine: "codex" },
+        launch: { engine: "codex", env: computerRuntimeEnv },
         projectPaths: isMac() ? macProjectPaths : undefined,
         resolveModel: async model => resolveSessionModel(model, await applyProviders()),
-        sessionContext: driveSessionContext
+        sessionContext: hostSessionContext,
+        sessionContextRevision: computerContextRevision,
+        prepareSessionTools: prepareComputerTools,
+        revokeSessionAccess: async sessionId => {
+          await commands.computerStopSession({ sessionId })
+        }
       })
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
