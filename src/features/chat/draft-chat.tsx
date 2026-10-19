@@ -12,6 +12,7 @@ import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProviders } from "@/lib/providers"
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
+import { ComputerControl } from "@/features/computer/computer-control"
 import { Composer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
 import { drafts, importDraft } from "./composer/drafts"
@@ -180,6 +181,7 @@ export function DraftChat({
   return (
     <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
       <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
+        {owner === "chat" && session && !preparing && <ComputerControl />}
         <ChatActionsMenu
           surface={headerTarget === undefined ? "main" : "floating"}
           onOpenWindow={session && !preparing ? onOpenWindow : undefined}

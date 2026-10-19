@@ -397,6 +397,39 @@ test("threads come from the agent and open() replays history", async () => {
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
+test("opening an attached read-only session retries resume until the writer is released", async () => {
+  let locked = true
+  let attempts = 0
+  let pending: Promise<void> = Promise.resolve()
+  const { client } = await make(fake => {
+    fake.resumeResponse.current = async () => {
+      attempts++
+      await pending
+      return { _meta: { codex: { readOnly: locked } } }
+    }
+  })
+  await client.open("locked", "/tmp/locked")
+  expect(client.session("locked")).toMatchObject({ attached: true, readOnly: true, restoring: false })
+  await client.open("locked", "/tmp/locked")
+  expect(attempts).toBe(2)
+  expect(client.session("locked").readOnly).toBe(true)
+
+  locked = false
+  const ready = Promise.withResolvers<void>()
+  pending = ready.promise
+  const retry = client.open("locked", "/tmp/locked")
+  expect(client.session("locked").restoring).toBe(true)
+  await client.open("locked", "/tmp/locked")
+  ready.resolve()
+  await retry
+  expect(attempts).toBe(3)
+  expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
+  expect(client.session("locked").items).toHaveLength(2)
+  expect(client.session("locked").items[0]).toMatchObject({ content: [{ text: "history" }] })
+  await client.open("locked", "/tmp/locked")
+  expect(attempts).toBe(3)
+})
+
 test("project views share one no-params full list, deduplicate IDs and reuse memory", async () => {
   const { client, fake } = await make()
   fake.listSessions.current = () => ({

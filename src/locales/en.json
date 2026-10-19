@@ -400,7 +400,8 @@
     "codexVersion": "Codex CLI {{version}}",
     "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI.",
     "editor": "Editor",
-    "voice": "Voice"
+    "voice": "Voice",
+    "computer": "Computer use"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1002,5 +1003,53 @@
     "shortcut": "Voice shortcut",
     "shortcutKey": "Option / Alt",
     "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only."
+  },
+  "computer": {
+    "actions": {
+      "open": "Opening application",
+      "observe": "Observing window",
+      "click": "Clicking",
+      "move": "Moving pointer",
+      "drag": "Dragging",
+      "scroll": "Scrolling",
+      "type": "Typing",
+      "key": "Pressing keys",
+      "steps": "Operating application",
+      "working": "Using computer"
+    },
+    "connectionError": "Computer tools are not ready; the message has not been sent. Check Settings → Computer use, then send again to reconnect. {{error}}",
+    "title": "Computer use",
+    "active": "Computer use enabled",
+    "description": "Allow all U conversations to view the screen and operate local applications.",
+    "scope": "Applies to existing, new and forked conversations. Open conversations refresh tools before their next message. Disabling immediately revokes all computer connections.",
+    "unsupported": "Computer use currently supports macOS and Windows.",
+    "missing": "The bundled driver is missing. Reinstall the app or run staging in development.",
+    "permissions": "Allow ALwith U in System Settings → Privacy & Security → Accessibility and Screen Recording. You may need to restart the app after changing permissions.",
+    "grantPermissions": "Request system permissions",
+    "stop": "Stop computer use",
+    "enable": "Enable computer use",
+    "starting": "Connecting…",
+    "accessibility": "Accessibility",
+    "screenCapture": "Screen Recording",
+    "granted": "Allowed",
+    "notGranted": "Not allowed",
+    "openSettings": "Open System Settings",
+    "preview": {
+      "focus": "Click to focus {{app}}",
+      "title": "Computer preview",
+      "enlarge": "Enlarge preview",
+      "live": "Live preview",
+      "queueHint": "Starts when the current task finishes",
+      "queueTitle": "Waiting for computer",
+      "active": "Using computer",
+      "queued": "Waiting for computer · Position {{position}}",
+      "stop": "Stop",
+      "cancelQueue": "Cancel queue",
+      "expand": "Expand preview",
+      "collapse": "Collapse preview",
+      "frame": "Live view of {{title}}",
+      "unavailable": "Window preview is temporarily unavailable",
+      "waiting": "Waiting for target window"
+    }
   }
 }

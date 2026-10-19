@@ -7,7 +7,10 @@ Always answer the user in Chinese.
 - Independent desktop client for the Codex CLI. Codex owns every conversation
   (`~/.codex`); the app persists preferences and its own ALwith login credentials. Never add a second conversation store.
 - File tree, editing and preview use the shared `@alwith/module-*` packages in a right-side workspace.
-- Kept out on purpose: browser, computer use, cloud tasks.
+- Computer use integrates a shared host module and Cua Driver through application-wide
+  tools. Codex retains reasoning and conversation ownership. The application grant applies to all sessions and forks; disabling it must revoke
+  every native connection.
+- Kept out on purpose: embedded browser, cloud tasks.
   Git stays at diff review; no commit, PR or worktree features.
 - Skills and plugins come from Codex's own catalogs through the adapter's `_codex/skills_*`,
   `_codex/plugin_*` and `_codex/marketplace_*` methods (`src/features/plugins`); the UI is

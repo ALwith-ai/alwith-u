@@ -12,6 +12,29 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
+  computerStatus: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_status"),
+  computerStart: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_start"),
+  computerStop: (): Promise<null> => __t3Invoke<null>("computer_stop"),
+  computerContext: (): Promise<{
+    connection: Connection
+    token: string
+  } | null> =>
+    __t3Invoke<{
+      connection: Connection
+      token: string
+    } | null>("computer_context"),
+  computerRevision: (): Promise<string> => __t3Invoke<string>("computer_revision"),
+  computerBind: (args: { token: string; sessionId: string }): Promise<null> => __t3Invoke<null>("computer_bind", args),
+  computerReady: (args: { sessionId: string }): Promise<null> => __t3Invoke<null>("computer_ready", args),
+  computerStopSession: (args: { sessionId: string }): Promise<null> => __t3Invoke<null>("computer_stop_session", args),
+  computerSubscribe: (args: { sessionId: string; subscriptionId: string }): Promise<null> =>
+    __t3Invoke<null>("computer_subscribe", args),
+  computerFocus: (args: { sessionId: string; revision: number }): Promise<null> =>
+    __t3Invoke<null>("computer_focus", args),
+  computerUnsubscribe: (args: { subscriptionId: string }): Promise<null> =>
+    __t3Invoke<null>("computer_unsubscribe", args),
+  computerRequestPermissions: (args: { permission: string; request: boolean }): Promise<null> =>
+    __t3Invoke<null>("computer_request_permissions", args),
   autostartSet: (args: { enabled: boolean }): Promise<null> => __t3Invoke<null>("autostart_set", args),
   autostartLaunch: (): Promise<boolean> => __t3Invoke<boolean>("autostart_launch"),
   autostartComplete: (args: { restored: boolean }): Promise<null> => __t3Invoke<null>("autostart_complete", args),
@@ -224,6 +247,18 @@ export const commands = {
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
   autostartStatus: string
+  computerStatus: string
+  computerStart: string
+  computerStop: string
+  computerContext: string
+  computerRevision: string
+  computerBind: string
+  computerReady: string
+  computerStopSession: string
+  computerSubscribe: string
+  computerFocus: string
+  computerUnsubscribe: string
+  computerRequestPermissions: string
   autostartSet: string
   autostartLaunch: never
   autostartComplete: string
@@ -311,6 +346,13 @@ export const events = {
     once: (handler: __t3Callback<RuntimeLines>) => __t3Once<RuntimeLines>("runtime:lines", handler),
     emit: (payload: RuntimeLines) => __t3Emit("runtime:lines", payload),
     emitTo: (target: string | __t3Target, payload: RuntimeLines) => __t3EmitTo(target, "runtime:lines", payload)
+  },
+  "computer:preview": {
+    name: "computer:preview",
+    listen: (handler: __t3Callback<ComputerPreview>) => __t3Listen<ComputerPreview>("computer:preview", handler),
+    once: (handler: __t3Callback<ComputerPreview>) => __t3Once<ComputerPreview>("computer:preview", handler),
+    emit: (payload: ComputerPreview) => __t3Emit("computer:preview", payload),
+    emitTo: (target: string | __t3Target, payload: ComputerPreview) => __t3EmitTo(target, "computer:preview", payload)
   },
   "runtime:exit": {
     name: "runtime:exit",
@@ -442,6 +484,16 @@ export const events = {
   }
 } as const
 
+export type Activity = {
+  sessionId: string
+  phase: string
+  queuePosition: number
+  ownerSessionId: string | null
+  action: string | null
+  target: Target | null
+  revision: number
+}
+
 export type ActualSize = null
 
 export type AppInfo = {
@@ -485,6 +537,27 @@ export type CompletedMove = {
   to: string
 }
 
+export type ComputerPreview = {
+  subscriptionId: string
+  activity: Activity
+  frame: Frame | null
+  error: string | null
+}
+
+export type ComputerStatus = {
+  permissions: Permissions
+  available: boolean
+  enabled: boolean
+  version: string
+}
+
+export type Connection = {
+  generation: string
+  command: string
+  args: string[]
+  env: Environment[]
+}
+
 export type CredentialInput = {
   provider: Provider
   apiKey: string
@@ -492,6 +565,11 @@ export type CredentialInput = {
 
 export type CredentialProvider = {
   provider: Provider
+}
+
+export type CursorPosition = {
+  x: number
+  y: number
 }
 
 export type CustomInput = CustomInput_Serialize | CustomInput_Deserialize
@@ -539,6 +617,11 @@ export type EditRedo = null
 
 export type EditUndo = null
 
+export type Environment = {
+  name: string
+  value: string
+}
+
 export type FileEntry = {
   name: string
   isFile: boolean
@@ -562,6 +645,13 @@ export type FileResponse =
   | { type: "ok" }
 
 export type FindInChat = null
+
+export type Frame = {
+  image: string
+  title: string
+  appName: string
+  cursor: CursorPosition | null
+}
 
 export type HttpRequest = {
   url: string
@@ -613,6 +703,12 @@ export type Number = number
 export type OpenHotkeys = null
 
 export type OpenSettings = null
+
+export type Permissions = {
+  supported: boolean
+  accessibility: boolean
+  screenCapture: boolean
+}
 
 export type PreparedImport = {
   ticket: string
@@ -695,6 +791,11 @@ export type Scan = {
   errors: string[]
 }
 
+export type SessionConnection = {
+  connection: Connection
+  token: string
+}
+
 export type Snapshot = Snapshot_Serialize | Snapshot_Deserialize
 
 export type Snapshot_Deserialize = {
@@ -754,6 +855,11 @@ export type State =
   | { type: "downloading"; update: UpdateInfo; downloadedBytes: number | null; totalBytes: number | null }
   | { type: "ready"; update: UpdateInfo }
   | { type: "restarting"; update: UpdateInfo }
+
+export type Target = {
+  pid: number
+  windowId: number
+}
 
 export type TestResult = {
   ok: boolean

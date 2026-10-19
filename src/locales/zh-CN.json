@@ -400,7 +400,8 @@
     "version": "版本 {{version}}",
     "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。",
     "editor": "编辑器",
-    "voice": "语音"
+    "voice": "语音",
+    "computer": "操作电脑"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1002,5 +1003,53 @@
     "shortcut": "语音快捷键",
     "shortcutKey": "Option / Alt",
     "shortcutHint": "500 毫秒内双击 Option/Alt 开始，单击结束。仅当前聊天窗口生效。"
+  },
+  "computer": {
+    "actions": {
+      "open": "打开应用",
+      "observe": "观察窗口",
+      "click": "点击",
+      "move": "移动指针",
+      "drag": "拖拽",
+      "scroll": "滚动",
+      "type": "输入文字",
+      "key": "按下快捷键",
+      "steps": "操作应用",
+      "working": "正在操作电脑"
+    },
+    "connectionError": "电脑工具连接未就绪，消息尚未发送。请检查“设置 → 操作电脑”后重新发送以重连。{{error}}",
+    "title": "操作电脑",
+    "active": "电脑操作已启用",
+    "description": "允许 U 的所有会话查看屏幕并操作本机应用。",
+    "scope": "开启后适用于所有现有、新建和分支会话。已打开的会话会在下次发送消息时更新工具连接；关闭后立即撤销全部电脑操作连接。",
+    "unsupported": "目前支持 macOS 和 Windows。",
+    "missing": "缺少内置驱动，请重新安装应用；开发环境请运行 stage。",
+    "permissions": "请在系统设置 → 隐私与安全性中，允许 ALwith U 使用辅助功能和屏幕录制。更改权限后可能需要重启应用。",
+    "grantPermissions": "申请系统权限",
+    "stop": "停止操作电脑",
+    "enable": "启用电脑操作",
+    "starting": "连接中…",
+    "accessibility": "辅助功能",
+    "screenCapture": "屏幕录制",
+    "granted": "已授权",
+    "notGranted": "未授权",
+    "openSettings": "打开系统设置",
+    "preview": {
+      "focus": "点击聚焦 {{app}}",
+      "title": "电脑操作预览",
+      "queueTitle": "等待使用电脑",
+      "queueHint": "当前任务结束后开始",
+      "live": "实时预览",
+      "enlarge": "放大预览",
+      "active": "正在操作电脑",
+      "queued": "等待电脑操作 · 队列第 {{position}} 位",
+      "stop": "停止",
+      "cancelQueue": "取消排队",
+      "expand": "展开预览",
+      "collapse": "收起预览",
+      "frame": "{{title}} 实时画面",
+      "unavailable": "暂时无法预览此窗口",
+      "waiting": "正在等待目标窗口"
+    }
   }
 }

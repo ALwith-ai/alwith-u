@@ -28,6 +28,7 @@ import {
   SessionStore
 } from "@alwith/api"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
+import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 import type {
   AccountReadResponse,
@@ -115,7 +116,18 @@ export type ClientOptions = {
   /** Resolve a slot selection against the host's applied provider configuration. */
   resolveModel?: (model: string | null) => Promise<string | null>
   /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
-  sessionContext?: (cwd: string) => Promise<{ mcpServers: acp.McpServer[]; appendSystemPrompt?: string }>
+  sessionContext?: (
+    cwd: string,
+    operation: SessionOperation
+  ) => Promise<{
+    mcpServers: acp.McpServer[]
+    appendSystemPrompt?: string
+    revision?: string
+    bind?: (sessionId: string) => Promise<void>
+  }>
+  sessionContextRevision?: () => Promise<string>
+  prepareSessionTools?: (sessionId: string) => Promise<void>
+  revokeSessionAccess?: (sessionId: string) => Promise<void>
   /** Host-specific path identity, independent of whether a historical directory still exists. */
   projectPaths?: import("./project-path").ProjectPaths
 }
@@ -223,6 +235,7 @@ export class CodexClient {
   private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
   /** Main and floating windows allocate counted titles through the same owner. */
   private forkQueue: Promise<unknown> = Promise.resolve()
+  private readonly contextRevisions = new Map<string, string | undefined>()
   /** The adapter rejects overlapping configuration writes to one session. */
   private readonly sessionOperations = new Map<string, Promise<void>>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
@@ -672,19 +685,27 @@ export class CodexClient {
 
   private async sessionContext(
     cwd: string,
-    model: string | null
+    model: string | null,
+    operation: SessionOperation
   ): Promise<{
+    revision?: string
+    bind?: (sessionId: string) => Promise<void>
     mcpServers?: acp.McpServer[]
     _meta?: { alwith: { model?: string; appendSystemPrompt?: string } }
   }> {
     const hint = modelHint(model)
     if (!this.options.sessionContext) return hint
-    const context = await this.options.sessionContext(cwd)
+    const context = await this.options.sessionContext(cwd, operation)
     const alwith = {
       ...hint._meta?.alwith,
       ...(context.appendSystemPrompt ? { appendSystemPrompt: context.appendSystemPrompt } : {})
     }
-    return { mcpServers: context.mcpServers, ...(Object.keys(alwith).length ? { _meta: { alwith } } : {}) }
+    return {
+      revision: context.revision,
+      bind: context.bind,
+      mcpServers: context.mcpServers,
+      ...(Object.keys(alwith).length ? { _meta: { alwith } } : {})
+    }
   }
 
   async newSession(cwd: string, model: string | null = null, owner: DraftOwner = "main"): Promise<string> {
@@ -695,7 +716,7 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
-    const context = await this.sessionContext(cwd, model)
+    const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" })
     const response = await this.born(
       () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
       response => {
@@ -710,6 +731,8 @@ export class CodexClient {
         else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
       }
     )
+    await bind?.(response.sessionId)
+    this.contextRevisions.set(response.sessionId, revision)
     this.noteModel(this.sessions.get(response.sessionId))
     return response.sessionId
   }
@@ -918,12 +941,15 @@ export class CodexClient {
         owner !== undefined
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
+      const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
       const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
         replayFrom: cursor,
-        ...(await this.sessionContext(cwd, model))
+        ...context
       })
+      await bind?.(id)
+      this.contextRevisions.set(id, revision)
       this.sessions.endReplay(id, replayReceiptOf(response))
       this.publishSession({
         ...this.sessions.get(id),
@@ -969,9 +995,37 @@ export class CodexClient {
   }
 
   private async sendPrompt(id: string, prompt: acp.ContentBlock[]): Promise<string> {
-    const session = this.sessions.get(id)
+    let session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
+    if (
+      this.options.sessionContextRevision &&
+      this.contextRevisions.get(id) !== (await this.options.sessionContextRevision())
+    ) {
+      const run = this.state.runStates[id]?.state
+      if (run === "running" || run === "requires_action")
+        throw new Error("Wait for the current task to finish before refreshing computer tools")
+      await this.live().request("session/close", { sessionId: id })
+      this.updates.remove(id)
+      this.publishSession({ ...this.sessions.get(id), attached: false })
+      await this.replay(id, session.cwd)
+      session = this.sessions.get(id)
+    }
+    if (this.options.prepareSessionTools) {
+      const run = this.state.runStates[id]?.state
+      if (run !== "running" && run !== "requires_action") {
+        try {
+          await this.options.prepareSessionTools(id)
+        } catch {
+          await this.live().request("session/close", { sessionId: id })
+          this.updates.remove(id)
+          this.publishSession({ ...this.sessions.get(id), attached: false })
+          await this.replay(id, session.cwd)
+          await this.options.prepareSessionTools(id)
+          session = this.sessions.get(id)
+        }
+      }
+    }
     // The user's message goes on screen now, under a local id. The receipt says which id the
     // agent inserted it under (codex-acp-v2 mints it and hands it to Codex as
     // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
@@ -1131,6 +1185,7 @@ export class CodexClient {
   async close(id: string): Promise<void> {
     await this.enqueueSession(id, async () => {
       this.requests.cancelSession(id)
+      await this.options.revokeSessionAccess?.(id)
       await this.live().request("session/close", { sessionId: id })
       this.dropSession(id)
     })
@@ -1140,6 +1195,7 @@ export class CodexClient {
   async stopSession(id: string): Promise<void> {
     await this.enqueueSession(id, async () => {
       this.requests.cancelSession(id)
+      await this.options.revokeSessionAccess?.(id)
       await this.live().request("session/close", { sessionId: id })
       this.updates.remove(id)
       const session = this.sessions.sessions.get(id)
@@ -1196,7 +1252,10 @@ export class CodexClient {
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
     const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
-    const hint = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null)
+    const { revision, bind, ...hint } = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null, {
+      kind: "fork",
+      sourceSessionId: id
+    })
     const response = await this.born(
       () =>
         this.live().request<acp.ForkSessionResponse>("session/fork", {
@@ -1208,6 +1267,8 @@ export class CodexClient {
       // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
       response => this.sessions.set(createSession(response.sessionId, cwd))
     )
+    await bind?.(response.sessionId)
+    this.contextRevisions.set(response.sessionId, revision)
     const forked = this.sessions.get(response.sessionId)
     this.publishSession({
       ...forked,
@@ -1376,6 +1437,7 @@ export class CodexClient {
 
   private dropSession(id: string): void {
     this.replays.delete(id)
+    this.contextRevisions.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)

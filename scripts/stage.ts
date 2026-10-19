@@ -16,6 +16,7 @@ import { join, resolve } from "node:path"
 import { $ } from "bun"
 import { stageNative } from "@alwith/native/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
+import { stageComputer } from "./lib/computer-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import manifest from "../package.json"
 import { assertVersion, BUN_PACKAGES, toolchainVersions } from "./lib/toolchain"
@@ -67,6 +68,17 @@ const target = TARGETS[triple]
 if (!target) throw new Error(`Unsupported target triple ${triple}. Known: ${Object.keys(TARGETS).join(", ")}`)
 mkdirSync(binaries, { recursive: true })
 mkdirSync(licenses, { recursive: true })
+const computerDestination = await stageComputer(root, triple)
+if (triple.endsWith("apple-darwin")) {
+  const identity = process.env.APPLE_SIGNING_IDENTITY
+  if (identity) await $`codesign --force --timestamp --options runtime --sign ${identity} ${computerDestination}`
+  else await $`codesign --force --sign - ${computerDestination}`
+  await $`codesign --verify --strict ${computerDestination}`
+}
+console.log(`Cua Driver -> ${computerDestination}`)
+const computerResources = join(root, "src-tauri/resources/computer")
+mkdirSync(computerResources, { recursive: true })
+copyFileSync(join(root, "node_modules/@alwith/module-computer/proxy/stdio.mjs"), join(computerResources, "stdio.mjs"))
 if (!existsSync(join(licenses, `bun-${versions.bun}.md`))) {
   throw new Error(`Missing Bun ${versions.bun} licence notice; update resources/licenses with the version bump`)
 }

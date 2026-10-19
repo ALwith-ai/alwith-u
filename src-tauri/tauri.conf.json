@@ -48,9 +48,10 @@
     "publisher": "alwith.ai",
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
-    "externalBin": ["binaries/alwith-runtime", "binaries/bun", "binaries/codex", "binaries/codex-code-mode-host", "binaries/alwith-codex-launcher"],
+    "externalBin": ["binaries/alwith-runtime", "binaries/bun", "binaries/codex", "binaries/codex-code-mode-host", "binaries/alwith-codex-launcher", "binaries/cua-driver"],
     "resources": {
       "resources/adapter": "adapter",
+      "resources/computer": "computer",
       "resources/licenses": "licenses",
       "resources/native": "native",
       "resources/deepseek": "deepseek",

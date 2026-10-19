@@ -48,3 +48,33 @@ test("a stopped chat keeps its transcript and reconnects that session", async ()
     client.store.setState(original, true)
   }
 })
+
+test("a read-only chat retries its own session and disables retry while restoring", async () => {
+  const original = client.state
+  const open = vi.spyOn(client, "open").mockResolvedValue()
+  const session = { ...createSession("locked", "/tmp/locked"), attached: true, readOnly: true }
+  client.store.setState({ connection: "ready" })
+  const renderChat = (restoring: boolean, readOnly = true) => (
+    <ThemeProvider>
+      <ChatView session={{ ...session, restoring, readOnly }} onNewChat={() => {}} onDeleted={() => {}} />
+    </ThemeProvider>
+  )
+  const view = render(renderChat(false))
+  try {
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Try again" })))
+    expect(open).toHaveBeenCalledExactlyOnceWith("locked", "/tmp/locked")
+    view.rerender(renderChat(true))
+    const retry = view.getByRole("button", { name: "Restoring conversation" })
+    expect(retry).toBeDisabled()
+    fireEvent.click(retry)
+    expect(open).toHaveBeenCalledTimes(1)
+    view.rerender(renderChat(false))
+    expect(view.getByRole("button", { name: "Try again" })).toBeEnabled()
+    view.rerender(renderChat(false, false))
+    expect(view.queryByText("Open in another client")).not.toBeInTheDocument()
+  } finally {
+    view.unmount()
+    open.mockRestore()
+    client.store.setState(original, true)
+  }
+})

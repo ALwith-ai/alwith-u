@@ -119,3 +119,14 @@ test("Gamepad creation errors reject the menu action and allow retry", async () 
   await openGamepadWindow()
   expect(host.create).toHaveBeenCalledTimes(2)
 })
+
+test("reopening hidden macOS settings always shows and focuses the existing window", async () => {
+  host.mac = true
+  host.existing = true
+  await openSettingsWindow("computer")
+  await openSettingsWindow("computer")
+  expect(host.attach).toHaveBeenCalledTimes(2)
+  expect(host.show).toHaveBeenCalledTimes(2)
+  expect(host.focus).toHaveBeenCalledTimes(2)
+  expect(host.create).not.toHaveBeenCalled()
+})
