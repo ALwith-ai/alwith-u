@@ -100,7 +100,7 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   expect(groups[0]).toBe(quick)
 })
 
-test("each group reveals 100 rows at a time from memory and remembers its expansion", async () => {
+test("each group starts with five sessions and reveals all from memory", async () => {
   const { useThreadsUiStore } = await import("../store")
   const originalUi = useThreadsUiStore.getState()
   const list = vi.spyOn(client, "listThreads")
@@ -118,19 +118,18 @@ test("each group reveals 100 rows at a time from memory and remembers its expans
     const view = showSidebar()
     expect(view.container.querySelectorAll("[data-session-id]")).toHaveLength(0)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
-    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "100")
+    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "5")
     expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Load more" })))
-    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "200")
-    expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
-    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "200")
-    expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Load more" })))
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
     expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
     expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    expect(view.queryByRole("button", { name: "Load more" })).toBeNull()
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
+    expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
+    expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
+    expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
+    expect(view.queryByRole("button", { name: "Show all" })).toBeNull()
     expect(list).not.toHaveBeenCalled()
   } finally {
     list.mockRestore()
@@ -212,7 +211,7 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     const expandedThumb = Number.parseFloat(scrollbar.style.getPropertyValue("--scroll-area-thumb-height"))
     expect(expandedThumb).toBeGreaterThan(20)
 
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Load more" })))
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
     contentHeight = 6500
     await deliverResize(content)
     expect(Number.parseFloat(scrollbar.style.getPropertyValue("--scroll-area-thumb-height"))).toBeLessThan(
@@ -230,3 +229,25 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     vi.unstubAllGlobals()
   }
 }, 20_000)
+
+test.each([5, 6])("%i projects use a five-project preview independent of quick chats", async count => {
+  client.store.setState({
+    threadsLoaded: true,
+    threads: Array.from({ length: count }, (_, index) => ({
+      sessionId: `project-${index}`,
+      cwd: `/project-${index}`,
+      title: "Session",
+      updatedAt: null,
+      archived: false
+    }))
+  })
+  const view = showSidebar()
+  expect(view.getByRole("button", { name: "Quick chats" })).toBeTruthy()
+  expect(view.getAllByRole("button", { name: /^project-/ })).toHaveLength(5)
+  if (count === 5) expect(view.queryByRole("button", { name: "Show all" })).toBeNull()
+  else {
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
+    expect(view.getAllByRole("button", { name: /^project-/ })).toHaveLength(6)
+    expect(view.queryByRole("button", { name: "Show all" })).toBeNull()
+  }
+})

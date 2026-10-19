@@ -1,6 +1,7 @@
 import useEmblaCarousel from "embla-carousel-react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { PanelDivider } from "./panel-divider"
@@ -53,7 +54,7 @@ export function WorkspacePanels({
     if (!node) return
     const measure = (): void => setViewportWidth(node.clientWidth)
     measure()
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(() => flushSync(measure))
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
@@ -73,7 +74,7 @@ export function WorkspacePanels({
   }, [embla])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Embla must regroup after DOM widths change and after a divider drag finishes.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!embla || dragging.current) return
     const selected = embla.internalEngine().slideRegistry[embla.selectedScrollSnap()]
     const region = !visible
@@ -148,7 +149,11 @@ export function WorkspacePanels({
       onMouseLeave={() => setEdgeZone(null)}>
       <div ref={emblaRef} className="file-workspace-viewport">
         <div className="file-workspace-track">
-          <div className="file-workspace-slide" style={{ width: chatWidth }} inert={maximized} aria-hidden={maximized}>
+          <div
+            className="file-workspace-slide"
+            style={{ width: !visible && !maximized ? "100%" : chatWidth }}
+            inert={maximized}
+            aria-hidden={maximized}>
             <div className="file-workspace-slab">
               <div className="file-workspace-chat">{chat}</div>
             </div>

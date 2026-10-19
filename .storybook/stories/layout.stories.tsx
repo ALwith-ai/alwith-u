@@ -190,8 +190,63 @@ export const ArabicFloatingSidebar: Story = {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
       expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right, 0)
+      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
       expect(getComputedStyle(sidebar).visibility).toBe("visible")
+    })
+  }
+}
+
+/** Observe every resize frame: settled-only checks miss width-transition drift. */
+export const ContinuousResize: Story = {
+  globals: { locale: "en" },
+  render: args => (
+    <div data-resize-host style={{ width: 1000, height: 600 }}>
+      <MainSidebarLayout
+        {...args}
+        main={
+          <div className="mx-auto w-full max-w-xl" data-centered-chat>
+            Chat
+          </div>
+        }
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const host = canvasElement.querySelector<HTMLElement>("[data-resize-host]")!
+    const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
+    const main = canvasElement.querySelector<HTMLElement>('[data-screen-panel="main"]')!
+    const chat = canvasElement.querySelector<HTMLElement>("[data-centered-chat]")!
+    for (const width of [980, 940, 900, 850, 800, 850, 920, 1000]) {
+      host.style.width = `${width}px`
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+      const panel = main.getBoundingClientRect()
+      const content = chat.getBoundingClientRect()
+      expect(panel.left).toBeCloseTo(sidebar.getBoundingClientRect().right, 0)
+      expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right, 0)
+      expect((content.left + content.right) / 2).toBeCloseTo((panel.left + panel.right) / 2, 0)
+    }
+  }
+}
+
+export const EnglishFloatingSidebar: Story = {
+  args: { initialPinned: false },
+  globals: { locale: "en" },
+  play: async ({ canvasElement, userEvent }) => {
+    const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
+    await userEvent.hover(toggle)
+    await waitFor(() => {
+      const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
+      const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
+      expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const style = getComputedStyle(sidebar)
+      expect([
+        style.borderTopLeftRadius,
+        style.borderTopRightRadius,
+        style.borderBottomLeftRadius,
+        style.borderBottomRightRadius
+      ]).toEqual(["14px", "14px", "14px", "14px"])
+      expect(style.visibility).toBe("visible")
     })
   }
 }

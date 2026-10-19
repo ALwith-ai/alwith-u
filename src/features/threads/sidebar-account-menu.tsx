@@ -37,7 +37,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
 
   const displayName = user.nickname || user.login_email
   const avatar = (
-    <Avatar className="size-6 after:border-0">
+    <Avatar className="size-5 after:border-0">
       <AvatarImage src={user.avatar} alt="" />
       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
         {Array.from(displayName).slice(0, 2).join("").toLocaleUpperCase()}
@@ -58,7 +58,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
         {avatar}
         <span className="min-w-0 truncate">{displayName}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60">
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[calc(var(--anchor-width)+36px)]">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-popover-foreground flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium">
             {avatar}

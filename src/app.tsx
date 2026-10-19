@@ -710,7 +710,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             <DriveStatus />
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
           </div>
-          <div className="absolute end-2 bottom-0 z-20">
+          <div className="absolute end-1 bottom-0 z-20 flex size-8 items-center justify-center">
             <ClientVersionPopover />
           </div>
         </MainSidebarLayout>

@@ -270,9 +270,9 @@ html[data-window-backdrop="acrylic"] .main-sidebar-shell {
   height: calc(100% - var(--main-surface-block-gutter));
 }
 html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-footer"] {
-  padding-bottom: 8px;
+  padding-bottom: 0;
 }
-/* Docked navigation already supplies the 8px inset at the content-facing edge. */
+/* Docked navigation already supplies the 4px inset at the content-facing edge. */
 [data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
   margin-inline-start: 0;
 }
@@ -293,19 +293,20 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 }
 /* One shared navigation panel sits between the two screens; all three stay mounted. */
 .main-screen-track {
+  position: relative;
   display: flex;
   flex: none;
   width: 100%;
   height: 100%;
   min-height: 0;
-  transform: translateX(calc(-100% + var(--leading-sidebar-width)));
+  transform: translateX(0);
   transition: transform var(--screen-slide-duration) ease-in-out;
 }
-.main-screen-track:dir(rtl) {
+[data-main-screen="leading"] .main-screen-track {
   transform: translateX(calc(100% - var(--leading-sidebar-width)));
 }
-[data-main-screen="leading"] .main-screen-track {
-  transform: translateX(0);
+[data-main-screen="leading"] .main-screen-track:dir(rtl) {
+  transform: translateX(calc(-100% + var(--leading-sidebar-width)));
 }
 .main-screen-leading,
 .main-screen-content {
@@ -314,11 +315,14 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  transition:
-    width var(--sidebar-resize-duration) ease-in-out,
-    visibility 0s linear var(--screen-slide-duration);
+  /* Window resizing must reflow synchronously; animating width makes the chat lag behind the track. */
+  transition: visibility 0s linear var(--screen-slide-duration);
 }
+/* Anchor the main screen at zero; only entering the leading screen translates the track. */
 .main-screen-leading {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 100%;
   flex-direction: row;
   width: calc(100% - var(--leading-sidebar-width));
 }
@@ -338,7 +342,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   margin-inline-start: 0;
 }
 .main-screen-content {
-  width: calc(100% - var(--main-sidebar-width));
+  flex: 1;
 }
 [data-screen-panel][aria-hidden="true"] {
   visibility: hidden;
@@ -419,6 +423,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 }
 [data-sidebar-presentation="floating"] .main-sidebar-viewport {
   inset-block: var(--main-surface-block-gutter);
+  inset-inline-start: var(--main-surface-gutter);
   overflow: visible;
   border-radius: var(--main-surface-radius);
   /* Reset the invisible clip only after fade-out so the next pin can grow from zero. */
@@ -456,7 +461,8 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 [data-sidebar-presentation="floating"] [data-slot="sidebar-header"] {
   padding-top: 8px;
 }
-[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
+[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"],
+html[data-window-backdrop="acrylic"] [data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
   padding-bottom: 8px;
 }
 [data-sidebar-mode="floating"] .main-sidebar-viewport {
@@ -480,7 +486,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   --radius: 10px;
   position: absolute;
   display: flex;
-  top: 4px;
+  top: 0;
   left: var(--sidebar-toggle-left);
   z-index: 31;
 }
@@ -643,4 +649,10 @@ body,
 }
 .computer-agent-cursor {
   filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--foreground) 25%, transparent));
+}
+/* Inset chrome hover surfaces within the 32px title and status rows. */
+.main-sidebar-toggle {
+  height: 32px;
+  align-items: center;
+  padding-inline: 4px;
 }
