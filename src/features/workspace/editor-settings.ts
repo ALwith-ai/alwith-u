@@ -1,3 +1,4 @@
+import { settingsStore, updateSettings } from "@/lib/settings-store"
 import { type IconTheme, iconThemes } from "./workspace-state"
 
 export interface EditorSettings {
@@ -37,39 +38,31 @@ function validate(value: unknown): EditorSettings {
   return settings as unknown as EditorSettings
 }
 export function loadEditorSettings(): EditorSettings {
-  const raw = localStorage.getItem("workspace:editor-settings")
-  return raw === null ? defaultEditorSettings : validate(JSON.parse(raw))
+  const values = { ...defaultEditorSettings }
+  for (const key of Object.keys(values) as (keyof EditorSettings)[]) {
+    const value = settingsStore.get<unknown>(`editor.${key}`)
+    if (value !== undefined) Object.assign(values, { [key]: value })
+  }
+  return validate(values)
 }
-export function saveEditorSettings(settings: EditorSettings): void {
-  localStorage.setItem("workspace:editor-settings", JSON.stringify(validate(settings)))
-  window.dispatchEvent(new Event("workspace:editor-settings-changed"))
+export async function saveEditorSettings(settings: Partial<EditorSettings>): Promise<void> {
+  validate({ ...loadEditorSettings(), ...settings })
+  await updateSettings(Object.fromEntries(Object.entries(settings).map(([key, entry]) => [`editor.${key}`, entry])))
 }
 
-/** A missing global override retains each workspace's previously selected icon theme. */
+/** A missing global override retains each workspace's selected icon theme. */
 export function loadEditorIconTheme(): IconTheme | null {
-  const raw = localStorage.getItem("workspace:editor-icon-theme")
-  if (raw === null) return null
-  const value: unknown = JSON.parse(raw)
-  if (!iconThemes.includes(value as IconTheme)) throw new Error("Invalid file icon theme")
-  return value as IconTheme
+  const value = settingsStore.get<IconTheme>("editor.iconTheme")
+  if (value === undefined) return null
+  if (!iconThemes.includes(value)) throw new Error("Invalid file icon theme")
+  return value
 }
-export function saveEditorIconTheme(theme: IconTheme): void {
+export async function saveEditorIconTheme(theme: IconTheme): Promise<void> {
   if (!iconThemes.includes(theme)) throw new Error("Invalid file icon theme")
-  localStorage.setItem("workspace:editor-icon-theme", JSON.stringify(theme))
-  window.dispatchEvent(new Event("workspace:editor-settings-changed"))
+  await updateSettings({ "editor.iconTheme": theme })
 }
 export function subscribeEditorSettings(listener: () => void): () => void {
-  const onStorage = (event: StorageEvent): void => {
-    if (event.storageArea !== null && event.storageArea !== localStorage) return
-    if (event.key === null || event.key === "workspace:editor-settings" || event.key === "workspace:editor-icon-theme")
-      listener()
-  }
-  window.addEventListener("storage", onStorage)
-  window.addEventListener("workspace:editor-settings-changed", listener)
-  window.addEventListener("focus", listener)
-  return () => {
-    window.removeEventListener("storage", onStorage)
-    window.removeEventListener("workspace:editor-settings-changed", listener)
-    window.removeEventListener("focus", listener)
-  }
+  return settingsStore.subscribe(keys => {
+    if (keys.some(key => key.startsWith("editor."))) listener()
+  })
 }

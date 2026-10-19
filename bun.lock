@@ -8,7 +8,7 @@
         "@agentclientprotocol/sdk": "^1.9.0",
         "@alwith/api": "^0.4.8",
         "@alwith/module-auth": "^0.1.5",
-        "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.14-voice.1.tgz",
+        "@alwith/module-chat": "^0.1.17",
         "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
         "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
@@ -129,7 +129,7 @@
   },
   "overrides": {
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "file:vendor/alwith-module-chat-0.1.14-voice.1.tgz",
+    "@alwith/module-chat": "^0.1.17",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
@@ -145,7 +145,7 @@
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.5", "", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-Be08nkt0SlVKyDQOReQ18z6XvXesuL9ENf8roh8HnQ6dWpyV3xTiqIOwGPnqEtTONvaPlagyr+1h/agf9StskA=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@vendor/alwith-module-chat-0.1.14-voice.1.tgz", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.3.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-PevpNi5Hj05jrwaLHI1DsY7q4VYNV7dlri4HRx/gz9Id4+ikqNfjmMLbTO4ZK5qtsBje6isIctS7RxbgieqYsw=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.1.17", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^1.4.0", "@alwith/api": "^0.1.0", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-fvLmEJMPT+ubaXQ5SwT/TinKpLq8Yr2Qami3cP0GwVQ+iBRFG0PoXRj1W8Mv5j6oOZgH3ShMHad5MvcsnKZSBA=="],
 
     "@alwith/module-drive": ["@alwith/module-drive@vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz", { "peerDependencies": { "@alwith/module-editor": "^0.1.0-rc.8", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "lucide-react": "^1.54.0", "react": "^19.0.0", "react-dom": "^19.0.0", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-G7Pa7o1KrNdp+2Dk1lb5S8G19O573qGUrRMGhQJ98h4OWcLTDEAf21yZ3UC/71ygHii5wGmf02ed8ccIXV3a6A=="],
 

@@ -28,7 +28,7 @@ import {
   Trash2Icon
 } from "lucide-react"
 import { motion } from "motion/react"
-import type { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -228,11 +228,12 @@ export function ThreadSidebar({
   onOpenPlugins,
   onOpenExtensions,
   extensionNavigation,
+  renderExtensionEntry = entry => entry,
   drivePanel,
   onSwitchScreen
 }: {
   screen: MainScreen
-  leadingPage: "plugins" | "extensions" | "vibemon"
+  leadingPage: "plugins" | "extensions" | "vibemon" | "archives"
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
@@ -242,6 +243,7 @@ export function ThreadSidebar({
   onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
+  renderExtensionEntry?(entry: ReactElement<{ onClick?: () => void }>): ReactNode
   extensionNavigation?: ReactNode
   drivePanel?: ReactNode
   onOpenExtensions: () => void
@@ -355,13 +357,15 @@ export function ThreadSidebar({
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
-          <NavigationItemButton
-            active={screen === "leading" && leadingPage === "extensions"}
-            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-            onClick={onOpenExtensions}>
-            <BlocksIcon />
-            <span>{t("sidebar.extensions")}</span>
-          </NavigationItemButton>
+          {renderExtensionEntry(
+            <NavigationItemButton
+              active={screen === "leading" && leadingPage === "extensions"}
+              className={`${MENU_HIGHLIGHT} data-popup-open:bg-foreground/5 gap-2 px-2`}
+              onClick={onOpenExtensions}>
+              <BlocksIcon />
+              <span>{t("sidebar.extensions")}</span>
+            </NavigationItemButton>
+          )}
           {onOpenVibemon && (
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}

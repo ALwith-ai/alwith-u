@@ -2,6 +2,12 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
 import { type Provider, defaultPreferences } from "@alwith/module-voice"
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+import { commands } from "@/bindings"
+import { VoiceSection } from "@/features/settings/sections/voice-section"
+const notice = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }))
+vi.mock("sonner", () => ({ toast: notice }))
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 const slots: VoiceSettingsSlots = {
   Group: ({ children }) => <div>{children}</div>,
   Row: ({ title, children }) => (
@@ -26,7 +32,11 @@ const slots: VoiceSettingsSlots = {
     </select>
   )
 }
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+  vi.clearAllMocks()
+})
 function fixture() {
   const media = new EventTarget()
   let devices: MediaDeviceInfo[] = []
@@ -58,6 +68,24 @@ function fixture() {
       render(<VoiceSettingsForm host={host} slots={slots} text={key => key} onError={onError} onSaved={onSaved} />)
   }
 }
+test("saving without a key commits settings and shows a reminder, while a configured key shows success", async () => {
+  const native = settingsFixture()
+  const profiles = { doubao: false, vui: false }
+  vi.spyOn(commands, "voiceProfiles").mockImplementation(async () => profiles)
+  fixture()
+  render(<VoiceSection />)
+  fireEvent.click(await screen.findByRole("button", { name: "voice.save" }))
+  await waitFor(() => expect(notice.info).toHaveBeenCalledWith("voice.configureKey"))
+  expect(notice.error).not.toHaveBeenCalled()
+  expect(notice.success).not.toHaveBeenCalled()
+  expect(native.write).toHaveBeenCalledOnce()
+  expect(native.write.mock.calls[0][0].apiKey).toBeNull()
+  profiles.doubao = true
+  fireEvent.click(screen.getByRole("button", { name: "voice.save" }))
+  await waitFor(() => expect(notice.success).toHaveBeenCalledWith("voice.saved"))
+  expect(native.write).toHaveBeenCalledTimes(2)
+  expect(notice.info).toHaveBeenCalledOnce()
+})
 test("shared settings revoke a key and refresh input devices without reopening", async () => {
   const f = fixture()
   f.view()

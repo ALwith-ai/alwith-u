@@ -22,7 +22,9 @@ const fake = vi.hoisted(() => ({
   load: vi.fn(),
   report: vi.fn(),
   profiles: vi.fn(),
-  openSettings: vi.fn()
+  openSettings: vi.fn(),
+  voiceEnabled: true,
+  cancelCapture: vi.fn(async () => {})
 }))
 vi.mock("@alwith/module-voice/tauri", () => ({
   createTauriTransport: () => ({
@@ -57,7 +59,7 @@ vi.mock("@alwith/module-voice/audio", () => ({
       fake.consume = consume
     },
     stop: async () => {},
-    cancel: async () => {}
+    cancel: fake.cancelCapture
   })
 }))
 vi.mock("@alwith/module-chat/composer-context", () => ({ usePromptInputSubmission: () => fake.submit }))
@@ -72,6 +74,7 @@ vi.mock("../settings", () => ({
   voiceProfiles: fake.profiles,
   hotwordsFor: () => []
 }))
+vi.mock("../use-voice-enabled", () => ({ useVoiceEnabled: () => fake.voiceEnabled }))
 const settings: VoiceSettings = {
   provider: "doubao",
   deviceId: "",
@@ -81,12 +84,36 @@ const settings: VoiceSettings = {
   smooth: false
 }
 beforeEach(() => {
+  fake.voiceEnabled = true
+  fake.cancelCapture.mockClear()
   fake.instances.length = 0
   fake.load.mockReset().mockResolvedValue(settings)
   fake.submit.mockReset()
   fake.report.mockClear()
   fake.profiles.mockReset().mockResolvedValue({ vui: true, doubao: true })
   fake.openSettings.mockClear()
+})
+test("disabling voice removes its controls and cancels an active recording", async () => {
+  const props = {
+    draft: new RevisionDraft("s", "", [0, 0]),
+    cwd: "/tmp",
+    enabled: true,
+    cancelRef: { current: null },
+    waitForTurn: async () => {},
+    supportsHandsfree: true
+  }
+  const view = render(<VoiceButton {...props} />)
+  fireEvent.click(screen.getByRole("button", { name: "voice.start" }))
+  await screen.findByRole("button", { name: "voice.stop" })
+  fake.voiceEnabled = false
+  view.rerender(<VoiceButton {...props} />)
+  expect(screen.queryByRole("button")).toBeNull()
+  await waitFor(() => expect(fake.cancelCapture).toHaveBeenCalled())
+  const count = fake.instances.length
+  fireEvent.keyDown(window, { key: "Alt", code: "AltLeft", altKey: true })
+  fireEvent.keyUp(window, { key: "Alt", code: "AltLeft" })
+  await act(async () => {})
+  expect(fake.instances).toHaveLength(count)
 })
 test("the next handsfree recording has an enabled stop button and ignores old callbacks", async () => {
   const draft = new RevisionDraft("s", "", [0, 0])

@@ -3,7 +3,7 @@
 import { invoke } from "@tauri-apps/api/core"
 import { emit } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { LazyStore } from "@tauri-apps/plugin-store"
+import { settingsStore, updateSettings } from "./settings-store"
 import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/codex/navigation-instruments"
 import { setProjectAppPreference } from "./project-app-preference"
 
@@ -22,9 +22,25 @@ export type Preferences = {
   externalEditor: string | null
 }
 
-const store = new LazyStore("preferences.json")
+const preferenceKeys: Record<keyof Preferences, string> = {
+  sidebarPinned: "appearance.sidebarPinned",
+  chatWindowShortcut: "chat.windowShortcut",
+  lastProjectDirectory: "general.lastProjectDirectory",
+  language: "general.language",
+  zoomLevel: "appearance.zoomLevel",
+  modelSelections: "chat.modelSelections",
+  navigationSoundMode: "chat.navigationSoundMode",
+  navigationInstrument: "chat.navigationInstrument",
+  externalEditor: "general.externalEditor"
+}
+const store = {
+  async get<T>(key: keyof Preferences): Promise<T | undefined> {
+    return settingsStore.get<T>(preferenceKeys[key])
+  }
+}
 
 export async function loadPreferences(): Promise<Preferences> {
+  await settingsStore.read()
   const [
     lastProjectDirectory,
     language,
@@ -53,8 +69,7 @@ export async function loadPreferences(): Promise<Preferences> {
       // Bridge and host failures must not erase a valid project preference.
       const message = error instanceof Error ? error.message : String(error)
       if (message !== `Project directory is unavailable: ${restoredDirectory}`) throw error
-      await store.delete("lastProjectDirectory")
-      await store.save()
+      await updateSettings({ [preferenceKeys.lastProjectDirectory]: null })
       restoredDirectory = null
     }
   }
@@ -76,9 +91,7 @@ export const PREFERENCES_CHANGED = "preferences:changed"
 export type PreferenceChange = { key: keyof Preferences; value: unknown; window: string }
 
 export async function savePreference<K extends keyof Preferences>(key: K, value: Preferences[K]): Promise<void> {
-  if (value === null) await store.delete(key)
-  else await store.set(key, value)
-  await store.save()
+  await updateSettings({ [preferenceKeys[key]]: value })
   if (key === "externalEditor") setProjectAppPreference(value as Preferences["externalEditor"])
   const change: PreferenceChange = { key, value, window: getCurrentWebviewWindow().label }
   await emit(PREFERENCES_CHANGED, change)

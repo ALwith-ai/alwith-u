@@ -1,3 +1,4 @@
+import { bootstrapSettings } from "@/lib/settings-store"
 import { isTauri } from "@tauri-apps/api/core"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
@@ -64,6 +65,7 @@ async function bootstrap(): Promise<void> {
   if (isTauri() && platform() === "windows") {
     document.documentElement.dataset.windowBackdrop = "acrylic"
   }
+  await bootstrapSettings()
   await attachConsole()
   await info("frontend booting")
   const preferences = await loadPreferences()

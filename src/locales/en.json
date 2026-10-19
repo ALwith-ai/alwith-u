@@ -80,7 +80,33 @@
     "apiKeyPlaceholder": "sk-…",
     "apiKeyTitle": "API key"
   },
+  "archives": {
+    "title": "Archived chats",
+    "deleteAll": "Delete all",
+    "search": "Search archived chats",
+    "chatType": "Chat type",
+    "allChats": "All chats",
+    "quickChats": "Quick chats",
+    "projectChats": "Project chats",
+    "project": "Project",
+    "allProjects": "All projects",
+    "noProject": "No project",
+    "count": "{{count}} chats",
+    "updatedAt": "Last updated",
+    "connecting": "Connect to Codex to view archived chats.",
+    "loading": "Loading archived chats…",
+    "retry": "Retry",
+    "empty": "No archived chats",
+    "noResults": "No matching archived chats",
+    "deleteTitle": "Delete archived chats?",
+    "deleteAllDescription": "Permanently delete these {{count}} archived chats? This cannot be undone. Deleting all includes chats hidden by the current filters.",
+    "deleteDescription": "Permanently delete this archived chat? This cannot be undone.",
+    "unarchive": "Unarchive",
+    "confirmDelete": "Delete permanently"
+  },
   "sidebar": {
+    "pets": "Vibémon",
+    "leadingNavigation": "Feature navigation",
     "quickChats": "Quick chats",
     "pin": "Pin sidebar",
     "unpin": "Collapse sidebar",
@@ -932,6 +958,8 @@
     "unavailable": "Desktop pets are supported on macOS and Windows"
   },
   "voice": {
+    "configureKey": "Please configure an API Key",
+    "enabled": "Enable voice input",
     "start": "Voice input",
     "stop": "Finish recording",
     "cancel": "Cancel voice input",

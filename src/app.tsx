@@ -1,7 +1,7 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
-import { useCallback, useContext, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal, flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -13,7 +13,6 @@ import { events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
-import { WindowsExtensionControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
@@ -26,19 +25,23 @@ import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } f
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
 import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
-import { ExtensionActions, ExtensionStatusBar } from "@/features/extensions/extension-outlets"
+import { ExtensionEntryMenu } from "@/features/extensions/extension-entry-menu"
+import { ExtensionNavigation } from "@/features/extensions/extension-navigation"
+import { ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
 import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
 import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
+import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { PluginsPage } from "@/features/plugins/plugins-page"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { recentMainActivity } from "@/features/threads/recent-main-activity"
 import { selectThread } from "@/features/threads/select-thread"
+import { ArchivedChatsPage } from "@/features/threads/archived-chats-page"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
@@ -71,11 +74,10 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
-  const extensionControls = useContext(WindowsExtensionControlsContext)
   useDriveConnection()
   useDrivePluginBridge()
   useDriveArchive()
-  const { host: extensions, runtime: extensionRuntime } = useExtensions()
+  const { host: extensions, runtime: extensionRuntime, state: extensionState } = useExtensions()
   const { t } = useTranslation()
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
@@ -123,9 +125,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // Management pages share the leading screen; the offscreen chat stays mounted.
-  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "story" | "extension">("chat")
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon">("plugins")
-  const leading = view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension"
+  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "archives" | "story" | "extension">(
+    "chat"
+  )
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("plugins")
+  const leading =
+    view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension" || view === "archives"
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback(
     (id: string): void => {
@@ -140,6 +145,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     },
     [extensionRuntime]
   )
+  const openArchives = useCallback(() => {
+    setLeadingPage("archives")
+    setView("archives")
+  }, [])
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
     setPluginsVisited(true)
@@ -572,14 +581,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       ))}
     </div>
   )
-  const extensionActions = (
-    <ExtensionActions
-      host={extensions}
-      placement="topBar"
-      onOpenSurface={openExtension}
-      onError={reportExtensionError}
-    />
-  )
 
   return (
     <div className="h-full" inert={busy} aria-busy={busy}>
@@ -601,47 +602,66 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openPlugins}
               onOpenExtensions={openExtensions}
-              drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
-              extensionNavigation={
-                <ExtensionActions
+              renderExtensionEntry={trigger => (
+                <ExtensionEntryMenu
                   host={extensions}
-                  placement="navigation"
-                  activeView={view === "extension" ? extensionView : null}
+                  manifests={extensionState.native?.installations.map(item => item.manifest) ?? []}
+                  trigger={trigger}
+                  onManage={openExtensions}
                   onOpenSurface={openExtension}
                   onError={reportExtensionError}
                 />
-              }
+              )}
+              drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               onSwitchScreen={() => {
                 if (leading) setView("chat")
                 else if (leadingPage === "extensions") openExtensions()
                 else if (leadingPage === "vibemon") openVibemon()
+                else if (leadingPage === "archives") openArchives()
                 else openPlugins()
               }}
             />
           }
           leading={
-            <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
-              {leading && actionCards}
-              {pluginsVisited && (
-                <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                  <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
-                </div>
-              )}
-              {vibemonVisited && (
-                <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                  <VibemonCenter />
-                </div>
-              )}
-              {view === "extension" && extensionView !== null ? (
-                <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
-              ) : leadingPage === "extensions" ? (
-                <div className="min-h-0 flex-1 overflow-auto">
-                  <div className="mx-auto w-full max-w-5xl px-6 py-8">
-                    <ExtensionsSection onOpenSurface={openExtension} />
+            <>
+              <LeadingNavigation
+                activePage={view === "extension" ? null : leadingPage}
+                onOpenVibemon={openVibemon}
+                onOpenArchives={openArchives}
+                onOpenPlugins={openPlugins}
+                onOpenExtensions={openExtensions}>
+                <ExtensionNavigation
+                  host={extensions}
+                  manifests={extensionState.native?.installations.map(item => item.manifest) ?? []}
+                  activeView={view === "extension" ? extensionView : null}
+                  onOpenSurface={openExtension}
+                  onError={reportExtensionError}
+                />
+              </LeadingNavigation>
+              <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
+                {leading && actionCards}
+                {view === "archives" && <ArchivedChatsPage />}
+                {pluginsVisited && (
+                  <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+                    <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
                   </div>
-                </div>
-              ) : null}
-            </SidebarInset>
+                )}
+                {vibemonVisited && (
+                  <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+                    <VibemonCenter />
+                  </div>
+                )}
+                {view === "extension" && extensionView !== null ? (
+                  <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
+                ) : leadingPage === "extensions" ? (
+                  <div className="min-h-0 flex-1 overflow-auto">
+                    <div className="mx-auto w-full max-w-5xl px-6 py-8">
+                      <ExtensionsSection onOpenSurface={openExtension} />
+                    </div>
+                  </div>
+                ) : null}
+              </SidebarInset>
+            </>
           }
           main={
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
@@ -686,13 +706,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           />
           <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
           <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
-          {extensionControls ? (
-            createPortal(extensionActions, extensionControls)
-          ) : (
-            <div className="main-extension-toolbar pointer-events-none absolute top-0 z-40 flex h-8 items-center [-webkit-app-region:no-drag]">
-              {extensionActions}
-            </div>
-          )}
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
             <DriveStatus />
             <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />

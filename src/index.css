@@ -319,7 +319,23 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
     visibility 0s linear var(--screen-slide-duration);
 }
 .main-screen-leading {
+  flex-direction: row;
   width: calc(100% - var(--leading-sidebar-width));
+}
+.leading-navigation {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 52px;
+  padding-block: var(--main-surface-block-gutter);
+  padding-block-start: calc(var(--main-surface-block-gutter) + 12px);
+  overflow: hidden;
+}
+.main-screen-leading > .main-chat-surface {
+  flex: 1;
+  margin-inline-start: 0;
 }
 .main-screen-content {
   width: calc(100% - var(--main-sidebar-width));
@@ -498,6 +514,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 }
 /* Trigger composition replaces data-slot, but preserves the shadcn button class. */
 .main-sidebar-panel :is([class~="group/button"], .chrome-hover):hover,
+.leading-navigation [class~="group/button"]:hover,
 .main-sidebar-toggle [data-slot="button"]:hover,
 .windows-sidebar-toggle [data-slot="button"]:hover,
 .main-extension-toolbar button:hover,

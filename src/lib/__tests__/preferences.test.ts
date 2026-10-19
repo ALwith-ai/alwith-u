@@ -1,5 +1,6 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
-import { LazyStore } from "@tauri-apps/plugin-store"
+import { settingsFixture } from "./settings-fixture"
+import { settingsStore } from "../settings-store"
 import { afterEach, expect, test, vi } from "vitest"
 import { loadPreferences } from "../preferences"
 
@@ -9,15 +10,10 @@ afterEach(() => {
 })
 
 function savedProject(directory: string | undefined): Map<string, unknown> {
-  const values = new Map<string, unknown>()
-  if (directory !== undefined) values.set("lastProjectDirectory", directory)
-  values.set("language", "zh-CN")
-  vi.spyOn(LazyStore.prototype, "get").mockImplementation(
-    async <T>(key: string): Promise<T | undefined> => values.get(key) as T | undefined
-  )
-  vi.spyOn(LazyStore.prototype, "delete").mockImplementation(async key => values.delete(key))
-  vi.spyOn(LazyStore.prototype, "save").mockResolvedValue()
-  return values
+  return settingsFixture({
+    "general.language": "zh-CN",
+    ...(directory === undefined ? {} : { "general.lastProjectDirectory": directory })
+  }).values
 }
 
 test("startup clears an unavailable remembered project and selects the default workspace", async () => {
@@ -29,8 +25,8 @@ test("startup clears an unavailable remembered project and selects the default w
   const preferences = await loadPreferences()
   expect(preferences.lastProjectDirectory).toBeNull()
   expect(preferences.language).toBe("zh-CN")
-  expect(values.has("lastProjectDirectory")).toBe(false)
-  expect(LazyStore.prototype.save).toHaveBeenCalledOnce()
+  expect(values.has("general.lastProjectDirectory")).toBe(false)
+  expect(settingsStore.write).toHaveBeenCalledOnce()
   expect((await loadPreferences()).lastProjectDirectory).toBeNull()
 })
 
@@ -46,8 +42,8 @@ test("startup validates and preserves an available remembered project", async ()
   })
   expect((await loadPreferences()).lastProjectDirectory).toBe(directory)
   expect(calls).toEqual(["draft_directory"])
-  expect(values.get("lastProjectDirectory")).toBe(directory)
-  expect(LazyStore.prototype.save).not.toHaveBeenCalled()
+  expect(values.get("general.lastProjectDirectory")).toBe(directory)
+  expect(settingsStore.write).not.toHaveBeenCalled()
 })
 
 test("startup without a remembered project uses the existing default workspace flow", async () => {
@@ -56,7 +52,7 @@ test("startup without a remembered project uses the existing default workspace f
     throw new Error("No directory validation is needed")
   })
   expect((await loadPreferences()).lastProjectDirectory).toBeNull()
-  expect(LazyStore.prototype.save).not.toHaveBeenCalled()
+  expect(settingsStore.write).not.toHaveBeenCalled()
 })
 
 test("startup preserves the remembered project when the native bridge fails", async () => {
@@ -66,14 +62,14 @@ test("startup preserves the remembered project when the native bridge fails", as
     throw "Native bridge unavailable"
   })
   await expect(loadPreferences()).rejects.toBe("Native bridge unavailable")
-  expect(values.get("lastProjectDirectory")).toBe(directory)
-  expect(LazyStore.prototype.save).not.toHaveBeenCalled()
+  expect(values.get("general.lastProjectDirectory")).toBe(directory)
+  expect(settingsStore.write).not.toHaveBeenCalled()
 })
 
 test("startup reports failures to persist the cleared project", async () => {
   const directory = "/tmp/removed-project"
   savedProject(directory)
-  vi.mocked(LazyStore.prototype.save).mockRejectedValue(new Error("Store write failed"))
+  vi.mocked(settingsStore.write).mockRejectedValue(new Error("Store write failed"))
   mockIPC(() => {
     throw `Project directory is unavailable: ${directory}`
   })
@@ -81,35 +77,13 @@ test("startup reports failures to persist the cleared project", async () => {
 })
 
 test.each([undefined, { main: "gateway:deepseek:deepseek-flash", chat: "gpt-6-astra" }])(
-  "restores per-slot selections %p without borrowing legacy global or historical choices",
+  "restores per-slot selections %p",
   async saved => {
-    const get = vi
-      .spyOn(LazyStore.prototype, "get")
-      .mockImplementation(
-        async <T>(key: string): Promise<T | undefined> =>
-          (key === "modelSelections" ? saved : key === "lastModel" ? "legacy-global" : undefined) as T | undefined
-      )
-    try {
-      expect((await loadPreferences()).modelSelections).toEqual(saved ?? { main: null, chat: null })
-    } finally {
-      get.mockRestore()
-    }
+    settingsFixture(saved === undefined ? {} : { "chat.modelSelections": saved })
+    expect((await loadPreferences()).modelSelections).toEqual(saved ?? { main: null, chat: null })
   }
 )
-
-test.each([undefined, false, true])(
-  "sidebar pin preference restores %p, with missing values defaulting to off",
-  async saved => {
-    const get = vi
-      .spyOn(LazyStore.prototype, "get")
-      .mockImplementation(
-        async <T>(key: string): Promise<T | undefined> => (key === "sidebarPinned" ? saved : undefined) as T | undefined
-      )
-    try {
-      expect((await loadPreferences()).sidebarPinned).toBe(saved ?? false)
-      expect(get).toHaveBeenCalledWith("sidebarPinned")
-    } finally {
-      get.mockRestore()
-    }
-  }
-)
+test.each([undefined, false, true])("sidebar pin preference restores %p", async saved => {
+  settingsFixture(saved === undefined ? {} : { "appearance.sidebarPinned": saved })
+  expect((await loadPreferences()).sidebarPinned).toBe(saved ?? false)
+})

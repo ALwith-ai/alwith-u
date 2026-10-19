@@ -25,7 +25,6 @@ alwith-fs = { path = "../node_modules/@alwith/module-fs/rust", default-features 
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", features = ["tauri", "native-http"] }
 tempfile = "3"
-keyring = { version = "3.6.3", default-features = false, features = ["apple-native", "windows-native"] }
 sha2 = "0.11"
 hex = "0.4"
 tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }

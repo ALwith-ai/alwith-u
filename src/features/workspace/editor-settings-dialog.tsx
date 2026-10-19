@@ -12,12 +12,8 @@ import { type IconTheme, iconThemes } from "./workspace-state"
 export function EditorSettingsSection(): ReactNode {
   const { t } = useTranslation()
   const { settings, iconTheme } = useEditorPreferences()
-  const save = (operation: () => void): void => {
-    try {
-      operation()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
-    }
+  const save = (operation: () => Promise<void>): void => {
+    void operation().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }
   return (
     <SettingGroup>
@@ -30,7 +26,7 @@ export function EditorSettingsSection(): ReactNode {
           value={settings.fontSize}
           onChange={event => {
             const value = event.target.valueAsNumber
-            if (value >= 8 && value <= 40) save(() => saveEditorSettings({ ...settings, fontSize: value }))
+            if (value >= 8 && value <= 40) save(() => saveEditorSettings({ fontSize: value }))
           }}
         />
       </SettingRow>
@@ -39,7 +35,7 @@ export function EditorSettingsSection(): ReactNode {
           aria-label={t("workspace.fontFamily")}
           value={settings.fontFamily}
           maxLength={200}
-          onChange={event => save(() => saveEditorSettings({ ...settings, fontFamily: event.target.value }))}
+          onChange={event => save(() => saveEditorSettings({ fontFamily: event.target.value }))}
         />
       </SettingRow>
       {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map(key => (
@@ -47,7 +43,7 @@ export function EditorSettingsSection(): ReactNode {
           <Switch
             aria-label={t(`workspace.${key}`)}
             checked={settings[key]}
-            onCheckedChange={value => save(() => saveEditorSettings({ ...settings, [key]: value }))}
+            onCheckedChange={value => save(() => saveEditorSettings({ [key]: value }))}
           />
         </SettingRow>
       ))}
