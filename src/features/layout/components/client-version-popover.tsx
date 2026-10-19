@@ -38,7 +38,7 @@ export function ClientVersionPopover() {
         render={
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon-xs"
             className="main-client-version-button text-muted-foreground hover:text-foreground"
             aria-label={t("settings.about")}
             title={t("settings.about")}

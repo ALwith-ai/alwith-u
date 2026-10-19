@@ -173,7 +173,7 @@ export function MainSidebarLayout({
       <Button
         ref={toggle}
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         role="switch"
         aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
         aria-checked={docked}

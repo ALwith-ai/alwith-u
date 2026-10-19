@@ -25,7 +25,7 @@ export function NavigationAds({ onOpenVibemon }: { onOpenVibemon?: () => void })
   return (
     <div
       ref={viewport}
-      className="overflow-hidden"
+      className="-mx-1 overflow-hidden"
       data-slot="navigation-ads"
       onKeyDownCapture={event => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
@@ -36,15 +36,16 @@ export function NavigationAds({ onOpenVibemon }: { onOpenVibemon?: () => void })
       }}>
       <div className="flex touch-pan-y">
         {campaigns.map(campaign => (
-          <Button
-            key={campaign.id}
-            variant="ghost"
-            aria-label={campaign.label}
-            disabled={campaign.open === undefined}
-            onClick={campaign.open}
-            className="aspect-[16/5] h-auto min-w-0 flex-[0_0_100%] overflow-hidden rounded-none border-0 p-0">
-            <img src={`/banner/${campaign.id}.png`} alt="" className="size-full object-cover" draggable={false} />
-          </Button>
+          <div key={campaign.id} className="flex min-w-0 flex-[0_0_100%] px-1">
+            <Button
+              variant="ghost"
+              aria-label={campaign.label}
+              disabled={campaign.open === undefined}
+              onClick={campaign.open}
+              className="aspect-[16/5] h-auto w-full cursor-pointer overflow-hidden rounded-none border-0 p-0 transition-none active:not-aria-[haspopup]:translate-y-0">
+              <img src={`/banner/${campaign.id}.png`} alt="" className="size-full object-cover" draggable={false} />
+            </Button>
+          </div>
         ))}
       </div>
     </div>

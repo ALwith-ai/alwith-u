@@ -70,7 +70,7 @@ export const ArabicFloatingSidebar: Story = {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
       expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right, 0)
+      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
       expect(getComputedStyle(sidebar).visibility).toBe("visible")
     })
   }
@@ -105,5 +105,28 @@ export const ContinuousResize: Story = {
       expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right, 0)
       expect((content.left + content.right) / 2).toBeCloseTo((panel.left + panel.right) / 2, 0)
     }
+  }
+}
+
+export const EnglishFloatingSidebar: Story = {
+  args: { initialPinned: false },
+  globals: { locale: "en" },
+  play: async ({ canvasElement, userEvent }) => {
+    const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
+    await userEvent.hover(toggle)
+    await waitFor(() => {
+      const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
+      const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
+      expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const style = getComputedStyle(sidebar)
+      expect([
+        style.borderTopLeftRadius,
+        style.borderTopRightRadius,
+        style.borderBottomLeftRadius,
+        style.borderBottomRightRadius
+      ]).toEqual(["14px", "14px", "14px", "14px"])
+      expect(style.visibility).toBe("visible")
+    })
   }
 }

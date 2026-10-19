@@ -286,6 +286,7 @@ export function ThreadSidebar({
   const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
   const [archivedOpen, setArchivedOpen] = useState(false)
 
+  const [allProjectsShown, setAllProjectsShown] = useState(false)
   const groups = useMemo(() => (threadsLoaded ? groupThreads(threads) : []), [threadsLoaded, threads])
 
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
@@ -308,8 +309,8 @@ export function ThreadSidebar({
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]">
-      <SidebarHeader className={cn("shrink-0 px-1", isMac() && "pt-9")} data-tauri-drag-region>
-        <div className="flex items-center gap-0.5 px-1" data-tauri-drag-region>
+      <SidebarHeader className={cn("shrink-0 gap-1 px-2", isMac() && "pt-9")} data-tauri-drag-region>
+        <div className="flex h-8 items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
           </span>
@@ -375,7 +376,7 @@ export function ThreadSidebar({
         </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden px-1">
+      <SidebarContent className="gap-0 overflow-hidden px-2">
         <div className="relative flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
@@ -462,10 +463,10 @@ export function ThreadSidebar({
                   </Button>
                 </div>
               )}
-              {groups.map(([cwd, list]) => {
+              {(allProjectsShown ? groups : groups.slice(0, 6)).map(([cwd, list]) => {
                 const isOpen = projectOpen.get(cwd) ?? false
                 const quick = cwd === QUICK_CHATS_GROUP
-                const limit = revealed.get(cwd) ?? REVEAL_PAGE_SIZE
+                const limit = revealed.get(cwd) ?? 5
                 return (
                   // Two levels: collapsible project groups, then their sessions. Expansion is controlled by the shared store.
                   <NavigationGroup
@@ -495,14 +496,21 @@ export function ThreadSidebar({
                     <VirtualThreadRows threads={list.slice(0, limit)} viewport={viewport} renderRow={renderRow} />
                     {list.length > limit && (
                       <NavigationItemButton
-                        className={`${MENU_HIGHLIGHT} text-muted-foreground`}
-                        onClick={() => reveal(cwd, limit + REVEAL_PAGE_SIZE)}>
-                        {t("sidebar.loadMore")}
+                        className={`${MENU_HIGHLIGHT} text-muted-foreground ps-8`}
+                        onClick={() => reveal(cwd, Number.POSITIVE_INFINITY)}>
+                        {t("sidebar.showAll")}
                       </NavigationItemButton>
                     )}
                   </NavigationGroup>
                 )
               })}
+              {!allProjectsShown && groups.length > 6 && (
+                <NavigationItemButton
+                  className={`${MENU_HIGHLIGHT} text-muted-foreground`}
+                  onClick={() => setAllProjectsShown(true)}>
+                  {t("sidebar.showAll")}
+                </NavigationItemButton>
+              )}
               <NavigationGroup
                 open={archivedOpen}
                 onOpenChange={open => {
@@ -537,22 +545,25 @@ export function ThreadSidebar({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="shrink-0 gap-1 p-1">
-        <Separator className="bg-foreground/5 dark:bg-border mb-1" />
-        <NavigationAds onOpenVibemon={onOpenVibemon} />
-        <Button
-          variant="ghost"
-          className={cn(
-            "hover:bg-foreground/5 h-8 w-full rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
-            screen === "main" ? "justify-start" : "justify-end"
-          )}
-          aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-          title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-          onClick={onSwitchScreen}>
-          {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
-        </Button>
+      <SidebarFooter className="shrink-0 gap-1 p-1 px-2 pb-[var(--main-surface-block-gutter)]">
         <UpdateStatusButton />
+        <div className="px-1" data-slot="navigation-ads-padding">
+          <NavigationAds onOpenVibemon={onOpenVibemon} />
+        </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            className={cn(
+              "hover:bg-foreground/5 h-8 min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
+              screen === "main" ? "justify-start" : "justify-end"
+            )}
+            aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+            title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+            onClick={onSwitchScreen}>
+            {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
+          </Button>
+        </div>
+        <div className="flex h-8 items-center gap-1">
           <div className="min-w-0 flex-1">
             <SidebarAccountMenu onOpenSettings={onOpenSettings} />
           </div>

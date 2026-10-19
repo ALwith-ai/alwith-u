@@ -148,18 +148,12 @@ html[data-window-backdrop="acrylic"] .main-chat-surface [data-main-chat-header] 
   gap: 4px;
   height: 100%;
 }
-.file-workspace-toolbar [data-slot="button"] {
-  width: 32px;
-  height: 32px;
-}
 [data-main-screen="main"] .main-extension-toolbar {
   right: 84px;
 }
 
 /* Workspace controls follow the host toolbar rather than primary action styling. */
 .file-workspace-toolbar .workspace-sidebar-toggle {
-  width: 32px;
-  height: 32px;
   background-color: transparent;
   color: var(--sidebar-foreground);
 }
@@ -169,8 +163,6 @@ html[data-window-backdrop="acrylic"] .main-chat-surface [data-main-chat-header] 
   -webkit-app-region: no-drag;
 }
 .windows-workspace-controls .workspace-sidebar-toggle {
-  width: 32px;
-  height: 32px;
   color: var(--sidebar-foreground);
   background-color: transparent;
   flex-shrink: 0;

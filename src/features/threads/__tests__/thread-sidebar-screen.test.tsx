@@ -66,7 +66,7 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
   const arrow = view.getByRole("button", { name: "Open -1 screen" })
   const updateCard = view.getByRole("button", { name: /Relaunch to update/ })
   expect(updateCard.closest('[data-slot="sidebar-footer"]')).toBe(arrow.closest('[data-slot="sidebar-footer"]'))
-  expect(arrow.nextElementSibling).toBe(updateCard)
+  expect(updateCard.nextElementSibling).toHaveAttribute("data-slot", "navigation-ads-padding")
   expect(arrow.closest('[data-slot="sidebar-footer"]')).not.toBeNull()
   expect(arrow.querySelector(".lucide-arrow-left")).toBeTruthy()
   expect(arrow.classList.contains("justify-start")).toBe(true)
