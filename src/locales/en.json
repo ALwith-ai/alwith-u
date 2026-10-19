@@ -958,6 +958,7 @@
     "unavailable": "Desktop pets are supported on macOS and Windows"
   },
   "voice": {
+    "configureKey": "Please configure an API Key",
     "enabled": "Enable voice input",
     "start": "Voice input",
     "stop": "Finish recording",

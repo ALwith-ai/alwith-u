@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createVoiceSettingsHost, saveVoiceEnabled } from "@/features/voice/settings"
+import { createVoiceSettingsHost, loadVoiceSettings, saveVoiceEnabled, voiceProfiles } from "@/features/voice/settings"
 import { useVoiceEnabled } from "@/features/voice/use-voice-enabled"
 import { SettingGroup, SettingRow } from "./shared"
 const slots: VoiceSettingsSlots = {
@@ -68,6 +68,16 @@ export function VoiceSection(): ReactNode {
   const { t } = useTranslation()
   const enabled = useVoiceEnabled()
   const [saving, setSaving] = useState(false)
+  const onSaved = async (): Promise<void> => {
+    try {
+      const settings = await loadVoiceSettings()
+      const profiles = await voiceProfiles()
+      if (profiles[settings.provider]) toast.success(t("voice.saved"))
+      else toast.info(t("voice.configureKey"))
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  }
   const changeEnabled = async (value: boolean): Promise<void> => {
     setSaving(true)
     try {
@@ -98,7 +108,7 @@ export function VoiceSection(): ReactNode {
         slots={slots}
         text={(key, values) => t(`voice.${key}`, values)}
         onError={error => toast.error(error instanceof Error ? error.message : String(error))}
-        onSaved={() => toast.success(t("voice.saved"))}
+        onSaved={() => void onSaved()}
       />
     </>
   )
