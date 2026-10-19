@@ -117,17 +117,19 @@ export function GeneralSection() {
       )}
       <Separator />
       <SettingRow title={t("settings.composerPredictions")} desc={t("settings.composerPredictionsDesc")} aligned>
-        <Switch
-          aria-label={t("settings.composerPredictions")}
-          checked={predictions}
-          disabled={savingPredictions}
-          onCheckedChange={enabled => {
-            setSavingPredictions(true)
-            void setPredictionsEnabled(enabled)
-              .catch((error: unknown) => toast.error(String(error)))
-              .finally(() => setSavingPredictions(false))
-          }}
-        />
+        <div className="flex justify-end">
+          <Switch
+            aria-label={t("settings.composerPredictions")}
+            checked={predictions}
+            disabled={savingPredictions}
+            onCheckedChange={enabled => {
+              setSavingPredictions(true)
+              void setPredictionsEnabled(enabled)
+                .catch((error: unknown) => toast.error(String(error)))
+                .finally(() => setSavingPredictions(false))
+            }}
+          />
+        </div>
       </SettingRow>
       <Separator />
       <AutostartRow />
