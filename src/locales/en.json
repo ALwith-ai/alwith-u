@@ -23,7 +23,11 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U Guide", "help": "Help", "userGuide": "User guide" },
+  "guide": {
+    "title": "ALwith U Guide",
+    "help": "Help",
+    "userGuide": "User guide"
+  },
   "errorBoundary": {
     "label": "ERROR",
     "componentStack": "Component Stack",
@@ -369,7 +373,8 @@
     "version": "Version {{version}}",
     "codexVersion": "Codex CLI {{version}}",
     "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI.",
-    "editor": "Editor"
+    "editor": "Editor",
+    "voice": "Voice"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -925,5 +930,49 @@
     "hide": "Close desktop pet",
     "selectFirst": "Select a pet from the equip page first",
     "unavailable": "Desktop pets are supported on macOS and Windows"
+  },
+  "voice": {
+    "start": "Voice input",
+    "stop": "Finish recording",
+    "cancel": "Cancel voice input",
+    "starting": "Connecting microphone…",
+    "finishing": "Finishing recognition…",
+    "unavailable": "Voice input is unavailable in this chat",
+    "existingDraft": "Send or clear the existing draft before using automatic send",
+    "noSpeech": "No speech recognized. Recording stopped.",
+    "loading": "Loading voice settings…",
+    "provider": "Speech recognition provider",
+    "doubao": "Doubao",
+    "key": "API key",
+    "configured": "Configured. Leave empty to keep the saved key.",
+    "notConfigured": "Configure a provider API key to enable voice input.",
+    "device": "Microphone",
+    "defaultDevice": "System default",
+    "unnamedDevice": "Microphone {{number}}",
+    "mode": "Input mode",
+    "dictation": "Dictation · edit before sending",
+    "send": "Send after a pause",
+    "handsfree": "Hands-free · listen again after the reply",
+    "hotwords": "Global hotwords",
+    "hotwordsHint": "Separate words with commas or newlines.",
+    "projectPath": "Project directory",
+    "projectPathHint": "Configure hotwords for this exact project directory.",
+    "getKey": "Get API key",
+    "projectHotwords": "Project hotwords",
+    "save": "Save",
+    "saved": "Voice settings saved",
+    "smooth": "Smooth transcription",
+    "smoothHint": "Remove spoken fillers with Doubao.",
+    "removeKey": "Remove",
+    "retry": "Retry",
+    "threshold": "Speech energy threshold",
+    "silenceMs": "Pause before sending (ms)",
+    "initialSilenceMs": "Initial silence limit (ms)",
+    "maxDurationMs": "Maximum recording duration (ms)",
+    "resourceId": "Resource ID",
+    "resourceIdHint": "Use the resource enabled for your account.",
+    "shortcut": "Voice shortcut",
+    "shortcutKey": "Option / Alt",
+    "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only."
   }
 }

@@ -93,6 +93,13 @@ if (triple === nativeTriple) {
   assertVersion("staged Bun", (await $`${bunDestination} --version`.text()).trim(), versions.bun)
 }
 console.log(`bun ${versions.bun} -> ${bunDestination}`)
+// Voice is compiled into the host; only its licence notices need staging.
+const voicePackage = join(root, "node_modules/@alwith/module-voice")
+const voiceLicenses = join(licenses, "alwith-voice")
+mkdirSync(voiceLicenses, { recursive: true })
+for (const entry of ["LICENSE", "THIRD_PARTY_LICENSES.txt"]) {
+  copyFileSync(join(voicePackage, entry), join(voiceLicenses, entry))
+}
 const nativeLibrary = stageNative(triple, join(root, "src-tauri/resources/native"), licenses)
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify

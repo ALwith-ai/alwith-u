@@ -2,7 +2,11 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U 指南", "help": "帮助", "userGuide": "用户指南" },
+  "guide": {
+    "title": "ALwith U 指南",
+    "help": "帮助",
+    "userGuide": "用户指南"
+  },
   "errorBoundary": {
     "label": "错误",
     "componentStack": "组件堆栈",
@@ -369,7 +373,8 @@
     "codexVersion": "Codex CLI {{version}}",
     "version": "版本 {{version}}",
     "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。",
-    "editor": "编辑器"
+    "editor": "编辑器",
+    "voice": "语音"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -925,5 +930,49 @@
     "hide": "关闭桌宠",
     "selectFirst": "请先在装配页选择桌宠",
     "unavailable": "桌宠窗口支持 macOS 和 Windows"
+  },
+  "voice": {
+    "start": "语音输入",
+    "stop": "结束录音",
+    "cancel": "取消语音输入",
+    "starting": "正在连接麦克风…",
+    "finishing": "正在完成识别…",
+    "unavailable": "当前会话不可使用语音输入",
+    "existingDraft": "请先发送或清空已有草稿，再使用自动发送",
+    "noSpeech": "未识别到语音，已停止录音",
+    "loading": "正在加载语音设置…",
+    "provider": "语音识别服务",
+    "doubao": "豆包",
+    "key": "API Key",
+    "configured": "已配置，留空可保留已保存的 Key",
+    "notConfigured": "请配置服务商 API Key 以启用语音",
+    "device": "麦克风",
+    "defaultDevice": "系统默认",
+    "unnamedDevice": "麦克风 {{number}}",
+    "mode": "输入模式",
+    "dictation": "听写 · 编辑后发送",
+    "send": "停顿后发送",
+    "handsfree": "免提 · 回复完成后继续听取",
+    "hotwords": "全局热词",
+    "hotwordsHint": "用逗号或换行分隔。",
+    "projectPath": "项目目录",
+    "projectPathHint": "为此精确匹配的项目目录配置热词。",
+    "getKey": "获取 API Key",
+    "projectHotwords": "项目热词",
+    "save": "保存",
+    "saved": "语音设置已保存",
+    "smooth": "语音顺滑",
+    "smoothHint": "使用豆包过滤口语中的语气词。",
+    "removeKey": "移除",
+    "retry": "重试",
+    "threshold": "语音能量阈值",
+    "silenceMs": "发送前停顿（毫秒）",
+    "initialSilenceMs": "初始静音上限（毫秒）",
+    "maxDurationMs": "最长录音时长（毫秒）",
+    "resourceId": "资源 ID",
+    "resourceIdHint": "使用账号已开通的资源。",
+    "shortcut": "语音快捷键",
+    "shortcutKey": "Option / Alt",
+    "shortcutHint": "500 毫秒内双击 Option/Alt 开始，单击结束。仅当前聊天窗口生效。"
   }
 }

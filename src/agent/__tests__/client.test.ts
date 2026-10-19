@@ -1209,3 +1209,14 @@ test("plugin enablement uses the adapter extension with an explicit plugin ID", 
     remotePluginId: "plugin_supabase"
   })
 })
+
+test("tracked prompt receipt names the retained authoritative turn", async () => {
+  const { client } = await make()
+  const id = await client.newSession("/tmp/voice-receipt")
+  const messageId = await client.promptReceipt(id, [{ type: "text", text: "voice" }])
+  const prompt = must(client.state.sessions[id], "receipt session").items.find(item => item.id === messageId)
+  expect(prompt?.kind).toBe("user")
+  expect(["acknowledged", "adopted"]).toContain(prompt && "echo" in prompt ? prompt.echo : null)
+  expect(must(client.state.sessions[id], "receipt session").items.filter(item => item.kind === "user")).toHaveLength(1)
+  await client.cancel(id)
+})

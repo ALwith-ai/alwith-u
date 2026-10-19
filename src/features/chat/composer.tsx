@@ -5,6 +5,9 @@
  */
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import type { Session } from "@alwith/api"
+import { observeVoiceTurn } from "@/core/voice-turn"
+import type { DraftPort, DraftSnapshot } from "@alwith/module-voice/chat"
+import { VoiceButton } from "@/features/voice/voice-button"
 import { ImageIcon } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -93,7 +96,7 @@ export function Composer({
   inputHeader?: import("react").ReactNode
 }) {
   const { t } = useTranslation()
-  const [text, setText] = useState(() => drafts.get(session.id)?.text ?? "")
+  const [text, setTextRaw] = useState(() => drafts.get(session.id)?.text ?? "")
   const [attachments, setAttachments] = useState<Attachment[]>(
     () => drafts.get(session.id)?.attachments ?? EMPTY_ATTACHMENTS
   )
@@ -103,6 +106,53 @@ export function Composer({
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
+  const voiceCancelRef = useRef<(() => void) | null>(null)
+  const draftRef = useRef({ text, revision: 0 })
+  const setText = useCallback((value: string): void => {
+    voiceCancelRef.current?.()
+    draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
+    setTextRaw(value)
+  }, [])
+  const draftPort = useMemo<DraftPort>(() => {
+    const read = (): DraftSnapshot => {
+      const element = textareaRef.current?.getTextarea()
+      const selection: readonly [number, number] =
+        element === null || element === undefined
+          ? [draftRef.current.text.length, draftRef.current.text.length]
+          : [element.selectionStart, element.selectionEnd]
+      return { target: session.id, ...draftRef.current, selection }
+    }
+    return {
+      read,
+      compareAndSet(expected, value, selection) {
+        if (expected.target !== session.id || expected.revision !== draftRef.current.revision) return null
+        draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
+        setTextRaw(value)
+        const element = textareaRef.current?.getTextarea()
+        if (element !== null && element !== undefined) {
+          element.value = value
+          element.setSelectionRange(selection[0], selection[1])
+        }
+        return { target: session.id, ...draftRef.current, selection }
+      }
+    }
+  }, [session.id])
+  const receiptObserver = useRef<((id: string) => void) | null>(null)
+  const waitForVoiceTurn = useCallback(
+    (signal: AbortSignal): Promise<void> => {
+      const observation = observeVoiceTurn(
+        { read: () => client.store.getState().sessions[session.id], subscribe: check => client.store.subscribe(check) },
+        signal
+      )
+      receiptObserver.current = observation.accept
+      const release = (): void => {
+        if (receiptObserver.current === observation.accept) receiptObserver.current = null
+      }
+      void observation.completed.then(release, release)
+      return observation.completed
+    },
+    [session.id]
+  )
   const active = session.state !== "idle"
   const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
   const inputReady = !session.readOnly && (allowPendingInput || ready)
@@ -119,7 +169,7 @@ export function Composer({
           throw new Error("输入框已有草稿，请先发送或清空后重试")
         setText(value)
       }),
-    [session.id, inputReady, sending, text, attachments, mentions]
+    [session.id, inputReady, sending, text, attachments, mentions, setText]
   )
 
   const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
@@ -143,6 +193,7 @@ export function Composer({
     async ({ text: input, files }: PromptInputMessage) => {
       const trimmed = input.trim()
       if (trimmed.length === 0 && files.length === 0 && mentions.length === 0) return
+      const observeReceipt = receiptObserver.current
       setSending(true)
       try {
         const prompt: acp.ContentBlock[] = []
@@ -154,8 +205,12 @@ export function Composer({
         if (trimmed.length > 0) prompt.push({ type: "text", text: trimmed })
         for (const file of files) prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
         if (onSubmit) await onSubmit(prompt)
-        else await client.prompt(session.id, prompt)
-        setMentions([])
+        else if (observeReceipt === null) await client.prompt(session.id, prompt)
+        else {
+          const receipt = await client.promptReceipt(session.id, prompt)
+          observeReceipt(receipt)
+        }
+        setMentions(current => (current === mentions ? [] : current))
         textareaRef.current?.resetHeight()
       } finally {
         setSending(false)
@@ -198,7 +253,12 @@ export function Composer({
       <PromptInputProvider
         attachmentPolicy={nativeAttachmentPolicy}
         value={text}
+        revision={draftRef.current.revision}
         onValueChange={setText}
+        onSubmittedClear={() => {
+          draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
+          setTextRaw("")
+        }}
         attachments={attachments}
         onAttachmentsChange={setAttachments}>
         <CompletionMenu
@@ -215,12 +275,8 @@ export function Composer({
           accept={IMAGE_TYPES.join(",")}
           onError={onAttachmentError}
           onSubmit={submit}
-          onSubmitCapture={event => {
-            if (!ready || sending || dropping) {
-              event.preventDefault()
-              event.stopPropagation()
-            }
-          }}
+          onSubmitAsync={submit}
+          canSubmit={() => (ready && !sending && !dropping ? true : "chat_not_ready")}
           className="relative z-10">
           <NativeFileDrop
             sessionId={session.id}
@@ -250,7 +306,7 @@ export function Composer({
               aria-label={t("chat.placeholder")}
             />
           </PromptInputBody>
-          <PromptInputFooter className="@container/input-footer mt-0 mb-2 w-full min-w-0 p-0">
+          <PromptInputFooter className="@container/input-footer mt-0 mb-4 w-full min-w-0 p-0">
             <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-[5px] px-2">
               <div className="flex min-w-0 items-center gap-[5px]">
                 <SlashCommandButton
@@ -267,6 +323,14 @@ export function Composer({
                 {modelSelector ?? (
                   <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
                 )}
+                <VoiceButton
+                  draft={draftPort}
+                  cwd={session.cwd}
+                  enabled={ready}
+                  cancelRef={voiceCancelRef}
+                  waitForTurn={waitForVoiceTurn}
+                  supportsHandsfree={onSubmit === undefined}
+                />
                 <ChatSubmitButton
                   active={active}
                   sending={sending || preparing || dropping}

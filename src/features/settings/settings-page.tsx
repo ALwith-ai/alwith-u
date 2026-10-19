@@ -11,6 +11,7 @@ import {
   ContrastIcon,
   CpuIcon,
   InfoIcon,
+  MicIcon,
   SlidersHorizontalIcon,
   UserIcon
 } from "lucide-react"
@@ -34,6 +35,7 @@ import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
 import { GeneralSection } from "./sections/general-section"
+import { VoiceSection } from "./sections/voice-section"
 import { ProviderSection } from "./sections/provider-section"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
@@ -43,6 +45,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   editor: Code2Icon,
   appearance: ContrastIcon,
   provider: CpuIcon,
+  voice: MicIcon,
   extensions: BlocksIcon,
   about: InfoIcon
 }
@@ -105,6 +108,8 @@ export function SettingsPage() {
             return <GeneralSection />
           case "appearance":
             return <AppearanceSection />
+          case "voice":
+            return <VoiceSection />
           case "provider":
             return <ProviderSection />
           case "about":
