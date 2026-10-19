@@ -25,6 +25,9 @@ mod panel;
 mod panic_report;
 mod providers;
 mod runtime;
+mod secret_store;
+mod settings;
+mod settings_store;
 mod tray;
 mod updater;
 mod vibemon;
@@ -157,6 +160,7 @@ pub fn run() {
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
             app.manage(native::Native::load(app.handle())?);
+            settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
@@ -211,9 +215,14 @@ pub fn run() {
         })
         .invoke_handler({
             let typed = bindings().invoke_handler();
-            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![voice::voice_push];
+            let binary: fn(tauri::ipc::Invoke) -> bool =
+                tauri::generate_handler![voice::voice_push, settings::settings_request];
             move |invoke| {
-                if invoke.message.command() == "voice_push" { binary(invoke) } else { typed(invoke) }
+                if matches!(invoke.message.command(), "voice_push" | "settings_request") {
+                    binary(invoke)
+                } else {
+                    typed(invoke)
+                }
             }
         })
         .build(context)

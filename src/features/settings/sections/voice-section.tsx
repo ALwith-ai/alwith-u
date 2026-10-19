@@ -1,5 +1,5 @@
 import { VoiceSettingsForm, type VoiceSettingsSlots } from "@alwith/module-voice/react"
-import type { ReactNode } from "react"
+import { type ReactNode, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -9,21 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  loadVoiceSettings,
-  saveVoiceSettings,
-  saveVoiceCredential,
-  deleteVoiceCredential,
-  voiceProfiles
-} from "@/features/voice/settings"
+import { createVoiceSettingsHost, saveVoiceEnabled } from "@/features/voice/settings"
+import { useVoiceEnabled } from "@/features/voice/use-voice-enabled"
 import { SettingGroup, SettingRow } from "./shared"
-const host = {
-  load: loadVoiceSettings,
-  save: saveVoiceSettings,
-  profiles: voiceProfiles,
-  saveCredential: saveVoiceCredential,
-  deleteCredential: deleteVoiceCredential
-}
 const slots: VoiceSettingsSlots = {
   Group: SettingGroup,
   Row: SettingRow,
@@ -76,10 +64,31 @@ const slots: VoiceSettingsSlots = {
   )
 }
 export function VoiceSection(): ReactNode {
+  const host = useMemo(createVoiceSettingsHost, [])
   const { t } = useTranslation()
+  const enabled = useVoiceEnabled()
+  const [saving, setSaving] = useState(false)
+  const changeEnabled = async (value: boolean): Promise<void> => {
+    setSaving(true)
+    try {
+      await saveVoiceEnabled(value)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
+  }
   return (
     <>
       <SettingGroup>
+        <SettingRow title={t("voice.enabled")}>
+          <Switch
+            aria-label={t("voice.enabled")}
+            checked={enabled === true}
+            disabled={enabled === null || saving}
+            onCheckedChange={value => void changeEnabled(value)}
+          />
+        </SettingRow>
         <SettingRow title={t("voice.shortcut")} desc={t("voice.shortcutHint")}>
           <Kbd>{t("voice.shortcutKey")}</Kbd>
         </SettingRow>

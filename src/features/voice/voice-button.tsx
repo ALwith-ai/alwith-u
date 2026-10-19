@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { PromptInputButton } from "@/features/chat/composer/prompt-input"
 import { openSettingsWindow } from "@/lib/window-manager"
 import { loadVoiceSettings, voiceProfiles } from "./settings"
+import { useVoiceEnabled } from "./use-voice-enabled"
 const transport = createTauriTransport({ invoke, channel: receive => new Channel(receive) })
 export function VoiceButton({
   draft,
@@ -33,6 +34,8 @@ export function VoiceButton({
 }): ReactNode {
   const { t } = useTranslation()
   const submit = usePromptInputSubmission()
+  const voiceEnabled = useVoiceEnabled()
+  if (voiceEnabled !== true) return null
   return (
     <VoiceControls
       optionTap

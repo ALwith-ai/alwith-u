@@ -37,7 +37,7 @@ type Routes = Arc<Mutex<BTreeMap<String, (String, Channel<VoiceEvent>)>>>;
 pub struct VoiceState {
     service: Voice,
     channels: Routes,
-    credentials: Arc<Mutex<crate::voice_credentials::Credentials>>,
+    credentials: Arc<Mutex<crate::settings_store::SettingsStore>>,
     generations: Mutex<BTreeMap<String, Document>>,
 }
 impl VoiceState {
@@ -63,8 +63,7 @@ fn check(window: &tauri::Window, settings: bool) -> Result<(), String> {
 pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let service = Voice::new()?;
     let channels: Routes = Arc::new(Mutex::new(BTreeMap::new()));
-    let path = app.path().app_data_dir()?.join("voice-credentials.json");
-    let credentials = crate::voice_credentials::Credentials::new(path);
+    let credentials = Arc::clone(&app.state::<crate::settings::SharedSettings>().0);
     let reader = service.clone();
     let routes = Arc::clone(&channels);
     std::thread::Builder::new().name("voice-events".into()).spawn(move || {
@@ -108,12 +107,7 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Erro
             }
         }
     })?;
-    app.manage(VoiceState {
-        service,
-        channels,
-        credentials: Arc::new(Mutex::new(credentials)),
-        generations: Mutex::new(BTreeMap::new()),
-    });
+    app.manage(VoiceState { service, channels, credentials, generations: Mutex::new(BTreeMap::new()) });
     Ok(())
 }
 #[tauri3_specta::command]
@@ -150,7 +144,7 @@ pub async fn voice_start(
     let result = tauri::async_runtime::spawn_blocking(move || {
         // Hold the same lock through native acceptance so revocation cannot race a queued start.
         let credentials = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
-        let key = credentials.get(provider)?.ok_or("voice_profile_not_configured")?;
+        let key = credentials.secret(&format!("voice.{provider}.apiKey"))?.ok_or("voice_profile_not_configured")?;
         service.command(json!({"action":"start","owner":command_owner,"start":{"owner":command_owner,"recordingId":command_id,"provider":provider,"key":key,"hotwords":options.hotwords,"smooth":options.smooth,"resourceId":options.resource_id}}))
     }).await.map_err(|e| e.to_string())?;
     if result.is_ok() && state.identity(window.label())? != owner {
@@ -199,7 +193,10 @@ pub async fn voice_profiles(window: tauri::Window, state: State<'_, VoiceState>)
     let credentials = Arc::clone(&state.credentials);
     tauri::async_runtime::spawn_blocking(move || {
         let keys = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
-        Ok(Profiles { vui: keys.get("vui")?.is_some(), doubao: keys.get("doubao")?.is_some() })
+        Ok(Profiles {
+            vui: keys.secret("voice.vui.apiKey")?.is_some(),
+            doubao: keys.secret("voice.doubao.apiKey")?.is_some(),
+        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -222,8 +219,8 @@ pub async fn voice_save_credential(
     let credentials = Arc::clone(&state.credentials);
     let service = state.service.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let keys = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
-        keys.set(provider, &input.api_key)?;
+        let mut keys = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
+        keys.set_secret(&format!("voice.{provider}.apiKey"), &input.api_key)?;
         service.command(json!({"action":"cancelProvider","provider":provider}))
     })
     .await
@@ -246,8 +243,8 @@ pub async fn voice_delete_credential(
     let credentials = Arc::clone(&state.credentials);
     let service = state.service.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let keys = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
-        keys.revoke(provider)?;
+        let mut keys = credentials.lock().map_err(|_| "voice_credentials_poisoned")?;
+        keys.remove_secret(&format!("voice.{provider}.apiKey"))?;
         service.command(json!({"action":"cancelProvider","provider":provider}))
     })
     .await
@@ -305,4 +302,11 @@ mod tests {
         document.ready = true;
         assert_eq!(document.capture_identity("chat").unwrap(), "chat:1");
     }
+}
+
+pub fn cancel_provider(app: &tauri::AppHandle, provider: &str) -> Result<(), String> {
+    if !matches!(provider, "vui" | "doubao") {
+        return Err("Unknown voice provider".into());
+    }
+    app.state::<VoiceState>().service.command(json!({"action":"cancelProvider","provider":provider}))
 }

@@ -44,17 +44,13 @@ pub fn event_name(id: &str) -> Option<&'static str> {
     })
 }
 
-/// The UI language saved by the webview (`preferences.json` → `language`), else the system
+/// The UI language saved by the webview (`settings.json` → `general.language`), else the system
 /// locale. Only `en` and `zh-CN` exist.
 pub(crate) fn detect_locale(app: &AppHandle) -> &'static str {
     use tauri::Manager;
-    let saved = app
-        .path()
-        .app_config_dir()
-        .ok()
-        .and_then(|dir| std::fs::read_to_string(dir.join("preferences.json")).ok())
-        .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
-        .and_then(|value| value.get("language").and_then(|language| language.as_str()).map(str::to_owned));
+    let state = app.state::<crate::settings::SharedSettings>();
+    let settings = state.0.lock().expect("settings lock");
+    let saved = settings.values.get("general.language").and_then(serde_json::Value::as_str).map(str::to_owned);
     match saved.as_deref() {
         Some("zh-CN") => return "zh-CN",
         Some("en") => return "en",

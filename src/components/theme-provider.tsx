@@ -1,3 +1,5 @@
+import { settingsStore, updateSettings } from "@/lib/settings-store"
+import { toast } from "sonner"
 import { setTheme as setNativeTheme } from "@tauri-apps/api/app"
 import { isTauri } from "@tauri-apps/api/core"
 import * as React from "react"
@@ -13,10 +15,6 @@ type ThemeProviderState = {
 
 const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
 const THEME_VALUES: Theme[] = ["dark", "light", "system"]
-// localStorage is the one store readable before the first paint, which keeps the
-// theme from flashing; every other preference lives in the Tauri store.
-const STORAGE_KEY = "theme"
-
 const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined)
 
 function isTheme(value: string | null): value is Theme {
@@ -29,7 +27,7 @@ function systemTheme(): ResolvedTheme {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = settingsStore.get<string>("appearance.theme") ?? null
     return isTheme(stored) ? stored : "system"
   })
   const [resolvedTheme, setResolvedTheme] = React.useState<ResolvedTheme>(() =>
@@ -37,18 +35,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   )
 
   const setTheme = React.useCallback((next: Theme) => {
-    localStorage.setItem(STORAGE_KEY, next)
-    setThemeState(next)
+    void updateSettings({ "appearance.theme": next }).catch((error: unknown) =>
+      toast.error(error instanceof Error ? error.message : String(error))
+    )
   }, [])
-
-  // Another window of this app changed the theme: localStorage is shared per origin.
-  React.useEffect(() => {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) setThemeState(isTheme(event.newValue) ? event.newValue : "system")
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  React.useEffect(
+    () =>
+      settingsStore.subscribe(keys => {
+        if (keys.includes("appearance.theme")) {
+          const value = settingsStore.get<string>("appearance.theme") ?? null
+          setThemeState(isTheme(value) ? value : "system")
+        }
+      }),
+    []
+  )
 
   React.useEffect(() => {
     const apply = () => {

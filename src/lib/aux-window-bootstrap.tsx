@@ -1,3 +1,4 @@
+import { bootstrapSettings } from "@/lib/settings-store"
 // The one bootstrap for auxiliary windows (ALwith Desktop's aux-window-bootstrap): the
 // same providers the main window mounts, minus the App and its Runtime connection.
 import { attachConsole, error as logError } from "@tauri-apps/plugin-log"
@@ -30,6 +31,7 @@ export function bootstrapAuxWindow(opts: {
 }): void {
   const Component = opts.component
   async function bootstrap() {
+    await bootstrapSettings()
     await attachConsole()
     window.addEventListener("unhandledrejection", event => {
       const error: unknown = event.reason
