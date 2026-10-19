@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.9.0",
-    "@alwith/api": "^0.4.1",
+    "@alwith/api": "^0.4.2",
     "@alwith/module-auth": "^0.1.5",
     "@alwith/module-chat": "^0.1.16",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
