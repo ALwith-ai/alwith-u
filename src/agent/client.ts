@@ -4,9 +4,11 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
 import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2"
 import {
-  Agent,
+  type Agent,
   AgentRequests,
   Agents,
+  assertPromptSupported,
+  configOptionRequest,
   createSession,
   isBooleanOption,
   isGroupedSelect,
@@ -219,6 +221,8 @@ export class CodexClient {
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
   private threadsRequest: Promise<void> | null = null
+  /** One resume per session at a time: a second `open` while it runs waits for the same one. */
+  private readonly replays = new Map<string, Promise<void>>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -362,16 +366,8 @@ export class CodexClient {
     }
     // A freshly started agent has no Runtime session yet. After a webview reload there is
     // therefore no session to attach through, but the process still needs to be reused.
-    if ((await port.agents()).some(agent => agent.agentId === this.options.agentId)) {
-      const initialized = await port.acpRequest(this.options.agentId, "initialize", {
-        protocolVersion: 2,
-        info: CLIENT_INFO,
-        capabilities: CLIENT_CAPABILITIES
-      })
-      const agent = new Agent(port, this.options.agentId, this.options.launch.engine, initialized)
-      await agent.listen()
-      return agent
-    }
+    if ((await port.agents()).some(agent => agent.agentId === this.options.agentId))
+      return agents.adopt(this.options.agentId, this.options.launch.engine)
     return agents.start(this.options.agentId, this.options.launch, this.options.launch.engine)
   }
 
@@ -835,12 +831,11 @@ export class CodexClient {
     this.bindSlot(owner, id)
     ++this.slotVersions[owner]
     const existing = this.sessions.sessions.get(id)
-    if (existing?.restoring) return
     if (existing?.attached) {
       this.followModel(owner, existing)
       return
     }
-    await this.replay(id, cwd, owner)
+    await (this.replays.get(id) ?? this.replay(id, cwd, owner))
   }
 
   /**
@@ -854,7 +849,17 @@ export class CodexClient {
     await this.replay(id, session.cwd)
   }
 
-  private async replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
+  private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
+    const running = this.replays.get(id)
+    if (running) return running
+    const replay = this.runReplay(id, cwd, owner).finally(() => {
+      if (this.replays.get(id) === replay) this.replays.delete(id)
+    })
+    this.replays.set(id, replay)
+    return replay
+  }
+
+  private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     this.sessions.beginReplay(id)
     this.publishSession(this.sessions.get(id))
@@ -903,13 +908,15 @@ export class CodexClient {
     // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
     // the later `user_message` echo or its text, so an unclaimed copy would stay a second
     // message. Echo and receipt may arrive in either order.
+    const agent = this.live()
+    assertPromptSupported(agent.initialized, prompt)
     const sentAt = Date.now()
     const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
     // Once a request leaves the client, transport failure cannot prove it was not accepted.
     // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
     this.materializeDraft(id)
-    const response = await this.live().request<acp.PromptResponse>("session/prompt", {
+    const response = await agent.request<acp.PromptResponse>("session/prompt", {
       sessionId: id,
       prompt,
       _meta: { codex: { messageSentAt: sentAt } }
@@ -928,11 +935,17 @@ export class CodexClient {
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
+      const configOptions = this.sessions.get(id).configOptions
+      const option = configOptions.find(candidate => candidate.configId === configId)
+      // A provider catalog (codex-acp-v2 `providerCatalog`) accepts gateway model ids the broadcast
+      // option does not list; every other write must be one the session offers.
+      const request =
+        option?.category === "model" && this.providerCatalog && typeof value === "string"
+          ? { sessionId: id, configId, type: "id" as const, value }
+          : configOptionRequest(id, configOptions, configId, value)
       const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
         "session/set_config_option",
-        typeof value === "boolean"
-          ? { sessionId: id, configId, type: "boolean", value }
-          : { sessionId: id, configId, type: "id", value }
+        request
       )
       this.publishSession({
         ...this.sessions.get(id),
@@ -1281,6 +1294,7 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
+    this.replays.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)

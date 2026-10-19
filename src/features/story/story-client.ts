@@ -1,7 +1,7 @@
 // The story module as seen from U: module calls go through the Runtime (`modules/alwith-story/<method>`),
 // the story agent is started by the module (owner-scoped) and driven here over ACP like any other agent.
 import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2"
-import { Agent } from "@alwith/api"
+import { type Agent, Agents } from "@alwith/api"
 import { runtimeClient } from "@/lib/runtime"
 
 const STORY_MODULE = "alwith-story"
@@ -112,14 +112,8 @@ export async function startStoryAgent(root: string): Promise<StoryAgent> {
     }
   })
   const agentId = `story-${crypto.randomUUID()}`
-  await port.start(agentId, launch as never)
-  const initialized = await port.acpRequest(agentId, "initialize", {
-    protocolVersion: 2,
-    info: { name: "alwith-u-story", version: "0.1.0" },
-    capabilities: {}
-  })
-  const agent = new Agent(port, agentId, "dsh", initialized)
-  await agent.listen()
+  const agents = new Agents(port, { info: { name: "alwith-u-story", version: "0.1.0" }, capabilities: {} })
+  const agent = await agents.start(agentId, launch as never, "dsh")
   const { sessionId } = await agent.request<{ sessionId: string }>("session/new", { cwd: root, mcpServers: [] })
   return { agent, sessionId }
 }
