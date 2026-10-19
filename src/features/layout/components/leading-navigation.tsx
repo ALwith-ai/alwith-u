@@ -1,4 +1,4 @@
-import { BlocksIcon, PawPrintIcon, PuzzleIcon } from "lucide-react"
+import { ArchiveIcon, BlocksIcon, PawPrintIcon, PuzzleIcon } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -9,19 +9,22 @@ export function LeadingNavigation({
   onOpenVibemon,
   onOpenPlugins,
   onOpenExtensions,
+  onOpenArchives,
   children
 }: {
-  activePage: "vibemon" | "plugins" | "extensions" | null
+  activePage: "vibemon" | "plugins" | "extensions" | "archives" | null
   children?: ReactNode
   onOpenVibemon: () => void
   onOpenPlugins: () => void
   onOpenExtensions: () => void
+  onOpenArchives: () => void
 }): ReactElement {
   const { t } = useTranslation()
   const items = [
     { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
     { id: "plugins", label: t("sidebar.plugins"), icon: PuzzleIcon, onClick: onOpenPlugins },
-    { id: "extensions", label: t("sidebar.extensions"), icon: BlocksIcon, onClick: onOpenExtensions }
+    { id: "extensions", label: t("sidebar.extensions"), icon: BlocksIcon, onClick: onOpenExtensions },
+    { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
   ] as const
 
   return (

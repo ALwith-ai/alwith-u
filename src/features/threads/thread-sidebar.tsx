@@ -233,7 +233,7 @@ export function ThreadSidebar({
   onSwitchScreen
 }: {
   screen: MainScreen
-  leadingPage: "plugins" | "extensions" | "vibemon"
+  leadingPage: "plugins" | "extensions" | "vibemon" | "archives"
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void

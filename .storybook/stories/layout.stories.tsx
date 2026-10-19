@@ -71,6 +71,7 @@ export const LeadingApps: Story = {
                 activePage={active ? null : "extensions"}
                 onOpenVibemon={() => setActive(null)}
                 onOpenPlugins={() => setActive(null)}
+                onOpenArchives={() => setActive(null)}
                 onOpenExtensions={() => setActive(null)}>
                 <ExtensionNavigation
                   host={extensionHost}
@@ -109,7 +110,7 @@ export const LeadingFeatures: Story = {
   args: { screen: "leading" },
   globals: { locale: "zh-CN" },
   render: function Render(args) {
-    const [page, setPage] = useState<"vibemon" | "plugins" | "extensions">("vibemon")
+    const [page, setPage] = useState<"vibemon" | "plugins" | "extensions" | "archives">("vibemon")
     return (
       <div className="bg-sidebar h-[640px]">
         <MainSidebarLayout
@@ -121,6 +122,7 @@ export const LeadingFeatures: Story = {
                 onOpenVibemon={() => setPage("vibemon")}
                 onOpenPlugins={() => setPage("plugins")}
                 onOpenExtensions={() => setPage("extensions")}
+                onOpenArchives={() => setPage("archives")}
               />
               <SidebarInset className="main-chat-surface p-8">
                 <h1>{page}</h1>

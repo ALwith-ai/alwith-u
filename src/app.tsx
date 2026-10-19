@@ -41,6 +41,7 @@ import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { recentMainActivity } from "@/features/threads/recent-main-activity"
 import { selectThread } from "@/features/threads/select-thread"
+import { ArchivedChatsPage } from "@/features/threads/archived-chats-page"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
@@ -124,9 +125,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // Management pages share the leading screen; the offscreen chat stays mounted.
-  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "story" | "extension">("chat")
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon">("plugins")
-  const leading = view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension"
+  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "archives" | "story" | "extension">(
+    "chat"
+  )
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("plugins")
+  const leading =
+    view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension" || view === "archives"
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback(
     (id: string): void => {
@@ -141,6 +145,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     },
     [extensionRuntime]
   )
+  const openArchives = useCallback(() => {
+    setLeadingPage("archives")
+    setView("archives")
+  }, [])
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
     setPluginsVisited(true)
@@ -609,6 +617,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 if (leading) setView("chat")
                 else if (leadingPage === "extensions") openExtensions()
                 else if (leadingPage === "vibemon") openVibemon()
+                else if (leadingPage === "archives") openArchives()
                 else openPlugins()
               }}
             />
@@ -618,6 +627,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               <LeadingNavigation
                 activePage={view === "extension" ? null : leadingPage}
                 onOpenVibemon={openVibemon}
+                onOpenArchives={openArchives}
                 onOpenPlugins={openPlugins}
                 onOpenExtensions={openExtensions}>
                 <ExtensionNavigation
@@ -630,6 +640,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               </LeadingNavigation>
               <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
                 {leading && actionCards}
+                {view === "archives" && <ArchivedChatsPage />}
                 {pluginsVisited && (
                   <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
                     <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
