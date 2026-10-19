@@ -12,6 +12,9 @@ import {
   createSession,
   isBooleanOption,
   markDisconnected,
+  replayCursorFor,
+  replayIdOf,
+  replayReceiptOf,
   isGroupedSelect,
   isSelectOption,
   type PendingRequest,
@@ -227,6 +230,8 @@ export class CodexClient {
   /** Sessions being created (`session/new`, `session/fork`): their ids are unknown until the response, so their first frames wait in `unborn`. */
   private creating = 0
   private readonly unborn = new Map<string, acp.SessionUpdate[]>()
+  /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
+  private readonly activeReplays = new Map<string, string>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -325,6 +330,16 @@ export class CodexClient {
           case "_codex/fuzzy_file_search_updated":
             for (const listener of this.fileSearchListeners) listener(params as FuzzyFileSearchSessionUpdated)
             break
+          case "_alwith/replay_started": {
+            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
+            this.activeReplays.set(sessionId, replayId)
+            break
+          }
+          case "_alwith/replay_ended": {
+            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
+            if (this.activeReplays.get(sessionId) === replayId) this.activeReplays.delete(sessionId)
+            break
+          }
           // `$/cancel_request` (the agent withdraws a permission / form) and `elicitation/complete`
           default:
             this.requests.onNotification(method, params)
@@ -416,6 +431,9 @@ export class CodexClient {
   }
 
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
+    // A frame of a replay this session is no longer waiting for arrived late; the one it waits for carries its own id.
+    const replayId = replayIdOf(update)
+    if (replayId !== null && this.activeReplays.get(sessionId) !== replayId) return
     if (!this.sessions.sessions.has(sessionId)) {
       // A frame for a session this client does not hold. While a session is being created its id is not known yet, so the
       // frame waits for the response and is applied right after it; otherwise the session was closed here and this is the
@@ -885,24 +903,26 @@ export class CodexClient {
 
   private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
-    this.sessions.beginReplay(id)
+    const agent = this.live()
+    // From where this session has the record when the agent can continue from a position; otherwise from the start.
+    const cursor = replayCursorFor(agent.initialized, this.sessions.get(id))
+    this.sessions.beginReplay(id, cursor.type === "start" ? "start" : cursor.after)
     this.publishSession(this.sessions.get(id))
     try {
       const model =
         owner !== undefined
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
-      const response = await this.live().request<acp.ResumeSessionResponse>("session/resume", {
+      const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
-        replayFrom: { type: "start" },
+        replayFrom: cursor,
         ...(await this.sessionContext(cwd, model))
       })
+      this.sessions.endReplay(id, replayReceiptOf(response))
       this.publishSession({
         ...this.sessions.get(id),
         cwd,
-        attached: true,
-        restoring: false,
         readOnly: isReadOnlyResume(response),
         configOptions: response.configOptions ?? [],
         error: null
