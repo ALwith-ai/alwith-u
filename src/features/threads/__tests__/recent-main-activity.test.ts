@@ -7,6 +7,8 @@ function record(sessionId: string, lastActivityAt: number): SessionRunState {
   return {
     sessionId,
     lastActivityAt,
+    version: 1,
+    interruption: null,
     cwd: "/tmp",
     title: sessionId,
     owner: "stdio",
