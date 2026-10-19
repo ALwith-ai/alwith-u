@@ -53,7 +53,6 @@ import {
 } from "@/components/ui/dialog"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
@@ -422,7 +421,6 @@ export function ThreadSidebar({
               })}
           </div>
         </div>
-        <Separator className="bg-foreground/5 dark:bg-border my-1" />
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}

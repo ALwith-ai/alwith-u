@@ -69,7 +69,9 @@ function setup(initialPinned = false, initialScreen: MainScreen = "main") {
   return {
     ...view,
     showScreen: (screen: MainScreen) => view.rerender(layout(screen)),
-    toggle: view.getByRole("switch"),
+    get toggle() {
+      return view.getByRole("switch")
+    },
     panel: must(view.container.querySelector<HTMLElement>(".main-sidebar-panel"), "sidebar panel"),
     viewport: must(view.container.querySelector<HTMLElement>(".main-sidebar-viewport"), "sidebar viewport"),
     shell: must(view.container.querySelector<HTMLElement>(".main-sidebar-shell"), "sidebar shell"),
@@ -251,49 +253,35 @@ test("rapid pin reversals keep the last choice and serialize preference writes",
   ])
 })
 
-test("leading screen starts with a docked right sidebar and ignores hover, outside clicks and Escape", async () => {
+test("leading screen stays docked without a toggle and ignores dismissal and the sidebar shortcut", async () => {
   const view = setup(false, "leading")
   expect(view.mode()).toBe("pinned")
   expect(view.presentation()).toBe("docked")
-  expect(view.toggle.querySelector(".lucide-panel-right")).toBeTruthy()
+  expect(view.queryByRole("switch")).toBeNull()
   expect(view.container.querySelector(".main-sidebar-edge")).toBeNull()
   fireEvent.pointerOut(view.panel, { relatedTarget: view.getByTestId("plugins") })
-  fireEvent.keyDown(view.toggle, { key: "Escape" })
+  fireEvent.keyDown(window, { key: "Escape" })
+  fireEvent.keyDown(window, { key: "b", metaKey: true })
   fireEvent.pointerDown(view.getByTestId("plugins"))
   await afterCloseDelay()
-  expect(view.mode()).toBe("pinned")
-
-  await act(async () => fireEvent.click(view.toggle))
-  expect(view.mode()).toBe("hidden")
-  expect(view.presentation()).toBe("docked")
-  expect(view.toggle.querySelector(".lucide-panel-right-dashed")).toBeTruthy()
-  fireEvent.pointerOver(view.toggle)
-  fireEvent.pointerOver(view.shell)
-  await afterCloseDelay()
-  expect(view.mode()).toBe("hidden")
-  expect(view.panel.hasAttribute("inert")).toBe(true)
-  expect(save).not.toHaveBeenCalled()
-
-  await act(async () => fireEvent.click(view.toggle))
   expect(view.mode()).toBe("pinned")
   expect(view.panel.hasAttribute("inert")).toBe(false)
   expect(save).not.toHaveBeenCalled()
 })
 
 test.each([false, true])(
-  "screen switches preserve the main preference (%p) and the independent right sidebar choice",
-  async pinned => {
+  "screen switches preserve the main preference (%p) while the leading sidebar stays open",
+  pinned => {
     const view = setup(pinned)
     view.showScreen("leading")
     expect(view.mode()).toBe("pinned")
-    await act(async () => fireEvent.click(view.toggle))
-    expect(view.mode()).toBe("hidden")
+    expect(view.queryByRole("switch")).toBeNull()
     view.showScreen("main")
     expect(view.mode()).toBe(pinned ? "pinned" : "hidden")
     expect(view.toggle.getAttribute("aria-checked")).toBe(String(pinned))
     view.showScreen("leading")
-    expect(view.mode()).toBe("hidden")
-    expect(view.toggle.querySelector(".lucide-panel-right-dashed")).toBeTruthy()
+    expect(view.mode()).toBe("pinned")
+    expect(view.queryByRole("switch")).toBeNull()
     expect(save).not.toHaveBeenCalled()
   }
 )

@@ -1,4 +1,4 @@
-import { PanelLeftDashedIcon, PanelLeftIcon, PanelRightDashedIcon, PanelRightIcon } from "lucide-react"
+import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
 import {
   type CSSProperties,
   type ReactNode,
@@ -45,12 +45,11 @@ export function MainSidebarLayout({
   const titlebar = useContext(WindowsTitleBarContext)
   const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
-  const [leadingSidebarOpen, setLeadingSidebarOpen] = useState(true)
   const [preview, setPreview] = useState(false)
   // Remember the exit style after the logical state has already become hidden.
   const [presentation, setPresentation] = useState<"docked" | "floating">(initialPinned ? "docked" : "floating")
   const mainActive = screen === "main"
-  const docked = mainActive ? pinned : leadingSidebarOpen
+  const docked = !mainActive || pinned
   const visible = docked || (mainActive && preview)
   const panelId = useId()
   const panel = useRef<HTMLDivElement>(null)
@@ -91,10 +90,7 @@ export function MainSidebarLayout({
   const changePinned = useCallback(
     (next: boolean) => {
       cancelClose()
-      if (!mainActive) {
-        setLeadingSidebarOpen(next)
-        return
-      }
+      if (!mainActive) return
       setPresentation("docked")
       setPinned(next)
       setPreview(false)
@@ -155,13 +151,7 @@ export function MainSidebarLayout({
     pointerInside.current = false
     scheduleClose()
   }
-  const ToggleIcon = mainActive
-    ? pinned
-      ? PanelLeftIcon
-      : PanelLeftDashedIcon
-    : leadingSidebarOpen
-      ? PanelRightIcon
-      : PanelRightDashedIcon
+  const ToggleIcon = pinned ? PanelLeftIcon : PanelLeftDashedIcon
 
   const sidebarToggle = (
     <div
@@ -175,19 +165,11 @@ export function MainSidebarLayout({
         variant="ghost"
         size="icon-xs"
         role="switch"
-        aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
+        aria-label={t("sidebar.pin")}
         aria-checked={docked}
         aria-expanded={visible}
         aria-controls={panelId}
-        title={t(
-          mainActive
-            ? pinned
-              ? "sidebar.unpin"
-              : "sidebar.pin"
-            : leadingSidebarOpen
-              ? "sidebar.hideRight"
-              : "sidebar.showRight"
-        )}
+        title={t(pinned ? "sidebar.unpin" : "sidebar.pin")}
         className="text-sidebar-foreground"
         onClick={() => changePinned(!docked)}>
         <ToggleIcon className="size-4 rtl:-scale-x-100" />
@@ -206,7 +188,7 @@ export function MainSidebarLayout({
       style={
         {
           "--main-sidebar-width": pinned ? "var(--sidebar-width)" : "0px",
-          "--leading-sidebar-width": leadingSidebarOpen ? "var(--sidebar-width)" : "0px",
+          "--leading-sidebar-width": "var(--sidebar-width)",
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
           // Native window controls keep their size when page content zooms.
           "--sidebar-toggle-left": isMac() && !fullscreen ? "calc(80px * var(--window-zoom-correction))" : "8px"
@@ -238,7 +220,7 @@ export function MainSidebarLayout({
           {main}
         </div>
       </div>
-      {titlebar ? createPortal(sidebarToggle, titlebar) : sidebarToggle}
+      {mainActive && (titlebar ? createPortal(sidebarToggle, titlebar) : sidebarToggle)}
       {children}
     </SidebarProvider>
   )
