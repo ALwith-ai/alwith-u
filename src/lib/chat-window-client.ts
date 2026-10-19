@@ -26,6 +26,7 @@ const METHODS = [
   "listThreads",
   "open",
   "prompt",
+  "promptReceipt",
   "cancel",
   "close",
   "stopSession",
@@ -288,6 +289,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<void> {
     return this.request("prompt", args)
+  }
+  override promptReceipt(...args: Parameters<CodexClient["promptReceipt"]>): Promise<string> {
+    return this.request("promptReceipt", args)
   }
   override cancel(...args: Parameters<CodexClient["cancel"]>): Promise<void> {
     return this.request("cancel", args)

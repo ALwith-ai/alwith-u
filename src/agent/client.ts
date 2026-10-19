@@ -891,10 +891,29 @@ export class CodexClient {
   }
 
   prompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
-    return this.enqueueSession(id, () => this.sendPrompt(id, prompt), false)
+    return this.enqueueSession(
+      id,
+      async () => {
+        await this.sendPrompt(id, prompt)
+      },
+      false
+    )
   }
 
-  private async sendPrompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
+  async promptReceipt(id: string, prompt: acp.ContentBlock[]): Promise<string> {
+    let receipt: string | null = null
+    await this.enqueueSession(
+      id,
+      async () => {
+        receipt = await this.sendPrompt(id, prompt)
+      },
+      false
+    )
+    if (receipt === null) throw new Error("Missing prompt receipt")
+    return receipt
+  }
+
+  private async sendPrompt(id: string, prompt: acp.ContentBlock[]): Promise<string> {
     const session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
@@ -916,6 +935,7 @@ export class CodexClient {
     })
     this.sessions.acknowledgePrompt(id, localId, response.messageId)
     this.publishSession(this.sessions.get(id))
+    return response.messageId
   }
 
   async cancel(id: string): Promise<void> {

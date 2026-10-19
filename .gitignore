@@ -15,3 +15,5 @@ src-tauri/gen/schemas/
 *.bun-build
 test-results.xml
 CLAUDE.local.md
+
+src-tauri/resources/licenses/alwith-voice/

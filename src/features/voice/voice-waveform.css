@@ -1,0 +1,27 @@
+.voice-controls-layout {
+  position: relative;
+  flex-shrink: 0;
+  padding-bottom: 12px;
+  margin-bottom: -12px;
+}
+.voice-controls-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.voice-waveform-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: none;
+  color: var(--foreground);
+}
+.voice-waveform-bars {
+  display: block;
+  height: 12px;
+  width: 100%;
+  overflow: hidden;
+  fill: currentColor;
+}

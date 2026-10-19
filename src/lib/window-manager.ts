@@ -8,13 +8,14 @@ import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
 export type SettingsSection =
-  "general" | "editor" | "appearance" | "account" | "provider" | "extensions" | "drive" | "about"
+  "general" | "editor" | "appearance" | "account" | "provider" | "voice" | "extensions" | "drive" | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   "general",
   "appearance",
   "editor",
   "account",
   "provider",
+  "voice",
   "extensions",
   "drive",
   "about"

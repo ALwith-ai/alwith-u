@@ -28,6 +28,8 @@ mod runtime;
 mod tray;
 mod updater;
 mod vibemon;
+mod voice;
+mod voice_credentials;
 mod window;
 #[cfg(target_os = "windows")]
 mod windows_frame;
@@ -125,6 +127,11 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_hasgard::init());
 
     let app = builder
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                voice::detach(window.app_handle(), window.label());
+            }
+        })
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
                 app.exit(0);
@@ -150,6 +157,7 @@ pub fn run() {
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
             app.manage(native::Native::load(app.handle())?);
+            voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
@@ -180,6 +188,10 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
+            match payload.event() {
+                tauri::webview::PageLoadEvent::Started => voice::detach(webview.app_handle(), webview.label()),
+                tauri::webview::PageLoadEvent::Finished => voice::document_ready(webview.app_handle(), webview.label()),
+            }
             #[cfg(target_os = "windows")]
             if webview.label() == "main" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let window = webview.app_handle().get_webview_window("main").expect("main window exists on page load");
@@ -197,7 +209,13 @@ pub fn run() {
             log::info!("page {:?} {}", payload.event(), payload.url());
             let _ = webview;
         })
-        .invoke_handler(bindings().invoke_handler())
+        .invoke_handler({
+            let typed = bindings().invoke_handler();
+            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![voice::voice_push];
+            move |invoke| {
+                if invoke.message.command() == "voice_push" { binary(invoke) } else { typed(invoke) }
+            }
+        })
         .build(context)
         .expect("error while building ALwith U");
     app.run(|app, event| match event {
@@ -243,6 +261,7 @@ pub fn run() {
             }
         }
         tauri::RunEvent::Exit => {
+            voice::shutdown(app);
             gamepad::shutdown(app);
             app.state::<runtime::RuntimeState>().kill_on_exit();
         }
@@ -269,6 +288,11 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
+                voice::voice_start,
+                voice::voice_control,
+                voice::voice_profiles,
+                voice::voice_save_credential,
+                voice::voice_delete_credential,
                 gamepad::gamepad_request,
                 gamepad::gamepad_permission,
                 gamepad::gamepad_capture,
