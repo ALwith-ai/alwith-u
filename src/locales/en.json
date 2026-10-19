@@ -81,6 +81,8 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "pets": "Vibémon",
+    "leadingNavigation": "Feature navigation",
     "quickChats": "Quick chats",
     "pin": "Pin sidebar",
     "unpin": "Collapse sidebar",

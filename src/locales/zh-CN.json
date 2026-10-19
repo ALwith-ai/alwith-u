@@ -81,6 +81,8 @@
     "apiKeyTitle": "API 密钥"
   },
   "sidebar": {
+    "pets": "Vibémon",
+    "leadingNavigation": "功能导航",
     "quickChats": "随聊",
     "pin": "固定侧边栏",
     "unpin": "收起侧边栏",
@@ -790,7 +792,7 @@
     "installing": "正在安装扩展，请稍候…",
     "installSuccess": "{{name}} 安装成功",
     "empty": "尚未安装应用扩展。",
-    "manage": "管理应用扩展",
+    "manage": "管理扩展",
     "enable": "启用 {{name}}",
     "update": "从目录更新",
     "uninstall": "卸载",
