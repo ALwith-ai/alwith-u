@@ -366,6 +366,8 @@
       "soundEffects": "声音效果"
     },
     "language": "语言",
+    "composerPredictions": "显示输入建议",
+    "composerPredictionsDesc": "回复后建议下一条消息，按 Tab 可填入并继续编辑。",
     "externalEditor": "打开项目用",
     "externalEditorDesc": "聊天项目文件夹「用…打开」时使用的应用。",
     "account": "账户",

@@ -1,3 +1,5 @@
+import { useStore } from "zustand"
+import { predictionPreference } from "./prediction-preference"
 import type { Session } from "@alwith/api"
 import { useEffect, useRef, useState } from "react"
 import { codexExtensionCapabilities, codexTurnId, composerPrediction } from "@/agent/codex-extensions"
@@ -5,6 +7,7 @@ import { client, useApp } from "@/lib/client"
 
 /** Predictions are transient UI hints, tied to the exact source turn and model configuration. */
 export function useComposerPrediction(session: Session, available: boolean, hasDraft: boolean) {
+  const enabled = useStore(predictionPreference, state => state.enabled)
   const supported = useApp(state => codexExtensionCapabilities(state.agent).composerPredictions)
   const latestUser = session.items.findLast(item => item.kind === "user")
   const sourceTurnId = codexTurnId(latestUser?._meta)
@@ -21,6 +24,7 @@ export function useComposerPrediction(session: Session, available: boolean, hasD
   const [invalidated, setInvalidated] = useState<string | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
   const eligible =
+    enabled &&
     supported &&
     available &&
     session.state === "idle" &&
@@ -47,7 +51,7 @@ export function useComposerPrediction(session: Session, available: boolean, hasD
     prediction?.sourceTurnId === sourceTurnId
   const text = visible && prediction.result.type === "completed" ? prediction.result.text : null
   const error =
-    available && session.state === "idle" && !hasDraft && invalidated !== key
+    enabled && available && session.state === "idle" && !hasDraft && invalidated !== key
       ? failure?.key === key
         ? failure.message
         : visible && prediction.result.type === "failed"

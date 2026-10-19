@@ -4,12 +4,14 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { Composer } from "../composer"
+import { predictionPreference } from "../composer/prediction-preference"
 import { drafts } from "../composer/drafts"
 import { useComposerPrediction } from "../composer/use-composer-prediction"
 
 await initI18n("en")
 const original = client.state
 beforeEach(() => {
+  predictionPreference.setState({ enabled: true })
   client.store.setState({
     agent: {
       protocolVersion: 2,
@@ -20,6 +22,7 @@ beforeEach(() => {
   vi.spyOn(client, "requestPrediction").mockResolvedValue()
 })
 afterEach(() => {
+  predictionPreference.setState({ enabled: true })
   vi.restoreAllMocks()
   client.store.setState(original, true)
   drafts.clear()
@@ -179,4 +182,23 @@ test("the submitted draft cannot dismiss a new turn's prediction before the inpu
   expect(client.requestPrediction).toHaveBeenCalledWith("s1", "t1")
   view.rerender({ session: predicted(completed()), available: true, hasDraft: false })
   expect(view.result.current.text).toBe("Run the tests")
+})
+
+
+test("disabling predictions hides results and prevents requests until enabled", () => {
+  predictionPreference.setState({ enabled: false })
+  const session = completed()
+  const view = renderHook(({ session }) => useComposerPrediction(session, true, false), {
+    initialProps: { session }
+  })
+  expect(client.requestPrediction).not.toHaveBeenCalled()
+  act(() => predictionPreference.setState({ enabled: true }))
+  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  view.rerender({ session: predicted(session) })
+  expect(view.result.current.text).toBe("Run the tests")
+  act(() => predictionPreference.setState({ enabled: false }))
+  expect(view.result.current.text).toBeNull()
+  act(() => predictionPreference.setState({ enabled: true }))
+  expect(view.result.current.text).toBe("Run the tests")
+  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
 })

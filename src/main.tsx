@@ -1,3 +1,4 @@
+import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import { isTauri } from "@tauri-apps/api/core"
 import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
@@ -67,6 +68,7 @@ async function bootstrap(): Promise<void> {
   await attachConsole()
   await info("frontend booting")
   const preferences = await loadPreferences()
+  predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
   await initI18n(preferences.language)
   if (isTauri()) {
     void startStartupImports().catch(reportExtensionError)

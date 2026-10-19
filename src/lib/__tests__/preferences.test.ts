@@ -113,3 +113,13 @@ test.each([undefined, false, true])(
     }
   }
 )
+
+
+test("input suggestions default to enabled and preserve an explicit saved choice", async () => {
+  const values = savedProject(undefined)
+  expect((await loadPreferences()).composerPredictions).toBe(true)
+  values.set("composerPredictions", false)
+  expect((await loadPreferences()).composerPredictions).toBe(false)
+  values.set("composerPredictions", true)
+  expect((await loadPreferences()).composerPredictions).toBe(true)
+})

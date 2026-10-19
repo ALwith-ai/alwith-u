@@ -1,3 +1,4 @@
+import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 // The one bootstrap for auxiliary windows (ALwith Desktop's aux-window-bootstrap): the
 // same providers the main window mounts, minus the App and its Runtime connection.
 import { attachConsole, error as logError } from "@tauri-apps/plugin-log"
@@ -38,6 +39,7 @@ export function bootstrapAuxWindow(opts: {
       void logError(`[${opts.logTag}] ${message}`).catch((failure: unknown) => console.error(failure))
     })
     const preferences = await loadPreferences()
+    predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
     await initI18n(preferences.language)
     if (opts.zoomControls) await startZoomViewport()
     await hydrateZoom(preferences.zoomLevel)

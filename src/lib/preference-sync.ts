@@ -1,3 +1,4 @@
+import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 // Preferences live in one store file shared by every window. A change made in one window
 // (the settings window) is broadcast as `preferences:changed`; each window applies what
 // concerns it (ALwith Desktop does the same through its store-changed events).
@@ -15,6 +16,10 @@ export function startPreferenceSync(): Promise<() => void> {
     if (event.payload.window === getCurrentWebviewWindow().label) return
     const change = event.payload
     switch (change.key) {
+      case "composerPredictions":
+        if (typeof change.value !== "boolean") throw new Error("Invalid composer prediction preference")
+        predictionPreference.setState({ enabled: change.value })
+        return
       case "externalEditor":
         if (change.value === null || typeof change.value === "string") setProjectAppPreference(change.value)
         return
