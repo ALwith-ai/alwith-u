@@ -10,7 +10,7 @@ export function WorkspaceButton() {
   return (
     <Button
       variant="ghost"
-      size="icon-xs"
+      size="icon-sm"
       className="workspace-sidebar-toggle"
       aria-label={t(bothVisible ? "workspace.closeWorkspace" : "workspace.openWorkspace")}
       title={t(bothVisible ? "workspace.closeWorkspace" : "workspace.openWorkspace")}

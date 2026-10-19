@@ -156,7 +156,22 @@ pub fn init() -> TauriPlugin<tauri::DynRuntime> {
             if let Err(error) = window.run_on_main_thread(move || match handle.ns_window() {
                 Ok(pointer) => {
                     // SAFETY: the live Tauri window is retained and accessed on AppKit's main thread.
-                    prepare(unsafe { &*(pointer as *const NSWindow) });
+                    let native = unsafe { &*(pointer as *const NSWindow) };
+                    prepare(native);
+                    if handle.label() == "main" {
+                        let close = native
+                            .standardWindowButton(NSWindowButton::CloseButton)
+                            .expect("Main window has native controls");
+                        let frame = close.frame();
+                        // Tao sets the titlebar height to button height + inset while retaining the button's local origin.
+                        // Match the center of the host's 32px toolbar without assuming AppKit's button dimensions.
+                        let inset = 16.0 + frame.origin.y - frame.size.height / 2.0;
+                        if let Err(error) = handle.set_traffic_light_position(tauri::Position::Logical(
+                            tauri::LogicalPosition::new(frame.origin.x, inset),
+                        )) {
+                            log::error!("Cannot align native window controls: {error}");
+                        }
+                    }
                 }
                 Err(error) => log::error!("Cannot prepare fullscreen controls: {error}"),
             }) {

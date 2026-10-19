@@ -35,6 +35,7 @@ import { toast } from "sonner"
 import type { ThreadSummary } from "@/agent/client"
 import { hasRename } from "@/agent/codex-extensions"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import { NavigationAds } from "@/features/layout/components/navigation-ads"
 import { GuideButton } from "@/features/guide/guide-button"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
@@ -265,7 +266,7 @@ export function ThreadSidebar({
   // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
   const view = useThreadsUiStore(s => s.view)
   const setView = useThreadsUiStore(s => s.setView)
-  // Tabs share the navigation icon buttons' 30px row height and hover styles, without an outer background panel.
+  // Tabs share the navigation icon buttons' 32px height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const driveVisible = useDriveVisible()
   const [driveVisited, setDriveVisited] = useState(false)
@@ -307,7 +308,7 @@ export function ThreadSidebar({
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]">
-      <SidebarHeader className={cn("shrink-0", isMac() && "pt-9")} data-tauri-drag-region>
+      <SidebarHeader className={cn("shrink-0 px-1", isMac() && "pt-9")} data-tauri-drag-region>
         <div className="flex items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
@@ -350,14 +351,14 @@ export function ThreadSidebar({
         <div className="flex flex-col gap-1">
           <NavigationItemButton
             active={screen === "leading" && leadingPage === "plugins"}
-            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
             onClick={onOpenPlugins}>
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
           <NavigationItemButton
             active={screen === "leading" && leadingPage === "extensions"}
-            className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+            className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
             onClick={onOpenExtensions}>
             <BlocksIcon />
             <span>{t("sidebar.extensions")}</span>
@@ -365,7 +366,7 @@ export function ThreadSidebar({
           {onOpenVibemon && (
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}
-              className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
               onClick={onOpenVibemon}>
               <PawPrintIcon />
               <span>Vibémon</span>
@@ -374,11 +375,11 @@ export function ThreadSidebar({
         </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden px-2">
-        <div className="relative flex h-[30px] shrink-0 items-center gap-0.5 [--navigation-row-height:30px]">
+      <SidebarContent className="gap-0 overflow-hidden px-1">
+        <div className="relative flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
-            className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-[30px] w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
+            className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
             {tabs
               .filter(tab => tab.key !== "drive" || driveVisible)
               .map(tab => {
@@ -394,7 +395,7 @@ export function ThreadSidebar({
                     title={tab.title}
                     onClick={() => setView(tab.key)}
                     className={cn(
-                      "relative isolate h-[30px] min-w-[30px] justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-[18px]",
+                      "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
                     )}>
                     {active && (
@@ -536,12 +537,13 @@ export function ThreadSidebar({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="shrink-0 gap-1 pb-[var(--main-surface-block-gutter)]">
+      <SidebarFooter className="shrink-0 gap-1 p-1">
         <Separator className="bg-foreground/5 dark:bg-border mb-1" />
+        <NavigationAds onOpenVibemon={onOpenVibemon} />
         <Button
           variant="ghost"
           className={cn(
-            "hover:bg-foreground/5 h-[30px] w-full rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
+            "hover:bg-foreground/5 h-8 w-full rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
             screen === "main" ? "justify-start" : "justify-end"
           )}
           aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}

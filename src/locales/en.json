@@ -77,6 +77,9 @@
     "apiKeyTitle": "API key"
   },
   "sidebar": {
+    "vibemonAd": "Explore Vibémon",
+    "gamepadAd": "Explore gamepad",
+
     "quickChats": "Quick chats",
     "pin": "Pin sidebar",
     "unpin": "Collapse sidebar",

@@ -166,14 +166,14 @@ export function MainSidebarLayout({
   const sidebarToggle = (
     <div
       className={titlebar ? "windows-sidebar-toggle" : "main-sidebar-toggle"}
-      style={titlebar ? { width: 24 / zoom, height: 24 / zoom } : undefined}
+      style={titlebar ? { width: 32 / zoom, height: 32 / zoom } : undefined}
       onPointerEnter={enterSidebar}
       onPointerLeave={leaveSidebar}
       onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
       <Button
         ref={toggle}
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         role="switch"
         aria-label={t(mainActive ? "sidebar.pin" : "sidebar.toggleRight")}
         aria-checked={docked}
