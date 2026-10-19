@@ -42,9 +42,22 @@ function modelHintOf(params: { _meta?: unknown }): string | null {
 
 type GatewayGroup = { id: string; name: string; models: string[] }
 
+/** The native models this fake Codex offers; a client only writes a model the catalog offers, so the tests' picks must be here. */
+const NATIVE_MODELS = [
+  "gpt-6.1-sol",
+  "picked",
+  "main-picked",
+  "chosen-model",
+  "another-model",
+  "broken-model",
+  "unavailable",
+  "main-model",
+  "chat-model"
+]
+
 /** Model option as the adapter's catalog mode shapes it: a Codex group plus one group per gateway. */
 function modelOption(current: string, gateways: GatewayGroup[]): acp.SessionConfigOption {
-  const nativeOptions = [{ value: "gpt-5.6-sol", name: "GPT-5.6 Sol" }]
+  const nativeOptions = NATIVE_MODELS.map(value => ({ value, name: value === "gpt-6.1-sol" ? "GPT-6.1 Sol" : value }))
   // The real adapter preserves unknown current values in the selector as synthetic choices.
   if (
     !nativeOptions.some(option => option.value === current) &&
@@ -101,7 +114,7 @@ export function createFakeAgent(): FakeAgent {
       return { id, name: meta?.codex?.name ?? id, models: (meta?.alwith?.models ?? []).map(model => model.id) }
     })
   const optionsFor = (hint: string | null) =>
-    sessionOptions.current?.(hint) ?? [modelOption(hint ?? "gpt-5.6-sol", gatewayGroups())]
+    sessionOptions.current?.(hint) ?? [modelOption(hint ?? "gpt-6.1-sol", gatewayGroups())]
   let next = 0
   const sessionId = () => `s${next++}`
   app.onRequest("initialize", ({ client }) => {
