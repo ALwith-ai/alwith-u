@@ -23,7 +23,11 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U Guide", "help": "Help", "userGuide": "User guide" },
+  "guide": {
+    "title": "ALwith U Guide",
+    "help": "Help",
+    "userGuide": "User guide"
+  },
   "errorBoundary": {
     "label": "ERROR",
     "componentStack": "Component Stack",
@@ -294,7 +298,8 @@
     },
     "plan": {
       "title": "Plan"
-    }
+    },
+    "predictionUnavailable": "Input suggestions unavailable"
   },
   "composer": {
     "mode": "Permissions",

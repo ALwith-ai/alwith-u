@@ -2,7 +2,11 @@
   "app": {
     "name": "ALwith U"
   },
-  "guide": { "title": "ALwith U 指南", "help": "帮助", "userGuide": "用户指南" },
+  "guide": {
+    "title": "ALwith U 指南",
+    "help": "帮助",
+    "userGuide": "用户指南"
+  },
   "errorBoundary": {
     "label": "错误",
     "componentStack": "组件堆栈",
@@ -294,7 +298,8 @@
     },
     "plan": {
       "title": "计划"
-    }
+    },
+    "predictionUnavailable": "输入建议暂不可用"
   },
   "composer": {
     "mode": "权限",
