@@ -93,23 +93,23 @@ test("rejects installer formats belonging to the wrong platform including darwin
 test("maps installers and signed updater packages to the admin contract and public TOS URLs", () => {
   const artifacts = releaseArtifacts(fixture(), "v26.9.24")
   expect(artifacts).toHaveLength(5)
-  expect(artifacts.find(artifact => artifact.format === "dmg")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "dmg")).toMatchObject({
     target: "darwin",
     arch: "darwin-aarch64",
     signature_text: "",
     label: "Apple Silicon"
   })
-  expect(artifacts.find(artifact => artifact.format === "tar.gz")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "tar.gz")).toMatchObject({
     download_url: "https://static.alwith.ai/alwith-u/release/v26.9.24/alwith-u_26.9.24_macos_aarch64.app.tar.gz",
     signature_text: "signed"
   })
   expect(
     artifacts
-      .filter(artifact => artifact.format === "nsis")
-      .map(artifact => artifact.arch)
+      .filter((artifact) => artifact.format === "nsis")
+      .map((artifact) => artifact.arch)
       .sort()
   ).toEqual(["windows-aarch64", "windows-x86_64"])
-  expect(artifacts.find(artifact => artifact.format === "msi")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "msi")).toMatchObject({
     arch: "windows-aarch64",
     signature_text: "signed"
   })

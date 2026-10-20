@@ -107,7 +107,7 @@ export function DriveIntegrations(): ReactNode {
           aria-label={t("archive.title")}
           checked={preferences?.sessionArchive ?? false}
           disabled={!connected || busy || !preferences}
-          onCheckedChange={value => change("sessionArchive", value)}
+          onCheckedChange={(value) => change("sessionArchive", value)}
         />
       </div>
       {preferences?.sessionArchive && (
@@ -115,7 +115,8 @@ export function DriveIntegrations(): ReactNode {
           variant="outline"
           onClick={() => {
             void emitTo("main", "drive:archive-sync").catch((cause: unknown) => setError(String(cause)))
-          }}>
+          }}
+        >
           {t("archive.syncNow")}
         </Button>
       )}
@@ -128,7 +129,7 @@ export function DriveIntegrations(): ReactNode {
           aria-label={t("knowledge.title")}
           checked={preferences?.knowledgeInject ?? false}
           disabled={!connected || busy || !preferences}
-          onCheckedChange={value => change("knowledgeInject", value)}
+          onCheckedChange={(value) => change("knowledgeInject", value)}
         />
       </div>
     </section>

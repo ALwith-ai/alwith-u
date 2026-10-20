@@ -27,7 +27,7 @@ async function openContext(): Promise<GamepadAiContext> {
   const client = new CodexClient(async () => port, { agentId, launch: { engine: "codex" } })
   const os = platform()
   if (os !== "macos" && os !== "windows" && os !== "linux") throw new Error(`Unsupported platform: ${os}`)
-  const stop = await port.onRunStates(states => client.applyRunStates(states))
+  const stop = await port.onRunStates((states) => client.applyRunStates(states))
   return {
     client,
     cwd,
@@ -74,7 +74,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
             const session = state.sessions[id]
             if (!session) throw new Error("Gamepad generation session closed")
             if (session.error) throw new Error(session.error.error?.message ?? session.error.stopReason)
-            if (state.actions.some(action => action.sessionId === id))
+            if (state.actions.some((action) => action.sessionId === id))
               throw new Error("Gamepad generation requires interactive approval")
             let text = ""
             let chars = 0

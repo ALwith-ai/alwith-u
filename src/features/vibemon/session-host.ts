@@ -91,28 +91,28 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     const nextSignature = `${epoch}/${id}/${incarnation}/${run.owner}/${run.executionId}/${windowLabel}`
     const changed = signature !== nextSignature
     const action =
-      state.actions.find(item => item.sessionId === id && item.kind === "permission") ??
-      state.actions.find(item => item.sessionId === id)
+      state.actions.find((item) => item.sessionId === id && item.kind === "permission") ??
+      state.actions.find((item) => item.sessionId === id)
     const subject = action?.kind === "permission" ? action.params.subject : null
     const tool = subject != null && isToolCallSubject(subject) ? subject.toolCall : null
     const storedTool =
-      tool === null ? undefined : session?.items.find(item => item.id === tool.toolCallId && item.kind === "tool")
+      tool === null ? undefined : session?.items.find((item) => item.id === tool.toolCallId && item.kind === "tool")
     const prompt = petPrompt(
       action,
       tool?.rawInput !== undefined ? tool.rawInput : storedTool?.kind === "tool" ? storedTool.rawInput : undefined
     )
-    const last = session?.items.findLast(item => item.kind === "assistant")
+    const last = session?.items.findLast((item) => item.kind === "assistant")
     const reply =
       last?.kind === "assistant"
         ? {
             messageId: last.id,
             text: last.content
               .filter(isText)
-              .map(block => block.text)
+              .map((block) => block.text)
               .join("")
           }
         : null
-    const user = session?.items.findLast(item => item.kind === "user")
+    const user = session?.items.findLast((item) => item.kind === "user")
     const publishObservation = (agent: string | null) => {
       if (signature !== nextSignature) {
         signature = nextSignature
@@ -143,7 +143,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
             : session.readOnly || run.executionId !== null
               ? "readOnly"
               : "writable",
-        surfaceVisible: Object.values(surfaces).some(surface => surface.visible && surface.sessionId === id),
+        surfaceVisible: Object.values(surfaces).some((surface) => surface.visible && surface.sessionId === id),
         error: session?.error?.stopReason ?? null,
         reply,
         userMessage:
@@ -152,7 +152,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
                 messageId: user.id,
                 text: user.content
                   .filter(isText)
-                  .map(block => block.text)
+                  .map((block) => block.text)
                   .join(""),
                 timestamp: user.at
               }
@@ -221,7 +221,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     async select(binding: PetBinding, sessionId: string) {
       await refresh()
       requireBinding(binding)
-      if (!candidates(owner.state()).some(item => item.sessionId === sessionId))
+      if (!candidates(owner.state()).some((item) => item.sessionId === sessionId))
         throw new Error("The conversation is no longer current")
       context.select(sessionId)
       await refresh()
@@ -240,7 +240,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       const state = owner.state()
       if (
         state.runStates[binding.sessionId]?.state === "running" ||
-        state.actions.some(action => action.sessionId === binding.sessionId) ||
+        state.actions.some((action) => action.sessionId === binding.sessionId) ||
         value.prompt !== null
       )
         throw new Error("This conversation is busy or requires an answer")
@@ -248,11 +248,11 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     },
     async answer(binding: PetBinding, requestId: string, token: string, optionId: string) {
       const value = await claim(binding, requestId)
-      const action = owner.state().actions.find(item => item.id === token && item.sessionId === binding.sessionId)
+      const action = owner.state().actions.find((item) => item.id === token && item.sessionId === binding.sessionId)
       if (
         value.prompt?.token !== token ||
         action === undefined ||
-        !value.prompt.options.some(option => option.id === optionId)
+        !value.prompt.options.some((option) => option.id === optionId)
       )
         throw new Error("This permission request expired or changed")
       owner.respond(token, petAnswer(action, optionId))

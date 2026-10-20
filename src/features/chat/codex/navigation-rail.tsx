@@ -48,8 +48,8 @@ export function toNavigationRailItems(turns: Turn[], turnUsage: Record<string, a
 }
 
 export function ThreadUserMessageNavigationRail(props: Omit<ComponentProps<typeof SharedRail>, "audio">) {
-  const navigationInstrument = useStore(navigationSoundStore, state => state.instrument)
-  const navigationSoundMode = useStore(navigationSoundStore, state => state.soundMode)
+  const navigationInstrument = useStore(navigationSoundStore, (state) => state.instrument)
+  const navigationSoundMode = useStore(navigationSoundStore, (state) => state.soundMode)
   const audio = useMemo<NavigationRailAudio>(
     () => ({
       installUnlock: installThreadUserMessageNavigationAudioUnlock,

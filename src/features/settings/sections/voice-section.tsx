@@ -21,7 +21,7 @@ const slots: VoiceSettingsSlots = {
   Textarea,
   Switch,
   Button,
-  RemoveKeyButton: props => (
+  RemoveKeyButton: (props) => (
     <Button
       {...props}
       variant="link"
@@ -33,7 +33,7 @@ const slots: VoiceSettingsSlots = {
       {...props}
       href={href}
       className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-      onClick={event => {
+      onClick={(event) => {
         event.preventDefault()
         // The shell plugin also intercepts _blank links on body, ignoring defaultPrevented.
         event.stopPropagation()
@@ -41,7 +41,8 @@ const slots: VoiceSettingsSlots = {
         void openExternal(href).catch((error: unknown) =>
           toast.error(error instanceof Error ? error.message : String(error))
         )
-      }}>
+      }}
+    >
       {children}
     </a>
   ),
@@ -49,14 +50,15 @@ const slots: VoiceSettingsSlots = {
     <Select
       items={options}
       value={value}
-      onValueChange={next => {
+      onValueChange={(next) => {
         if (next !== null) onChange(next)
-      }}>
+      }}
+    >
       <SelectTrigger aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {options.map(option => (
+        {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
           </SelectItem>
@@ -98,7 +100,7 @@ export function VoiceSection(): ReactNode {
             aria-label={t("voice.enabled")}
             checked={enabled === true}
             disabled={enabled === null || saving}
-            onCheckedChange={value => void changeEnabled(value)}
+            onCheckedChange={(value) => void changeEnabled(value)}
           />
         </SettingRow>
         <SettingRow title={t("voice.shortcut")} desc={t("voice.shortcutHint")}>
@@ -109,7 +111,7 @@ export function VoiceSection(): ReactNode {
         host={host}
         slots={slots}
         text={(key, values) => t(`voice.${key}`, values)}
-        onError={error => toast.error(error instanceof Error ? error.message : String(error))}
+        onError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
         onSaved={() => void onSaved()}
       />
     </>

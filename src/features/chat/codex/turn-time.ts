@@ -10,7 +10,7 @@ export function formatTurnTime(
   const historical =
     turn.replayed ||
     turn.items.some(
-      item =>
+      (item) =>
         item._meta?.codex &&
         typeof item._meta.codex === "object" &&
         "historyReplay" in item._meta.codex &&
@@ -20,7 +20,7 @@ export function formatTurnTime(
     role === "user"
       ? (nativeTime(turn.user?._meta, "messageSentAt") ?? (!historical ? (turn.user?.at ?? null) : null))
       : (nativeTime(turn.final.at(-1)?._meta, "messageCompletedAt") ??
-        turn.items.map(item => nativeTime(item._meta, "turnCompletedAt")).find(value => value !== null) ??
+        turn.items.map((item) => nativeTime(item._meta, "turnCompletedAt")).find((value) => value !== null) ??
         null)
   if (timestamp === null) return null
   const date = new Date(timestamp)

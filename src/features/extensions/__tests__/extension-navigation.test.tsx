@@ -44,7 +44,7 @@ function fixture() {
       }
     ]
   }
-  const manifests: ExtensionManifest[] = ["notes", "runner"].map(id => ({
+  const manifests: ExtensionManifest[] = ["notes", "runner"].map((id) => ({
     id,
     name: `${id} app`,
     version: "1.0.0",
@@ -79,7 +79,7 @@ test("removes the separator and list when extension actions are removed", () => 
 
 test("unavailable targets are disabled and rejected commands report an error", async () => {
   const props = fixture()
-  props.host.views = props.host.views.map(view =>
+  props.host.views = props.host.views.map((view) =>
     view.extensionId === "notes" ? { ...view, id: "notes/other" } : view
   )
   const error = new Error("Unavailable")

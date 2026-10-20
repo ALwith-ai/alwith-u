@@ -30,7 +30,8 @@ export function PreviewSurface({
       proportionalLayout={false}
       onVisibleChange={(index, visible) => {
         if (index === 1) onTreeVisibleChange(visible)
-      }}>
+      }}
+    >
       <Allotment.Pane minSize={240} priority={LayoutPriority.High}>
         <div className="file-workspace-editor" data-tree-hidden={!treeVisible}>
           {editor({
@@ -41,7 +42,8 @@ export function PreviewSurface({
                 aria-expanded={false}
                 aria-label={t("workspace.showTree")}
                 title={t("workspace.showTree")}
-                onClick={() => onTreeVisibleChange(true)}>
+                onClick={() => onTreeVisibleChange(true)}
+              >
                 <FolderTree />
               </Button>
             ),
@@ -53,7 +55,8 @@ export function PreviewSurface({
                   aria-pressed={maximized}
                   aria-label={t(maximized ? "workspace.exitViewMode" : "workspace.enterViewMode")}
                   title={t(maximized ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                  onClick={onMaximize}>
+                  onClick={onMaximize}
+                >
                   {maximized ? <Minimize2 /> : <Maximize2 />}
                 </Button>
                 <Button
@@ -61,7 +64,8 @@ export function PreviewSurface({
                   size="icon-sm"
                   aria-label={t("workspace.closePreview")}
                   title={t("workspace.closePreview")}
-                  onClick={onClose}>
+                  onClick={onClose}
+                >
                   <X />
                 </Button>
               </>
@@ -74,7 +78,8 @@ export function PreviewSurface({
           className="file-workspace-tree"
           data-collapsed={!treeVisible}
           inert={!treeVisible}
-          aria-hidden={!treeVisible}>
+          aria-hidden={!treeVisible}
+        >
           {tree}
         </div>
       </Allotment.Pane>

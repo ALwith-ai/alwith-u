@@ -34,7 +34,8 @@ export function ChatSubmitButton({
           aria-label={t("actions.stop")}
           title={t("actions.stop")}
           className="size-7 rounded-full border border-border"
-          onClick={onStop}>
+          onClick={onStop}
+        >
           <SquareIcon className="size-3 fill-current" />
         </PromptInputButton>
       )}

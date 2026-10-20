@@ -11,14 +11,14 @@ function fixture(files: Record<string, string>) {
   function owner(root: string, decision: CloseDecision = "discard"): WorkspaceMoveOwner {
     const fs = createFileSystem({
       adapter,
-      reportError: error => {
+      reportError: (error) => {
         throw error
       }
     })
     const editor = createEditorController({
       fs,
       confirmClose: async () => decision,
-      reportError: error => {
+      reportError: (error) => {
         throw error
       }
     })
@@ -92,7 +92,7 @@ test("partial native failure rebases completed mappings and restores untouched s
     })
   ).rejects.toThrow(failure.message)
   expect(open).toHaveBeenCalledWith("/target/a.md", false, false)
-  expect(owner.editor.getSnapshot().documents.map(doc => doc.path)).toEqual([b.path])
+  expect(owner.editor.getSnapshot().documents.map((doc) => doc.path)).toEqual([b.path])
 })
 
 test("successful cloud move leaves source tabs closed without a local destination", async () => {
@@ -119,7 +119,7 @@ test("restoration failures aggregate with the native error and do not prevent ot
   const failure = new Error("native failure"),
     restore = new Error("read failed")
   const original = owner.editor.open
-  vi.spyOn(owner.editor, "open").mockImplementation(async path => {
+  vi.spyOn(owner.editor, "open").mockImplementation(async (path) => {
     if (path.endsWith("a.md")) throw restore
     return original(path)
   })
@@ -137,7 +137,7 @@ test("restoration failures aggregate with the native error and do not prevent ot
   }
   expect(caught).toBeInstanceOf(AggregateError)
   expect((caught as AggregateError).errors).toEqual([failure, restore])
-  expect(owner.editor.getSnapshot().documents.map(doc => doc.path)).toEqual(["/source/b.md"])
+  expect(owner.editor.getSnapshot().documents.map((doc) => doc.path)).toEqual(["/source/b.md"])
 })
 
 test("reopened buffers during a canceled close are never replaced by restoration", async () => {
@@ -154,8 +154,8 @@ test("reopened buffers during a canceled close are never replaced by restoration
   const invokeMove = vi.fn()
   expect(await moveWorkspaceFiles(["/source"], "/target", { owners: [owner], invokeMove, open: vi.fn() })).toBe(false)
   expect(invokeMove).not.toHaveBeenCalled()
-  expect(owner.editor.getSnapshot().documents.find(doc => doc.path === a.path)?.text).toBe("new buffer")
-  expect(owner.editor.getSnapshot().documents.find(doc => doc.id === b.id)?.text).toBe("B")
+  expect(owner.editor.getSnapshot().documents.find((doc) => doc.path === a.path)?.text).toBe("new buffer")
+  expect(owner.editor.getSnapshot().documents.find((doc) => doc.id === b.id)?.text).toBe("B")
 })
 
 test("cancellation does not reopen tabs independently closed in an owner that was never prompted", async () => {
@@ -172,6 +172,6 @@ test("cancellation does not reopen tabs independently closed in an owner that wa
   expect(
     await moveWorkspaceFiles([a.path, b.path], "/target", { owners: [one, two], invokeMove: vi.fn(), open: vi.fn() })
   ).toBe(false)
-  expect(one.editor.getSnapshot().documents.map(doc => doc.path)).toEqual([a.path])
+  expect(one.editor.getSnapshot().documents.map((doc) => doc.path)).toEqual([a.path])
   expect(two.editor.getSnapshot().documents).toHaveLength(0)
 })

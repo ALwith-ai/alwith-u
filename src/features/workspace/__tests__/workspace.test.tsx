@@ -42,7 +42,7 @@ vi.mock("@/features/chat/codex/markdown-renderer", () => ({
 }))
 vi.mock("../monaco-editor", () => ({
   default: (props: TextEditorProps) => (
-    <textarea aria-label="Code" value={props.document.text} onChange={event => props.onChange(event.target.value)} />
+    <textarea aria-label="Code" value={props.document.text} onChange={(event) => props.onChange(event.target.value)} />
   ),
   releaseMonaco: vi.fn()
 }))
@@ -163,7 +163,7 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
 
 test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share\alwith-u`])(
   "Windows breadcrumbs use relative paths and reveal the real folder for %s",
-  async root => {
+  async (root) => {
     vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32")
     const normalizedRoot = normalizePath(root)
     adapter = createMemoryAdapter({ [`${normalizedRoot}/folder/bunfig.toml`]: "content" })
@@ -182,7 +182,7 @@ test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share
     expect(
       within(breadcrumbs)
         .getAllByRole("button")
-        .map(button => button.textContent)
+        .map((button) => button.textContent)
     ).toEqual(["folder", "bunfig.toml"])
     expect(breadcrumbs).toHaveAttribute("title", `${normalizedRoot}/folder/bunfig.toml`)
     native.invoke.mockClear()
@@ -227,7 +227,7 @@ test("right workspace edits, renames and saves through installed packages", asyn
 test("an old authorization response cannot open another chat's workspace", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   const view = render(<Surface cwd="/a" />)
@@ -401,7 +401,7 @@ test("reopening the preview reuses the authorized workspace", async () => {
 test("rapid preview clicks share one pending authorization", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   render(<Surface cwd="/a" />)
@@ -572,7 +572,7 @@ test("row drag prevents native text selection without blocking inline rename inp
 
 test("unmount releases a watch that finishes after workspace creation is cancelled", async () => {
   let completeWatch: (() => void) | null = null
-  const pendingWatch = new Promise<void>(resolve => {
+  const pendingWatch = new Promise<void>((resolve) => {
     completeWatch = resolve
   })
   const originalInvoke = required(native.invoke.getMockImplementation())
@@ -706,7 +706,7 @@ test("native project tree menu opens the current workspace", async () => {
 test("project tree shortcut ignores a response belonging to a previous project", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   const view = render(<Surface cwd="/a" />)

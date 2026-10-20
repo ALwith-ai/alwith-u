@@ -37,7 +37,7 @@ let revision = 0
 
 function apply(level: number, local: boolean): Promise<void> {
   const request = ++revision
-  zoomStore.setState(state => ({ level, interaction: state.interaction + (local ? 1 : 0) }))
+  zoomStore.setState((state) => ({ level, interaction: state.interaction + (local ? 1 : 0) }))
   // Keep rapid key presses, native zoom and preference broadcasts in the same order.
   const operation = pending
     .then(async () => {

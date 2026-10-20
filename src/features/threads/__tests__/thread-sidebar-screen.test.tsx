@@ -23,7 +23,7 @@ afterEach(async () => {
     usePlatformAuth.setState(originalAuth, true)
     useThreadsUiStore.setState(originalUi, true)
     useUpdaterStore.setState(originalUpdater, true)
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 

@@ -42,7 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [])
   React.useEffect(
     () =>
-      settingsStore.subscribe(keys => {
+      settingsStore.subscribe((keys) => {
         if (keys.includes("appearance.theme")) {
           const value = settingsStore.get<string>("appearance.theme") ?? null
           setThemeState(isTheme(value) ? value : "system")

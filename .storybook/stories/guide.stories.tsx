@@ -7,7 +7,7 @@ const meta = {
   component: GuidePage,
   parameters: { layout: "fullscreen" },
   decorators: [
-    Story => (
+    (Story) => (
       <div className="fixed inset-0">
         <Story />
       </div>

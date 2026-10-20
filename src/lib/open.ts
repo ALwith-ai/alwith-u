@@ -4,7 +4,7 @@ export function fileLocationPath(value: string): string {
   const path = value.replace(/(?::\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?|#L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?)$/, "")
   // Decode escape groups independently: literal percent signs must not prevent
   // other path segments (including the owning directory) from being decoded.
-  return path.replace(/(?:%[\da-f]{2})+/gi, encoded => {
+  return path.replace(/(?:%[\da-f]{2})+/gi, (encoded) => {
     try {
       return decodeURIComponent(encoded)
     } catch (error: unknown) {

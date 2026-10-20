@@ -33,10 +33,11 @@ export function ExtensionNavigation({
       </div>
       <section
         aria-label={t("extensions.outlets.navigation")}
-        className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto pb-1">
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto pb-1"
+      >
         {apps.map(({ action, name }) => {
           const target = resolveActionTarget(host, action)
-          const active = host.views.some(view => view.id === activeView && view.extensionId === action.extensionId)
+          const active = host.views.some((view) => view.id === activeView && view.extensionId === action.extensionId)
           const Icon = EXTENSION_ICONS[action.icon ?? "blocks"]
           return (
             <Tooltip key={action.extensionId}>
@@ -57,7 +58,8 @@ export function ExtensionNavigation({
                           throw new Error(`Extension action target unavailable: ${action.target.id}`)
                         })
                         .catch(onError)
-                    }}>
+                    }}
+                  >
                     <Icon aria-hidden="true" className="size-[18px]" />
                   </Button>
                 }

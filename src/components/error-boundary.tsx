@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // The production UI only says "Something went wrong."; the details live in the log file.
     void logError(
       `[react] ${error.message}\n${error.stack ?? ""}\ncomponentStack:${errorInfo.componentStack ?? ""}`
-    ).catch(failure => console.error("[logError]", failure))
+    ).catch((failure) => console.error("[logError]", failure))
     this.setState({ error, errorInfo })
   }
 

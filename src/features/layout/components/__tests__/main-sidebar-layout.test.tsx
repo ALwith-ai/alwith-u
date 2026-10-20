@@ -29,7 +29,7 @@ function SidebarContent() {
   useSidebarOverlay(open)
   return (
     <>
-      <Button onClick={() => setCount(value => value + 1)}>Count {count}</Button>
+      <Button onClick={() => setCount((value) => value + 1)}>Count {count}</Button>
       <Button onClick={() => setOpen(true)}>Menu</Button>
       <div data-testid="list" style={{ overflow: "auto", height: 100 }}>
         <div style={{ height: 1000 }}>Scrollable threads</div>
@@ -49,7 +49,7 @@ function ChatContent() {
   const [draft, setDraft] = useState("")
   return (
     <main data-testid="chat">
-      <textarea aria-label="Draft" value={draft} onInput={event => setDraft(event.currentTarget.value)} />
+      <textarea aria-label="Draft" value={draft} onInput={(event) => setDraft(event.currentTarget.value)} />
       <div data-testid="chat-scroll" style={{ overflow: "auto", height: 100 }}>
         <div style={{ height: 1000 }}>History</div>
       </div>
@@ -85,7 +85,7 @@ function setup(initialPinned = false, initialScreen: MainScreen = "main") {
 
 async function afterCloseDelay() {
   await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 230))
+    await new Promise((resolve) => setTimeout(resolve, 230))
   })
 }
 
@@ -273,7 +273,7 @@ test("leading screen stays docked without a toggle and ignores dismissal and the
 
 test.each([false, true])(
   "screen switches preserve the main preference (%p) while the leading sidebar stays open",
-  pinned => {
+  (pinned) => {
     const view = setup(pinned)
     view.showScreen("leading")
     expect(view.mode()).toBe("pinned")

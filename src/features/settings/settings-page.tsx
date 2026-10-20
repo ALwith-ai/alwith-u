@@ -70,26 +70,26 @@ export function SettingsPage() {
   })
 
   useEffect(() => {
-    const stop = listen<string>(SETTINGS_CHANGE_TAB, event => {
+    const stop = listen<string>(SETTINGS_CHANGE_TAB, (event) => {
       if (isSection(event.payload)) {
         setSection(event.payload)
         setExtensionSection(null)
       }
     })
-    return () => void stop.then(fn => fn())
+    return () => void stop.then((fn) => fn())
   }, [])
 
   // Close = hide: the window keeps its state and the next open is instant (VS Code and
   // Obsidian do the same).
   useEffect(() => {
     const win = getCurrentWebviewWindow()
-    const stop = win.onCloseRequested(event => {
+    const stop = win.onCloseRequested((event) => {
       event.preventDefault()
       void win.hide().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     })
     return () =>
       void stop
-        .then(fn => fn())
+        .then((fn) => fn())
         .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }, [])
 
@@ -98,7 +98,7 @@ export function SettingsPage() {
       <ExtensionSettingsContent
         id={extensionSection}
         views={host.views}
-        renderView={view => <ExtensionMount key={view.id} id={view.id} />}
+        renderView={(view) => <ExtensionMount key={view.id} id={view.id} />}
       />
     ) : (
       (() => {
@@ -131,7 +131,7 @@ export function SettingsPage() {
     <>
       <div className="px-4 pt-8 pb-8 text-base font-semibold">{t("settings.title")}</div>
       <NavigationStack className="min-h-0 overflow-y-auto px-3 pb-4">
-        {SETTINGS_SECTIONS.filter(id => id !== "drive" || driveVisible).map(id => {
+        {SETTINGS_SECTIONS.filter((id) => id !== "drive" || driveVisible).map((id) => {
           const Icon = ICONS[id]
           return (
             <NavigationItemButton
@@ -141,7 +141,8 @@ export function SettingsPage() {
               onClick={() => {
                 setSection(id)
                 setExtensionSection(null)
-              }}>
+              }}
+            >
               <Icon />
               <span>{t(`settings.${id}`)}</span>
             </NavigationItemButton>
@@ -157,11 +158,12 @@ export function SettingsPage() {
       title={
         extensionSection === null
           ? t(`settings.${section}`)
-          : (host.views.find(view => view.id === extensionSection && view.kind === "settingsPages")?.title ??
+          : (host.views.find((view) => view.id === extensionSection && view.kind === "settingsPages")?.title ??
             t("extensions.unavailable"))
       }
       sidebar={sidebar}
-      sidebarClassName="bg-muted w-60 [--navigation-row-height:36px]">
+      sidebarClassName="bg-muted w-60 [--navigation-row-height:36px]"
+    >
       <Pane viewportClassName="px-6 pt-3 pb-6">{content}</Pane>
     </AuxWindowShell>
   )

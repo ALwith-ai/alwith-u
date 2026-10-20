@@ -102,7 +102,9 @@ test("no mounted actions navigates directly to management", () => {
 
 test("unavailable targets are disabled, rejected commands report errors, and management stays accessible", async () => {
   const props = fixture()
-  props.host.views = props.host.views.map(view => (view.extensionId === "demo" ? { ...view, id: "demo/other" } : view))
+  props.host.views = props.host.views.map((view) =>
+    view.extensionId === "demo" ? { ...view, id: "demo/other" } : view
+  )
   const error = new Error("Failed")
   props.run.mockRejectedValue(error)
   const ui = render(
@@ -184,13 +186,13 @@ test("both launchers show the same mounted apps and remove entries when their mo
     </>
   )
   const ui = render(launchers())
-  expect(ui.getAllByRole("button").map(button => button.getAttribute("aria-label") ?? button.textContent)).toEqual([
+  expect(ui.getAllByRole("button").map((button) => button.getAttribute("aria-label") ?? button.textContent)).toEqual([
     "Notes app",
     "Runner app",
     "Extensions"
   ])
   fireEvent.click(ui.getByRole("button", { name: "Extensions" }))
-  expect((await ui.findAllByRole("menuitem")).map(item => item.textContent)).toEqual([
+  expect((await ui.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual([
     "Notes app",
     "Runner app",
     "Manage app extensions"
@@ -214,7 +216,7 @@ test("both launchers require a content surface in addition to an entry mount", (
   expect(ui.getAllByRole("button")).toHaveLength(3)
   props.host = {
     ...props.host,
-    views: props.host.views.map(view => ({ ...view, kind: "settingsPages" }))
+    views: props.host.views.map((view) => ({ ...view, kind: "settingsPages" }))
   }
   ui.rerender(launchers())
   expect(ui.getAllByRole("button")).toHaveLength(1)

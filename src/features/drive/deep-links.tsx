@@ -94,17 +94,17 @@ export function useDriveDeepLinks(openTarget: (path: string) => Promise<void>): 
     })
     // Subscribe first so a link arriving while getCurrent resolves is not lost.
     void onOpenUrl(receive)
-      .then(stop => {
+      .then((stop) => {
         if (disposed) {
           stop()
           return
         }
         stopUrls = stop
-        return getCurrent().then(urls => {
+        return getCurrent().then((urls) => {
           if (urls) receive(urls)
         })
       })
-      .catch(error => {
+      .catch((error) => {
         if (!disposed) toast.error(String(error))
       })
     return () => {

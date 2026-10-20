@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from "vitest"
 
 import { VibemonCenter } from "../pet-center"
 
-vi.mock("@alwith/module-auth/pets/core", async importOriginal => ({
+vi.mock("@alwith/module-auth/pets/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@alwith/module-auth/pets/core")>()),
   syncVibemonResources: vi.fn(async () => {})
 }))

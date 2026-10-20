@@ -11,5 +11,5 @@ export function unsupportedLegacyCommand(id: string, command: string): string | 
 }
 
 export function legacyMessageSkills(id: string, text: string): string[] {
-  return (findLegacyProfile(id)?.requiredSkills ?? []).filter(name => text.includes(`${name} skill`))
+  return (findLegacyProfile(id)?.requiredSkills ?? []).filter((name) => text.includes(`${name} skill`))
 }

@@ -13,8 +13,8 @@ import { createPetWindowClient } from "./window-client"
 
 export async function bootstrapVibemonWindow(): Promise<void> {
   if (usePlatformAuth.getState().isLoading)
-    await new Promise<void>(resolve => {
-      const stop = usePlatformAuth.subscribe(state => {
+    await new Promise<void>((resolve) => {
+      const stop = usePlatformAuth.subscribe((state) => {
         if (!state.isLoading) {
           stop()
           resolve()

@@ -8,7 +8,7 @@ export async function exportDraft(sessionId: string): Promise<ComposerDraft | nu
   const draft = drafts.get(sessionId)
   if (!draft) return null
   const attachments = await Promise.all(
-    draft.attachments.map(async attachment => {
+    draft.attachments.map(async (attachment) => {
       if (!attachment.url.startsWith("blob:")) return attachment
       const response = await fetch(attachment.url)
       if (!response.ok) throw new Error("Cannot read draft image")

@@ -33,7 +33,7 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
             treeVisible={treeVisible}
             onTreeVisibleChange={setTreeVisible}
             maximized={maximized}
-            onMaximize={() => setMaximized(value => !value)}
+            onMaximize={() => setMaximized((value) => !value)}
             onClose={() => {
               setVisible(false)
               setMaximized(false)

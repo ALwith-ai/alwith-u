@@ -11,7 +11,7 @@ function filesystem(): FileSystem {
       "/repo/report/style.css": "body{}",
       "/repo/other.txt": "other"
     }),
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })
@@ -44,7 +44,7 @@ test("refreshes on sibling and nested saves and unsubscribes on close", async ()
   const fs = filesystem()
   const refresh = vi.fn()
   const host = createHtmlPreviewHost("/repo", fs, async () => undefined, false)
-  const off = await host.subscribe("/repo/report/index.html", refresh, error => {
+  const off = await host.subscribe("/repo/report/index.html", refresh, (error) => {
     throw error
   })
   await fs.writeFile("/repo/report/style.css", new TextEncoder().encode("body { color: red }"))

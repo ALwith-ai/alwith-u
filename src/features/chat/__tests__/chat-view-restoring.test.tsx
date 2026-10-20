@@ -55,7 +55,7 @@ test("shows an interruption explanation when replay contains only the user's pro
   await act(async () => {})
 })
 
-test.each(["error", "cancelled"] as const)("shows %s before the first assistant token", async reason => {
+test.each(["error", "cancelled"] as const)("shows %s before the first assistant token", async (reason) => {
   const { addPrompt } = await import("@alwith/api")
   const session = {
     ...addPrompt(

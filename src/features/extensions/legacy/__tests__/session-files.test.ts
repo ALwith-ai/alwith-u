@@ -18,7 +18,7 @@ test("projects Codex sessions into stable read-only legacy paths, scoped by proj
   const deps = source()
   const files = createSessionFiles("/__alwith_legacy/yup-kb/.alwith/projects", deps)
   const all = await files.listSessions("/__alwith_legacy/yup-kb/.alwith/projects")
-  expect(all.map(entry => entry.id)).toEqual(["one", "two"])
+  expect(all.map((entry) => entry.id)).toEqual(["one", "two"])
   expect(all[0]).toMatchObject({
     kind: "session",
     project_dir: "-work",

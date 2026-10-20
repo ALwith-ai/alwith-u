@@ -29,7 +29,7 @@ export function stagedCodexEngine(): {
 } {
   const adapter = resolve(root, "src-tauri/resources/adapter/codex-bootstrap.mjs")
   if (!existsSync(adapter)) throw new Error("No staged ACP adapter; run `bun run stage`")
-  const catalogs = providerCatalog.flatMap(provider =>
+  const catalogs = providerCatalog.flatMap((provider) =>
     provider.catalog ? [resolve(root, "src-tauri/resources", provider.catalog)] : []
   )
   for (const file of catalogs) if (!existsSync(file)) throw new Error(`No staged model catalog at ${file}`)
@@ -60,8 +60,8 @@ export async function startRuntime(journalRoot: string): Promise<RunningRuntime>
   })
   const lines = createInterface({ input: child.stdout! })
   const url = await new Promise<string>((resolveUrl, reject) => {
-    child.once("exit", code => reject(new Error(`alwith-runtime exited before ready (code ${code})`)))
-    lines.on("line", line => {
+    child.once("exit", (code) => reject(new Error(`alwith-runtime exited before ready (code ${code})`)))
+    lines.on("line", (line) => {
       try {
         const value = JSON.parse(line) as { type?: string; url?: string }
         if (value.type === "ready" && typeof value.url === "string") resolveUrl(value.url)

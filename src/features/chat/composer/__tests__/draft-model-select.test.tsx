@@ -23,7 +23,7 @@ test("draft shows the configured provider models before any session exists", asy
         error: null
       }}
       model={null}
-      onChange={model => {
+      onChange={(model) => {
         selected = model
       }}
     />

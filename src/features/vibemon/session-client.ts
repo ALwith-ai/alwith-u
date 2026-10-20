@@ -48,7 +48,7 @@ export async function createPetSessionClient(): Promise<PetSessionHost & { dispo
     },
     send: (binding, requestId, text) => requestPet("send", { binding, requestId, text }),
     answer: (binding, requestId, token, optionId) => requestPet("answer", { binding, requestId, token, optionId }),
-    openChat: binding => requestPet("open-chat", { binding }),
+    openChat: (binding) => requestPet("open-chat", { binding }),
     activate: () => requestPet("activate"),
     select: (binding, sessionId) => requestPet("select-session", { binding, sessionId }),
     dispose() {

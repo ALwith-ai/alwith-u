@@ -71,13 +71,13 @@ export function ThreadInfoCard({
             value={draft}
             className="h-7 text-sm"
             aria-label={t("sidebar.rename")}
-            onChange={event => setDraft(event.target.value)}
-            onKeyDown={event => {
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
               event.stopPropagation()
               if (event.key === "Enter") commit((event.target as HTMLInputElement).value)
               if (event.key === "Escape") onRename?.(null)
             }}
-            onBlur={event => commit(event.target.value)}
+            onBlur={(event) => commit(event.target.value)}
           />
         ) : (
           <OverflowMarquee className="block">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>

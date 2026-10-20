@@ -102,7 +102,7 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
   await waitFor(() => expect(viewport.scrollTop).toBe(348))
   const latest = viewport.querySelector<HTMLElement>('[data-codex-turn="turn:user:second"]')
   if (latest === null) throw new Error("Test latest turn is missing")
-  const observer = observers.find(observer => observer.targets.has(latest))
+  const observer = observers.find((observer) => observer.targets.has(latest))
   if (observer === undefined) throw new Error("Latest turn resize observer is missing")
   const resize = (height: number) =>
     act(() => {

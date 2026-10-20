@@ -53,8 +53,8 @@ export async function executePreparedInstall(
   const source = selected.format === "current" ? "local" : LEGACY_SOURCE
   const native = runtime.snapshot().native
   if (!native) throw new Error("Extension service is not ready")
-  const existing = native.installations.find(item => item.id === id)
-  if (native.pending.some(item => item.id === id)) throw new Error("Extension is transitioning")
+  const existing = native.installations.find((item) => item.id === id)
+  if (native.pending.some((item) => item.id === id)) throw new Error("Extension is transitioning")
   if (existing && !options.update) throw new Error("Extension is already installed; choose update")
   if (existing && existing.source !== source) throw new Error("Extension belongs to a different installation source")
   const staged =
@@ -85,8 +85,8 @@ export async function executeStagedInstall(
   const { id, source } = staged
   const native = runtime.snapshot().native
   if (!native) throw new Error("Extension service is not ready")
-  const existing = native.installations.find(item => item.id === id)
-  if (native.pending.some(item => item.id === id)) throw new Error("Extension is transitioning")
+  const existing = native.installations.find((item) => item.id === id)
+  if (native.pending.some((item) => item.id === id)) throw new Error("Extension is transitioning")
   if (existing && !options.update) throw new Error("Extension is already installed")
   if (existing && existing.source !== source) throw new Error("Extension belongs to a different installation source")
   const bounded = <T>(operation: Promise<T>): Promise<T> => {
@@ -130,9 +130,9 @@ export async function executeStagedInstall(
         reject(new Error("Extension service became unavailable"))
         return
       }
-      if (state.pending.some(item => item.id === id)) return
+      if (state.pending.some((item) => item.id === id)) return
       unsubscribe?.()
-      const installed = state.installations.find(item => item.id === id)
+      const installed = state.installations.find((item) => item.id === id)
       if (installed?.packageRevision !== staged.digest || installed.source !== source)
         reject(new Error("Extension installation did not commit the selected package"))
       else if (reloading && (installed.activationRevision ?? 0) !== activationRevision + 1)
@@ -156,11 +156,11 @@ export async function executeStagedInstall(
   if (options.enable ?? !existing) await bounded(runtime.request({ type: "enable", id }))
   await bounded(runtime.settled())
   signal?.throwIfAborted()
-  const installed = runtime.snapshot().native?.installations.find(item => item.id === id)
+  const installed = runtime.snapshot().native?.installations.find((item) => item.id === id)
   if (!installed) throw new Error("Installed extension disappeared")
   if (installed.packageRevision !== staged.digest || installed.source !== source)
     throw new Error("Selected extension package changed while activation settled")
-  const instance = runtime.host.snapshot().instances.find(item => item.id === id && item.revision === staged.digest)
+  const instance = runtime.host.snapshot().instances.find((item) => item.id === id && item.revision === staged.digest)
   const active = instance?.status === "active"
   const failure = runtime.snapshot().errors[id] ?? instance?.errors.map(String).join("; ")
   return {
@@ -180,7 +180,7 @@ export async function executeStagedInstall(
 /** Reload preserves native enable intent, package identity and data generation. */
 export async function executeReload(runtime: InstallRuntime, id: string, signal: AbortSignal): Promise<InstallResult> {
   const native = runtime.snapshot().native
-  const installed = native?.installations.find(item => item.id === id)
+  const installed = native?.installations.find((item) => item.id === id)
   if (!installed?.enabled) throw new Error("Extension is not installed and enabled")
   return executeStagedInstall(
     runtime,

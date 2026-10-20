@@ -62,7 +62,7 @@ function hostFixture(overrides: Partial<PreviewHost> = {}): PreviewHost {
   }
 }
 function providerFor(host: PreviewHost, id: string): PreviewProvider {
-  const provider = createPreviewProviders(host).find(value => value.id === id)
+  const provider = createPreviewProviders(host).find((value) => value.id === id)
   if (!provider) throw new Error(`Missing preview provider: ${id}`)
   return provider
 }
@@ -104,12 +104,12 @@ async function markdownReady(editors: Editor[]): Promise<void> {
 }
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve: ((value: T) => void) | undefined
-  const promise = new Promise<T>(done => {
+  const promise = new Promise<T>((done) => {
     resolve = done
   })
   return {
     promise,
-    resolve: value => {
+    resolve: (value) => {
       if (!resolve) throw new Error("Missing deferred resolver")
       resolve(value)
     }
@@ -163,7 +163,7 @@ test("Markdown does not publish read-only collaboration updates or flush an auto
         },
         dispose: () => {},
         editable: () => writable,
-        serialize: text => text,
+        serialize: (text) => text,
         applyExternal: () => false,
         render: () => null
       })
@@ -174,7 +174,7 @@ test("Markdown does not publish read-only collaboration updates or flush an auto
   await waitFor(() => expect(initialized).toBe(true))
   vi.useFakeTimers()
   const dispatch = (text: string): void => {
-    requiredEditor(editors).action(ctx => {
+    requiredEditor(editors).action((ctx) => {
       const view = ctx.get(editorViewCtx)
       view.dispatch(view.state.tr.insertText(text, 1))
     })
@@ -215,7 +215,7 @@ test("Markdown publishes edits before an immediate close, and external replaceme
   await markdownReady(editors)
   vi.useFakeTimers()
   act(() => {
-    requiredEditor(editors).action(ctx => {
+    requiredEditor(editors).action((ctx) => {
       const view = ctx.get(editorViewCtx)
       view.dispatch(view.state.tr.insertText("Edited ", 1))
     })
@@ -325,7 +325,7 @@ test("HTML preview ignores missing favicon and preload hints while preserving it
   expect(source).not.toContain("unused.html")
 })
 
-test.each(["stylesheet", "script"])("HTML preview still reports missing %s dependencies", async kind => {
+test.each(["stylesheet", "script"])("HTML preview still reports missing %s dependencies", async (kind) => {
   const resolveResource = vi.fn(async () => {
     throw new Error("Required dependency unavailable")
   })
@@ -359,7 +359,7 @@ test("Markdown native undo and redo use Milkdown history and publish changes wit
   try {
     await markdownReady(editors)
     act(() => {
-      requiredEditor(editors).action(ctx => {
+      requiredEditor(editors).action((ctx) => {
         const view = ctx.get(editorViewCtx)
         view.setProps({ handleScrollToSelection: () => true })
         view.dispatch(view.state.tr.insertText("Edited ", 1))

@@ -16,7 +16,7 @@ test("host session context is resolved for each explicit session operation witho
     url: "https://example.test/mcp/drive",
     headers: [{ name: "Authorization", value: "Bearer test" }]
   }
-  const context = vi.fn<NonNullable<ClientOptions["sessionContext"]>>(async cwd => ({
+  const context = vi.fn<NonNullable<ClientOptions["sessionContext"]>>(async (cwd) => ({
     mcpServers: [server],
     appendSystemPrompt: `Knowledge for ${cwd}`
   }))
@@ -28,7 +28,7 @@ test("host session context is resolved for each explicit session operation witho
   try {
     await client.connect()
     const id = await client.newSession("/tmp/project")
-    const created = request.mock.calls.find(call => call[1] === "session/new")?.[2]
+    const created = request.mock.calls.find((call) => call[1] === "session/new")?.[2]
     expect(created).toMatchObject({
       cwd: "/tmp/project",
       mcpServers: [server],
@@ -36,7 +36,7 @@ test("host session context is resolved for each explicit session operation witho
     })
     expect(created).not.toHaveProperty("_meta")
     await client.fork(id, "/tmp/other")
-    const fork = request.mock.calls.find(call => call[1] === "session/fork")?.[2]
+    const fork = request.mock.calls.find((call) => call[1] === "session/fork")?.[2]
     expect(fork).toMatchObject({
       sessionId: id,
       cwd: "/tmp/other",
@@ -59,7 +59,7 @@ test("host session context is resolved for each explicit session operation witho
 
 test.each(["cancel", "close", "stopSession"] as const)(
   "%s revokes only the target and still stops Codex when cleanup fails",
-  async method => {
+  async (method) => {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const request = vi.spyOn(port, "acpRequest")
@@ -81,7 +81,7 @@ test.each(["cancel", "close", "stopSession"] as const)(
       const calls = method === "cancel" ? notify.mock.calls : request.mock.calls
       expect(
         calls.some(
-          call =>
+          (call) =>
             call[1] === (method === "cancel" ? "session/cancel" : "session/close") &&
             (call[2] as { sessionId: string }).sessionId === target
         )
@@ -92,7 +92,7 @@ test.each(["cancel", "close", "stopSession"] as const)(
   }
 )
 
-test.each(["archive", "delete"] as const)("%s revokes the source before changing lifecycle", async method => {
+test.each(["archive", "delete"] as const)("%s revokes the source before changing lifecycle", async (method) => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
   const request = vi.spyOn(port, "acpRequest")
@@ -111,7 +111,7 @@ test.each(["archive", "delete"] as const)("%s revokes the source before changing
     await expect(client[method](id)).rejects.toThrow("revocation blocked")
     expect(revoke).toHaveBeenCalledExactlyOnceWith(id)
     expect(
-      request.mock.calls.some(call => ["session/fork", "session/delete", "_codex/session_archive"].includes(call[1]))
+      request.mock.calls.some((call) => ["session/fork", "session/delete", "_codex/session_archive"].includes(call[1]))
     ).toBe(false)
   } finally {
     client.disconnect()
@@ -140,23 +140,23 @@ test("global tool changes refresh existing sessions before prompting without rep
     revision = "global-1"
     request.mockClear()
     await client.prompt(a, [{ type: "text", text: "First" }])
-    const calls = request.mock.calls.filter(call =>
+    const calls = request.mock.calls.filter((call) =>
       ["session/close", "session/resume", "session/prompt"].includes(call[1])
     )
-    expect(calls.map(call => call[1])).toEqual(["session/close", "session/resume", "session/prompt"])
-    expect(calls.every(call => (call[2] as { sessionId: string }).sessionId === a)).toBe(true)
+    expect(calls.map((call) => call[1])).toEqual(["session/close", "session/resume", "session/prompt"])
+    expect(calls.every((call) => (call[2] as { sessionId: string }).sessionId === a)).toBe(true)
     expect(calls[1]?.[2]).toMatchObject({ mcpServers: [{ name: "computer" }] })
     expect(calls[1]?.[2]).not.toHaveProperty("revision")
     request.mockClear()
     await client.prompt(b, [{ type: "text", text: "Second" }])
-    expect(request.mock.calls.find(call => call[1] === "session/resume")?.[2]).toMatchObject({
+    expect(request.mock.calls.find((call) => call[1] === "session/resume")?.[2]).toMatchObject({
       sessionId: b,
       mcpServers: [{ name: "computer" }]
     })
     const fork = await client.fork(a, "/a")
     request.mockClear()
     await client.prompt(fork, [{ type: "text", text: "Fork" }])
-    expect(request.mock.calls.some(call => call[1] === "session/resume")).toBe(false)
+    expect(request.mock.calls.some((call) => call[1] === "session/resume")).toBe(false)
   } finally {
     client.disconnect()
   }
@@ -182,7 +182,7 @@ test("native ownership binds returned identities and forking never revokes the s
     expect(child).not.toBe(source)
     expect(bind).toHaveBeenLastCalledWith(child)
     expect(revoke).not.toHaveBeenCalled()
-    for (const call of request.mock.calls.filter(call => ["session/new", "session/fork"].includes(call[1]))) {
+    for (const call of request.mock.calls.filter((call) => ["session/new", "session/fork"].includes(call[1]))) {
       expect(call[2]).not.toHaveProperty("bind")
     }
   } finally {
@@ -192,7 +192,7 @@ test("native ownership binds returned identities and forking never revokes the s
 
 test.each([false, true])(
   "tool preflight reconnects once before dispatch (persistent failure: %s)",
-  async persistent => {
+  async (persistent) => {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const request = vi.spyOn(port, "acpRequest")
@@ -213,13 +213,13 @@ test.each([false, true])(
       if (persistent) await expect(sent).rejects.toThrow("MCP unavailable")
       else await sent
       expect(prepare.mock.calls).toEqual([[id], [id]])
-      const calls = request.mock.calls.filter(call =>
+      const calls = request.mock.calls.filter((call) =>
         ["session/close", "session/resume", "session/prompt"].includes(call[1])
       )
-      expect(calls.map(call => call[1])).toEqual(
+      expect(calls.map((call) => call[1])).toEqual(
         persistent ? ["session/close", "session/resume"] : ["session/close", "session/resume", "session/prompt"]
       )
-      expect(calls.every(call => (call[2] as { sessionId: string }).sessionId === id)).toBe(true)
+      expect(calls.every((call) => (call[2] as { sessionId: string }).sessionId === id)).toBe(true)
     } finally {
       client.disconnect()
     }

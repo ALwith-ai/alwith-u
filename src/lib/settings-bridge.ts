@@ -77,7 +77,7 @@ export function serveSettingsBridge(
     }
   }
   const unsubscribe = options.subscribe(publish)
-  const stopLimits = options.onRateLimits(limits => {
+  const stopLimits = options.onRateLimits((limits) => {
     if (lastAccount === null) return
     lastAccount = { ...lastAccount, rateLimits: limits }
     void emitTo("settings", ACCOUNT, lastAccount)
@@ -114,7 +114,7 @@ export function serveSettingsBridge(
     revision++
     unsubscribe()
     stopLimits()
-    void stops.then(fns => {
+    void stops.then((fns) => {
       for (const stop of fns) stop()
     })
   }
@@ -126,10 +126,10 @@ export function useSettingsAccount(): SettingsAccount | undefined {
   React.useEffect(() => {
     let disposed = false
     const stops = Promise.all([
-      listen<SettingsAccount>(ACCOUNT, event => {
+      listen<SettingsAccount>(ACCOUNT, (event) => {
         if (!disposed) setAccount(event.payload)
       }),
-      listen<string>(ACCOUNT_ERROR, event => {
+      listen<string>(ACCOUNT_ERROR, (event) => {
         if (disposed) return
         setAccount(null)
         toast.error(event.payload)
@@ -140,7 +140,7 @@ export function useSettingsAccount(): SettingsAccount | undefined {
     })
     return () => {
       disposed = true
-      void stops.then(fns => {
+      void stops.then((fns) => {
         for (const stop of fns) stop()
       })
     }
@@ -153,7 +153,7 @@ export function useSettingsAgent(): SettingsAgent | undefined {
   const [agent, setAgent] = React.useState<SettingsAgent | undefined>(undefined)
   React.useEffect(() => {
     let disposed = false
-    const stop = listen<SettingsAgent>(AGENT, event => {
+    const stop = listen<SettingsAgent>(AGENT, (event) => {
       if (!disposed) setAgent(event.payload)
     })
     void stop.then(() => {
@@ -161,7 +161,7 @@ export function useSettingsAgent(): SettingsAgent | undefined {
     })
     return () => {
       disposed = true
-      void stop.then(fn => fn())
+      void stop.then((fn) => fn())
     }
   }, [])
   return agent
@@ -170,10 +170,10 @@ export function useSettingsAgent(): SettingsAgent | undefined {
 /** Settings window: asks the main window to sign out of Codex. */
 async function requestAuth(request: AuthRequest, { listen, emitTo }: SettingsEvents): Promise<void> {
   let resolve!: (result: AuthResult) => void
-  const promise = new Promise<AuthResult>(done => {
+  const promise = new Promise<AuthResult>((done) => {
     resolve = done
   })
-  const stop = await listen<AuthResult>(AUTH_RESULT, event => {
+  const stop = await listen<AuthResult>(AUTH_RESULT, (event) => {
     if (event.payload.id === request.id) resolve(event.payload)
   })
   try {

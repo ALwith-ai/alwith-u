@@ -89,7 +89,7 @@ describe("navigation rail", () => {
         beforeReveal={() => {
           released += 1
         }}
-        ensureItemMounted={async item => {
+        ensureItemMounted={async (item) => {
           revealed.push(item.turnKey)
         }}
       />

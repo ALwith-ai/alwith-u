@@ -25,7 +25,7 @@ export function createWallpaperCapability(
       }
       const language = (): string => i18n.resolvedLanguage ?? i18n.language
       return {
-        show: value => {
+        show: (value) => {
           cancellation.throwIfAborted()
           presentation.show(value)
         },
@@ -39,7 +39,7 @@ export function createWallpaperCapability(
         },
         listImages: () => request(wallpaperLibrary.list),
         importImage: () => request(() => wallpaperLibrary.import(language())),
-        removeImage: id => request(() => wallpaperLibrary.remove(id, language())),
+        removeImage: (id) => request(() => wallpaperLibrary.remove(id, language())),
         imageUrl(id) {
           cancellation.throwIfAborted()
           return wallpaperLibrary.imageUrl(id)

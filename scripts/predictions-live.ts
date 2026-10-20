@@ -25,7 +25,7 @@ function createClient() {
 let { port, client } = createClient()
 async function stop() {
   client.disconnect()
-  const exited = new Promise<void>(resolve => port.onProcessExit(() => resolve()))
+  const exited = new Promise<void>((resolve) => port.onProcessExit(() => resolve()))
   port.close()
   await exited
 }
@@ -42,8 +42,8 @@ const evidence: { phase: string; parentVisible: boolean; temporaryVisible: boole
 async function snapshot(phase: string) {
   await client.listThreads({ reset: true })
   const project = await client.listProjectThreads(cwd)
-  const parentVisible = project.some(thread => thread.sessionId === sessionId)
-  const temporaryVisible = project.some(thread => thread.sessionId !== sessionId)
+  const parentVisible = project.some((thread) => thread.sessionId === sessionId)
+  const temporaryVisible = project.some((thread) => thread.sessionId !== sessionId)
   evidence.push({ phase, parentVisible, temporaryVisible })
   if (!parentVisible || temporaryVisible) throw new Error(`Sidebar isolation failed: ${phase}`)
   console.log(`Sidebar ${phase}: parent visible; no temporary fork`)
@@ -60,11 +60,11 @@ try {
   ])
   await until(() => client.session(id).state === "idle", "reply")
   const session = client.session(id)
-  const sourceTurnId = codexTurnId(session.items.findLast(item => item.kind === "user")?._meta)
+  const sourceTurnId = codexTurnId(session.items.findLast((item) => item.kind === "user")?._meta)
   if (!sourceTurnId || session.lastStopReason !== "end_turn") throw new Error("No successful source turn")
   const count = session.items.length
   const leakedSessions = new Set<string>()
-  unsubscribe = client.store.subscribe(state => {
+  unsubscribe = client.store.subscribe((state) => {
     for (const key of Object.keys(state.sessions)) if (key !== id) leakedSessions.add(key)
   })
   await client.requestPrediction(id, sourceTurnId)

@@ -78,7 +78,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
 
   const previous = pendingResize
   let release!: () => void
-  pendingResize = new Promise<void>(resolve => {
+  pendingResize = new Promise<void>((resolve) => {
     release = resolve
   })
   void (async () => {
@@ -95,7 +95,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
       while (!cancelled) {
         if (movement.latest === null) {
           if (ended) return
-          await new Promise<void>(resolve => {
+          await new Promise<void>((resolve) => {
             wake = resolve
           })
           wake = null

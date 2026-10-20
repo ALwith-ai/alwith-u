@@ -45,7 +45,7 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
         checkProfile()
         return accepted
       },
-      openExternal: async destination => {
+      openExternal: async (destination) => {
         checkProfile()
         await openExternal(destination)
       }

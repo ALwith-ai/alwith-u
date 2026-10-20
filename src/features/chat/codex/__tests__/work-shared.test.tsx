@@ -10,7 +10,7 @@ afterEach(() => {
 })
 
 const host: ActivityHost = {
-  t: key => key,
+  t: (key) => key,
   i18n: { language: "en" },
   openLink: () => {},
   Markdown: ({ text }) => <p>{text}</p>

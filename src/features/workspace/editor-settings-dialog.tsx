@@ -26,7 +26,7 @@ export function EditorSettingsSection(): ReactNode {
           min={8}
           max={40}
           value={settings.fontSize}
-          onChange={event => {
+          onChange={(event) => {
             const value = event.target.valueAsNumber
             if (value >= 8 && value <= 40) save(() => saveEditorSettings({ fontSize: value }))
           }}
@@ -37,30 +37,31 @@ export function EditorSettingsSection(): ReactNode {
           aria-label={t("workspace.fontFamily")}
           value={settings.fontFamily}
           maxLength={200}
-          onChange={event => save(() => saveEditorSettings({ fontFamily: event.target.value }))}
+          onChange={(event) => save(() => saveEditorSettings({ fontFamily: event.target.value }))}
         />
       </SettingRow>
-      {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map(key => (
+      {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map((key) => (
         <SettingRow key={key} title={t(`workspace.${key}`)}>
           <Switch
             aria-label={t(`workspace.${key}`)}
             checked={settings[key]}
-            onCheckedChange={value => save(() => saveEditorSettings({ [key]: value }))}
+            onCheckedChange={(value) => save(() => saveEditorSettings({ [key]: value }))}
           />
         </SettingRow>
       ))}
       <SettingRow title={t("workspace.iconTheme")} aligned>
         <Select
           value={iconTheme ?? "vscode-icons"}
-          onValueChange={value => {
+          onValueChange={(value) => {
             if (value === null || !iconThemes.includes(value as IconTheme)) throw new Error("Unknown file icon theme")
             save(() => saveEditorIconTheme(value as IconTheme))
-          }}>
+          }}
+        >
           <SelectTrigger className="w-full" aria-label={t("workspace.iconTheme")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {iconThemes.map(theme => (
+            {iconThemes.map((theme) => (
               <SelectItem key={theme} value={theme}>
                 {theme}
               </SelectItem>

@@ -42,8 +42,8 @@ export function CommandPalette({
   const { t } = useTranslation()
   const { host: extensions } = useExtensions()
   const { resolvedTheme, setTheme } = useTheme()
-  const threads = useApp(state => state.threads)
-  const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
+  const threads = useApp((state) => state.threads)
+  const pluginsAvailable = useApp((state) => hasPluginStore(state.agent))
   const run = (action: () => void) => {
     onOpenChange(false)
     action()
@@ -53,7 +53,8 @@ export function CommandPalette({
       open={open}
       onOpenChange={onOpenChange}
       title={t("palette.actions")}
-      description={t("palette.placeholder")}>
+      description={t("palette.placeholder")}
+    >
       <Command>
         <CommandInput placeholder={t("palette.placeholder")} />
         <CommandList>
@@ -91,11 +92,12 @@ export function CommandPalette({
                 run(() => {
                   void openSettingsWindow("extensions").catch(reportExtensionError)
                 })
-              }>
+              }
+            >
               <SettingsIcon />
               {t("extensions.manage")}
             </CommandItem>
-            {extensions.commands.map(command => (
+            {extensions.commands.map((command) => (
               <CommandItem
                 key={command.id}
                 value={`extension-command ${command.id} ${command.title}`}
@@ -105,18 +107,20 @@ export function CommandPalette({
                       .then(() => command.run())
                       .catch(reportExtensionError)
                   })
-                }>
+                }
+              >
                 <PuzzleIcon />
                 {command.title}
               </CommandItem>
             ))}
             {extensions.views
-              .filter(view => view.kind === "surfaces")
-              .map(view => (
+              .filter((view) => view.kind === "surfaces")
+              .map((view) => (
                 <CommandItem
                   key={view.id}
                   value={`extension-surface ${view.id} ${view.title}`}
-                  onSelect={() => run(() => onOpenExtension(view.id))}>
+                  onSelect={() => run(() => onOpenExtension(view.id))}
+                >
                   <PuzzleIcon />
                   {view.title}
                 </CommandItem>
@@ -124,11 +128,12 @@ export function CommandPalette({
           </CommandGroup>
           {threads.length > 0 && (
             <CommandGroup heading={t("palette.chats")}>
-              {threads.map(thread => (
+              {threads.map((thread) => (
                 <CommandItem
                   key={thread.sessionId}
                   value={`${thread.title ?? ""} ${thread.cwd} ${thread.sessionId}`}
-                  onSelect={() => run(() => onSelect(thread))}>
+                  onSelect={() => run(() => onSelect(thread))}
+                >
                   <MessageSquareIcon />
                   <span className="truncate">{thread.title ?? t("sidebar.untitled")}</span>
                   <span className="ms-auto truncate text-xs text-muted-foreground">{basename(thread.cwd)}</span>

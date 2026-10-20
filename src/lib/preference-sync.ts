@@ -13,7 +13,7 @@ import { syncZoomLevel } from "@/lib/zoom"
 import { setProjectAppPreference } from "./project-app-preference"
 
 export function startPreferenceSync(): Promise<() => void> {
-  return listen<PreferenceChange>(PREFERENCES_CHANGED, async event => {
+  return listen<PreferenceChange>(PREFERENCES_CHANGED, async (event) => {
     // Broadcasts reach the sender too; it already applied the change itself.
     if (event.payload.window === getCurrentWebviewWindow().label) return
     const change = event.payload

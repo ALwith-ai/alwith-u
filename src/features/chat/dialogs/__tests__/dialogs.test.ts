@@ -40,7 +40,7 @@ describe("sortPermissionOptions", () => {
       { optionId: "ro", name: "No", kind: "reject_once" },
       { optionId: "ao", name: "Yes", kind: "allow_once" }
     ]
-    expect(sortPermissionOptions(options).map(option => option.optionId)).toEqual(["ao", "aa", "ro", "ra"])
+    expect(sortPermissionOptions(options).map((option) => option.optionId)).toEqual(["ao", "aa", "ro", "ra"])
   })
 })
 

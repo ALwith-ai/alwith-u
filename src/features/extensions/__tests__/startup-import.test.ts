@@ -21,10 +21,10 @@ describe("startup imports", () => {
   it("installs serially and cleans only after success", async () => {
     const port = fixture()
     const calls: string[] = []
-    port.install = async pkg => {
+    port.install = async (pkg) => {
       calls.push(`install:${pkg.id}`)
     }
-    port.complete = async id => {
+    port.complete = async (id) => {
       calls.push(`clean:${id}`)
     }
     await runStartupImports(port)
@@ -32,7 +32,7 @@ describe("startup imports", () => {
   })
   it("keeps failed inputs and continues with other tasks", async () => {
     const port = fixture()
-    port.install = vi.fn(async pkg => {
+    port.install = vi.fn(async (pkg) => {
       if (pkg.id === "a") throw new Error("activation failed")
     })
     await runStartupImports(port)

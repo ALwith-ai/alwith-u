@@ -5,7 +5,7 @@ import { toast } from "sonner"
 /** Policies and presentation belong to the host; lifecycle and IO adapters are shared. */
 export const commonCapabilities = createCommonCapabilities({
   native: invoke,
-  clipboard: { writeText: text => navigator.clipboard.writeText(text) },
+  clipboard: { writeText: (text) => navigator.clipboard.writeText(text) },
   notices: {
     show(message, duration = 5000, onClose) {
       const options = {
@@ -19,7 +19,7 @@ export const commonCapabilities = createCommonCapabilities({
         hide: () => {
           toast.dismiss(id)
         },
-        setMessage: text => {
+        setMessage: (text) => {
           toast(text, { id, ...options })
         }
       }

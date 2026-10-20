@@ -38,7 +38,7 @@ export const LANGUAGES = [
 export type LanguageCode = (typeof LANGUAGES)[number]["code"]
 
 export function isLanguageCode(value: string): value is LanguageCode {
-  return LANGUAGES.some(language => language.code === value)
+  return LANGUAGES.some((language) => language.code === value)
 }
 
 /** Desktop's mapping of a system locale to the closest supported language. */

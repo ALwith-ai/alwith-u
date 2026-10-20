@@ -58,7 +58,7 @@ const workspace = {
 export const FileLink: Story = {
   args: { text: "Review [greeting.ts](/storybook/project/src/greeting.ts:1)." },
   decorators: [
-    Story => (
+    (Story) => (
       <WorkspaceContext value={workspace}>
         <ChatDirectoryContext value="/storybook/project">
           <Story />

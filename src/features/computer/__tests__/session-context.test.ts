@@ -46,7 +46,7 @@ test("all new, resumed and forked conversations receive the application grant", 
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
   }
-  expect(native.context.mock.calls.every(args => args.length === 0)).toBe(true)
+  expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
 })
 test("disabled native authority removes tools for every conversation", async () => {
   expect(await computerContextRevision()).toBe("disabled")

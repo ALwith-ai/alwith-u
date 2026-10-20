@@ -37,10 +37,10 @@ export function createStartupConsentPresenter(
     pending.clear()
   })
   if (isTauri()) {
-    void listen<string>(OPENED_EVENT, event => {
+    void listen<string>(OPENED_EVENT, (event) => {
       if (event.payload === presenter.extensionId) presenter.allow()
     })
-      .then(async stop => {
+      .then(async (stop) => {
         if (binding.cancellation.aborted) await stop()
         else binding.own(stop)
       })

@@ -122,7 +122,7 @@ export function FileWorkspace({
     opening = useRef(new Map<string, Promise<Workspace>>())
   const saveDriveDocument = useCallback(async (path: string): Promise<void> => {
     for (const owner of workspaces.current.values()) {
-      const document = owner.editor.getSnapshot().documents.find(document => document.path === path)
+      const document = owner.editor.getSnapshot().documents.find((document) => document.path === path)
       if (document) {
         await owner.editor.save(document.id)
         return
@@ -183,11 +183,12 @@ export function FileWorkspace({
     workspace ? workspace.tabs.subscribe : noEditorSubscription,
     workspace ? workspace.tabs.getSnapshot : emptyEditorSnapshot
   )
-  const activeDocument = editorSnapshot?.documents.find(document => document.id === tabSnapshot?.activeId)
+  const activeDocument = editorSnapshot?.documents.find((document) => document.id === tabSnapshot?.activeId)
   const activeCollaborationOwner = useCollaborationOwner(activeDocument?.path)
   const driveState = useDrive(drive).snapshot
-  const driveRoot = activeDocument && driveState?.roots.find(root => containsPath(root.localPath, activeDocument.path))
-  const driveFile = activeDocument && driveState?.files.find(file => file.localPath === activeDocument.path)
+  const driveRoot =
+    activeDocument && driveState?.roots.find((root) => containsPath(root.localPath, activeDocument.path))
+  const driveFile = activeDocument && driveState?.files.find((file) => file.localPath === activeDocument.path)
   const driveReadOnly =
     Boolean(
       driveRoot &&
@@ -266,7 +267,7 @@ export function FileWorkspace({
       window.listen("menu:edit-redo", () => routeHistory("redo"))
     ]
     return () => {
-      for (const subscription of subscriptions) void subscription.then(stop => stop()).catch(report)
+      for (const subscription of subscriptions) void subscription.then((stop) => stop()).catch(report)
     }
   }, [])
   const ensure = useCallback(
@@ -293,7 +294,7 @@ export function FileWorkspace({
           adapter: createTauriAdapter({
             root,
             transport: {
-              invoke: request =>
+              invoke: (request) =>
                 invoke("workspace_file", {
                   request: {
                     ...request,
@@ -306,7 +307,7 @@ export function FileWorkspace({
             watch: async (path, changed, onError) => {
               const stop = await listen<{ root: string; paths: string[]; error: string | null }>(
                 "workspace:change",
-                event => {
+                (event) => {
                   if (event.payload.root !== root) return
                   if (event.payload.error !== null) onError(new Error(event.payload.error))
                   else changed(event.payload.paths)
@@ -329,7 +330,7 @@ export function FileWorkspace({
         const editor = createEditorController({
           fs,
           reportError: report,
-          confirmClose: async document => {
+          confirmClose: async (document) => {
             const result = await ask({
               title: t("workspace.unsaved"),
               detail: document.path,
@@ -348,11 +349,11 @@ export function FileWorkspace({
           root,
           reportError: report,
           expanded,
-          onExpandedChange: paths => {
+          onExpandedChange: (paths) => {
             expanded = [...paths]
             persistState?.()
           },
-          confirmReplace: async paths =>
+          confirmReplace: async (paths) =>
             (await ask({
               title: t("workspace.replace"),
               detail: paths.join("\n"),
@@ -376,7 +377,7 @@ export function FileWorkspace({
             }
           }
           signal.throwIfAborted()
-          const active = editor.getSnapshot().documents.find(doc => doc.path === saved?.activePath)
+          const active = editor.getSnapshot().documents.find((doc) => doc.path === saved?.activePath)
           if (active) await editor.open(active.path)
           signal.throwIfAborted()
         } catch (error) {
@@ -397,8 +398,8 @@ export function FileWorkspace({
           throw error
         }
         const stopDirty = editor.subscribe(() => {
-          const dirty = [...workspaces.current.values()].some(value =>
-            value.editor.getSnapshot().documents.some(doc => doc.dirty)
+          const dirty = [...workspaces.current.values()].some((value) =>
+            value.editor.getSnapshot().documents.some((doc) => doc.dirty)
           )
           if (dirty !== reportedDirty.current) {
             reportedDirty.current = dirty
@@ -418,11 +419,11 @@ export function FileWorkspace({
           iconTheme: saved?.iconTheme ?? "vscode-icons",
           treeOpener: createTreeOpener(
             editor,
-            path =>
+            (path) =>
               prepareWorkspaceFile(path, {
-                readFile: async target =>
+                readFile: async (target) =>
                   (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
-                openTarget: target => routeDriveTarget.current(target)
+                openTarget: (target) => routeDriveTarget.current(target)
               }),
             tabs
           )
@@ -432,8 +433,8 @@ export function FileWorkspace({
           const snapshot = editor.getSnapshot(),
             treeSnapshot = tree.getSnapshot()
           const state: WorkspaceState = {
-            tabs: snapshot.documents.map(doc => ({ path: doc.path, pinned: doc.pinned })),
-            activePath: snapshot.documents.find(doc => doc.id === snapshot.activeId)?.path ?? null,
+            tabs: snapshot.documents.map((doc) => ({ path: doc.path, pinned: doc.pinned })),
+            activePath: snapshot.documents.find((doc) => doc.id === snapshot.activeId)?.path ?? null,
             expanded,
             showHidden: treeSnapshot.showHidden,
             showIgnored: treeSnapshot.showIgnored,
@@ -443,7 +444,7 @@ export function FileWorkspace({
           const next = JSON.stringify(state)
           if (next === serialized) return
           serialized = next
-          void stateStore.save(root, state).catch(error => {
+          void stateStore.save(root, state).catch((error) => {
             serialized = ""
             report(error)
           })
@@ -475,7 +476,7 @@ export function FileWorkspace({
       const generation = ++requestGeneration.current,
         owner = currentCwd.current
       const authorized = [...workspaces.current.values()].find(
-        value => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
+        (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
       )
       const target = authorized === undefined ? await ensure(root) : authorized
       if (!containsPath(target.root, path)) {
@@ -483,9 +484,9 @@ export function FileWorkspace({
         return
       }
       const destination = await prepareWorkspaceFile(path, {
-        readFile: async value =>
+        readFile: async (value) =>
           (containsPath(target.root, value) ? target.fs : await driveFileSystem(value)).readFile(value),
-        openTarget: value => routeDriveTarget.current(value)
+        openTarget: (value) => routeDriveTarget.current(value)
       })
       if (destination === null) return
       await target.editor.open(destination)
@@ -496,7 +497,7 @@ export function FileWorkspace({
     },
     [ensure]
   )
-  routeDriveTarget.current = async path => {
+  routeDriveTarget.current = async (path) => {
     const match = resolveDriveRoot(path, drive.getSnapshot().snapshot?.roots ?? [])
     if (!match) throw new Error("The linked file does not belong to an indexed Drive project")
     await openFile(path, match.base)
@@ -513,7 +514,7 @@ export function FileWorkspace({
       const generation = ++requestGeneration.current,
         owner = cwd
       void ensure(cwd)
-        .then(value => {
+        .then((value) => {
           if (generation !== requestGeneration.current || owner !== currentCwd.current) return
           setWorkspace(value)
           setViewMode(false)
@@ -526,7 +527,7 @@ export function FileWorkspace({
     const generation = ++requestGeneration.current,
       owner = cwd
     void ensure(cwd)
-      .then(value => {
+      .then((value) => {
         if (generation !== requestGeneration.current || owner !== currentCwd.current) return
         setWorkspace(value)
         setVisible(true)
@@ -545,7 +546,7 @@ export function FileWorkspace({
     const subscription = isTauri() ? getCurrentWindow().listen("menu:project-tree", showProjectTree) : null
     return () => {
       window.removeEventListener("keydown", onKeyDown)
-      if (subscription) void subscription.then(stop => stop()).catch(report)
+      if (subscription) void subscription.then((stop) => stop()).catch(report)
     }
   }, [showProjectTree])
   const openProject = useCallback(
@@ -566,7 +567,7 @@ export function FileWorkspace({
     setWorkspace(null)
     let cancelled = false
     void ensure(cwd)
-      .then(value => {
+      .then((value) => {
         if (!cancelled) setWorkspace(value)
       })
       .catch(report)
@@ -576,7 +577,9 @@ export function FileWorkspace({
   }, [cwd, ensure, visible])
   useEffect(() => {
     function beforeUnload(event: BeforeUnloadEvent): void {
-      if ([...workspaces.current.values()].some(value => value.editor.getSnapshot().documents.some(doc => doc.dirty))) {
+      if (
+        [...workspaces.current.values()].some((value) => value.editor.getSnapshot().documents.some((doc) => doc.dirty))
+      ) {
         event.preventDefault()
         event.returnValue = ""
       }
@@ -599,9 +602,9 @@ export function FileWorkspace({
       closing = true
       void (async () => {
         const approved = new Map(
-          [...workspaces.current.values()].map(value => [
+          [...workspaces.current.values()].map((value) => [
             value,
-            value.editor.getSnapshot().documents.map(doc => ({ id: doc.id, contentRevision: doc.contentRevision }))
+            value.editor.getSnapshot().documents.map((doc) => ({ id: doc.id, contentRevision: doc.contentRevision }))
           ])
         )
         for (const value of approved.keys()) if (!(await value.editor.prepareShutdown())) return
@@ -612,7 +615,8 @@ export function FileWorkspace({
           if (
             current.length !== documents.length ||
             current.some(
-              doc => !documents.some(before => before.id === doc.id && before.contentRevision === doc.contentRevision)
+              (doc) =>
+                !documents.some((before) => before.id === doc.id && before.contentRevision === doc.contentRevision)
             )
           )
             return
@@ -626,7 +630,7 @@ export function FileWorkspace({
     }
     const exitListener = listen("workspace:shutdown", requestExit)
     return () => {
-      void exitListener.then(stop => stop()).catch(report)
+      void exitListener.then((stop) => stop()).catch(report)
     }
   }, [])
   useEffect(() => {
@@ -650,7 +654,7 @@ export function FileWorkspace({
       }
       if (instances.length)
         void loadMonaco()
-          .then(module => {
+          .then((module) => {
             for (const value of instances) module.releaseMonaco(value.editor)
           })
           .catch(report)
@@ -660,7 +664,7 @@ export function FileWorkspace({
     if (!isTauri() || workspace === null || !visible) return
     const owner = workspace
     let cancelled = false
-    const listener = getCurrentWindow().onDragDropEvent(event => {
+    const listener = getCurrentWindow().onDragDropEvent((event) => {
       if (event.payload.type !== "drop") return
       const payload = event.payload
       void (async () => {
@@ -681,7 +685,7 @@ export function FileWorkspace({
     })
     return () => {
       cancelled = true
-      void listener.then(stop => stop()).catch(report)
+      void listener.then((stop) => stop()).catch(report)
     }
   }, [workspace, visible])
   useEffect(() => {
@@ -691,7 +695,7 @@ export function FileWorkspace({
       const generation = ++requestGeneration.current
       const owner = cwd
       void ensure(cwd)
-        .then(target => {
+        .then((target) => {
           if (disposed || generation !== requestGeneration.current || owner !== currentCwd.current) return
           if (
             target === workspace ||
@@ -741,7 +745,7 @@ export function FileWorkspace({
     return () => {
       disposed = true
       window.removeEventListener("keydown", onKeyDown)
-      for (const subscription of subscriptions) void subscription.then(stop => stop()).catch(report)
+      for (const subscription of subscriptions) void subscription.then((stop) => stop()).catch(report)
     }
   }, [cwd, ensure, visible, workspace])
   const revealEntry = useCallback(
@@ -825,7 +829,7 @@ export function FileWorkspace({
         visible={visible && workspace !== null}
         maximized={visible && workspace !== null && viewMode}
         onMaximizedChange={setViewMode}
-        onVisibleChange={next => {
+        onVisibleChange={(next) => {
           setVisible(next)
           if (!next) setViewMode(false)
         }}
@@ -836,7 +840,7 @@ export function FileWorkspace({
               treeVisible={treeVisible}
               onTreeVisibleChange={setTreeVisible}
               maximized={viewMode}
-              onMaximize={() => setViewMode(value => !value)}
+              onMaximize={() => setViewMode((value) => !value)}
               onClose={() => {
                 setVisible(false)
                 setViewMode(false)
@@ -853,7 +857,8 @@ export function FileWorkspace({
                       aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
                       title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
                       aria-expanded={treeVisible}
-                      onClick={() => setTreeVisible(value => !value)}>
+                      onClick={() => setTreeVisible((value) => !value)}
+                    >
                       <FolderTree />
                     </Button>
                   }
@@ -862,20 +867,20 @@ export function FileWorkspace({
                   activePath={activeDocument ? activeDocument.path : null}
                   labels={treeLabels}
                   onError={report}
-                  onOpenFile={path => workspace.treeOpener.open(path)}
-                  renderActions={paths => {
+                  onOpenFile={(path) => workspace.treeOpener.open(path)}
+                  renderActions={(paths) => {
                     const path = paths[0]
                     return paths.length === 1 &&
                       path !== undefined &&
                       driveState?.running &&
-                      driveState.roots.some(root => containsPath(root.localPath, path)) ? (
+                      driveState.roots.some((root) => containsPath(root.localPath, path)) ? (
                       <DriveTreeActions
                         path={path}
                         isDirectory={workspace.tree
                           .getSnapshot()
-                          .rows.some(row => row.path === path && row.kind === "directory")}
+                          .rows.some((row) => row.path === path && row.kind === "directory")}
                         onSharing={setSharingPath}
-                        onCondense={scope => {
+                        onCondense={(scope) => {
                           setCondenseJob(undefined)
                           setCondenseScope(scope)
                         }}
@@ -884,7 +889,7 @@ export function FileWorkspace({
                       />
                     ) : null
                   }}
-                  renderDecoration={row => (
+                  renderDecoration={(row) => (
                     <DriveBadge
                       controller={drive}
                       path={row.path}
@@ -892,11 +897,11 @@ export function FileWorkspace({
                       locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
                     />
                   )}
-                  onPinFile={path => workspace.treeOpener.open(path, true)}
+                  onPinFile={(path) => workspace.treeOpener.open(path, true)}
                   onOpenExternal={openExternal}
-                  onReveal={path => revealItemsInDir(path)}
-                  onCopyPath={path => navigator.clipboard.writeText(path)}
-                  onMove={async paths => {
+                  onReveal={(path) => revealItemsInDir(path)}
+                  onCopyPath={(path) => navigator.clipboard.writeText(path)}
+                  onMove={async (paths) => {
                     setMoveSources({ owner: workspace, paths })
                   }}
                   onImport={async (destination, directory) => {
@@ -941,7 +946,7 @@ export function FileWorkspace({
                       choices: [{ label: t("workspace.confirm"), value: "confirm" }]
                     })
                   }
-                  confirmDelete={async paths =>
+                  confirmDelete={async (paths) =>
                     (await ask({
                       title: t("workspace.remove"),
                       detail: paths.join("\n"),
@@ -965,9 +970,9 @@ export function FileWorkspace({
                       labels={editorLabels}
                       compactToolbar
                       rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
-                      onRevealPath={path => workspace.tree.reveal(path)}
-                      onReveal={document => revealItemsInDir(document.path)}
-                      onCopyPath={document => navigator.clipboard.writeText(document.path)}
+                      onRevealPath={(path) => workspace.tree.reveal(path)}
+                      onReveal={(document) => revealItemsInDir(document.path)}
+                      onCopyPath={(document) => navigator.clipboard.writeText(document.path)}
                       tabLabels={{
                         closeOthers: t("workspace.closeOthers"),
                         closeRight: t("workspace.closeRight"),
@@ -978,9 +983,9 @@ export function FileWorkspace({
                       }}
                       actionsLabel={t("workspace.more")}
                       onError={report}
-                      onOpenExternal={document => openExternal(document.path)}
+                      onOpenExternal={(document) => openExternal(document.path)}
                       previews={previews}
-                      requestSaveAs={async document =>
+                      requestSaveAs={async (document) =>
                         ask({
                           title: t("workspace.saveAs"),
                           detail: workspace.root,
@@ -988,9 +993,10 @@ export function FileWorkspace({
                           choices: [{ label: t("workspace.save"), value: "save" }]
                         })
                       }
-                      renderTextEditor={props => (
+                      renderTextEditor={(props) => (
                         <Suspense
-                          fallback={<div className="p-6 text-sm text-muted-foreground">{t("workspace.loading")}</div>}>
+                          fallback={<div className="p-6 text-sm text-muted-foreground">{t("workspace.loading")}</div>}
+                        >
                           <CodeEditor
                             {...props}
                             controller={workspace.editor}
@@ -1051,9 +1057,10 @@ export function FileWorkspace({
       )}
       <Dialog
         open={condenseScope !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open) setCondenseScope(null)
-        }}>
+        }}
+      >
         <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{i18n.language.startsWith("zh") ? "沉淀为知识" : "Condense into knowledge"}</DialogTitle>
@@ -1068,7 +1075,7 @@ export function FileWorkspace({
               locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
               onClose={() => setCondenseScope(null)}
               onOpenExternal={openExternal}
-              onOpenFile={async path => {
+              onOpenFile={async (path) => {
                 await workspace?.treeOpener.open(path)
               }}
             />
@@ -1077,9 +1084,10 @@ export function FileWorkspace({
       </Dialog>
       <Dialog
         open={moveTarget !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open) setMoveTarget(null)
-        }}>
+        }}
+      >
         <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{i18n.language.startsWith("zh") ? "移动到其他项目" : "Move to another project"}</DialogTitle>
@@ -1092,13 +1100,13 @@ export function FileWorkspace({
               locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
               onClose={() => setMoveTarget(null)}
               host={{
-                confirm: message => confirm(message, { title: "YUP Drive", kind: "warning" }),
-                prepareMove: async path => {
+                confirm: (message) => confirm(message, { title: "YUP Drive", kind: "warning" }),
+                prepareMove: async (path) => {
                   for (const owner of workspaces.current.values()) {
                     const ids = owner.editor
                       .getSnapshot()
-                      .documents.filter(doc => containsPath(path, doc.path))
-                      .map(doc => doc.id)
+                      .documents.filter((doc) => containsPath(path, doc.path))
+                      .map((doc) => doc.id)
                     if (!(await owner.editor.requestCloseMany(ids))) return false
                   }
                   return true

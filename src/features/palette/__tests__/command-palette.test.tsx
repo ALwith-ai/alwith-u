@@ -41,7 +41,7 @@ test("search opens with its command context and closes after selecting the expli
           onOpenPlugins={() => {}}
           onOpenHotkeys={() => {}}
           onOpenExtension={() => {}}
-          onSelect={value => selected.push(value)}
+          onSelect={(value) => selected.push(value)}
         />
       </ThemeProvider>
     )

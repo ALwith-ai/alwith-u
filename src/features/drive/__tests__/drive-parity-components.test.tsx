@@ -15,7 +15,7 @@ import { driveControls } from "../controls"
 
 const controls: DriveControls = {
   Button: ({ variant: _variant, size: _size, ...props }) => <button type="button" {...props} />,
-  Input: props => <input {...props} />,
+  Input: (props) => <input {...props} />,
   Dialog: ({ title, description, children, onOpenChange }) => (
     <div role="dialog" aria-label={title}>
       <p>{description}</p>
@@ -29,7 +29,7 @@ const controls: DriveControls = {
   ContextMenu: ({ children, items }) => (
     <>
       {children}
-      {items.map(item => (
+      {items.map((item) => (
         <button type="button" key={item.label} onClick={item.onSelect}>
           {item.label}
         </button>
@@ -66,14 +66,14 @@ function fixture(
   const requests: DriveRequest[] = []
   return {
     requests,
-    update: patch => {
+    update: (patch) => {
       state = { ...state, snapshot: { ...state.snapshot, ...patch } }
-      listeners.forEach(listener => {
+      listeners.forEach((listener) => {
         listener()
       })
     },
     controller: {
-      subscribe: listener => {
+      subscribe: (listener) => {
         listeners.add(listener)
         return () => {
           listeners.delete(listener)
@@ -83,7 +83,7 @@ function fixture(
       attach: async () => {},
       refresh: async () => {},
       dispose: () => {},
-      request: async request => {
+      request: async (request) => {
         requests.push(request)
         if (handle) return handle(request)
         if (request.type === "failedUploads") return { type: "failedUploads", data: [] }
@@ -176,7 +176,7 @@ test("mass-delete dismiss restores only the head batch and confirmation sends on
 })
 
 test("settings use the injected shadcn switch and propagate its checked value", async () => {
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 20 }
     if (request.type === "ownershipGuard")
       return {
@@ -295,7 +295,7 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
 })
 
 test("condense dialog separates its scope from the title and groups actions in the footer", async () => {
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     throw new Error(`Unexpected request ${request.type}`)
   })
@@ -327,7 +327,7 @@ test("condense dialog separates its scope from the title and groups actions in t
 })
 
 test("condense preflight keeps the safe exit before proceeding with missing uploads", async () => {
-  const f = fixture({ running: true }, async request => {
+  const f = fixture({ running: true }, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     if (request.type === "condensePreflight")
       return { type: "unsynced", data: { pending: 1, failed: 1, paths: ["report.md"] } }
@@ -404,12 +404,12 @@ async function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
 
 test.each(["device", null])(
   "settings distinguish pending device information from registration (%s)",
-  async deviceId => {
+  async (deviceId) => {
     let resolveConfiguration!: (response: DriveResponse) => void
-    const configuration = new Promise<DriveResponse>(resolve => {
+    const configuration = new Promise<DriveResponse>((resolve) => {
       resolveConfiguration = resolve
     })
-    const f = fixture({ configured: false, running: false }, request =>
+    const f = fixture({ configured: false, running: false }, (request) =>
       request.type === "configuration" ? configuration : settingsResponse(request)
     )
     render(
@@ -437,7 +437,7 @@ test.each(["device", null])(
 )
 
 test("failed device information loading never claims the device is unregistered", async () => {
-  const f = fixture({ running: false }, async request => {
+  const f = fixture({ running: false }, async (request) => {
     if (request.type === "configuration") throw new Error("Cannot read configuration")
     return settingsResponse(request)
   })
@@ -475,7 +475,7 @@ test("settings load login preferences before runtime and fetch runtime data when
 
 test("settings clear a runtime load error after a successful restart", async () => {
   let failed = true
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (failed && request.type === "skillMirrors") throw new Error("Drive is not running")
     return settingsResponse(request)
   })
@@ -490,7 +490,7 @@ test("settings clear a runtime load error after a successful restart", async () 
 })
 
 test("successful runtime loading does not clear a configuration failure", async () => {
-  const f = fixture({ running: false }, async request => {
+  const f = fixture({ running: false }, async (request) => {
     if (request.type === "configuration") throw new Error("Cannot read configuration")
     return settingsResponse(request)
   })
@@ -509,7 +509,7 @@ test.each([
   [false, "ssoLogin"],
   [true, "ssoLogin"]
 ] as const)("directory adoption requires explicit confirmation (%s, %s)", async (accept, method) => {
-  const f = fixture({ configured: false, running: false }, async request => {
+  const f = fixture({ configured: false, running: false }, async (request) => {
     if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
     if (request.type === method)
       return { type: "rootOwnershipConfirmation", data: { generation: 2, localRoot: "/drive" } }
@@ -537,16 +537,16 @@ test.each([
   fireEvent.click(screen.getByRole("button", { name: accept ? "继续" : "取消" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(f.requests).toContainEqual({ type: "resolveRootOwnership", generation: 2, accept })
-  expect(f.requests.filter(request => request.type === method)).toHaveLength(1)
-  expect(f.requests.some(request => request.type === "start")).toBe(accept)
+  expect(f.requests.filter((request) => request.type === method)).toHaveLength(1)
+  expect(f.requests.some((request) => request.type === "start")).toBe(accept)
 })
 
 test("condense shows only the current project upload and resumes after closing", async () => {
   let settle!: (response: DriveResponse) => void
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     if (request.type === "condensePreflight")
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         settle = resolve
       })
     if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
@@ -580,16 +580,16 @@ test("condense shows only the current project upload and resumes after closing",
   render(<DriveCondense {...props} />)
   expect(screen.getByRole("button", { name: "取消任务" })).toBeEnabled()
   expect(screen.queryByRole("button", { name: "沉淀为知识" })).not.toBeInTheDocument()
-  expect(f.requests.filter(request => request.type === "condenseStart")).toHaveLength(1)
+  expect(f.requests.filter((request) => request.type === "condenseStart")).toHaveLength(1)
   act(() => f.update({ generation: 2 }))
 })
 
 test("cancelling during upload prevents job creation after the upload finishes", async () => {
   let settle!: (response: DriveResponse) => void
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     if (request.type === "condensePreflight")
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         settle = resolve
       })
     throw new Error(`Unexpected request ${request.type}`)
@@ -611,14 +611,14 @@ test("cancelling during upload prevents job creation after the upload finishes",
   await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
   expect(screen.getByText("已取消")).toBeInTheDocument()
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-  expect(f.requests.some(request => request.type === "condenseStart")).toBe(false)
+  expect(f.requests.some((request) => request.type === "condenseStart")).toBe(false)
 })
 
 test("cancel acknowledgement is not completion and terminal cancellation is not a failure", async () => {
   vi.useFakeTimers()
   try {
     let status: "RUNNING" | "CANCELLED" = "RUNNING"
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "proposedCondense") return { type: "jobs", data: [] }
       if (request.type === "cancelJob") return { type: "done" }
       if (request.type === "job") return { type: "job", data: { id: 7, status } }
@@ -667,10 +667,10 @@ test("launcher keeps synchronization errors out of navigation while status retai
 
 test("a conflict during preflight stays in the dialog and does not include another project", async () => {
   let settle!: (response: DriveResponse) => void
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     if (request.type === "condensePreflight")
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         settle = resolve
       })
     if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
@@ -706,7 +706,7 @@ test("a conflict during preflight stays in the dialog and does not include anoth
 test("a closed condense task finishes once and reopening preserves its result", async () => {
   vi.useFakeTimers()
   try {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "proposedCondense") return { type: "jobs", data: [] }
       if (request.type === "job")
         return {
@@ -759,7 +759,7 @@ test("a closed condense task finishes once and reopening preserves its result", 
 })
 
 test("a rejected knowledge source remains actionable inside the dialog", async () => {
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "proposedCondense") return { type: "jobs", data: [] }
     if (request.type === "condensePreflight") return { type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }
     if (request.type === "condenseStart") throw new Error("HTTP 400: SOURCE_IS_KNOWLEDGE_PROJECT: source is knowledge")

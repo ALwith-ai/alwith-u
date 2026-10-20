@@ -35,7 +35,7 @@ export function bootstrapAuxWindow(opts: {
   async function bootstrap() {
     await bootstrapSettings()
     await attachConsole()
-    window.addEventListener("unhandledrejection", event => {
+    window.addEventListener("unhandledrejection", (event) => {
       const error: unknown = event.reason
       const message = error instanceof Error ? error.message : String(error)
       toast.error(message)

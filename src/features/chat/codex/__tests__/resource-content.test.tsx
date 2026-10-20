@@ -16,9 +16,9 @@ import { ActivityGroup } from "../activity-group"
 import { ResourceContent } from "../resource-content"
 import { UserMessage } from "../user-message"
 
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
-vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 await initI18n("en")
 const mocks: Array<{ mockRestore(): void }> = []
@@ -43,7 +43,7 @@ test("file references preserve encoded names, bare line locations and reserved f
   ]
   const view = render(
     <ChatDirectoryContext value="/tmp/project%20">
-      {refs.map(uri => (
+      {refs.map((uri) => (
         <ResourceContent key={uri} block={{ type: "resource_link", uri, name: uri }} />
       ))}
     </ChatDirectoryContext>
@@ -101,7 +101,7 @@ test("user references are clickable and resolve against their own thread directo
     [{ type: "resource_link", uri: "reports/result.pdf", name: "result.pdf" }, blob],
     "prompt"
   )
-  const item = session.items.find(item => item.kind === "user")
+  const item = session.items.find((item) => item.kind === "user")
   if (item?.kind !== "user") throw new Error("User prompt is missing")
   const view = render(
     <ChatDirectoryContext value={session.cwd}>
@@ -188,7 +188,7 @@ test("replayed user images render thumbnails above the body without attachment p
     ],
     "image-prompt"
   )
-  const item = session.items.find(item => item.kind === "user")
+  const item = session.items.find((item) => item.kind === "user")
   if (item?.kind !== "user") throw new Error("User prompt is missing")
   const view = render(
     <ThemeProvider>
@@ -231,21 +231,21 @@ test("external file links bypass the project workspace and preserve line locatio
   expect(openFile).not.toHaveBeenCalled()
 })
 
-test.each([false, true])("questionnaire replies hide metadata (local receipt: %s)", receipt => {
+test.each([false, true])("questionnaire replies hide metadata (local receipt: %s)", (receipt) => {
   const replies = [
     { question: "Focus Vibemon?", answer: "已点" },
     { question: "Files?", answer: "A.txt\nB.txt" }
   ]
   const session = addPrompt(
     createSession("questions", "/tmp/questions"),
-    replies.map(reply => ({
+    replies.map((reply) => ({
       type: "text",
       text: `${reply.question}\n${reply.answer}`,
       _meta: { codex: { questionReply: reply } }
     })),
     "replies"
   )
-  const item = session.items.find(item => item.kind === "user")
+  const item = session.items.find((item) => item.kind === "user")
   if (item?.kind !== "user") throw new Error("User prompt is missing")
   const rendered = receipt
     ? {
@@ -257,12 +257,12 @@ test.each([false, true])("questionnaire replies hide metadata (local receipt: %s
           }
         ],
         _meta: {
-          codex: { questionReplyParts: replies.map(reply => ({ question: reply.question, text: reply.answer })) }
+          codex: { questionReplyParts: replies.map((reply) => ({ question: reply.question, text: reply.answer })) }
         }
       }
     : item
   const view = render(<UserMessage item={rendered} messageTime={{ short: "17:40", full: "2026-10-11 17:40" }} />)
-  expect([...view.container.querySelectorAll(".codex-user-question-summary")].map(node => node.textContent)).toEqual([
+  expect([...view.container.querySelectorAll(".codex-user-question-summary")].map((node) => node.textContent)).toEqual([
     "Focus Vibemon?",
     "Files?"
   ])

@@ -21,7 +21,7 @@ function Draft() {
   ])
   return (
     <PromptInputProvider attachments={files} onAttachmentsChange={setFiles}>
-      <PromptInputAttachments>{data => <PromptInputAttachment data={data} />}</PromptInputAttachments>
+      <PromptInputAttachments>{(data) => <PromptInputAttachment data={data} />}</PromptInputAttachments>
     </PromptInputProvider>
   )
 }

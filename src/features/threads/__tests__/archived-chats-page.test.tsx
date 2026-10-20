@@ -37,21 +37,21 @@ function loadChats(): void {
 
 test("loads every archive page before searching and deleting all, even when search hides a chat", async () => {
   let finishPage: (() => void) | undefined
-  vi.spyOn(client, "listThreads").mockImplementation(async options => {
+  vi.spyOn(client, "listThreads").mockImplementation(async (options) => {
     if (options?.reset) {
       client.store.setState({ archivedThreads: chats.slice(0, 1), archivedLoaded: true, archivedCursor: "next" })
     } else {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         finishPage = resolve
       })
       client.store.setState({ archivedThreads: chats, archivedCursor: null })
     }
   })
   const deleted: string[] = []
-  vi.spyOn(client, "delete").mockImplementation(async id => {
+  vi.spyOn(client, "delete").mockImplementation(async (id) => {
     deleted.push(id)
-    client.store.setState(state => ({
-      archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    client.store.setState((state) => ({
+      archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
     }))
   })
   const view = render(<ArchivedChatsPage />)
@@ -73,14 +73,14 @@ test("loads every archive page before searching and deleting all, even when sear
 
 test("restores a chat without opening it and keeps failed deletions available for retry", async () => {
   loadChats()
-  vi.spyOn(client, "unarchive").mockImplementation(async id => {
-    client.store.setState(state => ({
-      archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id),
+  vi.spyOn(client, "unarchive").mockImplementation(async (id) => {
+    client.store.setState((state) => ({
+      archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id),
       threads: [
         ...state.threads,
         ...state.archivedThreads
-          .filter(thread => thread.sessionId === id)
-          .map(thread => ({ ...thread, archived: false }))
+          .filter((thread) => thread.sessionId === id)
+          .map((thread) => ({ ...thread, archived: false }))
       ]
     }))
   })
@@ -90,7 +90,7 @@ test("restores a chat without opening it and keeps failed deletions available fo
   const quick = view.getByRole("article", { name: "Shopping list" })
   await act(async () => fireEvent.click(within(quick).getByRole("button", { name: "Unarchive" })))
   expect(view.queryByText("Shopping list")).not.toBeInTheDocument()
-  expect(client.state.threads.some(thread => thread.sessionId === "quick" && !thread.archived)).toBe(true)
+  expect(client.state.threads.some((thread) => thread.sessionId === "quick" && !thread.archived)).toBe(true)
   fireEvent.click(within(view.getByRole("article", { name: "Release review" })).getByRole("button", { name: "Delete" }))
   await act(async () =>
     fireEvent.click(within(view.getByRole("dialog")).getByRole("button", { name: "Delete permanently" }))
@@ -144,11 +144,11 @@ test("batch delete retries only failures and skips chats restored after the conf
   loadChats()
   let fail = true
   const deleted: string[] = []
-  vi.spyOn(client, "delete").mockImplementation(async id => {
+  vi.spyOn(client, "delete").mockImplementation(async (id) => {
     if (id === "project" && fail) throw new Error("Unavailable")
     deleted.push(id)
-    client.store.setState(state => ({
-      archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    client.store.setState((state) => ({
+      archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
     }))
   })
   const view = render(<ArchivedChatsPage />)

@@ -44,10 +44,10 @@ test("a later failed write preserves the preceding successful selection", async 
   const data = new Map<string, unknown>([["vibemon.accounts", { pet: "old" }]])
   let release!: () => void
   let saving!: () => void
-  const firstSave = new Promise<void>(resolve => {
+  const firstSave = new Promise<void>((resolve) => {
     release = resolve
   })
-  const started = new Promise<void>(resolve => {
+  const started = new Promise<void>((resolve) => {
     saving = resolve
   })
   let saves = 0

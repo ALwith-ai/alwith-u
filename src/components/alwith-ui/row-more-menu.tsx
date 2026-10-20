@@ -31,11 +31,12 @@ function RowIconButton({
       aria-label={title}
       aria-busy={pending}
       disabled={pending}
-      onKeyDown={event => event.stopPropagation()}
-      onClick={event => {
+      onKeyDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
         event.stopPropagation()
         onPress()
-      }}>
+      }}
+    >
       {children}
     </Button>
   )

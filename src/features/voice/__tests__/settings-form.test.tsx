@@ -17,15 +17,15 @@ const slots: VoiceSettingsSlots = {
       {children}
     </div>
   ),
-  Input: props => <input {...props} />,
-  Textarea: props => <textarea {...props} />,
-  Button: props => <button {...props} />,
+  Input: (props) => <input {...props} />,
+  Textarea: (props) => <textarea {...props} />,
+  Button: (props) => <button {...props} />,
   Switch: ({ checked, onCheckedChange, ...props }) => (
-    <input type="checkbox" checked={checked} onChange={event => onCheckedChange(event.target.checked)} {...props} />
+    <input type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} {...props} />
   ),
   Select: ({ label, value, options, onChange }) => (
-    <select aria-label={label} value={value} onChange={event => onChange(event.target.value)}>
-      {options.map(option => (
+    <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -66,7 +66,7 @@ function fixture() {
       devices = next
     },
     view: () =>
-      render(<VoiceSettingsForm host={host} slots={slots} text={key => key} onError={onError} onSaved={onSaved} />)
+      render(<VoiceSettingsForm host={host} slots={slots} text={(key) => key} onError={onError} onSaved={onSaved} />)
   }
 }
 test("saving without a key commits settings and shows a reminder, while a configured key shows success", async () => {

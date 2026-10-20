@@ -167,7 +167,7 @@ test("null and failed results clear the suggestion; history and read-only sessio
   expect(view.result.current.error).toBe("Prediction failed")
   const replay = completed("history", "t3")
   view.rerender({
-    session: { ...replay, items: replay.items.map(item => ({ ...item, replayed: true })) },
+    session: { ...replay, items: replay.items.map((item) => ({ ...item, replayed: true })) },
     available: true
   })
   view.rerender({ session: { ...completed("readonly", "t4"), readOnly: true }, available: false })

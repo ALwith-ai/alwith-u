@@ -46,7 +46,7 @@ test("configuration success toast waits for the confirmed save response", async 
     if (request.type === "snapshot") return { type: "snapshot", data: { ...snapshot, generation } }
     if (request.type === "configuration")
       return { type: "configuration", data: { userId: "1", deviceId: "device", userName: "Test", clientConfig: null } }
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       finish = resolve
     })
   })

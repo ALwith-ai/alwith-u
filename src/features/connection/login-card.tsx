@@ -65,7 +65,8 @@ export function LoginCard({
             key={method.methodId}
             variant={index === 0 ? "default" : "outline"}
             disabled={busy !== null}
-            onClick={() => (method.methodId === "api-key" ? setApiKeyOpen(true) : void login(method.methodId))}>
+            onClick={() => (method.methodId === "api-key" ? setApiKeyOpen(true) : void login(method.methodId))}
+          >
             {busy === method.methodId && <Spinner data-icon="inline-start" />}
             {methodLabel(method, t)}
           </Button>
@@ -86,7 +87,7 @@ export function LoginCard({
                 autoComplete="off"
                 placeholder={t("connection.apiKeyPlaceholder")}
                 value={apiKey}
-                onChange={event => setApiKey(event.target.value)}
+                onChange={(event) => setApiKey(event.target.value)}
               />
             </Field>
           </FieldGroup>
@@ -99,7 +100,8 @@ export function LoginCard({
               onClick={() => {
                 setApiKeyOpen(false)
                 void login("api-key", { "api-key": { apiKey: apiKey.trim() } })
-              }}>
+              }}
+            >
               {t("actions.submit")}
             </Button>
           </DialogFooter>

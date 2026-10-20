@@ -39,8 +39,8 @@ function subjectPatch(toolCall: acp.ToolCallUpdate): string | null {
 function subjectText(toolCall: acp.ToolCallUpdate): string {
   return (toolCall.content ?? [])
     .filter(isContentEntry)
-    .map(entry => (isText(entry.content) ? entry.content.text : ""))
-    .filter(text => text.length > 0)
+    .map((entry) => (isText(entry.content) ? entry.content.text : ""))
+    .filter((text) => text.length > 0)
     .join("\n")
 }
 
@@ -73,7 +73,7 @@ function Subject({ subject, requestTitle }: { subject: acp.RequestPermissionSubj
       )}
       {(toolCall.locations ?? []).length > 0 && (
         <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-          {(toolCall.locations ?? []).map(location => (
+          {(toolCall.locations ?? []).map((location) => (
             <li key={`${location.path}:${location.line ?? ""}`} className="truncate font-mono">
               {location.path}
             </li>
@@ -117,12 +117,13 @@ function PermissionCard({
       title={params.title}
       alwaysLabel={t("approval.always")}
       autoFocus="if-idle"
-      options={params.options.map(option => ({ ...option, description: optionDescription(option) ?? undefined }))}
-      onRespond={optionId =>
+      options={params.options.map((option) => ({ ...option, description: optionDescription(option) ?? undefined }))}
+      onRespond={(optionId) =>
         onRespond(action.id, {
           outcome: optionId === null ? { outcome: "cancelled" } : { outcome: "selected", optionId }
         })
-      }>
+      }
+    >
       {params.description && <div className="mt-0.5 text-xs text-muted-foreground">{params.description}</div>}
       {params.subject && <Subject subject={params.subject} requestTitle={params.title} />}
     </PermissionView>
@@ -146,7 +147,7 @@ function ElicitationCard({
       url={params.url}
       t={t}
       onOpen={openExternal}
-      onRespond={answer => onRespond(action.id, answer === "cancel" ? { action: "cancel" } : { action: "decline" })}
+      onRespond={(answer) => onRespond(action.id, answer === "cancel" ? { action: "cancel" } : { action: "decline" })}
     />
   )
 }

@@ -35,7 +35,8 @@ function parseCatalog(value: unknown): Catalog {
     !Array.isArray(value.models) ||
     value.models.length === 0 ||
     value.models.some(
-      model => typeof model !== "object" || model === null || typeof model.slug !== "string" || model.slug.length === 0
+      (model) =>
+        typeof model !== "object" || model === null || typeof model.slug !== "string" || model.slug.length === 0
     )
   ) {
     throw new Error("Invalid model catalog: expected models with non-empty slugs")
@@ -104,7 +105,7 @@ function hasCustomCatalog(env: NodeJS.ProcessEnv, warn: CatalogRunner["warn"]): 
       ("model_catalog_json" in value || Object.values(value).some(containsCatalog))
     )
   }
-  return [...files].some(file => {
+  return [...files].some((file) => {
     try {
       const text = optionalFile(file)
       return text !== null && containsCatalog(Bun.TOML.parse(text))

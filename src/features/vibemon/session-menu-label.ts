@@ -3,7 +3,7 @@ export function fitSessionMenuLabel(label: string, measure: (text: string) => nu
   if (measure(label) <= maxWidth) return label
   const parts = Array.from(
     new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(label),
-    item => item.segment
+    (item) => item.segment
   )
   let low = 0
   let high = parts.length

@@ -26,7 +26,7 @@ export function ExtensionSkills({
       {catalog.status === "loaded" && (
         <>
           <ul className="space-y-1">
-            {inspectRequiredSkills(required, catalog.skills).map(skill => (
+            {inspectRequiredSkills(required, catalog.skills).map((skill) => (
               <li key={skill.name} className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="break-all">{skill.status === "enabled" ? skill.resolvedName : skill.name}</span>
                 <span className="text-muted-foreground">
@@ -40,7 +40,7 @@ export function ExtensionSkills({
           {catalog.errors.length > 0 && (
             <div role="alert">
               <p>{t("extensions.skills.partial")}</p>
-              {catalog.errors.map(error => (
+              {catalog.errors.map((error) => (
                 <p key={error.path} className="break-all">
                   {error.path}: {error.message}
                 </p>
@@ -58,7 +58,8 @@ export function ExtensionSkills({
           size="sm"
           variant="ghost"
           disabled={catalog.status === "loading" || catalog.status === "disconnected"}
-          onClick={onRefresh}>
+          onClick={onRefresh}
+        >
           {t("extensions.skills.refresh")}
         </Button>
       </div>

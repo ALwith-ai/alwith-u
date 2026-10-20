@@ -7,7 +7,7 @@ test.each([
   "/Users/mac/Documents/Codex/project",
   "/Users/mac/Documents/ALwith U",
   String.raw`C:\Users\Alice\Documents\Codex\project`
-])("new chat from %s requests the host's default workspace", cwd => {
+])("new chat from %s requests the host's default workspace", (cwd) => {
   expect(newChatDirectory(cwd)).toBeNull()
 })
 
@@ -21,6 +21,6 @@ test.each([
   String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
   String.raw`C:\Windows\Temp\project`,
   String.raw`D:\Scratch\project`
-])("new chat retains the project directory %s, including temporary workspaces", cwd => {
+])("new chat retains the project directory %s, including temporary workspaces", (cwd) => {
   expect(newChatDirectory(cwd)).toBe(cwd)
 })

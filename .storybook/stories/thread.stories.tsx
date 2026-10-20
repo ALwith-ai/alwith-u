@@ -23,7 +23,7 @@ const meta = {
   component: ThreadView,
   args: { session },
   decorators: [
-    Story => (
+    (Story) => (
       <div className="flex h-[480px] min-h-0 flex-col">
         <Story />
       </div>

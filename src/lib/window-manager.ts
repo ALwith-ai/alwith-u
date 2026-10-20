@@ -111,6 +111,6 @@ async function createGamepadWindow(): Promise<void> {
   })
   await new Promise<void>((resolve, reject) => {
     void win.once("tauri://created", () => resolve()).catch(reject)
-    void win.once("tauri://error", event => reject(new Error(String(event.payload)))).catch(reject)
+    void win.once("tauri://error", (event) => reject(new Error(String(event.payload)))).catch(reject)
   })
 }

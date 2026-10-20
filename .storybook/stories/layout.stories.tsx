@@ -40,7 +40,7 @@ const extensionManifests: ExtensionManifest[] = Array.from({ length: 20 }, (_, i
 const extensionHost: HostSnapshot = {
   instances: [],
   commands: [],
-  views: extensionManifests.map(item => ({
+  views: extensionManifests.map((item) => ({
     id: `${item.id}/page`,
     extensionId: item.id,
     title: item.name,
@@ -73,13 +73,14 @@ export const LeadingApps: Story = {
                 onOpenVibemon={() => setActive(null)}
                 onOpenPlugins={() => setActive(null)}
                 onOpenArchives={() => setActive(null)}
-                onOpenExtensions={() => setActive(null)}>
+                onOpenExtensions={() => setActive(null)}
+              >
                 <ExtensionNavigation
                   host={extensionHost}
                   manifests={extensionManifests}
                   activeView={active}
                   onOpenSurface={setActive}
-                  onError={error => {
+                  onError={(error) => {
                     throw error
                   }}
                 />
@@ -200,7 +201,7 @@ export const ArabicFloatingSidebar: Story = {
 /** Observe every resize frame: settled-only checks miss width-transition drift. */
 export const ContinuousResize: Story = {
   globals: { locale: "en" },
-  render: args => (
+  render: (args) => (
     <div data-resize-host style={{ width: 1000, height: 600 }}>
       <MainSidebarLayout
         {...args}
@@ -219,7 +220,7 @@ export const ContinuousResize: Story = {
     const chat = canvasElement.querySelector<HTMLElement>("[data-centered-chat]")!
     for (const width of [980, 940, 900, 850, 800, 850, 920, 1000]) {
       host.style.width = `${width}px`
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       const panel = main.getBoundingClientRect()
       const content = chat.getBoundingClientRect()
       expect(panel.left).toBeCloseTo(sidebar.getBoundingClientRect().right, 0)

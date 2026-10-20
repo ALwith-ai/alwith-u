@@ -23,7 +23,7 @@ export function observeVoiceTurn(
         return
       }
       if (receipt === null) return
-      if (session.items.findLast(item => item.kind === "user")?.id !== receipt) {
+      if (session.items.findLast((item) => item.kind === "user")?.id !== receipt) {
         cleanup()
         reject(new Error("voice_turn_superseded"))
         return

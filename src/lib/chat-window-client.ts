@@ -77,7 +77,7 @@ export async function serveChatClient(
       )
       if (Object.keys(sessions).length > 0) patch.sessions = sessions
       const removedSessions =
-        previous === null ? [] : Object.keys(previous.sessions).filter(id => !(id in state.sessions))
+        previous === null ? [] : Object.keys(previous.sessions).filter((id) => !(id in state.sessions))
       const payload: Projection = {
         connectionId: identity,
         revision: ++revision,
@@ -127,7 +127,7 @@ export async function serveChatClient(
   const stopState = owner.store.subscribe(() => {
     void publish().catch(onError)
   })
-  const stopLimits = owner.onRateLimits(limits => {
+  const stopLimits = owner.onRateLimits((limits) => {
     if (connectionId !== null) void transport.emitTo("chat", LIMITS, { connectionId, limits })
   })
   return () => {
@@ -185,7 +185,7 @@ export class RemoteChatClient extends CodexClient {
       this.transport.listen<Projection>(STATE, ({ payload }) => {
         if (payload.connectionId !== this.connectionId || payload.revision <= this.revision) return
         this.revision = payload.revision
-        this.store.setState(state => {
+        this.store.setState((state) => {
           const sessions = { ...(payload.reset ? {} : state.sessions), ...payload.patch.sessions }
           for (const id of payload.removedSessions) delete sessions[id]
           return { ...payload.patch, sessions }
@@ -217,7 +217,7 @@ export class RemoteChatClient extends CodexClient {
         this.pending.delete(id)
         reject(new Error("Main window did not answer the chat request"))
       }, 120_000)
-      this.pending.set(id, { resolve: value => resolve(value as Awaited<ReturnType<CodexClient[M]>>), reject, timer })
+      this.pending.set(id, { resolve: (value) => resolve(value as Awaited<ReturnType<CodexClient[M]>>), reject, timer })
       void this.transport
         .emitTo("main", REQUEST, { connectionId: this.connectionId, id, method, args } satisfies Request)
         .catch((error: unknown) => {

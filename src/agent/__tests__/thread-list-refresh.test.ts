@@ -66,7 +66,7 @@ test("changes during a fetch schedule one trailing refresh; disposal cancels sch
     .spyOn(client, "listThreads")
     .mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           finish = resolve
         })
     )

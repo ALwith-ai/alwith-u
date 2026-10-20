@@ -8,7 +8,7 @@ const meta = {
   component: NavigationAds,
   args: { onOpenVibemon: () => {} },
   decorators: [
-    Story => (
+    (Story) => (
       <div style={{ width: 256, padding: 4 }}>
         <Story />
       </div>

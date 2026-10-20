@@ -25,7 +25,7 @@ export function saveDrivePins(profile: string, docs: PinnedDoc[]): void {
 }
 export function useDrivePins(profile: string): PinnedDoc[] {
   return useSyncExternalStore(
-    listener => {
+    (listener) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
@@ -39,7 +39,7 @@ export function rebaseDrivePins(profile: string, source: string, destination: st
   const prefix = `${source.replace(/\/+$/, "")}/`
   saveDrivePins(
     profile,
-    read(profile).map(doc =>
+    read(profile).map((doc) =>
       doc.path === source || doc.path.startsWith(prefix)
         ? { ...doc, path: destination + doc.path.slice(source.length) }
         : doc

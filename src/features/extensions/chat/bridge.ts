@@ -26,7 +26,7 @@ export function createExtensionChatBridge(dependencies: ChatBridgeDependencies):
     dependencies.check()
   }
   return {
-    sendMessage: text => perform(text, false),
-    setDraft: text => perform(text, true)
+    sendMessage: (text) => perform(text, false),
+    setDraft: (text) => perform(text, true)
   }
 }

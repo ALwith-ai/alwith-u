@@ -10,12 +10,12 @@ export function useWindowFocus(): boolean {
     const stop = window.onFocusChanged(({ payload }) => {
       if (!disposed) setFocused(payload)
     })
-    void window.isFocused().then(value => {
+    void window.isFocused().then((value) => {
       if (!disposed) setFocused(value)
     })
     return () => {
       disposed = true
-      void stop.then(unlisten => unlisten())
+      void stop.then((unlisten) => unlisten())
     }
   }, [])
   return focused

@@ -37,7 +37,7 @@ export async function sendExtensionMessage(
   required: string[],
   dependencies: ChatDependencies
 ): Promise<void> {
-  await dispatchMessage(id, text, required, dependencies, async prompt => {
+  await dispatchMessage(id, text, required, dependencies, async (prompt) => {
     dependencies.present(id)
     await dependencies.prompt(id, prompt)
   })
@@ -50,7 +50,7 @@ export async function setExtensionDraft(
   dependencies: ChatDependencies
 ): Promise<void> {
   if (typeof text !== "string" || !text.trim()) throw new Error("草稿内容不能为空")
-  await dispatchMessage(id, text, required, dependencies, prompt => {
+  await dispatchMessage(id, text, required, dependencies, (prompt) => {
     if (!dependencies.writeDraft) throw new Error("当前宿主不支持草稿写入")
     dependencies.writeDraft(id, prompt)
     dependencies.present(id)

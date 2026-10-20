@@ -26,7 +26,7 @@ export const driveControls: DriveControls = {
         }
       />
       <DropdownMenuContent>
-        {items.map(item => (
+        {items.map((item) => (
           <DropdownMenuItem key={item.label} disabled={item.disabled} onClick={item.onSelect}>
             {item.label}
           </DropdownMenuItem>
@@ -38,7 +38,7 @@ export const driveControls: DriveControls = {
     <ContextMenu>
       <ContextMenuTrigger>{children}</ContextMenuTrigger>
       <ContextMenuContent>
-        {items.map(item => (
+        {items.map((item) => (
           <ContextMenuItem key={item.label} disabled={item.disabled} onClick={item.onSelect}>
             {item.label}
           </ContextMenuItem>
@@ -49,15 +49,16 @@ export const driveControls: DriveControls = {
   Select: ({ value, onValueChange, options, disabled, "aria-label": label }): ReactNode => (
     <Select
       value={value}
-      onValueChange={next => {
+      onValueChange={(next) => {
         if (next !== null) onValueChange(next)
       }}
-      disabled={disabled}>
+      disabled={disabled}
+    >
       <SelectTrigger aria-label={label}>
-        <SelectValue>{options.find(option => option.value === value)?.label}</SelectValue>
+        <SelectValue>{options.find((option) => option.value === value)?.label}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {options.map(option => (
+        {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
           </SelectItem>

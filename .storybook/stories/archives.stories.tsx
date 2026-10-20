@@ -42,14 +42,14 @@ const meta = {
     const list = spyOn(client, "listThreads").mockImplementation(async () => {
       client.store.setState({ archivedThreads: chats, archivedLoaded: true, archivedCursor: null })
     })
-    const restore = spyOn(client, "unarchive").mockImplementation(async id => {
-      client.store.setState(state => ({
-        archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    const restore = spyOn(client, "unarchive").mockImplementation(async (id) => {
+      client.store.setState((state) => ({
+        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
       }))
     })
-    const remove = spyOn(client, "delete").mockImplementation(async id => {
-      client.store.setState(state => ({
-        archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    const remove = spyOn(client, "delete").mockImplementation(async (id) => {
+      client.store.setState((state) => ({
+        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
       }))
     })
     return () => {

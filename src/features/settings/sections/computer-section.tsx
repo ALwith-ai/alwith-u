@@ -44,7 +44,7 @@ export function ComputerSection() {
               disabled={
                 pending || (!status?.enabled && (!status?.available || !status.permissions.supported || !permitted))
               }
-              onCheckedChange={value => void toggle(value)}
+              onCheckedChange={(value) => void toggle(value)}
             />
           </SettingRow>
           <p className="pb-3 text-xs text-muted-foreground">{t("computer.scope")}</p>
@@ -55,11 +55,12 @@ export function ComputerSection() {
           )}
           {isMac() &&
             status?.permissions.supported &&
-            (["accessibility", "screenCapture"] as const).map(permission => (
+            (["accessibility", "screenCapture"] as const).map((permission) => (
               <SettingRow
                 key={permission}
                 title={t(`computer.${permission}`)}
-                desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}>
+                desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}
+              >
                 <div className="flex gap-2">
                   {!status.permissions[permission] && (
                     <Button
@@ -67,7 +68,8 @@ export function ComputerSection() {
                       size="sm"
                       onClick={() =>
                         void perform(() => commands.computerRequestPermissions({ permission, request: true }))
-                      }>
+                      }
+                    >
                       {t("computer.grantPermissions")}
                     </Button>
                   )}
@@ -76,7 +78,8 @@ export function ComputerSection() {
                     size="sm"
                     onClick={() =>
                       void perform(() => commands.computerRequestPermissions({ permission, request: false }))
-                    }>
+                    }
+                  >
                     {t("computer.openSettings")}
                   </Button>
                 </div>

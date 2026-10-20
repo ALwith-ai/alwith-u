@@ -19,8 +19,8 @@ export function openChatSearch(sessionId: string): void {
 
 export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElement | null>; sessionId: string }) {
   const { t } = useTranslation()
-  const turns = useStore(threadRegistry, state => state.turns)
-  const registeredSessionId = useStore(threadRegistry, state => state.sessionId)
+  const turns = useStore(threadRegistry, (state) => state.turns)
+  const registeredSessionId = useStore(threadRegistry, (state) => state.sessionId)
   const getViewport = useCallback(
     () => rootRef.current?.querySelector<HTMLElement>("[data-chat-scroll]") ?? null,
     [rootRef]
@@ -51,7 +51,7 @@ export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElem
       return () => {
         window.removeEventListener(OPEN_SEARCH, requested)
         window.removeEventListener("keydown", handler)
-        void stopMenu.then(stop => stop())
+        void stopMenu.then((stop) => stop())
       }
     },
     [sessionId]

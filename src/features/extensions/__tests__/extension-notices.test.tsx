@@ -45,7 +45,7 @@ test("history failures surface once without a compatibility notice on opening or
   const view = render(<Toaster />)
   try {
     await act(async () => {
-      const host = create({ manifest, cancellation: scope.cancellation, own: dispose => scope.own(dispose) })
+      const host = create({ manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) })
       await expect(
         host.invoke("list_sessions", { baseDir: "/__alwith_legacy/yup-kb/.alwith/projects" })
       ).rejects.toThrow("会话归档需要 codex-acp-v2")
@@ -55,22 +55,22 @@ test("history failures surface once without a compatibility notice on opening or
       await expect(
         host.invoke("plugin:fs|read_dir", { path: "/__alwith_legacy/yup-kb/.alwith/projects" })
       ).rejects.toThrow("会话归档需要 codex-acp-v2")
-      await new Promise<void>(resolve => setTimeout(resolve, 20))
+      await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
-    const archivalNotices = [...view.container.querySelectorAll("[data-sonner-toast]")].filter(notice =>
+    const archivalNotices = [...view.container.querySelectorAll("[data-sonner-toast]")].filter((notice) =>
       notice.textContent?.includes("会话归档")
     )
     expect(archivalNotices).toHaveLength(1)
     await act(async () => {
       showExtensionLimitations({ ...installation, enabled: false })
       showExtensionLimitations({ ...installation, source: "local" })
-      await new Promise<void>(resolve => setTimeout(resolve, 20))
+      await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
     expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
     await act(async () => {
       showExtensionLimitations(installation)
       showExtensionLimitations(installation)
-      await new Promise<void>(resolve => setTimeout(resolve, 20))
+      await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
     expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
     expect(view.container.querySelectorAll("[data-sonner-toast]")).toHaveLength(1)
@@ -83,7 +83,7 @@ test("extension notices remain manually dismissible after updating an indefinite
   const scope = new ResourceScope()
   const notices = commonCapabilities.notices.create({
     cancellation: scope.cancellation,
-    own: dispose => scope.own(dispose),
+    own: (dispose) => scope.own(dispose),
     manifest: {
       id: "notice-test",
       name: "Notice test",
@@ -100,12 +100,12 @@ test("extension notices remain manually dismissible after updating an indefinite
     await act(async () => {
       const notice = notices.show("Initial notice", 0)
       notice.setMessage("Updated notice")
-      await new Promise<void>(resolve => setTimeout(resolve, 20))
+      await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
     expect(view.getByText("Updated notice")).toBeTruthy()
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "Close toast" }))
-      await new Promise<void>(resolve => setTimeout(resolve, 250))
+      await new Promise<void>((resolve) => setTimeout(resolve, 250))
     })
     expect(view.queryByText("Updated notice")).toBeNull()
   } finally {

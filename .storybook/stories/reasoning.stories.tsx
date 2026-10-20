@@ -24,20 +24,21 @@ function ReasoningPreview() {
         <Button
           disabled={finished}
           onClick={() =>
-            setSession(current =>
+            setSession((current) =>
               applyUpdate(current, {
                 sessionUpdate: "agent_thought_chunk",
                 messageId: id,
                 content: { type: "text", text: "\n\nNewest reasoning update." }
               })
             )
-          }>
+          }
+        >
           Append reasoning
         </Button>
         <Button
           disabled={finished}
           onClick={() => {
-            setSession(current =>
+            setSession((current) =>
               applyUpdate(current, {
                 sessionUpdate: "agent_message_chunk",
                 messageId: `${id}-commentary`,
@@ -46,7 +47,8 @@ function ReasoningPreview() {
               })
             )
             setFinished(true)
-          }}>
+          }}
+        >
           Finish reasoning
         </Button>
       </div>

@@ -57,7 +57,7 @@ test("deleted and reconnected unsent drafts never become activity navigation tar
     record("conversation", false, "running")
   ])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={thread => selected.push(thread.sessionId)} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
   expect(view.queryByText("deleted")).not.toBeInTheDocument()
   // Deletion drops local ownership; Runtime may still broadcast the unsent draft.
   await act(async () => client.store.setState({ draftSessions: {} }))
@@ -98,14 +98,14 @@ test("conversations remain navigable in every Runtime state without a sidebar hi
     record("idle", false)
   ])
   const selected: ThreadSummary[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={thread => selected.push(thread)} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread)} />)
   for (const id of ["running", "approval", "done", "idle"]) await act(async () => fireEvent.click(view.getByText(id)))
-  expect(selected.map(thread => thread.sessionId)).toEqual(["running", "approval", "done", "idle"])
-  expect(selected.every(thread => thread.cwd === "/tmp")).toBe(true)
+  expect(selected.map((thread) => thread.sessionId)).toEqual(["running", "approval", "done", "idle"])
+  expect(selected.every((thread) => thread.cwd === "/tmp")).toBe(true)
 })
 
 function rowIds(container: HTMLElement): (string | null)[] {
-  return [...container.querySelectorAll("[data-session-id]")].map(row => row.getAttribute("data-session-id"))
+  return [...container.querySelectorAll("[data-session-id]")].map((row) => row.getAttribute("data-session-id"))
 }
 
 test("activity order survives updated timestamps, reversed snapshots and panel remounts", async () => {
@@ -136,7 +136,7 @@ test("activity order survives updated timestamps, reversed snapshots and panel r
 test("Ctrl hints and shortcuts follow visible rows and ignore collapsed groups", async () => {
   client.applyRunStates([record("background", false), record("foreground", false)])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId="foreground" onSelect={thread => selected.push(thread.sessionId)} />)
+  const view = render(<ActivityPanel selectedId="foreground" onSelect={(thread) => selected.push(thread.sessionId)} />)
   await act(async () => fireEvent.keyDown(window, { key: "Control", ctrlKey: true }))
   expect(view.getByText("Ctrl+1")).toBeInTheDocument()
   await act(async () => fireEvent.keyDown(window, { key: "2", ctrlKey: true }))
@@ -153,7 +153,7 @@ test("Ctrl hints and shortcuts follow visible rows and ignore collapsed groups",
 test("listening ports open externally without selecting the session", async () => {
   client.applyRunStates([{ ...record("server", false), listeningPorts: [3000, 5173] }])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={thread => selected.push(thread.sessionId)} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
   await act(async () => fireEvent.click(view.getByRole("button", { name: ":5173" })))
   expect(openUrl).toHaveBeenCalledExactlyOnceWith("http://localhost:5173")
   expect(selected).toEqual([])
@@ -164,7 +164,7 @@ test("visible chat-window sessions join the foreground and clicks focus their ex
   client.store.setState({ sessionWindows: { "chat-window": "chat" } })
   useChatWindowSurface.setState({ sessionId: "chat-window", visible: true })
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId="main" onSelect={thread => selected.push(thread.sessionId)} />)
+  const view = render(<ActivityPanel selectedId="main" onSelect={(thread) => selected.push(thread.sessionId)} />)
   expect(rowIds(view.container)).toEqual(["chat-window", "main", "background"])
   expect(view.getByLabelText("Floating window")).toBeInTheDocument()
   await act(async () => fireEvent.click(view.getByText("chat-window")))
@@ -178,11 +178,11 @@ test("visible chat-window sessions join the foreground and clicks focus their ex
   expect(selected).toEqual([])
 })
 
-test.each([true, false])("primary-modifier navigation respects platform and active dialogs (mac=%s)", async mac => {
+test.each([true, false])("primary-modifier navigation respects platform and active dialogs (mac=%s)", async (mac) => {
   vi.mocked(isMac).mockReturnValue(mac)
   client.applyRunStates([record("target", false)])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={thread => selected.push(thread.sessionId)} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
   const modifier = mac ? { metaKey: true } : { ctrlKey: true }
   await act(async () => fireEvent.keyDown(window, { key: "1", ...(mac ? { ctrlKey: true } : { metaKey: true }) }))
   expect(selected).toEqual([])

@@ -14,7 +14,7 @@ import * as projectApps from "../open-in-editor"
 import { ProjectSessionPopover } from "../project-session-popover"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
+vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   openPath: vi.fn()
 }))
@@ -22,7 +22,7 @@ vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
 await initI18n("en")
 const connect = vi.spyOn(client, "connect").mockResolvedValue()
 const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith U")
-const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
   apps: [],
   active: undefined,
   openWith: () => {},
@@ -54,7 +54,7 @@ test("project popover shows the full count, expands beyond five chats and routes
   const selected: ThreadSummary[] = []
   try {
     const view = render(
-      <ProjectSessionPopover cwd="/tmp/project" onSelect={thread => selected.push(thread)} onNewChat={() => {}} />
+      <ProjectSessionPopover cwd="/tmp/project" onSelect={(thread) => selected.push(thread)} onNewChat={() => {}} />
     )
     expect(list).not.toHaveBeenCalled()
     await act(async () => {
@@ -174,11 +174,12 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
     const sidebar = render(
       <NavigationGroup
         open={false}
-        onOpenChange={value => toggles.push(value)}
+        onOpenChange={(value) => toggles.push(value)}
         label="Project group"
-        wrapHeader={trigger => (
+        wrapHeader={(trigger) => (
           <ProjectSessionPopover cwd="/tmp/project" trigger={trigger} onSelect={() => {}} onNewChat={() => {}} />
-        )}>
+        )}
+      >
         <span>Children</span>
       </NavigationGroup>
     )
@@ -261,7 +262,7 @@ test("session-card title and path scroll only on hover and the path opens its ow
 })
 
 test("project path aliases share the popover cache and still show every matching chat", async () => {
-  const key = vi.spyOn(client, "projectPath").mockImplementation(cwd => cwd.replace(/^\/var\//, "/private/var/"))
+  const key = vi.spyOn(client, "projectPath").mockImplementation((cwd) => cwd.replace(/^\/var\//, "/private/var/"))
   client.store.setState({ threads: threads("/private/var/deleted-project") })
   const list = vi.spyOn(client, "listThreads")
   try {
@@ -291,7 +292,7 @@ test("project path aliases share the popover cache and still show every matching
 
 test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith U"])(
   "quick-chat directory %s exposes the shared quick-chat popover",
-  async cwd => {
+  async (cwd) => {
     client.store.setState({ threads: threads("/Users/mac/Documents/Codex/nested") })
     const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
@@ -306,7 +307,7 @@ test.each([
   String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
   String.raw`C:\Windows\Temp\project`,
   String.raw`D:\Scratch\project`
-])("temporary directory %s exposes its project chats", async cwd => {
+])("temporary directory %s exposes its project chats", async (cwd) => {
   client.store.setState({ threads: threads(cwd) })
   const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
   await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))

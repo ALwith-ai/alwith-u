@@ -18,7 +18,7 @@ import { openSettingsWindow } from "@/lib/window-manager"
 import { loadVoiceSettings, voiceProfiles } from "./settings"
 import { useVoiceEnabled } from "./use-voice-enabled"
 import { VoiceWaveform } from "./voice-waveform"
-const transport = createTauriTransport({ invoke, channel: receive => new Channel(receive) })
+const transport = createTauriTransport({ invoke, channel: (receive) => new Channel(receive) })
 export function VoiceButton({
   draft,
   cwd,
@@ -73,7 +73,7 @@ export function VoiceButton({
         canStart: () => enabled,
         supportsHandsfree: () => supportsHandsfree,
         loadSettings: async () => recordingSettings(await loadVoiceSettings(), cwd),
-        isConfigured: async provider => (await voiceProfiles())[provider],
+        isConfigured: async (provider) => (await voiceProfiles())[provider],
         configure: () => openSettingsWindow("voice"),
         submit: async () => {
           if (submit === null) throw new Error("voice_submit_unavailable")
@@ -81,7 +81,7 @@ export function VoiceButton({
         },
         waitForTurn,
         onNoSpeech: () => toast.info(t("voice.noSpeech")),
-        onError: error => {
+        onError: (error) => {
           const detail = "detail" in error ? error.detail : null
           const reference =
             typeof detail === "object" &&

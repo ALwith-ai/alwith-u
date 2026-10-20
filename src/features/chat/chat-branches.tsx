@@ -33,14 +33,14 @@ export function ChatBranchProvider({
   onSelect?: (thread: ThreadSummary) => void
   children: ReactNode
 }) {
-  const agent = useApp(state => state.agent)
-  const connected = useApp(state => state.connection === "ready")
+  const agent = useApp((state) => state.agent)
+  const connected = useApp((state) => state.connection === "ready")
   const features = codexExtensionCapabilities(agent)
-  const origin = useApp(state => state.forkOrigins[session.id])
+  const origin = useApp((state) => state.forkOrigins[session.id])
   // A native turn may contain several user messages and therefore several UI batches.
   // Only its final item owns the marker, not every batch with the same turn id.
   const boundaryItem = session.items.findLast(
-    item => origin?.boundaryTurnId != null && codexTurnId(item._meta) === origin.boundaryTurnId
+    (item) => origin?.boundaryTurnId != null && codexTurnId(item._meta) === origin.boundaryTurnId
   )
   const { t } = useTranslation()
   const [openingSource, setOpeningSource] = useState(false)
@@ -66,7 +66,7 @@ export function ChatBranchProvider({
     setOpeningSource(true)
     void client
       .readThreadSummary(origin.sourceId)
-      .then(thread => {
+      .then((thread) => {
         if (!mounted.current) return
         if (!thread) throw new Error(t("chat.branches.sourceUnavailable"))
         onSelect(thread)
@@ -85,8 +85,8 @@ export function ChatBranchProvider({
     setPending(true)
     void client
       .fork(session.id, session.cwd, turnId)
-      .then(id => {
-        const thread = client.state.threads.find(entry => entry.sessionId === id)
+      .then((id) => {
+        const thread = client.state.threads.find((entry) => entry.sessionId === id)
         if (!thread) throw new Error("Forked chat is missing from the session list")
         if (mounted.current) onSelect?.(thread)
       })
@@ -124,7 +124,8 @@ export function ForkTurnButton({ turnId }: { turnId: string | null }) {
       aria-label={t("chat.branches.create")}
       title={t("chat.branches.create")}
       disabled={!actions.canFork || actions.pending}
-      onClick={() => actions.fork(turnId)}>
+      onClick={() => actions.fork(turnId)}
+    >
       <SplitIcon className="rotate-90" />
     </Button>
   )
@@ -149,7 +150,8 @@ export function ForkOriginDivider({ turn }: { turn?: Turn }) {
         size="xs"
         className="max-w-[75%] min-w-0 text-muted-foreground"
         disabled={actions.openingSource}
-        onClick={actions.openSource}>
+        onClick={actions.openSource}
+      >
         <SplitIcon className="size-3.5 rotate-90" />
         <span>{t("chat.branches.continuedFrom")}</span>
       </Button>

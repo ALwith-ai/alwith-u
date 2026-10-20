@@ -61,10 +61,10 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
-  const threads = useApp(state => state.threads)
-  const connection = useApp(state => state.connection)
+  const threads = useApp((state) => state.threads)
+  const connection = useApp((state) => state.connection)
   const [id, setId] = useState<string | null>(
-    () => Object.keys(client.state.draftSessions).find(key => client.state.draftSessions[key] === owner) ?? null
+    () => Object.keys(client.state.draftSessions).find((key) => client.state.draftSessions[key] === owner) ?? null
   )
   const session = useSession(id)
   // Local input exists before ACP does; this detached view never enters the client store.
@@ -91,7 +91,7 @@ export function DraftChat({
   const recentProjects = useMemo(
     () => [
       ...new Set(
-        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map(thread => thread.cwd)
+        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map((thread) => thread.cwd)
       )
     ],
     [threads]
@@ -204,7 +204,7 @@ export function DraftChat({
           <span>
             {error !== null ? (error instanceof Error ? error.message : String(error)) : t("connection.disconnected")}
           </span>
-          <Button variant="outline" size="sm" onClick={() => setAttempt(value => value + 1)}>
+          <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
             {t("actions.retry")}
           </Button>
           {isAuthError(error) && (
@@ -235,7 +235,7 @@ export function DraftChat({
                 session.restoring ||
                 session.readOnly
               }
-              onModelChange={value => {
+              onModelChange={(value) => {
                 setPreparing(true)
                 setModel(value)
               }}
@@ -243,7 +243,7 @@ export function DraftChat({
           ) : undefined
         }
         disabled={session === null || preparing || error !== null || connection !== "ready"}
-        onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
+        onSubmit={runOperation ? (prompt) => runOperation(() => send(prompt)) : send}
       />
     </div>
   )

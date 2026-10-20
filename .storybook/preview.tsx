@@ -9,7 +9,7 @@ import { AppDirectionProvider } from "../src/components/alwith-ui/app-direction-
 import { ThemeProvider, useTheme } from "../src/components/theme-provider"
 import i18n, { initI18n } from "../src/lib/i18n"
 
-mockIPC(command => {
+mockIPC((command) => {
   if (command === "plugin:log|log") return
   throw new Error(`Unexpected Storybook IPC command: ${command}`)
 })

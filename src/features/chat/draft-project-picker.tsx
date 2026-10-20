@@ -42,10 +42,10 @@ export function DraftProjectPicker({
   useEffect(() => {
     let active = true
     void invoke<string>("draft_directory", { cwd: null }).then(
-      path => {
+      (path) => {
         if (active) setDefaultCwd(path)
       },
-      error => {
+      (error) => {
         if (active) toast.error(String(error))
       }
     )
@@ -53,13 +53,14 @@ export function DraftProjectPicker({
       active = false
     }
   }, [])
-  const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter(path => path !== cwd)].filter(
-    path => path !== defaultCwd && !isQuickChatDirectory(path)
+  const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
+    (path) => path !== defaultCwd && !isQuickChatDirectory(path)
   )
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="h-7 max-w-full gap-1.5 px-2 text-sm font-normal" />}>
+        render={<Button variant="ghost" size="sm" className="h-7 max-w-full gap-1.5 px-2 text-sm font-normal" />}
+      >
         <FolderClosedIcon data-icon="inline-start" />
         <span className="truncate">
           {cwd === null || cwd === defaultCwd ? t("chat.draft.selectProject") : basename(cwd)}
@@ -70,7 +71,7 @@ export function DraftProjectPicker({
           <>
             <Pane className="flex-none" viewportClassName="max-h-64">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
-                {projects.map(path => (
+                {projects.map((path) => (
                   <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>
                     <FolderClosedIcon />
                     <span className="truncate">{basename(path)}</span>
@@ -84,10 +85,11 @@ export function DraftProjectPicker({
         <DropdownMenuGroup>
           <DropdownMenuItem
             onClick={() => {
-              void chooseFolder(cwd).then(path => {
+              void chooseFolder(cwd).then((path) => {
                 if (path !== null) onChange(path)
               })
-            }}>
+            }}
+          >
             <FolderPlusIcon />
             {t("chat.draft.newProject")}
           </DropdownMenuItem>

@@ -209,7 +209,7 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
           <p>Jump into the part of the workflow you need.</p>
         </div>
         <div className="guide-topic-grid">
-          {[3, 4, 5, 6, 7, 9].map(index => {
+          {[3, 4, 5, 6, 7, 9].map((index) => {
             const Icon = details[index].icon
             return (
               <Button key={index} variant="outline" className="guide-topic-card" onClick={() => navigate(index)}>
@@ -249,7 +249,7 @@ export function GuidePage() {
     () => ({
       theme: resolvedTheme,
       copyLabel: "Copy",
-      openLink: url => {
+      openLink: (url) => {
         void openExternal(url).catch((error: unknown) => toast.error(String(error)))
       }
     }),
@@ -280,7 +280,8 @@ export function GuidePage() {
                   variant="ghost"
                   className="guide-navigation-item"
                   aria-current={selected === index ? "page" : undefined}
-                  onClick={() => setSelected(index)}>
+                  onClick={() => setSelected(index)}
+                >
                   <Icon />
                   {item.title}
                 </Button>
@@ -295,7 +296,8 @@ export function GuidePage() {
             </span>
           </div>
         </nav>
-      }>
+      }
+    >
       <main key={selected} className="guide-main" aria-label={chapter.title}>
         {selected === 0 ? (
           <GuideHome navigate={setSelected} />
@@ -328,7 +330,7 @@ export function GuidePage() {
                 {chapter.text
                   .split(/^### /m)
                   .slice(1)
-                  .map(part => (
+                  .map((part) => (
                     <p key={part.split("\n")[0]}>{part.split("\n")[0]}</p>
                   ))}
                 <div>
@@ -341,7 +343,8 @@ export function GuidePage() {
               <Button
                 variant="outline"
                 aria-label={`Previous ${chapters[selected - 1].title}`}
-                onClick={() => setSelected(selected - 1)}>
+                onClick={() => setSelected(selected - 1)}
+              >
                 <ArrowLeftIcon />
                 <span>
                   <small>Previous</small>
@@ -352,7 +355,8 @@ export function GuidePage() {
                 <Button
                   variant="outline"
                   aria-label={`Next ${chapters[selected + 1].title}`}
-                  onClick={() => setSelected(selected + 1)}>
+                  onClick={() => setSelected(selected + 1)}
+                >
                   <span>
                     <small>Next</small>
                     {chapters[selected + 1].title}

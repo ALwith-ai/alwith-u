@@ -22,11 +22,15 @@ test("wallpaper dialogs receive the current app language through the native boun
     return command === "wallpaper_remove" ? false : null
   })
   const scope = new ResourceScope()
-  const provider = createWallpaperCapability(error => {
+  const provider = createWallpaperCapability((error) => {
     throw error
   })
   if (!provider.create) throw new Error("Expected a scoped provider")
-  const capability = provider.create({ manifest, cancellation: scope.cancellation, own: dispose => scope.own(dispose) })
+  const capability = provider.create({
+    manifest,
+    cancellation: scope.cancellation,
+    own: (dispose) => scope.own(dispose)
+  })
   try {
     await initI18n("zh-CN")
     expect(await capability.removeImage("test-image")).toBe(false)
@@ -44,14 +48,14 @@ test("wallpaper dialogs receive the current app language through the native boun
 
 test("adapter accepts any authorized binding and releases presentation on cancellation", async (): Promise<void> => {
   const scope = new ResourceScope()
-  const provider = createWallpaperCapability(error => {
+  const provider = createWallpaperCapability((error) => {
     throw error
   })
   if (!provider.create) throw new Error("Expected a scoped provider")
   const capability = provider.create({
     manifest: { ...manifest, id: "another-wallpaper-client" },
     cancellation: scope.cancellation,
-    own: dispose => scope.own(dispose)
+    own: (dispose) => scope.own(dispose)
   })
   try {
     capability.show({ url: "extension://token/assets/test.jpg", fit: "cover", brightness: 100, blur: 0 })

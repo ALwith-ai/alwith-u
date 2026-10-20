@@ -10,11 +10,11 @@ let nextFrame = 0
 let time = 0
 beforeEach(() => {
   time = performance.now()
-  globalThis.requestAnimationFrame = callback => {
+  globalThis.requestAnimationFrame = (callback) => {
     frames.set(++nextFrame, callback)
     return nextFrame
   }
-  globalThis.cancelAnimationFrame = id => {
+  globalThis.cancelAnimationFrame = (id) => {
     frames.delete(id)
   }
 })

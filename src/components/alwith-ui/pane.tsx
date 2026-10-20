@@ -39,14 +39,16 @@ export function Pane({
         onScroll={onScroll}
         data-slot="scroll-area-viewport"
         {...viewportProps}
-        className={cn("size-full rounded-[inherit] outline-none", viewportClassName, viewportProps?.className)}>
+        className={cn("size-full rounded-[inherit] outline-none", viewportClassName, viewportProps?.className)}
+      >
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollAreaPrimitive.Scrollbar
         data-slot="scroll-area-scrollbar"
         data-orientation="vertical"
         orientation="vertical"
-        className="flex h-full w-1.5 touch-none p-px transition-colors select-none">
+        className="flex h-full w-1.5 touch-none p-px transition-colors select-none"
+      >
         <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="relative flex-1 rounded-full bg-border" />
       </ScrollAreaPrimitive.Scrollbar>
       <ScrollAreaPrimitive.Corner />

@@ -35,7 +35,8 @@ export function SlashCommandButton({
       onClick={() => {
         onOpenChange(!wasOpenRef.current)
         textareaRef.current?.getTextarea()?.focus()
-      }}>
+      }}
+    >
       <SquareSlashIcon className="size-4" />
     </PromptInputButton>
   )

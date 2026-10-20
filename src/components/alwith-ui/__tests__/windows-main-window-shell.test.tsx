@@ -19,7 +19,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-test.each(["windows", "macos"])("%s routes extension actions to the appropriate toolbar", os => {
+test.each(["windows", "macos"])("%s routes extension actions to the appropriate toolbar", (os) => {
   native.os = os
   const activate = vi.fn()
   function ExtensionAction(): ReactElement {
@@ -79,7 +79,7 @@ test("plugin titlebar height follows page zoom", () => {
   expect(document.documentElement.style.getPropertyValue("--tauri-plugin-decoration-titlebar-height")).toBe("16px")
 })
 
-test.each(["macos", "linux"])("%s keeps the original content without a custom title bar", os => {
+test.each(["macos", "linux"])("%s keeps the original content without a custom title bar", (os) => {
   native.os = os
   render(
     <WindowsMainWindowShell>

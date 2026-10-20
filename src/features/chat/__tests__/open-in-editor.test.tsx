@@ -19,7 +19,7 @@ test("main header preloads apps before opening its menu and remounts use the res
   ]
   let finish!: (apps: openWithApp.AppInfo[]) => void
   const readAppsInfo = vi.spyOn(openWithApp, "readAppsInfo").mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )

@@ -86,7 +86,7 @@ export async function serveChatSurface(
 
 function forgetChatWindow(): void {
   useChatWindowSurface.setState({ sessionId: null, visible: false })
-  client.store.setState(state => ({
+  client.store.setState((state) => ({
     sessionWindows: Object.fromEntries(Object.entries(state.sessionWindows).filter(([, owner]) => owner !== "chat"))
   }))
 }
@@ -137,7 +137,7 @@ async function createChatWindow(): Promise<void> {
 const controller = createWindowController<ChatTransfer>({
   exists: async () => (await WebviewWindow.getByLabel("chat")) !== null,
   create: createChatWindow,
-  deliver: async transfer => {
+  deliver: async (transfer) => {
     await requestChatSurface("chat", { type: "present", transfer })
   },
   present: async () => {

@@ -45,7 +45,7 @@ function PreviewExample(): ReactNode {
       expanded: ["/ALwith", "/ALwith/.alwith"],
       reportError
     })
-    const opener = createTreeOpener(editor, async path => path, tabs)
+    const opener = createTreeOpener(editor, async (path) => path, tabs)
     return { tree, editor, tabs, opener, reportError }
   })
   useEffect(() => {
@@ -65,7 +65,7 @@ function PreviewExample(): ReactNode {
             treeVisible={treeVisible}
             onTreeVisibleChange={setTreeVisible}
             maximized={maximized}
-            onMaximize={() => setMaximized(value => !value)}
+            onMaximize={() => setMaximized((value) => !value)}
             onClose={() => setClosed(true)}
             tree={
               <FileTree
@@ -74,8 +74,8 @@ function PreviewExample(): ReactNode {
                 controller={state.tree}
                 isDark={resolvedTheme === "dark"}
                 onError={state.reportError}
-                onOpenFile={path => state.opener.open(path)}
-                onPinFile={path => state.opener.open(path, true)}
+                onOpenFile={(path) => state.opener.open(path)}
+                onPinFile={(path) => state.opener.open(path, true)}
                 explorerControl={
                   <Button variant="ghost" size="icon-sm" aria-label="Hide tree" onClick={() => setTreeVisible(false)}>
                     <FolderTree />

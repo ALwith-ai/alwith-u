@@ -16,5 +16,5 @@ interface LegacyProfile {
 const adapters: readonly LegacyProfile[] = profiles
 
 export function findLegacyProfile(id: string): LegacyProfile | undefined {
-  return adapters.find(item => item.id === id)
+  return adapters.find((item) => item.id === id)
 }

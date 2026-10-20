@@ -27,7 +27,7 @@ function decodeState(root: string, raw: string): WorkspaceState {
   if (
     !Array.isArray(state.tabs) ||
     !state.tabs.every(
-      tab => typeof tab === "object" && tab !== null && validPath(tab.path) && typeof tab.pinned === "boolean"
+      (tab) => typeof tab === "object" && tab !== null && validPath(tab.path) && typeof tab.pinned === "boolean"
     ) ||
     !Array.isArray(state.expanded) ||
     !state.expanded.every(validPath) ||
@@ -43,7 +43,7 @@ function decodeState(root: string, raw: string): WorkspaceState {
       !layout ||
       !Array.isArray(layout.tabs) ||
       !layout.tabs.every(
-        tab =>
+        (tab) =>
           typeof tab === "object" &&
           tab !== null &&
           (tab.kind === "new" || (tab.kind === "file" && validPath(tab.path)))
@@ -55,7 +55,7 @@ function decodeState(root: string, raw: string): WorkspaceState {
           layout.activeIndex >= layout.tabs.length))
     )
       throw new Error("Invalid workspace tab layout")
-    const paths = layout.tabs.filter(tab => tab.kind === "file").map(tab => tab.path)
+    const paths = layout.tabs.filter((tab) => tab.kind === "file").map((tab) => tab.path)
     if (new Set(paths).size !== paths.length) throw new Error("Duplicate workspace tabs")
   }
   return state as unknown as WorkspaceState

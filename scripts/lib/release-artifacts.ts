@@ -62,7 +62,7 @@ export function releaseArtifacts(directory: string, tag: string): Artifact[] {
     ["windows-x86_64", "nsis"],
     ["windows-aarch64", "nsis"]
   ]) {
-    if (!artifacts.some(artifact => artifact.arch === arch && artifact.format === format)) {
+    if (!artifacts.some((artifact) => artifact.arch === arch && artifact.format === format)) {
       throw new Error(`Missing updater artifact: ${arch}/${format}`)
     }
   }

@@ -76,7 +76,7 @@ test("permission bubbles expose once-only options and preserve their operation c
     }
   }
   expect(petPrompt(action, { command: "ls" })?.detail).toContain('"command": "ls"')
-  expect(petPrompt(action)?.options.map(option => option.id)).toEqual(["yes", "no"])
+  expect(petPrompt(action)?.options.map((option) => option.id)).toEqual(["yes", "no"])
   expect(petAnswer(action, "yes")).toEqual({ outcome: { outcome: "selected", optionId: "yes" } })
   expect(() => petAnswer(action, "always")).toThrow("unavailable")
 })

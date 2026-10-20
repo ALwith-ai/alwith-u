@@ -63,7 +63,7 @@ async function fixture(consented?: true | "declined", id = "yup-kb", delayed = f
   await host.activate(
     manifest,
     "one",
-    context => {
+    (context) => {
       context.view("statusBar", { id: "status", title: "Status", mount: () => () => {} })
       return createLegacyExtension(context, {
         manifest,
@@ -100,18 +100,20 @@ async function fixture(consented?: true | "declined", id = "yup-kb", delayed = f
       };`
       })
     },
-    { data, resource: path => `https://assets.invalid/${path}` }
+    { data, resource: (path) => `https://assets.invalid/${path}` }
   )
   return { host, data, initial }
 }
 
-test.each(["同意并启用", "暂不启用"])("startup defers consent until the extension page opens: %s", async label => {
+test.each(["同意并启用", "暂不启用"])("startup defers consent until the extension page opens: %s", async (label) => {
   const { host, data, initial } = await fixture()
   try {
     expect(document.querySelector("[role=dialog]")).toBeNull()
     expect((await data.read())?.value).toEqual(initial)
     const errors: unknown[] = []
-    const ui = render(<ExtensionViewContent host={host} id="yup-kb/workspace" onError={error => errors.push(error)} />)
+    const ui = render(
+      <ExtensionViewContent host={host} id="yup-kb/workspace" onError={(error) => errors.push(error)} />
+    )
     await act(async () => {})
     expect(ui.getByRole("dialog")).toHaveTextContent("启用 AI 对话归档同步？")
     await act(async () => fireEvent.click(ui.getByRole("button", { name: label })))
@@ -129,14 +131,14 @@ test.each(["同意并启用", "暂不启用"])("startup defers consent until the
 
 test.each([true, "declined"] as const)(
   "a recorded decision skips the prompt and keeps the settings entry: %s",
-  async consented => {
+  async (consented) => {
     const { host, data } = await fixture(consented)
     try {
       const ui = render(
         <ExtensionViewContent
           host={host}
           id="yup-kb/settings"
-          onError={error => {
+          onError={(error) => {
             throw error
           }}
         />
@@ -164,7 +166,7 @@ test("other extensions still display their startup modals", async () => {
 test("Yup dialogs other than archive consent still appear before opening its page", async () => {
   const { host } = await fixture()
   try {
-    const command = host.snapshot().commands.find(command => command.id === "yup-kb/info")
+    const command = host.snapshot().commands.find((command) => command.id === "yup-kb/info")
     if (!command) throw new Error("Missing information command")
     await command.run()
     expect(document.querySelectorAll("[role=dialog]")).toHaveLength(1)
@@ -181,7 +183,7 @@ test("consent created after the extension page opens is displayed without anothe
       <ExtensionViewContent
         host={host}
         id="yup-kb/workspace"
-        onError={error => {
+        onError={(error) => {
           throw error
         }}
       />
@@ -189,7 +191,7 @@ test("consent created after the extension page opens is displayed without anothe
     await act(async () => {})
     expect(ui.queryByRole("dialog")).toBeNull()
     await act(async () => {
-      const command = host.snapshot().commands.find(command => command.id === "yup-kb/prompt")
+      const command = host.snapshot().commands.find((command) => command.id === "yup-kb/prompt")
       if (!command) throw new Error("Missing consent command")
       await command.run()
     })
@@ -207,7 +209,7 @@ test("mounting the startup status bar does not count as opening the extension", 
       <ExtensionViewContent
         host={host}
         id="yup-kb/status"
-        onError={error => {
+        onError={(error) => {
           throw error
         }}
       />

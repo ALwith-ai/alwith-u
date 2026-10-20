@@ -35,8 +35,8 @@ test("exports paginated text conversations without resuming a session", async ()
   const records = body
     .trim()
     .split("\n")
-    .map(line => JSON.parse(line))
-  expect(records.map(record => record.type)).toEqual(["user", "assistant"])
+    .map((line) => JSON.parse(line))
+  expect(records.map((record) => record.type)).toEqual(["user", "assistant"])
   expect(records[0]).toMatchObject({
     sessionId: "s",
     timestamp: "1970-01-01T00:01:40.000Z",

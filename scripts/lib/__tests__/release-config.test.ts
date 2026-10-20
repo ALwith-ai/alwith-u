@@ -33,7 +33,7 @@ function releaseWorkflow(): Record<string, Job> {
 }
 
 function tauriStep(job: Job): Step {
-  const step = job.steps?.find(candidate => candidate.uses?.startsWith("tauri-apps/tauri-action@"))
+  const step = job.steps?.find((candidate) => candidate.uses?.startsWith("tauri-apps/tauri-action@"))
   if (!step) throw new Error("job has no tauri-action step")
   return step
 }
@@ -49,10 +49,10 @@ test("every CI Bun installation uses the packageManager pin and checks toolchain
     const workflow = Bun.YAML.parse(read(path)) as Workflow
     for (const job of Object.values(workflow.jobs!)) {
       const steps = job.steps!
-      const setup = steps.find(step => step.uses === "oven-sh/setup-bun@v2")
-      if (!setup && steps.some(step => step.uses === "actions/setup-python@v5")) continue
+      const setup = steps.find((step) => step.uses === "oven-sh/setup-bun@v2")
+      if (!setup && steps.some((step) => step.uses === "actions/setup-python@v5")) continue
       expect(setup?.with?.["bun-version-file"]).toBe("package.json")
-      expect(steps.some(step => step.run === "bun scripts/check-toolchain.ts")).toBe(true)
+      expect(steps.some((step) => step.run === "bun scripts/check-toolchain.ts")).toBe(true)
     }
   }
 })
@@ -142,21 +142,21 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   expect(job!.if).toContain("inputs.tos_release_tag != ''")
   expect(testBundles.if).toContain("inputs.tos_release_tag == ''")
   expect(job!.permissions).toEqual({ contents: "write" })
-  const download = job!.steps!.findIndex(step => step.name === "Download release assets")
+  const download = job!.steps!.findIndex((step) => step.name === "Download release assets")
   const upload = job!.steps!.findIndex(
-    step =>
+    (step) =>
       step.run ===
       '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
   )
   expect(download).toBeGreaterThan(-1)
   expect(job!.steps![download]?.run).toContain("releases/$release_id/assets")
   expect(upload).toBeGreaterThan(download)
-  const register = job!.steps!.findIndex(step => step.name === "Register release artifacts")
+  const register = job!.steps!.findIndex((step) => step.name === "Register release artifacts")
   expect(register).toBeGreaterThan(upload)
   expect(job!.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
   expect(job!.steps![register]?.env).toMatchObject({
     API_BASE: "${{ vars.API_BASE || secrets.API_BASE }}",
     CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"
   })
-  expect(job!.steps!.find(step => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
+  expect(job!.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })

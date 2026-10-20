@@ -42,7 +42,7 @@ export function MainSidebarLayout({
   children?: ReactNode
 }) {
   const { t } = useTranslation()
-  const zoom = useStore(zoomStore, state => state.level)
+  const zoom = useStore(zoomStore, (state) => state.level)
   const titlebar = useContext(WindowsTitleBarContext)
   const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
@@ -160,7 +160,8 @@ export function MainSidebarLayout({
       style={titlebar ? { width: 32 / zoom, height: 32 / zoom } : undefined}
       onPointerEnter={enterSidebar}
       onPointerLeave={leaveSidebar}
-      onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
+      onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
+    >
       <Button
         ref={toggle}
         variant="ghost"
@@ -172,7 +173,8 @@ export function MainSidebarLayout({
         aria-controls={panelId}
         title={t(pinned ? "sidebar.unpin" : "sidebar.pin")}
         className="text-sidebar-foreground"
-        onClick={() => changePinned(!docked)}>
+        onClick={() => changePinned(!docked)}
+      >
         <ToggleIcon className="size-4 rtl:-scale-x-100" />
       </Button>
     </div>
@@ -194,7 +196,8 @@ export function MainSidebarLayout({
           // Native window controls keep their size when page content zooms.
           "--sidebar-toggle-left": isMac() && !fullscreen ? "calc(80px * var(--window-zoom-correction))" : "8px"
         } as CSSProperties
-      }>
+      }
+    >
       <div className="main-screen-track">
         <div className="main-screen-leading" data-screen-panel="leading" inert={mainActive} aria-hidden={mainActive}>
           {leading}
@@ -204,11 +207,12 @@ export function MainSidebarLayout({
             className="main-sidebar-shell"
             onPointerEnter={enterSidebar}
             onPointerLeave={leaveSidebar}
-            onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
+            onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
             onFocusCapture={cancelClose}
-            onBlurCapture={event => {
+            onBlurCapture={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
-            }}>
+            }}
+          >
             <div className="main-sidebar-viewport">
               <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
                 {sidebar}

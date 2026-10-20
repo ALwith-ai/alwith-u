@@ -23,7 +23,7 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
     let active = true
     void drive
       .request({ type: "archivePrivateSessions" })
-      .then(response => {
+      .then((response) => {
         if (response.type !== "archivePrivateSessions") throw new Error("Invalid private session list")
         if (active) setExcluded(response.data.includes(sessionId))
       })

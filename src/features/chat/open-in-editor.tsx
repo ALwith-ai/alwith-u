@@ -25,11 +25,11 @@ let appsRequest: Promise<AppInfo[]> | null = null
 
 function loadApps(): Promise<AppInfo[]> {
   appsRequest ??= readAppsInfo(externalAppCandidates(), true)
-    .then(result => {
+    .then((result) => {
       cachedApps = result
       return result
     })
-    .catch(error => {
+    .catch((error) => {
       appsRequest = null
       throw error
     })
@@ -43,7 +43,7 @@ export function useExternalApps(enabled = true): AppInfo[] {
     if (!enabled) return
     let alive = true
     void loadApps()
-      .then(result => {
+      .then((result) => {
         if (alive) setApps(result)
       })
       .catch((error: unknown) => {
@@ -62,18 +62,18 @@ function describe(error: unknown): string {
 
 export function useProjectApps(cwd: string | null) {
   const apps = useExternalApps(cwd !== null)
-  const preferred = useStore(projectAppPreference, state => state.preferred)
+  const preferred = useStore(projectAppPreference, (state) => state.preferred)
   const refresh = useCallback(() => {
     if (cwd === null) return
     const revision = projectAppPreference.getState().revision
     void loadPreferences()
-      .then(preferences => {
+      .then((preferences) => {
         if (projectAppPreference.getState().revision === revision) setProjectAppPreference(preferences.externalEditor)
       })
       .catch((error: unknown) => toast.error(describe(error)))
   }, [cwd])
   useEffect(refresh, [refresh])
-  const active = preferred === null ? apps[0] : apps.find(app => app.bundle_id === preferred)
+  const active = preferred === null ? apps[0] : apps.find((app) => app.bundle_id === preferred)
 
   const openWith = (app: AppInfo) => {
     if (cwd === null) throw new Error("Cannot open an external app without a project directory")
@@ -88,7 +88,7 @@ export function useProjectApps(cwd: string | null) {
     const preferences = await loadPreferences()
     const available = await loadApps()
     const selected = preferences.externalEditor
-    const app = selected === null ? available[0] : available.find(item => item.bundle_id === selected)
+    const app = selected === null ? available[0] : available.find((item) => item.bundle_id === selected)
     if (!app && selected !== null) throw new Error(i18n.t("actions.projectAppUnavailable"))
     if (app) await openPathInApp(app.bundle_id, cwd)
     else await openPath(cwd)
@@ -107,15 +107,15 @@ export function ProjectAppIcon({ app }: { app: AppInfo | undefined }) {
 
 function ProjectAppOptions({ editor }: { editor: ReturnType<typeof useProjectApps> }) {
   const { apps, active, openWith } = editor
-  const orderedApps = active ? [active, ...apps.filter(app => app.bundle_id !== active.bundle_id)] : apps
+  const orderedApps = active ? [active, ...apps.filter((app) => app.bundle_id !== active.bundle_id)] : apps
   return (
     <MenuRadioSelect
       value={active?.bundle_id ?? ""}
-      onValueChange={value => {
-        const app = apps.find(item => item.bundle_id === value)
+      onValueChange={(value) => {
+        const app = apps.find((item) => item.bundle_id === value)
         if (app) openWith(app)
       }}
-      options={orderedApps.map(app => ({
+      options={orderedApps.map((app) => ({
         value: app.bundle_id,
         label: app.name,
         icon: app.icon ? <img src={app.icon} alt="" className="size-5 shrink-0" /> : undefined
@@ -139,9 +139,10 @@ export function ExternalEditorMenu({
       {separator && <DropdownMenuSeparator />}
       <DropdownMenuGroup>
         <DropdownMenuSub
-          onOpenChange={open => {
+          onOpenChange={(open) => {
             if (open) editor.refresh()
-          }}>
+          }}
+        >
           <DropdownMenuSubTrigger openOnHover delay={100}>
             {editor.active?.icon && <img src={editor.active.icon} alt="" className="size-5" />}
             {t("actions.open")}

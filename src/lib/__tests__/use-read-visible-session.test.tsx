@@ -16,7 +16,7 @@ beforeEach(() => {
   runtime = new FakeHubPort(() => createFakeAgent().app)
   mark = vi
     .spyOn(clientModule, "markRead")
-    .mockImplementation(id => runtime.markRead(id, clientModule.client.state.runStates[id]?.version ?? null))
+    .mockImplementation((id) => runtime.markRead(id, clientModule.client.state.runStates[id]?.version ?? null))
 })
 afterEach(() => {
   cleanup()

@@ -8,7 +8,7 @@ export function useStoryAvailable(): boolean {
   useEffect(() => {
     let cancelled = false
     void storyAvailable()
-      .then(ok => {
+      .then((ok) => {
         if (!cancelled) setAvailable(ok)
       })
       .catch(() => {})

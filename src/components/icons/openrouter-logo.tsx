@@ -14,7 +14,8 @@ export function OpenRouterLogo(props: SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}>
+      {...props}
+    >
       <title>OpenRouter</title>
       <path d="M2 7h3.5c1.6 0 2.6.5 3.6 1.7l3 3.6c1 1.2 2 1.7 3.6 1.7H20" />
       <path d="M2 17h3.5c1.6 0 2.6-.5 3.6-1.7l3-3.6c1-1.2 2-1.7 3.6-1.7H20" />

@@ -35,7 +35,7 @@ export async function serveMainReload(action: (id: string) => Promise<ReloadOutc
           reply = { requestId: payload.requestId, error: error instanceof Error ? error.message : String(error) }
         }
         await emitTo(payload.replyTo, "extension:reload-result", reply)
-      })().catch(error => console.error("Extension reload result delivery failed", error))
+      })().catch((error) => console.error("Extension reload result delivery failed", error))
     },
     { target: { kind: "Window", label: "main" } }
   )

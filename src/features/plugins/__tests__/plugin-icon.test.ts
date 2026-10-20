@@ -21,7 +21,7 @@ test("every assigned icon resolves to the shared sprite with isolated paint refe
   expect(document.querySelector("parsererror")).toBeNull()
   const symbols = [...document.querySelectorAll("symbol")]
   expect(symbols).toHaveLength(65)
-  const ids = [...document.querySelectorAll("[id]")].map(element => element.id)
+  const ids = [...document.querySelectorAll("[id]")].map((element) => element.id)
   expect(new Set(ids).size).toBe(ids.length)
   const assigned = new Set<string>()
   // Exercise all modulo-997 hash values, covering every pool entry.
@@ -30,7 +30,7 @@ test("every assigned icon resolves to the shared sprite with isolated paint refe
     expect(src.startsWith("#plugin-")).toBe(true)
     assigned.add(src.slice(1))
   }
-  expect([...assigned].sort()).toEqual(symbols.map(symbol => symbol.id).sort())
+  expect([...assigned].sort()).toEqual(symbols.map((symbol) => symbol.id).sort())
   for (const symbol of symbols) {
     expect(symbol.getAttribute("viewBox")).toBe("0 0 36 36")
     expect(symbol.querySelector("path")).not.toBeNull()

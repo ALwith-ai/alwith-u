@@ -9,9 +9,9 @@ import { predictionPreference } from "./prediction-preference"
 
 /** Predictions are transient UI hints, tied to the exact source turn and model configuration. */
 export function useComposerPrediction(session: Session, available: boolean, hasDraft: boolean) {
-  const enabled = useStore(predictionPreference, state => state.enabled)
-  const supported = useApp(state => codexExtensionCapabilities(state.agent).composerPredictions)
-  const latestUser = session.items.findLast(item => item.kind === "user")
+  const enabled = useStore(predictionPreference, (state) => state.enabled)
+  const supported = useApp((state) => codexExtensionCapabilities(state.agent).composerPredictions)
+  const latestUser = session.items.findLast((item) => item.kind === "user")
   const sourceTurnId = codexTurnId(latestUser?._meta)
   const key = JSON.stringify([session.id, sourceTurnId, session.configOptions])
   const requested = useRef<{ key: string; source: string } | null>(null)

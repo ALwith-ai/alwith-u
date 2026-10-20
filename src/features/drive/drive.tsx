@@ -80,30 +80,30 @@ export function DrivePage({
     await workspace.openProject(root.localPath)
   }
   const host: DriveHost = {
-    readDirectory: async path =>
-      (await (await driveFileSystem(path)).readDirectory(path)).map(entry => ({
+    readDirectory: async (path) =>
+      (await (await driveFileSystem(path)).readDirectory(path)).map((entry) => ({
         name: entry.name,
         isDirectory: entry.kind === "directory"
       })),
     pathExists: drivePathExists,
-    onOpenEntry: async entry => {
+    onOpenEntry: async (entry) => {
       if (!workspace) throw new Error("Drive requires a workspace host")
       const root = drive
         .getSnapshot()
-        .snapshot?.roots.filter(root => root.drivePath && containsPath(root.localPath, entry.path))
+        .snapshot?.roots.filter((root) => root.drivePath && containsPath(root.localPath, entry.path))
         .sort((a, b) => b.localPath.length - a.localPath.length)[0]
       if (!root) throw new Error("Drive project is unavailable")
       await openProject(root)
       if (entry.isDirectory) await workspace.revealEntry(entry.path, root.localPath)
       else await workspace.openFile(entry.path, root.localPath)
     },
-    onRevealPath: path => revealItemsInDir(path),
+    onRevealPath: (path) => revealItemsInDir(path),
     onOpenExternal: openExternal,
     pinnedDocs: pins,
-    onPinnedDocsChange: async docs => {
+    onPinnedDocsChange: async (docs) => {
       saveDrivePins(profile, docs)
     },
-    onCondense: async root => {
+    onCondense: async (root) => {
       setCondense({ projectId: root.projectId, projectName: root.name, scopePath: null })
     }
   }
@@ -118,13 +118,14 @@ export function DrivePage({
         controls={driveControls}
         onOpenSettings={openDriveSettings}
         onOpenProject={openProject}
-        confirm={message => confirm(message, { title: "YUP Drive", kind: "warning" })}
+        confirm={(message) => confirm(message, { title: "YUP Drive", kind: "warning" })}
       />
       <Dialog
         open={condense !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open) setCondense(null)
-        }}>
+        }}
+      >
         <DialogContent className={driveDialogClassName}>
           <DialogHeader>
             <DialogTitle>{driveTranslator(locale)("condense.action")}</DialogTitle>
@@ -136,7 +137,7 @@ export function DrivePage({
               controls={driveControls}
               locale={locale}
               onClose={() => setCondense(null)}
-              onOpenFile={path => host.onOpenEntry({ path, isDirectory: false })}
+              onOpenFile={(path) => host.onOpenEntry({ path, isDirectory: false })}
               onOpenExternal={openExternal}
             />
           )}
@@ -153,9 +154,10 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
   return (
     <Dialog
       open={path !== null}
-      onOpenChange={open => {
+      onOpenChange={(open) => {
         if (!open) onClose()
-      }}>
+      }}
+    >
       <DialogContent className={driveDialogClassName}>
         <DialogHeader>
           <DialogTitle>{t("grants.title")}</DialogTitle>
@@ -168,8 +170,8 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
             path={path}
             locale={locale}
             host={{
-              readDirectory: async value =>
-                (await (await driveFileSystem(value)).readDirectory(value)).map(entry => ({
+              readDirectory: async (value) =>
+                (await (await driveFileSystem(value)).readDirectory(value)).map((entry) => ({
                   name: entry.name,
                   isDirectory: entry.kind === "directory"
                 })),
@@ -185,7 +187,7 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
               }
             }}
             controls={driveControls}
-            confirm={message => confirm(message, { title: "Drive sharing", kind: "warning" })}
+            confirm={(message) => confirm(message, { title: "Drive sharing", kind: "warning" })}
           />
         )}
       </DialogContent>
@@ -212,7 +214,7 @@ export function DriveSettings(): ReactNode {
       onOpenEntry: async () => {
         throw new Error("Project browsing belongs to the main window")
       },
-      onRevealPath: path => revealItemsInDir(path),
+      onRevealPath: (path) => revealItemsInDir(path),
       onOpenExternal: openExternal,
       pinnedDocs: [],
       onPinnedDocsChange: async () => {
@@ -237,7 +239,7 @@ export function DriveSettings(): ReactNode {
         const path = await open({ directory: true, multiple: false })
         return typeof path === "string" ? path : null
       }}
-      confirm={message => confirm(message, { title: "Drive", kind: "warning" })}
+      confirm={(message) => confirm(message, { title: "Drive", kind: "warning" })}
     />
   )
 }
@@ -257,7 +259,7 @@ export function DriveStatus(): ReactNode {
     }
     void drive
       .request({ type: "failedUploads" })
-      .then(response => {
+      .then((response) => {
         if (response.type !== "failedUploads") throw new Error("Invalid Drive failed transfer response")
         if (active) setFailures(response.data)
       })
@@ -297,7 +299,7 @@ export function DriveStatus(): ReactNode {
             onOpenEntry: async () => {
               throw new Error("Project navigation belongs to the launcher")
             },
-            onRevealPath: path => revealItemsInDir(path),
+            onRevealPath: (path) => revealItemsInDir(path),
             onOpenExternal: openExternal,
             pinnedDocs: [],
             onPinnedDocsChange: async () => {
@@ -307,7 +309,7 @@ export function DriveStatus(): ReactNode {
           onOpenProject={async () => {
             throw new Error("Projects cannot be opened from sync status")
           }}
-          confirm={message => confirm(message, { title: "YUP Drive", kind: "warning" })}
+          confirm={(message) => confirm(message, { title: "YUP Drive", kind: "warning" })}
         />
       </PopoverContent>
     </Popover>

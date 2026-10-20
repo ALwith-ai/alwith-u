@@ -19,7 +19,7 @@ export function questionReplyParts(meta: unknown): Array<{ text: string; questio
   if (!Array.isArray(parts) || parts.length === 0) return null
   if (
     !parts.every(
-      part =>
+      (part) =>
         part &&
         typeof part === "object" &&
         typeof part.text === "string" &&
@@ -27,5 +27,5 @@ export function questionReplyParts(meta: unknown): Array<{ text: string; questio
     )
   )
     return null
-  return parts.map(part => ({ text: part.text, ...(part.question === undefined ? {} : { question: part.question }) }))
+  return parts.map((part) => ({ text: part.text, ...(part.question === undefined ? {} : { question: part.question }) }))
 }

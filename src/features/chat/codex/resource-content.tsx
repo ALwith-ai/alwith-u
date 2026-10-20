@@ -31,7 +31,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         className="h-auto max-w-full justify-start gap-3 p-3"
         aria-label={block.title ?? block.name}
         title={block.uri}
-        onClick={() => openLink(block.uri)}>
+        onClick={() => openLink(block.uri)}
+      >
         <FileIcon />
         <span className="min-w-0 text-start">
           <span className="block truncate">{block.title ?? block.name}</span>
@@ -77,7 +78,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
           variant="ghost"
           className="h-auto p-0"
           aria-label={t("chat.image.view")}
-          onClick={() => openImageLightbox(src)}>
+          onClick={() => openImageLightbox(src)}
+        >
           <img
             src={src}
             alt=""
@@ -94,7 +96,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         aria-label={t("chat.content.download", { name })}
         onClick={() => {
           void save()
-        }}>
+        }}
+      >
         <DownloadIcon />
         {name}
       </Button>

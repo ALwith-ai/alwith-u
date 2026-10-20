@@ -28,7 +28,7 @@ import { openGamepadWindow } from "@/lib/window-manager"
 
 export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => void }): ReactNode {
   const { t, i18n } = useTranslation()
-  const user = usePlatformAuth(state => state.user)
+  const user = usePlatformAuth((state) => state.user)
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
   const vibemon = useVibemonControl()
@@ -54,7 +54,8 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             disabled={busy}
             className="h-8 w-full justify-start gap-2 rounded-[10px] px-2 font-normal text-muted-foreground [corner-shape:superellipse(1.5)] hover:bg-foreground/5 data-popup-open:bg-foreground/5"
           />
-        }>
+        }
+      >
         {avatar}
         <span className="min-w-0 truncate">{displayName}</span>
       </DropdownMenuTrigger>
@@ -79,13 +80,14 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
                 value={i18n.language}
-                onValueChange={value => {
+                onValueChange={(value) => {
                   void (async () => {
                     await i18n.changeLanguage(value)
                     await savePreference("language", value)
                   })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
-                }}>
-                {LANGUAGES.map(language => (
+                }}
+              >
+                {LANGUAGES.map((language) => (
                   <DropdownMenuRadioItem key={language.code} value={language.code}>
                     {language.label}
                   </DropdownMenuRadioItem>
@@ -99,7 +101,8 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
           <DropdownMenuItem
             disabled={busy || vibemon.disabled}
             className="h-8 py-0"
-            onClick={() => void vibemon.toggle()}>
+            onClick={() => void vibemon.toggle()}
+          >
             <PawPrintIcon className="text-muted-foreground" />
             {t(vibemon.enabled ? "pet.disable" : "pet.enable")}
           </DropdownMenuItem>
@@ -109,7 +112,8 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
               void openGamepadWindow().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))
               )
-            }>
+            }
+          >
             <Gamepad2Icon className="text-muted-foreground" />
             {t("settings.gamepad")}
           </DropdownMenuItem>
@@ -124,7 +128,8 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
               void logoutPlatform()
                 .catch(() => toast.error(t("platformAuth.failed")))
                 .finally(() => setBusy(false))
-            }}>
+            }}
+          >
             <LogOutIcon className="text-muted-foreground" />
             {t("sidebar.signOut")}
           </DropdownMenuItem>

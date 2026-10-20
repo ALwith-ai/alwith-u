@@ -7,7 +7,7 @@ import * as providers from "../providers"
 import { useProviders } from "../use-providers"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/api/event", async importOriginal => ({ ...(await importOriginal<object>()), listen: vi.fn() }))
+vi.mock("@tauri-apps/api/event", async (importOriginal) => ({ ...(await importOriginal<object>()), listen: vi.fn() }))
 
 afterEach(() => {
   providersRead?.mockRestore()
@@ -40,7 +40,7 @@ for (const [eventRevision, readRevision, expectedRevision] of [
     })
     providersRead = vi.spyOn(providers, "loadProviders").mockImplementation(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           finish = resolve
         })
     )

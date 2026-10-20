@@ -11,7 +11,7 @@ export async function computerContextRevision(): Promise<string> {
   return commands.computerRevision()
 }
 
-export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async cwd => {
+export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd) => {
   const drive = await driveSessionContext(cwd)
   if (!isTauri()) return { ...drive, revision: "disabled" }
   const descriptor = await commands.computerContext()

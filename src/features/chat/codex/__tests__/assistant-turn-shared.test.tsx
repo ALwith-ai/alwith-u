@@ -46,7 +46,7 @@ const thought = (messageId: string, content: string) => ({
   content: { type: "text", text: content }
 })
 
-test.each(["commentary", "final_answer"])("%s completes and collapses the preceding thought", phase => {
+test.each(["commentary", "final_answer"])("%s completes and collapses the preceding thought", (phase) => {
   const id = crypto.randomUUID()
   let session = feed(createSession(id, "/tmp"), thought(id, "Inspecting the code"))
   const view = render(viewOf(session, true))
@@ -112,7 +112,7 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
   session = feed(session, thought(`${id}-first`, " updated"))
   view.rerender(viewOf(session, true))
   expect(
-    view.getAllByRole("button", { name: "Thought" }).every(button => button.getAttribute("aria-expanded") === "false")
+    view.getAllByRole("button", { name: "Thought" }).every((button) => button.getAttribute("aria-expanded") === "false")
   ).toBe(true)
   expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
   expect(previousGroup).toHaveAttribute("aria-expanded", "true")
@@ -229,7 +229,7 @@ test("final answer keeps text and image blocks in their original order", () => {
   expect(
     Array.from(
       answer?.querySelectorAll(".codex-assistant-message, img") ?? [],
-      element => element.textContent || element.tagName
+      (element) => element.textContent || element.tagName
     )
   ).toEqual(["Before", "IMG", "After"])
   expect(answer?.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
@@ -275,7 +275,7 @@ test("generated tool images stay visible in the reply when work is collapsed, in
     view.container.querySelector(".codex-assistant-turn > div:last-child")
   expect(answer?.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
   expect(view.getByRole("button", { name: "Download portrait.png" })).toBeDefined()
-  view.rerender(viewOf({ ...session, items: session.items.map(item => ({ ...item, replayed: true })) }))
+  view.rerender(viewOf({ ...session, items: session.items.map((item) => ({ ...item, replayed: true })) }))
   expect(view.container.querySelectorAll(".codex-reply-artifacts img").length).toBe(1)
 })
 

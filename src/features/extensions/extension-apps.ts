@@ -9,15 +9,15 @@ export function extensionApps(
 ): Array<{ action: ActionContribution; name: string }> {
   const actions = sortContributions(
     host.actions.filter(
-      action =>
+      (action) =>
         (action.placement === "topBar" || action.placement === "navigation") &&
-        host.views.some(view => view.extensionId === action.extensionId && view.kind === "surfaces")
+        host.views.some((view) => view.extensionId === action.extensionId && view.kind === "surfaces")
     )
   )
   return actions
-    .filter((action, index) => actions.findIndex(item => item.extensionId === action.extensionId) === index)
-    .map(action => {
-      const manifest = manifests.find(item => item.id === action.extensionId)
+    .filter((action, index) => actions.findIndex((item) => item.extensionId === action.extensionId) === index)
+    .map((action) => {
+      const manifest = manifests.find((item) => item.id === action.extensionId)
       if (!manifest) throw new Error(`Extension manifest unavailable: ${action.extensionId}`)
       return { action, name: resolveManifestText(manifest, language).name }
     })

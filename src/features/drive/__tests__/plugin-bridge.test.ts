@@ -114,7 +114,7 @@ test("archive takeover declines both plugin stores and disabling Drive never re-
 test("generation change during credential retrieval never writes the prior account", async () => {
   const f = fixture()
   const request = f.host.request
-  f.host.request = async value => {
+  f.host.request = async (value) => {
     const response = await request(value)
     if (value.type === "mcpSessionConfig") f.state.generation++
     return response

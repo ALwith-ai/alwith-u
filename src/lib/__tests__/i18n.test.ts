@@ -19,7 +19,7 @@ function resourceContract(tree: TranslationTree): Array<[string, string[]]> {
   return leafMessages(tree)
     .map(([key, value]): [string, string[]] => [
       key,
-      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map(match => match[1] ?? "").sort()
+      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((match) => match[1] ?? "").sort()
     ])
     .sort(([left], [right]) => left.localeCompare(right))
 }
@@ -32,7 +32,7 @@ test("every English UI message has an explicit Simplified Chinese translation", 
   const chatContract = (tree: TranslationTree) =>
     resourceContract(tree).map(([key, placeholders]) => [
       key,
-      key.endsWith("_one") ? placeholders.filter(name => name !== "count") : placeholders
+      key.endsWith("_one") ? placeholders.filter((name) => name !== "count") : placeholders
     ])
   expect(chatContract(chatLocales["zh-CN"])).toEqual(chatContract(chatLocales.en))
   expect(i18n.t("chat.project.chatCount", { count: 1 })).toBe("1 个会话")

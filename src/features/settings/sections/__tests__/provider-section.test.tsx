@@ -12,7 +12,7 @@ import { CustomProviderEditor, ProviderRow, ProviderTabs } from "../provider-sec
 beforeAll(async () => {
   await initI18n("en")
 })
-const provider = PROVIDERS.find(item => item.id === "qwen")
+const provider = PROVIDERS.find((item) => item.id === "qwen")
 if (!provider) throw new Error("Qwen provider fixture missing")
 function snapshot(revision: number, region = "intl"): ProviderSnapshot {
   return {
@@ -106,7 +106,7 @@ test("a successful save advances the base without erasing text typed while it wa
   let finish!: (value: ProviderSnapshot) => void
   const save = vi.fn(
     () =>
-      new Promise<ProviderSnapshot>(resolve => {
+      new Promise<ProviderSnapshot>((resolve) => {
         finish = resolve
       })
   )

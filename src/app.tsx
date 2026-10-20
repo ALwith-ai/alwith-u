@@ -80,9 +80,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useDriveArchive()
   const { host: extensions, runtime: extensionRuntime, state: extensionState } = useExtensions()
   const { t } = useTranslation()
-  const connection = useApp(state => state.connection)
-  const connectionError = useApp(state => state.connectionError)
-  const globalActions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === null)))
+  const connection = useApp((state) => state.connection)
+  const connectionError = useApp((state) => state.connectionError)
+  const globalActions = useApp(useShallow((state) => state.actions.filter((action) => action.sessionId === null)))
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
@@ -135,10 +135,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback(
     (id: string): void => {
-      const contribution = extensionRuntime.host.snapshot().views.find(item => item.id === id)
+      const contribution = extensionRuntime.host.snapshot().views.find((item) => item.id === id)
       if (contribution)
         showExtensionLimitations(
-          extensionRuntime.snapshot().native?.installations.find(item => item.id === contribution.extensionId)
+          extensionRuntime.snapshot().native?.installations.find((item) => item.id === contribution.extensionId)
         )
       setExtensionView(id)
       setLeadingPage("extensions")
@@ -167,7 +167,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("vibemon")
   }, [])
   const session = useSession(selectedId)
-  const draftSessions = useApp(state => state.draftSessions)
+  const draftSessions = useApp((state) => state.draftSessions)
   const { busy, operation } = useSurfaceOperation()
   const extensionSession = useRef(session)
   extensionSession.current = session
@@ -181,7 +181,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       },
       skills: async (cwd: string) => {
         const catalog = await client.listSkills([cwd], true)
-        return catalog.data.flatMap(entry => entry.skills)
+        return catalog.data.flatMap((entry) => entry.skills)
       },
       present: () => setView("chat"),
       prompt: (targetId: string, prompt: string) => client.prompt(targetId, [{ type: "text", text: prompt }]),
@@ -210,7 +210,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         setMainVisible(visible)
         await updateMainPetSurface(selectedId, visible && view === "chat")
       }
-    })().catch(error => toast.error(describe(error)))
+    })().catch((error) => toast.error(describe(error)))
     return () => {
       cancelled = true
     }
@@ -229,17 +229,17 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               await client.connect()
               if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
             },
-            unarchive: id => client.unarchive(id),
-            release: async id => {
+            unarchive: (id) => client.unarchive(id),
+            release: async (id) => {
               const transfer = await releaseChatWindow(id)
               await client.transferDraft(id, "main")
               return transfer
             },
             importDraft,
-            include: thread => client.includeThread(thread),
+            include: (thread) => client.includeThread(thread),
             open: (id, cwd) => client.open(id, cwd),
-            show: id => {
-              setSurfaceGeneration(value => value + 1)
+            show: (id) => {
+              setSurfaceGeneration((value) => value + 1)
               setView("chat")
               setSelectedId(id)
             },
@@ -265,8 +265,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           await client.discardDraft("main")
           chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
-          setSurfaceGeneration(value => value + 1)
-          setChatRevealRequest(value => value + 1)
+          setSurfaceGeneration((value) => value + 1)
+          setChatRevealRequest((value) => value + 1)
           setView("chat")
           setSelectedId(null)
         })
@@ -284,11 +284,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useEffect(() => {
     let disposed = false
     const shortcut = installChatShortcut(() => {
-      void openChatWindow().catch(error => toast.error(describe(error)))
+      void openChatWindow().catch((error) => toast.error(describe(error)))
     })
     const ready = (async () => {
-      const stopClient = await serveChatClient(client, undefined, error => toast.error(describe(error)))
-      const stopSurface = await serveChatSurface(async action => {
+      const stopClient = await serveChatClient(client, undefined, (error) => toast.error(describe(error)))
+      const stopSurface = await serveChatSurface(async (action) => {
         switch (action.type) {
           case "vibemon": {
             if (action.view !== "pull" && action.view !== "equip") throw new Error("Invalid Vibémon view")
@@ -317,8 +317,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
               setLastDirectory(transfer.cwd)
               setSelectedId(transfer.sessionId)
-              setSurfaceGeneration(value => value + 1)
-              setChatRevealRequest(value => value + 1)
+              setSurfaceGeneration((value) => value + 1)
+              setChatRevealRequest((value) => value + 1)
               setView("chat")
               const win = getCurrentWebviewWindow()
               await win.unminimize()
@@ -341,10 +341,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         stopSurface()
         return () => {}
       }
-      void syncChatWindowSurface().catch(error => toast.error(describe(error)))
+      void syncChatWindowSurface().catch((error) => toast.error(describe(error)))
       void shortcut
         .set(initialPreferences.chatWindowShortcut ?? "Alt+Space", false)
-        .catch(error => toast.error(describe(error)))
+        .catch((error) => toast.error(describe(error)))
       return () => {
         stopClient()
         stopSurface()
@@ -353,8 +353,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setChatWindowHostReady(ready)
     return () => {
       disposed = true
-      void ready.then(stop => stop()).catch(error => toast.error(describe(error)))
-      void shortcut.dispose().catch(error => toast.error(describe(error)))
+      void ready.then((stop) => stop()).catch((error) => toast.error(describe(error)))
+      void shortcut.dispose().catch((error) => toast.error(describe(error)))
     }
   }, [initialPreferences.chatWindowShortcut, openVibemon, operation])
 
@@ -389,7 +389,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     void stop.catch((error: unknown) => toast.error(describe(error)))
     return () => {
       void stop.then(
-        unsubscribe => unsubscribe(),
+        (unsubscribe) => unsubscribe(),
         () => undefined
       )
     }
@@ -405,7 +405,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const selection = { ...models }
       saving = saving
         .then(() => savePreference("modelSelections", selection))
-        .catch(error => {
+        .catch((error) => {
           toast.error(describe(error))
         })
     })
@@ -422,10 +422,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           name: agent.info.title ?? agent.info.name,
           version: agent.info.version,
           authMethods: agent.authMethods ?? [],
-          actions: client.state.actions.filter(action => action.sessionId === null)
+          actions: client.state.actions.filter((action) => action.sessionId === null)
         }
       },
-      subscribe: listener => client.store.subscribe(listener),
+      subscribe: (listener) => client.store.subscribe(listener),
       logout: () => client.logout(),
       login: (methodId, extra) => client.login(methodId, extra),
       respond: (actionId, answer) => client.respond(actionId, answer),
@@ -437,7 +437,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         ])
         return { account, rateLimits }
       },
-      onRateLimits: listener => client.onRateLimits(listener)
+      onRateLimits: (listener) => client.onRateLimits(listener)
     })
     return stopBridge
   }, [])
@@ -447,13 +447,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     const stopNotifications = watchForNotifications(client)
     // alwith-runtime gone: the port is reset, the client drops to "disconnected", and Reconnect
     // asks Rust for a fresh alwith-runtime.
-    const stopHubExit = onHubExit(exit => {
+    const stopHubExit = onHubExit((exit) => {
       toast.error(t("connection.runtimeExited", { code: exit.code ?? exit.signal ?? "?" }))
       client.disconnect()
     })
     return () => {
       stopNotifications()
-      void stopHubExit.then(stop => stop())
+      void stopHubExit.then((stop) => stop())
     }
   }, [connect, t])
 
@@ -464,11 +464,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     const listeners = Promise.all([
       webview.listen<null>(events["menu:new-chat"].name, () => void newChat()),
       webview.listen<null>(events["menu:open-settings"].name, () => void openSettingsWindow()),
-      webview.listen<null>(events["menu:command-palette"].name, () => setPaletteOpen(open => !open)),
+      webview.listen<null>(events["menu:command-palette"].name, () => setPaletteOpen((open) => !open)),
       webview.listen<null>(events["menu:open-hotkeys"].name, () => setHotkeysOpen(true))
     ])
     return () => {
-      void listeners.then(stops => {
+      void listeners.then((stops) => {
         for (const stop of stops) stop()
       })
     }
@@ -483,7 +483,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         void newChat()
       } else if (event.key === "k") {
         event.preventDefault()
-        setPaletteOpen(open => !open)
+        setPaletteOpen((open) => !open)
       } else if (event.key === ",") {
         event.preventDefault()
         void openSettingsWindow()
@@ -526,19 +526,19 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           const replacement = recentMainActivity(client.state, selectedId)
           setSelectedId(replacement?.sessionId ?? null)
           importDraft(DRAFT_SESSION_ID, null)
-          setSurfaceGeneration(value => value + 1)
+          setSurfaceGeneration((value) => value + 1)
           // The handoff is accepted before replacing the source, even when restoring history fails.
           if (replacement) {
             setLastDirectory(replacement.cwd)
             await client.open(replacement.sessionId, replacement.cwd)
           }
         })
-        .catch(error => toast.error(describe(error)))
+        .catch((error) => toast.error(describe(error)))
     }
     const newProjectChat = newChat
 
     const deleted = (sessionId: string): void => {
-      setSelectedId(current => (current === sessionId ? null : current))
+      setSelectedId((current) => (current === sessionId ? null : current))
     }
     if (session !== null && !draftSessions[session.id] && submittingDraftId !== session.id)
       return (
@@ -564,7 +564,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onSendingChange={(id, sending) =>
-            setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+            setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
           }
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
@@ -577,7 +577,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   const actionCards = globalActions.length > 0 && (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
-      {globalActions.map(action => (
+      {globalActions.map((action) => (
         <ActionCard key={action.id} action={action} />
       ))}
     </div>
@@ -598,15 +598,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}
               onOpenVibemon={openVibemon}
-              onOpenWindow={() => void openChatWindow().catch(error => toast.error(describe(error)))}
+              onOpenWindow={() => void openChatWindow().catch((error) => toast.error(describe(error)))}
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openPlugins}
               onOpenExtensions={openExtensions}
-              renderExtensionEntry={trigger => (
+              renderExtensionEntry={(trigger) => (
                 <ExtensionEntryMenu
                   host={extensions}
-                  manifests={extensionState.native?.installations.map(item => item.manifest) ?? []}
+                  manifests={extensionState.native?.installations.map((item) => item.manifest) ?? []}
                   trigger={trigger}
                   onManage={openExtensions}
                   onOpenSurface={openExtension}
@@ -630,10 +630,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 onOpenVibemon={openVibemon}
                 onOpenArchives={openArchives}
                 onOpenPlugins={openPlugins}
-                onOpenExtensions={openExtensions}>
+                onOpenExtensions={openExtensions}
+              >
                 <ExtensionNavigation
                   host={extensions}
-                  manifests={extensionState.native?.installations.map(item => item.manifest) ?? []}
+                  manifests={extensionState.native?.installations.map((item) => item.manifest) ?? []}
                   activeView={view === "extension" ? extensionView : null}
                   onOpenSurface={openExtension}
                   onError={reportExtensionError}
@@ -675,13 +676,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                     createPortal(
                       <DrivePage
                         currentProject={session?.cwd ?? lastDirectory}
-                        onOpenProject={root =>
+                        onOpenProject={(root) =>
                           operation.run(async () => {
                             await client.discardDraft("main")
                             flushSync(() => {
                               chooseDraftFolder(root.localPath)
                               importDraft(DRAFT_SESSION_ID, null)
-                              setSurfaceGeneration(value => value + 1)
+                              setSurfaceGeneration((value) => value + 1)
                               setSelectedId(null)
                               setView("chat")
                             })
@@ -693,7 +694,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 </FileWorkspace>
               </WorkspaceHeaderContext.Provider>
             </SidebarInset>
-          }>
+          }
+        >
           <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
           <CommandPalette
             open={paletteOpen}
@@ -709,7 +711,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
           <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
             <DriveStatus />
-            <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+            <ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />
           </div>
           <div className="absolute end-1 bottom-0 z-20 flex size-8 items-center justify-center">
             <ClientVersionPopover />

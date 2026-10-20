@@ -72,7 +72,8 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
       aria-label={t("chat.attachImage")}
       title={t("chat.attachImage")}
       onClick={() => attachments.openFileDialog()}
-      {...props}>
+      {...props}
+    >
       <ImageIcon className="size-4" />
     </PromptInputButton>
   )
@@ -144,7 +145,10 @@ export function Composer({
   const waitForVoiceTurn = useCallback(
     (signal: AbortSignal): Promise<void> => {
       const observation = observeVoiceTurn(
-        { read: () => client.store.getState().sessions[session.id], subscribe: check => client.store.subscribe(check) },
+        {
+          read: () => client.store.getState().sessions[session.id],
+          subscribe: (check) => client.store.subscribe(check)
+        },
         signal
       )
       receiptObserver.current = observation.accept
@@ -173,7 +177,7 @@ export function Composer({
 
   useLayoutEffect(
     () =>
-      registerComposerWriter(session.id, value => {
+      registerComposerWriter(session.id, (value) => {
         if (!inputReady || sending) throw new Error("当前输入框不可写，请稍后重试")
         if (text.length || attachments.length || mentions.length)
           throw new Error("输入框已有草稿，请先发送或清空后重试")
@@ -182,7 +186,7 @@ export function Composer({
     [session.id, inputReady, sending, text, attachments, mentions, setText]
   )
 
-  const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
+  const fileSearchAvailable = useApp((state) => hasFuzzyFileSearch(state.agent))
   const searchFiles = useMemo(
     () =>
       fileSearchAvailable && ready
@@ -191,7 +195,7 @@ export function Composer({
     [fileSearchAvailable, ready, session.cwd]
   )
   const addMention = useCallback((path: string) => {
-    setMentions(current => (current.includes(path) ? current : [...current, path]))
+    setMentions((current) => (current.includes(path) ? current : [...current, path]))
   }, [])
 
   // Mounted per session (ChatView is keyed): focus on arrival.
@@ -221,7 +225,7 @@ export function Composer({
           observeReceipt(receipt)
         }
         invalidatePrediction()
-        setMentions(current => (current === mentions ? [] : current))
+        setMentions((current) => (current === mentions ? [] : current))
         textareaRef.current?.resetHeight()
       } finally {
         setSending(false)
@@ -257,7 +261,8 @@ export function Composer({
       {inputHeader && (
         <div
           data-chat-input-header
-          className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3">
+          className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3"
+        >
           {inputHeader}
         </div>
       )}
@@ -271,7 +276,8 @@ export function Composer({
           setTextRaw("")
         }}
         attachments={attachments}
-        onAttachmentsChange={setAttachments}>
+        onAttachmentsChange={setAttachments}
+      >
         <CompletionMenu
           handleRef={textareaRef}
           commands={session.commands}
@@ -288,7 +294,8 @@ export function Composer({
           onSubmit={submit}
           onSubmitAsync={submit}
           canSubmit={() => (ready && !sending && !dropping ? true : "chat_not_ready")}
-          className="relative z-10">
+          className="relative z-10"
+        >
           <NativeFileDrop
             sessionId={session.id}
             enabled={inputReady && !sending}
@@ -303,13 +310,15 @@ export function Composer({
             )}
             <MentionChips
               mentions={mentions}
-              onRemove={path => setMentions(current => current.filter(item => item !== path))}
+              onRemove={(path) => setMentions((current) => current.filter((item) => item !== path))}
             />
-            <PromptInputAttachments>{attachment => <PromptInputAttachment data={attachment} />}</PromptInputAttachments>
+            <PromptInputAttachments>
+              {(attachment) => <PromptInputAttachment data={attachment} />}
+            </PromptInputAttachments>
           </PromptInputHeader>
           <PromptInputBody
             className="mb-1 min-h-10 px-3"
-            onKeyDownCapture={event => {
+            onKeyDownCapture={(event) => {
               if (
                 !prediction.text ||
                 event.nativeEvent.isComposing ||
@@ -326,7 +335,8 @@ export function Composer({
                 event.stopPropagation()
                 setText(prediction.text)
               }
-            }}>
+            }}
+          >
             <PromptInputTextarea
               className="min-h-10"
               ref={textareaRef}

@@ -46,7 +46,7 @@ test("selects the most recently active main conversation after a handoff", () =>
       record("floating", 60),
       { ...record("draft", 70), reusableDraft: true },
       record("local-draft", 80)
-    ].map(record => [record.sessionId, record])
+    ].map((record) => [record.sessionId, record])
   )
   current.sessionWindows = { floating: "chat", older: "main", recent: "main" }
   current.draftSessions = { "local-draft": "main" }

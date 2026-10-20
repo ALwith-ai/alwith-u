@@ -60,7 +60,7 @@ if (typeof document !== "undefined") {
     private read(blob: Blob, decode: (blob: Blob) => Promise<string | ArrayBuffer>): void {
       this.readyState = 1
       void decode(blob).then(
-        result => {
+        (result) => {
           this.result = result
           this.readyState = 2
           const event = new Event("load") as ProgressEvent
@@ -82,15 +82,15 @@ if (typeof document !== "undefined") {
     }
 
     readAsArrayBuffer(blob: Blob): void {
-      this.read(blob, value => value.arrayBuffer())
+      this.read(blob, (value) => value.arrayBuffer())
     }
 
     readAsText(blob: Blob): void {
-      this.read(blob, value => value.text())
+      this.read(blob, (value) => value.text())
     }
 
     readAsDataURL(blob: Blob): void {
-      this.read(blob, async value => {
+      this.read(blob, async (value) => {
         const bytes = Buffer.from(await value.arrayBuffer())
         return `data:${value.type || "application/octet-stream"};base64,${bytes.toString("base64")}`
       })
