@@ -130,7 +130,6 @@ pre,
   /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
      the card does not rely on borders or shadows to stand out from the background. */
   --main-surface-gutter: 8px;
-  --main-surface-block-gutter: 32px;
   --main-surface-radius: 14px;
 }
 
@@ -236,42 +235,42 @@ html[data-window-backdrop="acrylic"]
   background-color: transparent;
 }
 
-/* Main chat uses a separate solid panel with 8px side gaps, 32px top/bottom gaps, and a 14px corner radius.
-   Gaps retain the sidebar background, naturally separating the layers without divider lines. */
+/* Window chrome owns full-width rows; only the middle row participates in screen layout. */
+.main-window-titlebar {
+  position: relative;
+  flex: none;
+  height: 32px;
+  -webkit-app-region: drag;
+}
+.windows-main-content .main-window-titlebar {
+  display: none;
+}
+.main-window-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: clip;
+}
+.main-window-statusbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding-inline: 12px 4px;
+  -webkit-app-region: no-drag;
+}
 .main-chat-surface {
   width: auto;
   min-width: 0;
   margin-inline: var(--main-surface-gutter);
-  margin-block: var(--main-surface-block-gutter);
+  margin-block: 0;
   overflow: hidden;
   border: 0;
   border-radius: var(--main-surface-radius);
   background-color: var(--background);
   box-shadow: none;
-}
-/* The Windows frame already reserves the full-width title bar above the content. */
-.windows-main-content [data-sidebar-presentation] {
-  min-height: 0;
-}
-html[data-window-backdrop="acrylic"] .main-chat-surface {
-  margin-block-start: 0;
-}
-html[data-window-backdrop="acrylic"] .main-chat-drag-region {
-  display: none;
-}
-html[data-window-backdrop="acrylic"] .main-extension-status {
-  inset-inline: 0;
-  height: var(--main-surface-block-gutter);
-  padding-inline: 12px;
-  padding-inline-end: 40px;
-  display: flex;
-  align-items: center;
-}
-html[data-window-backdrop="acrylic"] .main-sidebar-shell {
-  height: calc(100% - var(--main-surface-block-gutter));
-}
-html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-footer"] {
-  padding-bottom: 0;
 }
 /* Docked navigation already supplies the 4px inset at the content-facing edge. */
 [data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
@@ -286,7 +285,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   padding-block-start: 0;
 }
 
-/* The 32px gap above the main panel also serves as a native drag region without controls. */
+/* Screen transitions apply only within the window body. */
 [data-sidebar-presentation] {
   --sidebar-resize-duration: 200ms;
   --sidebar-fade-duration: 150ms;
@@ -334,8 +333,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   align-items: center;
   gap: 8px;
   width: 52px;
-  padding-block: var(--main-surface-block-gutter);
-  padding-block-start: calc(var(--main-surface-block-gutter) + 12px);
+  padding-block: 12px;
   overflow: hidden;
 }
 .main-screen-leading > .main-chat-surface {
@@ -352,18 +350,6 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   visibility: visible;
   transition-delay: 0s;
 }
-.main-chat-drag-region {
-  inset-inline-start: max(
-    calc(var(--main-sidebar-width) + var(--main-surface-gutter)),
-    calc(var(--sidebar-toggle-left) + 32px)
-  );
-  inset-inline-end: var(--main-surface-gutter);
-  transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
-}
-[data-main-screen="leading"] .main-chat-drag-region {
-  inset-inline-start: calc(var(--sidebar-toggle-left) + 32px);
-}
-
 /* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
 .main-extension-toolbar {
   left: calc(var(--sidebar-toggle-left) + 32px);
@@ -375,17 +361,6 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 }
 .windows-extension-controls [data-extension-alignment] {
   -webkit-app-region: no-drag;
-}
-
-/* Extension status widgets occupy the visible content gutter, clear of either sidebar. */
-.main-extension-status {
-  inset-inline-start: calc(var(--main-sidebar-width) + 12px);
-  inset-inline-end: 40px;
-  transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
-}
-[data-main-screen="leading"] .main-extension-status {
-  inset-inline-start: 12px;
-  inset-inline-end: max(calc(var(--leading-sidebar-width) + 12px), 40px);
 }
 
 /* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */
@@ -423,7 +398,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
   pointer-events: none;
 }
 [data-sidebar-presentation="floating"] .main-sidebar-viewport {
-  inset-block: var(--main-surface-block-gutter);
+  inset-block: 0;
   inset-inline-start: var(--main-surface-gutter);
   overflow: visible;
   border-radius: var(--main-surface-radius);
@@ -433,10 +408,6 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
     opacity var(--sidebar-fade-duration) ease-out,
     transform var(--sidebar-fade-duration) ease-out,
     visibility 0s linear var(--sidebar-fade-duration);
-}
-/* Windows already reserves the title and status rows in the sidebar shell. */
-.windows-main-content [data-sidebar-presentation="floating"] .main-sidebar-viewport {
-  inset-block: 0;
 }
 [data-sidebar-presentation="floating"] .main-sidebar-panel {
   overflow: clip;
@@ -462,8 +433,7 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 [data-sidebar-presentation="floating"] [data-slot="sidebar-header"] {
   padding-top: 8px;
 }
-[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"],
-html[data-window-backdrop="acrylic"] [data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
+[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
   padding-bottom: 8px;
 }
 [data-sidebar-mode="floating"] .main-sidebar-viewport {
@@ -527,8 +497,7 @@ html[data-window-backdrop="acrylic"] [data-sidebar-presentation="floating"] [dat
 .main-extension-toolbar button:hover,
 .windows-extension-controls button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
-.main-extension-status button:hover,
-.main-client-version-button:hover {
+.main-window-statusbar button:is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -536,8 +505,7 @@ html[data-window-backdrop="acrylic"] [data-sidebar-presentation="floating"] [dat
   .main-screen-leading,
   .main-screen-content,
   .main-sidebar-shell,
-  [data-sidebar-presentation] .main-sidebar-viewport,
-  .main-chat-drag-region {
+  [data-sidebar-presentation] .main-sidebar-viewport {
     transition: none;
   }
 }

@@ -134,14 +134,6 @@
   height: 32px;
   -webkit-app-region: no-drag;
 }
-/* Windows places workspace controls inside the chat heading, clear of its action menu. */
-html[data-window-backdrop="acrylic"] .main-workspace-toolbar {
-  top: 8px;
-  inset-inline-end: var(--windows-workspace-controls-end, calc(var(--main-surface-gutter) + 16px));
-}
-html[data-window-backdrop="acrylic"] .main-chat-surface [data-main-chat-header] {
-  padding-inline-end: calc(24px + var(--windows-workspace-controls-width, 0px));
-}
 .file-workspace-toolbar {
   display: flex;
   align-items: center;
@@ -161,6 +153,11 @@ html[data-window-backdrop="acrylic"] .main-chat-surface [data-main-chat-header] 
   padding-inline: calc(4px / var(--main-window-zoom, 1));
   justify-content: center;
   -webkit-app-region: no-drag;
+}
+/* The native title bar owns positioning for its portalled workspace controls. */
+.windows-workspace-controls .main-workspace-toolbar {
+  position: static;
+  height: 100%;
 }
 .windows-workspace-controls .workspace-sidebar-toggle {
   color: var(--sidebar-foreground);

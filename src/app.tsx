@@ -87,36 +87,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // user opens one.
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
-  useEffect(() => {
-    if (!workspaceToolbar || document.documentElement.dataset.windowBackdrop !== "acrylic") return
-    const host = workspaceToolbar.parentElement
-    if (!host) throw new Error("Workspace toolbar has no layout parent")
-    const chat = host.querySelector<HTMLElement>(".file-workspace-chat")
-    if (!chat) throw new Error("Workspace toolbar has no chat column")
-    const update = (): void => {
-      host.style.setProperty(
-        "--windows-workspace-controls-width",
-        `${workspaceToolbar.getBoundingClientRect().width}px`
-      )
-      const chatRect = chat.getBoundingClientRect()
-      const surface = chat.closest<HTMLElement>(".main-chat-surface")
-      if (!surface) throw new Error("Workspace chat has no main surface")
-      const anchor = chatRect.width > 0 ? chatRect : surface.getBoundingClientRect()
-      host.style.setProperty(
-        "--windows-workspace-controls-end",
-        `${host.getBoundingClientRect().right - anchor.right + 16}px`
-      )
-    }
-    const observer = new ResizeObserver(update)
-    observer.observe(workspaceToolbar)
-    observer.observe(chat)
-    update()
-    return () => {
-      observer.disconnect()
-      host.style.removeProperty("--windows-workspace-controls-width")
-      host.style.removeProperty("--windows-workspace-controls-end")
-    }
-  }, [workspaceToolbar])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
@@ -664,6 +634,22 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               </SidebarInset>
             </>
           }
+          toolbar={<div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />}
+          statusBar={
+            <>
+              <div className="main-extension-status pointer-events-none flex min-w-0 flex-1 items-center gap-2 [-webkit-app-region:no-drag]">
+                <div className="min-w-0 flex-1">
+                  <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+                </div>
+                <div className="flex h-8 shrink-0 items-center">
+                  <DriveStatus />
+                </div>
+              </div>
+              <div className="flex size-8 shrink-0 items-center justify-center">
+                <ClientVersionPopover />
+              </div>
+            </>
+          }
           main={
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
               {!leading && actionCards}
@@ -705,19 +691,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             onOpenExtension={openExtension}
             onSelect={select}
           />
-          <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
-          <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
-          <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 flex items-center gap-2 [-webkit-app-region:no-drag]">
-            <div className="min-w-0 flex-1">
-              <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
-            </div>
-            <div className="flex h-8 shrink-0 items-center">
-              <DriveStatus />
-            </div>
-          </div>
-          <div className="absolute end-1 bottom-0 z-20 flex size-8 items-center justify-center">
-            <ClientVersionPopover />
-          </div>
         </MainSidebarLayout>
       </WallpaperBackground>
     </div>

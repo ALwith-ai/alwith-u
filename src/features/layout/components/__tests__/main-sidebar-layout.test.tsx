@@ -4,7 +4,10 @@ import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
-import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
+import {
+  WindowsTitleBarContext,
+  WindowsWorkspaceControlsContext
+} from "@/components/alwith-ui/windows-main-window-shell"
 import { Button } from "@/components/ui/button"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
@@ -366,6 +369,63 @@ test("the Windows titlebar hosts the same working sidebar switch", () => {
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute("aria-checked", "false")
     expect(view.container.querySelector("[data-sidebar-mode]")).toHaveAttribute("data-sidebar-mode", "hidden")
+    view.unmount()
+    expect(target).toBeEmptyDOMElement()
+  } finally {
+    target.remove()
+  }
+})
+
+test("window chrome stays outside the sliding screens across navigation and sidebar changes", () => {
+  const layout = (screen: MainScreen) => (
+    <MainSidebarLayout
+      initialPinned
+      screen={screen}
+      sidebar={<div>Sidebar</div>}
+      leading={<main>Plugins</main>}
+      main={<main>Chat</main>}
+      toolbar={<button type="button">Workspace</button>}
+      statusBar={<span>Sync status</span>}
+    />
+  )
+  const view = render(layout("main"))
+  const header = view.getByRole("banner")
+  const footer = view.getByRole("contentinfo")
+  const body = must(view.container.querySelector(".main-window-body"), "window body")
+  expect(header.parentElement).toBe(body.parentElement)
+  expect(footer.parentElement).toBe(body.parentElement)
+  expect(header).toContainElement(view.getByRole("switch"))
+  expect(header).toContainElement(view.getByRole("button", { name: "Workspace" }))
+  expect(footer).toHaveTextContent("Sync status")
+  expect(body).not.toContainElement(header)
+  expect(body).not.toContainElement(footer)
+  fireEvent.click(view.getByRole("switch"))
+  view.rerender(layout("leading"))
+  expect(view.getByRole("banner")).toBe(header)
+  expect(view.getByRole("contentinfo")).toBe(footer)
+  expect(header).toContainElement(view.getByRole("button", { name: "Workspace" }))
+})
+
+test("Windows hosts workspace actions in the title bar instead of the body", () => {
+  const target = document.createElement("div")
+  document.body.appendChild(target)
+  try {
+    const view = render(
+      <WindowsWorkspaceControlsContext.Provider value={target}>
+        <MainSidebarLayout
+          initialPinned
+          screen="main"
+          sidebar={null}
+          leading={null}
+          main={<main>Chat</main>}
+          toolbar={<button type="button">Workspace</button>}
+          statusBar={<span>Sync status</span>}
+        />
+      </WindowsWorkspaceControlsContext.Provider>
+    )
+    expect(target).toContainElement(view.getByRole("button", { name: "Workspace" }))
+    expect(view.getByRole("main")).not.toContainElement(target)
+    expect(view.getByRole("contentinfo")).toHaveTextContent("Sync status")
     view.unmount()
     expect(target).toBeEmptyDOMElement()
   } finally {

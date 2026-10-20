@@ -16,7 +16,10 @@ import { toast } from "sonner"
 import { useStore } from "zustand"
 
 import { SidebarOverlayContext } from "@/components/alwith-ui/sidebar-overlay-context"
-import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
+import {
+  WindowsTitleBarContext,
+  WindowsWorkspaceControlsContext
+} from "@/components/alwith-ui/windows-main-window-shell"
 import { Button } from "@/components/ui/button"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { isMac } from "@/lib/platform"
@@ -32,6 +35,8 @@ export function MainSidebarLayout({
   sidebar,
   leading,
   main,
+  toolbar,
+  statusBar,
   children
 }: {
   initialPinned: boolean
@@ -39,11 +44,14 @@ export function MainSidebarLayout({
   sidebar: ReactNode
   leading: ReactNode
   main: ReactNode
+  toolbar?: ReactNode
+  statusBar?: ReactNode
   children?: ReactNode
 }) {
   const { t } = useTranslation()
   const zoom = useStore(zoomStore, state => state.level)
   const titlebar = useContext(WindowsTitleBarContext)
+  const workspaceControls = useContext(WindowsWorkspaceControlsContext)
   const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
   const [preview, setPreview] = useState(false)
@@ -182,46 +190,53 @@ export function MainSidebarLayout({
     <SidebarProvider
       open={docked}
       onOpenChange={changePinned}
-      className="relative h-full overflow-clip"
+      className="relative h-full min-h-0 flex-col overflow-clip"
       data-main-screen={screen}
       data-sidebar-mode={docked ? "pinned" : visible ? "floating" : "hidden"}
       data-sidebar-presentation={mainActive ? presentation : "docked"}
       style={
         {
-          "--main-sidebar-width": pinned ? "var(--sidebar-width)" : "0px",
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
           // Native window controls keep their size when page content zooms.
           "--sidebar-toggle-left": isMac() && !fullscreen ? "calc(80px * var(--window-zoom-correction))" : "8px"
         } as CSSProperties
       }>
-      <div className="main-screen-track">
-        <div className="main-screen-leading" data-screen-panel="leading" inert={mainActive} aria-hidden={mainActive}>
-          {leading}
-        </div>
-        <SidebarOverlayContext.Provider value={retainOverlay}>
-          <div
-            className="main-sidebar-shell"
-            onPointerEnter={enterSidebar}
-            onPointerLeave={leaveSidebar}
-            onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
-            onFocusCapture={cancelClose}
-            onBlurCapture={event => {
-              if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
-            }}>
-            <div className="main-sidebar-viewport">
-              <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
-                {sidebar}
-              </div>
-            </div>
-            {mainActive && !pinned && <div className="main-sidebar-edge" aria-hidden="true" />}
+      <header className="main-window-titlebar" data-tauri-drag-region>
+        {mainActive && !titlebar && sidebarToggle}
+        {!workspaceControls && toolbar}
+      </header>
+      {workspaceControls && toolbar && createPortal(toolbar, workspaceControls)}
+      {mainActive && titlebar && createPortal(sidebarToggle, titlebar)}
+      <div className="main-window-body">
+        <div className="main-screen-track">
+          <div className="main-screen-leading" data-screen-panel="leading" inert={mainActive} aria-hidden={mainActive}>
+            {leading}
           </div>
-        </SidebarOverlayContext.Provider>
-        <div className="main-screen-content" data-screen-panel="main" inert={!mainActive} aria-hidden={!mainActive}>
-          {main}
+          <SidebarOverlayContext.Provider value={retainOverlay}>
+            <div
+              className="main-sidebar-shell"
+              onPointerEnter={enterSidebar}
+              onPointerLeave={leaveSidebar}
+              onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
+              onFocusCapture={cancelClose}
+              onBlurCapture={event => {
+                if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
+              }}>
+              <div className="main-sidebar-viewport">
+                <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
+                  {sidebar}
+                </div>
+              </div>
+              {mainActive && !pinned && <div className="main-sidebar-edge" aria-hidden="true" />}
+            </div>
+          </SidebarOverlayContext.Provider>
+          <div className="main-screen-content" data-screen-panel="main" inert={!mainActive} aria-hidden={!mainActive}>
+            {main}
+          </div>
         </div>
       </div>
-      {mainActive && (titlebar ? createPortal(sidebarToggle, titlebar) : sidebarToggle)}
+      <footer className="main-window-statusbar">{statusBar}</footer>
       {children}
     </SidebarProvider>
   )

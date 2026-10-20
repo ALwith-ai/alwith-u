@@ -67,7 +67,6 @@ import { NavigationStack } from "@/features/layout/components/navigation/navigat
 import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { client, stopSession, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
-import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
@@ -317,7 +316,7 @@ export function ThreadSidebar({
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]">
-      <SidebarHeader className={cn("shrink-0 gap-1 px-2", isMac() && "pt-9")} data-tauri-drag-region>
+      <SidebarHeader className="shrink-0 gap-1 px-2" data-tauri-drag-region>
         <div className="flex h-8 items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
@@ -554,7 +553,7 @@ export function ThreadSidebar({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="shrink-0 gap-1 p-1 px-2 pb-[var(--main-surface-block-gutter)]">
+      <SidebarFooter className="shrink-0 gap-1 p-1 px-2">
         <UpdateStatusButton />
         <div className="px-1" data-slot="navigation-ads-padding">
           <NavigationAds onOpenVibemon={onOpenVibemon} />
