@@ -32,9 +32,9 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.0.0",
-    "@alwith/api": "^0.4.12",
+    "@alwith/api": "^0.4.13",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.17",
+    "@alwith/module-chat": "^0.1.18",
     "@alwith/module-computer": "^0.1.1",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
@@ -160,6 +160,6 @@
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.17"
+    "@alwith/module-chat": "^0.1.18"
   }
 }
