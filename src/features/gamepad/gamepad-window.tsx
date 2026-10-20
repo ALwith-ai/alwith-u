@@ -29,7 +29,8 @@ export function GamepadWindow(): ReactNode {
   return (
     <div
       className="flex h-screen flex-col bg-background text-foreground"
-      style={{ fontFamily: "system-ui, sans-serif" }}>
+      style={{ fontFamily: "system-ui, sans-serif" }}
+    >
       <header className="relative flex h-8 shrink-0 items-center justify-end px-2" data-tauri-drag-region>
         <span className="absolute start-1/2 flex -translate-x-1/2 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground rtl:translate-x-1/2">
           🎮 ALwith Gamepad
@@ -42,7 +43,8 @@ export function GamepadWindow(): ReactNode {
           className={`group shrink-0 hover:bg-transparent dark:hover:bg-transparent ${mainVisible ? "text-ring hover:text-ring" : "text-muted-foreground hover:text-muted-foreground"}`}
           title={t("sidebar.backToMain")}
           aria-label={t("sidebar.backToMain")}
-          onClick={() => void showMain().catch(report)}>
+          onClick={() => void showMain().catch(report)}
+        >
           <WindowFrameIcon />
         </Button>
         {platform() === "windows" && (
@@ -52,7 +54,8 @@ export function GamepadWindow(): ReactNode {
             className="text-muted-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent"
             title={t("common.close")}
             aria-label={t("common.close")}
-            onClick={() => void getCurrentWebviewWindow().close().catch(report)}>
+            onClick={() => void getCurrentWebviewWindow().close().catch(report)}
+          >
             <XIcon className="size-4" />
           </Button>
         )}
@@ -66,12 +69,13 @@ export function GamepadWindow(): ReactNode {
           <button
             type="button"
             className="underline-offset-2 hover:text-foreground hover:underline"
-            onClick={() => void openUrl("https://alwith.ai").catch(report)}>
+            onClick={() => void openUrl("https://alwith.ai").catch(report)}
+          >
             ALwith.ai
           </button>
         </p>
         <div className="flex items-center gap-1">
-          {GAMEPAD_SOCIAL_LINKS.map(link => (
+          {GAMEPAD_SOCIAL_LINKS.map((link) => (
             <Button
               key={link.name}
               variant="ghost"
@@ -86,7 +90,8 @@ export function GamepadWindow(): ReactNode {
               }
               title={link.name}
               aria-label={link.name}
-              onClick={() => void openUrl(link.url).catch(report)}>
+              onClick={() => void openUrl(link.url).catch(report)}
+            >
               <svg viewBox="0 0 24 24" className="size-3.5 fill-current" aria-hidden="true">
                 <path d={link.path} />
               </svg>

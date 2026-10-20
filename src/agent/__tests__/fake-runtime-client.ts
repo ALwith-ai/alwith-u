@@ -81,12 +81,12 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     const toAgent = new TransformStream<Uint8Array, Uint8Array>()
     let buffered = ""
     const fromAgent = new WritableStream<Uint8Array>({
-      write: chunk => {
+      write: (chunk) => {
         buffered += decoder.decode(chunk, { stream: true })
         const lines = buffered.split("\n")
         buffered = lines.pop() ?? ""
         const inbound: string[] = []
-        for (const line of lines.filter(line => line.length > 0)) {
+        for (const line of lines.filter((line) => line.length > 0)) {
           const value = JSON.parse(line) as {
             id?: unknown
             result?: unknown
@@ -288,7 +288,7 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     return () => this.acpAgentRequestHandlers.delete(handler)
   }
   async agents() {
-    return [...this.processes.keys()].map(agentId => ({
+    return [...this.processes.keys()].map((agentId) => ({
       agentId,
       pid: null,
       provider: "",

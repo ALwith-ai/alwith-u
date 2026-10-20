@@ -30,7 +30,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
   const listeners = new Set<(event: GamepadEvent) => void>()
   const host: GamepadHost = {
     platform: "macos",
-    request: vi.fn(async request => {
+    request: vi.fn(async (request) => {
       if (request.type === "selectDevice") {
         state = { ...state, sequence: state.sequence + 1, activeDevice: request.id }
         for (const listener of listeners) listener({ type: "snapshot", snapshot: state })
@@ -54,7 +54,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
         }
       return { type: "snapshot" as const, snapshot: state }
     }),
-    listen: async handler => {
+    listen: async (handler) => {
       listeners.add(handler)
       return () => {
         listeners.delete(handler)
@@ -83,7 +83,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
   await waitFor(() => expect(host.request).toHaveBeenCalledWith({ type: "snapshot" }))
   return {
     host,
-    emit: event => {
+    emit: (event) => {
       for (const listener of listeners) listener(event)
     }
   }

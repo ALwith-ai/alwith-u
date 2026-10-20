@@ -9,11 +9,11 @@ export const useActivityOrder = create<{ ids: string[] }>(() => ({ ids: [] }))
 function reconcile(state: AppState): void {
   const eligible = new Set(
     Object.values(state.runStates)
-      .filter(record => !record.reusableDraft && !state.draftSessions[record.sessionId])
-      .map(record => record.sessionId)
+      .filter((record) => !record.reusableDraft && !state.draftSessions[record.sessionId])
+      .map((record) => record.sessionId)
   )
   const previous = useActivityOrder.getState().ids
-  const next = previous.filter(id => eligible.delete(id))
+  const next = previous.filter((id) => eligible.delete(id))
   next.push(...eligible)
   if (next.length !== previous.length || next.some((id, index) => id !== previous[index])) {
     useActivityOrder.setState({ ids: next })

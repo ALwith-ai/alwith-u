@@ -31,7 +31,7 @@ test("collapse only hides chat after the pet, binding and bubble are ready", asy
 
 test.each([true, false])(
   "an unequipped account with pets=%s receives guidance without hiding or binding",
-  async hasPets => {
+  async (hasPets) => {
     const { host, calls } = fixture({ equippedPet: async () => "", hasPets: async () => hasPets })
     expect(await collapseToPet(host)).toEqual({ type: "setup", view: hasPets ? "equip" : "pull" })
     expect(calls).toEqual([])
@@ -49,7 +49,7 @@ test("inventory errors remain errors and do not become an empty collection", asy
   expect(calls).toEqual([])
 })
 
-test.each(["showPet", "bindSession", "openBubble"] as const)("a %s failure keeps chat visible", async key => {
+test.each(["showPet", "bindSession", "openBubble"] as const)("a %s failure keeps chat visible", async (key) => {
   const { host } = fixture({
     [key]: async () => {
       throw new Error("presentation failed")

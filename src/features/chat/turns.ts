@@ -50,7 +50,9 @@ function isNotice(item: MessageItem): boolean {
 /** Lifecycle diagnostics arriving before a prompt are session status, not an agent turn. */
 export function isSessionStatus(turn: Turn): boolean {
   return (
-    turn.user === null && turn.items.length > 0 && turn.items.every(item => item.kind === "assistant" && isNotice(item))
+    turn.user === null &&
+    turn.items.length > 0 &&
+    turn.items.every((item) => item.kind === "assistant" && isNotice(item))
   )
 }
 
@@ -117,12 +119,12 @@ function place(turn: Turn, item: Item): void {
  */
 export function groupTurns(session: Session, previous: Turn[] = []): Turn[] {
   const tools = new Map(
-    session.items.filter((item): item is ToolItem => item.kind === "tool").map(item => [item.id, item])
+    session.items.filter((item): item is ToolItem => item.kind === "tool").map((item) => [item.id, item])
   )
   // Filter the view before grouping so startup-only entries never create empty turns.
   // Runtime remains the authority for the original diagnostics.
-  const visible = { ...session, items: session.items.filter(item => !isMcpStartup(item)) }
-  const result: Turn[] = groupSession(visible).map(grouped => {
+  const visible = { ...session, items: session.items.filter((item) => !isMcpStartup(item)) }
+  const result: Turn[] = groupSession(visible).map((grouped) => {
     const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
     for (const entry of grouped.entries) flatten(entry, items, tools)
     const first = items[0]
@@ -134,16 +136,16 @@ export function groupTurns(session: Session, previous: Turn[] = []): Turn[] {
       final: [],
       edits: [],
       startedAt: grouped.startedAt ?? first.at,
-      endedAt: grouped.endedAt ?? Math.max(...items.map(item => item.at)),
-      replayed: items.every(item => item.replayed),
+      endedAt: grouped.endedAt ?? Math.max(...items.map((item) => item.at)),
+      replayed: items.every((item) => item.replayed),
       items
     }
     for (const item of items) place(turn, item)
     return turn
   })
   if (previous.length === 0) return result
-  const previousByKey = new Map(previous.map(turn => [turn.key, turn]))
-  return result.map(turn => {
+  const previousByKey = new Map(previous.map((turn) => [turn.key, turn]))
+  return result.map((turn) => {
     const before = previousByKey.get(turn.key)
     return before !== undefined && sameItems(before.items, turn.items) && before.endedAt === turn.endedAt
       ? before
@@ -160,7 +162,7 @@ export function messageText(item: MessageItem): string {
 }
 
 export function isHistoryInterrupted(turn: Turn): boolean {
-  return turn.items.some(item => {
+  return turn.items.some((item) => {
     const codex = item._meta?.codex
     return (
       typeof codex === "object" && codex !== null && "historyInterrupted" in codex && codex.historyInterrupted === true
@@ -170,7 +172,7 @@ export function isHistoryInterrupted(turn: Turn): boolean {
 
 /** The adapter retains live interruption on its prompt upsert, independently of later turns. */
 export function isTurnInterrupted(turn: Turn): boolean {
-  return turn.items.some(item => {
+  return turn.items.some((item) => {
     const codex = item._meta?.codex
     return typeof codex === "object" && codex !== null && "turnInterrupted" in codex && codex.turnInterrupted === true
   })

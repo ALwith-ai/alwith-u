@@ -49,7 +49,7 @@ vi.mock("@alwith/module-voice/tauri", () => ({
     release: async () => {},
     cancel: async () => {},
     finish: async (id: string) => {
-      const instance = fake.instances.find(item => item.id === id)
+      const instance = fake.instances.find((item) => item.id === id)
       if (instance === undefined) throw new Error("missing recording")
       await instance.finish()
     }
@@ -120,7 +120,7 @@ test("disabling voice removes its controls and cancels an active recording", asy
 test("the next handsfree recording has an enabled stop button and ignores old callbacks", async () => {
   const draft = new RevisionDraft("s", "", [0, 0])
   let endTurn!: () => void
-  const completed = new Promise<void>(resolve => {
+  const completed = new Promise<void>((resolve) => {
     endTurn = resolve
   })
   fake.submit.mockImplementation(async () => {
@@ -214,7 +214,7 @@ test("a late unconfigured profile cannot replace the active recording", async ()
   let resolveOld!: (profiles: { vui: boolean; doubao: boolean }) => void
   fake.profiles.mockImplementationOnce(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         resolveOld = resolve
       })
   )
@@ -466,7 +466,7 @@ test("recording waveform follows microphone amplitude and disappears on cancel",
   expect(document.querySelector("[data-voice-level]")).toBeNull()
 })
 
-test.each(["cancel", "finish"])("waveform receives fresh samples after %s and starting again", async ending => {
+test.each(["cancel", "finish"])("waveform receives fresh samples after %s and starting again", async (ending) => {
   fake.load.mockResolvedValue({ ...settings, mode: "dictation" })
   render(
     <VoiceButton

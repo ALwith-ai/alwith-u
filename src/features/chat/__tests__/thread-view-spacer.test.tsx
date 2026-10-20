@@ -102,7 +102,7 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
   await waitFor(() => expect(viewport.scrollTop).toBe(348))
   const latest = viewport.querySelector<HTMLElement>('[data-codex-turn="turn:user:second"]')
   if (latest === null) throw new Error("Test latest turn is missing")
-  const observer = observers.find(observer => observer.targets.has(latest))
+  const observer = observers.find((observer) => observer.targets.has(latest))
   if (observer === undefined) throw new Error("Latest turn resize observer is missing")
   const resize = (height: number) =>
     act(() => {
@@ -195,7 +195,7 @@ test("layout compensation near the bottom does not resume following while readin
       viewport.dispatchEvent(new Event("scroll"))
     })
   scroll(1000)
-  act(() => viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -400 })))
+  void act(() => viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -400 })))
   scroll(600)
   const button = view.getByRole("button", { name: "Scroll to bottom" })
   expect(button.classList.contains("codex-scroll-to-bottom-hidden")).toBe(false)

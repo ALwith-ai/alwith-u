@@ -31,8 +31,8 @@ function actions(open: () => Promise<void>, selected: string[], errors: unknown[
     importDraft: (_id: string, _draft: ComposerDraft | null) => {},
     include: () => {},
     open: async () => open(),
-    show: id => selected.push(id),
-    onOpenError: error => errors.push(error)
+    show: (id) => selected.push(id),
+    onOpenError: (error) => errors.push(error)
   }
 }
 
@@ -61,7 +61,7 @@ test("includes a selected project chat before showing it, after restoring an arc
   callbacks.unarchive = async () => {
     expect(include).not.toHaveBeenCalled()
   }
-  callbacks.show = id => {
+  callbacks.show = (id) => {
     expect(include).toHaveBeenCalledExactlyOnceWith(thread)
     selected.push(id)
   }

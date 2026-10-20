@@ -22,7 +22,7 @@ const slots: VoiceSettingsSlots = {
   Textarea,
   Switch,
   Button,
-  RemoveKeyButton: props => (
+  RemoveKeyButton: (props) => (
     <Button
       {...props}
       variant="link"
@@ -42,7 +42,8 @@ const slots: VoiceSettingsSlots = {
         void openExternal(href).catch((error: unknown) =>
           toast.error(error instanceof Error ? error.message : String(error))
         )
-      }}>
+      }}
+    >
       {children}
       <ExternalLinkIcon className="size-3 shrink-0" aria-hidden="true" />
     </a>
@@ -51,9 +52,10 @@ const slots: VoiceSettingsSlots = {
     <Select
       items={options}
       value={value}
-      onValueChange={next => {
+      onValueChange={(next) => {
         if (next !== null) onChange(next)
-      }}>
+      }}
+    >
       <SelectTrigger aria-label={label}>
         <SelectValue />
       </SelectTrigger>
@@ -103,7 +105,7 @@ export function VoiceSection(): ReactNode {
             aria-label={t("voice.enabled")}
             checked={enabled === true}
             disabled={enabled === null || saving}
-            onCheckedChange={value => void changeEnabled(value)}
+            onCheckedChange={(value) => void changeEnabled(value)}
           />
         </SettingRow>
         <SettingRow title={t("voice.shortcut")} desc={t("voice.shortcutHint")}>
@@ -114,7 +116,7 @@ export function VoiceSection(): ReactNode {
         host={host}
         slots={slots}
         text={(key, values) => t(`voice.${key}`, values)}
-        onError={error => toast.error(error instanceof Error ? error.message : String(error))}
+        onError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
         onSaved={() => void onSaved()}
       />
     </>

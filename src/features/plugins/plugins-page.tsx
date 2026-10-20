@@ -71,9 +71,9 @@ function pluginDescription(plugin: PluginSummary): string {
 /** Install / installing spinner / installed (disabled), as Desktop's MarketplaceActionButton. */
 function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; marketplace: PluginMarketplaceEntry }) {
   const { t } = useTranslation()
-  const installing = useStore(pluginsStore, state => plugin.id in state.busyIds)
-  const installed = useStore(pluginsStore, state => state.installed.some(entry => entry.plugin.id === plugin.id))
-  const install = useStore(pluginsStore, state => state.install)
+  const installing = useStore(pluginsStore, (state) => plugin.id in state.busyIds)
+  const installed = useStore(pluginsStore, (state) => state.installed.some((entry) => entry.plugin.id === plugin.id))
+  const install = useStore(pluginsStore, (state) => state.install)
   const unavailable = plugin.availability !== "AVAILABLE" || plugin.installPolicy === "NOT_AVAILABLE"
   if (installing) {
     return (
@@ -96,7 +96,8 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
       className="w-20"
       disabled={unavailable}
       title={unavailable ? t("plugins.disabledReason.unknown") : undefined}
-      onClick={() => void install({ plugin, marketplace }).catch(() => {})}>
+      onClick={() => void install({ plugin, marketplace }).catch(() => {})}
+    >
       {t("plugins.card.install")}
     </Button>
   )
@@ -136,7 +137,7 @@ function PluginRow({
 
 /** Catalog data comes from Codex: until the engine is connected the page is loading. */
 function usePluginsReady(): boolean {
-  return useApp(state => state.connection === "ready" && hasPluginStore(state.agent))
+  return useApp((state) => state.connection === "ready" && hasPluginStore(state.agent))
 }
 
 const PAGE_SIZE = 48
@@ -149,7 +150,7 @@ function MarketplaceSection({
   plugins: PluginSummary[]
 }) {
   const { t } = useTranslation()
-  const removeMarketplace = useStore(pluginsStore, state => state.removeMarketplace)
+  const removeMarketplace = useStore(pluginsStore, (state) => state.removeMarketplace)
 
   const [selectedPage, setPage] = useState(0)
   const page = Math.min(selectedPage, Math.max(0, Math.ceil(plugins.length / PAGE_SIZE) - 1))
@@ -171,7 +172,8 @@ function MarketplaceSection({
                   className="ms-auto text-muted-foreground"
                   aria-label={t("plugins.pageActions")}
                 />
-              }>
+              }
+            >
               <MoreVerticalIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[140px]">
@@ -184,7 +186,7 @@ function MarketplaceSection({
         )}
       </div>
       <PanelList className="grid grid-cols-2 gap-2">
-        {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(plugin => (
+        {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
           <PluginRow
             key={plugin.remotePluginId ?? plugin.id}
             plugin={plugin}
@@ -205,7 +207,8 @@ function MarketplaceSection({
             variant="outline"
             size="sm"
             disabled={(page + 1) * PAGE_SIZE >= plugins.length}
-            onClick={() => setPage(page + 1)}>
+            onClick={() => setPage(page + 1)}
+          >
             {t("plugins.nextPage")}
           </Button>
         </div>
@@ -216,13 +219,13 @@ function MarketplaceSection({
 
 const MarketplaceResults = memo(function MarketplaceResults({ query }: { query: string }) {
   const { t } = useTranslation()
-  const marketplaces = useStore(pluginsStore, state => state.marketplaces)
-  const featuredIds = useStore(pluginsStore, state => state.featuredPluginIds)
+  const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
+  const featuredIds = useStore(pluginsStore, (state) => state.featuredPluginIds)
   const index = useMemo(
     () =>
-      marketplaces.map(marketplace => ({
+      marketplaces.map((marketplace) => ({
         marketplace,
-        entries: marketplace.plugins.map(plugin => ({
+        entries: marketplace.plugins.map((plugin) => ({
           plugin,
           text: [
             plugin.name,
@@ -257,7 +260,7 @@ const MarketplaceResults = memo(function MarketplaceResults({ query }: { query: 
           plugins={plugins}
         />
       ))}
-      {query && sections.every(section => section.plugins.length === 0) && (
+      {query && sections.every((section) => section.plugins.length === 0) && (
         <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
       )}
     </>
@@ -270,7 +273,7 @@ function MarketplaceSkeleton() {
     <div role="status" aria-label={t("plugins.loading")} className="mx-2 my-3 flex flex-col gap-3">
       <Skeleton className="h-4 w-36" />
       <PanelList className="grid grid-cols-2 gap-2 px-0" aria-hidden="true">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map(id => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((id) => (
           <Item key={id} size="xs">
             <ItemMedia>
               <Skeleton className="size-10 rounded-sm" />
@@ -293,14 +296,14 @@ function MarketplaceSkeleton() {
 function MarketplaceTab() {
   const { t } = useTranslation()
   const ready = usePluginsReady()
-  const marketplaces = useStore(pluginsStore, state => state.marketplaces)
-  const loadErrors = useStore(pluginsStore, state => state.marketplaceLoadErrors)
-  const error = useStore(pluginsStore, state => state.error)
-  const refresh = useStore(pluginsStore, state => state.refresh)
-  const loading = useStore(pluginsStore, state => state.loading) || !ready
-  const addMarketplace = useStore(pluginsStore, state => state.addMarketplace)
-  const upgrade = useStore(pluginsStore, state => state.upgradeAll)
-  const upgrading = useStore(pluginsStore, state => state.upgrading)
+  const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
+  const loadErrors = useStore(pluginsStore, (state) => state.marketplaceLoadErrors)
+  const error = useStore(pluginsStore, (state) => state.error)
+  const refresh = useStore(pluginsStore, (state) => state.refresh)
+  const loading = useStore(pluginsStore, (state) => state.loading) || !ready
+  const addMarketplace = useStore(pluginsStore, (state) => state.addMarketplace)
+  const upgrade = useStore(pluginsStore, (state) => state.upgradeAll)
+  const upgrading = useStore(pluginsStore, (state) => state.upgrading)
   const [query, setQuery] = useState("")
   const [source, setSource] = useState("")
   const q = useDeferredValue(query.trim().toLowerCase())
@@ -315,13 +318,14 @@ function MarketplaceTab() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder={t("plugins.search")} />
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("plugins.search")} />
         <Button
           size="sm"
           variant="outline"
           disabled={!ready || upgrading}
           aria-busy={upgrading}
-          onClick={() => void upgrade()}>
+          onClick={() => void upgrade()}
+        >
           {upgrading ? <Spinner /> : <CircleArrowUpIcon data-icon="inline-start" />}
           {t("plugins.marketplace.upgradeAll")}
         </Button>
@@ -329,8 +333,8 @@ function MarketplaceTab() {
       <div className="flex items-center gap-2">
         <Input
           value={source}
-          onChange={e => setSource(e.target.value)}
-          onKeyDown={e => {
+          onChange={(e) => setSource(e.target.value)}
+          onKeyDown={(e) => {
             if (e.key === "Enter") submitSource()
           }}
           placeholder={t("plugins.marketplace.sourcePlaceholder")}
@@ -352,13 +356,13 @@ function MarketplaceTab() {
               </Button>
             </div>
           )}
-          {loadErrors.map(error => (
+          {loadErrors.map((error) => (
             <p key={error.marketplacePath} className="px-2 text-xs text-destructive">
               {error.marketplacePath}: {error.message}
             </p>
           ))}
           {loading ? <MarketplaceSkeleton /> : <MarketplaceResults query={q} />}
-          {!loading && marketplaces.every(marketplace => marketplace.plugins.length === 0) && (
+          {!loading && marketplaces.every((marketplace) => marketplace.plugins.length === 0) && (
             <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
           )}
         </div>
@@ -369,7 +373,7 @@ function MarketplaceTab() {
 
 function SkillRow({ skill }: { skill: SkillMetadata }) {
   const { t } = useTranslation()
-  const setSkillEnabled = useStore(pluginsStore, state => state.setSkillEnabled)
+  const setSkillEnabled = useStore(pluginsStore, (state) => state.setSkillEnabled)
   const title = skill.interface?.displayName ?? skill.name
   const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description
   return (
@@ -393,7 +397,7 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
         <Switch
           checked={skill.enabled}
           aria-label={t(skill.enabled ? "plugins.skills.disable" : "plugins.skills.enable")}
-          onCheckedChange={checked => void setSkillEnabled(skill, checked)}
+          onCheckedChange={(checked) => void setSkillEnabled(skill, checked)}
         />
       </ItemActions>
     </PanelItem>
@@ -403,12 +407,12 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
 function InstalledTab() {
   const { t } = useTranslation()
   const ready = usePluginsReady()
-  const installed = useStore(pluginsStore, state => state.installed)
-  const busyIds = useStore(pluginsStore, state => state.busyIds)
-  const uninstall = useStore(pluginsStore, state => state.uninstall)
-  const setPluginEnabled = useStore(pluginsStore, state => state.setPluginEnabled)
-  const skills = useStore(pluginsStore, state => state.skills)
-  const skillErrors = useStore(pluginsStore, state => state.skillErrors)
+  const installed = useStore(pluginsStore, (state) => state.installed)
+  const busyIds = useStore(pluginsStore, (state) => state.busyIds)
+  const uninstall = useStore(pluginsStore, (state) => state.uninstall)
+  const setPluginEnabled = useStore(pluginsStore, (state) => state.setPluginEnabled)
+  const skills = useStore(pluginsStore, (state) => state.skills)
+  const skillErrors = useStore(pluginsStore, (state) => state.skillErrors)
   return (
     <Pane>
       <div className="flex flex-col gap-4">
@@ -434,7 +438,7 @@ function InstalledTab() {
                         aria-label={t(plugin.enabled ? "plugins.card.disable" : "plugins.card.enable", {
                           pluginName: pluginTitle(plugin)
                         })}
-                        onCheckedChange={enabled => void setPluginEnabled(plugin, enabled)}
+                        onCheckedChange={(enabled) => void setPluginEnabled(plugin, enabled)}
                       />
                       <DropdownMenu>
                         <DropdownMenuTrigger
@@ -445,14 +449,16 @@ function InstalledTab() {
                               className="text-muted-foreground"
                               aria-label={t("plugins.card.moreActions")}
                             />
-                          }>
+                          }
+                        >
                           <MoreVerticalIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="min-w-[140px]">
                           <DropdownMenuItem
                             className="text-destructive"
                             disabled={plugin.id in busyIds}
-                            onClick={() => void uninstall(plugin)}>
+                            onClick={() => void uninstall(plugin)}
+                          >
                             <Trash2Icon className="me-2 size-3.5" />
                             {t("plugins.card.uninstall")}
                           </DropdownMenuItem>
@@ -467,7 +473,7 @@ function InstalledTab() {
         </section>
         <section className="flex flex-col gap-1">
           <h2 className="px-2 text-xs font-medium text-muted-foreground">{t("plugins.headings.skills")}</h2>
-          {skillErrors.map(error => (
+          {skillErrors.map((error) => (
             <p key={error.path} className="px-2 text-xs text-destructive">
               {error.path}: {error.message}
             </p>
@@ -478,7 +484,7 @@ function InstalledTab() {
             <p className="px-2 py-4 text-sm text-muted-foreground">{t("plugins.skills.empty")}</p>
           ) : (
             <PanelList className="grid grid-cols-2 gap-2">
-              {skills.map(skill => (
+              {skills.map((skill) => (
                 <SkillRow key={skill.path} skill={skill} />
               ))}
             </PanelList>
@@ -492,7 +498,7 @@ function InstalledTab() {
 /** `cwd`: the selected project; repo-scoped skills and marketplaces are read from it. */
 export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
-  const refresh = useStore(pluginsStore, state => state.refresh)
+  const refresh = useStore(pluginsStore, (state) => state.refresh)
   const ready = usePluginsReady()
 
   useEffect(() => {

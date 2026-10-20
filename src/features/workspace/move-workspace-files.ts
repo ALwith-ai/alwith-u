@@ -29,16 +29,16 @@ export async function moveWorkspaceFiles(
   directory: string,
   dependencies: WorkspaceMoveDependencies
 ): Promise<boolean> {
-  const tabs: MovingTab[] = dependencies.owners.flatMap(owner => {
+  const tabs: MovingTab[] = dependencies.owners.flatMap((owner) => {
     const snapshot = owner.editor.getSnapshot()
     return snapshot.documents.flatMap((document, index) =>
-      paths.some(path => containsPath(path, document.path))
+      paths.some((path) => containsPath(path, document.path))
         ? [
             {
               owner,
               document,
               active: document.id === snapshot.activeId,
-              followingPaths: snapshot.documents.slice(index + 1).map(doc => doc.path)
+              followingPaths: snapshot.documents.slice(index + 1).map((doc) => doc.path)
             }
           ]
         : []
@@ -51,17 +51,17 @@ export async function moveWorkspaceFiles(
   try {
     for (const owner of dependencies.owners) {
       const before = owner.editor.getSnapshot().documents
-      const closing = tabs.filter(tab => tab.owner === owner && before.some(doc => doc.id === tab.document.id))
+      const closing = tabs.filter((tab) => tab.owner === owner && before.some((doc) => doc.id === tab.document.id))
       if (closing.length === 0) continue
       try {
-        if (!(await owner.editor.requestCloseMany(closing.map(tab => tab.document.id)))) {
+        if (!(await owner.editor.requestCloseMany(closing.map((tab) => tab.document.id)))) {
           accepted = false
           break
         }
       } finally {
         const after = owner.editor.getSnapshot().documents
         for (const tab of closing) {
-          if (!after.some(doc => doc.id === tab.document.id)) closedTabs.add(tab)
+          if (!after.some((doc) => doc.id === tab.document.id)) closedTabs.add(tab)
         }
       }
     }
@@ -76,10 +76,11 @@ export async function moveWorkspaceFiles(
   for (const tab of closedTabs) {
     const { owner, document } = tab
     // A canceled batch or another user action can leave/reopen a live buffer. It remains authoritative.
-    if (owner.editor.getSnapshot().documents.some(doc => doc.id === document.id || doc.path === document.path)) continue
+    if (owner.editor.getSnapshot().documents.some((doc) => doc.id === document.id || doc.path === document.path))
+      continue
     try {
       const move = outcome?.moves
-        .filter(mapping => containsPath(mapping.from, document.path))
+        .filter((mapping) => containsPath(mapping.from, document.path))
         .sort((a, b) => b.from.length - a.from.length)[0]
       if (move) {
         if (outcome?.cloud) continue
@@ -94,10 +95,10 @@ export async function moveWorkspaceFiles(
       if (document.pinned) owner.editor.pin(restored.id)
       const current = owner.editor.getSnapshot()
       const following = tab.followingPaths
-        .map(path => current.documents.find(doc => doc.path === path))
-        .find(doc => doc !== undefined)
+        .map((path) => current.documents.find((doc) => doc.path === path))
+        .find((doc) => doc !== undefined)
       owner.editor.reorder(restored.id, following?.id ?? null)
-      if (!tab.active && previousActive !== null && current.documents.some(doc => doc.id === previousActive)) {
+      if (!tab.active && previousActive !== null && current.documents.some((doc) => doc.id === previousActive)) {
         owner.editor.activate(previousActive)
       }
     } catch (error) {

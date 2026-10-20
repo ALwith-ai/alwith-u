@@ -23,7 +23,7 @@ test.each<UpdaterState>([
   { type: "disabled", reason: "invalidConfiguration" },
   { type: "availableForDownload", update },
   { type: "restarting", update }
-])("hides the card in $type", state => {
+])("hides the card in $type", (state) => {
   useUpdaterStore.setState({ state })
   expect(render(<UpdateStatusButton />).container).toBeEmptyDOMElement()
 })

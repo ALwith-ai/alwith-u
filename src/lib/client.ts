@@ -22,11 +22,11 @@ export const client =
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
         projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async model => resolveSessionModel(model, await applyProviders()),
+        resolveModel: async (model) => resolveSessionModel(model, await applyProviders()),
         sessionContext: hostSessionContext,
         sessionContextRevision: computerContextRevision,
         prepareSessionTools: prepareComputerTools,
-        revokeSessionAccess: async sessionId => {
+        revokeSessionAccess: async (sessionId) => {
           await commands.computerStopSession({ sessionId })
         }
       })
@@ -35,7 +35,7 @@ export const client =
 export async function watchRunStates(): Promise<() => void> {
   const port = await runtimeClient()
   let revision = 0
-  const stop = await port.onRunStates(sessions => {
+  const stop = await port.onRunStates((sessions) => {
     revision++
     client.applyRunStates(sessions)
   })
@@ -62,5 +62,5 @@ export function useApp<T>(selector: (state: AppState) => T): T {
 }
 
 export function useSession(id: string | null): Session | null {
-  return useStore(client.store, state => (id === null ? null : (state.sessions[id] ?? null)))
+  return useStore(client.store, (state) => (id === null ? null : (state.sessions[id] ?? null)))
 }

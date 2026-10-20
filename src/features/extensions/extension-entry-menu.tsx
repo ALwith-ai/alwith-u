@@ -54,7 +54,8 @@ export function ExtensionEntryMenu({
                     throw new Error(`Extension action target unavailable: ${action.target.id}`)
                   })
                   .catch(onError)
-              }}>
+              }}
+            >
               <Icon className="text-muted-foreground" />
               <span className="min-w-0 truncate">{name}</span>
             </DropdownMenuItem>

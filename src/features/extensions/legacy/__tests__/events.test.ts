@@ -23,7 +23,7 @@ test("isolates plugin events by extension and releases listeners on unload", asy
   const events = createPluginEvents("first", first, transport)
   const other = createPluginEvents("second", second, transport)
   const received: unknown[] = []
-  await events.listen("consent-decided", value => {
+  await events.listen("consent-decided", (value) => {
     received.push(value)
   })
   await other.emit("consent-decided", "other")
@@ -31,7 +31,7 @@ test("isolates plugin events by extension and releases listeners on unload", asy
   await events.emit("consent-decided", "own")
   expect(received).toEqual(["own"])
   await first.dispose()
-  expect([...listeners.values()].every(callbacks => callbacks.size === 0)).toBe(true)
+  expect([...listeners.values()].every((callbacks) => callbacks.size === 0)).toBe(true)
   await expect(events.emit("consent-decided", "late")).rejects.toThrow()
   await second.dispose()
 })

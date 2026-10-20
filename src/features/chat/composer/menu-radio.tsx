@@ -27,14 +27,15 @@ export function MenuRadioSelect({
   itemClassName?: string
 }) {
   return (
-    <DropdownMenuRadioGroup value={value} onValueChange={next => onValueChange(String(next))}>
-      {options.map(option => (
+    <DropdownMenuRadioGroup value={value} onValueChange={(next) => onValueChange(String(next))}>
+      {options.map((option) => (
         <DropdownMenuRadioItem
           key={option.value}
           value={option.value}
           disabled={option.disabled}
           closeOnClick
-          className={cn("gap-2", option.description ? "items-start" : "items-center", itemClassName)}>
+          className={cn("gap-2", option.description ? "items-start" : "items-center", itemClassName)}
+        >
           {option.icon}
           {option.description ? (
             <div className="min-w-0 flex-1">

@@ -45,7 +45,7 @@ function PreviewExample(): ReactNode {
       expanded: ["/ALwith", "/ALwith/.alwith"],
       reportError
     })
-    const opener = createTreeOpener(editor, async path => path, tabs)
+    const opener = createTreeOpener(editor, async (path) => path, tabs)
     return { tree, editor, tabs, opener, reportError }
   })
   useEffect(() => {
@@ -65,7 +65,7 @@ function PreviewExample(): ReactNode {
             treeVisible={treeVisible}
             onTreeVisibleChange={setTreeVisible}
             maximized={maximized}
-            onMaximize={() => setMaximized(value => !value)}
+            onMaximize={() => setMaximized((value) => !value)}
             onClose={() => setClosed(true)}
             tree={
               <FileTree
@@ -74,8 +74,8 @@ function PreviewExample(): ReactNode {
                 controller={state.tree}
                 isDark={resolvedTheme === "dark"}
                 onError={state.reportError}
-                onOpenFile={path => state.opener.open(path)}
-                onPinFile={path => state.opener.open(path, true)}
+                onOpenFile={(path) => state.opener.open(path)}
+                onPinFile={(path) => state.opener.open(path, true)}
                 explorerControl={
                   <Button variant="ghost" size="icon-sm" aria-label="Hide tree" onClick={() => setTreeVisible(false)}>
                     <FolderTree />
@@ -117,7 +117,7 @@ export const TabInteractions: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "New tab" }))
     await userEvent.click(canvas.getByRole("treeitem", { name: "package.json" }))
     await canvas.findByRole("tab", { name: "package.json" })
-    expect(canvas.getByRole("tab", { name: "summary.txt" })).toBeVisible()
+    void expect(canvas.getByRole("tab", { name: "summary.txt" })).toBeVisible()
     await userEvent.click(canvas.getByRole("tab", { name: "summary.txt" }))
     await waitFor(() => expect(canvas.getByRole("textbox", { name: "summary.txt" })).toHaveValue("Summary"))
     await userEvent.click(canvas.getByRole("tab", { name: "package.json" }))
@@ -125,6 +125,6 @@ export const TabInteractions: Story = {
     await waitFor(() => expect(canvas.queryByRole("tab", { name: "package.json" })).toBeNull())
     await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
     await userEvent.click(canvas.getByRole("button", { name: "Reopen preview" }))
-    expect(canvas.getByRole("tab", { name: "summary.txt" })).toHaveAttribute("aria-selected", "true")
+    void expect(canvas.getByRole("tab", { name: "summary.txt" })).toHaveAttribute("aria-selected", "true")
   }
 }

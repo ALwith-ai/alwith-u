@@ -21,13 +21,13 @@ interface ThreadsUiState {
   setActivityCollapsedGroups: (next: ReadonlySet<string>) => void
 }
 
-export const useThreadsUiStore = create<ThreadsUiState>(set => ({
+export const useThreadsUiStore = create<ThreadsUiState>((set) => ({
   view: "sessions",
-  setView: view => set({ view }),
+  setView: (view) => set({ view }),
   projectOpen: new Map(),
-  setProjectOpen: next => set({ projectOpen: next }),
+  setProjectOpen: (next) => set({ projectOpen: next }),
   revealed: new Map(),
-  reveal: (key, count) => set(state => ({ revealed: new Map(state.revealed).set(key, count) })),
+  reveal: (key, count) => set((state) => ({ revealed: new Map(state.revealed).set(key, count) })),
   activityCollapsedGroups: new Set(),
-  setActivityCollapsedGroups: next => set({ activityCollapsedGroups: next })
+  setActivityCollapsedGroups: (next) => set({ activityCollapsedGroups: next })
 }))

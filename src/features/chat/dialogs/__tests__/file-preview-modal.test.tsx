@@ -7,8 +7,8 @@ import { initI18n } from "@/lib/i18n"
 
 import { FilePreviewModal, openFilePreview } from "../file-preview-modal"
 
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
-vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 await initI18n("en")
 afterEach(() => vi.restoreAllMocks())
@@ -34,7 +34,7 @@ test("late reads cannot replace a newly selected file; errors remain visible", a
   vi.spyOn(core, "invoke")
     .mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           complete = resolve
         })
     )

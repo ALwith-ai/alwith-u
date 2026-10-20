@@ -17,7 +17,7 @@ function addListener(store: Map<string, Set<Handler>>, event: EventName, handler
 }
 
 async function dispatch(listeners: Iterable<Handler>, event: string, payload: unknown): Promise<void> {
-  await Promise.all([...listeners].map(handler => handler({ event, id: 0, payload })))
+  for (const handler of listeners) await handler({ event, id: 0, payload })
 }
 
 const listen = async <T>(event: EventName, handler: EventCallback<T>): Promise<() => void> =>
@@ -52,12 +52,12 @@ test("a chat-targeted release is handled only by the chat window", async () => {
   const chatActions: string[] = []
 
   currentLabel = "main"
-  const stopMain = await serveChatSurface(async action => {
+  const stopMain = await serveChatSurface(async (action) => {
     mainActions.push(action.type)
     throw new Error("Unsupported main window action")
   })
   currentLabel = "chat"
-  const stopChat = await serveChatSurface(async action => {
+  const stopChat = await serveChatSurface(async (action) => {
     chatActions.push(action.type)
     await Promise.resolve()
     return null
@@ -77,7 +77,7 @@ test("a chat-targeted release is handled only by the chat window", async () => {
 test("chat surface reports reach the main registry without invoking navigation", async () => {
   currentLabel = "main"
   const actions: string[] = []
-  const stopMain = await serveChatSurface(async action => {
+  const stopMain = await serveChatSurface(async (action) => {
     actions.push(action.type)
     throw new Error("Surface reports must not navigate")
   })

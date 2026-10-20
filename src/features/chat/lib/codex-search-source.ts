@@ -46,7 +46,7 @@ export function findCodexSearchSourceMatches(turns: Turn[], rawQuery: string): S
   const query = rawQuery.trim()
   if (query.length === 0) return []
   return findTextSourceMatches(
-    turns.map(turn => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
+    turns.map((turn) => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
     query
   )
 }

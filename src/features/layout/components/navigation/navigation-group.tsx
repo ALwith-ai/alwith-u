@@ -53,7 +53,8 @@ export function NavigationGroup({
           content={
             count !== undefined ? (
               <TrailingSlot
-                className={cn("justify-end text-xs text-muted-foreground opacity-70", countLabel && "w-auto")}>
+                className={cn("justify-end text-xs text-muted-foreground opacity-70", countLabel && "w-auto")}
+              >
                 <span dir="ltr">{countLabel ?? count}</span>
               </TrailingSlot>
             ) : undefined
@@ -71,12 +72,13 @@ export function NavigationGroup({
         title={tooltip}
         className={cn(rowClassName, MENU_HIGHLIGHT)}
         onClick={toggle}
-        onKeyDown={event => {
+        onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return
           if (event.key !== "Enter" && event.key !== " ") return
           event.preventDefault()
           toggle()
-        }}>
+        }}
+      >
         <button
           type="button"
           aria-expanded={open}

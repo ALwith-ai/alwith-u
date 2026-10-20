@@ -26,13 +26,13 @@ function report(error: unknown): void {
 export function pickerRootsOf(roots: readonly RootInfo[], rootPath: string): DirectoryPickerRoot[] {
   const available = roots
     .filter(
-      root =>
+      (root) =>
         root.kind !== "SKILL" &&
         root.projectKey !== "ai-session-archive" &&
         root.drivePath.trim() !== "" &&
         (root.selected || root.canWrite)
     )
-    .map(root => ({
+    .map((root) => ({
       path: normalizePath(root.localPath),
       label: root.name || basename(root.localPath),
       synced: root.selected
@@ -71,16 +71,16 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
         const key = String(match.root.projectId)
         let pending = cloudCache.folders.get(key)
         if (!pending) {
-          pending = drive.request({ type: "cloudFolders", projectId: match.root.projectId }).then(response => {
+          pending = drive.request({ type: "cloudFolders", projectId: match.root.projectId }).then((response) => {
             if (response.type !== "cloudFolders") throw new Error("Invalid cloud folder response")
-            return response.data.map(folder => normalizePath(`${match.base}/${folder.path}`))
+            return response.data.map((folder) => normalizePath(`${match.base}/${folder.path}`))
           })
           cloudCache.folders.set(key, pending)
           void pending.catch(() => {
             cloudCache.folders.delete(key)
           })
         }
-        return (await pending).filter(path => dirname(path) === normalizePath(directory))
+        return (await pending).filter((path) => dirname(path) === normalizePath(directory))
       }
       const local = async (): Promise<readonly string[]> => {
         const filesystem = containsPath(rootPath, directory) ? fs : await driveFileSystem(directory)
@@ -90,14 +90,14 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
         return (
           await filesystem.readDirectory(directory, { showHidden: state.showHidden, showIgnored: state.showIgnored })
         )
-          .filter(child => child.kind === "directory")
-          .map(child => child.path)
+          .filter((child) => child.kind === "directory")
+          .map((child) => child.path)
       }
       const results = await Promise.allSettled([local(), cloud()])
-      const errors = results.filter(result => result.status === "rejected").map(result => result.reason as unknown)
+      const errors = results.filter((result) => result.status === "rejected").map((result) => result.reason as unknown)
       if (errors.length === results.length) throw new AggregateError(errors, "Could not read destination directories")
       for (const error of errors) report(error)
-      return [...new Set(results.flatMap(result => (result.status === "fulfilled" ? result.value : [])))].sort()
+      return [...new Set(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))].sort()
     },
     [cloudCache, fs, rootPath, tree]
   )
@@ -105,7 +105,7 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
     const destination = resolveDriveRoot(directory, roots)
     if (!destination) return null
     if (!destination.root.selected) return t("workspace.moveToUnsyncedWarning")
-    return sources.some(path => {
+    return sources.some((path) => {
       const source = resolveDriveRoot(path, roots)
       return source !== null && source.root.projectId !== destination.root.projectId
     })
@@ -116,7 +116,7 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
     const currentRoots = drive.getSnapshot().snapshot?.roots ?? []
     const destination = resolveDriveRoot(directory, currentRoots)
     const sameProject = sources.every(
-      path => resolveDriveRoot(path, currentRoots)?.root.projectId === destination?.root.projectId
+      (path) => resolveDriveRoot(path, currentRoots)?.root.projectId === destination?.root.projectId
     )
     if (sameProject && containsPath(rootPath, directory) && (await fs.stat(directory))?.kind === "directory") {
       await tree.move(sources, directory)

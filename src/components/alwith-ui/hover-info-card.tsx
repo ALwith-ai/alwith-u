@@ -44,7 +44,8 @@ export function HoverInfoCard({
           )}
           <div
             data-slot="hover-info-card-title"
-            className="line-clamp-2 min-w-0 flex-1 text-sm break-words text-foreground">
+            className="line-clamp-2 min-w-0 flex-1 text-sm break-words text-foreground"
+          >
             {title}
           </div>
         </div>
@@ -115,7 +116,8 @@ export function HoverInfoAction({
         "flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm text-foreground hover:bg-foreground/5 active:bg-foreground/10 disabled:pointer-events-none disabled:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground"
-      )}>
+      )}
+    >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}

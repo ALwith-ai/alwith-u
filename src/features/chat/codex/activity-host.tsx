@@ -25,7 +25,7 @@ export function useChatActivityHost(): ActivityHost {
         openImage: openImageLightbox,
         ...(openSession === null ? {} : { openSession }),
         expandToolOutput: true,
-        commandStatus: block => {
+        commandStatus: (block) => {
           if (block.status === "pending" || block.status === "in_progress") return undefined
           if (block.status === "cancelled" || block.status === "interrupted") return t("chat.tool.stopped")
           if (block.exitCode !== undefined && block.exitCode !== 0)

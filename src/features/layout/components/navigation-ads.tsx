@@ -28,22 +28,24 @@ export function NavigationAds({ onOpenVibemon }: { onOpenVibemon?: () => void })
       ref={viewport}
       className="-mx-1 overflow-hidden"
       data-slot="navigation-ads"
-      onKeyDownCapture={event => {
+      onKeyDownCapture={(event) => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
         event.preventDefault()
         const next = (event.key === "ArrowRight") === (i18n.dir() === "ltr")
         if (next) carousel?.scrollNext()
         else carousel?.scrollPrev()
-      }}>
+      }}
+    >
       <div className="flex touch-pan-y">
-        {campaigns.map(campaign => (
+        {campaigns.map((campaign) => (
           <div key={campaign.id} className="flex min-w-0 flex-[0_0_100%] px-1">
             <Button
               variant="ghost"
               aria-label={campaign.label}
               disabled={campaign.open === undefined}
               onClick={campaign.open}
-              className="aspect-[16/5] h-auto w-full cursor-pointer overflow-hidden rounded-none border-0 p-0 transition-none active:not-aria-[haspopup]:translate-y-0">
+              className="aspect-[16/5] h-auto w-full cursor-pointer overflow-hidden rounded-none border-0 p-0 transition-none active:not-aria-[haspopup]:translate-y-0"
+            >
               <img src={`/banner/${campaign.id}.png`} alt="" className="size-full object-cover" draggable={false} />
             </Button>
           </div>

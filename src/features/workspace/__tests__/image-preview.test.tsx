@@ -23,14 +23,14 @@ test("SVG preview reflects unsaved source and revokes the previous image URL", a
   })
   const fs = createFileSystem({
     adapter: createMemoryAdapter({ "/a/test.svg": '<svg xmlns="http://www.w3.org/2000/svg"><text>old</text></svg>' }),
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })
   const editor = createEditorController({
     fs,
     confirmClose: async () => "cancel",
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })

@@ -28,7 +28,7 @@ test("rapid input advances immediately and serializes native updates and persist
   let finish: (() => void) | undefined
   setZoom.mockImplementationOnce(
     () =>
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         finish = resolve
       })
   )

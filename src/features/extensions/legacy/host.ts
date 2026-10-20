@@ -38,7 +38,7 @@ export function createLegacyHost(
 
 /** Formal plugins use common capabilities; legacy import certificates remain mandatory for old packages. */
 export function createPluginHost(): CapabilityProvider<PluginHost> {
-  return { version: "1.0.0", create: binding => createHost(binding, false) }
+  return { version: "1.0.0", create: (binding) => createHost(binding, false) }
 }
 
 function createHost(
@@ -75,7 +75,7 @@ function createHost(
   return {
     ...(imported && id === "yup-kb"
       ? {
-          presentModal: createStartupConsentPresenter(binding, error => {
+          presentModal: createStartupConsentPresenter(binding, (error) => {
             if (!binding.cancellation.aborted) notices.show(String(error), 8000)
           })
         }
@@ -91,7 +91,7 @@ function createHost(
               const active = createBusinessSharing(
                 storage,
                 (file, value) => invoke("legacy_share_business", { extensionId: id, file, value }),
-                changed => listen("extension://changed", changed),
+                (changed) => listen("extension://changed", changed),
                 reportSharing,
                 id === "yup-kb"
               )
@@ -122,7 +122,7 @@ function createHost(
                   if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
                 })
               }),
-            read: sessionId =>
+            read: (sessionId) =>
               readHistory(() =>
                 client.exportHistory(
                   sessionId,
@@ -149,14 +149,14 @@ function createHost(
         extensionNavigation().setDraft(sessionId, text, legacyMessageSkills(id, text), () =>
           binding.cancellation.throwIfAborted()
         ),
-      openView: viewId => extensionNavigation().openView(viewId),
+      openView: (viewId) => extensionNavigation().openView(viewId),
       language: () => i18n.resolvedLanguage ?? i18n.language,
       openExternal,
-      clipboard: text => clipboard.writeText(text),
+      clipboard: (text) => clipboard.writeText(text),
       notify: (message, duration) => notices.show(message, duration)
     }),
     events: createPluginEvents(id, binding, {
-      listen: (event, callback) => listen(event, message => callback(message.payload)),
+      listen: (event, callback) => listen(event, (message) => callback(message.payload)),
       emit: (event, payload) => emit(event, payload)
     })
   }

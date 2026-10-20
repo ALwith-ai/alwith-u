@@ -24,7 +24,7 @@ export function VirtualThreadRows({
   const [cards, setCards] = useState<ReadonlySet<string>>(() => new Set())
   const [focused, setFocused] = useState<string | null>(null)
   const retainCard = useCallback((id: string, open: boolean) => {
-    setCards(previous => {
+    setCards((previous) => {
       if (previous.has(id) === open) return previous
       const next = new Set(previous)
       if (open) next.add(id)
@@ -40,7 +40,7 @@ export function VirtualThreadRows({
       start,
       Math.min(threads.length, Math.ceil((top + viewport.clientHeight) / ROW_STEP) + OVERSCAN)
     )
-    setRange(previous => (previous.start === start && previous.end === end ? previous : { start, end }))
+    setRange((previous) => (previous.start === start && previous.end === end ? previous : { start, end }))
   }, [threads.length, viewport])
 
   // A sibling group can move this list without changing its own size.
@@ -87,10 +87,11 @@ export function VirtualThreadRows({
       data-slot="virtual-thread-rows"
       data-count={threads.length}
       className="relative w-full"
-      style={{ height: threads.length * ROW_STEP - (ROW_STEP - ROW_HEIGHT) }}>
+      style={{ height: threads.length * ROW_STEP - (ROW_STEP - ROW_HEIGHT) }}
+    >
       {[...visible]
         .sort((a, b) => a - b)
-        .map(index => {
+        .map((index) => {
           const thread = threads[index]
           return (
             <VirtualRow
@@ -130,9 +131,10 @@ function VirtualRow({
       className="absolute inset-x-0"
       style={{ top: index * ROW_STEP, height: ROW_HEIGHT }}
       onFocusCapture={() => onFocus(thread.sessionId)}
-      onBlurCapture={event => {
+      onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) onFocus(null)
-      }}>
+      }}
+    >
       {renderRow(thread, onCardChange)}
     </div>
   )

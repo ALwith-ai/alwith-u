@@ -50,7 +50,7 @@ export function createUpdaterStore(io: UpdaterIo) {
       let receivedEvent = false
       let unsubscribe: (() => void) | undefined
       try {
-        unsubscribe = await io.onStateChange(state => {
+        unsubscribe = await io.onStateChange((state) => {
           receivedEvent = true
           set({ state })
           if (autoPrompt) void promptReadyUpdate(state)
@@ -71,7 +71,7 @@ export function createUpdaterStore(io: UpdaterIo) {
 
 const tauriIo: UpdaterIo = {
   getState: () => commands.updaterGetState(),
-  onStateChange: handler => events["updater:state"].listen(event => handler(event.payload)),
+  onStateChange: (handler) => events["updater:state"].listen((event) => handler(event.payload)),
   askRelaunch: () =>
     ask(i18n.t("updater.relaunchConfirmDesc"), {
       title: i18n.t("updater.relaunchConfirmTitle"),

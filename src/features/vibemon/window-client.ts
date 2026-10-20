@@ -59,13 +59,13 @@ async function chooseSession(payload: {
           ]
             .filter(Boolean)
             .join(" / "),
-          label => metrics.measureText(label).width
+          (label) => metrics.measureText(label).width
         ),
         action: () => void payload.onSelect(candidate.sessionId)
       }))
     })
   } finally {
-    await Promise.all(icons.map(icon => icon.close()))
+    await Promise.all(icons.map((icon) => icon.close()))
   }
   await petWindowCall("focus")
   await sessionMenu.popup(new LogicalPosition(payload.position.x, payload.position.y), window)
@@ -109,7 +109,7 @@ export function createPetWindowClient(): PetWindowHost {
       })
       return () => {
         disposed = true
-        void work.then(stop => stop())
+        void work.then((stop) => stop())
       }
     }
   }

@@ -78,7 +78,7 @@ test("plugin controls and skill scopes follow a language change without remounti
       plugin("Installing example")
     ]
   }
-  const skills: SkillMetadata[] = (["user", "repo", "system", "admin"] as const).map(scope => ({
+  const skills: SkillMetadata[] = (["user", "repo", "system", "admin"] as const).map((scope) => ({
     name: `${scope} skill`,
     description: "Catalog description",
     path: `/skills/${scope}`,
@@ -88,7 +88,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   }))
   pluginsStore.setState({
     marketplaces: [marketplace],
-    installed: [installed, disabled].map(plugin => ({ plugin, marketplace })),
+    installed: [installed, disabled].map((plugin) => ({ plugin, marketplace })),
     busyIds: { "Installing example": "installing" },
     skills
   })

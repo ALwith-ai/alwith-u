@@ -6,14 +6,14 @@ test("shortcut conflicts preserve the working registration and preference", asyn
   const registered = new Set<string>()
   let saved = ""
   const host: ShortcutHost = {
-    register: async shortcut => {
+    register: async (shortcut) => {
       if (shortcut === "Alt+Space") throw new Error("Shortcut already registered")
       registered.add(shortcut)
     },
-    unregister: async shortcut => {
+    unregister: async (shortcut) => {
       registered.delete(shortcut)
     },
-    save: async shortcut => {
+    save: async (shortcut) => {
       saved = shortcut
     }
   }
@@ -32,13 +32,13 @@ test("overlapping shortcut changes serialize and disabling persists an empty pre
   const saved: string[] = []
   const shortcut = createChatShortcut(
     {
-      register: async value => {
+      register: async (value) => {
         registered.add(value)
       },
-      unregister: async value => {
+      unregister: async (value) => {
         registered.delete(value)
       },
-      save: async value => {
+      save: async (value) => {
         saved.push(value)
       }
     },

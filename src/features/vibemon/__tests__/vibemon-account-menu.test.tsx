@@ -51,7 +51,7 @@ function fixture(enabled: boolean, failure?: Error) {
       get: async <T,>(key: string) => (key === "vibemon.accounts" ? structuredClone(accounts) : {}) as T,
       set: async () => {}
     },
-    subscribeStorage: listener => {
+    subscribeStorage: (listener) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
@@ -59,7 +59,7 @@ function fixture(enabled: boolean, failure?: Error) {
     },
     sessions: {} as VibemonHost["sessions"],
     windows: { openPet, closePet } as unknown as VibemonHost["windows"],
-    onError: error => {
+    onError: (error) => {
       throw error
     }
   })
@@ -97,7 +97,7 @@ test("the account menu groups settings and language above tools and sign out", a
   await waitFor(() =>
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
-  expect(view.getAllByRole("menuitem").map(item => item.textContent)).toEqual([
+  expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
     "Settings",
     "Language",
     "Show Vibémon",

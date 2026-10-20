@@ -6,7 +6,7 @@ test("a late read cannot overwrite a newer native change event", async () => {
   let reply!: (snapshot: SettingsSnapshot) => void
   const client = new SettingsClient(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         reply = resolve
       })
   )
@@ -35,7 +35,7 @@ test("native deletions and committed updates notify once, without duplicate repl
   })
   client.accept({ revision: 1, values: { "editor.fontSize": 18 }, browserMigrated: true })
   const keys: string[][] = []
-  client.subscribe(changes => keys.push(changes))
+  client.subscribe((changes) => keys.push(changes))
   const next = { revision: 2, values: {}, browserMigrated: true }
   client.accept(next)
   client.accept(next)

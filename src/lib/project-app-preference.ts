@@ -4,5 +4,5 @@ import { createStore } from "zustand/vanilla"
 export const projectAppPreference = createStore(() => ({ preferred: null as string | null, revision: 0 }))
 
 export function setProjectAppPreference(preferred: string | null): void {
-  projectAppPreference.setState(state => ({ preferred, revision: state.revision + 1 }))
+  projectAppPreference.setState((state) => ({ preferred, revision: state.revision + 1 }))
 }

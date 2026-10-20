@@ -13,14 +13,14 @@ export function inspectRequiredSkills(
   required: readonly string[],
   skills: readonly CatalogSkill[]
 ): RequiredSkillState[] {
-  const unique = [...new Map(skills.map(skill => [skill.path.replaceAll("\\", "/"), skill])).values()]
-  return required.map(name => {
+  const unique = [...new Map(skills.map((skill) => [skill.path.replaceAll("\\", "/"), skill])).values()]
+  return required.map((name) => {
     const matching = unique.filter(
-      skill =>
+      (skill) =>
         (skill.name === name || skill.name.endsWith(`:${name}`)) &&
         !skill.path.replaceAll("\\", "/").includes("/.alwith/skills/")
     )
-    const enabled = matching.filter(skill => skill.enabled)
+    const enabled = matching.filter((skill) => skill.enabled)
     if (enabled.length > 1) return { name, status: "ambiguous" }
     if (enabled.length === 1) return { name, status: "enabled", resolvedName: enabled[0].name }
     return { name, status: matching.length ? "disabled" : "missing" }
@@ -29,7 +29,7 @@ export function inspectRequiredSkills(
 
 /** Presence is a prerequisite; business skills must separately adopt U's data contract. */
 export function assertAvailableSkills(required: string[], skills: readonly CatalogSkill[]): string[] {
-  return inspectRequiredSkills(required, skills).map(skill => {
+  return inspectRequiredSkills(required, skills).map((skill) => {
     const { name, status } = skill
     if (status === "missing" || status === "disabled")
       throw new Error(

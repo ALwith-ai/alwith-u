@@ -13,7 +13,7 @@ async function until(predicate: () => boolean) {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > 3000) throw new Error("Timed out")
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
   }
 }
 
@@ -27,7 +27,7 @@ test("a fresh Runtime starts the agent and the client talks ACP through it", asy
   const id = await client.newSession("/tmp/a")
   await client.prompt(id, [{ type: "text", text: "hello" }])
   await until(() => client.session(id).state === "idle")
-  const reply = client.session(id).items.find(item => item.kind === "assistant")
+  const reply = client.session(id).items.find((item) => item.kind === "assistant")
   expect(reply?.kind === "assistant" && reply.content[0]?.type === "text" ? reply.content[0].text : "").toBe(
     `reply:${id}`
   )

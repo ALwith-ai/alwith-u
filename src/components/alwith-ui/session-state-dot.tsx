@@ -39,7 +39,8 @@ export function SessionStateDot({
           "relative inline-flex size-1.5 shrink-0 items-center justify-center",
           RUN_STATE_TEXT.running,
           className
-        )}>
+        )}
+      >
         <span className="absolute inset-0 flex items-center justify-center">
           <Ping size="26" speed="2" color="currentColor" />
         </span>

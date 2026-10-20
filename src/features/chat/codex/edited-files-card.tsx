@@ -85,8 +85,8 @@ export function EditedFilesCard({ items }: { items: ToolItem[] }) {
     <ActivityHostProvider host={host}>
       <SharedCard
         files={fileChanges(items)}
-        onOpen={file => openDiffModal({ path: file.path, patch: file.patch })}
-        renderPath={file => (
+        onOpen={(file) => openDiffModal({ path: file.path, patch: file.patch })}
+        renderPath={(file) => (
           <>
             <CodexFileIcon path={file.path} className="codex-edited-file-icon" />
             <span className="codex-edited-file-name">{file.path}</span>

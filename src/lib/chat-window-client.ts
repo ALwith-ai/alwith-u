@@ -8,6 +8,7 @@ import { type AppState, CodexClient } from "@/agent/client"
 import type { RateLimitSnapshot } from "@/agent/codex-extensions"
 import { macProjectPaths } from "@/agent/project-path"
 import { isMac } from "@/lib/platform"
+import { asError } from "@/lib/text"
 
 export type ChatEvents = { listen: typeof listen; emitTo: typeof emitTo }
 const events: ChatEvents = { listen, emitTo }
@@ -77,7 +78,7 @@ export async function serveChatClient(
       )
       if (Object.keys(sessions).length > 0) patch.sessions = sessions
       const removedSessions =
-        previous === null ? [] : Object.keys(previous.sessions).filter(id => !(id in state.sessions))
+        previous === null ? [] : Object.keys(previous.sessions).filter((id) => !(id in state.sessions))
       const payload: Projection = {
         connectionId: identity,
         revision: ++revision,
@@ -95,39 +96,43 @@ export async function serveChatClient(
     return next
   }
 
-  const stop = await transport.listen<Request>(REQUEST, async ({ payload: request }) => {
-    if (disposed) return
-    try {
-      if (!METHODS.includes(request.method) || !Array.isArray(request.args)) throw new Error("Invalid chat action")
-      if (request.method === "connect") {
-        connectionId = request.connectionId
-        previous = null
-      } else if (request.connectionId !== connectionId) throw new Error("Chat window connection expired")
-      const action = owner[request.method] as (...args: unknown[]) => unknown
-      const result = await action.apply(owner, request.args)
-      if (disposed || connectionId !== request.connectionId) return
-      await publish()
-      await transport.emitTo("chat", RESPONSE, { connectionId, id: request.id, result } satisfies Response)
-    } catch (error) {
-      if (disposed) return
-      const code =
-        typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
-          ? error.code
-          : undefined
-      await transport.emitTo("chat", RESPONSE, {
-        connectionId: request.connectionId,
-        id: request.id,
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-          ...(code === undefined ? {} : { code })
+  const stop = await transport.listen<Request>(
+    REQUEST,
+    ({ payload: request }) =>
+      void (async () => {
+        if (disposed) return
+        try {
+          if (!METHODS.includes(request.method) || !Array.isArray(request.args)) throw new Error("Invalid chat action")
+          if (request.method === "connect") {
+            connectionId = request.connectionId
+            previous = null
+          } else if (request.connectionId !== connectionId) throw new Error("Chat window connection expired")
+          const action = owner[request.method] as (...args: unknown[]) => unknown
+          const result = await action.apply(owner, request.args)
+          if (disposed || connectionId !== request.connectionId) return
+          await publish()
+          await transport.emitTo("chat", RESPONSE, { connectionId, id: request.id, result } satisfies Response)
+        } catch (error) {
+          if (disposed) return
+          const code =
+            typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
+              ? error.code
+              : undefined
+          await transport.emitTo("chat", RESPONSE, {
+            connectionId: request.connectionId,
+            id: request.id,
+            error: {
+              message: error instanceof Error ? error.message : String(error),
+              ...(code === undefined ? {} : { code })
+            }
+          } satisfies Response)
         }
-      } satisfies Response)
-    }
-  })
+      })()
+  )
   const stopState = owner.store.subscribe(() => {
     void publish().catch(onError)
   })
-  const stopLimits = owner.onRateLimits(limits => {
+  const stopLimits = owner.onRateLimits((limits) => {
     if (connectionId !== null) void transport.emitTo("chat", LIMITS, { connectionId, limits })
   })
   return () => {
@@ -185,7 +190,7 @@ export class RemoteChatClient extends CodexClient {
       this.transport.listen<Projection>(STATE, ({ payload }) => {
         if (payload.connectionId !== this.connectionId || payload.revision <= this.revision) return
         this.revision = payload.revision
-        this.store.setState(state => {
+        this.store.setState((state) => {
           const sessions = { ...(payload.reset ? {} : state.sessions), ...payload.patch.sessions }
           for (const id of payload.removedSessions) delete sessions[id]
           return { ...payload.patch, sessions }
@@ -217,13 +222,13 @@ export class RemoteChatClient extends CodexClient {
         this.pending.delete(id)
         reject(new Error("Main window did not answer the chat request"))
       }, 120_000)
-      this.pending.set(id, { resolve: value => resolve(value as Awaited<ReturnType<CodexClient[M]>>), reject, timer })
+      this.pending.set(id, { resolve: (value) => resolve(value as Awaited<ReturnType<CodexClient[M]>>), reject, timer })
       void this.transport
         .emitTo("main", REQUEST, { connectionId: this.connectionId, id, method, args } satisfies Request)
         .catch((error: unknown) => {
           clearTimeout(timer)
           this.pending.delete(id)
-          reject(error)
+          reject(asError(error))
         })
     })
   }

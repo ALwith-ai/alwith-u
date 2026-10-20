@@ -76,7 +76,7 @@ beforeEach(async () => {
     .mockResolvedValue({ type: "cloudFolders", data: [{ path: "Cloud child", folderId: "cloud-child" }] })
   fs = createFileSystem({
     adapter: createMemoryAdapter({ "/drive/One/source.txt": "contents", "/drive/One/local/keep.txt": "keep" }),
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })
@@ -84,7 +84,7 @@ beforeEach(async () => {
   tree = createFileTreeController({
     fs,
     root: "/drive/One",
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })

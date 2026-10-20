@@ -27,7 +27,7 @@ export function EditorSettingsSection(): ReactNode {
           min={8}
           max={40}
           value={settings.fontSize}
-          onChange={event => {
+          onChange={(event) => {
             const value = event.target.valueAsNumber
             if (value >= 8 && value <= 40) save(() => saveEditorSettings({ fontSize: value }))
           }}
@@ -49,15 +49,16 @@ export function EditorSettingsSection(): ReactNode {
       <SettingRow title={t("workspace.iconTheme")} aligned>
         <Select
           value={iconTheme ?? "vscode-icons"}
-          onValueChange={value => {
+          onValueChange={(value) => {
             if (value === null || !iconThemes.includes(value as IconTheme)) throw new Error("Unknown file icon theme")
             save(() => saveEditorIconTheme(value as IconTheme))
-          }}>
+          }}
+        >
           <SelectTrigger className="w-full" aria-label={t("workspace.iconTheme")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {iconThemes.map(theme => (
+            {iconThemes.map((theme) => (
               <SelectItem key={theme} value={theme}>
                 {theme}
               </SelectItem>

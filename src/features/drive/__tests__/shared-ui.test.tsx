@@ -28,10 +28,10 @@ const root: RootInfo = {
 }
 const controls: DriveControls = {
   Button: ({ variant: _variant, size: _size, ...props }) => <button {...props} />,
-  Input: props => <input {...props} />,
+  Input: (props) => <input {...props} />,
   Select: ({ options, onValueChange, ...props }) => (
-    <select {...props} onChange={event => onValueChange(event.target.value)}>
-      {options.map(option => (
+    <select {...props} onChange={(event) => onValueChange(event.target.value)}>
+      {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -49,7 +49,7 @@ const controls: DriveControls = {
   Menu: ({ label, items }) => (
     <details>
       <summary>{label}</summary>
-      {items.map(item => (
+      {items.map((item) => (
         <button type="button" key={item.label} disabled={item.disabled} onClick={item.onSelect}>
           {item.label}
         </button>
@@ -87,7 +87,7 @@ function fixture(
     attach: async () => {},
     refresh: async () => {},
     dispose: () => {},
-    request: async request => {
+    request: async (request) => {
       requests.push(request)
       if (request.type === "ownershipGuard")
         return {
@@ -113,7 +113,7 @@ function fixture(
 }
 describe("shared Desktop Drive UI", () => {
   it("opens a shared file by its refreshed exact path, never its project as a file", async () => {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "shared")
         return {
           type: "shared",
@@ -148,7 +148,7 @@ describe("shared Desktop Drive UI", () => {
     expect(f.host.onOpenEntry).not.toHaveBeenCalledWith({ path: root.localPath, isDirectory: false })
   })
   it("opens an unlisted shared file on its exact web route", async () => {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "shared")
         return {
           type: "shared",
@@ -167,10 +167,10 @@ describe("shared Desktop Drive UI", () => {
     )
     fireEvent.click(await screen.findByRole("button", { name: /Remote report/ }))
     await waitFor(() => expect(f.host.onOpenExternal).toHaveBeenCalledWith("https://web.example.test/file/file%2F42"))
-    expect(f.requests.some(request => request.type === "land")).toBe(false)
+    expect(f.requests.some((request) => request.type === "land")).toBe(false)
   })
   it("creates a departmental knowledge project using labels and original opaque ids", async () => {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "shared") return { type: "shared", data: [] }
       if (request.type === "templates")
         return { type: "templates", data: [{ id: "90071992547409999", name: "Research", kind: "KNOWLEDGE" }] }
@@ -217,7 +217,7 @@ describe("shared Desktop Drive UI", () => {
 
 describe("shared permission navigation", () => {
   it("navigates inherited permission sources and returns to the original target", async () => {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: 42 } }
       if (request.type === "grants")
         return request.target.kind === "FILE"
@@ -262,7 +262,7 @@ describe("shared permission navigation", () => {
 describe("project readiness", () => {
   it("lands an empty existing directory before opening a project", async () => {
     const opened = vi.fn(async () => {})
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "shared") return { type: "shared", data: [] }
       if (request.type === "land") return { type: "root", data: root }
       throw new Error(`Unexpected request: ${request.type}`)
@@ -280,7 +280,7 @@ describe("project readiness", () => {
 
 describe("Drive settings native configuration", () => {
   it("reconfigures a signed-in folder with the stored user name and displays actual skill installation", async () => {
-    const f = fixture({}, async request => {
+    const f = fixture({}, async (request) => {
       if (request.type === "configuration")
         return {
           type: "configuration",
@@ -336,7 +336,7 @@ describe("search profile isolation", () => {
     f.host.readDirectory = async () => {
       reads++
       if (reads === 1)
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           finishOld = resolve
         })
       return [{ name: "current.md", isDirectory: false }]
@@ -364,7 +364,7 @@ describe("search profile isolation", () => {
     expect(screen.queryByRole("button", { name: /secret.md/ })).not.toBeInTheDocument()
   })
   it("marks SSO as a non-submit button inside the token form", async () => {
-    const f = fixture({ configured: false }, async request => {
+    const f = fixture({ configured: false }, async (request) => {
       if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
       throw new Error(`Unexpected request ${request.type}`)
     })
@@ -385,7 +385,7 @@ it("shows directory failures alongside readable search results", async () => {
   const f = fixture({
     roots: [{ ...root, projectId: 2, projectKey: "private", name: "Private", localPath: "/private" }, root]
   })
-  f.host.readDirectory = async path => {
+  f.host.readDirectory = async (path) => {
     if (path === "/private") throw new Error("Permission denied")
     return [{ name: "readable.md", isDirectory: false }]
   }
@@ -400,7 +400,7 @@ it("shows directory failures alongside readable search results", async () => {
 })
 
 it("opens a pinned cloud project by landing it before workspace navigation", async () => {
-  const f = fixture({}, async request => {
+  const f = fixture({}, async (request) => {
     if (request.type === "shared") return { type: "shared", data: [] }
     if (request.type === "land") return { type: "root", data: root }
     throw new Error(`Unexpected request: ${request.type}`)
@@ -428,7 +428,7 @@ it("retains a missing pinned file and never lands a project as a replacement", a
   fireEvent.click(pin)
   await screen.findByRole("alert")
   expect(opened).not.toHaveBeenCalled()
-  expect(f.requests.some(request => request.type === "land")).toBe(false)
+  expect(f.requests.some((request) => request.type === "land")).toBe(false)
   expect(f.host.onPinnedDocsChange).not.toHaveBeenCalled()
 })
 
@@ -443,13 +443,13 @@ it("does not disguise a pinned project's permission failure as an absent local r
   fireEvent.click(await screen.findByRole("button", { name: "Protected library" }))
   expect(await screen.findByRole("alert")).toHaveTextContent("Permission denied")
   expect(opened).not.toHaveBeenCalled()
-  expect(f.requests.some(request => request.type === "land")).toBe(false)
+  expect(f.requests.some((request) => request.type === "land")).toBe(false)
 })
 
 describe("Drive group deferred rendering", () => {
   it.each(["large", "other-personal"] as const)(
     "defers %s rows until expanded and preserves their state on collapse",
-    async kind => {
+    async (kind) => {
       const roots =
         kind === "large"
           ? Array.from({ length: 31 }, (_, i) => ({ ...root, projectId: i + 1, name: `Library ${i + 1}` }))
@@ -464,7 +464,7 @@ describe("Drive group deferred rendering", () => {
           confirm={async () => true}
         />
       )
-      await waitFor(() => expect(f.requests.some(request => request.type === "shared")).toBe(true))
+      await waitFor(() => expect(f.requests.some((request) => request.type === "shared")).toBe(true))
       const group = view.container.querySelector<HTMLDetailsElement>("details.alwith-drive-group:not([open])")
       if (!group) throw new Error("Expected a collapsed Drive group")
       expect(group.querySelectorAll(".alwith-drive-nav-row")).toHaveLength(0)

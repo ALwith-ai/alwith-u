@@ -15,7 +15,7 @@ export function MentionChips({ mentions, onRemove }: { mentions: string[]; onRem
   if (mentions.length === 0) return null
   return (
     <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-      {mentions.map(path => (
+      {mentions.map((path) => (
         <Badge key={path} variant="secondary" className="gap-1 pe-0.5" title={path}>
           <FileIcon className="size-3" />
           <span className="max-w-40 truncate">{basename(path)}</span>
@@ -25,7 +25,8 @@ export function MentionChips({ mentions, onRemove }: { mentions: string[]; onRem
             size="icon-xs"
             className="size-4"
             aria-label={t("chat.mention.remove", { name: basename(path) })}
-            onClick={() => onRemove(path)}>
+            onClick={() => onRemove(path)}
+          >
             <XIcon className="size-3" />
           </Button>
         </Badge>

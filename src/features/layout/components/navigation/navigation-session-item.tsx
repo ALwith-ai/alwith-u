@@ -70,7 +70,8 @@ export function NavigationSessionItem({
         listeningPorts != null && listeningPorts.length > 0 && "h-auto min-h-[var(--navigation-row-height)] py-1",
         className
       )}
-      {...props}>
+      {...props}
+    >
       <NavigationLeading>
         {state != null ? <SessionStateDot state={state} title={interruption ?? undefined} /> : media}
       </NavigationLeading>
@@ -79,21 +80,22 @@ export function NavigationSessionItem({
         {subtitle != null && <OverflowMarquee className="text-xs text-muted-foreground">{subtitle}</OverflowMarquee>}
         {listeningPorts != null && listeningPorts.length > 0 && (
           <span className="flex gap-2 font-mono text-xs text-muted-foreground">
-            {listeningPorts.map(port => {
+            {listeningPorts.map((port) => {
               const url = `http://localhost:${port}`
               return (
                 <button
                   key={port}
                   type="button"
                   className="underline"
-                  onPointerDown={event => event.stopPropagation()}
-                  onKeyDown={event => event.stopPropagation()}
-                  onClick={event => {
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
                     event.stopPropagation()
                     void openUrl(url).catch((error: unknown) =>
                       toast.error(error instanceof Error ? error.message : String(error))
                     )
-                  }}>
+                  }}
+                >
                   :{port}
                 </button>
               )
@@ -146,7 +148,8 @@ function NavigationSessionHoverCard({
         value={() => {
           setHovering(false)
           setPinned(false)
-        }}>
+        }}
+      >
         <CodexHoverCard open={open} onOpenChange={setHovering} trigger={row}>
           {children}
         </CodexHoverCard>

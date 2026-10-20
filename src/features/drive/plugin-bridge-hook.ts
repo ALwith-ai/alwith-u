@@ -50,7 +50,7 @@ export function useDrivePluginBridge(): void {
           try {
             await syncDrivePlugin(
               {
-                request: request => driveTransport.request(request),
+                request: (request) => driveTransport.request(request),
                 binding: getDrivePluginData,
                 generation: () => drive.getSnapshot().snapshot?.generation,
                 setArchiveOwner: setDriveArchiveOwner,
@@ -85,14 +85,14 @@ export function useDrivePluginBridge(): void {
       setDriveArchiveOwner(null)
       schedule()
     })
-      .then(stop => {
+      .then((stop) => {
         if (closed) stop()
         else {
           stopPolicy = stop
           schedule()
         }
       })
-      .catch(error => {
+      .catch((error) => {
         if (!closed) reportBackgroundError("drive-plugin-bridge", error)
       })
     schedule()

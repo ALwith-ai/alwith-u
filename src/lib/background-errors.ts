@@ -22,7 +22,7 @@ export function errorDetails(error: unknown): string {
 }
 
 export function logBackgroundError(context: string, error: unknown): void {
-  void logError(`[${context}] ${errorDetails(error)}`).catch(failure => console.error("[error-log]", failure))
+  void logError(`[${context}] ${errorDetails(error)}`).catch((failure) => console.error("[error-log]", failure))
 }
 
 /** A stable notice per operation prevents concurrent startup failures from flooding the screen. */

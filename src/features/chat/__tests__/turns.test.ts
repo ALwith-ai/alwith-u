@@ -31,9 +31,9 @@ function sent(session: Session, text: string, localId: string, messageId: string
 describe("groupTurns over @alwith/api", () => {
   test("a local prompt starts the turn on screen; the receipt renames it, the echo keeps the key", () => {
     let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
-    expect(groupTurns(session).map(turn => turn.key)).toEqual(["turn:user:local"])
+    expect(groupTurns(session).map((turn) => turn.key)).toEqual(["turn:user:local"])
     session = acknowledgePrompt(session, "local", "u-1")
-    expect(groupTurns(session).map(turn => turn.key)).toEqual(["turn:user:u-1"])
+    expect(groupTurns(session).map((turn) => turn.key)).toEqual(["turn:user:u-1"])
     session = feed(session, { sessionUpdate: "user_message", messageId: "u-1", content: [] })
     const [turn] = groupTurns(session)
     expect(turn?.key).toBe("turn:user:u-1")
@@ -49,9 +49,9 @@ describe("groupTurns over @alwith/api", () => {
       text("f", "done", { codex: { phase: "final_answer" } })
     )
     const [turn] = groupTurns(session)
-    expect(turn?.work.map(entry => entry.kind)).toEqual(["text", "activity"])
-    expect(turn?.final.map(item => item.id)).toEqual(["f"])
-    expect(turn?.edits.map(item => item.id)).toEqual(["t"])
+    expect(turn?.work.map((entry) => entry.kind)).toEqual(["text", "activity"])
+    expect(turn?.final.map((item) => item.id)).toEqual(["f"])
+    expect(turn?.edits.map((item) => item.id)).toEqual(["t"])
   })
 
   test("endedAt is the idle frame while a finished turn, the latest arrival while it runs", () => {
@@ -101,7 +101,7 @@ describe("groupTurns over @alwith/api", () => {
 
 test.each([false, true])(
   "MCP startup diagnostics stay out of turns without changing source items (replayed=%s)",
-  replayed => {
+  (replayed) => {
     const original = feed(createSession("mcp", "/"), {
       sessionUpdate: "tool_call_update",
       toolCallId: "mcp-startup:yup-drive",
@@ -110,7 +110,7 @@ test.each([false, true])(
       status: "failed",
       content: [{ type: "content", content: { type: "text", text: "HTTP 404" } }]
     })
-    const session = { ...original, items: original.items.map(item => ({ ...item, replayed })) }
+    const session = { ...original, items: original.items.map((item) => ({ ...item, replayed })) }
     expect(groupTurns(session)).toEqual([])
     expect(session.items).toHaveLength(1)
     expect(session.items[0]).toMatchObject({ name: "mcp_startup", status: "failed", replayed })
@@ -133,7 +133,7 @@ test.each([false, true])(
     )
     const turns = groupTurns(mixed)
     expect(turns).toHaveLength(1)
-    expect(turns[0].items.map(item => item.id)).toEqual(["user", "ordinary-error", "answer"])
+    expect(turns[0].items.map((item) => item.id)).toEqual(["user", "ordinary-error", "answer"])
     expect(turns[0].work).toMatchObject([{ kind: "activity", items: [{ id: "ordinary-error", status: "failed" }] }])
   }
 )

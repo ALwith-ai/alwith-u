@@ -64,8 +64,8 @@ export function ChatActionsMenu({
   onDeleted?: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
-  const canRename = useApp(state => hasRename(state.agent))
-  const connected = useApp(state => state.connection === "ready")
+  const canRename = useApp((state) => hasRename(state.agent))
+  const connected = useApp((state) => state.connection === "ready")
   // Keep the apps outside the popup lifecycle, including on the empty main chat.
   const editor = useProjectApps(cwd)
   const [dialog, setDialog] = useState<"rename" | "delete" | null>(null)
@@ -106,9 +106,10 @@ export function ChatActionsMenu({
   return (
     <>
       <DropdownMenu
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (open) skipMenuFocus.current = false
-        }}>
+        }}
+      >
         <DropdownMenuTrigger
           render={
             <Button
@@ -119,13 +120,15 @@ export function ChatActionsMenu({
               aria-label={t("actions.more")}
               title={t("actions.more")}
             />
-          }>
+          }
+        >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
           className="max-w-[calc(100vw-2rem)] min-w-56"
-          finalFocus={() => !skipMenuFocus.current}>
+          finalFocus={() => !skipMenuFocus.current}
+        >
           {showCreationActions && (
             <DropdownMenuGroup>
               {showNewChat && (
@@ -133,7 +136,8 @@ export function ChatActionsMenu({
                   onClick={() => {
                     skipMenuFocus.current = true
                     onNewChat()
-                  }}>
+                  }}
+                >
                   <PlusIcon />
                   {t("sidebar.newChat")}
                 </DropdownMenuItem>
@@ -155,7 +159,8 @@ export function ChatActionsMenu({
                     onClick={() => {
                       skipMenuFocus.current = true
                       onOpenWindow()
-                    }}>
+                    }}
+                  >
                     <PictureInPicture2Icon />
                     {t("chatWindow.open")}
                   </DropdownMenuItem>
@@ -165,7 +170,8 @@ export function ChatActionsMenu({
                     onClick={() => {
                       skipMenuFocus.current = true
                       onReturnToMain()
-                    }}>
+                    }}
+                  >
                     <PanelTopIcon />
                     {t("chatWindow.returnToMain")}
                   </DropdownMenuItem>
@@ -176,7 +182,8 @@ export function ChatActionsMenu({
                       skipMenuFocus.current = true
                       setName(session.title ?? "")
                       setDialog("rename")
-                    }}>
+                    }}
+                  >
                     <PencilIcon />
                     {t("sidebar.rename")}
                   </DropdownMenuItem>
@@ -187,7 +194,8 @@ export function ChatActionsMenu({
                     onClick={() => {
                       skipMenuFocus.current = true
                       openChatSearch(session.id)
-                    }}>
+                    }}
+                  >
                     <SearchIcon />
                     {t("chat.search.label")}
                   </DropdownMenuItem>
@@ -206,7 +214,8 @@ export function ChatActionsMenu({
                     className="group/path"
                     aria-label={t("actions.openFolder")}
                     title={editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd}
-                    onClick={() => void editor.openPreferred().catch(report)}>
+                    onClick={() => void editor.openPreferred().catch(report)}
+                  >
                     <ProjectAppIcon app={editor.active} />
                     <OverflowMarquee className="flex-1">{cwd}</OverflowMarquee>
                     <ArrowUpRightIcon
@@ -226,7 +235,8 @@ export function ChatActionsMenu({
                   onClick={() => {
                     skipMenuFocus.current = true
                     setDialog("delete")
-                  }}>
+                  }}
+                >
                   <Trash2Icon />
                   {t("sidebar.delete")}
                 </DropdownMenuItem>
@@ -237,16 +247,18 @@ export function ChatActionsMenu({
       </DropdownMenu>
       <Dialog
         open={dialog !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open && !submitting.current) setDialog(null)
-        }}>
+        }}
+      >
         <DialogContent finalFocus={trigger}>
           <form
             className="grid gap-4"
-            onSubmit={event => {
+            onSubmit={(event) => {
               event.preventDefault()
               if (dialog !== "rename" || name.trim()) void submit()
-            }}>
+            }}
+          >
             <DialogHeader>
               <DialogTitle>{t(dialog === "delete" ? "sidebar.deleteTitle" : "sidebar.rename")}</DialogTitle>
               {dialog === "delete" && <DialogDescription>{t("sidebar.deleteDescription")}</DialogDescription>}
@@ -256,8 +268,8 @@ export function ChatActionsMenu({
                 aria-label={t("sidebar.rename")}
                 value={name}
                 disabled={pending}
-                onChange={event => setName(event.target.value)}
-                onFocus={event => event.target.select()}
+                onChange={(event) => setName(event.target.value)}
+                onFocus={(event) => event.target.select()}
               />
             )}
             <DialogFooter>
@@ -267,7 +279,8 @@ export function ChatActionsMenu({
               <Button
                 type="submit"
                 variant={dialog === "delete" ? "destructive" : "default"}
-                disabled={pending || (dialog === "rename" && !name.trim())}>
+                disabled={pending || (dialog === "rename" && !name.trim())}
+              >
                 {t(dialog === "delete" ? "sidebar.delete" : "sidebar.rename")}
               </Button>
             </DialogFooter>

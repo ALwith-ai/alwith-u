@@ -76,7 +76,7 @@ test("floating fork sends the source and turn to the owner and receives the new 
     const source = await remote.newSession("/tmp/floating")
     const child = await remote.fork(source, "/tmp/floating", "turn-1")
     expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
-    expect(remote.state.threads.find(thread => thread.sessionId === child)?.forkedFromId).toBe(source)
+    expect(remote.state.threads.find((thread) => thread.sessionId === child)?.forkedFromId).toBe(source)
     expect(remote.session(child).attached).toBe(true)
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
     expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
@@ -85,7 +85,7 @@ test("floating fork sends the source and turn to the owner and receives the new 
     expect(owner.state.sessions[source]?.attached).toBe(false)
     expect(remote.state.sessions[source]?.attached).toBe(false)
     expect(owner.session(child).attached).toBe(true)
-    expect((await port.agents()).map(agent => agent.agentId)).toEqual(["codex"])
+    expect((await port.agents()).map((agent) => agent.agentId)).toEqual(["codex"])
   } finally {
     remote.disconnect()
     stop()
@@ -180,7 +180,7 @@ test("an already initialized window reconnects the owner after Runtime disconnec
   try {
     await remote.connect()
     owner.disconnect()
-    await new Promise<void>(resolve => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(resolve))
     await remote.connect()
     expect(owner.state.connection).toBe("ready")
     expect(remote.state.connection).toBe("ready")
@@ -202,7 +202,7 @@ test("an existing floating client reconnects after its main window bridge is rep
     await remote.connect()
     const id = await remote.newSession("/tmp/floating-reconnect")
     stop()
-    await new Promise<void>(resolve => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(resolve))
     expect(remote.state.connection).toBe("disconnected")
     stop = await serveChatClient(owner, transport)
     await remote.connect()
@@ -254,14 +254,14 @@ test("a failed state delivery is reported and later updates restore a full snaps
       await bus.emitTo(target, event, payload)
     }
   }
-  const stop = await serveChatClient(owner, transport, error => errors.push(error))
+  const stop = await serveChatClient(owner, transport, (error) => errors.push(error))
   const remote = new RemoteChatClient(transport)
   try {
     await remote.connect()
     failNext = true
     owner.store.setState({ connectionError: "test failure" })
     // Drain the delivery queue, then trigger a distinct update without changing the lost field.
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
     expect(errors).toHaveLength(1)
     expect(remote.state.connectionError).not.toBe("test failure")
     const id = await remote.newSession("/tmp/recovery")
@@ -412,7 +412,7 @@ for (const surface of ["main", "chat"] as const) {
       expect(f.owner.state.configPending[id]).toBe(true)
       expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
       const sending = window.prompt(id, [{ type: "text", text: "Provider selection test" }])
-      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
       expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
       gate.resolve()
       await Promise.all([selecting, sending])
@@ -456,9 +456,9 @@ for (const surface of ["main", "chat"] as const) {
       await entered.promise
       const sending = window.prompt(id, [{ type: "text", text: "Do not send on Codex" }])
       const results = Promise.allSettled([selecting, sending])
-      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
       gate.resolve()
-      expect((await results).map(result => result.status)).toEqual(["rejected", "rejected"])
+      expect((await results).map((result) => result.status)).toEqual(["rejected", "rejected"])
       expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
       expect(f.owner.session(id).configOptions[0]?.currentValue).toBe(codexModel)
       expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
@@ -506,7 +506,7 @@ test("floating project views use the owner's full session list and receive mutat
   const remote = new RemoteChatClient(transport)
   try {
     await remote.connect()
-    expect((await remote.listProjectThreads("/tmp/one")).map(thread => thread.sessionId)).toEqual(["h1"])
+    expect((await remote.listProjectThreads("/tmp/one")).map((thread) => thread.sessionId)).toEqual(["h1"])
     expect(fake.fullListRequests).toEqual([undefined])
     await owner.renameSession("h1", "Renamed")
     expect((await remote.listProjectThreads("/tmp/one"))[0]?.title).toBe("Renamed")

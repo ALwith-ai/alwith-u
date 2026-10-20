@@ -41,7 +41,7 @@ export async function saveVoiceEnabled(enabled: boolean): Promise<void> {
   await updateSettings({ "voice.enabled": enabled })
 }
 export async function subscribeVoiceEnabled(changed: (enabled: boolean) => void): Promise<() => void> {
-  return settingsStore.subscribe(keys => {
+  return settingsStore.subscribe((keys) => {
     if (keys.includes("voice.enabled")) changed(settingsStore.get<boolean>("voice.enabled") ?? true)
   })
 }

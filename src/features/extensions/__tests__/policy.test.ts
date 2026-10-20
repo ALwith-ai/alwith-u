@@ -24,7 +24,7 @@ test("private capability grants require native bundled provenance and matching i
         return { ok: true }
       }
     },
-    id => ({ id, source })
+    (id) => ({ id, source })
   )
   const manifest = {
     manifestVersion: 3,

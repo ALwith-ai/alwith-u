@@ -25,10 +25,10 @@ import { SettingGroup, SettingRow } from "./shared"
 export function AppearanceSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const zoom = useStore(zoomStore, state => state.level)
-  const navigationInstrument = useStore(navigationSoundStore, state => state.instrument)
-  const navigationSoundMode = useStore(navigationSoundStore, state => state.soundMode)
-  const navigationInstrumentGroup = NAVIGATION_INSTRUMENT_GROUPS.find(group =>
+  const zoom = useStore(zoomStore, (state) => state.level)
+  const navigationInstrument = useStore(navigationSoundStore, (state) => state.instrument)
+  const navigationSoundMode = useStore(navigationSoundStore, (state) => state.soundMode)
+  const navigationInstrumentGroup = NAVIGATION_INSTRUMENT_GROUPS.find((group) =>
     (group.instruments as readonly NavigationInstrument[]).includes(navigationInstrument)
   ) as (typeof NAVIGATION_INSTRUMENT_GROUPS)[number]
   const themeOptions: Array<[Theme, string]> = [
@@ -41,9 +41,10 @@ export function AppearanceSection() {
       <SettingRow title={t("settings.theme")}>
         <ToggleGroup
           value={[theme]}
-          onValueChange={values => values[0] && setTheme(values[0] as Theme)}
+          onValueChange={(values) => values[0] && setTheme(values[0] as Theme)}
           variant="outline"
-          aria-label={t("settings.theme")}>
+          aria-label={t("settings.theme")}
+        >
           {themeOptions.map(([value, label]) => (
             <ToggleGroupItem key={value} value={value}>
               {label}
@@ -55,18 +56,19 @@ export function AppearanceSection() {
       <SettingRow title={t("zoom.label")}>
         <Select
           value={String(zoom)}
-          onValueChange={value => {
+          onValueChange={(value) => {
             if (value === null) throw new Error("Zoom level cannot be empty")
             void setZoomLevel(Number(value)).catch((error: unknown) =>
               toast.error(error instanceof Error ? error.message : String(error))
             )
-          }}>
+          }}
+        >
           <SelectTrigger className="w-32" aria-label={t("zoom.label")}>
             <SelectValue>{Math.round(zoom * 100)}%</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {ZOOM_LEVELS.map(level => (
+              {ZOOM_LEVELS.map((level) => (
                 <SelectItem key={level} value={String(level)}>
                   {Math.round(level * 100)}%
                 </SelectItem>
@@ -79,16 +81,17 @@ export function AppearanceSection() {
       <SettingRow title={t("settings.navigationSoundMode")}>
         <Select
           value={navigationSoundMode}
-          onValueChange={value => {
+          onValueChange={(value) => {
             if (value === null) throw new Error("导航旋律不能为空")
             void setNavigationSoundMode(value as NavigationSoundMode)
-          }}>
+          }}
+        >
           <SelectTrigger className="w-32">
             <SelectValue>{t(`settings.navigationSoundModes.${navigationSoundMode}`)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {NAVIGATION_SOUND_MODES.map(mode => (
+              {NAVIGATION_SOUND_MODES.map((mode) => (
                 <SelectItem key={mode} value={mode}>
                   {t(`settings.navigationSoundModes.${mode}`)}
                 </SelectItem>
@@ -102,19 +105,20 @@ export function AppearanceSection() {
         <div className="flex items-center gap-2">
           <Select
             value={navigationInstrumentGroup.id}
-            onValueChange={value => {
+            onValueChange={(value) => {
               if (value === null) throw new Error("音色类别不能为空")
               const group = NAVIGATION_INSTRUMENT_GROUPS.find(
-                candidate => candidate.id === value
+                (candidate) => candidate.id === value
               ) as (typeof NAVIGATION_INSTRUMENT_GROUPS)[number]
               void setNavigationInstrument(group.instruments[0])
-            }}>
+            }}
+          >
             <SelectTrigger className="w-32">
               <SelectValue>{t(`settings.navigationInstrumentGroups.${navigationInstrumentGroup.id}`)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {NAVIGATION_INSTRUMENT_GROUPS.map(group => (
+                {NAVIGATION_INSTRUMENT_GROUPS.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
                     {t(`settings.navigationInstrumentGroups.${group.id}`)}
                   </SelectItem>
@@ -124,16 +128,17 @@ export function AppearanceSection() {
           </Select>
           <Select
             value={navigationInstrument}
-            onValueChange={value => {
+            onValueChange={(value) => {
               if (value === null) throw new Error("导航音色不能为空")
               void setNavigationInstrument(value as NavigationInstrument)
-            }}>
+            }}
+          >
             <SelectTrigger className="w-48">
               <SelectValue>{navigationInstrumentLabel(navigationInstrument)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {navigationInstrumentGroup.instruments.map(instrument => (
+                {navigationInstrumentGroup.instruments.map((instrument) => (
                   <SelectItem key={instrument} value={instrument}>
                     {navigationInstrumentLabel(instrument)}
                   </SelectItem>

@@ -8,7 +8,7 @@ const meta = {
   component: NavigationAds,
   args: { onOpenVibemon: () => {} },
   decorators: [
-    Story => (
+    (Story) => (
       <div style={{ width: 256, padding: 4 }}>
         <Story />
       </div>
@@ -27,10 +27,10 @@ export const EqualGutters: Story = {
       await waitFor(() => {
         const bounds = viewport.getBoundingClientRect()
         const slide = buttons[index]!.getBoundingClientRect()
-        expect(slide.left).toBeCloseTo(bounds.left + 4, 0)
-        expect(slide.right).toBeCloseTo(bounds.right - 4, 0)
-        expect(slide.height).toBeCloseTo(bounds.height, 0)
-        expect(slide.width / slide.height).toBeCloseTo(16 / 5, 1)
+        void expect(slide.left).toBeCloseTo(bounds.left + 4, 0)
+        void expect(slide.right).toBeCloseTo(bounds.right - 4, 0)
+        void expect(slide.height).toBeCloseTo(bounds.height, 0)
+        void expect(slide.width / slide.height).toBeCloseTo(16 / 5, 1)
       })
     }
     await check(0)

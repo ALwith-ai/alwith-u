@@ -35,9 +35,9 @@ export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         { label: t("shortcuts.items.dismiss"), key: "Escape" }
       ]
     }
-  ].map(group => ({
+  ].map((group) => ({
     title: group.title,
-    items: group.items.map(item => ({ label: item.label, keys: formatShortcutForDisplay(item.key) }))
+    items: group.items.map((item) => ({ label: item.label, keys: formatShortcutForDisplay(item.key) }))
   }))
 
   return (
@@ -47,7 +47,7 @@ export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           <DialogTitle>{t("shortcuts.title")}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4">
-          {groups.map(group => (
+          {groups.map((group) => (
             <div key={group.title}>
               <div className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 {group.title}

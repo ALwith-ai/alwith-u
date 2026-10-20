@@ -47,7 +47,8 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
             aria-label={label}
             aria-valuenow={percent}
             aria-valuemin={0}
-            aria-valuemax={100}>
+            aria-valuemax={100}
+          >
             <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
           </div>
         ) : (
@@ -163,7 +164,7 @@ export function CodexProviderSection() {
         {account !== undefined && !account?.account.account && agent && (
           <LoginCard methods={agent.authMethods} signIn={requestSignIn} />
         )}
-        {agent?.actions.map(action => (
+        {agent?.actions.map((action) => (
           <ActionCard
             key={action.id}
             action={action}

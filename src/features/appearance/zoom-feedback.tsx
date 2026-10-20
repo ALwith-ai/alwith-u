@@ -62,7 +62,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
     document.addEventListener("pointerdown", pointerdown, true)
     return () => {
       void listeners
-        .then(stops => {
+        .then((stops) => {
           for (const stop of stops) stop()
         })
         .catch(report)
@@ -86,9 +86,10 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onFocusCapture={() => setKeyboardFocus(keyboard.current)}
-      onBlurCapture={event => {
+      onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocus(false)
-      }}>
+      }}
+    >
       <span className="min-w-12 text-center text-sm font-semibold tabular-nums" role="status" aria-live="polite">
         {Math.round(level * 100)}%
       </span>
@@ -99,7 +100,8 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         disabled={level === ZOOM_LEVELS[0]}
         aria-label={t("shortcuts.items.zoomOut")}
         title={t("shortcuts.items.zoomOut")}
-        onClick={() => void zoomOut().catch(report)}>
+        onClick={() => void zoomOut().catch(report)}
+      >
         <MinusIcon />
       </Button>
       <Button
@@ -109,7 +111,8 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         disabled={level === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
         aria-label={t("shortcuts.items.zoomIn")}
         title={t("shortcuts.items.zoomIn")}
-        onClick={() => void zoomIn().catch(report)}>
+        onClick={() => void zoomIn().catch(report)}
+      >
         <PlusIcon />
       </Button>
       <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
@@ -118,7 +121,8 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         size="sm"
         className="rounded-lg"
         disabled={level === 1}
-        onClick={() => void resetZoom().catch(report)}>
+        onClick={() => void resetZoom().catch(report)}
+      >
         {t("zoom.reset")}
       </Button>
     </fieldset>,

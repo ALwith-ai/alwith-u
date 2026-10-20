@@ -28,12 +28,12 @@ export function McpDiagnostics({ session }: { session: Session }): ReactNode {
         </DialogHeader>
         <div className="grid max-h-[60vh] gap-4 overflow-y-auto">
           {records.length === 0 && <p className="text-sm text-muted-foreground">{t("mcpDiagnostics.empty")}</p>}
-          {records.map(item => {
+          {records.map((item) => {
             const details = item.content
               .filter(isContentEntry)
-              .map(entry => entry.content)
+              .map((entry) => entry.content)
               .filter(isText)
-              .map(block => block.text)
+              .map((block) => block.text)
               .join("\n")
             return (
               <section key={item.id} className="grid min-w-0 gap-2">
@@ -50,7 +50,8 @@ export function McpDiagnostics({ session }: { session: Session }): ReactNode {
                       .writeText(`${item.title}\n${details}`)
                       .then(() => toast.success(t("actions.copied")))
                       .catch((error: unknown) => toast.error(String(error)))
-                  }}>
+                  }}
+                >
                   {t("actions.copy")}
                 </Button>
               </section>

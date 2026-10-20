@@ -62,7 +62,7 @@ function show(threads = entries) {
     <VirtualThreadRows
       threads={threads}
       viewport={viewport}
-      renderRow={thread => (
+      renderRow={(thread) => (
         <button type="button" data-session-id={thread.sessionId}>
           {thread.title}
         </button>
@@ -75,13 +75,13 @@ async function scroll(top: number) {
   await act(async () => {
     viewport.scrollTop = top
     fireEvent.scroll(viewport)
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
   })
 }
 async function resize() {
   await act(async () => {
     for (const callback of observers) callback([], {} as ResizeObserver)
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
   })
 }
 

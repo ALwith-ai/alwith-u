@@ -26,7 +26,8 @@ export function ChatHeader({
             "block min-w-0 text-sm font-medium select-none [&>span]:pointer-events-none",
             floating ? "max-w-[50vw]" : "max-w-[50cqw]"
           )}
-          data-tauri-drag-region>
+          data-tauri-drag-region
+        >
           {title}
         </OverflowMarquee>
       </div>
@@ -38,7 +39,8 @@ export function ChatHeader({
     <header
       className="@container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border px-1"
       data-main-chat-header
-      data-tauri-drag-region>
+      data-tauri-drag-region
+    >
       {content}
     </header>
   )

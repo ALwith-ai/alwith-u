@@ -48,8 +48,9 @@ export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode
       viewBox="0 0 72 12"
       preserveAspectRatio="none"
       aria-hidden="true"
-      data-voice-level={audioLevel}>
-      {Array.from({ length: 13 }, (_, position) => position * 6).map(position => (
+      data-voice-level={audioLevel}
+    >
+      {Array.from({ length: 13 }, (_, position) => position * 6).map((position) => (
         <rect key={position} x={position} y="5" width="2" height="2" rx="1" opacity="0.12" />
       ))}
     </svg>

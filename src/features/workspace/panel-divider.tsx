@@ -39,7 +39,7 @@ export function PanelDivider({
       aria-valuenow={width}
       aria-valuemin={0}
       className="file-workspace-resize"
-      onPointerDown={event => {
+      onPointerDown={(event) => {
         if (event.button !== 0) return
         event.preventDefault()
         event.currentTarget.focus({ preventScroll: true })
@@ -49,7 +49,7 @@ export function PanelDivider({
         onStart()
         event.currentTarget.setPointerCapture(event.pointerId)
       }}
-      onPointerMove={event => {
+      onPointerMove={(event) => {
         if (startX.current === null) return
         event.preventDefault()
         onDrag((event.clientX - startX.current) * (direction === "rtl" ? 1 : -1))
@@ -57,7 +57,7 @@ export function PanelDivider({
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
       onLostPointerCapture={finishDrag}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
         event.preventDefault()
         onStart()

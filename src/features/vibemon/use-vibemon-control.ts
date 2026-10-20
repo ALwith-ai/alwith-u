@@ -9,7 +9,7 @@ import { reportPetError } from "./display-error"
 
 export function useVibemonControl() {
   const { t } = useTranslation()
-  const userId = usePlatformAuth(state => state.user?.user_uuid ?? null)
+  const userId = usePlatformAuth((state) => state.user?.user_uuid ?? null)
   const [enabled, setEnabled] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)

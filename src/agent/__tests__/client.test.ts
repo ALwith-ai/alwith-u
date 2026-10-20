@@ -72,10 +72,10 @@ async function make(
 }
 
 test("history enumeration and export leave sidebar, selection and attachments untouched", async () => {
-  const { client, fake, port } = await make(fake =>
+  const { client, fake, port } = await make((fake) =>
     fake.app.onRequest(
       "_codex/session_history_items",
-      value => value as { sessionId: string },
+      (value) => value as { sessionId: string },
       ({ params }) => ({
         sessionId: params.sessionId,
         createdAt: 100,
@@ -89,7 +89,7 @@ test("history enumeration and export leave sidebar, selection and attachments un
     )
   )
   const before = client.state
-  expect((await client.listHistorySessions(() => {})).map(thread => thread.sessionId)).toEqual(["h1", "h2"])
+  expect((await client.listHistorySessions(() => {})).map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
   expect(await client.exportHistory("h2", () => {})).toBe("")
   expect(client.state).toBe(before)
   expect(port.attached).toEqual([])
@@ -104,7 +104,7 @@ async function until(predicate: () => boolean) {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > 3000) throw new Error("Timed out")
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
   }
 }
 
@@ -133,16 +133,16 @@ test("fork sends the real turn boundary, keeps model hints and preserves replaye
     sessionId: source,
     _meta: { codex: { lastTurnId: "turn-1" }, alwith: { model: "custom-model" } }
   })
-  expect(client.state.threads.find(thread => thread.sessionId === forked)).toMatchObject({
+  expect(client.state.threads.find((thread) => thread.sessionId === forked)).toMatchObject({
     title: "Original title (2)",
     nativeSessionId: forked,
     forkedFromId: source
   })
   expect(
-    client.session(forked).items.some(item => item.kind === "assistant" && textOf(item.content) === "Kept answer")
+    client.session(forked).items.some((item) => item.kind === "assistant" && textOf(item.content) === "Kept answer")
   ).toBe(true)
   expect(client.session(source).items).toHaveLength(0)
-  expect(client.session(forked).items.every(item => item.replayed)).toBe(true)
+  expect(client.session(forked).items.every((item) => item.replayed)).toBe(true)
   client.store.setState({ agent: { info: { name: "test", version: "1" }, protocolVersion: 2 } })
   await expect(client.fork(source, "/tmp/fork", "turn-1")).rejects.toThrow("does not support")
   expect(fake.forks).toHaveLength(1)
@@ -177,7 +177,7 @@ test("source lookup reads every page across projects and archived chats and reje
   })
   const before = client.state.threads
   const requests: unknown[] = []
-  fake.listSessions.current = request => {
+  fake.listSessions.current = (request) => {
     requests.push(request)
     if (request._meta) return { sessions: [entry("archived-parent", "root", "/old", true)] }
     return request.cursor === "next"
@@ -199,7 +199,7 @@ test("source lookup reads every page across projects and archived chats and reje
 test("a newly forked attached chat remains selectable before Codex lists it", async () => {
   const { client, fake } = await make()
   const root = await client.newSession("/tmp/fork")
-  fake.listSessions.current = request =>
+  fake.listSessions.current = (request) =>
     request._meta
       ? { sessions: [] }
       : {
@@ -209,10 +209,10 @@ test("a newly forked attached chat remains selectable before Codex lists it", as
         }
   const child = await client.fork(root, "/tmp/fork", "turn-1")
   await client.listThreads({ reset: true })
-  expect(client.state.threads.some(thread => thread.sessionId === child)).toBe(true)
-  expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(true)
+  expect(client.state.threads.some((thread) => thread.sessionId === child)).toBe(true)
+  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(true)
   await client.delete(child)
-  expect((await client.listProjectThreads("/tmp/fork")).some(thread => thread.sessionId === child)).toBe(false)
+  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(false)
 })
 
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
@@ -231,15 +231,16 @@ test("stream bursts preserve every chunk across sessions with bounded UI notific
   const expected = (parity: number) => Array.from({ length: 200 }, (_, i) => `${i * 2 + parity},`).join("")
   await until(
     () =>
-      client.state.sessions[b]?.items.some(item => item.kind === "thought" && textOf(item.content) === expected(1)) ===
-      true
+      client.state.sessions[b]?.items.some(
+        (item) => item.kind === "thought" && textOf(item.content) === expected(1)
+      ) === true
   )
   stop()
   for (const [id, parity] of [
     [a, 0],
     [b, 1]
   ] as const) {
-    const item = client.state.sessions[id].items.find(item => item.kind === "thought")
+    const item = client.state.sessions[id].items.find((item) => item.kind === "thought")
     expect(item?.kind === "thought" && textOf(item.content)).toBe(expected(parity))
     expect(client.state.sessions[id]).toBe(client.session(id))
   }
@@ -259,7 +260,7 @@ test("completion publishes pending chunks and disconnect cannot restore a stale 
   await until(() => client.session(id).state === "idle")
   expect(client.state.sessions[id]).toBe(client.session(id))
   expect(
-    client.state.sessions[id].items.some(item => item.kind === "assistant" && textOf(item.content) === "complete")
+    client.state.sessions[id].items.some((item) => item.kind === "assistant" && textOf(item.content) === "complete")
   ).toBe(true)
   await fake.pushUpdate(id, {
     sessionUpdate: "agent_message_chunk",
@@ -267,7 +268,7 @@ test("completion publishes pending chunks and disconnect cannot restore a stale 
     content: { type: "text", text: "!" }
   })
   client.disconnect()
-  await new Promise(resolve => setTimeout(resolve, 25))
+  await new Promise((resolve) => setTimeout(resolve, 25))
   expect(client.state.sessions[id].attached).toBe(false)
 })
 
@@ -282,7 +283,7 @@ test("history replay batches complete upserts and publishes the full transcript 
   }
   let notifications = 0
   let publishedWhileRestoring = 0
-  const stop = client.store.subscribe(state => {
+  const stop = client.store.subscribe((state) => {
     notifications++
     if (state.sessions.h1?.restoring && state.sessions.h1.items.length > 0) publishedWhileRestoring++
   })
@@ -307,8 +308,8 @@ test("prompt acknowledgement is not completion; cancelling one session leaves th
   expect(client.session(b).state).toBe("running")
   await client.cancel(a)
   await until(() => client.session(a).state === "idle" && client.session(b).state === "idle")
-  expect(client.session(a).items.some(item => item.kind === "assistant")).toBe(false)
-  const reply = client.session(b).items.find(item => item.kind === "assistant")
+  expect(client.session(a).items.some((item) => item.kind === "assistant")).toBe(false)
+  const reply = client.session(b).items.find((item) => item.kind === "assistant")
   expect(reply?.kind === "assistant" && reply.content[0]?.type === "text" ? reply.content[0].text : "").toBe(
     `reply:${b}`
   )
@@ -328,9 +329,9 @@ test("stopping a session retains its transcript, cancels its permission and pres
   await client.stopSession(a)
   expect(client.state.sessions[a]).toMatchObject({ attached: false, restoring: false, state: "idle" })
   expect(client.session(a).items).toEqual(expect.arrayContaining(items))
-  expect(client.state.actions.map(action => action.sessionId)).toEqual([b])
+  expect(client.state.actions.map((action) => action.sessionId)).toEqual([b])
   expect(client.session(b).state).toBe("requires_action")
-  expect((await port.agents()).map(agent => agent.agentId)).toEqual(["codex"])
+  expect((await port.agents()).map((agent) => agent.agentId)).toEqual(["codex"])
   expect(client.state.connection).toBe("ready")
   await client.open(a, "/tmp/a")
   expect(client.session(a).attached).toBe(true)
@@ -367,7 +368,7 @@ test("permission requests surface as actions and resolve back to the agent", asy
   })
   await until(() => client.session(id).state === "idle")
   expect(client.state.actions).toHaveLength(0)
-  const reply = client.session(id).items.find(item => item.kind === "assistant")
+  const reply = client.session(id).items.find((item) => item.kind === "assistant")
   expect(reply?.kind === "assistant" && reply.content[0]?.type === "text" ? reply.content[0].text : "").toContain(
     "allow_once"
   )
@@ -379,24 +380,24 @@ test("terminal output is decoded across chunk boundaries", async () => {
   await client.prompt(id, [{ type: "text", text: "terminal" }])
   await until(() => client.session(id).state === "idle")
   expect(client.session(id).terminals.t1?.output).toBe("héllo")
-  const tool = client.session(id).items.find(item => item.kind === "tool")
+  const tool = client.session(id).items.find((item) => item.kind === "tool")
   expect(tool?.kind === "tool" ? tool.status : null).toBe("completed")
 })
 
 test("threads come from the agent and open() replays history", async () => {
   const { client, fake } = await make()
   await client.listThreads()
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h1"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
   await client.listThreads({ archived: true })
-  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(["h2"])
+  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h2"])
   await client.open("h1", "/tmp/one")
   const session = client.session("h1")
   expect(session.attached).toBe(true)
-  expect(session.items.map(item => item.kind)).toEqual(["user", "assistant"])
+  expect(session.items.map((item) => item.kind)).toEqual(["user", "assistant"])
   await client.archive("h1")
   expect(fake.archived.has("h1")).toBe(true)
   expect(client.state.threads).toHaveLength(0)
-  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(["h1", "h2"])
+  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
@@ -404,7 +405,7 @@ test("opening an attached read-only session retries resume until the writer is r
   let locked = true
   let attempts = 0
   let pending: Promise<void> = Promise.resolve()
-  const { client } = await make(fake => {
+  const { client } = await make((fake) => {
     fake.resumeResponse.current = async () => {
       attempts++
       await pending
@@ -444,8 +445,8 @@ test("project views share one no-params full list, deduplicate IDs and reuse mem
     ]
   })
   const [project] = await Promise.all([client.listProjectThreads("/tmp/project"), client.listThreads()])
-  expect(project.map(thread => [thread.sessionId, thread.title])).toEqual([["p1", "Renamed"]])
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["p1", "other"])
+  expect(project.map((thread) => [thread.sessionId, thread.title])).toEqual([["p1", "Renamed"]])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["p1", "other"])
   await client.listProjectThreads("/tmp/other")
   expect(fake.fullListRequests).toEqual([undefined])
 })
@@ -466,7 +467,7 @@ test("a pending refresh preserves a newly selected project chat", async () => {
   await client.listThreads()
   let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void
   fake.listSessions.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       answer = resolve
     })
   const pending = client.listThreads({ reset: true })
@@ -474,8 +475,8 @@ test("a pending refresh preserves a newly selected project chat", async () => {
   client.includeThread({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
   answer({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
   await pending
-  expect(client.state.threads.filter(thread => thread.sessionId === "older")).toHaveLength(1)
-  expect(client.state.threads.find(thread => thread.sessionId === "older")?.title).toBe("Selected")
+  expect(client.state.threads.filter((thread) => thread.sessionId === "older")).toHaveLength(1)
+  expect(client.state.threads.find((thread) => thread.sessionId === "older")?.title).toBe("Selected")
 })
 
 test("refresh replaces the complete list and preserves the last snapshot on failure", async () => {
@@ -485,14 +486,14 @@ test("refresh replaces the complete list and preserves the last snapshot on fail
     throw new Error("Unavailable")
   }
   await expect(client.listThreads({ reset: true })).rejects.toThrow()
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h1"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
   expect(client.state.threadsLoaded).toBe(true)
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "external", cwd: "/tmp/other" }] })
   await client.listThreads({ reset: true })
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["external"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "unexpected" })
   await expect(client.listThreads({ reset: true })).rejects.toThrow("Full session list returned a cursor")
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["external"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
 })
 
 test("thread loading reports failure and clears it after retry", async () => {
@@ -502,7 +503,7 @@ test("thread loading reports failure and clears it after retry", async () => {
   fake.listSessions.current = async () => {
     attempts += 1
     if (attempts === 1) throw new Error("list unavailable")
-    return await new Promise<{ sessions: [] }>(resolve => {
+    return await new Promise<{ sessions: [] }>((resolve) => {
       answer = resolve
     })
   }
@@ -528,13 +529,13 @@ test("thread loading reports failure and clears it after retry", async () => {
 test("a gap the client could not refill replays the whole session from the engine's record", async () => {
   const { client, port } = await make()
   await client.open("h1", "/tmp/one")
-  expect(client.session("h1").items.map(item => item.kind)).toEqual(["user", "assistant"])
+  expect(client.session("h1").items.map((item) => item.kind)).toEqual(["user", "assistant"])
   // The Runtime journal no longer had frames 3..5: what we hold is not continuous any more.
   for (const handler of port.gapHandlers) handler({ sessionId: "h1", from: 3, to: 5 })
   expect(client.session("h1").restoring).toBe(true)
   await until(() => !client.session("h1").restoring)
   // Replayed, not appended: the old projection was cleared first.
-  expect(client.session("h1").items.map(item => item.kind)).toEqual(["user", "assistant"])
+  expect(client.session("h1").items.map((item) => item.kind)).toEqual(["user", "assistant"])
   expect(client.session("h1").attached).toBe(true)
 })
 
@@ -661,7 +662,7 @@ test("a new slot does not borrow another slot's saved selection", async () => {
 test("a late restore cannot replace the model of the slot's newer target", async () => {
   const ready = Promise.withResolvers<string | null>()
   let delay = false
-  const { client, fake } = await make(undefined, undefined, model => (delay ? ready.promise : Promise.resolve(model)))
+  const { client, fake } = await make(undefined, undefined, (model) => (delay ? ready.promise : Promise.resolve(model)))
   client.setModelSelections({ main: "main-model", chat: "chat-model" })
   await client.open("h2", "/tmp/two", "chat")
   delay = true
@@ -677,7 +678,7 @@ test("a late restore cannot replace the model of the slot's newer target", async
 test("a handed-off session no longer changes the previous slot's model", async () => {
   const { client, fake } = await make()
   await client.open("h1", "/tmp/one", "chat")
-  const previousModel = client.session("h1").configOptions.find(option => option.category === "model")?.currentValue
+  const previousModel = client.session("h1").configOptions.find((option) => option.category === "model")?.currentValue
   await client.open("h1", "/tmp/one", "main")
   await client.setConfig("h1", "model", "main-picked", "main")
   const draft = await client.prepareDraft("chat", "/tmp/two")
@@ -718,7 +719,7 @@ test("model changes after restoring a session wait for the previous configuratio
   await client.open("h1", "/tmp/one")
 
   let releaseFirst!: () => void
-  const firstBlocked = new Promise<void>(resolve => {
+  const firstBlocked = new Promise<void>((resolve) => {
     releaseFirst = resolve
   })
   let enteredFirst = false
@@ -732,14 +733,14 @@ test("model changes after restoring a session wait for the previous configuratio
   await until(() => enteredFirst)
   const second = client.setConfig("h1", "model", "gpt-6.1-sol")
   const results = Promise.allSettled([first, second])
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise((resolve) => setTimeout(resolve, 20))
   releaseFirst()
   expect(await results).toEqual([
     { status: "fulfilled", value: undefined },
     { status: "fulfilled", value: undefined }
   ])
   expect(fake.configChanges).toEqual(["deepseek-flash", "gpt-6.1-sol"])
-  const model = client.session("h1").configOptions.find(option => option.configId === "model")
+  const model = client.session("h1").configOptions.find((option) => option.configId === "model")
   expect(model?.currentValue).toBe("gpt-6.1-sol")
 })
 
@@ -765,9 +766,9 @@ test("several gateways register under their own ids and can be removed one at a 
 
   // Every session's model option carries one group per gateway after Codex's own.
   const id = await client.newSession("/tmp/g")
-  const option = client.session(id).configOptions.find(entry => entry.configId === "model")
+  const option = client.session(id).configOptions.find((entry) => entry.configId === "model")
   if (option === undefined || !isSelectOption(option)) throw new Error("model option missing")
-  const groupIds = option.options.map(group => ("groupId" in group ? group.groupId : ""))
+  const groupIds = option.options.map((group) => ("groupId" in group ? group.groupId : ""))
   expect(groupIds).toEqual(["chatgpt", "deepseek", "xai"])
 
   // A model of the second gateway counts as a gateway model.
@@ -789,7 +790,7 @@ test("rename, account, rate limits and file search pass through the adapter's _c
   await client.listThreads({ reset: true })
   await client.renameSession("h1", "Renamed")
   expect(fake.renamed.get("h1")).toBe("Renamed")
-  expect(client.state.threads.find(thread => thread.sessionId === "h1")?.title).toBe("Renamed")
+  expect(client.state.threads.find((thread) => thread.sessionId === "h1")?.title).toBe("Renamed")
 
   const account = await client.readAccount()
   expect(account.account).toEqual({ type: "chatgpt", email: "ny@example.com", planType: "plus" })
@@ -797,7 +798,7 @@ test("rename, account, rate limits and file search pass through the adapter's _c
   expect(limits.primary?.usedPercent).toBe(40)
 
   const seen: number[] = []
-  const stop = client.onRateLimits(update => seen.push(update.primary?.usedPercent ?? -1))
+  const stop = client.onRateLimits((update) => seen.push(update.primary?.usedPercent ?? -1))
   await fake.pushRateLimits(65)
   await until(() => seen.length === 1)
   expect(seen).toEqual([65])
@@ -805,21 +806,21 @@ test("rename, account, rate limits and file search pass through the adapter's _c
 
   const found = await client.fuzzyFileSearch({ query: "client", roots: ["/tmp/one"] })
   expect(fake.fileSearches).toEqual(["client"])
-  expect(found.files.map(file => file.path)).toEqual(["src/agent/client.ts"])
+  expect(found.files.map((file) => file.path)).toEqual(["src/agent/client.ts"])
 })
 
 test("the user's message is on screen before Codex reports it; the receipt claims it, the echo adopts it", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/a")
   const sending = client.prompt(id, [{ type: "text", text: "shown at once" }])
-  const local = client.session(id).items.find(item => item.kind === "user")
+  const local = client.session(id).items.find((item) => item.kind === "user")
   expect(local?.kind === "user" ? local.echo : null).toBe("pending")
   await sending
-  const claimed = client.session(id).items.find(item => item.kind === "user")
+  const claimed = client.session(id).items.find((item) => item.kind === "user")
   expect(claimed?.id).toBe("u")
   expect(claimed?.kind === "user" ? claimed.echo : null).toMatch(/^(acknowledged|adopted)$/)
   await until(() => client.session(id).state === "idle")
-  const users = client.session(id).items.filter(item => item.kind === "user")
+  const users = client.session(id).items.filter((item) => item.kind === "user")
   expect(users).toHaveLength(1)
   expect(users[0]?.id).toBe("u")
   expect(users[0]?.kind === "user" ? users[0].echo : null).toBe("adopted")
@@ -833,7 +834,7 @@ test("Stop answers the session's pending permission with cancelled before sessio
   await client.cancel(id)
   expect(client.state.actions).toEqual([])
   await until(() => client.session(id).state === "idle")
-  const reply = client.session(id).items.find(item => item.kind === "assistant")
+  const reply = client.session(id).items.find((item) => item.kind === "assistant")
   // the fake echoes the answer it got as JSON text
   expect(JSON.stringify(reply)).toContain("cancelled")
 })
@@ -854,7 +855,7 @@ test("precreated drafts expose real models without entering thread indexes", asy
   expect(await client.listProjectThreads("/tmp/draft")).toEqual([])
   await client.prompt(first, [{ type: "text", text: "hello" }])
   expect(client.state.draftSessions[first]).toBeUndefined()
-  expect(client.state.threads.some(thread => thread.sessionId === first)).toBe(true)
+  expect(client.state.threads.some((thread) => thread.sessionId === first)).toBe(true)
   await client.discardDraft("main")
   expect(fake.deleted.has(first)).toBe(false)
 })
@@ -888,7 +889,7 @@ test("changing an empty draft's model creates it on that model without resuming 
   expect(await client.prepareDraft("main", "/tmp/model-draft", "deepseek-flash")).toBe(replacement)
   expect(client.state.threads).toEqual([])
   await client.prompt(replacement, [{ type: "text", text: "hello" }])
-  expect(client.session(replacement).items.some(item => item.kind === "user")).toBe(true)
+  expect(client.session(replacement).items.some((item) => item.kind === "user")).toBe(true)
 })
 
 test("failed draft model creation preserves the original draft for retry", async () => {
@@ -907,7 +908,7 @@ test("failed draft model creation preserves the original draft for retry", async
 
 test.each([false, true])(
   "draft model replacement preserves compatible settings and rolls back on setting failure (%s)",
-  async fail => {
+  async (fail) => {
     const settings = [
       {
         configId: "mode",
@@ -951,12 +952,12 @@ test.each([false, true])(
       { ...settings[2], currentValue: false }
     ]
     const writes: string[] = []
-    const { client, fake } = await make(fake => {
-      fake.sessionOptions.current = model => (model === "deepseek-flash" ? targetOptions : settings)
-      fake.configResponse.current = params => {
+    const { client, fake } = await make((fake) => {
+      fake.sessionOptions.current = (model) => (model === "deepseek-flash" ? targetOptions : settings)
+      fake.configResponse.current = (params) => {
         if (fail) throw new Error("Cannot apply settings")
         writes.push(params.configId)
-        targetOptions = targetOptions.map(option =>
+        targetOptions = targetOptions.map((option) =>
           option.configId === params.configId
             ? ({ ...option, currentValue: params.value } as Session["configOptions"][number])
             : option
@@ -978,8 +979,8 @@ test.each([false, true])(
       expect(
         client
           .session(id)
-          .configOptions.filter(option => option.category !== "model")
-          .map(option => option.currentValue)
+          .configOptions.filter((option) => option.category !== "model")
+          .map((option) => option.currentValue)
       ).toEqual(["read-only", "low", true])
       expect(fake.deleted.has(first)).toBe(true)
     }
@@ -989,9 +990,9 @@ test.each([false, true])(
 test("a delayed main draft does not block preparation in the floating window", async () => {
   const { client, fake } = await make()
   let release!: () => void
-  fake.newSessionDelay.current = cwd =>
+  fake.newSessionDelay.current = (cwd) =>
     cwd === "/tmp/slow-main"
-      ? new Promise(resolve => {
+      ? new Promise((resolve) => {
           release = resolve
         })
       : Promise.resolve()
@@ -1009,7 +1010,7 @@ test("a replacement waits for the draft's pending model before inheriting it", a
   const source = await client.prepareDraft("main", "/tmp/source")
   let release!: () => void
   fake.configDelay.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       release = resolve
     })
   const config = client.setConfig(source, "model", "chosen-model")
@@ -1028,9 +1029,9 @@ test("a draft submitted during transfer can never regain deletion eligibility", 
   const target = await client.prepareDraft("chat", "/tmp/target")
   const originalDelete = client.delete.bind(client)
   let release: (() => void) | undefined
-  const deleting = vi.spyOn(client, "delete").mockImplementation(async id => {
+  const deleting = vi.spyOn(client, "delete").mockImplementation(async (id) => {
     if (id === target)
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         release = resolve
       })
     await originalDelete(id)
@@ -1056,7 +1057,7 @@ test("prompt waits for the model transaction and a failed switch rejects its wai
   const id = await client.newSession("/tmp/model-order")
   let finish!: () => void
   fake.configDelay.current = () =>
-    new Promise<void>(resolve => {
+    new Promise<void>((resolve) => {
       finish = resolve
     })
   const change = client.setConfig(id, "model", "chosen-model")
@@ -1081,16 +1082,16 @@ test("prompt waits for the model transaction and a failed switch rejects its wai
   const results = Promise.allSettled([failed, queuedConfig, waiting])
   fake.configDelay.current = null
   reject(new Error("model unavailable"))
-  expect((await results).map(result => result.status)).toEqual(["rejected", "rejected", "rejected"])
+  expect((await results).map((result) => result.status)).toEqual(["rejected", "rejected", "rejected"])
   expect(client.session(other).items).toEqual([])
 })
 
-test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo %s", async action => {
+test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo %s", async (action) => {
   const { client, fake } = await make()
   await client.listThreads()
   let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
   fake.listSessions.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       answer = resolve
     })
   const pending = client.listThreads({ reset: true })
@@ -1099,10 +1100,10 @@ test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo 
   else await client[action]("h1")
   must(answer, "pending list response")({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", title: "Old title" }] })
   await pending
-  expect(client.state.threads.map(thread => [thread.sessionId, thread.title])).toEqual(
+  expect(client.state.threads.map((thread) => [thread.sessionId, thread.title])).toEqual(
     action === "rename" ? [["h1", "New title"]] : []
   )
-  expect(client.state.archivedThreads.map(thread => thread.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
+  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
 })
 
 test("a pending archived list cannot undo restore", async () => {
@@ -1114,7 +1115,7 @@ test("a pending archived list cannot undo restore", async () => {
       }) => void)
     | undefined
   fake.listSessions.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       answer = resolve
     })
   const pending = client.listThreads({ archived: true, reset: true })
@@ -1126,14 +1127,14 @@ test("a pending archived list cannot undo restore", async () => {
   )({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", _meta: { codex: { archived: true } } }] })
   await pending
   expect(client.state.archivedThreads).toEqual([])
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["h2"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h2"])
 })
 
 test("concurrent refreshes share one request and loading state", async () => {
   const { client, fake } = await make()
   let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string }> }) => void
   fake.listSessions.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       answer = resolve
     })
   const first = client.listThreads({ reset: true })
@@ -1144,7 +1145,7 @@ test("concurrent refreshes share one request and loading state", async () => {
   expect(fake.fullListRequests).toHaveLength(1)
   answer({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }] })
   await Promise.all([first, second])
-  expect(client.state.threads.map(thread => thread.sessionId)).toEqual(["new"])
+  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["new"])
   expect(client.state.threadsLoading).toBe(false)
 })
 
@@ -1162,7 +1163,7 @@ test("live user messages refresh recency, while history replay and older turns d
     content: [{ type: "text", text: "continue" }],
     _meta: { codex: { turnStartedAt: Date.parse(current) } }
   })
-  await until(() => client.session("h1").items.some(item => item.id === "live"))
+  await until(() => client.session("h1").items.some((item) => item.id === "live"))
   expect(client.state.threads[0]?.updatedAt).toBe(current)
   await fake.pushUpdate("h1", {
     sessionUpdate: "user_message",
@@ -1170,7 +1171,7 @@ test("live user messages refresh recency, while history replay and older turns d
     content: [{ type: "text", text: "earlier" }],
     _meta: { codex: { turnStartedAt: Date.parse(original) } }
   })
-  await until(() => client.session("h1").items.some(item => item.id === "older"))
+  await until(() => client.session("h1").items.some((item) => item.id === "older"))
   expect(client.state.threads[0]?.updatedAt).toBe(current)
 })
 
@@ -1187,7 +1188,7 @@ test("deleted-project aliases share the same complete memory list", async () => 
   await client.listThreads()
   const before = client.state
   const result = await client.listProjectThreads(canonical)
-  expect(result.map(thread => thread.cwd)).toEqual([canonical, canonical])
+  expect(result.map((thread) => thread.cwd)).toEqual([canonical, canonical])
   expect(await client.listProjectThreads(`${alias}/`)).toEqual(result)
   expect(client.state).toBe(before)
   expect(fake.fullListRequests).toHaveLength(1)
@@ -1203,7 +1204,7 @@ test("new and explicitly included chats use the same project key as history", as
     updatedAt: null,
     archived: false
   })
-  expect(client.state.threads.map(thread => thread.cwd)).toEqual([
+  expect(client.state.threads.map((thread) => thread.cwd)).toEqual([
     "/private/var/new-project",
     "/private/var/new-project"
   ])
@@ -1218,16 +1219,16 @@ test("hosts without macOS aliases preserve distinct private and non-private dire
     ]
   })
   await client.listThreads()
-  expect(client.state.threads.map(thread => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
-  expect((await client.listProjectThreads("/var/project")).map(thread => thread.sessionId)).toEqual(["one"])
+  expect(client.state.threads.map((thread) => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
+  expect((await client.listProjectThreads("/var/project")).map((thread) => thread.sessionId)).toEqual(["one"])
 })
 
 test("plugin enablement uses the adapter extension with an explicit plugin ID", async () => {
   const requests: unknown[] = []
-  const { client } = await make(fake =>
+  const { client } = await make((fake) =>
     fake.app.onRequest(
       "_codex/plugin_set_enabled",
-      value => value as { pluginId: string; enabled: boolean },
+      (value) => value as { pluginId: string; enabled: boolean },
       ({ params }) => {
         requests.push(params)
         return { enabled: params.enabled }
@@ -1250,18 +1251,20 @@ test("tracked prompt receipt names the retained authoritative turn", async () =>
   const { client } = await make()
   const id = await client.newSession("/tmp/voice-receipt")
   const messageId = await client.promptReceipt(id, [{ type: "text", text: "voice" }])
-  const prompt = must(client.state.sessions[id], "receipt session").items.find(item => item.id === messageId)
+  const prompt = must(client.state.sessions[id], "receipt session").items.find((item) => item.id === messageId)
   expect(prompt?.kind).toBe("user")
   expect(["acknowledged", "adopted"]).toContain(prompt && "echo" in prompt ? prompt.echo : null)
-  expect(must(client.state.sessions[id], "receipt session").items.filter(item => item.kind === "user")).toHaveLength(1)
+  expect(must(client.state.sessions[id], "receipt session").items.filter((item) => item.kind === "user")).toHaveLength(
+    1
+  )
   await client.cancel(id)
 })
 
 test("composer predictions cross the Runtime extension boundary and keep session ownership", async () => {
-  const { client, fake } = await make(fake => {
+  const { client, fake } = await make((fake) => {
     fake.app.onRequest(
       "_codex/session_prediction_request",
-      value => value as { sessionId: string; sourceTurnId: string },
+      (value) => value as { sessionId: string; sourceTurnId: string },
       ({ params }) => {
         expect(params).toEqual({ sessionId: "s0", sourceTurnId: "turn-1" })
         return {}
@@ -1287,10 +1290,10 @@ test("composer predictions cross the Runtime extension boundary and keep session
 
 test("prediction errors propagate without disabling future requests", async () => {
   let calls = 0
-  const { client } = await make(fake => {
+  const { client } = await make((fake) => {
     fake.app.onRequest(
       "_codex/session_prediction_request",
-      value => value as Record<string, unknown>,
+      (value) => value as Record<string, unknown>,
       () => {
         calls++
         throw RequestError.internalError(undefined, "Prediction unavailable")

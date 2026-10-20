@@ -57,7 +57,7 @@ export function ThreadView({ session }: { session: Session }) {
   const turns = useStableTurns(session)
   const lastTurnKey = turns.at(-1)?.key
   const running = session.state !== "idle"
-  const entries = useMemo<VirtualizedTurnListEntry[]>(() => turns.map(turn => ({ turnKey: turn.key })), [turns])
+  const entries = useMemo<VirtualizedTurnListEntry[]>(() => turns.map((turn) => ({ turnKey: turn.key })), [turns])
   const railItems = useMemo(() => toNavigationRailItems(turns, session.turnUsage), [turns, session.turnUsage])
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
   const threadRef = useRef<VirtualizedTurnListApi>(null)
@@ -81,7 +81,8 @@ export function ThreadView({ session }: { session: Session }) {
     if (thread === null) throw new Error("Codex virtual thread is not mounted")
     await thread.scrollToKey(
       item.turnKey,
-      turnElement => turnElement.querySelector<HTMLElement>(`[data-content-search-unit-key="${CSS.escape(item.id)}"]`),
+      (turnElement) =>
+        turnElement.querySelector<HTMLElement>(`[data-content-search-unit-key="${CSS.escape(item.id)}"]`),
       { align: "top" }
     )
   }, [])
@@ -215,7 +216,8 @@ export function ThreadView({ session }: { session: Session }) {
       <div
         data-virtualized-turn-content
         data-codex-turn={turn.key}
-        className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
+        className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}
+      >
         {index === 0 && <ForkOriginDivider />}
         <ChatDirectoryContext value={session.cwd}>
           {turn.user !== null && <UserMessage item={turn.user} messageTime={formatTurnTime(turn)} />}
@@ -246,7 +248,8 @@ export function ThreadView({ session }: { session: Session }) {
           tabIndex: 0,
           role: "log",
           "aria-label": t("chat.thread")
-        }}>
+        }}
+      >
         <div className="min-h-full w-full px-5">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
             <VirtualizedTurnList
@@ -273,7 +276,8 @@ export function ThreadView({ session }: { session: Session }) {
         className={isFollowing ? "codex-scroll-to-bottom codex-scroll-to-bottom-hidden" : "codex-scroll-to-bottom"}
         tabIndex={isFollowing ? -1 : undefined}
         onClick={scrollToBottom}
-        aria-label={t("chat.scrollToBottom")}>
+        aria-label={t("chat.scrollToBottom")}
+      >
         {running ? (
           <span className="codex-scroll-to-bottom-dots" aria-hidden="true">
             <span className="codex-wave-dot" />

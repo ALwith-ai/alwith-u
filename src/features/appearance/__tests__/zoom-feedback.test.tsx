@@ -40,7 +40,7 @@ afterEach(() => {
 })
 
 function advance(ms: number) {
-  act(() => vi.advanceTimersByTime(ms))
+  void act(() => vi.advanceTimersByTime(ms))
 }
 
 test("only local operations reveal feedback; every operation restarts the two-second timer", async () => {

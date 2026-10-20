@@ -33,7 +33,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
     return () => {
       operation.current?.abort()
       operation.current = null
-      void stop.then(unlisten => unlisten())
+      void stop.then((unlisten) => unlisten())
     }
   }, [sessionId])
   const collapse = async () => {
@@ -84,10 +84,11 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
         title={t("pet.collapse")}
         aria-label={t("pet.collapse")}
         disabled={busy}
-        onClick={() => void collapse()}>
+        onClick={() => void collapse()}
+      >
         {busy ? <LoaderCircleIcon className="animate-spin" /> : <Minimize2Icon />}
       </Button>
-      <Dialog open={noticeOpen} onOpenChange={open => !busy && setNoticeOpen(open)}>
+      <Dialog open={noticeOpen} onOpenChange={(open) => !busy && setNoticeOpen(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t(notice?.type === "setup" ? "pet.setupTitle" : "common:petMode.failed")}</DialogTitle>

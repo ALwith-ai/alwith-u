@@ -42,14 +42,14 @@ const meta = {
     const list = spyOn(client, "listThreads").mockImplementation(async () => {
       client.store.setState({ archivedThreads: chats, archivedLoaded: true, archivedCursor: null })
     })
-    const restore = spyOn(client, "unarchive").mockImplementation(async id => {
-      client.store.setState(state => ({
-        archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    const restore = spyOn(client, "unarchive").mockImplementation(async (id) => {
+      client.store.setState((state) => ({
+        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
       }))
     })
-    const remove = spyOn(client, "delete").mockImplementation(async id => {
-      client.store.setState(state => ({
-        archivedThreads: state.archivedThreads.filter(thread => thread.sessionId !== id)
+    const remove = spyOn(client, "delete").mockImplementation(async (id) => {
+      client.store.setState((state) => ({
+        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
       }))
     })
     return () => {
@@ -112,23 +112,23 @@ export const ArchiveList: Story = {
     const search = canvas.getByRole("textbox", { name: "搜索已归档的聊天" })
     const headingTop = heading.getBoundingClientRect().top
     const searchTop = search.getBoundingClientRect().top
-    expect(row?.getBoundingClientRect().width).toBeCloseTo(contentBefore.width, 1)
-    expect(row?.getBoundingClientRect().right).toBeCloseTo(contentBefore.right, 1)
-    expect(row?.parentElement?.getBoundingClientRect().right).toBeCloseTo(
+    void expect(row?.getBoundingClientRect().width).toBeCloseTo(contentBefore.width, 1)
+    void expect(row?.getBoundingClientRect().right).toBeCloseTo(contentBefore.right, 1)
+    void expect(row?.parentElement?.getBoundingClientRect().right).toBeCloseTo(
       canvas.getByRole("button", { name: "全部删除" }).getBoundingClientRect().right,
       1
     )
     await waitFor(() => expect(list.parentElement?.querySelector('[data-slot="scroll-area-scrollbar"]')).not.toBeNull())
     const scrollbar = list.parentElement?.querySelector('[data-slot="scroll-area-scrollbar"]')
     if (!scrollbar || !row?.parentElement) throw new Error("Missing archive scrollbar")
-    expect(
+    void expect(
       scrollbar.getBoundingClientRect().left - row.parentElement.getBoundingClientRect().right
     ).toBeGreaterThanOrEqual(12)
-    expect(list.scrollHeight).toBeGreaterThan(list.clientHeight)
+    void expect(list.scrollHeight).toBeGreaterThan(list.clientHeight)
     list.scrollTop = 300
     await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))
-    expect(heading.getBoundingClientRect().top).toBe(headingTop)
-    expect(search.getBoundingClientRect().top).toBe(searchTop)
+    void expect(heading.getBoundingClientRect().top).toBe(headingTop)
+    void expect(search.getBoundingClientRect().top).toBe(searchTop)
     client.store.setState({ archivedThreads: chats })
   }
 }

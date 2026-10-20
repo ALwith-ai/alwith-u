@@ -116,7 +116,7 @@ function ThreadRow({
       tabIndex={0}
       active={active}
       onClick={onSelect}
-      onKeyDown={e => {
+      onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
           onSelect()
@@ -154,18 +154,18 @@ function ThreadHoverBody({
   onForked: (thread: ThreadSummary) => void
 }) {
   const { t } = useTranslation()
-  const canRename = useApp(state => hasRename(state.agent))
+  const canRename = useApp((state) => hasRename(state.agent))
   const [renaming, setRenaming] = useState(false)
   const [forking, setForking] = useState(false)
   const submitting = useRef(false)
-  const canFork = useApp(state => state.connection === "ready" && state.agent?.capabilities?.session?.fork != null)
+  const canFork = useApp((state) => state.connection === "ready" && state.agent?.capabilities?.session?.fork != null)
   return (
     <ThreadInfoCard
       thread={thread}
       renaming={renaming}
-      onRename={name => {
+      onRename={(name) => {
         setRenaming(false)
-        if (name !== null) report(client.renameSession(thread.sessionId, name))
+        if (name !== null) void report(client.renameSession(thread.sessionId, name))
       }}
       actions={
         <>
@@ -189,11 +189,11 @@ function ThreadHoverBody({
                   if (submitting.current) return
                   submitting.current = true
                   setForking(true)
-                  report(
+                  void report(
                     client
                       .fork(thread.sessionId, thread.cwd)
-                      .then(id => {
-                        const forked = client.state.threads.find(item => item.sessionId === id)
+                      .then((id) => {
+                        const forked = client.state.threads.find((item) => item.sessionId === id)
                         if (!forked) throw new Error("Forked chat is missing from the session list")
                         onForked(forked)
                       })
@@ -232,7 +232,7 @@ export function ThreadSidebar({
   onOpenPlugins,
   onOpenExtensions,
   extensionNavigation,
-  renderExtensionEntry = entry => entry,
+  renderExtensionEntry = (entry) => entry,
   drivePanel,
   onSwitchScreen
 }: {
@@ -254,23 +254,23 @@ export function ThreadSidebar({
   onSwitchScreen: () => void
 }) {
   const { t } = useTranslation()
-  const threads = useApp(state => state.threads)
-  const threadsLoaded = useApp(state => state.threadsLoaded)
-  const threadsError = useApp(state => state.threadsError)
-  const connection = useApp(state => state.connection)
-  const connectionError = useApp(state => state.connectionError)
-  const archived = useApp(state => state.archivedThreads)
-  const archivedLoaded = useApp(state => state.archivedLoaded)
-  const archivedCursor = useApp(state => state.archivedCursor)
-  const runStates = useApp(state => state.runStates)
+  const threads = useApp((state) => state.threads)
+  const threadsLoaded = useApp((state) => state.threadsLoaded)
+  const threadsError = useApp((state) => state.threadsError)
+  const connection = useApp((state) => state.connection)
+  const connectionError = useApp((state) => state.connectionError)
+  const archived = useApp((state) => state.archivedThreads)
+  const archivedLoaded = useApp((state) => state.archivedLoaded)
+  const archivedCursor = useApp((state) => state.archivedCursor)
+  const runStates = useApp((state) => state.runStates)
   // Keep expansion state in the shared in-memory store, as in Desktop; preserve it while the app runs and reset it on restart.
-  const revealed = useThreadsUiStore(s => s.revealed)
-  const reveal = useThreadsUiStore(s => s.reveal)
-  const projectOpen = useThreadsUiStore(s => s.projectOpen)
-  const setProjectOpen = useThreadsUiStore(s => s.setProjectOpen)
+  const revealed = useThreadsUiStore((s) => s.revealed)
+  const reveal = useThreadsUiStore((s) => s.reveal)
+  const projectOpen = useThreadsUiStore((s) => s.projectOpen)
+  const setProjectOpen = useThreadsUiStore((s) => s.setProjectOpen)
   // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
-  const view = useThreadsUiStore(s => s.view)
-  const setView = useThreadsUiStore(s => s.setView)
+  const view = useThreadsUiStore((s) => s.view)
+  const setView = useThreadsUiStore((s) => s.setView)
   // Tabs share the navigation icon buttons' 32px height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const driveVisible = useDriveVisible()
@@ -360,7 +360,8 @@ export function ThreadSidebar({
           <NavigationItemButton
             active={screen === "leading" && leadingPage === "plugins"}
             className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
-            onClick={onOpenPlugins}>
+            onClick={onOpenPlugins}
+          >
             <PuzzleIcon />
             <span>{t("sidebar.plugins")}</span>
           </NavigationItemButton>
@@ -368,7 +369,8 @@ export function ThreadSidebar({
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "extensions"}
               className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2 data-popup-open:bg-foreground/5`}
-              onClick={onOpenExtensions}>
+              onClick={onOpenExtensions}
+            >
               <BlocksIcon />
               <span>{t("sidebar.extensions")}</span>
             </NavigationItemButton>
@@ -377,7 +379,8 @@ export function ThreadSidebar({
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}
               className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
-              onClick={onOpenVibemon}>
+              onClick={onOpenVibemon}
+            >
               <PawPrintIcon />
               <span>Vibémon</span>
             </NavigationItemButton>
@@ -389,10 +392,11 @@ export function ThreadSidebar({
         <div className="relative flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
-            className={`${MENU_HIGHLIGHT} flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}>
+            className={`${MENU_HIGHLIGHT} flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}
+          >
             {tabs
-              .filter(tab => tab.key !== "drive" || driveVisible)
-              .map(tab => {
+              .filter((tab) => tab.key !== "drive" || driveVisible)
+              .map((tab) => {
                 const active = view === tab.key
                 return (
                   <NavigationMenuIconButton
@@ -407,7 +411,8 @@ export function ThreadSidebar({
                     className={cn(
                       "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
-                    )}>
+                    )}
+                  >
                     {active && (
                       <motion.span
                         layoutId="navigation-selected-pill"
@@ -423,7 +428,8 @@ export function ThreadSidebar({
                         active
                           ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
                           : "ms-0 grid-cols-[0fr] duration-0"
-                      )}>
+                      )}
+                    >
                       <span className="min-w-0 overflow-hidden whitespace-nowrap">{tab.title}</span>
                     </span>
                   </NavigationMenuIconButton>
@@ -434,7 +440,8 @@ export function ThreadSidebar({
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
-            className={cn("min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}>
+            className={cn("min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
+          >
             {drivePanel}
           </div>
         )}
@@ -449,11 +456,12 @@ export function ThreadSidebar({
                 connection !== "failed" &&
                 (connection !== "disconnected" || connectionError === null) && (
                   <div aria-busy="true" className="flex flex-col gap-0.5">
-                    {(["w-24", "w-32"] as const).map(width => (
+                    {(["w-24", "w-32"] as const).map((width) => (
                       <div
                         key={width}
                         data-slot="project-skeleton-row"
-                        className="relative flex h-[var(--navigation-row-height)] w-full items-center gap-1 rounded-[10px] ps-1 pe-1.5 [corner-shape:superellipse(1.5)]">
+                        className="relative flex h-[var(--navigation-row-height)] w-full items-center gap-1 rounded-[10px] ps-1 pe-1.5 [corner-shape:superellipse(1.5)]"
+                      >
                         <NavigationLeading>
                           <FolderClosedIcon className="size-3.5 text-foreground/40" />
                         </NavigationLeading>
@@ -479,7 +487,7 @@ export function ThreadSidebar({
                   // Two levels: collapsible project groups, then their sessions. Expansion is controlled by the shared store.
                   <NavigationGroup
                     key={cwd}
-                    wrapHeader={header => (
+                    wrapHeader={(header) => (
                       <ProjectSessionPopover
                         cwd={quick ? null : cwd}
                         trigger={header}
@@ -488,7 +496,7 @@ export function ThreadSidebar({
                       />
                     )}
                     open={isOpen}
-                    onOpenChange={open => setProjectOpen(new Map(projectOpen).set(cwd, open))}
+                    onOpenChange={(open) => setProjectOpen(new Map(projectOpen).set(cwd, open))}
                     leading={
                       // Project (workspace) groups use an open folder icon when expanded and a closed folder icon when collapsed.
                       quick ? (
@@ -500,12 +508,14 @@ export function ThreadSidebar({
                       )
                     }
                     label={quick ? t("sidebar.quickChats") : basename(cwd)}
-                    count={list.length}>
+                    count={list.length}
+                  >
                     <VirtualThreadRows threads={list.slice(0, limit)} viewport={viewport} renderRow={renderRow} />
                     {list.length > limit && (
                       <NavigationItemButton
                         className={`${MENU_HIGHLIGHT} ps-8 text-muted-foreground`}
-                        onClick={() => reveal(cwd, Number.POSITIVE_INFINITY)}>
+                        onClick={() => reveal(cwd, Number.POSITIVE_INFINITY)}
+                      >
                         {t("sidebar.showAll")}
                       </NavigationItemButton>
                     )}
@@ -515,19 +525,21 @@ export function ThreadSidebar({
               {!allProjectsShown && groups.length > 6 && (
                 <NavigationItemButton
                   className={`${MENU_HIGHLIGHT} text-muted-foreground`}
-                  onClick={() => setAllProjectsShown(true)}>
+                  onClick={() => setAllProjectsShown(true)}
+                >
                   {t("sidebar.showAll")}
                 </NavigationItemButton>
               )}
               <NavigationGroup
                 open={archivedOpen}
-                onOpenChange={open => {
+                onOpenChange={(open) => {
                   setArchivedOpen(open)
-                  if (open && !archivedLoaded) report(client.listThreads({ archived: true }))
+                  if (open && !archivedLoaded) void report(client.listThreads({ archived: true }))
                 }}
                 leading={<ArchiveIcon className="size-3.5 shrink-0 text-foreground" />}
                 label={t("sidebar.archived")}
-                count={archivedLoaded ? archived.length : undefined}>
+                count={archivedLoaded ? archived.length : undefined}
+              >
                 <VirtualThreadRows
                   threads={archived.slice(0, archivedLimit)}
                   viewport={viewport}
@@ -537,14 +549,15 @@ export function ThreadSidebar({
                   <NavigationItemButton
                     className={`${MENU_HIGHLIGHT} text-muted-foreground`}
                     onClick={() => {
-                      if (archived.length > archivedLimit) setArchivedLimit(value => value + REVEAL_PAGE_SIZE)
+                      if (archived.length > archivedLimit) setArchivedLimit((value) => value + REVEAL_PAGE_SIZE)
                       else
-                        report(
+                        void report(
                           client
                             .listThreads({ archived: true })
-                            .then(() => setArchivedLimit(value => value + REVEAL_PAGE_SIZE))
+                            .then(() => setArchivedLimit((value) => value + REVEAL_PAGE_SIZE))
                         )
-                    }}>
+                    }}
+                  >
                     {t("sidebar.loadMore")}
                   </NavigationItemButton>
                 )}
@@ -567,7 +580,8 @@ export function ThreadSidebar({
             )}
             aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
             title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-            onClick={onSwitchScreen}>
+            onClick={onSwitchScreen}
+          >
             {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
           </Button>
         </div>
@@ -578,7 +592,7 @@ export function ThreadSidebar({
           <GuideButton />
         </div>
       </SidebarFooter>
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
+      <Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("sidebar.deleteTitle")}</DialogTitle>
@@ -590,9 +604,10 @@ export function ThreadSidebar({
             </Button>
             <Button
               onClick={() => {
-                if (pendingDelete) report(client.delete(pendingDelete.sessionId))
+                if (pendingDelete) void report(client.delete(pendingDelete.sessionId))
                 setPendingDelete(null)
-              }}>
+              }}
+            >
               {t("sidebar.delete")}
             </Button>
           </DialogFooter>

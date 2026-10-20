@@ -55,7 +55,7 @@ export function AutostartRow() {
           aria-label={t("settings.petAutostart")}
           checked={enabled === true}
           disabled={pending || enabled === null || !supported}
-          onCheckedChange={value => void read(value)}
+          onCheckedChange={(value) => void read(value)}
         />
       </div>
     </SettingRow>

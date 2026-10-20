@@ -50,15 +50,15 @@ function getRuntime(): ExtensionRuntime {
     capabilities: {
       ...commonCapabilities,
       [plugin.pluginHostCapability.id]: createPluginHost(),
-      [legacy.legacyHostCapability.id]: createLegacyHost(id =>
-        runtime?.snapshot().native?.installations.find(item => item.id === id)
+      [legacy.legacyHostCapability.id]: createLegacyHost((id) =>
+        runtime?.snapshot().native?.installations.find((item) => item.id === id)
       ),
-      ...createHostCapabilities(id => {
+      ...createHostCapabilities((id) => {
         if (!runtime) throw new Error("Extension runtime is not initialized")
-        return runtime.snapshot().native?.installations.find(item => item.id === id)
+        return runtime.snapshot().native?.installations.find((item) => item.id === id)
       }, reportExtensionError),
       [sdk.httpCapability.id]: createTauriHttp({
-        allowUrl: url =>
+        allowUrl: (url) =>
           ["https://api.alwith.ai", "https://api-dev.alwith.ai"].includes(url.origin) &&
           url.pathname.startsWith("/service/")
       }),
@@ -75,7 +75,7 @@ function getRuntime(): ExtensionRuntime {
       statusBar: "1.0.0",
       settingsPages: "1.0.0"
     },
-    evaluate: source => {
+    evaluate: (source) => {
       const factory = createCommonJsEvaluator({
         "@alwith/u-extension-ui": extensionUi,
         "@alwith/module-extension": sdk,
@@ -88,14 +88,14 @@ function getRuntime(): ExtensionRuntime {
         "react/jsx-dev-runtime": jsxDevRuntime,
         "react-dom/client": reactDom
       })(source)
-      return context => {
+      return (context) => {
         const extension = factory(context)
         if (
           context.manifest.id !== "yup-kb" ||
           getCurrentWindow().label !== "main" ||
           !runtime
             ?.snapshot()
-            .native?.installations.some(item => item.id === "yup-kb" && item.source === "legacy:alwith-u")
+            .native?.installations.some((item) => item.id === "yup-kb" && item.source === "legacy:alwith-u")
         )
           return extension
         return {

@@ -15,7 +15,7 @@ export function OverflowMarquee({ className, children, onMouseEnter, onMouseLeav
   return (
     <span
       className={cn("min-w-0 overflow-hidden", className)}
-      onMouseEnter={event => {
+      onMouseEnter={(event) => {
         const node = textRef.current
         if (!node) return
         const overflow = node.scrollWidth - node.clientWidth
@@ -24,18 +24,20 @@ export function OverflowMarquee({ className, children, onMouseEnter, onMouseLeav
         }
         onMouseEnter?.(event)
       }}
-      onMouseLeave={event => {
+      onMouseLeave={(event) => {
         setTranslation(0)
         onMouseLeave?.(event)
       }}
-      {...props}>
+      {...props}
+    >
       <span
         ref={textRef}
         className={cn("block whitespace-nowrap", translation === 0 ? "truncate" : "overflow-visible")}
         style={{
           transform: `translateX(${translation}px)`,
           transition: `transform ${Math.abs(translation) / MARQUEE_SPEED}s linear`
-        }}>
+        }}
+      >
         {children}
       </span>
     </span>

@@ -49,7 +49,7 @@ export function MainSidebarLayout({
   children?: ReactNode
 }) {
   const { t } = useTranslation()
-  const zoom = useStore(zoomStore, state => state.level)
+  const zoom = useStore(zoomStore, (state) => state.level)
   const titlebar = useContext(WindowsTitleBarContext)
   const workspaceControls = useContext(WindowsWorkspaceControlsContext)
   const fullscreen = useWindowFullscreen()
@@ -168,7 +168,8 @@ export function MainSidebarLayout({
       style={titlebar ? { width: 32 / zoom, height: 32 / zoom } : undefined}
       onPointerEnter={enterSidebar}
       onPointerLeave={leaveSidebar}
-      onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}>
+      onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
+    >
       <Button
         ref={toggle}
         variant="ghost"
@@ -180,7 +181,8 @@ export function MainSidebarLayout({
         aria-controls={panelId}
         title={t(pinned ? "sidebar.unpin" : "sidebar.pin")}
         className="text-sidebar-foreground"
-        onClick={() => changePinned(!docked)}>
+        onClick={() => changePinned(!docked)}
+      >
         <ToggleIcon className="size-4 rtl:-scale-x-100" />
       </Button>
     </div>

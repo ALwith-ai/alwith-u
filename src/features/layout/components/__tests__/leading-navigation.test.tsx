@@ -49,7 +49,9 @@ test("leading navigation switches pages and is inaccessible on the main screen",
     fireEvent.click(view.getByRole("button", { name }))
     expect(view.getByRole("main", { name: "Current page" })).toHaveTextContent(page)
     expect(view.getByRole("button", { name })).toHaveAttribute("aria-current", "page")
-    expect(view.getAllByRole("button").filter(button => button.getAttribute("aria-current") === "page")).toHaveLength(1)
+    expect(view.getAllByRole("button").filter((button) => button.getAttribute("aria-current") === "page")).toHaveLength(
+      1
+    )
   }
   fireEvent.click(view.getByRole("button", { name: "Return to chat" }))
   expect(view.queryByRole("navigation")).not.toBeInTheDocument()

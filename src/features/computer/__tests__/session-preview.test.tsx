@@ -49,7 +49,7 @@ async function emit(sessionId: string, phase: string, subscriptionId?: string) {
         : null,
     error: null
   }
-  act(() => native.listen.mock.calls.at(-1)?.[0]({ payload }))
+  void act(() => native.listen.mock.calls.at(-1)?.[0]({ payload }))
 }
 test("only matching subscription and conversation may display live frames", async () => {
   const view = render(<SessionPreview sessionId="a" />)

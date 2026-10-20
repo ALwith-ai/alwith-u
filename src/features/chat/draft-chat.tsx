@@ -12,6 +12,7 @@ import { ComputerControl } from "@/features/computer/computer-control"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProviders } from "@/lib/providers"
+import { text } from "@/lib/text"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
@@ -63,10 +64,10 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
-  const threads = useApp(state => state.threads)
-  const connection = useApp(state => state.connection)
+  const threads = useApp((state) => state.threads)
+  const connection = useApp((state) => state.connection)
   const [id, setId] = useState<string | null>(
-    () => Object.keys(client.state.draftSessions).find(key => client.state.draftSessions[key] === owner) ?? null
+    () => Object.keys(client.state.draftSessions).find((key) => client.state.draftSessions[key] === owner) ?? null
   )
   const session = useSession(id)
   // Local input exists before ACP does; this detached view never enters the client store.
@@ -93,7 +94,7 @@ export function DraftChat({
   const recentProjects = useMemo(
     () => [
       ...new Set(
-        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map(thread => thread.cwd)
+        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map((thread) => thread.cwd)
       )
     ],
     [threads]
@@ -204,10 +205,8 @@ export function DraftChat({
       </Empty>
       {!preparing && (error !== null || connection !== "ready") && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
-          <span>
-            {error !== null ? (error instanceof Error ? error.message : String(error)) : t("connection.disconnected")}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => setAttempt(value => value + 1)}>
+          <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
+          <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
             {t("actions.retry")}
           </Button>
           {isAuthError(error) && (
@@ -238,7 +237,7 @@ export function DraftChat({
                 session.restoring ||
                 session.readOnly
               }
-              onModelChange={value => {
+              onModelChange={(value) => {
                 setPreparing(true)
                 setModel(value)
               }}

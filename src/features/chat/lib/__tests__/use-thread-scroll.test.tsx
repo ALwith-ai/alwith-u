@@ -10,11 +10,11 @@ let nextFrame = 0
 let time = 0
 beforeEach(() => {
   time = performance.now()
-  globalThis.requestAnimationFrame = callback => {
+  globalThis.requestAnimationFrame = (callback) => {
     frames.set(++nextFrame, callback)
     return nextFrame
   }
-  globalThis.cancelAnimationFrame = id => {
+  globalThis.cancelAnimationFrame = (id) => {
     frames.delete(id)
   }
 })
@@ -267,13 +267,13 @@ test("120Hz following reaches the bottom when the webview rounds scroll position
 
 test("scrollbar dragging owns the viewport until pointer release", () => {
   const view = setup()
-  act(() => view.root.dispatchEvent(new PointerEvent("pointerdown", { button: 0 })))
+  void act(() => view.root.dispatchEvent(new PointerEvent("pointerdown", { button: 0 })))
   view.scroll(400)
   view.scroll(750)
   act(() => view.result.current.contentResized())
   settle()
   expect(view.root.scrollTop).toBe(750)
-  act(() => window.dispatchEvent(new PointerEvent("pointerup")))
+  void act(() => window.dispatchEvent(new PointerEvent("pointerup")))
   settle()
   expect(view.root.scrollTop).toBe(800)
 })
@@ -286,14 +286,14 @@ test("overlay scrollbar dragging pauses following until a downward release near 
   const thumb = document.createElement("div")
   scrollbar.append(thumb)
   view.scrollArea.append(scrollbar)
-  act(() => thumb.dispatchEvent(new PointerEvent("pointerdown", { button: 0, bubbles: true })))
+  void act(() => thumb.dispatchEvent(new PointerEvent("pointerdown", { button: 0, bubbles: true })))
   expect(view.result.current.isFollowing).toBe(false)
   view.scroll(400)
   view.scroll(750)
   act(() => view.result.current.contentResized())
   settle()
   expect(view.root.scrollTop).toBe(750)
-  act(() => window.dispatchEvent(new PointerEvent("pointerup")))
+  void act(() => window.dispatchEvent(new PointerEvent("pointerup")))
   settle()
   expect(view.root.scrollTop).toBe(800)
   expect(view.result.current.isFollowing).toBe(true)
@@ -306,13 +306,13 @@ test("wheel scrolling inside an output block does not release viewport following
   Object.defineProperties(output, { clientHeight: { value: 100 }, scrollHeight: { value: 300 } })
   output.scrollTop = 100
   view.root.append(output)
-  act(() => output.dispatchEvent(new WheelEvent("wheel", { deltaY: -20, bubbles: true })))
+  void act(() => output.dispatchEvent(new WheelEvent("wheel", { deltaY: -20, bubbles: true })))
   expect(view.result.current.isFollowing).toBe(true)
 })
 
 test("keyboard scrolling releases follow and unmount cancels every pending write", () => {
   const view = setup()
-  act(() => view.root.dispatchEvent(new KeyboardEvent("keydown", { key: "PageUp" })))
+  void act(() => view.root.dispatchEvent(new KeyboardEvent("keydown", { key: "PageUp" })))
   expect(view.result.current.isFollowing).toBe(false)
   act(() => view.result.current.scrollToBottom())
   view.unmount()

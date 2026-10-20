@@ -57,7 +57,7 @@ async function fixture(state: Snapshot, handle: (request: DriveRequest) => Promi
   const requests: DriveRequest[] = []
   const controller = createDriveController({
     subscribe: async () => () => {},
-    request: async request => {
+    request: async (request) => {
       requests.push(request)
       if (request.type === "snapshot") return { type: "snapshot", data: { ...state } }
       if (request.type === "ownershipGuard")
@@ -82,7 +82,7 @@ async function fixture(state: Snapshot, handle: (request: DriveRequest) => Promi
 
 test("sign-in registers the supplied token and starts only after registration", async () => {
   const state = snapshot(false)
-  const { controller, requests } = await fixture(state, async request => {
+  const { controller, requests } = await fixture(state, async (request) => {
     if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
     if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
     if (request.type === "login") {
@@ -104,7 +104,7 @@ test("sign-in registers the supplied token and starts only after registration", 
   await waitFor(() =>
     expect(
       requests.filter(
-        request =>
+        (request) =>
           ![
             "snapshot",
             "ownershipGuard",
@@ -127,9 +127,9 @@ test("sign-in registers the supplied token and starts only after registration", 
 
 test("project navigation waits for a native landing result", async () => {
   let land!: (response: DriveResponse) => void
-  const { controller } = await fixture(snapshot(), request => {
+  const { controller } = await fixture(snapshot(), (request) => {
     if (request.type === "land")
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         land = resolve
       })
     throw new Error("Unexpected request")
@@ -170,12 +170,12 @@ test("declining a cloud deletion never submits the decision", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Delete from cloud" }))
   await waitFor(() => expect(screen.getByRole("button", { name: "Delete from cloud" })).not.toBeDisabled())
   expect(confirm).toHaveBeenCalledOnce()
-  expect(requests.every(request => request.type === "snapshot" || request.type === "failedUploads")).toBe(true)
+  expect(requests.every((request) => request.type === "snapshot" || request.type === "failedUploads")).toBe(true)
   controller.dispose()
 })
 
 test("read-only sharing exposes access requests without administrative controls", async () => {
-  const { controller, requests } = await fixture(snapshot(), async request => {
+  const { controller, requests } = await fixture(snapshot(), async (request) => {
     if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: "file-1" } }
     if (request.type === "grants") return { type: "grants", data: { callerLevel: "VIEW", grants: [], implicit: [] } }
     if (request.type === "requestAccess") return { type: "accessRequest", data: "submitted" }
@@ -242,7 +242,7 @@ test("launcher exposes project navigation without inline sync-selection controls
 
 test("settings use the host default server and hide SSO when disabled", async () => {
   const state = { ...snapshot(false), baseUrl: "" }
-  const { controller, requests } = await fixture(state, async request => {
+  const { controller, requests } = await fixture(state, async (request) => {
     if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
     if (request.type === "login") {
       state.configured = true
@@ -280,7 +280,7 @@ test("settings use the host default server and hide SSO when disabled", async ()
 })
 
 test("download settings reject fractional limits and preserve zero as unlimited", async () => {
-  const { controller, requests } = await fixture(snapshot(), async request => {
+  const { controller, requests } = await fixture(snapshot(), async (request) => {
     if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
     if (request.type === "setMaxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: request.megabytes }
     throw new Error(`Unexpected request: ${request.type}`)
@@ -297,7 +297,7 @@ test("download settings reject fractional limits and preserve zero as unlimited"
   const limit = await screen.findByDisplayValue("100")
   fireEvent.change(limit, { target: { value: "1.5" } })
   fireEvent.blur(limit)
-  expect(requests.filter(request => request.type === "setMaxAutoDownloadMb")).toEqual([])
+  expect(requests.filter((request) => request.type === "setMaxAutoDownloadMb")).toEqual([])
   fireEvent.change(limit, { target: { value: "0" } })
   fireEvent.blur(limit)
   await waitFor(() => expect(requests).toContainEqual({ type: "setMaxAutoDownloadMb", megabytes: 0 }))

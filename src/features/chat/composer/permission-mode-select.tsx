@@ -19,11 +19,11 @@ const MODE_ICONS: Record<string, LucideIcon> = {
 }
 
 function modeConfigOption(options: acp.SessionConfigOption[]): SelectOption | undefined {
-  return options.find(option => option.category === "mode" && isSelectOption(option)) as SelectOption | undefined
+  return options.find((option) => option.category === "mode" && isSelectOption(option)) as SelectOption | undefined
 }
 
 export function flattenSelectOptions(option: SelectOption): acp.SessionConfigSelectOption[] {
-  return isGroupedSelect(option.options) ? option.options.flatMap(group => group.options) : option.options
+  return isGroupedSelect(option.options) ? option.options.flatMap((group) => group.options) : option.options
 }
 
 export function PermissionModeSelect({
@@ -40,7 +40,7 @@ export function PermissionModeSelect({
   if (!modeOption) return null
   const currentModeId = modeOption.currentValue
   const availableModes = flattenSelectOptions(modeOption)
-  const current = availableModes.find(option => option.value === currentModeId)
+  const current = availableModes.find((option) => option.value === currentModeId)
   const currentModeName = current?.name ?? currentModeId
   const CurrentIcon = MODE_ICONS[currentModeId] ?? ShieldCheckIcon
   const change = (value: string) => {
@@ -57,7 +57,7 @@ export function PermissionModeSelect({
       disabled={disabled}
       label={t("chat.model.switchPermissionMode")}
       onValueChange={change}
-      options={availableModes.map(mode => {
+      options={availableModes.map((mode) => {
         const Icon = MODE_ICONS[mode.value] ?? ShieldCheckIcon
         return {
           value: mode.value,

@@ -26,7 +26,7 @@ function runtimeFixture(): {
     agentExit: (agentId: string): void => handler?.({ agentId }),
     processExit: (): void => process.resolve(),
     runtime: {
-      onExit: async callback => {
+      onExit: async (callback) => {
         calls.push("subscribe")
         handler = callback
         return (): void => {
@@ -34,7 +34,7 @@ function runtimeFixture(): {
           handler = undefined
         }
       },
-      stop: async agentId => {
+      stop: async (agentId) => {
         calls.push(`stop:${agentId}`)
       },
       close: (): void => {
@@ -115,7 +115,7 @@ test("temporary lock errors are retried asynchronously before directory removal"
           throw Object.assign(new Error("locked"), { code: ["EBUSY", "EPERM", "ENOTEMPTY"][attempts - 1] })
         await rm(path, options)
       },
-      async milliseconds => {
+      async (milliseconds) => {
         delays.push(milliseconds)
       }
     )
@@ -138,7 +138,7 @@ test("a permanent lock exhausts a finite retry budget and preserves the error", 
         attempts++
         throw failure
       },
-      async milliseconds => {
+      async (milliseconds) => {
         delays.push(milliseconds)
       }
     )

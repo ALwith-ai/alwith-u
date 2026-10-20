@@ -102,7 +102,7 @@ test("an account change while resolving discards the previous account's local pa
   let finish: ((value: { type: "path"; data: string }) => void) | undefined
   mock.request.mockImplementation(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finish = resolve
       })
   )

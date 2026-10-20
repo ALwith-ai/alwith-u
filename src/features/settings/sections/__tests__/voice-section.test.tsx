@@ -14,7 +14,7 @@ const { openExternal, reportError } = vi.hoisted(() => ({
 vi.mock("sonner", () => ({ toast: { error: reportError, success: vi.fn() } }))
 vi.mock("@/lib/open", () => ({ openExternal }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
-vi.mock("@/features/voice/settings", async importOriginal => ({
+vi.mock("@/features/voice/settings", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/voice/settings")>()),
   loadVoiceSettings: vi.fn(),
   saveVoiceSettings: vi.fn(),
@@ -67,7 +67,7 @@ test("a late initial read does not overwrite a newer voice preference", async ()
   let resolve!: (value: SettingsSnapshot) => void
   vi.mocked(settingsStore.read).mockImplementationOnce(
     () =>
-      new Promise<SettingsSnapshot>(done => {
+      new Promise<SettingsSnapshot>((done) => {
         resolve = done
       })
   )

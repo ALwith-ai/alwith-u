@@ -25,7 +25,7 @@ function Probe() {
   const attachments = usePromptInputAttachments()
   return (
     <div>
-      {attachments.files.map(file => (
+      {attachments.files.map((file) => (
         <button type="button" key={file.id} onClick={() => attachments.remove(file.id)}>
           {file.filename}
         </button>
@@ -44,7 +44,7 @@ function Harness({ sessionId = "main-session", enabled = true }: { sessionId?: s
             sessionId={sessionId}
             enabled={enabled}
             onBusyChange={setBusy}
-            onMention={path => setMentions(previous => [...new Set([...previous, path])])}
+            onMention={(path) => setMentions((previous) => [...new Set([...previous, path])])}
           />
           <Probe />
         </PromptInput>
@@ -82,7 +82,7 @@ afterEach(() => cleanup())
 
 test.each(["main-session", "floating-session"])(
   "%s receives image and Unicode file references through the native bridge",
-  async sessionId => {
+  async (sessionId) => {
     host.read
       .mockResolvedValueOnce(image())
       .mockResolvedValueOnce({ path: "/tmp/中文 space #1.txt", name: "中文 space #1.txt", image: null })
@@ -129,7 +129,7 @@ test("a delayed file read never lands in a different session", async () => {
   let finish!: (file: ChatDroppedFile) => void
   host.read.mockImplementation(
     () =>
-      new Promise<ChatDroppedFile>(resolve => {
+      new Promise<ChatDroppedFile>((resolve) => {
         finish = resolve
       })
   )
@@ -167,7 +167,7 @@ test("late native listener registration is cleaned up after unmount", async () =
   let finish!: (stop: () => void) => void
   host.listen.mockImplementation(
     () =>
-      new Promise<() => void>(resolve => {
+      new Promise<() => void>((resolve) => {
         finish = resolve
       })
   )

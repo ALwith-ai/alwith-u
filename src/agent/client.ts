@@ -31,6 +31,8 @@ import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
+import { asError } from "@/lib/text"
+
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -199,7 +201,7 @@ function modelHint(model: string | null): { _meta?: { alwith: { model: string } 
 
 /** The current value of the session's `model` option, if the agent exposes one. */
 function selectedModel(options: acp.SessionConfigOption[]): string | null {
-  const option = options.find(entry => entry.category === "model" && entry.type === "select")
+  const option = options.find((entry) => entry.category === "model" && entry.type === "select")
   return option !== undefined && option.type === "select" && typeof option.currentValue === "string"
     ? option.currentValue
     : null
@@ -252,14 +254,14 @@ export class CodexClient {
   /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
   private readonly activeReplays = new Map<string, string>()
   private readonly listRequests = { threads: 0, archived: 0 }
-  private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
-    this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
+  private readonly updates = new ChatUpdateScheduler<Session>((snapshots) => {
+    this.store.setState((state) => ({ sessions: { ...state.sessions, ...snapshots } }))
   })
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
     this.openPort = openPort
     this.options = options
-    this.requests.onChange(pending => this.store.setState({ actions: pending.map(toAction) }))
+    this.requests.onChange((pending) => this.store.setState({ actions: pending.map(toAction) }))
     this.store = createStore<AppState>(() => ({
       sessionWindows: {},
       draftSessions: {},
@@ -364,7 +366,7 @@ export class CodexClient {
             this.requests.onNotification(method, params)
         }
       })
-      agent.onAgentRequest(request => this.requests.receive(request))
+      agent.onAgentRequest((request) => this.requests.receive(request))
       void agent.exited.then(() => this.onClosed(agent))
       this.store.setState({
         connection: "ready",
@@ -386,7 +388,7 @@ export class CodexClient {
    */
   private async hold(): Promise<Agent> {
     const port = await this.openPort()
-    port.onGap(gap => void this.reloadAfterGap(gap.sessionId))
+    port.onGap((gap) => void this.reloadAfterGap(gap.sessionId))
     const agents = new Agents<Launch>(port, {
       info: CLIENT_INFO,
       capabilities: CLIENT_CAPABILITIES
@@ -404,7 +406,7 @@ export class CodexClient {
     }
     // A freshly started agent has no Runtime session yet. After a webview reload there is
     // therefore no session to attach through, but the process still needs to be reused.
-    if ((await port.agents()).some(agent => agent.agentId === this.options.agentId))
+    if ((await port.agents()).some((agent) => agent.agentId === this.options.agentId))
       return agents.adopt(this.options.agentId, this.options.launch.engine)
     return agents.start(this.options.agentId, this.options.launch, this.options.launch.engine)
   }
@@ -464,8 +466,8 @@ export class CodexClient {
     if (!session.restoring && SessionUpdateGuard.isUserMessage(update)) {
       // Use native turn time when available; replay must never look like new activity.
       const updatedAt = new Date(codexTurnStartedAt(update._meta) ?? Date.now()).toISOString()
-      this.store.setState(state => ({
-        threads: state.threads.map(thread =>
+      this.store.setState((state) => ({
+        threads: state.threads.map((thread) =>
           thread.sessionId === sessionId && (thread.updatedAt === null || thread.updatedAt < updatedAt)
             ? { ...thread, updatedAt }
             : thread
@@ -490,8 +492,8 @@ export class CodexClient {
     }
     if (SessionUpdateGuard.isSessionInfoUpdate(update)) {
       const frame = update
-      this.store.setState(state => ({
-        threads: state.threads.map(thread =>
+      this.store.setState((state) => ({
+        threads: state.threads.map((thread) =>
           thread.sessionId === sessionId
             ? {
                 ...thread,
@@ -513,7 +515,7 @@ export class CodexClient {
       const valid =
         outcome.outcome === "cancelled" ||
         (outcome.outcome === "selected" &&
-          request.params.options.some(option => option.optionId === (outcome as { optionId: string }).optionId))
+          request.params.options.some((option) => option.optionId === (outcome as { optionId: string }).optionId))
       if (!valid) throw new Error("Invalid permission choice")
     } else {
       const response = answer as acp.CreateElicitationResponse
@@ -524,8 +526,8 @@ export class CodexClient {
 
   /** Include an explicitly selected history entry in the shared memory list. */
   includeThread(thread: ThreadSummary): void {
-    if (this.state.threads.some(item => item.sessionId === thread.sessionId)) return
-    this.store.setState(state => ({ threads: [...state.threads, { ...thread, cwd: this.projectPath(thread.cwd) }] }))
+    if (this.state.threads.some((item) => item.sessionId === thread.sessionId)) return
+    this.store.setState((state) => ({ threads: [...state.threads, { ...thread, cwd: this.projectPath(thread.cwd) }] }))
   }
 
   listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
@@ -546,7 +548,7 @@ export class CodexClient {
     if (!options.reset && (archived ? state.archivedLoaded : state.threadsLoaded) && cursor === null) return
     const bucket = archived ? "archived" : "threads"
     const requestId = ++this.listRequests[bucket]
-    const before = new Map([...state.threads, ...state.archivedThreads].map(thread => [thread.sessionId, thread]))
+    const before = new Map([...state.threads, ...state.archivedThreads].map((thread) => [thread.sessionId, thread]))
     if (!archived) this.store.setState({ threadsLoading: true, threadsError: null })
     const request: acp.ListSessionsRequest = {
       ...(cursor ? { cursor } : {}),
@@ -559,25 +561,25 @@ export class CodexClient {
       if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
       if (requestId !== this.listRequests[bucket]) return
       const page = response.sessions
-        .map(info => this.threadSummary(info))
-        .filter(thread => thread.archived === archived && !this.state.draftSessions[thread.sessionId])
+        .map((info) => this.threadSummary(info))
+        .filter((thread) => thread.archived === archived && !this.state.draftSessions[thread.sessionId])
       const nextCursor = response.nextCursor ?? null
-      this.store.setState(current => {
+      this.store.setState((current) => {
         // Preserve mutations made after dispatch, including removal and movement between lists.
         const after = new Map(
-          [...current.threads, ...current.archivedThreads].map(thread => [thread.sessionId, thread])
+          [...current.threads, ...current.archivedThreads].map((thread) => [thread.sessionId, thread])
         )
-        const changed = new Set([...before.keys(), ...after.keys()].filter(id => before.get(id) !== after.get(id)))
-        const freshPage = page.filter(thread => !changed.has(thread.sessionId))
+        const changed = new Set([...before.keys(), ...after.keys()].filter((id) => before.get(id) !== after.get(id)))
+        const freshPage = page.filter((thread) => !changed.has(thread.sessionId))
         const forks = new Set(archived ? [] : this.liveForks())
         const previous = options.reset
           ? (archived ? current.archivedThreads : current.threads).filter(
-              thread => changed.has(thread.sessionId) || forks.has(thread)
+              (thread) => changed.has(thread.sessionId) || forks.has(thread)
             )
           : archived
             ? current.archivedThreads
             : current.threads
-        const merged = [...new Map([...previous, ...freshPage].map(thread => [thread.sessionId, thread])).values()]
+        const merged = [...new Map([...previous, ...freshPage].map((thread) => [thread.sessionId, thread])).values()]
         return archived
           ? {
               archivedThreads: merged,
@@ -599,7 +601,7 @@ export class CodexClient {
   async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
     await this.listThreads()
     const project = this.projectPath(cwd)
-    return this.state.threads.filter(thread => thread.cwd === project)
+    return this.state.threads.filter((thread) => thread.cwd === project)
   }
 
   private requireHistory(): void {
@@ -626,14 +628,14 @@ export class CodexClient {
     check()
     const archived = await this.listSessionIndex(undefined, true)
     check()
-    return [...new Map([...current, ...archived].map(thread => [thread.sessionId, thread])).values()]
+    return [...new Map([...current, ...archived].map((thread) => [thread.sessionId, thread])).values()]
   }
 
   async exportHistory(sessionId: string, check: () => void, signal?: AbortSignal): Promise<string> {
     this.requireHistory()
     return exportConversation(
       sessionId,
-      params => this.live().request("_codex/session_history_items", params, { signal }),
+      (params) => this.live().request("_codex/session_history_items", params, { signal }),
       check
     )
   }
@@ -677,7 +679,7 @@ export class CodexClient {
 
   private liveForks(cwd?: string): ThreadSummary[] {
     return this.state.threads.filter(
-      thread =>
+      (thread) =>
         !thread.archived &&
         thread.forkedFromId != null &&
         this.state.sessions[thread.sessionId]?.attached &&
@@ -727,7 +729,7 @@ export class CodexClient {
     const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" })
     const response = await this.born(
       () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
-      response => {
+      (response) => {
         const session: Session = {
           ...createSession(response.sessionId, cwd),
           attached: true,
@@ -736,7 +738,7 @@ export class CodexClient {
         }
         this.publishSession(session)
         if (owner === null) this.listSession(session)
-        else this.store.setState(state => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
+        else this.store.setState((state) => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
       }
     )
     await bind?.(response.sessionId)
@@ -769,7 +771,7 @@ export class CodexClient {
   }
 
   private listSession(session: Session): void {
-    this.store.setState(state => ({
+    this.store.setState((state) => ({
       threads: [
         {
           sessionId: session.id,
@@ -778,14 +780,14 @@ export class CodexClient {
           updatedAt: new Date().toISOString(),
           archived: false
         },
-        ...state.threads.filter(thread => thread.sessionId !== session.id)
+        ...state.threads.filter((thread) => thread.sessionId !== session.id)
       ]
     }))
   }
 
   private materializeDraft(id: string): void {
     if (!this.state.draftSessions[id]) return
-    this.store.setState(state => {
+    this.store.setState((state) => {
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       return { draftSessions }
     })
@@ -795,7 +797,9 @@ export class CodexClient {
 
   /** Ownership changes are serialized independently of individual session operations. */
   private changeDraft<T>(owners: DraftOwner[], operation: () => Promise<T>): Promise<T> {
-    const next = Promise.allSettled(owners.map(owner => this.draftOperations.get(owner))).then(operation)
+    const next = Promise.allSettled(
+      owners.map((owner) => this.draftOperations.get(owner)).filter((operation) => operation !== undefined)
+    ).then(operation)
     for (const owner of owners) this.draftOperations.set(owner, next)
     return next
   }
@@ -803,7 +807,7 @@ export class CodexClient {
   prepareDraft(owner: DraftOwner, cwd: string, model: string | null = null): Promise<string> {
     const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
-      const existing = Object.keys(this.state.draftSessions).find(id => this.state.draftSessions[id] === owner)
+      const existing = Object.keys(this.state.draftSessions).find((id) => this.state.draftSessions[id] === owner)
       if (existing) await this.sessionOperations.get(existing)
       if (
         existing &&
@@ -834,15 +838,15 @@ export class CodexClient {
         if (existing && this.session(existing).cwd === cwd) {
           for (const option of this.session(existing).configOptions) {
             if (option.category === "model") continue
-            const target = this.session(id).configOptions.find(entry => entry.configId === option.configId)
+            const target = this.session(id).configOptions.find((entry) => entry.configId === option.configId)
             if (!target || target.currentValue === option.currentValue) continue
             if (isBooleanOption(option) && isBooleanOption(target)) {
               await this.setConfig(id, option.configId, option.currentValue)
             } else if (isSelectOption(option) && isSelectOption(target)) {
               const choices = isGroupedSelect(target.options)
-                ? target.options.flatMap(group => group.options)
+                ? target.options.flatMap((group) => group.options)
                 : target.options
-              if (choices.some(choice => choice.value === option.currentValue))
+              if (choices.some((choice) => choice.value === option.currentValue))
                 await this.setConfig(id, option.configId, option.currentValue)
             }
           }
@@ -870,7 +874,7 @@ export class CodexClient {
       if (!this.state.draftSessions[id] || this.state.draftSessions[id] === owner) return
       for (const [other, current] of Object.entries(this.state.draftSessions))
         if (current === owner) await this.deleteEmptyDraft(other)
-      this.store.setState(state =>
+      this.store.setState((state) =>
         state.draftSessions[id] ? { draftSessions: { ...state.draftSessions, [id]: owner } } : {}
       )
     })
@@ -895,7 +899,7 @@ export class CodexClient {
     const release = (): void => {
       if (this.sessionOperations.get(id) === next) {
         this.sessionOperations.delete(id)
-        this.store.setState(state => {
+        this.store.setState((state) => {
           const { [id]: _pending, ...configPending } = state.configPending
           return { configPending }
         })
@@ -1080,7 +1084,7 @@ export class CodexClient {
     // revocation first, attempt both operations, and report every failure.
     const revoke = Promise.resolve().then(() => this.options.revokeSessionAccess?.(id))
     const results = await Promise.allSettled([revoke, Promise.resolve().then(stop)])
-    const errors = results.flatMap(result => (result.status === "rejected" ? [result.reason] : []))
+    const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []))
     if (errors.length === 1) throw errors[0]
     if (errors.length > 1) throw new AggregateError(errors, "Session stop failed")
   }
@@ -1097,10 +1101,10 @@ export class CodexClient {
         configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision
       })
       this.noteModel(this.sessions.get(id))
-      if (response.configOptions.some(option => option.configId === configId && option.category === "model"))
+      if (response.configOptions.some((option) => option.configId === configId && option.category === "model"))
         this.confirmModel(owner, this.sessions.get(id))
     }
-    this.store.setState(state => ({ configPending: { ...state.configPending, [id]: true } }))
+    this.store.setState((state) => ({ configPending: { ...state.configPending, [id]: true } }))
     const pending = this.enqueueSession(id, write, false)
 
     return pending
@@ -1145,7 +1149,7 @@ export class CodexClient {
       ++this.slotVersions[other]
     }
     this.slotTargets[owner] = id
-    this.store.setState(state => ({ sessionWindows: { ...state.sessionWindows, [id]: owner } }))
+    this.store.setState((state) => ({ sessionWindows: { ...state.sessionWindows, [id]: owner } }))
   }
 
   private confirmModel(owner: DraftOwner, session: Session): void {
@@ -1169,15 +1173,15 @@ export class CodexClient {
   private noteModel(session: Session): void {
     const modelId = selectedModel(session.configOptions)
     if (modelId === null) return
-    const option = session.configOptions.find(entry => entry.category === "model" && entry.type === "select")
+    const option = session.configOptions.find((entry) => entry.category === "model" && entry.type === "select")
     const isGateway =
       option !== undefined &&
       isSelectOption(option) &&
       option.options.some(
-        group =>
+        (group) =>
           "groupId" in group &&
           group.groupId !== NATIVE_MODEL_GROUP.id &&
-          group.options.some(model => model.value === modelId)
+          group.options.some((model) => model.value === modelId)
       )
     if (isGateway) this.gatewayModels.set(session.id, modelId)
     else this.gatewayModels.delete(session.id)
@@ -1228,12 +1232,12 @@ export class CodexClient {
       await this.options.revokeSessionAccess?.(id)
       await this.live().request("_codex/session_archive", { sessionId: id })
       this.dropSession(id)
-      this.store.setState(state => {
-        const thread = state.threads.find(item => item.sessionId === id)
+      this.store.setState((state) => {
+        const thread = state.threads.find((item) => item.sessionId === id)
         return {
-          threads: state.threads.filter(item => item.sessionId !== id),
+          threads: state.threads.filter((item) => item.sessionId !== id),
           archivedThreads: thread
-            ? [{ ...thread, archived: true }, ...state.archivedThreads.filter(item => item.sessionId !== id)]
+            ? [{ ...thread, archived: true }, ...state.archivedThreads.filter((item) => item.sessionId !== id)]
             : state.archivedThreads
         }
       })
@@ -1242,10 +1246,10 @@ export class CodexClient {
 
   async unarchive(id: string): Promise<void> {
     await this.live().request("_codex/session_unarchive", { sessionId: id })
-    this.store.setState(state => {
-      const thread = state.archivedThreads.find(item => item.sessionId === id)
+    this.store.setState((state) => {
+      const thread = state.archivedThreads.find((item) => item.sessionId === id)
       return {
-        archivedThreads: state.archivedThreads.filter(item => item.sessionId !== id),
+        archivedThreads: state.archivedThreads.filter((item) => item.sessionId !== id),
         threads: thread ? [{ ...thread, archived: false }, ...state.threads] : state.threads
       }
     })
@@ -1256,9 +1260,9 @@ export class CodexClient {
       await this.options.revokeSessionAccess?.(id)
       await this.live().request("session/delete", { sessionId: id })
       this.dropSession(id)
-      this.store.setState(state => ({
-        threads: state.threads.filter(item => item.sessionId !== id),
-        archivedThreads: state.archivedThreads.filter(item => item.sessionId !== id)
+      this.store.setState((state) => ({
+        threads: state.threads.filter((item) => item.sessionId !== id),
+        archivedThreads: state.archivedThreads.filter((item) => item.sessionId !== id)
       }))
     })
   }
@@ -1274,7 +1278,7 @@ export class CodexClient {
       throw new Error("The agent does not support forking at this turn")
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
     const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
-    const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find(thread => thread.sessionId === id)?.title
+    const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find((thread) => thread.sessionId === id)?.title
     const { revision, bind, ...hint } = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null, {
       kind: "fork",
       sourceSessionId: id
@@ -1289,21 +1293,21 @@ export class CodexClient {
           _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
         }),
       // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
-      response => this.sessions.set(createSession(response.sessionId, cwd))
+      (response) => this.sessions.set(createSession(response.sessionId, cwd))
     )
     await bind?.(response.sessionId)
     this.contextRevisions.set(response.sessionId, revision)
     const forked = this.sessions.get(response.sessionId)
     this.publishSession({
       ...forked,
-      items: forked.items.map(item => ({ ...item, replayed: true })),
+      items: forked.items.map((item) => ({ ...item, replayed: true })),
       cwd,
       attached: true,
       restoring: false,
       configOptions: response.configOptions ?? []
     })
     this.noteModel(this.sessions.get(response.sessionId))
-    this.store.setState(state => ({
+    this.store.setState((state) => ({
       threads: [
         {
           sessionId: response.sessionId,
@@ -1313,7 +1317,7 @@ export class CodexClient {
           archived: false,
           ...sessionLineage(response._meta)
         },
-        ...state.threads.filter(thread => thread.sessionId !== response.sessionId)
+        ...state.threads.filter((thread) => thread.sessionId !== response.sessionId)
       ]
     }))
     this.recordForkOrigin(response.sessionId, response._meta)
@@ -1323,7 +1327,7 @@ export class CodexClient {
         response.sessionId,
         forkTitle(
           title,
-          known.flatMap(thread => (thread.title ? [thread.title] : []))
+          known.flatMap((thread) => (thread.title ? [thread.title] : []))
         )
       )
     return response.sessionId
@@ -1337,7 +1341,7 @@ export class CodexClient {
     const boundary = codex.forkedAtTurnId
     if (boundary !== undefined && boundary !== null && (typeof boundary !== "string" || !boundary))
       throw new Error("Invalid fork boundary from the agent")
-    this.store.setState(state => ({
+    this.store.setState((state) => ({
       forkOrigins: {
         ...state.forkOrigins,
         [id]: {
@@ -1349,10 +1353,10 @@ export class CodexClient {
   }
 
   async readThreadSummary(id: string): Promise<ThreadSummary | null> {
-    const known = [...this.state.threads, ...this.state.archivedThreads].find(thread => thread.sessionId === id)
+    const known = [...this.state.threads, ...this.state.archivedThreads].find((thread) => thread.sessionId === id)
     if (known) return known
     const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
-    return indexes.flat().find(thread => thread.sessionId === id) ?? null
+    return indexes.flat().find((thread) => thread.sessionId === id) ?? null
   }
 
   // ── Rename, account, rate limits, file search (codex-acp-v2 `_codex/*` extensions) ──
@@ -1361,7 +1365,7 @@ export class CodexClient {
   async renameSession(id: string, name: string): Promise<void> {
     await this.live().request("_codex/session_rename", { sessionId: id, name })
     const rename = (thread: ThreadSummary) => (thread.sessionId === id ? { ...thread, title: name } : thread)
-    this.store.setState(state => ({
+    this.store.setState((state) => ({
       threads: state.threads.map(rename),
       archivedThreads: state.archivedThreads.map(rename)
     }))
@@ -1470,7 +1474,7 @@ export class CodexClient {
     this.updates.remove(id)
     this.requests.cancelSession(id)
     this.sessions.sessions.delete(id)
-    this.store.setState(state => {
+    this.store.setState((state) => {
       const { [id]: _removed, ...sessions } = state.sessions
       const { [id]: _origin, ...forkOrigins } = state.forkOrigins
       const { [id]: _draft, ...draftSessions } = state.draftSessions
@@ -1484,13 +1488,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(message)), ms)
     promise.then(
-      value => {
+      (value) => {
         clearTimeout(timer)
         resolve(value)
       },
       (error: unknown) => {
         clearTimeout(timer)
-        reject(error)
+        reject(asError(error))
       }
     )
   })

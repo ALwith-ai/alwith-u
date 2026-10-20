@@ -17,7 +17,7 @@ test("campaigns open their own surfaces in Desktop order", () => {
   const openVibemon = vi.fn()
   const view = render(<NavigationAds onOpenVibemon={openVibemon} />)
   const buttons = view.getAllByRole("button")
-  expect(buttons.map(button => button.getAttribute("aria-label"))).toEqual(["Explore Vibémon", "Explore gamepad"])
+  expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Explore Vibémon", "Explore gamepad"])
   fireEvent.click(buttons[0])
   expect(openVibemon).toHaveBeenCalledOnce()
   expect(openGamepadWindow).not.toHaveBeenCalled()

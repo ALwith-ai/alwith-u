@@ -36,8 +36,8 @@ class ControlledResizeObserver implements ResizeObserver {
 }
 
 function findTurnObserver(): ControlledResizeObserver {
-  const turnObserver = ControlledResizeObserver.instances.find(instance =>
-    [...instance.targets].some(target => target instanceof HTMLElement && target.dataset.turnKey !== undefined)
+  const turnObserver = ControlledResizeObserver.instances.find((instance) =>
+    [...instance.targets].some((target) => target instanceof HTMLElement && target.dataset.turnKey !== undefined)
   )
   if (turnObserver === undefined) throw new Error("Codex turn resize observer is missing")
   return turnObserver
@@ -114,7 +114,7 @@ describe("VirtualizedTurnList", () => {
     render(
       <VirtualizedTurnList
         entries={entries(80)}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="test-session"
       />,
@@ -144,7 +144,7 @@ describe("VirtualizedTurnList", () => {
     const view = render(
       <VirtualizedTurnList
         entries={[]}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="replayed-session"
       />,
@@ -154,7 +154,7 @@ describe("VirtualizedTurnList", () => {
     view.rerender(
       <VirtualizedTurnList
         entries={entries(80)}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="replayed-session"
       />
@@ -172,7 +172,7 @@ describe("VirtualizedTurnList", () => {
       const view = render(
         <VirtualizedTurnList
           entries={entries(80)}
-          renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+          renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
           scrollElement={scrollElement}
           sessionKey={sessionKey}
         />,
@@ -215,7 +215,7 @@ describe("VirtualizedTurnList", () => {
     render(
       <VirtualizedTurnList
         entries={entries(80)}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="composer-spacer-session"
       />,
@@ -243,7 +243,7 @@ describe("VirtualizedTurnList", () => {
     render(
       <VirtualizedTurnList
         entries={entries(80)}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="disclosure-expand-session"
       />,
@@ -265,7 +265,7 @@ describe("VirtualizedTurnList", () => {
     expect(scrollElement.scrollTop).toBe(10_000)
 
     // The anchor turn at the viewport top grows by 240: compensation keeps scrollTop in place.
-    const anchorTurn = turnElements.find(target => target.dataset.turnKey === "turn-34")
+    const anchorTurn = turnElements.find((target) => target.dataset.turnKey === "turn-34")
     if (anchorTurn === undefined) throw new Error("Codex anchor turn is missing")
     act(() => {
       turnObserver.measure(anchorTurn, 520)
@@ -289,7 +289,7 @@ describe("VirtualizedTurnList", () => {
     render(
       <VirtualizedTurnList
         entries={entries(80)}
-        renderTurn={entry => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
+        renderTurn={(entry) => <div data-testid={entry.turnKey}>{entry.turnKey}</div>}
         scrollElement={scrollElement}
         sessionKey="pinned-bottom-session"
       />,
@@ -329,7 +329,7 @@ describe("VirtualizedTurnList", () => {
         if (thread === null) return 80 * 280 + 79 * 12 + 409
         return Number.parseFloat(thread.style.height) + 409
       },
-      top => scrollTargets.push(top)
+      (top) => scrollTargets.push(top)
     )
     const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")
     const bounds = HTMLElement.prototype.getBoundingClientRect
@@ -350,7 +350,7 @@ describe("VirtualizedTurnList", () => {
         <VirtualizedTurnList
           ref={ref}
           entries={entries(80)}
-          renderTurn={entry => (
+          renderTurn={(entry) => (
             <div>
               {entry.turnKey}
               <div data-navigation-target="" />
@@ -366,7 +366,7 @@ describe("VirtualizedTurnList", () => {
       act(() => {
         const api = ref.current
         if (api === null) throw new Error("Codex virtualized list API is missing")
-        navigation = api.scrollToKey("turn-40", turn => turn.querySelector<HTMLElement>("[data-navigation-target]"), {
+        navigation = api.scrollToKey("turn-40", (turn) => turn.querySelector<HTMLElement>("[data-navigation-target]"), {
           align: "top"
         })
       })

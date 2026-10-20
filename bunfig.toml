@@ -9,16 +9,11 @@ registry = "https://registry.npmmirror.com"
 "@alwith" = { url = "https://registry.npmjs.org" }
 "@nyssance" = { url = "https://registry.npmjs.org" }
 
-# Formatting and linting are built into Bun (1.4.4+): `bun fmt` reads [fmt] (the former .prettierrc; Tailwind
-# class sorting is built in), `bun lint` reads [lint] (the former .oxlintrc.json plus the biome rules this repo
-# relied on). prettier / oxlint / biome are no longer installed.
+# Formatting and linting are built into Bun (1.4.4+); only non-default settings are written. prettier / oxlint / biome are gone.
 [fmt]
 printWidth = 120
 semi = false
-singleQuote = false
 trailingComma = "none"
-bracketSameLine = true
-arrowParens = "avoid"
 sortImports = true
 ignorePatterns = [
   "bun.lock",
@@ -43,13 +38,11 @@ ignorePatterns = [
 
 [fmt.sortTailwindcss]
 stylesheet = "src/index.css"
-preserveWhitespace = true
 
 [lint]
-maxWarnings = 0
-typeAware = false
-reportUnusedInlineConfigs = "error"
+typeAware = true
 ignorePatterns = [
+  "src/bindings.ts",
   "**/dist/**",
   "**/node_modules/**",
   "**/src-tauri/**",
@@ -57,30 +50,28 @@ ignorePatterns = [
   "docs/**",
 ]
 
-[lint.categories]
-correctness = "error"
-
 [lint.rules]
-# The former gate ran only the import / oxc / react / typescript / unicorn plugins; vitest and promise stay off, a11y only by name
-"vitest/*" = "off"
-"promise/*" = "off"
-"jsx-a11y/*" = "off"
-"import/default" = "off"
+# Import cycles were a hard gate before; the rule is off by default
 "import/no-cycle" = ["error", { allowUnsafeDynamicCyclicDependency = true }]
-# React Compiler rules: this repo does not use the compiler, these are all false positives
-"react/error-boundaries" = "off"
-"react/globals" = "off"
-"react/immutability" = "off"
-"react/incompatible-library" = "off"
-"react/preserve-manual-memoization" = "off"
-"react/purity" = "off"
-"react/react-in-jsx-scope" = "off"
-"react/refs" = "off"
-"react/set-state-in-effect" = "off"
-"react/set-state-in-render" = "off"
-"react/static-components" = "off"
-"react/use-memo" = "off"
-# Only the hook call-site rule stays: it checks a syntactic fact, not a heuristic
-"react-hooks/rules-of-hooks" = "error"
-# A let assigned later inside a callback cannot become const: the callback may run before the assignment
-"prefer-const" = ["error", { ignoreReadBeforeAssign = true }]
+# Rules on by default that conflict with this repo's conventions are turned off whole; inline suppressions are never allowed (check gate)
+# any only appears at boundaries (Monaco, the legacy extension API, Bun fetch options); accesses flowing out of it are not reported one by one
+"@typescript-eslint/no-explicit-any" = "off"
+"@typescript-eslint/no-unsafe-assignment" = "off"
+"@typescript-eslint/no-unsafe-member-access" = "off"
+"@typescript-eslint/no-unsafe-call" = "off"
+"@typescript-eslint/no-unsafe-return" = "off"
+"@typescript-eslint/no-unsafe-argument" = "off"
+# async is the interface contract; async functions without await (fakes, adapters) are legitimate
+"@typescript-eslint/require-await" = "off"
+# vi.spyOn / zustand getState / destructured methods do not depend on this
+"@typescript-eslint/unbound-method" = "off"
+# Its inference disagrees with tsc: removing the 48 reported assertions breaks 41 compilations; off until it matches tsc
+"@typescript-eslint/no-unnecessary-type-assertion" = "off"
+# A let declared first and assigned inside a callback cannot become const (the callback may run before the assignment)
+"prefer-const" = ["warn", { ignoreReadBeforeAssign = true }]
+
+# Tests verify that non-Error throwables also land on the failure path
+[[lint.overrides]]
+files = ["**/__tests__/**"]
+[lint.overrides.rules]
+"@typescript-eslint/only-throw-error" = "off"

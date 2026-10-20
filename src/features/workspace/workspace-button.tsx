@@ -18,7 +18,8 @@ export function WorkspaceButton() {
       title={t(bothVisible ? "workspace.closeWorkspace" : "workspace.openWorkspace")}
       aria-expanded={workspace.visible}
       aria-controls="file-workspace-panel"
-      onClick={workspace.toggle}>
+      onClick={workspace.toggle}
+    >
       <PanelsTopLeft className="size-4" />
     </Button>
   )

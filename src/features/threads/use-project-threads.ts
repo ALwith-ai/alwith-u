@@ -7,10 +7,10 @@ import { isQuickChatDirectory } from "./thread-groups"
 
 export function useProjectThreads(cwd: string | null) {
   const project = cwd === null ? null : client.projectPath(cwd)
-  const threads = useStore(client.store, state => state.threads)
-  const connection = useStore(client.store, state => state.connection)
-  const loaded = useStore(client.store, state => state.threadsLoaded)
-  const error = useStore(client.store, state => state.threadsError)
+  const threads = useStore(client.store, (state) => state.threads)
+  const connection = useStore(client.store, (state) => state.connection)
+  const loaded = useStore(client.store, (state) => state.threadsLoaded)
+  const error = useStore(client.store, (state) => state.threadsError)
   const retry = () => client.listThreads({ reset: true }).catch(() => undefined)
   useEffect(() => {
     if (connection === "ready" && !loaded && error === null) void client.listThreads().catch(() => undefined)
@@ -20,7 +20,7 @@ export function useProjectThreads(cwd: string | null) {
       return {
         status: "ready" as const,
         threads: threads
-          .filter(thread =>
+          .filter((thread) =>
             project === null ? isQuickChatDirectory(thread.cwd) : client.projectPath(thread.cwd) === project
           )
           .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))

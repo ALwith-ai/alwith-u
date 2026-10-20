@@ -21,15 +21,15 @@ for (const provider of providers) {
     const catalog = JSON.parse(
       readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources", provider.catalog), "utf8")
     ) as { models: CatalogModel[] }
-    const slugs = catalog.models.map(model => model.slug)
+    const slugs = catalog.models.map((model) => model.slug)
     expect(new Set(slugs).size, `${provider.id}: duplicate metadata slugs`).toBe(slugs.length)
-    expect(new Set(provider.models.map(model => model.id)).size).toBe(provider.models.length)
+    expect(new Set(provider.models.map((model) => model.id)).size).toBe(provider.models.length)
     for (const configured of provider.models) {
-      const model = catalog.models.find(entry => entry.slug === configured.id)
+      const model = catalog.models.find((entry) => entry.slug === configured.id)
       expect(model, `${provider.id}/${configured.id}: missing metadata`).toBeDefined()
       if (!model) throw new Error(`Missing metadata: ${configured.id}`)
       if (model.default_reasoning_level != null) {
-        expect(model.supported_reasoning_levels.map(level => level.effort)).toContain(model.default_reasoning_level)
+        expect(model.supported_reasoning_levels.map((level) => level.effort)).toContain(model.default_reasoning_level)
       }
       expect(model.input_modalities).toContain("text")
     }
@@ -37,7 +37,7 @@ for (const provider of providers) {
 }
 
 test("Qwen 3.8 exposes its documented levels without compatibility aliases", () => {
-  const provider = providers.find(entry => entry.id === "qwen")
+  const provider = providers.find((entry) => entry.id === "qwen")
   expect(provider?.catalog).toBe("qwen/models.json")
   const catalog = JSON.parse(
     readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources/qwen/models.json"), "utf8")

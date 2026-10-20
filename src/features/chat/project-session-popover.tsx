@@ -38,15 +38,15 @@ export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?
     let active = true
     setDirectory({ status: "loading" })
     void commands.draftDirectory({ cwd: null }).then(
-      cwd => {
+      (cwd) => {
         if (active) setDirectory({ status: "ready", cwd })
       },
-      error => {
+      (error) => {
         if (active)
           setDirectory({
             status: "failed",
             error: error instanceof Error ? error.message : String(error),
-            retry: () => setAttempt(value => value + 1)
+            retry: () => setAttempt((value) => value + 1)
           })
       }
     )
@@ -148,7 +148,8 @@ function ProjectPopover({
           setExpanded(false)
         }
         setOpen(value)
-      }}>
+      }}
+    >
       {trigger === undefined ? (
         <PopoverTrigger
           ref={triggerRef}
@@ -160,7 +161,8 @@ function ProjectPopover({
               aria-label={label}
               title={cwd ?? label}
             />
-          }>
+          }
+        >
           <FolderClosedIcon />
         </PopoverTrigger>
       ) : (
@@ -180,7 +182,8 @@ function ProjectPopover({
         aria-label={label}
         initialFocus={trigger === undefined ? popupRef : false}
         finalFocus={() => !skipFocus.current}
-        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden px-0 py-1">
+        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden px-0 py-1"
+      >
         {open && (
           <ProjectContents
             key={cwd ?? "quick-chats"}
@@ -192,7 +195,7 @@ function ProjectPopover({
               expandPointer.current = { x, y }
               setExpanded(true)
             }}
-            onSelect={thread => leave(() => onSelect(thread))}
+            onSelect={(thread) => leave(() => onSelect(thread))}
             onNewChat={() => leave(onNewChat)}
             onOpened={() => setOpen(false)}
           />
@@ -244,7 +247,8 @@ function ProjectContents({
         className="flex max-h-70 flex-auto flex-col"
         viewportClassName="h-auto min-h-0"
         viewportRef={listRef}
-        viewportProps={{ tabIndex: -1 }}>
+        viewportProps={{ tabIndex: -1 }}
+      >
         {(result === undefined || result.status === "loading") && (
           <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
             {t("chat.project.loading")}
@@ -264,14 +268,15 @@ function ProjectContents({
           <p className="px-3 py-2 text-sm text-muted-foreground">{t("sidebar.noResults")}</p>
         )}
         {result?.status === "ready" &&
-          (expanded ? result.threads : result.threads.slice(0, 5)).map(thread => (
+          (expanded ? result.threads : result.threads.slice(0, 5)).map((thread) => (
             <Button
               key={thread.sessionId}
               variant="ghost"
               size="sm"
               className="h-8 w-full justify-start gap-2 rounded-none border-0 px-3 font-normal"
               aria-label={thread.title ?? t("sidebar.untitled")}
-              onClick={() => onSelect(thread)}>
+              onClick={() => onSelect(thread)}
+            >
               <MessageSquareIcon />
               <OverflowMarquee className="flex-1 text-start">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
               {thread.updatedAt !== null && (
@@ -287,11 +292,12 @@ function ProjectContents({
           variant="ghost"
           size="sm"
           className="h-8 justify-start rounded-none border-0 ps-9 pe-3 text-muted-foreground"
-          onClick={event => {
+          onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
             listRef.current.focus()
-          }}>
+          }}
+        >
           {t("actions.showMore")}
         </Button>
       )}
@@ -317,7 +323,8 @@ function ProjectContents({
         variant="ghost"
         size="sm"
         className="justify-start gap-2 rounded-none border-0 px-3 font-normal"
-        onClick={onNewChat}>
+        onClick={onNewChat}
+      >
         <PlusIcon />
         {t("sidebar.newChat")}
       </Button>

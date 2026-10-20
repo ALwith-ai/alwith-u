@@ -136,14 +136,14 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       if (get().error) throw new Error(i18n.t("plugins.toast.syncError", { message: get().error }))
     }
     const busy = (id: string, state: "installing" | "uninstalling" | "toggling" | null) =>
-      set(current => {
+      set((current) => {
         const next = { ...current.busyIds }
         if (state === null) delete next[id]
         else next[id] = state
         return { busyIds: next }
       })
     const busyMarketplace = (name: string, on: boolean) =>
-      set(current => {
+      set((current) => {
         const next = { ...current.busyMarketplaces }
         if (on) next[name] = true
         else delete next[name]
@@ -204,7 +204,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         return refreshing
       },
 
-      install: async entry => {
+      install: async (entry) => {
         if (entry.plugin.id in get().busyIds) throw new Error("Plugin operation already in progress")
         const name = pluginTitle(entry.plugin)
         busy(entry.plugin.id, "installing")
@@ -226,8 +226,8 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         if (plugin.id in get().busyIds) return
         busy(plugin.id, "toggling")
         const update = (value: boolean) =>
-          set(state => ({
-            installed: state.installed.map(entry =>
+          set((state) => ({
+            installed: state.installed.map((entry) =>
               entry.plugin.id === plugin.id ? { ...entry, plugin: { ...entry.plugin, enabled: value } } : entry
             )
           }))
@@ -240,7 +240,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           effectiveEnabled = response.enabled
           update(response.enabled)
           await refreshAfterChange()
-          const refreshed = get().installed.find(entry => entry.plugin.id === plugin.id)
+          const refreshed = get().installed.find((entry) => entry.plugin.id === plugin.id)
           if (refreshed) effectiveEnabled = refreshed.plugin.enabled
           if (!refreshed || effectiveEnabled !== enabled) {
             throw new Error(i18n.t("plugins.toast.toggleNotApplied"))
@@ -257,7 +257,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         }
       },
 
-      uninstall: async plugin => {
+      uninstall: async (plugin) => {
         if (plugin.id in get().busyIds) return
         const name = pluginTitle(plugin)
         busy(plugin.id, "uninstalling")
@@ -266,7 +266,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           if (!uninstallId) throw new Error("Remote plugin ID is missing")
           await api.uninstallPlugin(uninstallId)
           await refreshAfterChange()
-          if (get().installed.some(entry => entry.plugin.id === plugin.id)) {
+          if (get().installed.some((entry) => entry.plugin.id === plugin.id)) {
             throw new Error(i18n.t("plugins.toast.uninstallNotApplied"))
           }
           busy(plugin.id, null)
@@ -278,16 +278,18 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         }
       },
 
-      readPlugin: async entry => (await api.readPlugin(readParams(entry))).plugin,
+      readPlugin: async (entry) => (await api.readPlugin(readParams(entry))).plugin,
 
       setSkillEnabled: async (skill, enabled) => {
         // Optimistic: the switch reflects the request; Codex answers with the effective state.
-        set(state => ({ skills: state.skills.map(item => (item.path === skill.path ? { ...item, enabled } : item)) }))
+        set((state) => ({
+          skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled } : item))
+        }))
         const name = skill.interface?.displayName ?? skill.name
         try {
           const response = await api.setSkillEnabled({ path: skill.path, enabled })
-          set(state => ({
-            skills: state.skills.map(item =>
+          set((state) => ({
+            skills: state.skills.map((item) =>
               item.path === skill.path ? { ...item, enabled: response.effectiveEnabled } : item
             )
           }))
@@ -295,14 +297,14 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
             i18n.t(enabled ? "plugins.skills.enabledToast" : "plugins.skills.disabledToast", { skillName: name })
           )
         } catch (error) {
-          set(state => ({
-            skills: state.skills.map(item => (item.path === skill.path ? { ...item, enabled: !enabled } : item))
+          set((state) => ({
+            skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled: !enabled } : item))
           }))
           toast.error(`${i18n.t("plugins.skills.toggleError")}: ${describe(error)}`)
         }
       },
 
-      addMarketplace: async params => {
+      addMarketplace: async (params) => {
         const response = await api.addMarketplace(params)
         await refreshAfterChange(true)
         if (response.alreadyAdded) {
@@ -313,7 +315,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         return response
       },
 
-      removeMarketplace: async marketplaceName => {
+      removeMarketplace: async (marketplaceName) => {
         busyMarketplace(marketplaceName, true)
         try {
           await api.removeMarketplace(marketplaceName)
@@ -327,7 +329,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         }
       },
 
-      upgradeMarketplace: async marketplaceName => {
+      upgradeMarketplace: async (marketplaceName) => {
         busyMarketplace(marketplaceName, true)
         try {
           const response = await api.upgradeMarketplaces(marketplaceName)
@@ -335,7 +337,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           busyMarketplace(marketplaceName, false)
           if (response.errors.length > 0) {
             toast.error(
-              `${i18n.t("plugins.marketplace.upgradeError")}: ${response.errors.map(failure => failure.message).join("; ")}`
+              `${i18n.t("plugins.marketplace.upgradeError")}: ${response.errors.map((failure) => failure.message).join("; ")}`
             )
           } else {
             toast.success(i18n.t("plugins.marketplace.upgraded", { marketplaceName }))

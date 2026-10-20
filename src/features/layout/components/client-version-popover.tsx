@@ -44,7 +44,8 @@ export function ClientVersionPopover() {
             aria-label={t("settings.about")}
             title={t("settings.about")}
           />
-        }>
+        }
+      >
         <TerminalIcon className="size-4" />
       </PopoverTrigger>
       <PopoverContent
@@ -52,7 +53,8 @@ export function ClientVersionPopover() {
         align="end"
         sideOffset={4}
         className="w-auto min-w-48 gap-2"
-        aria-label={t("settings.about")}>
+        aria-label={t("settings.about")}
+      >
         <div className="grid gap-1 text-xs text-muted-foreground">
           <span>{t("settings.version", { version: clientVersion === null ? "—" : `v${clientVersion}` })}</span>
           <span>{t("settings.codexVersion", { version: cliVersion ?? "—" })}</span>

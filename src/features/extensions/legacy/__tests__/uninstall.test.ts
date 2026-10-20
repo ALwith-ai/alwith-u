@@ -8,7 +8,7 @@ test("waits for all windows before cleaning grants and import certificates", asy
   let cleaned = false
   const result = waitForLegacyUninstall({
     state: () => state,
-    subscribe: listener => {
+    subscribe: (listener) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)

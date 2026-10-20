@@ -39,8 +39,8 @@ export function AboutSection() {
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }, [])
   const { t } = useTranslation()
-  const state = useUpdaterStore(store => store.state)
-  const confirmInstallAndRelaunch = useUpdaterStore(store => store.confirmInstallAndRelaunch)
+  const state = useUpdaterStore((store) => store.state)
+  const confirmInstallAndRelaunch = useUpdaterStore((store) => store.confirmInstallAndRelaunch)
 
   // Checks and downloads are silent; the row only says where the updater stands.
   const updaterText = (() => {
@@ -66,7 +66,8 @@ export function AboutSection() {
     <SettingGroup>
       <SettingRow
         title={t("settings.updates")}
-        desc={`${updaterText} ${clientVersion === null ? "—" : `v${clientVersion}`}`}>
+        desc={`${updaterText} ${clientVersion === null ? "—" : `v${clientVersion}`}`}
+      >
         {(state.type === "ready" || state.type === "restarting") && (
           <Button
             variant="outline"
@@ -76,7 +77,8 @@ export function AboutSection() {
               confirmInstallAndRelaunch().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))
               )
-            }}>
+            }}
+          >
             {t("updater.ready", { version: state.update.version })}
           </Button>
         )}

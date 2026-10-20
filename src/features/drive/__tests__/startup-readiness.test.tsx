@@ -42,7 +42,7 @@ const save = async (_path: string): Promise<void> => {}
 
 beforeEach(async () => {
   await i18n.use(initReactI18next).init({ lng: "en", resources: { en: { translation: {} } } })
-  mock.request.mockImplementation(async request => {
+  mock.request.mockImplementation(async (request) => {
     switch (request.type) {
       case "snapshot":
         return { type: "snapshot", data: snapshot }

@@ -41,7 +41,7 @@ export function DriveTreeActions({
   if (!snapshot?.running || !match || !scope) return null
   const realPath = path.replace(/\.yupcloud$/, "")
   const run = (action: () => Promise<void>): void => {
-    void action().catch(error => toast.error(String(error)))
+    void action().catch((error) => toast.error(String(error)))
   }
   const link = async (desktop: boolean): Promise<void> => {
     const response = await drive.request({ type: "fileRemoteId", path: realPath })
@@ -76,7 +76,8 @@ export function DriveTreeActions({
               })
             )
           })
-        }>
+        }
+      >
         {label(isPinned(pins, realPath) ? "Unpin" : "Pin", isPinned(pins, realPath) ? "取消固定" : "固定")}
       </ContextMenuItem>
       {!isDirectory && (
@@ -99,7 +100,8 @@ export function DriveTreeActions({
               if (response.data === null) throw new Error(label("This file is not in Drive", "此文件尚未进入云盘"))
               toast.success(label("Version saved", "版本已保存"))
             })
-          }>
+          }
+        >
           {label("Save version now", "立即保存版本")}
         </ContextMenuItem>
       )}
@@ -111,7 +113,8 @@ export function DriveTreeActions({
               if (!stat) throw new Error("The selected Drive entry no longer exists")
               onMove(path, stat.kind === "directory" ? "directory" : "file")
             })
-          }>
+          }
+        >
           {label("Move to another project…", "移动到其他项目…")}
         </ContextMenuItem>
       )}

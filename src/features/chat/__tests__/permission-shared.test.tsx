@@ -27,7 +27,7 @@ afterEach(async () => {
 
 test.each(["Implement this plan?", "Review the implementation plan"])(
   "approval displays the subject title %s only when it differs from the request title",
-  subjectTitle => {
+  (subjectTitle) => {
     const title = "Implement this plan?"
     const action: PendingAction = {
       id: "plan-approval",
@@ -87,7 +87,7 @@ test("U shared approval answers the exact pending request through the real ACP c
     expect(respond).toHaveBeenCalledWith(action.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
     await waitFor(() => expect(client.state.actions.length).toBe(0))
     await waitFor(() => expect(client.session(sessionId).state).toBe("idle"))
-    expect(client.session(sessionId).items.some(item => item.kind === "assistant")).toBe(true)
+    expect(client.session(sessionId).items.some((item) => item.kind === "assistant")).toBe(true)
   } finally {
     respond.mockRestore()
   }

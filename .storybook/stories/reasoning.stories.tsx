@@ -24,20 +24,21 @@ function ReasoningPreview() {
         <Button
           disabled={finished}
           onClick={() =>
-            setSession(current =>
+            setSession((current) =>
               applyUpdate(current, {
                 sessionUpdate: "agent_thought_chunk",
                 messageId: id,
                 content: { type: "text", text: "\n\nNewest reasoning update." }
               })
             )
-          }>
+          }
+        >
           Append reasoning
         </Button>
         <Button
           disabled={finished}
           onClick={() => {
-            setSession(current =>
+            setSession((current) =>
               applyUpdate(current, {
                 sessionUpdate: "agent_message_chunk",
                 messageId: `${id}-commentary`,
@@ -46,7 +47,8 @@ function ReasoningPreview() {
               })
             )
             setFinished(true)
-          }}>
+          }}
+        >
           Finish reasoning
         </Button>
       </div>
@@ -87,40 +89,40 @@ export const LivePreview: Story = {
     }
     const maxHeight = 8.75 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
     await waitFor(() => {
-      expect(canvas.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+      void expect(canvas.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
       const preview = viewport()
-      expect(preview.textContent).toContain("Checking step 24")
-      expect(preview.getBoundingClientRect().height).toBeGreaterThan(0)
-      expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
-      expect(preview.scrollHeight).toBeGreaterThan(preview.clientHeight)
-      expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
+      void expect(preview.textContent).toContain("Checking step 24")
+      void expect(preview.getBoundingClientRect().height).toBeGreaterThan(0)
+      void expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(preview.scrollHeight).toBeGreaterThan(preview.clientHeight)
+      void expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
     })
     const previousScrollHeight = viewport().scrollHeight
     await userEvent.click(canvas.getByRole("button", { name: "Append reasoning" }))
     await waitFor(() => {
       const preview = viewport()
-      expect(preview.textContent).toContain("Newest reasoning update.")
-      expect(preview.scrollHeight).toBeGreaterThan(previousScrollHeight)
-      expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
-      expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
+      void expect(preview.textContent).toContain("Newest reasoning update.")
+      void expect(preview.scrollHeight).toBeGreaterThan(previousScrollHeight)
+      void expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
     })
     await userEvent.click(canvas.getByRole("button", { name: "Finish reasoning" }))
     await waitFor(() => {
-      expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
-      expect(canvas.queryByRole("button", { name: "Thinking" })).toBeNull()
-      expect(canvas.queryByRole("region", { name: "Thought" })).toBeNull()
+      void expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
+      void expect(canvas.queryByRole("button", { name: "Thinking" })).toBeNull()
+      void expect(canvas.queryByRole("region", { name: "Thought" })).toBeNull()
       const disclosure = viewport().closest(".codex-activity-details-grid")
-      expect(disclosure?.getBoundingClientRect().height).toBeLessThanOrEqual(1)
+      void expect(disclosure?.getBoundingClientRect().height).toBeLessThanOrEqual(1)
     })
     await userEvent.click(canvas.getByRole("button", { name: "Thought" }))
     await waitFor(() => {
-      expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
-      expect(viewport().getBoundingClientRect().height).toBeGreaterThan(0)
-      expect(viewport().getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
-      expect(viewport().textContent).toContain("Checking step 1")
-      expect(viewport().textContent).toContain("Newest reasoning update.")
+      void expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+      void expect(viewport().getBoundingClientRect().height).toBeGreaterThan(0)
+      void expect(viewport().getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(viewport().textContent).toContain("Checking step 1")
+      void expect(viewport().textContent).toContain("Newest reasoning update.")
     })
     await userEvent.tab()
-    expect(canvas.getByRole("region", { name: "Thought" })).toHaveFocus()
+    void expect(canvas.getByRole("region", { name: "Thought" })).toHaveFocus()
   }
 }

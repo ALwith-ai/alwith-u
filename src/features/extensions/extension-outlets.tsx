@@ -28,7 +28,8 @@ function BarGroup({
   return (
     <div
       data-extension-alignment={alignment}
-      className={`pointer-events-auto flex max-w-full min-w-0 items-center gap-2 overflow-x-auto ${ALIGNMENT_CLASSES[alignment]} ${className}`}>
+      className={`pointer-events-auto flex max-w-full min-w-0 items-center gap-2 overflow-x-auto ${ALIGNMENT_CLASSES[alignment]} ${className}`}
+    >
       {children}
     </div>
   )
@@ -48,7 +49,7 @@ export function ExtensionActions({
   onError(error: unknown): void
 }): ReactElement | null {
   const { t } = useTranslation()
-  const actions = sortContributions(host.actions.filter(action => action.placement === placement))
+  const actions = sortContributions(host.actions.filter((action) => action.placement === placement))
   if (!actions.length) return null
   const renderAction = (action: ActionContribution): ReactElement => {
     const target = resolveActionTarget(host, action)
@@ -73,7 +74,8 @@ export function ExtensionActions({
         aria-label={action.title}
         title={available ? action.title : t("extensions.targetUnavailable", { name: action.title })}
         disabled={!available}
-        onClick={run}>
+        onClick={run}
+      >
         <Icon className="size-4" />
       </Button>
     ) : (
@@ -84,7 +86,8 @@ export function ExtensionActions({
         aria-current={active ? "page" : undefined}
         title={available ? action.title : t("extensions.targetUnavailable", { name: action.title })}
         disabled={!available}
-        onClick={run}>
+        onClick={run}
+      >
         <Icon />
         <span className="truncate">{action.title}</span>
       </NavigationItemButton>
@@ -95,10 +98,11 @@ export function ExtensionActions({
       role="toolbar"
       aria-label={t("extensions.outlets.topBar")}
       dir="ltr"
-      className="pointer-events-none grid w-full min-w-0 grid-cols-3 items-center gap-3">
-      {ALIGNMENTS.map(alignment => (
+      className="pointer-events-none grid w-full min-w-0 grid-cols-3 items-center gap-3"
+    >
+      {ALIGNMENTS.map((alignment) => (
         <BarGroup key={alignment} alignment={alignment}>
-          {actions.filter(action => (action.alignment ?? "left") === alignment).map(renderAction)}
+          {actions.filter((action) => (action.alignment ?? "left") === alignment).map(renderAction)}
         </BarGroup>
       ))}
     </div>
@@ -117,22 +121,24 @@ export function ExtensionStatusBar({
   renderView(view: ViewContribution): ReactNode
 }): ReactElement | null {
   const { t } = useTranslation()
-  const items = sortContributions(views.filter(view => view.kind === "statusBar"))
+  const items = sortContributions(views.filter((view) => view.kind === "statusBar"))
   if (!items.length) return null
   return (
     <section
       aria-label={t("extensions.outlets.statusBar")}
       dir="ltr"
-      className="pointer-events-none grid h-8 w-full min-w-0 grid-cols-3 items-center gap-3 text-xs">
-      {ALIGNMENTS.map(alignment => (
+      className="pointer-events-none grid h-8 w-full min-w-0 grid-cols-3 items-center gap-3 text-xs"
+    >
+      {ALIGNMENTS.map((alignment) => (
         <BarGroup key={alignment} alignment={alignment} className="overflow-y-hidden">
           {items
-            .filter(view => (view.alignment ?? "left") === alignment)
-            .map(view => (
+            .filter((view) => (view.alignment ?? "left") === alignment)
+            .map((view) => (
               <section
                 key={view.id}
                 aria-label={view.title}
-                className="max-h-7 max-w-64 shrink-0 overflow-x-auto overflow-y-hidden">
+                className="max-h-7 max-w-64 shrink-0 overflow-x-auto overflow-y-hidden"
+              >
                 {renderView(view)}
               </section>
             ))}
@@ -152,11 +158,11 @@ export function ExtensionSettingsNavigation({
   onSelect(id: string): void
 }): ReactElement | null {
   const { t } = useTranslation()
-  const pages = sortContributions(views.filter(view => view.kind === "settingsPages"))
+  const pages = sortContributions(views.filter((view) => view.kind === "settingsPages"))
   if (!pages.length) return null
   return (
     <nav aria-label={t("extensions.outlets.settingsPages")} className="mt-3 space-y-0.5 border-t border-border pt-3">
-      {pages.map(view => {
+      {pages.map((view) => {
         const Icon = EXTENSION_ICONS[view.icon ?? "settings"]
         return (
           <NavigationItemButton
@@ -164,7 +170,8 @@ export function ExtensionSettingsNavigation({
             className={MENU_HIGHLIGHT}
             active={activeId === view.id}
             aria-current={activeId === view.id ? "page" : undefined}
-            onClick={() => onSelect(view.id)}>
+            onClick={() => onSelect(view.id)}
+          >
             <Icon />
             <span className="truncate" title={view.title}>
               {view.title}
@@ -186,7 +193,7 @@ export function ExtensionSettingsContent({
   renderView(view: ViewContribution): ReactNode
 }): ReactElement {
   const { t } = useTranslation()
-  const view = views.find(item => item.id === id && item.kind === "settingsPages")
+  const view = views.find((item) => item.id === id && item.kind === "settingsPages")
   return (
     <section className="space-y-4">
       <h1 className="text-lg font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>

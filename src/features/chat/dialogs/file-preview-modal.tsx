@@ -26,7 +26,7 @@ function PreviewContent({ request }: { request: Request }) {
   useEffect(() => {
     let active = true
     void invoke<Preview>("chat_preview_file", { path: request.path }).then(
-      value => {
+      (value) => {
         if (active) setResult(value)
       },
       (error: unknown) => {
@@ -85,12 +85,12 @@ function PreviewContent({ request }: { request: Request }) {
 
 export function FilePreviewModal() {
   const { t } = useTranslation()
-  const request = useFilePreview(state => state.request)
+  const request = useFilePreview((state) => state.request)
   const run = (action: () => Promise<void>) => {
     void action().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }
   return (
-    <Dialog open={request !== null} onOpenChange={open => !open && useFilePreview.setState({ request: null })}>
+    <Dialog open={request !== null} onOpenChange={(open) => !open && useFilePreview.setState({ request: null })}>
       <DialogContent className="flex h-[calc(100vh-2.5rem)] max-h-[900px] flex-col gap-3 sm:max-w-[min(1400px,calc(100vw-2.5rem))]">
         <DialogHeader>
           <DialogTitle className="truncate pe-8 font-mono text-sm font-normal" title={request?.path}>

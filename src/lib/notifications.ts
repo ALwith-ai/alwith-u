@@ -13,7 +13,7 @@ async function notify(title: string, body: string): Promise<void> {
 /** Fires when a session needs input or finishes a turn while the window is not focused. */
 export function watchForNotifications(client: CodexClient): () => void {
   let previous = client.store.getState().sessions
-  return client.store.subscribe(state => {
+  return client.store.subscribe((state) => {
     const current = state.sessions
     if (current === previous) return
     for (const [id, session] of Object.entries(current)) {

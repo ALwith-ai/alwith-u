@@ -36,7 +36,7 @@ export function useHostDialog(): { ask: (request: DialogRequest) => Promise<stri
   }, [])
   const ask = useCallback(
     (value: DialogRequest): Promise<string | null> =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         pending.current.push({ request: value, resolve })
         if (active.current === null) next()
       }),
@@ -50,16 +50,18 @@ export function useHostDialog(): { ask: (request: DialogRequest) => Promise<stri
   const dialog = (
     <Dialog
       open={request !== null}
-      onOpenChange={open => {
+      onOpenChange={(open) => {
         if (!open) finish(null)
-      }}>
+      }}
+    >
       <DialogContent>
         {request && (
           <form
-            onSubmit={event => {
+            onSubmit={(event) => {
               event.preventDefault()
               if (request.initial !== undefined && input.trim()) finish(input)
-            }}>
+            }}
+          >
             <DialogHeader>
               <DialogTitle>{request.title}</DialogTitle>
               <DialogDescription className="break-all whitespace-pre-wrap">{request.detail}</DialogDescription>
@@ -70,19 +72,20 @@ export function useHostDialog(): { ask: (request: DialogRequest) => Promise<stri
                 className="my-4"
                 aria-label={request.title}
                 value={input}
-                onChange={event => setInput(event.target.value)}
+                onChange={(event) => setInput(event.target.value)}
               />
             )}
             <DialogFooter className="mt-4">
               <Button type="button" onClick={() => finish(null)}>
                 {t("workspace.cancel")}
               </Button>
-              {request.choices.map(choice => (
+              {request.choices.map((choice) => (
                 <Button
                   key={choice.value}
                   type="button"
                   disabled={request.initial !== undefined && !input.trim()}
-                  onClick={() => finish(request.initial === undefined ? choice.value : input)}>
+                  onClick={() => finish(request.initial === undefined ? choice.value : input)}
+                >
                   {choice.label}
                 </Button>
               ))}

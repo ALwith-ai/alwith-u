@@ -8,7 +8,7 @@ import { API_BASE_URL, platformApiRequest, usePlatformAuth } from "./store"
 const store = new LazyStore("vibemon.json")
 let writes = Promise.resolve()
 const CHANGED = "vibemon:assets-changed"
-const decode = (value: string) => Uint8Array.from(atob(value), character => character.charCodeAt(0))
+const decode = (value: string) => Uint8Array.from(atob(value), (character) => character.charCodeAt(0))
 function encode(bytes: Uint8Array): string {
   let value = ""
   for (let start = 0; start < bytes.length; start += 32_768)
@@ -55,7 +55,7 @@ export function createPlatformPetAssets() {
     storage,
     request: platformApiRequest,
     resources: {
-      exists: path => invoke<boolean>("vibemon_resource", { action: "exists", path, bytes: null, destination: null }),
+      exists: (path) => invoke<boolean>("vibemon_resource", { action: "exists", path, bytes: null, destination: null }),
       async read(path) {
         const value = await invoke<string | null>("vibemon_resource", {
           action: "read",
@@ -69,7 +69,7 @@ export function createPlatformPetAssets() {
         invoke("vibemon_resource", { action: "write", path, bytes: encode(bytes), destination: null }),
       replace: (temporary, destination) =>
         invoke("vibemon_resource", { action: "replace", path: temporary, destination, bytes: null }),
-      remove: path => invoke("vibemon_resource", { action: "remove", path, bytes: null, destination: null })
+      remove: (path) => invoke("vibemon_resource", { action: "remove", path, bytes: null, destination: null })
     },
     async download(url, signal) {
       signal.throwIfAborted()
@@ -100,7 +100,7 @@ export function createPlatformPetAssets() {
     },
     dispose() {
       stopAuth()
-      void subscription.then(stop => stop())
+      void subscription.then((stop) => stop())
       assets.dispose()
       listeners.clear()
     }

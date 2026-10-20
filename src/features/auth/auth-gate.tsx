@@ -13,8 +13,8 @@ import { authClient, loginPlatform, usePlatformAuth } from "./store"
 
 type Mode = "code" | "password" | "register"
 export function AuthGate({ children, auxiliary = false }: { children: ReactNode; auxiliary?: boolean }) {
-  const authenticated = usePlatformAuth(s => s.isAuthenticated)
-  const loading = usePlatformAuth(s => s.isLoading)
+  const authenticated = usePlatformAuth((s) => s.isAuthenticated)
+  const loading = usePlatformAuth((s) => s.isLoading)
   if (loading)
     return (
       <div className="flex h-dvh items-center justify-center">
@@ -66,7 +66,7 @@ function PlatformLogin() {
     if (mode === "register" && (await authClient.emailExists(email.trim())).registered)
       throw new Error(t("platformAuth.registered"))
     await authClient.sendVerificationCode(email.trim(), mode === "register" ? "REGISTER" : "LOGIN")
-    setCooldowns(current => ({ ...current, [cooldownKey]: Date.now() + 60_000 }))
+    setCooldowns((current) => ({ ...current, [cooldownKey]: Date.now() + 60_000 }))
     setNow(Date.now())
   }
   async function submit() {
@@ -89,13 +89,14 @@ function PlatformLogin() {
         </header>
         <Tabs
           value={mode}
-          onValueChange={value => {
+          onValueChange={(value) => {
             if (value !== "code" && value !== "password" && value !== "register") throw new Error("Invalid login mode")
             setMode(value)
             setCode("")
             setPassword("")
             setError("")
-          }}>
+          }}
+        >
           <TabsList className="w-full">
             <TabsTrigger value="code" disabled={busy}>
               {t("platformAuth.codeLogin")}
@@ -109,10 +110,11 @@ function PlatformLogin() {
           </TabsList>
         </Tabs>
         <form
-          onSubmit={event => {
+          onSubmit={(event) => {
             event.preventDefault()
             void run("submit")
-          }}>
+          }}
+        >
           <FieldGroup>
             <Field data-disabled={busy}>
               <FieldLabel htmlFor="alwith-email">{t("platformAuth.email")}</FieldLabel>
@@ -123,7 +125,7 @@ function PlatformLogin() {
                 required
                 disabled={busy}
                 value={email}
-                onChange={event => setEmail(event.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
               />
             </Field>
             {mode !== "password" && (
@@ -137,14 +139,15 @@ function PlatformLogin() {
                     required
                     disabled={busy}
                     value={code}
-                    onChange={event => setCode(event.target.value)}
+                    onChange={(event) => setCode(event.target.value)}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     className="shrink-0"
                     disabled={busy || seconds > 0}
-                    onClick={() => void run("sendCode")}>
+                    onClick={() => void run("sendCode")}
+                  >
                     {pendingAction === "sendCode" && <Spinner data-icon="inline-start" />}
                     {seconds > 0 ? t("platformAuth.resend", { seconds }) : t("platformAuth.sendCode")}
                   </Button>
@@ -161,7 +164,7 @@ function PlatformLogin() {
                   required
                   disabled={busy}
                   value={password}
-                  onChange={event => setPassword(event.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                 />
                 {mode === "register" && <FieldDescription>{t("platformAuth.passwordRule")}</FieldDescription>}
               </Field>

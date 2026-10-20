@@ -16,7 +16,7 @@ export function settingsFixture(initial: Record<string, unknown> = {}) {
     settingsStore.accept(next)
     return next
   })
-  const write = vi.spyOn(settingsStore, "write").mockImplementation(async input => {
+  const write = vi.spyOn(settingsStore, "write").mockImplementation(async (input) => {
     for (const [key, value] of Object.entries(input.changes ?? {})) {
       if (value === null) values.delete(key)
       else values.set(key, value)

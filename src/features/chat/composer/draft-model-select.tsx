@@ -20,18 +20,18 @@ export function DraftModelSelect({
   const { t } = useTranslation()
   const groups: { id: string; name: string; models: ChatModelOption[] }[] = [
     { id: NATIVE_MODEL_GROUP.id, name: NATIVE_MODEL_GROUP.name, models: [nativeModel] },
-    ...(snapshot === null ? [] : providerGroups(snapshot)).map(provider => ({
+    ...(snapshot === null ? [] : providerGroups(snapshot)).map((provider) => ({
       id: provider.id,
       name: provider.name,
-      models: provider.models.map(item => ({
+      models: provider.models.map((item) => ({
         api_id: gatewayModelId(provider.id, item.id),
         label: item.label ?? item.id
       }))
     }))
   ]
-  const models = groups.flatMap(group => group.models)
+  const models = groups.flatMap((group) => group.models)
   const selected =
-    model === null ? nativeModel : (models.find(item => item.api_id === model) ?? { api_id: model, label: model })
+    model === null ? nativeModel : (models.find((item) => item.api_id === model) ?? { api_id: model, label: model })
   return (
     <ModelSelect
       value={selected}
@@ -39,8 +39,8 @@ export function DraftModelSelect({
       modelGroups={groups}
       showModelList
       showDescription
-      onChange={item => onChange(item.api_id === "" ? null : item.api_id)}
-      t={key => t(key, { ns: "alwithChat" })}
+      onChange={(item) => onChange(item.api_id === "" ? null : item.api_id)}
+      t={(key) => t(key, { ns: "alwithChat" })}
     />
   )
 }

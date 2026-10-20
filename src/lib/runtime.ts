@@ -39,7 +39,7 @@ function resetHubPort(): void {
 
 /** alwith-runtime ended (crash or kill): the port is dead and every subscription with it. */
 export function onHubExit(handler: (exit: RuntimeExit) => void): Promise<() => void> {
-  return events["runtime:exit"].listen(event => {
+  return events["runtime:exit"].listen((event) => {
     port?.markExited()
     resetHubPort()
     handler(event.payload)

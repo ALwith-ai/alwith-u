@@ -45,7 +45,7 @@ test("the bundled English guide starts at welcome and navigates to complete chap
   }
 })
 
-test.each(["Win32", "MacIntel"])("%s uses the appropriate guide title bar", platform => {
+test.each(["Win32", "MacIntel"])("%s uses the appropriate guide title bar", (platform) => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
   const view = render(<GuidePage />)
   const header = view.container.querySelector(".guide-window > div > [data-tauri-drag-region]")

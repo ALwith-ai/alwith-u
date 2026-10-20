@@ -9,14 +9,14 @@ export function formatShortcutForDisplay(key: string): string[] {
   const mac = isMac()
   const variants = key
     .split("|")
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean)
   const chosen = variants.reduce(
     (best, cur) => (cur.split("+").length > best.split("+").length ? cur : best),
     variants[0] ?? key
   )
   const symbols: string[] = []
-  for (const part of chosen.split("+").map(p => p.trim())) {
+  for (const part of chosen.split("+").map((p) => p.trim())) {
     switch (part.toLowerCase()) {
       case "commandorcontrol":
       case "cmdorctrl":

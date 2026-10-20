@@ -19,7 +19,7 @@ function parseSpreadsheet(bytes: Uint8Array, signal?: AbortSignal): Promise<Spre
       reject(new DOMException("Preview was closed", "AbortError"))
     }
     signal?.addEventListener("abort", abort, { once: true })
-    worker.onerror = event => {
+    worker.onerror = (event) => {
       close()
       reject(new Error(event.message || "Spreadsheet worker failed"))
     }

@@ -20,7 +20,7 @@ export function useMainWindowVisible(onError: (error: unknown) => void): boolean
     const stop = getCurrentWebviewWindow().onFocusChanged(update)
     return () => {
       disposed = true
-      void stop.then(unlisten => unlisten()).catch(onError)
+      void stop.then((unlisten) => unlisten()).catch(onError)
     }
   }, [onError])
   return visible

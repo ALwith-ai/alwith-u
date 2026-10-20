@@ -20,7 +20,7 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
   const scope = new ResourceScope()
   const bridge = createLegacyBridge(manifest.id, {
     imported: false,
-    binding: { manifest, cancellation: scope.cancellation, own: dispose => scope.own(dispose) },
+    binding: { manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) },
     native: async (): Promise<never> => {
       throw new Error("Formal Plugin data must use SDK storage")
     },
@@ -32,7 +32,7 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
     language: () => "en",
     openExternal: async () => {},
     clipboard: async () => {},
-    own: dispose => scope.own(dispose),
+    own: (dispose) => scope.own(dispose),
     primary: true
   })
   const host = new ExtensionHost({
@@ -57,7 +57,7 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
     })`)
   const data = createMemoryData()
   try {
-    await host.activate(manifest, "fixture", entry, { data, resource: path => `https://assets.invalid/${path}` })
+    await host.activate(manifest, "fixture", entry, { data, resource: (path) => `https://assets.invalid/${path}` })
     expect((await data.read())?.value).toEqual({ title: "Saved" })
     const container = document.createElement("div")
     const release = await host.mount("formal-notes/workspace", container)

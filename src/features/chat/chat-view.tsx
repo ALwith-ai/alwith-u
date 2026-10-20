@@ -56,11 +56,11 @@ export function ChatView({
   onDeleted: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
-  const actions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === session.id)))
-  const connected = useApp(state => state.connection === "ready")
+  const actions = useApp(useShallow((state) => state.actions.filter((action) => action.sessionId === session.id)))
+  const connected = useApp((state) => state.connection === "ready")
   // Form elicitations are answered one at a time in a modal; everything else stays inline.
   const forms = actions.filter(isFormAction)
-  const inline = actions.filter(action => !isFormAction(action))
+  const inline = actions.filter((action) => !isFormAction(action))
   const rootRef = useRef<HTMLDivElement>(null)
   const reopen = () => {
     client
@@ -80,7 +80,8 @@ export function ChatView({
           <ChatHeader
             target={headerTarget}
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
-            project={projectMenu}>
+            project={projectMenu}
+          >
             {headerTarget !== undefined && <ComputerControl />}
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
@@ -135,7 +136,7 @@ export function ChatView({
           )}
           {inline.length > 0 && (
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
-              {inline.map(action => (
+              {inline.map((action) => (
                 <ActionCard key={action.id} action={action} />
               ))}
             </div>

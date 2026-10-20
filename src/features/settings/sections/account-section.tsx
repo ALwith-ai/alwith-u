@@ -7,7 +7,7 @@ import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 
 export function AccountSection() {
   const { t } = useTranslation()
-  const user = usePlatformAuth(state => state.user)
+  const user = usePlatformAuth((state) => state.user)
   const [busy, setBusy] = useState(false)
   if (!user) return null
   return (
@@ -24,7 +24,8 @@ export function AccountSection() {
           void logoutPlatform()
             .catch(() => toast.error(t("platformAuth.failed")))
             .finally(() => setBusy(false))
-        }}>
+        }}
+      >
         {t("platformAuth.signOut")}
       </Button>
     </section>
