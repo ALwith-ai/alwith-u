@@ -707,9 +707,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           />
           <div className="main-chat-drag-region absolute top-0 z-20 h-8" data-tauri-drag-region aria-hidden="true" />
           <div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />
-          <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 [-webkit-app-region:no-drag]">
-            <DriveStatus />
-            <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+          <div className="main-extension-status pointer-events-none absolute bottom-0 z-20 flex items-center gap-2 [-webkit-app-region:no-drag]">
+            <div className="min-w-0 flex-1">
+              <ExtensionStatusBar views={extensions.views} renderView={item => <ExtensionMount id={item.id} />} />
+            </div>
+            <div className="flex h-8 shrink-0 items-center">
+              <DriveStatus />
+            </div>
           </div>
           <div className="absolute end-1 bottom-0 z-20 flex size-8 items-center justify-center">
             <ClientVersionPopover />

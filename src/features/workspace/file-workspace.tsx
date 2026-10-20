@@ -25,6 +25,7 @@ import {
 } from "@alwith/module-file-tree"
 import { containsPath, createFileSystem, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -895,7 +896,7 @@ export function FileWorkspace({
                   onPinFile={path => workspace.treeOpener.open(path, true)}
                   onOpenExternal={openExternal}
                   onReveal={path => revealItemsInDir(path)}
-                  onCopyPath={path => navigator.clipboard.writeText(path)}
+                  onCopyPath={writeText}
                   onMove={async paths => {
                     setMoveSources({ owner: workspace, paths })
                   }}
@@ -967,7 +968,7 @@ export function FileWorkspace({
                       rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
                       onRevealPath={path => workspace.tree.reveal(path)}
                       onReveal={document => revealItemsInDir(document.path)}
-                      onCopyPath={document => navigator.clipboard.writeText(document.path)}
+                      onCopyPath={document => writeText(document.path)}
                       tabLabels={{
                         closeOthers: t("workspace.closeOthers"),
                         closeRight: t("workspace.closeRight"),

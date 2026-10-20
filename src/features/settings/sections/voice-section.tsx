@@ -1,4 +1,5 @@
 import { VoiceSettingsForm, type VoiceSettingsSlots } from "@alwith/module-voice/react"
+import { ExternalLinkIcon } from "lucide-react"
 import { type ReactNode, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -32,7 +33,7 @@ const slots: VoiceSettingsSlots = {
     <a
       {...props}
       href={href}
-      className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      className="text-muted-foreground inline-flex items-center gap-1 text-sm underline-offset-4 hover:underline"
       onClick={event => {
         event.preventDefault()
         // The shell plugin also intercepts _blank links on body, ignoring defaultPrevented.
@@ -43,6 +44,7 @@ const slots: VoiceSettingsSlots = {
         )
       }}>
       {children}
+      <ExternalLinkIcon className="size-3 shrink-0" aria-hidden="true" />
     </a>
   ),
   Select: ({ label, value, options, onChange }) => (

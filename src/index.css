@@ -263,6 +263,7 @@ html[data-window-backdrop="acrylic"] .main-extension-status {
   inset-inline: 0;
   height: var(--main-surface-block-gutter);
   padding-inline: 12px;
+  padding-inline-end: 40px;
   display: flex;
   align-items: center;
 }
@@ -379,12 +380,12 @@ html[data-window-backdrop="acrylic"] .main-sidebar-panel [data-slot="sidebar-foo
 /* Extension status widgets occupy the visible content gutter, clear of either sidebar. */
 .main-extension-status {
   inset-inline-start: calc(var(--main-sidebar-width) + 12px);
-  inset-inline-end: 96px;
+  inset-inline-end: 40px;
   transition: inset-inline-start var(--sidebar-resize-duration) ease-in-out;
 }
 [data-main-screen="leading"] .main-extension-status {
   inset-inline-start: 12px;
-  inset-inline-end: max(calc(var(--leading-sidebar-width) + 12px), 96px);
+  inset-inline-end: max(calc(var(--leading-sidebar-width) + 12px), 40px);
 }
 
 /* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */

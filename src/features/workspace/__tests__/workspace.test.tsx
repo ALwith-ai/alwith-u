@@ -22,6 +22,12 @@ const native = vi.hoisted(() => ({
   nativeMode: false,
   close: null as ((event: { preventDefault(): void }) => void) | null
 }))
+let clipboardText: string
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: async (text: string): Promise<void> => {
+    clipboardText = text
+  }
+}))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke: native.invoke, isTauri: () => native.nativeMode }))
 vi.mock("@tauri-apps/api/window", () => ({
@@ -160,6 +166,31 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
     </WorkspaceHeaderContext.Provider>
   )
 }
+
+test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async surface => {
+  clipboardText = ""
+  const browserWrite = vi.fn(async (): Promise<void> => {
+    throw new DOMException("Clipboard access denied", "NotAllowedError")
+  })
+  const previousClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard")
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: browserWrite } })
+  try {
+    render(<Surface cwd="/a" />)
+    fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+    const file = await screen.findByRole("treeitem", { name: "one.txt" })
+    if (surface === "tab") {
+      fireEvent.doubleClick(file)
+      await screen.findByRole("textbox", { name: "Code" })
+    }
+    fireEvent.contextMenu(surface === "tree" ? file : screen.getByRole("tab", { name: "one.txt" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Copy path" }))
+    await waitFor(() => expect(clipboardText).toBe("/a/one.txt"))
+    expect(browserWrite).not.toHaveBeenCalled()
+  } finally {
+    if (previousClipboard) Object.defineProperty(navigator, "clipboard", previousClipboard)
+    else Reflect.deleteProperty(navigator, "clipboard")
+  }
+})
 
 test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share\alwith-u`])(
   "Windows breadcrumbs use relative paths and reveal the real folder for %s",
