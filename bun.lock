@@ -8,7 +8,7 @@
         "@agentclientprotocol/sdk": "^2.0.0",
         "@alwith/api": "^0.4.13",
         "@alwith/module-auth": "^0.1.5",
-        "@alwith/module-chat": "^0.1.18",
+        "@alwith/module-chat": "^0.1.19",
         "@alwith/module-computer": "^0.1.1",
         "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
         "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
@@ -84,7 +84,7 @@
       "devDependencies": {
         "@alwith/native": "^0.1.4",
         "@biomejs/biome": "^2.5.15",
-        "@nyssance/codex-acp-v2": "file:vendor/nyssance-codex-acp-v2-0.7.19-predictions-c957d79a.tgz",
+        "@nyssance/codex-acp-v2": "^0.7.25",
         "@openai/codex": "0.163.0",
         "@storybook/addon-a11y": "^10.6.2",
         "@storybook/addon-docs": "^10.6.2",
@@ -131,7 +131,7 @@
   },
   "overrides": {
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.18",
+    "@alwith/module-chat": "^0.1.19",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
@@ -147,7 +147,7 @@
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.5", "", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.4.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-Be08nkt0SlVKyDQOReQ18z6XvXesuL9ENf8roh8HnQ6dWpyV3xTiqIOwGPnqEtTONvaPlagyr+1h/agf9StskA=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.1.18", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.0", "@alwith/api": "^0.4.13", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-HZJ3ukdHBbPEBhV3K6UUgnP4EBKoSaJbf+Uyqy8GqR6hT/0npFVyu4fcvtvDb97zncNb4Aj1dVzrmSQ2g3epiQ=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.1.19", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.18.7", "lucide-react": "^1.46.0", "marked": "^18.0.13", "marked-linkify-it": "^4.0.2", "smplr": "^1.0.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.0", "@alwith/api": "^0.4.13", "react": "^19.3.0", "react-dom": "^19.3.0" } }, "sha512-aCLN2HL4UV7z6RQEtcheTxWn8hIppYHNAWge7lCiAopkREAqQ2vbCj06DBZkYR4jP+g9irJwpIhxCfjVxZ/STw=="],
 
     "@alwith/module-computer": ["@alwith/module-computer@0.1.1", "", {}, "sha512-vvnvpwK0MmmudRvSPmN+Mr8wCR7xT7uDQQmqmZn0t7/NONKvhXD8vXR6GACewYsBvOmMAWz32v8YkWNGcYmfxA=="],
 
@@ -451,7 +451,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@vendor/nyssance-codex-acp-v2-0.7.19-predictions-c957d79a.tgz", { "dependencies": { "@agentclientprotocol/sdk": "^1.9.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-jVEjWuJf4YtlcXP5G5cRAJnxTK01oT3/12dzafcEjnByrFCbJkYlWpJ9/dw7aD8ASj3Dg8KTmbWQbXR07a1LWw=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.25", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2", "ws": "^8.22.0" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-dfDZeaSaNKwTHuRiPE6U+9Ej0Y2Yru7WaegHHRYrKnIU/9kEpsT2ruKrO2MqF+j9b3ja03enkv3vaBX9Jw9z6g=="],
 
     "@openai/codex": ["@openai/codex@0.163.0", "https://registry.npmmirror.com/@openai/codex/-/codex-0.163.0.tgz", { "optionalDependencies": { "@openai/codex-darwin-arm64": "npm:@openai/codex@0.163.0-darwin-arm64", "@openai/codex-darwin-x64": "npm:@openai/codex@0.163.0-darwin-x64", "@openai/codex-linux-arm64": "npm:@openai/codex@0.163.0-linux-arm64", "@openai/codex-linux-x64": "npm:@openai/codex@0.163.0-linux-x64", "@openai/codex-win32-arm64": "npm:@openai/codex@0.163.0-win32-arm64", "@openai/codex-win32-x64": "npm:@openai/codex@0.163.0-win32-x64" }, "bin": { "codex": "bin/codex.js" } }, "sha512-HNd7vR9oTK6M2ikxFnvNDCdYUgAsyo9VVnd5KnEd2ON0GYI++7MiX9XNPUkhtdgGKFPsWS+CEppQ1UU63uVhUw=="],
 
@@ -2184,8 +2184,6 @@
     "@milkdown/plugin-math/@milkdown/utils": ["@milkdown/utils@7.5.9", "https://registry.npmmirror.com/@milkdown/utils/-/utils-7.5.9.tgz", { "dependencies": { "@milkdown/exception": "7.5.9", "nanoid": "^5.0.0", "tslib": "^2.5.0" }, "peerDependencies": { "@milkdown/core": "^7.2.0", "@milkdown/ctx": "^7.2.0", "@milkdown/prose": "^7.2.0", "@milkdown/transformer": "^7.2.0" } }, "sha512-udxaIdKm6pOiNACIKR7+NQ7Vj+QivhA5jcRqksEuQOfDFQBFcGaAhGEEiU1cKwE7fmP2ayigfD0IZ01rjLS2fA=="],
 
     "@milkdown/plugin-math/katex": ["katex@0.16.47", "https://registry.npmmirror.com/katex/-/katex-0.16.47.tgz", { "dependencies": { "commander": "^8.3.0" }, "bin": { "katex": "cli.js" } }, "sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg=="],
-
-    "@nyssance/codex-acp-v2/@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.9.0", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-1.9.0.tgz", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-saCOTPYBK1iqWqJFAYHXbg3+zCoFXyZZFoqQAwdTWkbrZZPpAETr80QOnYr2l+dzPwL0jpNhn3eDY8MoEIDbUA=="],
 
     "@oxc-parser/binding-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.9.2", "https://registry.npmmirror.com/@emnapi/core/-/core-1.9.2.tgz", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA=="],
 
