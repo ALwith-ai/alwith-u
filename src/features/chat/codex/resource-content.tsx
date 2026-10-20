@@ -28,15 +28,15 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
     return (
       <Button
         variant="outline"
-        className="h-auto max-w-full justify-start gap-3 p-3"
+        className="h-auto max-w-full min-w-0 justify-start gap-3 overflow-hidden p-3"
         aria-label={block.title ?? block.name}
         title={block.uri}
         onClick={() => openLink(block.uri)}
       >
         <FileIcon />
-        <span className="min-w-0 text-start">
+        <span className="min-w-0 flex-1 text-start">
           <span className="block truncate">{block.title ?? block.name}</span>
-          <span className="block text-xs text-muted-foreground">
+          <span className="block truncate text-xs text-muted-foreground">
             {(block.title ?? block.name) !== name && `${name} · `}
             {block.mimeType ?? name.split(".").at(-1)?.toUpperCase()}
           </span>
@@ -53,9 +53,15 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
     return (
       <div className="min-w-0">
         <pre className="overflow-x-auto whitespace-pre-wrap">{resource.text}</pre>
-        <Button variant="link" size="sm" title={resource.uri} onClick={() => openLink(resource.uri)}>
+        <Button
+          variant="link"
+          size="sm"
+          className="max-w-full min-w-0"
+          title={resource.uri}
+          onClick={() => openLink(resource.uri)}
+        >
           <FileIcon />
-          {name}
+          <span className="truncate">{name}</span>
         </Button>
       </div>
     )
@@ -72,11 +78,11 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
     }
   }
   return (
-    <div className="flex min-w-0 flex-col items-start gap-1">
+    <div className="flex max-w-full min-w-0 flex-col items-start gap-1">
       {image && (
         <Button
           variant="ghost"
-          className="h-auto p-0"
+          className="h-auto max-w-full p-0"
           aria-label={t("chat.image.view")}
           onClick={() => openImageLightbox(src)}
         >
@@ -91,6 +97,7 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
       <Button
         variant="link"
         size="sm"
+        className="max-w-full min-w-0"
         disabled={saving}
         title={resource.uri}
         aria-label={t("chat.content.download", { name })}
@@ -99,7 +106,7 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         }}
       >
         <DownloadIcon />
-        {name}
+        <span className="truncate">{name}</span>
       </Button>
     </div>
   )

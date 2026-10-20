@@ -1,4 +1,4 @@
-import type { SessionRunState } from "@alwith/api"
+import { createSession, type SessionRunState } from "@alwith/api"
 import { expect, test } from "vitest"
 
 import { type AppState, CodexClient } from "@/agent/client"
@@ -49,6 +49,9 @@ test("selects the most recently active main conversation after a handoff", () =>
     ].map((record) => [record.sessionId, record])
   )
   current.sessionWindows = { floating: "chat", older: "main", recent: "main" }
+  current.sessions = Object.fromEntries(
+    ["older", "recent", "floating"].map((id) => [id, { ...createSession(id, "/tmp"), attached: true }])
+  )
   current.draftSessions = { "local-draft": "main" }
   expect(recentMainActivity(current, "moving")?.sessionId).toBe("recent")
 })
@@ -60,13 +63,24 @@ test("returns an empty destination when no eligible activity remains", () => {
   expect(recentMainActivity(current, "moving")).toBeNull()
 })
 
-test("uses Runtime membership rather than cached history or loaded sessions", () => {
+test("ignores other clients and disconnected sessions even when their Runtime activity is newer", () => {
   const current = state()
   current.threads = [
     { sessionId: "history", cwd: "/tmp", title: "History", updatedAt: new Date().toISOString(), archived: false }
   ]
-  current.runStates = { active: record("active", 1) }
+  current.runStates = {
+    active: record("active", 1),
+    external: record("external", 2),
+    disconnected: record("disconnected", 3)
+  }
+  current.sessions = {
+    active: { ...createSession("active", "/tmp"), attached: true },
+    disconnected: createSession("disconnected", "/tmp")
+  }
+  current.sessionWindows = { active: "main", disconnected: "main" }
   expect(recentMainActivity(current, null)?.sessionId).toBe("active")
+  delete current.runStates.active
+  expect(recentMainActivity(current, null)).toBeNull()
   current.runStates = {}
   expect(recentMainActivity(current, null)).toBeNull()
 })

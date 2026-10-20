@@ -900,9 +900,9 @@ export function FileWorkspace({
                   )}
                   onPinFile={(path) => workspace.treeOpener.open(path, true)}
                   onOpenExternal={openExternal}
-                  onReveal={path => revealItemsInDir(path)}
+                  onReveal={(path) => revealItemsInDir(path)}
                   onCopyPath={writeText}
-                  onMove={async paths => {
+                  onMove={async (paths) => {
                     setMoveSources({ owner: workspace, paths })
                   }}
                   onImport={async (destination, directory) => {
@@ -971,9 +971,9 @@ export function FileWorkspace({
                       labels={editorLabels}
                       compactToolbar
                       rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
-                      onRevealPath={path => workspace.tree.reveal(path)}
-                      onReveal={document => revealItemsInDir(document.path)}
-                      onCopyPath={document => writeText(document.path)}
+                      onRevealPath={(path) => workspace.tree.reveal(path)}
+                      onReveal={(document) => revealItemsInDir(document.path)}
+                      onCopyPath={(document) => writeText(document.path)}
                       tabLabels={{
                         closeOthers: t("workspace.closeOthers"),
                         closeRight: t("workspace.closeRight"),

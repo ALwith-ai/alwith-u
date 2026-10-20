@@ -33,8 +33,8 @@ const slots: VoiceSettingsSlots = {
     <a
       {...props}
       href={href}
-      className="text-muted-foreground inline-flex items-center gap-1 text-sm underline-offset-4 hover:underline"
-      onClick={event => {
+      className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"
+      onClick={(event) => {
         event.preventDefault()
         // The shell plugin also intercepts _blank links on body, ignoring defaultPrevented.
         event.stopPropagation()
@@ -59,12 +59,13 @@ const slots: VoiceSettingsSlots = {
       <SelectTrigger aria-label={label}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="w-max min-w-(--anchor-width) max-w-(--available-width)">
-        {options.map(option => (
+      <SelectContent className="w-max max-w-(--available-width) min-w-(--anchor-width)">
+        {options.map((option) => (
           <SelectItem
             key={option.value}
             value={option.value}
-            className="[&>span:first-child]:min-w-0 [&>span:first-child]:shrink [&>span:first-child]:whitespace-normal [&>span:first-child]:break-words">
+            className="[&>span:first-child]:min-w-0 [&>span:first-child]:shrink [&>span:first-child]:break-words [&>span:first-child]:whitespace-normal"
+          >
             {option.label}
           </SelectItem>
         ))}

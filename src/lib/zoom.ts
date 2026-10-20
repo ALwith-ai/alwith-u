@@ -1,6 +1,8 @@
 // App-wide zoom, reduced from ALwith Desktop's zoom store (View → Zoom In / Out / Actual
 // Size, Chrome and VS Code steps). Windows share the level through preferences.json.
+import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { platform } from "@tauri-apps/plugin-os"
 import { createStore } from "zustand/vanilla"
 
 import { savePreference } from "@/lib/preferences"
@@ -35,6 +37,11 @@ let pending = Promise.resolve()
 let appliedLevel = DEFAULT_LEVEL
 let revision = 0
 
+async function syncNativeTrafficLights(level: number): Promise<void> {
+  if (!isTauri() || platform() !== "macos") return
+  await invoke("set_traffic_light_zoom", { zoom: level })
+}
+
 function apply(level: number, local: boolean): Promise<void> {
   const request = ++revision
   zoomStore.setState((state) => ({ level, interaction: state.interaction + (local ? 1 : 0) }))
@@ -42,6 +49,7 @@ function apply(level: number, local: boolean): Promise<void> {
   const operation = pending
     .then(async () => {
       await getCurrentWebviewWindow().setZoom(level)
+      await syncNativeTrafficLights(level)
       appliedLevel = level
       if (local) await savePreference("zoomLevel", level === DEFAULT_LEVEL ? null : level)
     })
@@ -82,5 +90,6 @@ export async function hydrateZoom(saved: number | null): Promise<void> {
   const level = saved === null ? DEFAULT_LEVEL : clampToStep(saved)
   zoomStore.setState({ level })
   if (level !== DEFAULT_LEVEL) await getCurrentWebviewWindow().setZoom(level)
+  await syncNativeTrafficLights(level)
   appliedLevel = level
 }

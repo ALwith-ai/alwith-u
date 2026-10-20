@@ -9,7 +9,14 @@ export function errorDetails(error: unknown): string {
       if (seen.has(value)) return "[circular error cause]"
       seen.add(value)
       const detail = value.stack ?? value.message
-      return value.cause === undefined ? detail : `${detail}\nCaused by: ${describe(value.cause)}`
+      const fields = Object.fromEntries(
+        ["method", "code", "data", "reason"].flatMap((key) => {
+          const field = (value as unknown as Record<string, unknown>)[key]
+          return field === undefined ? [] : [[key, field]]
+        })
+      )
+      const structured = Object.keys(fields).length === 0 ? detail : `${detail}\nDetails: ${describe(fields)}`
+      return value.cause === undefined ? structured : `${structured}\nCaused by: ${describe(value.cause)}`
     }
     if (typeof value === "string") return value
     try {

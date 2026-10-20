@@ -13,17 +13,24 @@ import { toast } from "sonner"
 
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
 import { observeVoiceTurn } from "@/core/voice-turn"
-import { VoiceButton } from "@/features/voice/voice-button"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
+import { VoiceButton } from "@/features/voice/voice-button"
 import { client, useApp } from "@/lib/client"
 
 import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
-import { drafts, registerComposerWriter } from "./composer/drafts"
+import {
+  drafts,
+  registerComposerWriter,
+  registerDraftAttachmentWriter,
+  updateDraftAttachments
+} from "./composer/drafts"
+import { isPastedTextAttachment, pasteLongText } from "./composer/long-text"
 import { MentionChips } from "./composer/mention-chips"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
 import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
+import { PastedTextAttachment } from "./composer/pasted-text-attachment"
 import { PermissionModeSelect } from "./composer/permission-mode-select"
 import {
   type Attachment,
@@ -112,6 +119,7 @@ export function Composer({
     () => drafts.get(session.id)?.attachments ?? EMPTY_ATTACHMENTS
   )
   const [mentions, setMentions] = useState<string[]>(() => drafts.get(session.id)?.mentions ?? [])
+  const pasting = attachments.some((file) => isPastedTextAttachment(file) && file.pastedText.status !== "ready")
   const [sending, setSending] = useState(false)
   const [dropping, setDropping] = useState(false)
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
@@ -181,15 +189,17 @@ export function Composer({
   const inputReady = !session.readOnly && (allowPendingInput || ready)
   const prediction = useComposerPrediction(
     session,
-    ready && !sending && !dropping && !slashMenuOpen,
+    ready && !sending && !dropping && !pasting && !slashMenuOpen,
     text.length > 0 || attachments.length > 0 || mentions.length > 0
   )
 
   const invalidatePrediction = prediction.invalidate
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     drafts.set(session.id, { text, attachments, mentions, modelId: drafts.get(session.id)?.modelId ?? null })
   }, [session.id, text, attachments, mentions])
+
+  useLayoutEffect(() => registerDraftAttachmentWriter(session.id, setAttachments), [session.id])
 
   useLayoutEffect(
     () =>
@@ -233,14 +243,21 @@ export function Composer({
           prompt.push({ type: "resource_link", uri: formatMentionUri(mention), name: mentionDisplayName(mention) })
         }
         if (trimmed.length > 0) prompt.push({ type: "text", text: trimmed })
-        for (const file of files) prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
-        if (onSubmit)
-          await onSubmit(prompt, observeReceipt === null ? undefined : receipt => {
-            if (observeReceipt.signal.aborted || receiptObserver.current !== observeReceipt) return
-            observeReceipt.accept(receipt)
-            onVoiceHandoff?.(session.id, receipt)
-          })
-        else if (observeReceipt === null) await client.prompt(session.id, prompt)
+        for (const file of files) {
+          if (isPastedTextAttachment(file)) {
+            if (file.pastedText.status !== "ready") throw new Error("Text attachment is not ready")
+            prompt.push({ type: "resource_link", uri: file.url, name: file.filename ?? "pasted-text.txt" })
+          } else prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
+        }
+        if (onSubmit) {
+          if (observeReceipt === null) await onSubmit(prompt)
+          else
+            await onSubmit(prompt, (receipt) => {
+              if (observeReceipt.signal.aborted || receiptObserver.current !== observeReceipt) return
+              observeReceipt.accept(receipt)
+              onVoiceHandoff?.(session.id, receipt)
+            })
+        } else if (observeReceipt === null) await client.prompt(session.id, prompt)
         else {
           const receipt = await client.promptReceipt(session.id, prompt)
           observeReceipt.accept(receipt)
@@ -297,7 +314,7 @@ export function Composer({
           setDraft(draftRef.current)
         }}
         attachments={attachments}
-        onAttachmentsChange={setAttachments}
+        onAttachmentsChange={(files) => updateDraftAttachments(session.id, () => files)}
       >
         <CompletionMenu
           handleRef={textareaRef}
@@ -314,7 +331,7 @@ export function Composer({
           onError={onAttachmentError}
           onSubmit={submit}
           onSubmitAsync={submit}
-          canSubmit={() => (ready && !sending && !dropping ? true : "chat_not_ready")}
+          canSubmit={() => (ready && !sending && !dropping && !pasting ? true : "chat_not_ready")}
           className="relative z-10"
         >
           <NativeFileDrop
@@ -334,7 +351,13 @@ export function Composer({
               onRemove={(path) => setMentions((current) => current.filter((item) => item !== path))}
             />
             <PromptInputAttachments>
-              {(attachment) => <PromptInputAttachment data={attachment} />}
+              {(attachment) =>
+                isPastedTextAttachment(attachment) ? (
+                  <PastedTextAttachment data={attachment} sessionId={session.id} />
+                ) : (
+                  <PromptInputAttachment data={attachment} />
+                )
+              }
             </PromptInputAttachments>
           </PromptInputHeader>
           <PromptInputBody
@@ -363,6 +386,7 @@ export function Composer({
               ref={textareaRef}
               rows={2}
               disabled={!inputReady}
+              onPasteCapture={(event) => pasteLongText(event, session.id, t("chat.pastedText.filename"))}
               placeholder={prediction.text || (active ? t("chat.steerPlaceholder") : t("chat.placeholder"))}
               aria-label={t("chat.placeholder")}
             />
@@ -401,7 +425,7 @@ export function Composer({
                 <ChatSubmitButton
                   active={active}
                   sending={sending || preparing || dropping}
-                  ready={ready}
+                  ready={ready && !pasting}
                   hasMentions={mentions.length > 0}
                   onStop={stop}
                 />

@@ -13,7 +13,9 @@ import type { ComponentProps, Ref, UIEventHandler } from "react"
 
 import { cn } from "@/lib/utils"
 
-interface PaneProps extends Omit<ComponentProps<typeof ScrollAreaPrimitive.Root>, "onScroll"> {
+interface PaneProps extends Omit<ComponentProps<"div">, "onScroll"> {
+  /** Use the platform scrollbar for continuously scrolling virtualized content. */
+  nativeScroll?: boolean
   /** Access the actual Viewport element for chat's scrollIntoView / scrollTop checks. */
   viewportRef?: Ref<HTMLDivElement>
   /** The Viewport's scroll event handler. */
@@ -24,6 +26,7 @@ interface PaneProps extends Omit<ComponentProps<typeof ScrollAreaPrimitive.Root>
 }
 
 export function Pane({
+  nativeScroll = false,
   className,
   viewportClassName,
   viewportRef,
@@ -32,6 +35,23 @@ export function Pane({
   children,
   ...props
 }: PaneProps) {
+  if (nativeScroll)
+    return (
+      <div className={cn("relative flex min-h-0 flex-1", className)} {...props}>
+        <div
+          ref={viewportRef}
+          onScroll={onScroll}
+          {...viewportProps}
+          className={cn(
+            "min-h-0 min-w-0 flex-1 overflow-y-auto outline-none",
+            viewportClassName,
+            viewportProps?.className
+          )}
+        >
+          {children}
+        </div>
+      </div>
+    )
   return (
     <ScrollAreaPrimitive.Root data-slot="scroll-area" className={cn("relative min-h-0 flex-1", className)} {...props}>
       <ScrollAreaPrimitive.Viewport

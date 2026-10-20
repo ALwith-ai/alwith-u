@@ -203,7 +203,8 @@ export function MainSidebarLayout({
           // Native window controls keep their size when page content zooms.
           "--sidebar-toggle-left": isMac() && !fullscreen ? "calc(80px * var(--window-zoom-correction))" : "8px"
         } as CSSProperties
-      }>
+      }
+    >
       <header className="main-window-titlebar" data-tauri-drag-region>
         {mainActive && !titlebar && sidebarToggle}
         {!workspaceControls && toolbar}
@@ -220,11 +221,12 @@ export function MainSidebarLayout({
               className="main-sidebar-shell"
               onPointerEnter={enterSidebar}
               onPointerLeave={leaveSidebar}
-              onPointerDownCapture={event => insidePresses.current.add(event.nativeEvent)}
+              onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
               onFocusCapture={cancelClose}
-              onBlurCapture={event => {
+              onBlurCapture={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
-              }}>
+              }}
+            >
               <div className="main-sidebar-viewport">
                 <div ref={panel} id={panelId} className="main-sidebar-panel" inert={!visible} aria-hidden={!visible}>
                   {sidebar}

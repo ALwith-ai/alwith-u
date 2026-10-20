@@ -167,7 +167,7 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
   )
 }
 
-test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async surface => {
+test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async (surface) => {
   clipboardText = ""
   const browserWrite = vi.fn(async (): Promise<void> => {
     throw new DOMException("Clipboard access denied", "NotAllowedError")

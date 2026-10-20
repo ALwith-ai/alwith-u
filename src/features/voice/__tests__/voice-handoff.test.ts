@@ -11,7 +11,7 @@ test("the accepted voice receipt is consumed once by its own surface", () => {
   expect(result.current.resume).toBeUndefined()
 })
 
-test.each(["session", "generation"])("changing the %s discards pending voice resumption", field => {
+test.each(["session", "generation"])("changing the %s discards pending voice resumption", (field) => {
   const { result, rerender } = renderHook(({ session, generation }) => useVoiceHandoff(session, generation), {
     initialProps: { session: "original", generation: 0 }
   })

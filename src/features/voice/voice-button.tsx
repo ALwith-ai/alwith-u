@@ -19,7 +19,7 @@ import { loadVoiceSettings, voiceProfiles } from "./settings"
 import { useVoiceEnabled } from "./use-voice-enabled"
 import { VoiceWaveform } from "./voice-waveform"
 
-const transport = createTauriTransport({ invoke, channel: receive => new Channel(receive) })
+const transport = createTauriTransport({ invoke, channel: (receive) => new Channel(receive) })
 interface VoiceButtonProps {
   draft: DraftPort
   cwd: string
@@ -72,7 +72,7 @@ function EnabledVoiceButton({
       canStart: () => enabled,
       supportsHandsfree: () => supportsHandsfree,
       loadSettings: async () => recordingSettings(await loadVoiceSettings(), cwd),
-      isConfigured: async provider => (await voiceProfiles())[provider],
+      isConfigured: async (provider) => (await voiceProfiles())[provider],
       configure: () => openSettingsWindow("voice"),
       submit: async () => {
         if (submit === null) throw new Error("voice_submit_unavailable")

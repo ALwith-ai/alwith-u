@@ -3,5 +3,5 @@
   "identifier": "hasgard-testing",
   "description": "Automation bridge permissions; compiled only with the hasgard-testing feature, release builds never parse this file (see build.rs)",
   "windows": ["*"],
-  "permissions": ["hasgard:default"]
+  "permissions": ["hasgard:default", "core:window:allow-set-size", "core:window:allow-center"]
 }

@@ -2,9 +2,44 @@ import type { Attachment } from "./prompt-input-context"
 
 export type ComposerDraft = { text: string; attachments: Attachment[]; mentions: string[]; modelId: string | null }
 export const drafts = new Map<string, ComposerDraft>()
+const attachmentWriters = new Map<string, (attachments: Attachment[]) => void>()
+const attachmentWrites = new Map<string, Promise<void>>()
+
+export function registerDraftAttachmentWriter(sessionId: string, write: (attachments: Attachment[]) => void) {
+  if (attachmentWriters.has(sessionId)) throw new Error("An attachment writer is already registered for this session")
+  attachmentWriters.set(sessionId, write)
+  return () => {
+    if (attachmentWriters.get(sessionId) === write) attachmentWriters.delete(sessionId)
+  }
+}
+
+export function updateDraftAttachments(sessionId: string, update: (attachments: Attachment[]) => Attachment[]): void {
+  const draft = drafts.get(sessionId)
+  if (!draft) return
+  const attachments = update(draft.attachments)
+  drafts.set(sessionId, { ...draft, attachments })
+  attachmentWriters.get(sessionId)?.(attachments)
+}
+
+/** Draft transfers preserve attachment IDs while the native file is being written. */
+export function trackDraftAttachmentWrite(attachmentId: string, write: Promise<void>): void {
+  attachmentWrites.set(attachmentId, write)
+  void write.finally(() => {
+    if (attachmentWrites.get(attachmentId) === write) attachmentWrites.delete(attachmentId)
+  })
+}
 
 /** Blob URLs belong to a webview; materialize images before handing a draft to another window. */
 export async function exportDraft(sessionId: string): Promise<ComposerDraft | null> {
+  for (;;) {
+    const pending =
+      drafts.get(sessionId)?.attachments.flatMap((file) => {
+        const write = attachmentWrites.get(file.id)
+        return write ? [write] : []
+      }) ?? []
+    if (!pending.length) break
+    await Promise.all(pending)
+  }
   const draft = drafts.get(sessionId)
   if (!draft) return null
   const attachments = await Promise.all(

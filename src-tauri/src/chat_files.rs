@@ -145,6 +145,34 @@ pub async fn chat_save_file(window: tauri::WebviewWindow, name: String, data: St
     Ok(true)
 }
 
+#[tauri3_specta::command]
+pub async fn chat_write_text_attachment(
+    window: tauri::WebviewWindow, name: String, text: String,
+) -> Result<String, String> {
+    if !matches!(window.label(), "main" | "chat") {
+        return Err("Only chat windows can create chat attachments".into());
+    }
+    let name = name.rsplit(['/', '\\']).next().filter(|name| !name.is_empty()).unwrap_or("prompt.md");
+    let directory =
+        window.app_handle().path().app_cache_dir().map_err(|error| error.to_string())?.join("chat-attachments");
+    let file_name = format!(
+        "{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|error| error.to_string())?
+            .as_nanos()
+    );
+    let path = directory.join(format!("{file_name}-{name}"));
+    tauri::async_runtime::spawn_blocking(move || {
+        std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+        std::fs::write(&path, text).map_err(|error| error.to_string())?;
+        path.to_str().map(str::to_owned).ok_or_else(|| "Invalid attachment path".into())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 #[cfg(test)]
 #[path = "__tests__/chat_files.rs"]
 mod tests;

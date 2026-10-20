@@ -1,8 +1,8 @@
 import { createSession } from "@alwith/api"
 import type { VoiceEvent } from "@alwith/module-voice"
 import * as core from "@tauri-apps/api/core"
-import { StrictMode, useState } from "react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { Composer } from "@/features/chat/composer"
@@ -10,13 +10,14 @@ import { drafts } from "@/features/chat/composer/drafts"
 import { DraftChat } from "@/features/chat/draft-chat"
 import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { useVoiceHandoff } from "../use-voice-handoff"
 
 const fake = vi.hoisted(() => ({
   recordings: [] as { id: string; receive(event: VoiceEvent): void }[],
   error: vi.fn()
 }))
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 vi.mock("@alwith/module-voice/tauri", () => ({
   createTauriTransport: () => ({
     start: async (options: { recordingId: string }, receive: (event: VoiceEvent) => void) => {
@@ -61,7 +62,7 @@ afterEach(() => {
 
 function deferredAcceptance(): { accepted: Promise<void>; accept(): void } {
   let accept!: () => void
-  const accepted = new Promise<void>(resolve => {
+  const accepted = new Promise<void>((resolve) => {
     accept = resolve
   })
   return { accepted, accept }
@@ -81,7 +82,7 @@ function transcribe(turn: number, type: "partial" | "final", text: string): void
 
 test.each(["Check Shenzhen weather", "Check Shenzhen weather today"])(
   "handsfree clears accepted text and continues across turns with final text %s",
-  async finalText => {
+  async (finalText) => {
     const { accepted, accept } = deferredAcceptance()
     let receipts = 0
     const prompt = vi.spyOn(client, "promptReceipt").mockImplementation(async (id, content) => {
@@ -193,7 +194,7 @@ test("a new chat can start handsfree and hand its accepted receipt to the conver
 
 test.each(["complete", "cancel", "shortcut", "modified-shortcut", "blur-shortcut", "edit", "failure"])(
   "first-send handoff waits for its receipt and handles %s",
-  async outcome => {
+  async (outcome) => {
     const initial = client.store.getState().sessions.voice
     if (!initial) throw new Error("missing session")
     function Surface() {
@@ -340,7 +341,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
   function Surface() {
     const [sending, setSending] = useState(false)
     const session = useSession("voice")
-    const isDraft = useApp(state => Boolean(state.draftSessions.voice))
+    const isDraft = useApp((state) => Boolean(state.draftSessions.voice))
     const handoff = useVoiceHandoff("voice", 0)
     if (!isDraft && !sending && session)
       return <Composer key="conversation" session={session} voiceResume={handoff.resume} />
@@ -359,7 +360,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
         onNewChat={() => {
           throw new Error("Unexpected new chat")
         }}
-        runOperation={async operation => {
+        runOperation={async (operation) => {
           await operation()
         }}
       />

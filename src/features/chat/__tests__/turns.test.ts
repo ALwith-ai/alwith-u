@@ -29,6 +29,22 @@ function sent(session: Session, text: string, localId: string, messageId: string
 }
 
 describe("groupTurns over @alwith/api", () => {
+  test("sparse native history does not attribute an orphan answer across an unloaded gap", () => {
+    const session = feed(
+      createSession("s", "/"),
+      {
+        sessionUpdate: "user_message",
+        messageId: "u",
+        content: [{ type: "text", text: "old" }],
+        _meta: { codex: { turnId: "old" } }
+      },
+      text("a", "later", { codex: { turnId: "later" } })
+    )
+    const turns = groupTurns(session, [], [{ turnId: "old" }, { turnId: "missing" }, { turnId: "later" }])
+    expect(turns.map((turn) => turn.user?.id ?? null)).toEqual(["u", null])
+    expect(turns[0].final).toHaveLength(0)
+    expect(turns[1].final[0].id).toBe("a")
+  })
   test("a local prompt starts the turn on screen; the receipt renames it, the echo keeps the key", () => {
     let session = addPrompt(createSession("s", "/"), [{ type: "text", text: "go" }], "local")
     expect(groupTurns(session).map((turn) => turn.key)).toEqual(["turn:user:local"])

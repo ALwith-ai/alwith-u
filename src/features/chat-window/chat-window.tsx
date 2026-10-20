@@ -12,8 +12,8 @@ import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
-import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
+import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import {
   announceChatReady,
   type ChatTransfer,
@@ -290,7 +290,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground"
     >
       <WindowResizeEdges />
-      <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
+      <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
         <ChatWindowPetButton sessionId={selectedId} />
       </header>

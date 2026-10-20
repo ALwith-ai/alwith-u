@@ -49,7 +49,7 @@ function record(sessionId: string, reusableDraft: boolean, state: SessionRunStat
   }
 }
 
-test("deleted and reconnected unsent drafts never become activity navigation targets", async () => {
+test("owned unsent drafts appear as activity navigation targets", async () => {
   client.store.setState({ threads: [], draftSessions: { deleted: "main" } })
   client.applyRunStates([
     record("deleted", true),
@@ -58,7 +58,7 @@ test("deleted and reconnected unsent drafts never become activity navigation tar
   ])
   const selected: string[] = []
   const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
-  expect(view.queryByText("deleted")).not.toBeInTheDocument()
+  expect(view.getByText("deleted")).toBeInTheDocument()
   // Deletion drops local ownership; Runtime may still broadcast the unsent draft.
   await act(async () => client.store.setState({ draftSessions: {} }))
   await act(async () =>

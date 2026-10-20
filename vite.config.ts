@@ -19,6 +19,7 @@ export const config = (): UserConfig => ({
   // directly so dependency optimization cannot retain an older JS implementation.
   optimizeDeps: {
     exclude: [
+      "@alwith/module-chat",
       "@alwith/module-gamepad",
       "@alwith/module-fs",
       "@alwith/module-file-tree",
@@ -26,9 +27,11 @@ export const config = (): UserConfig => ({
       "@alwith/module-drive",
       "@alwith/module-auth"
     ],
-    // Excluded shared packages load Milkdown lazily. Prebundle its dependency
-    // graph so CommonJS dependencies such as debug expose valid ESM bindings.
+    // Prebundle CommonJS dependencies of the excluded modules, including
+    // the diff enum subpath and Milkdown's lazily loaded dependency graph.
     include: [
+      "diff2html",
+      "diff2html/lib/types",
       "use-sync-external-store/shim",
       "use-sync-external-store/shim/with-selector",
       "@milkdown/core",

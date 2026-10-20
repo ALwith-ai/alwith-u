@@ -8,10 +8,9 @@ import { useTranslation } from "react-i18next"
 import type { DraftOwner } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { ComputerControl } from "@/features/computer/computer-control"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
-import { applyProviders } from "@/lib/providers"
+import { applyProvidersWhenIdle } from "@/lib/providers"
 import { text } from "@/lib/text"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
@@ -20,7 +19,9 @@ import { Composer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
 import { drafts, importDraft } from "./composer/drafts"
 import { ModelSelectGroup } from "./composer/model-select-group"
+import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
+import { SessionActions } from "./session-actions"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -104,13 +105,14 @@ export function DraftChat({
     // Explicit retries and provider revisions invalidate preparation.
     void attempt
     void providerRevision
+    void providerSnapshot?.status
     let active = true
     setPreparing(true)
     setError(null)
     const pending = (async (): Promise<string | null> => {
       const directory = await invoke<string>("draft_directory", { cwd })
       await client.connect()
-      await applyProviders()
+      await applyProvidersWhenIdle()
       if (!active) return null
       const current = currentId.current
       // Normalizing the default directory may rerun this effect after the first
@@ -151,7 +153,7 @@ export function DraftChat({
     return () => {
       active = false
     }
-  }, [owner, cwd, providerRevision, attempt, model])
+  }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model])
 
   const send = async (prompt: acp.ContentBlock[], accept?: (receipt: string) => void): Promise<void> => {
     let target: string | null
@@ -187,7 +189,6 @@ export function DraftChat({
   return (
     <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
       <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
-        {owner === "chat" && session && !preparing && <ComputerControl />}
         <ChatActionsMenu
           surface={headerTarget === undefined ? "main" : "floating"}
           onOpenWindow={session && !preparing ? onOpenWindow : undefined}
@@ -219,6 +220,7 @@ export function DraftChat({
           )}
         </div>
       )}
+      {id !== null && <SessionActions sessionId={id} />}
       <Composer
         inputHeader={picker}
         session={session ?? pendingComposer}
@@ -248,6 +250,7 @@ export function DraftChat({
         onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
         onVoiceHandoff={onVoiceHandoff}
       />
+      <FilePreviewModal />
     </div>
   )
 }

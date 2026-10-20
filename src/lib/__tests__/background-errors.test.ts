@@ -1,3 +1,4 @@
+import { RuntimeRequestError } from "@alwith/api"
 import { error as logError } from "@tauri-apps/plugin-log"
 import { toast } from "sonner"
 import { beforeEach, expect, test, vi } from "vitest"
@@ -27,4 +28,16 @@ test("plain native errors and circular causes can be logged", () => {
   const error = new Error("outer")
   error.cause = error
   expect(errorDetails(error)).toContain("[circular error cause]")
+})
+
+test("Runtime errors retain ACP code and data alongside the stack", () => {
+  const error = new RuntimeRequestError("acpRequest", {
+    code: -32600,
+    message: "Invalid request",
+    data: "ACP v2 initialize may only be requested once per connection"
+  })
+  const details = errorDetails(error)
+  expect(details).toContain("-32600")
+  expect(details).toContain("initialize may only be requested once")
+  expect(details).toContain("acpRequest")
 })

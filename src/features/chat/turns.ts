@@ -10,6 +10,8 @@
 import type { CompactionItem, MessageItem, PlanItem, ToolItem } from "@alwith/api"
 import { type Item, type Session, textOf, type TurnEntry, turns as groupSession } from "@alwith/api"
 
+import { type HistoryTurnSummary, nativeTurnId } from "@/agent/history-navigation"
+
 export type WorkEntry =
   | { kind: "activity"; key: string; items: Array<MessageItem | ToolItem> }
   | { kind: "text"; key: string; item: MessageItem }
@@ -117,40 +119,49 @@ function place(turn: Turn, item: Item): void {
  * memoised turn components and the virtualizer's measurements skip untouched turns while
  * one streams.
  */
-export function groupTurns(session: Session, previous: Turn[] = []): Turn[] {
+export function groupTurns(session: Session, previous: Turn[] = [], historyOrder: HistoryTurnSummary[] = []): Turn[] {
+  const previousByKey = new Map(previous.map((turn) => [turn.key, turn]))
   const tools = new Map(
     session.items.filter((item): item is ToolItem => item.kind === "tool").map((item) => [item.id, item])
   )
   // Filter the view before grouping so startup-only entries never create empty turns.
   // Runtime remains the authority for the original diagnostics.
   const visible = { ...session, items: session.items.filter((item) => !isMcpStartup(item)) }
-  const result: Turn[] = groupSession(visible).map((grouped) => {
-    const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
-    for (const entry of grouped.entries) flatten(entry, items, tools)
-    const first = items[0]
-    if (first === undefined) throw new Error("A turn without items")
-    const turn: Turn = {
-      key: `turn:${first.kind}:${first.id}`,
-      user: grouped.prompt,
-      work: [],
-      final: [],
-      edits: [],
-      startedAt: grouped.startedAt ?? first.at,
-      endedAt: grouped.endedAt ?? Math.max(...items.map((item) => item.at)),
-      replayed: items.every((item) => item.replayed),
-      items
-    }
-    for (const item of items) place(turn, item)
-    return turn
-  })
-  if (previous.length === 0) return result
-  const previousByKey = new Map(previous.map((turn) => [turn.key, turn]))
-  return result.map((turn) => {
-    const before = previousByKey.get(turn.key)
-    return before !== undefined && sameItems(before.items, turn.items) && before.endedAt === turn.endedAt
-      ? before
-      : turn
-  })
+  // Sparse navigation must not attach an assistant-only turn to a distant, unrelated prompt.
+  const order = new Map(historyOrder.map((turn, index) => [turn.turnId, index]))
+  const runs: Item[][] = [[]]
+  let beforeIndex: number | undefined
+  for (const item of visible.items) {
+    const index = order.get(nativeTurnId(item) ?? "")
+    if (index !== undefined && beforeIndex !== undefined && index > beforeIndex + 1) runs.push([])
+    runs[runs.length - 1].push(item)
+    if (index !== undefined) beforeIndex = index
+  }
+  return runs
+    .flatMap((items) => groupSession({ ...visible, items }))
+    .map((grouped) => {
+      const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
+      for (const entry of grouped.entries) flatten(entry, items, tools)
+      const first = items[0]
+      if (first === undefined) throw new Error("A turn without items")
+      const key = `turn:${first.kind}:${first.id}`
+      const endedAt = grouped.endedAt ?? Math.max(...items.map((item) => item.at))
+      const before = previousByKey.get(key)
+      if (before !== undefined && sameItems(before.items, items) && before.endedAt === endedAt) return before
+      const turn: Turn = {
+        key,
+        user: grouped.prompt,
+        work: [],
+        final: [],
+        edits: [],
+        startedAt: grouped.startedAt ?? first.at,
+        endedAt,
+        replayed: items.every((item) => item.replayed),
+        items
+      }
+      for (const item of items) place(turn, item)
+      return turn
+    })
 }
 
 function sameItems(a: Item[], b: Item[]): boolean {

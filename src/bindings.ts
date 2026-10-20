@@ -80,6 +80,8 @@ export const commands = {
   driveRequest: (args: { request: JsonValue }): Promise<JsonValue> => __t3Invoke<JsonValue>("drive_request", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
+  chatWriteTextAttachment: (args: { name: string; text: string }): Promise<string> =>
+    __t3Invoke<string>("chat_write_text_attachment", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
   /**
@@ -284,6 +286,7 @@ export type CommandErrors = {
   driveRequest: string
   drivePathExists: string
   chatSaveFile: string
+  chatWriteTextAttachment: string
   chatReadImage: string
   chatPreviewFile: string
   chatReadDroppedFile: string

@@ -34,7 +34,7 @@
     "@agentclientprotocol/sdk": "^2.0.0",
     "@alwith/api": "^0.4.13",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.18",
+    "@alwith/module-chat": "^0.1.19",
     "@alwith/module-computer": "^0.1.1",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
@@ -85,6 +85,7 @@
     "ldrs": "^1.1.9",
     "lucide-react": "^1.59.0",
     "marked": "^18.1.1",
+    "mermaid": "12.2.0",
     "monaco-editor": "^0.57.0",
     "motion": "^14.4.0",
     "next-themes": "^0.4.6",
@@ -110,7 +111,7 @@
   },
   "devDependencies": {
     "@alwith/native": "^0.1.4",
-    "@nyssance/codex-acp-v2": "0.7.24",
+    "@nyssance/codex-acp-v2": "^0.7.25",
     "@openai/codex": "0.163.0",
     "@storybook/addon-a11y": "^10.6.2",
     "@storybook/addon-docs": "^10.6.2",
@@ -157,6 +158,6 @@
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-1d2cbc90a9b1.tgz",
     "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
     "@alwith/module-auth": "^0.1.5",
-    "@alwith/module-chat": "^0.1.18"
+    "@alwith/module-chat": "^0.1.19"
   }
 }

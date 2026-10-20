@@ -33,14 +33,14 @@ export function EditorSettingsSection(): ReactNode {
           }}
         />
       </SettingRow>
-      {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map(key => (
+      {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map((key) => (
         <Fragment key={key}>
           <Separator />
           <SettingRow title={t(`workspace.${key}`)}>
             <Switch
               aria-label={t(`workspace.${key}`)}
               checked={settings[key]}
-              onCheckedChange={value => save(() => saveEditorSettings({ [key]: value }))}
+              onCheckedChange={(value) => save(() => saveEditorSettings({ [key]: value }))}
             />
           </SettingRow>
         </Fragment>
