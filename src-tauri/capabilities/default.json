@@ -23,6 +23,7 @@
     "core:webview:allow-set-webview-zoom",
     "dialog:allow-ask",
     "dialog:allow-open",
+    "clipboard-manager:allow-write-text",
     "log:default",
     "os:default",
     {
