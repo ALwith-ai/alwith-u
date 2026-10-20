@@ -1,8 +1,9 @@
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { SettingGroup, SettingRow } from "@/features/settings/sections/shared"
 import { saveEditorIconTheme, saveEditorSettings } from "./editor-settings"
@@ -30,23 +31,19 @@ export function EditorSettingsSection(): ReactNode {
           }}
         />
       </SettingRow>
-      <SettingRow title={t("workspace.fontFamily")} aligned>
-        <Input
-          aria-label={t("workspace.fontFamily")}
-          value={settings.fontFamily}
-          maxLength={200}
-          onChange={event => save(() => saveEditorSettings({ fontFamily: event.target.value }))}
-        />
-      </SettingRow>
       {(["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"] as const).map(key => (
-        <SettingRow key={key} title={t(`workspace.${key}`)}>
-          <Switch
-            aria-label={t(`workspace.${key}`)}
-            checked={settings[key]}
-            onCheckedChange={value => save(() => saveEditorSettings({ [key]: value }))}
-          />
-        </SettingRow>
+        <Fragment key={key}>
+          <Separator />
+          <SettingRow title={t(`workspace.${key}`)}>
+            <Switch
+              aria-label={t(`workspace.${key}`)}
+              checked={settings[key]}
+              onCheckedChange={value => save(() => saveEditorSettings({ [key]: value }))}
+            />
+          </SettingRow>
+        </Fragment>
       ))}
+      <Separator />
       <SettingRow title={t("workspace.iconTheme")} aligned>
         <Select
           value={iconTheme ?? "vscode-icons"}
