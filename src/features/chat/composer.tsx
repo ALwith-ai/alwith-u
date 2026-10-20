@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
 import { observeVoiceTurn } from "@/core/voice-turn"
 import { VoiceButton } from "@/features/voice/voice-button"
+import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client, useApp } from "@/lib/client"
 
 import { ChatSubmitButton } from "./composer/chat-submit-button"
@@ -81,6 +82,8 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
 export function Composer({
   session,
   onSubmit,
+  onVoiceHandoff,
+  voiceResume,
   modelSelector,
   inputHeader,
   disabled = false,
@@ -93,13 +96,17 @@ export function Composer({
   /** Draft input stays editable while session preparation blocks submission. */
   allowPendingInput?: boolean
   /** The draft surface owns the transition after the first prompt is accepted. */
-  onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
+  onSubmit?: (prompt: acp.ContentBlock[], accept?: (receipt: string) => void) => Promise<void>
+  onVoiceHandoff?: (sessionId: string, receipt: string) => void
+  voiceResume?: VoiceResume
   /** Before session/new, the host owns the initial model selection. */
   modelSelector?: import("react").ReactNode
   inputHeader?: import("react").ReactNode
 }) {
   const { t } = useTranslation()
-  const [text, setTextRaw] = useState(() => drafts.get(session.id)?.text ?? "")
+  // Final ASR text can match its preview; its new revision must still reach the form before submission.
+  const [draft, setDraft] = useState(() => ({ text: drafts.get(session.id)?.text ?? "", revision: 0 }))
+  const { text } = draft
   const [attachments, setAttachments] = useState<Attachment[]>(
     () => drafts.get(session.id)?.attachments ?? EMPTY_ATTACHMENTS
   )
@@ -110,11 +117,11 @@ export function Composer({
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
   const voiceCancelRef = useRef<(() => void) | null>(null)
-  const draftRef = useRef({ text, revision: 0 })
+  const draftRef = useRef(draft)
   const setText = useCallback((value: string): void => {
     voiceCancelRef.current?.()
     draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
-    setTextRaw(value)
+    setDraft(draftRef.current)
   }, [])
   const draftPort = useMemo<DraftPort>(() => {
     const read = (): DraftSnapshot => {
@@ -130,7 +137,7 @@ export function Composer({
       compareAndSet(expected, value, selection) {
         if (expected.target !== session.id || expected.revision !== draftRef.current.revision) return null
         draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
-        setTextRaw(value)
+        setDraft(draftRef.current)
         const element = textareaRef.current?.getTextarea()
         if (element !== null && element !== undefined) {
           element.value = value
@@ -140,16 +147,16 @@ export function Composer({
       }
     }
   }, [session.id])
-  const receiptObserver = useRef<((id: string) => void) | null>(null)
+  const receiptObserver = useRef<{ accept(id: string): void; signal: AbortSignal } | null>(null)
   const waitForVoiceTurn = useCallback(
     (signal: AbortSignal): Promise<void> => {
       const observation = observeVoiceTurn(
         { read: () => client.store.getState().sessions[session.id], subscribe: check => client.store.subscribe(check) },
         signal
       )
-      receiptObserver.current = observation.accept
+      receiptObserver.current = { accept: observation.accept, signal }
       const release = (): void => {
-        if (receiptObserver.current === observation.accept) receiptObserver.current = null
+        if (receiptObserver.current?.accept === observation.accept) receiptObserver.current = null
       }
       void observation.completed.then(release, release)
       return observation.completed
@@ -157,6 +164,15 @@ export function Composer({
     [session.id]
   )
   const active = session.state !== "idle"
+  const resumeVoice = useMemo(() => {
+    if (voiceResume === undefined) return undefined
+    return (signal: AbortSignal): Promise<void> => {
+      const completed = waitForVoiceTurn(signal)
+      receiptObserver.current?.accept(voiceResume.receipt)
+      voiceResume.consume()
+      return completed
+    }
+  }, [voiceResume, waitForVoiceTurn])
   const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
   const inputReady = !session.readOnly && (allowPendingInput || ready)
   const prediction = useComposerPrediction(
@@ -214,11 +230,16 @@ export function Composer({
         }
         if (trimmed.length > 0) prompt.push({ type: "text", text: trimmed })
         for (const file of files) prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
-        if (onSubmit) await onSubmit(prompt)
+        if (onSubmit)
+          await onSubmit(prompt, observeReceipt === null ? undefined : receipt => {
+            if (observeReceipt.signal.aborted || receiptObserver.current !== observeReceipt) return
+            observeReceipt.accept(receipt)
+            onVoiceHandoff?.(session.id, receipt)
+          })
         else if (observeReceipt === null) await client.prompt(session.id, prompt)
         else {
           const receipt = await client.promptReceipt(session.id, prompt)
-          observeReceipt(receipt)
+          observeReceipt.accept(receipt)
         }
         invalidatePrediction()
         setMentions(current => (current === mentions ? [] : current))
@@ -228,7 +249,7 @@ export function Composer({
         textareaRef.current?.focus()
       }
     },
-    [session.id, mentions, onSubmit, invalidatePrediction]
+    [session.id, mentions, onSubmit, onVoiceHandoff, invalidatePrediction]
   )
 
   const stop = () => {
@@ -268,7 +289,7 @@ export function Composer({
         onValueChange={setText}
         onSubmittedClear={() => {
           draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
-          setTextRaw("")
+          setDraft(draftRef.current)
         }}
         attachments={attachments}
         onAttachmentsChange={setAttachments}>
@@ -364,7 +385,8 @@ export function Composer({
                   enabled={ready}
                   cancelRef={voiceCancelRef}
                   waitForTurn={waitForVoiceTurn}
-                  supportsHandsfree={onSubmit === undefined}
+                  supportsHandsfree={onSubmit === undefined || onVoiceHandoff !== undefined}
+                  resume={resumeVoice}
                 />
                 <ChatSubmitButton
                   active={active}

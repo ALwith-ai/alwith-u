@@ -162,6 +162,22 @@ test("the next handsfree recording has an enabled stop button and ignores old ca
   fireEvent.click(stop)
   await waitFor(() => expect(must(fake.instances[1], "next controller").finish).toHaveBeenCalledTimes(1))
 })
+test("an existing draft explains why automatic voice sending is blocked", async () => {
+  render(
+    <VoiceButton
+      draft={new RevisionDraft("existing", "unsent text", [11, 11])}
+      cwd="/tmp"
+      enabled
+      cancelRef={{ current: null }}
+      waitForTurn={async () => {}}
+      supportsHandsfree
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "voice.start" }))
+  await waitFor(() => expect(fake.report).toHaveBeenCalledWith("voice.existingDraft"))
+  expect(fake.instances).toHaveLength(0)
+  expect(fake.submit).not.toHaveBeenCalled()
+})
 test("a cancelled pending settings read cannot fail the next recording", async () => {
   let rejectOld!: (error: Error) => void
   fake.load.mockImplementationOnce(

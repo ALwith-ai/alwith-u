@@ -12,6 +12,7 @@ import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
+import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
 import {
   announceChatReady,
@@ -40,6 +41,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)
   const [generation, setGeneration] = useState(0)
+  const voiceHandoff = useVoiceHandoff(selectedId, generation)
   const [ready, setReady] = useState(false)
   const [contentMounted, setContentMounted] = useState(false)
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
@@ -318,6 +320,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               cwd={cwd}
               onCwdChange={setCwd}
               onCreated={setSelectedId}
+              onVoiceHandoff={voiceHandoff.accept}
               onSendingChange={(id, sending) =>
                 setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
               }
@@ -328,6 +331,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
             <ChatView
               key={`${session.id}-${generation}`}
               session={session}
+              voiceResume={voiceHandoff.resume}
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}

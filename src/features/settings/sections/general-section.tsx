@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
-import { useExternalApps } from "@/features/chat/open-in-editor"
+import { ProjectAppIcon, useExternalApps } from "@/features/chat/open-in-editor"
 import { requestChatSurface } from "@/lib/chat-window"
 import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
@@ -102,13 +102,19 @@ export function GeneralSection() {
                 void savePreference("externalEditor", value)
               }}>
               <SelectTrigger id="external-editor" className="w-full" aria-label={t("settings.externalEditor")}>
-                <SelectValue />
+                <SelectValue>
+                  <ProjectAppIcon app={activeEditor} />
+                  {activeEditor?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   {apps.map(app => (
                     <SelectItem key={app.bundle_id} value={app.bundle_id}>
-                      {app.name}
+                      <span className="flex items-center gap-2">
+                        <ProjectAppIcon app={app} />
+                        {app.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectGroup>

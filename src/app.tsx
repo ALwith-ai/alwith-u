@@ -46,6 +46,7 @@ import { selectThread } from "@/features/threads/select-thread"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
+import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
@@ -90,6 +91,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
+  const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)
   const [chatRevealRequest, setChatRevealRequest] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
   const providerSnapshot = useProviders()
@@ -515,6 +517,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         <ChatView
           key={`${session.id}-${surfaceGeneration}`}
           session={session}
+          voiceResume={voiceHandoff.resume}
           projectMenu={<ChatProjectMenu cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
           onSelectThread={select}
           onOpenWindow={moveToWindow}
@@ -536,6 +539,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onSendingChange={(id, sending) =>
             setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
           }
+          onVoiceHandoff={voiceHandoff.accept}
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
           runOperation={operation.run}

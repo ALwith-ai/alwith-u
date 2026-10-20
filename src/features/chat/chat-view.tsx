@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { ComputerControl } from "@/features/computer/computer-control"
 import { SessionPreview } from "@/features/computer/session-preview"
+import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client, useApp } from "@/lib/client"
 
 import { ActionCard } from "./action-card"
@@ -33,6 +34,7 @@ function isFormAction(action: PendingAction): action is FormAction {
 
 export function ChatView({
   session,
+  voiceResume,
   onOpenWindow,
   onReturnToMain,
   headerTarget,
@@ -43,6 +45,7 @@ export function ChatView({
   onSelectThread
 }: {
   session: Session
+  voiceResume?: VoiceResume
   onSelectThread?: (thread: ThreadSummary) => void
   onOpenWindow?: () => void
   onReturnToMain?: () => void
@@ -137,7 +140,7 @@ export function ChatView({
               ))}
             </div>
           )}
-          <Composer session={session} />
+          <Composer session={session} voiceResume={voiceResume} />
           {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
           <DiffModal />
           <FilePreviewModal />

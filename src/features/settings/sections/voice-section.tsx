@@ -57,9 +57,12 @@ const slots: VoiceSettingsSlots = {
       <SelectTrigger aria-label={label}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="w-max min-w-(--anchor-width) max-w-(--available-width)">
         {options.map(option => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            className="[&>span:first-child]:min-w-0 [&>span:first-child]:shrink [&>span:first-child]:whitespace-normal [&>span:first-child]:break-words">
             {option.label}
           </SelectItem>
         ))}

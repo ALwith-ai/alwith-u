@@ -33,6 +33,7 @@ export function DraftChat({
   onCwdChange,
   onCreated,
   onSendingChange,
+  onVoiceHandoff,
   onAuthRequired,
   providerSnapshot,
   onOpenWindow,
@@ -50,6 +51,7 @@ export function DraftChat({
   onCreated: (sessionId: string) => void
   /** Hold this composer only while its own first send is waiting for acceptance. */
   onSendingChange: (sessionId: string, sending: boolean) => void
+  onVoiceHandoff?: (sessionId: string, receipt: string) => void
   onAuthRequired: () => void
   providerSnapshot: ProviderSnapshot | null
   runOperation?: (operation: () => Promise<void>) => Promise<void>
@@ -150,7 +152,7 @@ export function DraftChat({
     }
   }, [owner, cwd, providerRevision, attempt, model])
 
-  const send = async (prompt: acp.ContentBlock[]): Promise<void> => {
+  const send = async (prompt: acp.ContentBlock[], accept?: (receipt: string) => void): Promise<void> => {
     let target: string | null
     // Follow preparation retries, but never send into a different project or abandoned surface.
     for (;;) {
@@ -170,7 +172,8 @@ export function DraftChat({
     }
     onSendingChange(target, true)
     try {
-      await client.prompt(target, prompt)
+      if (accept === undefined) await client.prompt(target, prompt)
+      else accept(await client.promptReceipt(target, prompt))
       // Clear persisted input before the parent mounts the conversation's composer.
       importDraft(target, null)
     } finally {
@@ -243,7 +246,8 @@ export function DraftChat({
           ) : undefined
         }
         disabled={session === null || preparing || error !== null || connection !== "ready"}
-        onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
+        onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
+        onVoiceHandoff={onVoiceHandoff}
       />
     </div>
   )
