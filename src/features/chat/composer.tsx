@@ -55,9 +55,9 @@ async function readBase64(attachment: FileUIPart): Promise<string> {
   const blob = await (await fetch(attachment.url)).blob()
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(reader.error)
+    reader.onerror = () => reject(reader.error!)
     reader.onload = () => {
-      const url = String(reader.result)
+      const url = reader.result as string
       resolve(url.slice(url.indexOf(",") + 1))
     }
     reader.readAsDataURL(blob)

@@ -1,5 +1,7 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 
+import { asError, text } from "@/lib/text"
+
 import { convertLegacyExtension, type PreparedLegacyImport } from "./legacy/import"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 
@@ -49,7 +51,7 @@ export async function executePreparedInstall(
   port?: InstallPort
 ): Promise<InstallResult> {
   const id =
-    selected.format === "current" ? selected.id : String((await convertLegacyExtension(selected.prepared)).manifest.id)
+    selected.format === "current" ? selected.id : text((await convertLegacyExtension(selected.prepared)).manifest.id)
   const source = selected.format === "current" ? "local" : LEGACY_SOURCE
   const native = runtime.snapshot().native
   if (!native) throw new Error("Extension service is not ready")
@@ -92,7 +94,7 @@ export async function executeStagedInstall(
   const bounded = <T>(operation: Promise<T>): Promise<T> => {
     if (!signal) return operation
     return new Promise<T>((resolve, reject) => {
-      const aborted = (): void => reject(signal.reason)
+      const aborted = (): void => reject(asError(signal.reason))
       signal.addEventListener("abort", aborted, { once: true })
       operation.then(resolve, reject).finally(() => signal.removeEventListener("abort", aborted))
       if (signal.aborted) aborted()
@@ -141,7 +143,7 @@ export async function executeStagedInstall(
     }
     const aborted = (): void => {
       unsubscribe?.()
-      reject(signal?.reason)
+      reject(asError(signal?.reason))
     }
     const stop = runtime.subscribe(inspect)
     unsubscribe = () => {

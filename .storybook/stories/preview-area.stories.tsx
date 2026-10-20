@@ -117,7 +117,7 @@ export const TabInteractions: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "New tab" }))
     await userEvent.click(canvas.getByRole("treeitem", { name: "package.json" }))
     await canvas.findByRole("tab", { name: "package.json" })
-    expect(canvas.getByRole("tab", { name: "summary.txt" })).toBeVisible()
+    void expect(canvas.getByRole("tab", { name: "summary.txt" })).toBeVisible()
     await userEvent.click(canvas.getByRole("tab", { name: "summary.txt" }))
     await waitFor(() => expect(canvas.getByRole("textbox", { name: "summary.txt" })).toHaveValue("Summary"))
     await userEvent.click(canvas.getByRole("tab", { name: "package.json" }))
@@ -125,6 +125,6 @@ export const TabInteractions: Story = {
     await waitFor(() => expect(canvas.queryByRole("tab", { name: "package.json" })).toBeNull())
     await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
     await userEvent.click(canvas.getByRole("button", { name: "Reopen preview" }))
-    expect(canvas.getByRole("tab", { name: "summary.txt" })).toHaveAttribute("aria-selected", "true")
+    void expect(canvas.getByRole("tab", { name: "summary.txt" })).toHaveAttribute("aria-selected", "true")
   }
 }

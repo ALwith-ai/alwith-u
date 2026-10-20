@@ -17,7 +17,7 @@ function addListener(store: Map<string, Set<Handler>>, event: EventName, handler
 }
 
 async function dispatch(listeners: Iterable<Handler>, event: string, payload: unknown): Promise<void> {
-  await Promise.all([...listeners].map((handler) => handler({ event, id: 0, payload })))
+  for (const handler of listeners) await handler({ event, id: 0, payload })
 }
 
 const listen = async <T>(event: EventName, handler: EventCallback<T>): Promise<() => void> =>

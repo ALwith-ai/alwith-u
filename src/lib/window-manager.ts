@@ -71,13 +71,17 @@ export async function openSettingsWindow(section?: SettingsSection): Promise<voi
     // Shown by the native attach (child windows must not pop up as stages first).
     ...(attachToMain ? { visible: false } : {})
   })
-  void win.once("tauri://created", async () => {
-    if (attachToMain) await commands.attachWindowToMain({ label: "settings" })
-    else {
-      await win.show()
-      await win.setFocus()
-    }
-  })
+  void win.once(
+    "tauri://created",
+    () =>
+      void (async () => {
+        if (attachToMain) await commands.attachWindowToMain({ label: "settings" })
+        else {
+          await win.show()
+          await win.setFocus()
+        }
+      })()
+  )
 }
 
 // Gamepad retains Desktop's independent, full-width tool window.

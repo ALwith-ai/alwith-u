@@ -41,7 +41,7 @@ export function createStartupConsentPresenter(
       if (event.payload === presenter.extensionId) presenter.allow()
     })
       .then(async (stop) => {
-        if (binding.cancellation.aborted) await stop()
+        if (binding.cancellation.aborted) stop()
         else binding.own(stop)
       })
       .catch(onError)

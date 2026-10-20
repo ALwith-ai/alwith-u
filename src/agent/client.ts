@@ -31,6 +31,8 @@ import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
+import { asError } from "@/lib/text"
+
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -795,7 +797,9 @@ export class CodexClient {
 
   /** Ownership changes are serialized independently of individual session operations. */
   private changeDraft<T>(owners: DraftOwner[], operation: () => Promise<T>): Promise<T> {
-    const next = Promise.allSettled(owners.map((owner) => this.draftOperations.get(owner))).then(operation)
+    const next = Promise.allSettled(
+      owners.map((owner) => this.draftOperations.get(owner)).filter((operation) => operation !== undefined)
+    ).then(operation)
     for (const owner of owners) this.draftOperations.set(owner, next)
     return next
   }
@@ -1490,7 +1494,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
       },
       (error: unknown) => {
         clearTimeout(timer)
-        reject(error)
+        reject(asError(error))
       }
     )
   })

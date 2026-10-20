@@ -12,6 +12,7 @@ import { ComputerControl } from "@/features/computer/computer-control"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProviders } from "@/lib/providers"
+import { text } from "@/lib/text"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
@@ -201,9 +202,7 @@ export function DraftChat({
       </Empty>
       {!preparing && (error !== null || connection !== "ready") && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
-          <span>
-            {error !== null ? (error instanceof Error ? error.message : String(error)) : t("connection.disconnected")}
-          </span>
+          <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
           <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
             {t("actions.retry")}
           </Button>

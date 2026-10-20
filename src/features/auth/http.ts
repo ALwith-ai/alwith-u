@@ -10,6 +10,10 @@ interface Host {
 }
 
 /** App transport only: authentication contracts and native refresh belong to @alwith/module-auth. */
+class UnauthorizedError extends Error {
+  readonly kind = "unauthorized"
+}
+
 export function createAuthTransport(host: Host) {
   let revision = 0
   let pending: Promise<void> | undefined
@@ -22,7 +26,7 @@ export function createAuthTransport(host: Host) {
       const token = await host.storage.tokenStorage.getRefresh()
       current(expected)
       try {
-        if (!token) throw { kind: "unauthorized" }
+        if (!token) throw new UnauthorizedError("No refresh token")
         const result = await host.refresh(token)
         current(expected)
         await host.storage.tokenStorage.save(result.access_token, result.refresh_token)

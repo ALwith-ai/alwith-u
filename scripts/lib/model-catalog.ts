@@ -76,7 +76,7 @@ function runnerFor(launcher: Launcher, env: NodeJS.ProcessEnv): CatalogRunner {
             timeout: 15_000,
             signal
           },
-          (error, stdout) => (error ? reject(error) : resolveOutput(stdout))
+          (error, stdout) => (error ? reject(new Error(error.message, { cause: error })) : resolveOutput(stdout))
         )
       })
     },

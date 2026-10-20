@@ -9,6 +9,7 @@ import { commands } from "@/bindings"
 import { loadPreferences } from "@/lib/preferences"
 import { loadProviders, resolveSessionModel } from "@/lib/providers"
 import { runtimeClient } from "@/lib/runtime"
+import { asError } from "@/lib/text"
 
 type GenerateConfig = NonNullable<GamepadHost["generateConfig"]>
 export type GamepadAiContext = {
@@ -52,7 +53,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
     let unsubscribe = (): void => {}
     let abort = (): void => {}
     let timer: ReturnType<typeof setTimeout> | undefined
-    let failure: unknown
+    let failure: Error | undefined
     let output: Awaited<ReturnType<GenerateConfig>> | undefined
     const cleanupErrors: unknown[] = []
     try {
@@ -95,10 +96,10 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
             // and the folded turn-end update, which can arrive in either order.
             if (state.runStates[id]?.state === "done" && session.lastStopReason !== null) resolve(text)
           } catch (error) {
-            reject(error)
+            reject(asError(error))
           }
         }
-        abort = () => reject(signal.reason ?? new DOMException("Aborted", "AbortError"))
+        abort = () => reject(signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError"))
         signal.addEventListener("abort", abort, { once: true })
         unsubscribe = client.store.subscribe(inspect)
         timer = setTimeout(() => reject(new Error("Gamepad configuration generation timed out")), 180_000)
@@ -109,7 +110,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
       const [, text] = await Promise.all([sending, result])
       output = sanitizeAiConfig(extractJson(text))
     } catch (error) {
-      failure = error
+      failure = asError(error)
     } finally {
       unsubscribe()
       signal.removeEventListener("abort", abort)

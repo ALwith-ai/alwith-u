@@ -58,30 +58,37 @@ export async function serveChatSurface(
   handler: (action: SurfaceAction) => Promise<ChatTransfer | null>
 ): Promise<() => void> {
   const window = getCurrentWebviewWindow()
-  return window.listen<SurfaceRequest>(REQUEST, async ({ payload }) => {
-    if (!["main", "chat", "settings"].includes(payload.from)) return
-    try {
-      let value: ChatTransfer | null = null
-      const action = payload.action
-      if (action.type === "surface") {
-        if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface sender")
-        if ((action.sessionId !== null && typeof action.sessionId !== "string") || typeof action.visible !== "boolean")
-          throw new Error("Invalid chat surface state")
-        useChatWindowSurface.setState({ sessionId: action.sessionId, visible: action.visible })
-      } else if (action.type === "inspectSurface") {
-        if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
-        const visible = (await window.isVisible()) && !(await window.isMinimized())
-        await publishChatWindowSurface(useChatWindowSurface.getState().sessionId, visible)
-      } else value = await handler(action)
-      await emitTo(payload.from, RESPONSE, { id: payload.id, value, error: null } satisfies SurfaceResponse)
-    } catch (error) {
-      await emitTo(payload.from, RESPONSE, {
-        id: payload.id,
-        value: null,
-        error: error instanceof Error ? error.message : String(error)
-      } satisfies SurfaceResponse)
-    }
-  })
+  return window.listen<SurfaceRequest>(
+    REQUEST,
+    ({ payload }) =>
+      void (async () => {
+        if (!["main", "chat", "settings"].includes(payload.from)) return
+        try {
+          let value: ChatTransfer | null = null
+          const action = payload.action
+          if (action.type === "surface") {
+            if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface sender")
+            if (
+              (action.sessionId !== null && typeof action.sessionId !== "string") ||
+              typeof action.visible !== "boolean"
+            )
+              throw new Error("Invalid chat surface state")
+            useChatWindowSurface.setState({ sessionId: action.sessionId, visible: action.visible })
+          } else if (action.type === "inspectSurface") {
+            if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
+            const visible = (await window.isVisible()) && !(await window.isMinimized())
+            await publishChatWindowSurface(useChatWindowSurface.getState().sessionId, visible)
+          } else value = await handler(action)
+          await emitTo(payload.from, RESPONSE, { id: payload.id, value, error: null } satisfies SurfaceResponse)
+        } catch (error) {
+          await emitTo(payload.from, RESPONSE, {
+            id: payload.id,
+            value: null,
+            error: error instanceof Error ? error.message : String(error)
+          } satisfies SurfaceResponse)
+        }
+      })()
+  )
 }
 
 function forgetChatWindow(): void {

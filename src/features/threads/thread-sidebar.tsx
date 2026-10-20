@@ -166,7 +166,7 @@ function ThreadHoverBody({
       renaming={renaming}
       onRename={(name) => {
         setRenaming(false)
-        if (name !== null) report(client.renameSession(thread.sessionId, name))
+        if (name !== null) void report(client.renameSession(thread.sessionId, name))
       }}
       actions={
         <>
@@ -190,7 +190,7 @@ function ThreadHoverBody({
                   if (submitting.current) return
                   submitting.current = true
                   setForking(true)
-                  report(
+                  void report(
                     client
                       .fork(thread.sessionId, thread.cwd)
                       .then((id) => {
@@ -536,7 +536,7 @@ export function ThreadSidebar({
                 open={archivedOpen}
                 onOpenChange={(open) => {
                   setArchivedOpen(open)
-                  if (open && !archivedLoaded) report(client.listThreads({ archived: true }))
+                  if (open && !archivedLoaded) void report(client.listThreads({ archived: true }))
                 }}
                 leading={<ArchiveIcon className="size-3.5 shrink-0 text-foreground" />}
                 label={t("sidebar.archived")}
@@ -553,7 +553,7 @@ export function ThreadSidebar({
                     onClick={() => {
                       if (archived.length > archivedLimit) setArchivedLimit((value) => value + REVEAL_PAGE_SIZE)
                       else
-                        report(
+                        void report(
                           client
                             .listThreads({ archived: true })
                             .then(() => setArchivedLimit((value) => value + REVEAL_PAGE_SIZE))
@@ -606,7 +606,7 @@ export function ThreadSidebar({
             </Button>
             <Button
               onClick={() => {
-                if (pendingDelete) report(client.delete(pendingDelete.sessionId))
+                if (pendingDelete) void report(client.delete(pendingDelete.sessionId))
                 setPendingDelete(null)
               }}
             >

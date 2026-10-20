@@ -38,16 +38,16 @@ export const DirectoryListing: Story = {
     const viewport = canvas.getByRole("log")
     await waitFor(() => {
       const code = canvasElement.querySelector<HTMLElement>(".codex-markdown-code-block")
-      expect(code).not.toBeNull()
-      expect(code!.getBoundingClientRect().width).toBeGreaterThan(viewport.clientWidth - 60)
-      expect(code!.textContent).toContain("project-file-59.ts")
-      expect(viewport.clientHeight).toBeLessThanOrEqual(480)
-      expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight)
+      void expect(code).not.toBeNull()
+      void expect(code!.getBoundingClientRect().width).toBeGreaterThan(viewport.clientWidth - 60)
+      void expect(code!.textContent).toContain("project-file-59.ts")
+      void expect(viewport.clientHeight).toBeLessThanOrEqual(480)
+      void expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight)
     })
     await waitFor(() => {
       const last = canvasElement.querySelector<HTMLElement>("[data-codex-turn]")!
-      expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(viewport.getBoundingClientRect().bottom)
-      expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
+      void expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(viewport.getBoundingClientRect().bottom)
+      void expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
     })
   }
 }

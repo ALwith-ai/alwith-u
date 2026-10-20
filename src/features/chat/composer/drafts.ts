@@ -15,8 +15,8 @@ export async function exportDraft(sessionId: string): Promise<ComposerDraft | nu
       const blob = await response.blob()
       const url = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => resolve(String(reader.result))
-        reader.onerror = () => reject(reader.error)
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error!)
         reader.readAsDataURL(blob)
       })
       return { ...attachment, url }

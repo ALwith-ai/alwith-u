@@ -85,29 +85,33 @@ export function serveSettingsBridge(
   const stops = Promise.all([
     listen(REQUEST_AGENT, publish),
     listen(REQUEST_ACCOUNT, () => void publishAccount()),
-    listen<AuthRequest>(AUTH_REQUEST, async ({ payload: request }) => {
-      try {
-        switch (request.action) {
-          case "login":
-            await options.login(request.methodId, request.extra)
-            await publishAccount()
-            break
-          case "logout":
-            await options.logout()
-            await publishAccount()
-            break
-          case "respond":
-            options.respond(request.actionId, request.answer)
-            break
-        }
-        await emitTo("settings", AUTH_RESULT, { id: request.id, error: null } satisfies AuthResult)
-      } catch (error) {
-        await emitTo("settings", AUTH_RESULT, {
-          id: request.id,
-          error: error instanceof Error ? error.message : String(error)
-        } satisfies AuthResult)
-      }
-    })
+    listen<AuthRequest>(
+      AUTH_REQUEST,
+      ({ payload: request }) =>
+        void (async () => {
+          try {
+            switch (request.action) {
+              case "login":
+                await options.login(request.methodId, request.extra)
+                await publishAccount()
+                break
+              case "logout":
+                await options.logout()
+                await publishAccount()
+                break
+              case "respond":
+                options.respond(request.actionId, request.answer)
+                break
+            }
+            await emitTo("settings", AUTH_RESULT, { id: request.id, error: null } satisfies AuthResult)
+          } catch (error) {
+            await emitTo("settings", AUTH_RESULT, {
+              id: request.id,
+              error: error instanceof Error ? error.message : String(error)
+            } satisfies AuthResult)
+          }
+        })()
+    )
   ])
   return () => {
     disposed = true

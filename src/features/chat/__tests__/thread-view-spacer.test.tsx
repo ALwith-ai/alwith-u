@@ -195,7 +195,7 @@ test("layout compensation near the bottom does not resume following while readin
       viewport.dispatchEvent(new Event("scroll"))
     })
   scroll(1000)
-  act(() => viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -400 })))
+  void act(() => viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -400 })))
   scroll(600)
   const button = view.getByRole("button", { name: "Scroll to bottom" })
   expect(button.classList.contains("codex-scroll-to-bottom-hidden")).toBe(false)

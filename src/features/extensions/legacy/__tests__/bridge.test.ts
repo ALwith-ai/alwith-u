@@ -236,7 +236,7 @@ test("direct data.json IO shares SDK storage and never creates a second file", a
   const nullBytes = (await bridge.invoke("plugin:fs|read_text_file", { path: "./data.json" })) as number[]
   expect(new TextDecoder().decode(new Uint8Array(nullBytes))).toBe("null")
   expect(await bridge.invoke("plugin:fs|stat", { path })).toMatchObject({ exists: true, size: 4 })
-  release()
+  void release()
   await expect(bridge.invoke("plugin:fs|read_text_file", { path })).rejects.toThrow()
 })
 
@@ -309,7 +309,7 @@ test.each([null, { scope: "wrong", path: "/other" }])(
 
 test("projects the current U workspace through read-only Desktop settings without granting files", async () => {
   const { bridge, calls, select } = setup()
-  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const appData = (await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })) as string
   const path = `${appData}/ai.alwith.desktop/settings.json`
   const read = async (): Promise<unknown> => {
     const bytes = (await bridge.invoke("plugin:fs|read_text_file", { path })) as number[]
@@ -353,7 +353,7 @@ test("formal plugins use common native IO and never request legacy migration", a
 test("workspace projection represents no selected session and refuses other Desktop metadata", async () => {
   const { bridge, calls, clear } = setup()
   clear()
-  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const appData = (await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })) as string
   const bytes = (await bridge.invoke("plugin:fs|read_text_file", {
     path: `${appData}/ai.alwith.desktop/settings.json`
   })) as number[]
