@@ -34,6 +34,6 @@ export async function prepareComputerTools(sessionId: string): Promise<void> {
   try {
     await commands.computerReady({ sessionId })
   } catch (error) {
-    throw new Error(i18n.t("computer.connectionError", { error: String(error) }))
+    throw new Error(i18n.t("computer.connectionError", { error: String(error) }), { cause: error })
   }
 }

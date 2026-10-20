@@ -42,7 +42,6 @@ export function ArchivedChatsPage(): ReactElement {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingAll, setDeletingAll] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry starts a new complete archive fetch after a failure.
   useEffect(() => {
     if (connection !== "ready") return
     let cancelled = false

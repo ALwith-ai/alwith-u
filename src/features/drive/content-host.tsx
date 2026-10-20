@@ -20,7 +20,6 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
   const { i18n } = useTranslation()
   const { connected, snapshot } = useDrive(drive)
   const [userName, setUserName] = useState("")
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     let active = true
     if (!connected || !snapshot?.configured) {

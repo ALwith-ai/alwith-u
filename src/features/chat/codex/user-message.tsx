@@ -32,7 +32,7 @@ export const UserMessage = memo(function UserMessage({
       {resources.length > 0 && (
         <div className="codex-user-mentions">
           {resources.map((block, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: ACP resource blocks have no IDs; their positions identify them.
+            // eslint-disable-next-line react/no-array-index-key -- ACP resource blocks have no IDs; their positions identify them.
             <ResourceContent key={`${item.id}:${index}`} block={block} />
           ))}
         </div>

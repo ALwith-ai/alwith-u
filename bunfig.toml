@@ -8,3 +8,94 @@ registry = "https://registry.npmmirror.com"
 [install.scopes]
 "@alwith" = { url = "https://registry.npmjs.org" }
 "@nyssance" = { url = "https://registry.npmjs.org" }
+
+# Formatting and linting are built into Bun (1.4.4+): `bun fmt` reads [fmt] (the former .prettierrc; Tailwind
+# class sorting is built in), `bun lint` reads [lint] (the former .oxlintrc.json plus the biome rules this repo
+# relied on). prettier / oxlint / biome are no longer installed.
+[fmt]
+printWidth = 120
+semi = false
+singleQuote = false
+trailingComma = "none"
+bracketSameLine = true
+arrowParens = "avoid"
+sortImports = true
+ignorePatterns = [
+  "bun.lock",
+  "**/*.svg",
+  ".vscode",
+  "dist",
+  "storybook-static",
+  "docs",
+  "node_modules",
+  "src-tauri",
+  "src/components/ui",
+  "vendor",
+  "src/features/chat/codex/markdown-renderer.tsx",
+  "src/features/chat/codex/markdown-rules.ts",
+  "src/features/chat/codex/styles.css",
+  "**/*.html",
+  "**/*.md",
+  "package.json",
+  # Cargo manifests belong to cargo fmt and hand editing; bunfig keeps its hand layout too
+  "**/*.toml",
+]
+
+[fmt.sortTailwindcss]
+stylesheet = "src/index.css"
+preserveWhitespace = true
+
+[lint]
+maxWarnings = 0
+typeAware = false
+reportUnusedInlineConfigs = "error"
+ignorePatterns = [
+  "**/dist/**",
+  "**/node_modules/**",
+  "**/src-tauri/**",
+  "src/components/ui/**",
+  "docs/**",
+]
+
+[lint.categories]
+correctness = "error"
+
+[lint.rules]
+# The former gate ran only the import / oxc / react / typescript / unicorn plugins; vitest and promise stay off, a11y only by name
+"vitest/*" = "off"
+"promise/*" = "off"
+"jsx-a11y/*" = "off"
+"import/default" = "off"
+"import/no-cycle" = ["error", { allowUnsafeDynamicCyclicDependency = true }]
+# React Compiler rules: this repo does not use the compiler, these are all false positives
+"react/error-boundaries" = "off"
+"react/globals" = "off"
+"react/immutability" = "off"
+"react/incompatible-library" = "off"
+"react/preserve-manual-memoization" = "off"
+"react/purity" = "off"
+"react/react-in-jsx-scope" = "off"
+"react/refs" = "off"
+"react/set-state-in-effect" = "off"
+"react/set-state-in-render" = "off"
+"react/static-components" = "off"
+"react/use-memo" = "off"
+# The biome recommended rules this repo actually relied on, kept under their oxlint names
+"react-hooks/rules-of-hooks" = "error"
+"react-hooks/exhaustive-deps" = "error"
+"react/no-array-index-key" = "error"
+"react/no-danger" = "error"
+"@typescript-eslint/no-explicit-any" = "error"
+"unicorn/no-thenable" = "error"
+"no-misleading-character-class" = "error"
+# A let assigned later inside a callback cannot become const: the callback may run before the assignment
+"prefer-const" = ["error", { ignoreReadBeforeAssign = true }]
+# a11y: SVGs are third-party or decorative icons; the tool cannot tell hover/drag/propagation handlers from keyboard-activatable
+# interactions, click-events-have-key-events checks the missing keyboard support
+"jsx-a11y/no-static-element-interactions" = "off"
+"jsx-a11y/click-events-have-key-events" = "error"
+"jsx-a11y/no-noninteractive-tabindex" = "error"
+"jsx-a11y/media-has-caption" = "error"
+"jsx-a11y/role-supports-aria-props" = "error"
+# Equivalent of the former biome option: a label wrapping its control counts (assert = either), one container deep (depth = 3)
+"jsx-a11y/label-has-associated-control" = ["error", { assert = "either", depth = 3, controlComponents = ["Checkbox", "Input", "RadioGroupItem", "Select", "Slider", "Switch", "Textarea"] }]

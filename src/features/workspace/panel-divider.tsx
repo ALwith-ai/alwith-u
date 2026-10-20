@@ -33,6 +33,7 @@ export function PanelDivider({
   return (
     <hr
       data-no-drag
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a keyboard-resizable separator (aria-valuenow below) must be focusable
       tabIndex={0}
       aria-label={label}
       aria-orientation="vertical"

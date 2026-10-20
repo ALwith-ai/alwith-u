@@ -24,7 +24,7 @@ export async function withCleanup<T>(work: () => Promise<T>, cleanup: () => Prom
     try {
       await cleanup()
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], "Toolchain check and cleanup both failed")
+      throw new AggregateError([error, cleanupError], "Toolchain check and cleanup both failed", { cause: cleanupError })
     }
     throw error
   }

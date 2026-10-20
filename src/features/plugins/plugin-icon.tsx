@@ -11,7 +11,7 @@ export function PluginIconDefinitions(): ReactNode {
       width={0}
       height={0}
       className="pointer-events-none absolute"
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: Static repository SVG, never plugin or user content.
+      // eslint-disable-next-line react/no-danger -- Static repository SVG, never plugin or user content.
       dangerouslySetInnerHTML={{ __html: sprite }}
     />
   )

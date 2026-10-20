@@ -348,7 +348,7 @@ def workspace_packages() -> list[str]:
 def check(_context: object) -> None:
     """Run the CI gates shared by Desktop, U and Board, reporting every failure at the end.
 
-    Same table in all three repos: types, lint (biome + oxlint), dead code, tests, then the Rust side
+    Same table in all three repos: types, lint (`bun lint`), dead code, tests, then the Rust side
     (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
         ("types", ["bun", "run", "typecheck"], ROOT),
@@ -426,19 +426,10 @@ def clean(context: Context) -> None:
 
 @task(name="format", aliases=["f"])
 def format_code(_context: object) -> None:
-    """Format Rust, TypeScript, TSX, and CSS sources: rustfmt, import sorting, then prettier.
-
-    Import sorting uses Biome's built-in organizeImports in isolation (formatter and linter off, this
-    assist action only) rather than a full `biome check`, which would also apply formatting and lint
-    fixes. It runs before prettier so the lines it moves get formatted afterwards. Prettier uses the
-    experimental CLI from the package.json format script (parallel, content cache on by default)."""
+    """Format Rust, TypeScript, TSX, and CSS sources: rustfmt, then Bun's built-in `bun fmt`
+    (configured in bunfig.toml's [fmt]; import sorting and Tailwind class sorting are its built-in options)."""
     run("cargo", "fmt", *workspace_packages(), cwd=ROOT / "src-tauri")
-    subprocess.run(
-        ("bunx", "biome", "check", "--formatter-enabled=false", "--linter-enabled=false", "--only=organizeImports", "--write", "./src"),
-        cwd=ROOT,
-        check=False,
-    )
-    run("bun", "run", "--silent", "format")
+    run("bun", "fmt")
     print("✓ Formatted")
 
 

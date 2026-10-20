@@ -17,7 +17,6 @@ export function DriveIntegrations(): ReactNode {
   const [archive, setArchive] = useState<ArchiveStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     if (!connected || !snapshot?.configured) {
       setPreferences(null)

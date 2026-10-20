@@ -149,7 +149,7 @@ export function DraftChat({
   }, [owner, cwd, providerRevision, attempt, model])
 
   const send = async (prompt: acp.ContentBlock[]): Promise<void> => {
-    let target: string | null = null
+    let target: string | null
     // Follow preparation retries, but never send into a different project or abandoned surface.
     for (;;) {
       const pending = preparation.current

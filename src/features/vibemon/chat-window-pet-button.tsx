@@ -23,7 +23,6 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
   const [notice, setNotice] = useState<Notice | null>(null)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const operation = useRef<AbortController | null>(null)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A session change must abort the previous operation and clear its notice.
   useEffect(() => {
     setNotice(null)
     setNoticeOpen(false)

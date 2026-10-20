@@ -13,7 +13,6 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
   const { i18n } = useTranslation()
   const [excluded, setExcluded] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     if (!connected || !visible || !snapshot?.configured) {
       setExcluded(null)

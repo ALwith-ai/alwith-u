@@ -73,7 +73,6 @@ export function WorkspacePanels({
     }
   }, [embla])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Embla must regroup after DOM widths change and after a divider drag finishes.
   useLayoutEffect(() => {
     if (!embla || dragging.current) return
     const selected = embla.internalEngine().slideRegistry[embla.selectedScrollSnap()]

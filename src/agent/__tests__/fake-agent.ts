@@ -392,6 +392,7 @@ export function createFakeAgent(): FakeAgent {
             })
         }
       } catch {
+        // A prompt cancelled by the test rejects here; the finally block still reports idle.
       } finally {
         await emit({
           sessionUpdate: "state_update",

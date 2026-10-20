@@ -18,7 +18,7 @@ function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
     <fieldset className="mt-1 min-w-0">
       <legend className="text-muted-foreground text-xs">{item.title ?? item.name}</legend>
       {resources.map((part, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: ACP resource blocks have no IDs; their positions identify them.
+        // eslint-disable-next-line react/no-array-index-key -- ACP resource blocks have no IDs; their positions identify them.
         <ResourceContent key={`${item.id}:${index}`} block={part.content} />
       ))}
     </fieldset>

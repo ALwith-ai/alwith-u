@@ -1026,7 +1026,6 @@ export class CodexClient {
           this.publishSession({ ...this.sessions.get(id), attached: false })
           await this.replay(id, session.cwd)
           await this.options.prepareSessionTools(id)
-          session = this.sessions.get(id)
         }
       }
     }
