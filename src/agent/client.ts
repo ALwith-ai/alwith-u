@@ -1,8 +1,8 @@
 // The one ACP v2 client. Owns the connection, routes every update by session id,
 // and publishes state through a framework-agnostic zustand store.
 
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
-import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
   type Agent,
   AgentRequests,

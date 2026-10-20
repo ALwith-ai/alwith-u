@@ -2,7 +2,7 @@
 // session data, so turns the virtualized list has not mounted still count. Each match names
 // the turn and the occurrence index inside it; the DOM pass then locates the exact range
 // after the turn is revealed.
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Item } from "@alwith/api"
 import { isText } from "@alwith/api"
 import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"

@@ -1,5 +1,5 @@
 // A draft owns a real ACP session before the first send, as in Desktop.
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { createSession } from "@alwith/api"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"

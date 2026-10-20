@@ -1,4 +1,4 @@
-import { RequestError } from "@agentclientprotocol/sdk/experimental/v2"
+import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"

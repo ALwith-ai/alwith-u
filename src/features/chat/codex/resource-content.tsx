@@ -1,4 +1,4 @@
-import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
+import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isEmbeddedResource, isImage, isResourceLink } from "@alwith/api"
 import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"

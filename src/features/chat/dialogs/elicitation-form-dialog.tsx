@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { FormElicitation } from "@alwith/api"
 import { SchemaElicitationForm } from "@alwith/module-chat/schema-elicitation-form"
 import { useTranslation } from "react-i18next"

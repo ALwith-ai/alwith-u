@@ -3,7 +3,7 @@
  * from the agent's `config_option_update`; icons are the desktop visual layer keyed by the
  * option value. From ALwith Desktop.
  */
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isGroupedSelect, isSelectOption, type SelectOption } from "@alwith/api"
 import { PermissionModeSelect as SharedPermissionModeSelect } from "@alwith/module-chat/permission-mode-select"
 import { CodeXmlIcon, EyeIcon, type LucideIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react"

@@ -3,7 +3,7 @@
  * textarea, footer with slash commands, permission mode, model menu and send/stop. Drafts
  * (text and image attachments) are kept per session for the life of the webview.
  */
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Session } from "@alwith/api"
 import { observeVoiceTurn } from "@/core/voice-turn"
 import type { DraftPort, DraftSnapshot } from "@alwith/module-voice/chat"

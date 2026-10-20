@@ -1,6 +1,6 @@
 // Permission requests and elicitations from the agent. Every answer maps back to
 // an option the agent advertised; nothing is invented on the client.
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isContentEntry, isDiffEntry, isText, isToolCallSubject, isUrlElicitation } from "@alwith/api"
 import { PermissionView } from "@alwith/module-chat/permission-view"
 import { UrlElicitationCard } from "@alwith/module-chat/url-elicitation-card"

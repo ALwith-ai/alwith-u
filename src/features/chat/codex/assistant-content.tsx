@@ -1,4 +1,4 @@
-import { type ContentBlock, ContentBlock as ContentBlockGuard } from "@agentclientprotocol/sdk/experimental/v2"
+import { type ContentBlock, ContentBlock as ContentBlockGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isEmbeddedResource, isResourceLink } from "@alwith/api"
 import type { ReactElement } from "react"
 import { useTranslation } from "react-i18next"

@@ -2,7 +2,7 @@
 // extension methods. Copied from the Codex app-server v2 types, trimmed to what the
 // client reads. Keep in step with `@nyssance/codex-acp-v2` docs/protocol.md.
 
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { DISCONNECTED, type TurnError } from "@alwith/api"
 
 type SkillScope = "user" | "repo" | "system" | "admin"

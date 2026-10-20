@@ -1,6 +1,6 @@
 // In-process ACP v2 agent with just enough behaviour to exercise the client:
 // async prompts, steering, permissions, cancellation, replay and archive.
-import * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
 export type FakeAgent = {
   app: acp.AgentApp

@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { describe, expect, test } from "vitest"
 import { filePatch } from "../diff-modal"
 import { elicitationFields, initialValues, isAnswered } from "../elicitation-form-dialog"

@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isFormElicitation } from "@alwith/api"
 import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import {

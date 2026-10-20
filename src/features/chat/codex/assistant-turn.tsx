@@ -1,4 +1,4 @@
-import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2"
+import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
   isContentEntry,
   isEmbeddedResource,

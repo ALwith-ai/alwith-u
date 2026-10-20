@@ -1,6 +1,6 @@
 // The story module as seen from U: module calls go through the Runtime (`modules/alwith-story/<method>`),
 // the story agent is started by the module (owner-scoped) and driven here over ACP like any other agent.
-import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2"
+import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type Agent, Agents } from "@alwith/api"
 import { runtimeClient } from "@/lib/runtime"
 

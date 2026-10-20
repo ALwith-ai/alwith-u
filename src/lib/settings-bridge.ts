@@ -3,7 +3,7 @@
 // its own (a second client would attach the sessions away from the main window), so the
 // two windows talk over events, as ALwith Desktop's windows do.
 
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import * as React from "react"
 import { toast } from "sonner"

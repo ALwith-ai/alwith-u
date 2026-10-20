@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"

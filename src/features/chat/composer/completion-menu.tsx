@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { CompletionMenu as SharedCompletionMenu } from "@alwith/module-chat/completion-menu"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"

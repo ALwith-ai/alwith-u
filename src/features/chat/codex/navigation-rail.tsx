@@ -1,4 +1,4 @@
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { textOf } from "@alwith/api"
 import type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/module-chat/navigation-rail"
 import {

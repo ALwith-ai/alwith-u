@@ -1,6 +1,6 @@
 // An in-memory RuntimeClient: `start` wires an AgentApp to the port over ndJSON streams, so the
 // Runtime transport is exercised end to end without a process or a socket.
-import * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type {
   RuntimeAcpAgentRequest,
   RuntimeAcpNotification,

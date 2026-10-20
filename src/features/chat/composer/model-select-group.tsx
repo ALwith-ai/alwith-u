@@ -4,7 +4,7 @@
  * `config_option_update` by category: `model`, `thought_level`, `model_config`. From ALwith
  * Desktop's select-model / model-select-group, without providers.
  */
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type BooleanOption, isBooleanOption, isGroupedSelect, isSelectOption, type SelectOption } from "@alwith/api"
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
