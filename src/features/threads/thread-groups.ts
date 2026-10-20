@@ -1,7 +1,6 @@
 import type { ThreadSummary } from "@/agent/client"
 
 export const QUICK_CHATS_GROUP = "quick-chats"
-export const REVEAL_PAGE_SIZE = 100
 
 /** Codex descendants and the ALwith U workspace belong to quick chats. */
 export function isQuickChatDirectory(cwd: string): boolean {

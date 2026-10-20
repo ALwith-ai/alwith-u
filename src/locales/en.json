@@ -194,6 +194,14 @@
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",
     "attachImage": "Attach image",
+    "pastedText": {
+      "filename": "Pasted text.txt",
+      "characters": "{{count}} characters",
+      "pending": "Adding pasted text…",
+      "error": "Could not create file",
+      "retry": "Retry creating text attachment",
+      "remove": "Remove pasted text attachment"
+    },
     "removeImage": "Remove image",
     "commands": "Commands",
     "noCommands": "No matching commands",
@@ -328,7 +336,13 @@
     "plan": {
       "title": "Plan"
     },
-    "predictionUnavailable": "Input suggestions unavailable"
+    "predictionUnavailable": "Input suggestions unavailable",
+    "loadEarlier": "Load earlier messages",
+    "loadingEarlier": "Loading earlier messages…",
+    "navigationLoading": "Loading preview",
+    "navigationUnavailable": "Preview unavailable",
+    "navigationEmpty": "(No content)",
+    "navigationRetry": "Retry"
   },
   "composer": {
     "mode": "Permissions",
@@ -740,6 +754,7 @@
     "placeholder": "Search chats",
     "actions": "Actions",
     "chats": "Chats",
+    "moreResults": "Show more results ({{count}} remaining)",
     "newChat": "New chat",
     "toggleTheme": "Toggle theme",
     "settings": "Open settings"
@@ -959,8 +974,8 @@
     "setupTitle": "Equip a Vibémon to continue",
     "enable": "Show Vibémon",
     "disable": "Hide Vibémon",
-    "show": "Show desktop pet",
-    "hide": "Close desktop pet",
+    "show": "Show Vibémon",
+    "hide": "Hide Vibémon",
     "selectFirst": "Select a pet from the equip page first",
     "unavailable": "Desktop pets are supported on macOS and Windows"
   },

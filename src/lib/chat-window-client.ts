@@ -25,6 +25,10 @@ const METHODS = [
   "readThreadSummary",
   "listThreads",
   "open",
+  "loadOlderHistory",
+  "loadHistoryNavigation",
+  "previewHistoryTurn",
+  "loadHistoryTurn",
   "prompt",
   "promptReceipt",
   "cancel",
@@ -59,39 +63,53 @@ export async function serveChatClient(
   let disposed = false
   let revision = 0
   let previous: AppState | null = null
-  let publishing = Promise.resolve()
+  let publishing: Promise<void> | null = null
+  let dirty = false
   const publish = (): Promise<void> => {
     if (disposed || connectionId === null) return Promise.resolve()
-    const identity = connectionId
-    const state = owner.state
-    const next = publishing.then(async () => {
-      if (disposed || identity !== connectionId) return
-      const patch: Partial<AppState> = {}
-      for (const key of Object.keys(state) as (keyof AppState)[]) {
-        if (key !== "sessions" && (previous === null || state[key] !== previous[key]))
-          Object.assign(patch, { [key]: state[key] })
+    dirty = true
+    if (publishing !== null) return publishing
+    const next = Promise.resolve().then(async () => {
+      while (dirty && !disposed && connectionId !== null) {
+        dirty = false
+        const identity = connectionId
+        const state = owner.state
+        if (disposed || identity !== connectionId) return
+        const patch: Partial<AppState> = {}
+        for (const key of Object.keys(state) as (keyof AppState)[]) {
+          if (key !== "sessions" && (previous === null || state[key] !== previous[key]))
+            Object.assign(patch, { [key]: state[key] })
+        }
+        const sessions = Object.fromEntries(
+          Object.entries(state.sessions).filter(
+            ([id, session]) => previous === null || previous.sessions[id] !== session
+          )
+        )
+        if (Object.keys(sessions).length > 0) patch.sessions = sessions
+        const removedSessions =
+          previous === null ? [] : Object.keys(previous.sessions).filter(id => !(id in state.sessions))
+        const payload: Projection = {
+          connectionId: identity,
+          revision: ++revision,
+          patch,
+          reset: previous === null,
+          removedSessions
+        }
+        await transport.emitTo("chat", STATE, payload)
+        if (identity === connectionId) previous = state
       }
-      const sessions = Object.fromEntries(
-        Object.entries(state.sessions).filter(([id, session]) => previous === null || previous.sessions[id] !== session)
-      )
-      if (Object.keys(sessions).length > 0) patch.sessions = sessions
-      const removedSessions =
-        previous === null ? [] : Object.keys(previous.sessions).filter(id => !(id in state.sessions))
-      const payload: Projection = {
-        connectionId: identity,
-        revision: ++revision,
-        patch,
-        reset: previous === null,
-        removedSessions
-      }
-      await transport.emitTo("chat", STATE, payload)
-      previous = state
     })
     // A failed delivery must not poison future updates. The next update sends a full snapshot.
-    publishing = next.catch(() => {
-      previous = null
-    })
-    return next
+    publishing = next
+      .catch((error: unknown) => {
+        previous = null
+        throw error
+      })
+      .finally(() => {
+        publishing = null
+        if (dirty && !disposed && connectionId !== null) return publish()
+      })
+    return publishing
   }
 
   const stop = await transport.listen<Request>(REQUEST, async ({ payload: request }) => {
@@ -241,6 +259,8 @@ export class RemoteChatClient extends CodexClient {
       connection: "disconnected",
       agent: null,
       sessions: {},
+      historyPages: {},
+      historyNavigation: {},
       actions: [],
       runStates: {},
       draftSessions: {},
@@ -281,6 +301,18 @@ export class RemoteChatClient extends CodexClient {
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
     return this.request("open", [args[0], args[1], "chat"])
+  }
+  override loadOlderHistory(...args: Parameters<CodexClient["loadOlderHistory"]>): Promise<void> {
+    return this.request("loadOlderHistory", args)
+  }
+  override loadHistoryNavigation(...args: Parameters<CodexClient["loadHistoryNavigation"]>): Promise<void> {
+    return this.request("loadHistoryNavigation", args)
+  }
+  override previewHistoryTurn(...args: Parameters<CodexClient["previewHistoryTurn"]>): Promise<void> {
+    return this.request("previewHistoryTurn", args)
+  }
+  override loadHistoryTurn(...args: Parameters<CodexClient["loadHistoryTurn"]>): Promise<void> {
+    return this.request("loadHistoryTurn", args)
   }
   override renameSession(...args: Parameters<CodexClient["renameSession"]>): Promise<void> {
     return this.request("renameSession", args)

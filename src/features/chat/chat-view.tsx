@@ -1,33 +1,25 @@
 import type { Session } from "@alwith/api"
-import { isFormElicitation } from "@alwith/api"
 import { LockIcon, UnplugIcon } from "lucide-react"
 import { type ReactNode, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { useShallow } from "zustand/react/shallow"
-import type { PendingAction, ThreadSummary } from "@/agent/client"
+import type { ThreadSummary } from "@/agent/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { client, useApp } from "@/lib/client"
-import { ActionCard } from "./action-card"
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatBody } from "./chat-body"
 import { ChatBranchProvider } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { SessionPreview } from "@/features/computer/session-preview"
-import { ComputerControl } from "@/features/computer/computer-control"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
 import { ChatOpenSessionContext } from "./file-actions"
-import { ElicitationFormDialog, type FormAction } from "./dialogs/elicitation-form-dialog"
+import { SessionActions } from "./session-actions"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { ImageLightbox } from "./dialogs/image-lightbox"
-
-function isFormAction(action: PendingAction): action is FormAction {
-  return action.kind === "elicitation" && isFormElicitation(action.params)
-}
 
 export function ChatView({
   session,
@@ -51,11 +43,7 @@ export function ChatView({
   onDeleted: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
-  const actions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === session.id)))
   const connected = useApp(state => state.connection === "ready")
-  // Form elicitations are answered one at a time in a modal; everything else stays inline.
-  const forms = actions.filter(isFormAction)
-  const inline = actions.filter(action => !isFormAction(action))
   const rootRef = useRef<HTMLDivElement>(null)
   const reopen = () => {
     client
@@ -76,7 +64,6 @@ export function ChatView({
             target={headerTarget}
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
             project={projectMenu}>
-            {headerTarget !== undefined && <ComputerControl />}
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}
@@ -128,15 +115,8 @@ export function ChatView({
           ) : (
             <ChatBody session={session} />
           )}
-          {inline.length > 0 && (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-3">
-              {inline.map(action => (
-                <ActionCard key={action.id} action={action} />
-              ))}
-            </div>
-          )}
+          <SessionActions sessionId={session.id} />
           <Composer session={session} />
-          {forms[0] !== undefined && <ElicitationFormDialog key={forms[0].id} action={forms[0]} total={forms.length} />}
           <DiffModal />
           <FilePreviewModal />
           <ImageLightbox />

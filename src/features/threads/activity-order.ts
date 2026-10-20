@@ -8,7 +8,7 @@ export const useActivityOrder = create<{ ids: string[] }>(() => ({ ids: [] }))
 function reconcile(state: AppState): void {
   const eligible = new Set(
     Object.values(state.runStates)
-      .filter(record => !record.reusableDraft && !state.draftSessions[record.sessionId])
+      .filter(record => !record.reusableDraft || state.draftSessions[record.sessionId] !== undefined)
       .map(record => record.sessionId)
   )
   const previous = useActivityOrder.getState().ids

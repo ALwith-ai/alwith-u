@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { client } from "@/lib/client"
+import { client, useApp } from "@/lib/client"
 import { ThreadView } from "./thread-view"
 
 export function ChatBody({ session }: { session: Session }) {
   const { t } = useTranslation()
+  const moreHistory = useApp(state => state.historyPages[session.id]?.cursor != null)
   const reopen = () => {
     client
       .open(session.id, session.cwd)
@@ -33,7 +34,7 @@ export function ChatBody({ session }: { session: Session }) {
         <Button onClick={reopen}>{t("chat.reopen")}</Button>
       </Empty>
     )
-  if (session.items.length === 0 && session.state === "idle")
+  if (session.items.length === 0 && session.state === "idle" && !moreHistory)
     return (
       <Empty className="flex-1">
         <EmptyHeader>

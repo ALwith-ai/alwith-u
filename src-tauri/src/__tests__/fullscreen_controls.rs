@@ -10,7 +10,7 @@ use objc2::{
     sel,
 };
 use objc2_app_kit::{
-    NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSEventMask, NSWindow, NSWindowButton,
+    NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSEventMask, NSView, NSWindow, NSWindowButton,
     NSWindowCollectionBehavior, NSWindowStyleMask,
 };
 use objc2_foundation::{NSDate, NSDefaultRunLoopMode, NSNotification, NSObject, NSPoint, NSRect, NSSize, ns_string};
@@ -45,6 +45,36 @@ fn dispatch(delegate: &AnyObject, window: &NSWindow, selector: Sel) {
         let callback: unsafe extern "C-unwind" fn(&AnyObject, Sel, &AnyObject) = std::mem::transmute(implementation);
         callback(delegate, selector, argument);
     }
+}
+
+fn verify_zoom_alignment(window: &NSWindow, mtm: MainThreadMarker) {
+    window.setStyleMask(window.styleMask() | NSWindowStyleMask::FullSizeContentView);
+    // Wry replaces Tao's content view. The test must exercise the replacement,
+    // rather than accidentally depending on Tao's original drawRect callback.
+    let content = NSView::new(mtm);
+    window.setContentView(Some(&content));
+    let kinds = [NSWindowButton::CloseButton, NSWindowButton::MiniaturizeButton, NSWindowButton::ZoomButton];
+    let original = kinds.map(|kind| window.standardWindowButton(kind).unwrap().frame());
+    for zoom in [0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0] {
+        for size in [NSSize::new(640.0, 480.0), NSSize::new(900.0, 700.0)] {
+            window.setContentSize(size);
+            crate::controls::align_native(window, 16.0 * zoom).unwrap();
+            window.setTitle(ns_string!("Traffic-light alignment regression"));
+            crate::controls::align_native(window, 16.0 * zoom).unwrap();
+            let content = window.contentView().unwrap();
+            let content_rect = content.convertRect_toView(content.bounds(), None);
+            let top = content_rect.origin.y + content_rect.size.height;
+            for (kind, original) in kinds.into_iter().zip(original) {
+                let button = window.standardWindowButton(kind).unwrap();
+                let rect = button.convertRect_toView(button.bounds(), None);
+                let center = top - rect.origin.y - rect.size.height / 2.0;
+                assert!((center - 16.0 * zoom).abs() < 0.01, "{kind:?}: zoom={zoom}, actual={center}");
+                assert_eq!(button.frame().size, original.size, "Native button size is unchanged");
+                assert_eq!(button.frame().origin.x, original.origin.x, "Native button spacing is unchanged");
+            }
+        }
+    }
+    println!("PASS: native control centers at all 11 zoom levels, two window sizes and content-view replacement");
 }
 
 pub fn run() {
@@ -92,6 +122,7 @@ pub fn run() {
     second.standardWindowButton(NSWindowButton::MiniaturizeButton).unwrap().setHidden(true);
     let baseline = visibility(&first);
     let second_baseline = visibility(&second);
+    verify_zoom_alignment(&first, mtm);
     assert_eq!(baseline, [false; 3]);
     assert_eq!(second_baseline, [false, true, false]);
 

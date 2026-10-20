@@ -12,7 +12,7 @@ import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
-import { applyProviders, resolveSessionModel } from "@/lib/providers"
+import { applyProvidersWhenIdle, resolveSessionModel } from "@/lib/providers"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 export const client =
@@ -22,7 +22,12 @@ export const client =
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
         projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async model => resolveSessionModel(model, await applyProviders()),
+        resolveModel: async model => {
+          const providers = await applyProvidersWhenIdle()
+          // Create a reusable draft on the currently applied catalog. Prompt admission retries
+          // the saved provider revision after active turns have finished.
+          return providers.status === "pending" ? null : resolveSessionModel(model, providers)
+        },
         sessionContext: hostSessionContext,
         sessionContextRevision: computerContextRevision,
         prepareSessionTools: prepareComputerTools,

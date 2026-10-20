@@ -5,10 +5,14 @@ import {
   type VirtualizedTurnListEntry
 } from "@alwith/module-chat/virtualized-turn-list"
 import { ArrowDownIcon } from "lucide-react"
+import { nativeTurnId, type HistoryTurnSummary } from "@/agent/history-navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
+import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
 import { Pane } from "@/components/alwith-ui/pane"
+import { Button } from "@/components/ui/button"
+import { client, useApp } from "@/lib/client"
 import { ForkOriginDivider } from "./chat-branches"
 import { AssistantTurn } from "./codex/assistant-turn"
 import {
@@ -21,10 +25,69 @@ import { UserMessage } from "./codex/user-message"
 import { ChatDirectoryContext } from "./file-actions"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { useThreadScroll } from "./lib/use-thread-scroll"
+import { historyTimeline, type HistoryTimelineEntry } from "./history-timeline"
 import { groupTurns, isHistoryInterrupted, isTurnInterrupted, type Turn } from "./turns"
 
 /** The anchored turn sits this far below the viewport top. */
 const CODEX_ANCHOR_TOP_OFFSET_PX = 64
+
+function HistoryTurnPlaceholder({
+  sessionId,
+  turnId,
+  root,
+  error,
+  connected
+}: {
+  sessionId: string
+  turnId: string
+  root: HTMLElement | null
+  error?: string
+  connected: boolean
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation()
+  const load = useCallback(() => {
+    void client.loadHistoryTurn(sessionId, turnId).catch(() => {})
+  }, [sessionId, turnId])
+  useEffect(() => {
+    if (!root || !ref.current || !connected || error) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          observer.disconnect()
+          load()
+        }
+      },
+      { root, rootMargin: "800px 0px" }
+    )
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [root, connected, error, load])
+  return (
+    <div
+      ref={ref}
+      className="flex min-h-80 flex-col justify-center gap-3 py-8"
+      data-history-turn={turnId}
+      data-markdown-pending>
+      {error ? (
+        <div className="flex flex-col items-center gap-2">
+          <p role="alert" className="text-destructive text-xs">
+            {error}
+          </p>
+          <Button variant="outline" size="sm" onClick={load} disabled={!connected}>
+            {t("chat.navigationRetry")}
+          </Button>
+        </div>
+      ) : (
+        <div role="status" aria-label={t("chat.navigationLoading")} className="space-y-3">
+          <div className="bg-muted ml-auto h-5 w-1/3 rounded" />
+          <div className="bg-muted h-3 w-4/5 rounded" />
+          <div className="bg-muted h-3 w-3/5 rounded" />
+        </div>
+      )}
+    </div>
+  )
+}
 
 /**
  * Codex's turn anchoring: after a prompt the new turn is scrolled to the viewport top and
@@ -43,22 +106,61 @@ function codexAnchorPlan(input: {
   return { scrollTopPx: target, spacerPx: overshoot > 0 ? input.spacerPx + overshoot : input.spacerPx }
 }
 
-function useStableTurns(session: Session): Turn[] {
+function useStableTurns(session: Session, historyOrder?: HistoryTurnSummary[]): Turn[] {
   const previous = useRef<Turn[]>([])
-  const turns = useMemo(() => groupTurns(session, previous.current), [session])
+  // Session status, unread state and model metadata change while a turn is
+  // streaming without changing its item list. Grouping is O(items), so keep
+  // the derived turn tree stable until the protocol actually upserts an item.
+  const cache = useRef<{
+    items: Session["items"]
+    ended: Session["turnEndedAt"]
+    usage: Session["turnUsage"]
+    turns: Turn[]
+    historyOrder?: HistoryTurnSummary[]
+  } | null>(null)
+  if (
+    cache.current?.items !== session.items ||
+    cache.current.ended !== session.turnEndedAt ||
+    cache.current.usage !== session.turnUsage ||
+    cache.current.historyOrder !== historyOrder
+  ) {
+    cache.current = {
+      items: session.items,
+      ended: session.turnEndedAt,
+      usage: session.turnUsage,
+      historyOrder,
+      turns: groupTurns(session, previous.current, historyOrder)
+    }
+  }
+  const turns = cache.current.turns
   previous.current = turns
   return turns
 }
 
 export function ThreadView({ session }: { session: Session }) {
   const { t } = useTranslation()
-  const turns = useStableTurns(session)
+  const navigation = useApp(state => state.historyNavigation?.[session.id])
+  const turns = useStableTurns(session, navigation?.turns)
   const lastTurnKey = turns.at(-1)?.key
   const running = session.state !== "idle"
-  const entries = useMemo<VirtualizedTurnListEntry[]>(() => turns.map(turn => ({ turnKey: turn.key })), [turns])
-  const railItems = useMemo(() => toNavigationRailItems(turns, session.turnUsage), [turns, session.turnUsage])
+  const entries = useMemo(() => historyTimeline(turns, navigation), [turns, navigation])
+  const railItems = useMemo(
+    () => toNavigationRailItems(turns, session.turnUsage, navigation),
+    [turns, session.turnUsage, navigation]
+  )
+  const turnsRef = useRef(turns)
+  turnsRef.current = turns
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
+  const history = useApp(state => state.historyPages[session.id])
+  const connected = useApp(state => state.connection === "ready")
+  const hasHistory = history !== undefined
+  useEffect(() => {
+    if (connected && hasHistory && !session.restoring) void client.loadHistoryNavigation(session.id).catch(() => {})
+  }, [connected, hasHistory, session.id, session.restoring])
+  const [nearTop, setNearTop] = useState(false)
   const threadRef = useRef<VirtualizedTurnListApi>(null)
+  const [revealing, setRevealing] = useState(false)
+  const revealRevision = useRef(0)
   const [spacerHeightPx, setSpacerHeightPx] = useState(0)
   const spacerHeightRef = useRef(0)
   const anchorSpaceRef = useRef<{ element: HTMLElement; heightPx: number; keepTop: boolean } | null>(null)
@@ -69,20 +171,80 @@ export function ThreadView({ session }: { session: Session }) {
 
   const { isFollowing, scrollToBottom, stopFollowing, schedulePin, contentResized, beginLocate, cancelLocation } =
     useThreadScroll(scrollRoot, running, releaseTurnAnchor)
+  const loadOlder = useCallback(() => {
+    stopFollowing()
+    // The page state owns the retry message, including requests from the floating window.
+    void client.loadOlderHistory(session.id).catch(() => {})
+  }, [session.id, stopFollowing])
+  useEffect(() => {
+    if (scrollRoot === null) return
+    const onScroll = () => {
+      const near = scrollRoot.scrollTop < 600
+      setNearTop(near)
+      if (
+        near &&
+        !navigation?.complete &&
+        connected &&
+        !session.restoring &&
+        !isFollowing &&
+        history?.cursor &&
+        !history.loading &&
+        !history.error
+      )
+        loadOlder()
+    }
+    onScroll()
+    scrollRoot.addEventListener("scroll", onScroll, { passive: true })
+    return () => scrollRoot.removeEventListener("scroll", onScroll)
+  }, [connected, history, isFollowing, loadOlder, scrollRoot, session.restoring, navigation?.complete])
   // Search uses the same release-before-reveal lifecycle as message navigation.
   useEffect(() => {
     publishThread({ sessionId: session.id, turns, api: threadRef.current, beforeReveal: stopFollowing })
   }, [session.id, turns, stopFollowing])
   useEffect(() => () => clearThread(session.id), [session.id])
-  const ensureTurnMounted = useCallback(async (item: NavigationRailItem) => {
-    const thread = threadRef.current
-    if (thread === null) throw new Error("Codex virtual thread is not mounted")
-    await thread.scrollToKey(
-      item.turnKey,
-      turnElement => turnElement.querySelector<HTMLElement>(`[data-content-search-unit-key="${CSS.escape(item.id)}"]`),
-      { align: "top" }
-    )
-  }, [])
+  const ensureTurnMounted = useCallback(
+    async (item: NavigationRailItem, isCurrent: () => boolean) => {
+      const revision = ++revealRevision.current
+      setRevealing(true)
+      try {
+        if (item.isLoaded === false && item.nativeTurnId !== undefined) {
+          await client.loadHistoryTurn(session.id, item.nativeTurnId)
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+        }
+        if (!isCurrent()) return null
+        const target =
+          turnsRef.current.find(turn => turn.user?.id === (item.messageId ?? item.id)) ??
+          turnsRef.current.find(
+            turn =>
+              turn.user !== null &&
+              item.nativeTurnId !== undefined &&
+              turn.items.some(value => nativeTurnId(value) === item.nativeTurnId)
+          )
+        if (!target?.user) return null
+        const userId = target.user.id
+        const thread = threadRef.current
+        if (thread === null) throw new Error("Codex virtual thread is not mounted")
+        await thread.scrollToKey(
+          target.key,
+          turnElement =>
+            turnElement.querySelector<HTMLElement>(`[data-content-search-unit-key="${CSS.escape(userId)}"]`),
+          { align: "top" }
+        )
+        return document.querySelector<HTMLElement>(
+          `[data-chat-scroll] [data-content-search-unit-key="${CSS.escape(userId)}"]`
+        )
+      } finally {
+        if (revealRevision.current === revision) setRevealing(false)
+      }
+    },
+    [session.id]
+  )
+  const previewItem = useCallback(
+    async (item: NavigationRailItem) => {
+      if (item.nativeTurnId !== undefined) await client.previewHistoryTurn(session.id, item.nativeTurnId)
+    },
+    [session.id]
+  )
 
   // Anchor the last turn at the viewport top, growing the spacer when the content is too
   // short to scroll there. The virtual window has to mount the turn first (scrollToKey).
@@ -196,9 +358,21 @@ export function ThreadView({ session }: { session: Session }) {
   }, [anchorLastTurn, scrollRoot, turns])
 
   const renderTurn = (entry: VirtualizedTurnListEntry, index: number) => {
-    const turn = turns[index]
-    if (turn === undefined || turn.key !== entry.turnKey) throw new Error(`Turn is missing at index ${index}`)
-    const isLast = index === turns.length - 1
+    const timelineEntry = entry as HistoryTimelineEntry
+    const turn = timelineEntry.turn
+    if (turn === undefined) {
+      if (timelineEntry.nativeTurnId === undefined) throw new Error(`Turn is missing at index ${index}`)
+      return (
+        <HistoryTurnPlaceholder
+          sessionId={session.id}
+          turnId={timelineEntry.nativeTurnId}
+          root={scrollRoot}
+          error={navigation?.turnErrors[timelineEntry.nativeTurnId]}
+          connected={connected && !isFollowing && !revealing}
+        />
+      )
+    }
+    const isLast = turn.key === lastTurnKey
     const active = running && isLast
     const hasAssistant =
       turn.work.length > 0 ||
@@ -208,13 +382,7 @@ export function ThreadView({ session }: { session: Session }) {
       isTurnInterrupted(turn) ||
       (isLast && (session.error !== null || session.lastStopReason === "cancelled"))
     return (
-      // The top inset lives inside the first turn: the virtual layout assumes its container
-      // starts at scrollTop 0.
-      <div
-        data-virtualized-turn-content
-        data-codex-turn={turn.key}
-        className={index === 0 ? "flex flex-col gap-1.5 pt-3" : "flex flex-col gap-1.5"}>
-        {index === 0 && <ForkOriginDivider />}
+      <div data-virtualized-turn-content data-codex-turn={turn.key} className="flex flex-col gap-1.5">
         <ChatDirectoryContext value={session.cwd}>
           {turn.user !== null && <UserMessage item={turn.user} messageTime={formatTurnTime(turn)} />}
           {hasAssistant && (
@@ -236,6 +404,7 @@ export function ThreadView({ session }: { session: Session }) {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" data-stream-style="codexUI">
       <Pane
+        nativeScroll
         viewportRef={setScrollRoot}
         viewportClassName="overflow-x-hidden overscroll-contain"
         viewportProps={{
@@ -246,25 +415,67 @@ export function ThreadView({ session }: { session: Session }) {
           "aria-label": t("chat.thread")
         }}>
         <div className="min-h-full w-full px-5">
-          <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+          <div
+            data-thread-user-message-navigation-content
+            className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
             <VirtualizedTurnList
               ref={threadRef}
               entries={entries}
               renderTurn={renderTurn}
               scrollElement={scrollRoot}
               sessionKey={session.id}
+              preserveViewport={!isFollowing}
+              leadingInsetPx={12}
+              leadingContent={
+                <div className="pt-3">
+                  <ForkOriginDivider />
+                </div>
+              }
             />
             <div aria-hidden="true" data-turn-anchor-spacer className="shrink-0" style={{ height: spacerHeightPx }} />
             <div aria-hidden="true" className="h-6 shrink-0" />
           </div>
         </div>
       </Pane>
+      {navigation?.error && (
+        <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!connected}
+            title={navigation.error}
+            onClick={() => {
+              void client.loadHistoryNavigation(session.id).catch(() => {})
+            }}>
+            {t("chat.navigationRetry")}
+          </Button>
+        </div>
+      )}
+      {nearTop && history?.cursor && !navigation?.complete && (
+        <div className="absolute inset-x-0 top-2 z-10 flex flex-col items-center gap-1" data-history-loader>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!connected || session.restoring || history.loading}
+            onClick={loadOlder}>
+            {history.loading ? t("chat.loadingEarlier") : t("chat.loadEarlier")}
+          </Button>
+          {history.error && (
+            <p role="alert" className="bg-background text-destructive max-w-md rounded px-2 py-1 text-xs">
+              {history.error}
+            </p>
+          )}
+        </div>
+      )}
       <ThreadUserMessageNavigationRail
+        key={session.id}
         items={railItems}
         scrollRoot={scrollRoot}
         beforeReveal={stopFollowing}
         ensureItemMounted={ensureTurnMounted}
-        targetTopMarginPx={10}
+        onPreviewItem={previewItem}
+        onRevealError={error => toast.error(error instanceof Error ? error.message : String(error))}
+        targetTopMarginPx={16}
       />
       <button
         type="button"

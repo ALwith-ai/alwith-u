@@ -25,7 +25,7 @@ export function NavigationAds({ onOpenVibemon }: { onOpenVibemon?: () => void })
   return (
     <div
       ref={viewport}
-      className="-mx-1 overflow-hidden"
+      className="overflow-hidden"
       data-slot="navigation-ads"
       onKeyDownCapture={event => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
@@ -36,7 +36,7 @@ export function NavigationAds({ onOpenVibemon }: { onOpenVibemon?: () => void })
       }}>
       <div className="flex touch-pan-y">
         {campaigns.map(campaign => (
-          <div key={campaign.id} className="flex min-w-0 flex-[0_0_100%] px-1">
+          <div key={campaign.id} className="flex min-w-0 flex-[0_0_100%]">
             <Button
               variant="ghost"
               aria-label={campaign.label}

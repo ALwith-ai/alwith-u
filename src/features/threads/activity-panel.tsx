@@ -79,7 +79,7 @@ export function ActivityPanel({
       order.flatMap(sid => {
         const record = runStates[sid]
         // The derived order and source can notify React separately; never render a retired row.
-        return record && !record.reusableDraft && !draftSessions[sid]
+        return record && (!record.reusableDraft || draftSessions[sid] !== undefined)
           ? [{ sid, record, thread: threadOf(threads, record) }]
           : []
       }),

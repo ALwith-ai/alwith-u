@@ -194,6 +194,14 @@
     "contextCompacted": "上下文已压缩",
     "compacting": "正在压缩上下文",
     "attachImage": "添加图片",
+    "pastedText": {
+      "filename": "粘贴的文本.txt",
+      "characters": "{{count}} 个字符",
+      "pending": "正在添加粘贴的文本…",
+      "error": "文件创建失败",
+      "retry": "重试创建文本附件",
+      "remove": "移除粘贴的文本附件"
+    },
     "removeImage": "移除图片",
     "commands": "命令",
     "noCommands": "没有匹配的命令",
@@ -328,7 +336,13 @@
     "plan": {
       "title": "计划"
     },
-    "predictionUnavailable": "输入建议暂不可用"
+    "predictionUnavailable": "输入建议暂不可用",
+    "loadEarlier": "加载更早的消息",
+    "loadingEarlier": "正在加载更早的消息…",
+    "navigationLoading": "正在加载预览",
+    "navigationUnavailable": "预览暂不可用",
+    "navigationEmpty": "（无内容）",
+    "navigationRetry": "重试"
   },
   "composer": {
     "mode": "权限",
@@ -740,6 +754,7 @@
     "placeholder": "搜索聊天",
     "actions": "操作",
     "chats": "聊天",
+    "moreResults": "显示更多结果（还有 {{count}} 条）",
     "newChat": "新聊天",
     "toggleTheme": "切换主题",
     "settings": "打开设置"
@@ -959,8 +974,8 @@
     "setupTitle": "先装配一只 Vibémon",
     "enable": "显示 Vibémon",
     "disable": "隐藏 Vibémon",
-    "show": "显示桌宠",
-    "hide": "关闭桌宠",
+    "show": "显示 Vibémon",
+    "hide": "隐藏 Vibémon",
     "selectFirst": "请先在装配页选择桌宠",
     "unavailable": "桌宠窗口支持 macOS 和 Windows"
   },

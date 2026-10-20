@@ -128,9 +128,29 @@ export function providerKeyUrl(provider: Provider, regionId: string | null | und
 export function loadProviders(): Promise<ProviderSnapshot> {
   return commands.providersRead()
 }
-export function applyProviders(): Promise<ProviderSnapshot> {
+function applyProviders(): Promise<ProviderSnapshot> {
   return commands.providersApply()
 }
+
+/** Provider changes wait for active turns; opening a draft must keep using the last applied catalog. */
+function providerApplicationPending(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : String(error)
+  return message.includes("Provider settings are pending")
+}
+
+/**
+ * Apply the saved provider revision when the Runtime is idle. A pending revision is a valid
+ * startup state, so return the read snapshot and let prompt admission retry the application.
+ */
+export async function applyProvidersWhenIdle(): Promise<ProviderSnapshot> {
+  try {
+    return await applyProviders()
+  } catch (error) {
+    if (!providerApplicationPending(error)) throw error
+    return loadProviders()
+  }
+}
+
 export function saveProviderKey(
   revision: number,
   providerId: string,

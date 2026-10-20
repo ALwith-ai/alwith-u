@@ -100,6 +100,28 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   expect(groups[0]).toBe(quick)
 })
 
+test("double clicking Chats collapses quick chats and project groups", () => {
+  const originalUi = useThreadsUiStore.getState()
+  try {
+    client.store.setState({ threadsLoaded: true, threads: [] })
+    useThreadsUiStore.setState({
+      view: "sessions",
+      projectOpen: new Map([
+        ["quick-chats", true],
+        ["/tmp/project", true]
+      ])
+    })
+    const view = showSidebar()
+    expect(view.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "true")
+    fireEvent.doubleClick(view.getByRole("tab", { name: "Chats" }))
+    expect(view.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "false")
+    expect(useThreadsUiStore.getState().projectOpen.size).toBe(0)
+    expect(useThreadsUiStore.getState().view).toBe("sessions")
+  } finally {
+    useThreadsUiStore.setState(originalUi, true)
+  }
+})
+
 test("each group starts with five sessions and reveals all from memory", async () => {
   const { useThreadsUiStore } = await import("../store")
   const originalUi = useThreadsUiStore.getState()

@@ -285,7 +285,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       aria-busy={busy}
       className="bg-background text-foreground relative flex h-dvh flex-col overflow-hidden rounded-2xl border">
       <WindowResizeEdges />
-      <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
+      <header className="border-border flex h-11 shrink-0 items-center gap-1 border-b px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
         <ChatWindowPetButton sessionId={selectedId} />
       </header>

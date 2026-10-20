@@ -184,7 +184,6 @@ test("the submitted draft cannot dismiss a new turn's prediction before the inpu
   expect(view.result.current.text).toBe("Run the tests")
 })
 
-
 test("disabling predictions hides results and prevents requests until enabled", () => {
   predictionPreference.setState({ enabled: false })
   const session = completed()

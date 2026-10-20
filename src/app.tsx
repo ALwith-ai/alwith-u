@@ -18,6 +18,7 @@ import { ActionCard } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
+import { ElicitationFormDialog, type FormAction } from "@/features/chat/dialogs/elicitation-form-dialog"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { useDriveArchive } from "@/features/drive/archive-runtime"
@@ -60,7 +61,7 @@ import { serveChatClient } from "@/lib/chat-window-client"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { watchForNotifications } from "@/lib/notifications"
 import { type Preferences, savePreference } from "@/lib/preferences"
-import { applyProviders } from "@/lib/providers"
+import { applyProvidersWhenIdle } from "@/lib/providers"
 import { onHubExit } from "@/lib/runtime"
 import { serveSettingsBridge } from "@/lib/settings-bridge"
 import { useProviders } from "@/lib/use-providers"
@@ -68,6 +69,7 @@ import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
+import { isFormElicitation } from "@alwith/api"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -82,6 +84,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
   const globalActions = useApp(useShallow(state => state.actions.filter(action => action.sessionId === null)))
+  const globalForms = globalActions.filter(
+    (action): action is FormAction => action.kind === "elicitation" && isFormElicitation(action.params)
+  )
+  const globalInlineActions = globalActions.filter(action => !globalForms.some(form => form.id === action.id))
   // Launch lands on the home screen like the official app; no thread is resumed until the
   // user opens one.
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
@@ -363,7 +369,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     try {
       await client.connect()
       // Restore choices must be checked against the applied provider catalog.
-      await applyProviders()
+      await applyProvidersWhenIdle()
       void info(`connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
     } catch (error) {
       if (client.state.connection === "failed" || client.state.connection === "disconnected")
@@ -574,12 +580,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     )
   })()
 
-  const actionCards = globalActions.length > 0 && (
+  const actionCards = globalInlineActions.length > 0 && (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-12">
-      {globalActions.map(action => (
+      {globalInlineActions.map(action => (
         <ActionCard key={action.id} action={action} />
       ))}
     </div>
+  )
+  const globalFormDialog = globalForms[0] !== undefined && (
+    <ElicitationFormDialog action={globalForms[0]} total={globalForms.length} />
   )
 
   return (
@@ -694,6 +703,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             </SidebarInset>
           }>
           <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
+          {globalFormDialog}
           <CommandPalette
             open={paletteOpen}
             onOpenChange={setPaletteOpen}

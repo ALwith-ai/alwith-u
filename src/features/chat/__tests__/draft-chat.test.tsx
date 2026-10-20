@@ -50,6 +50,7 @@ async function environment(nativeWindow = false) {
     vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
     vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
     vi.spyOn(client, "prompt").mockImplementation((...args) => real.prompt(...args)),
+    vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
     vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
       let result: unknown
       if (command === "draft_directory") result = (args as { cwd: string | null }).cwd ?? "/tmp/ALwith U"
@@ -1088,3 +1089,67 @@ test("floating window readiness survives a failed connection and a later explici
     env.restore()
   }
 })
+
+test.each(["main", "chat"] as const)(
+  "%s first-send forms remain visible before prompt acceptance reaches the surface",
+  async owner => {
+    const env = await environment()
+    let release!: () => void
+    const receipt = new Promise<void>(resolve => {
+      release = resolve
+    })
+    vi.mocked(client.prompt).mockImplementation(async (...args) => {
+      await env.real.prompt(...args)
+      await receipt
+    })
+    let selected: string | null = null
+    const view = render(
+      <ThemeProvider>
+        <DraftChat
+          owner={owner}
+          cwd="/tmp/question-before-receipt"
+          onCwdChange={() => {}}
+          onCreated={id => {
+            selected = id
+          }}
+          onSendingChange={() => {}}
+          onAuthRequired={() => {}}
+          onNewChat={() => {}}
+          providerSnapshot={providers}
+        />
+      </ThemeProvider>
+    )
+    let answer: Promise<unknown> | undefined
+    try {
+      await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeDisabled())
+      await waitFor(() => expect(selected).not.toBeNull())
+      fireEvent.change(view.getByRole("textbox"), { target: { value: "Ask before accepting this first send" } })
+      await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
+      fireEvent.click(view.getByRole("button", { name: "Send" }))
+      await waitFor(() => expect(env.real.state.draftSessions[must(selected, "question session")]).toBeUndefined())
+      answer = env.fake.requestForm({
+        sessionId: must<string>(selected, "question session"),
+        mode: "form",
+        message: "Choose while the first send is still being accepted",
+        requestedSchema: {
+          type: "object",
+          properties: { choice: { type: "string", enum: ["Alpha", "Beta"] } },
+          required: ["choice"]
+        }
+      })
+      await waitFor(() => expect(env.real.state.actions).toHaveLength(1))
+      await waitFor(() => expect(view.getByRole("dialog")).toBeVisible())
+      fireEvent.click(view.getByRole("radio", { name: "Beta" }))
+      fireEvent.click(view.getByRole("button", { name: "Submit" }))
+      expect(await answer).toMatchObject({ action: "accept", content: { choice: "Beta" } })
+    } finally {
+      await act(async () => {
+        for (const action of env.real.state.actions) env.real.respond(action.id, { action: "cancel" })
+        release()
+        await answer
+      })
+      view.unmount()
+      env.restore()
+    }
+  }
+)

@@ -62,6 +62,139 @@ function eventBus(): ChatEvents {
   }
 }
 
+test("floating pagination forwards the session id and receives older messages from its owner", async () => {
+  const fake = createFakeAgent()
+  const requests: Array<Record<string, unknown>> = []
+  fake.historyResponse.current = params => {
+    requests.push(params)
+    const older = params.cursor === "older"
+    return {
+      sessionId: params.sessionId,
+      consistency: "live",
+      revision: null,
+      nextCursor: older ? null : "older",
+      complete: older,
+      turns: [
+        {
+          turnId: older ? "old" : "new",
+          itemsView: "full",
+          updates: [
+            {
+              sessionUpdate: "user_message",
+              messageId: older ? "old" : "new",
+              content: [{ type: "text", text: older ? "earlier" : "latest" }]
+            }
+          ]
+        }
+      ]
+    }
+  }
+  let targetReads = 0
+  fake.app.onRequest(
+    "_codex/session_history_items",
+    value => value as { sessionId: string; turnId: string },
+    ({ params }) => {
+      expect(params).toMatchObject({ sessionId: "h1", turnId: "distant" })
+      targetReads++
+      return {
+        sessionId: params.sessionId,
+        consistency: "live",
+        revision: null,
+        nextCursor: null,
+        complete: true,
+        items: [
+          {
+            turnId: params.turnId,
+            itemId: "distant",
+            updates: [
+              { sessionUpdate: "user_message", messageId: "distant", content: [{ type: "text", text: "distant" }] }
+            ]
+          }
+        ]
+      }
+    }
+  )
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    await remote.open("h1", "/tmp/one")
+    expect(remote.state.historyPages.h1.cursor).toBe("older")
+    await remote.loadOlderHistory("h1")
+    expect(requests.map(request => request.sessionId)).toEqual(["h1", "h1"])
+    expect(remote.session("h1").items.map(item => item.id)).toEqual(["old", "new"])
+    expect(remote.state.historyPages.h1).toEqual({ cursor: null, loading: false, error: null })
+    fake.historyResponse.current = params => ({
+      sessionId: params.sessionId,
+      consistency: "live",
+      revision: null,
+      nextCursor: null,
+      complete: true,
+      turns: ["new", "old", "distant"].map(turnId => ({ turnId, itemsView: "summary", updates: [] }))
+    })
+    await remote.loadHistoryNavigation("h1")
+    expect(remote.state.historyNavigation.h1.turns.map(turn => turn.turnId)).toEqual(["distant", "old", "new"])
+    await remote.previewHistoryTurn("h1", "distant")
+    expect(remote.state.historyNavigation.h1.previews.distant.state).toBe("loaded")
+    expect(remote.session("h1").items).toHaveLength(2)
+    await remote.loadHistoryTurn("h1", "distant")
+    expect(targetReads).toBe(2)
+    expect(remote.session("h1").items.map(item => item.id)).toEqual(["distant", "old", "new"])
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
+test("a slow floating window coalesces queued projections to the latest state", async () => {
+  const fake = createFakeAgent()
+  const owner = new CodexClient(async () => new FakeHubPort(() => fake.app), {
+    agentId: "codex",
+    launch: { engine: "codex" }
+  })
+  const bus = eventBus()
+  let release: (() => void) | null = null
+  let slow = false
+  let deliveries = 0
+  const transport: ChatEvents = {
+    ...bus,
+    emitTo: async (target, event, payload) => {
+      if (event === "chat:client-state") {
+        deliveries++
+        if (slow) {
+          slow = false
+          await new Promise<void>(resolve => {
+            release = resolve
+          })
+        }
+      }
+      await bus.emitTo(target, event, payload)
+    }
+  }
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const before = deliveries
+    slow = true
+    owner.store.setState({ connectionError: "first" })
+    await vi.waitFor(() => expect(release).not.toBeNull())
+    for (let index = 0; index < 100; index++) owner.store.setState({ connectionError: `latest-${index}` })
+    const unblock = release as unknown as () => void
+    unblock()
+    await vi.waitFor(() => expect(remote.state.connectionError).toBe("latest-99"))
+    expect(deliveries - before).toBe(2)
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("floating fork sends the source and turn to the owner and receives the new session", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

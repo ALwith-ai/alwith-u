@@ -51,3 +51,105 @@ test("search opens with its command context and closes after selecting the expli
   expect(selected).toEqual([thread])
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
+
+function catalog(count: number): ThreadSummary[] {
+  return Array.from({ length: count }, (_, index) => ({
+    sessionId: `thread-${index}`,
+    cwd: `/tmp/project-${index}`,
+    title: `Session ${String(index).padStart(4, "0")}`,
+    updatedAt: null,
+    archived: false
+  }))
+}
+
+function openPalette(threads: ThreadSummary[]) {
+  client.store.setState({ threads })
+  const selected: ThreadSummary[] = []
+  function Harness() {
+    const [open, setOpen] = useState(true)
+    return (
+      <ThemeProvider>
+        <Button onClick={() => setOpen(true)}>Reopen</Button>
+        <CommandPalette
+          open={open}
+          onOpenChange={setOpen}
+          onNewChat={() => {}}
+          onOpenSettings={() => {}}
+          onOpenPlugins={() => {}}
+          onOpenHotkeys={() => {}}
+          onOpenExtension={() => {}}
+          onSelect={thread => selected.push(thread)}
+        />
+      </ThemeProvider>
+    )
+  }
+  return { view: render(<Harness />), selected }
+}
+
+test("bounds mounted results while searching titles, directories and IDs throughout a large catalog", async () => {
+  const threads = catalog(5_000)
+  threads[4_999] = { ...threads[4_999], title: "远处的唯一目标" }
+  const { view, selected } = openPalette(threads)
+  expect(view.getAllByRole("option").length).toBeLessThanOrEqual(21)
+  const input = view.getByRole("combobox")
+  for (const query of ["远处的唯一目标", "project-4999", "thread-4999"]) {
+    fireEvent.change(input, { target: { value: query } })
+    await waitFor(() => expect(view.getByRole("option", { name: /远处的唯一目标/ })).toBeDefined())
+    expect(view.getAllByRole("option").length).toBeLessThanOrEqual(21)
+  }
+  fireEvent.click(view.getByRole("option", { name: /远处的唯一目标/ }))
+  expect(selected).toEqual([threads[4_999]])
+})
+
+test.each([{ key: "ArrowDown" }, { key: "n", ctrlKey: true }, { key: "j", ctrlKey: true }])(
+  "keyboard navigation %o crosses a page and Enter opens the selected session",
+  async navigation => {
+    const threads = catalog(100)
+    const { view, selected } = openPalette(threads)
+    const input = view.getByRole("combobox")
+    fireEvent.change(input, { target: { value: "Session" } })
+    const rows = () => view.getAllByRole("option").filter(row => row.getAttribute("data-value")?.startsWith("thread:"))
+    expect(rows()).toHaveLength(20)
+    const nextId = "thread:thread-20"
+    fireEvent.pointerMove(rows()[19])
+    fireEvent.keyDown(input, { key: "ArrowDown", isComposing: true })
+    expect(rows()).toHaveLength(20)
+    fireEvent.keyDown(input, navigation)
+    await waitFor(() => expect(document.querySelector('[data-value="thread:thread-20"]')).not.toBeNull())
+    const current = document.querySelector('[role="option"][aria-selected="true"]')
+    expect(current?.getAttribute("data-value")).toBe(nextId)
+    await waitFor(() => expect(input.getAttribute("aria-activedescendant")).toBe(current?.id))
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(selected).toEqual([threads[20]])
+    await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+    fireEvent.click(view.getByRole("button", { name: "Reopen" }))
+    expect(view.getByRole("combobox")).toHaveValue("")
+    expect(view.getAllByRole("option").length).toBeLessThanOrEqual(21)
+  }
+)
+
+test("scrolling loads further results and a new search resets the page", async () => {
+  const { view } = openPalette(catalog(100))
+  const input = view.getByRole("combobox")
+  fireEvent.change(input, { target: { value: "Session" } })
+  const list = view.getByRole("listbox")
+  Object.defineProperties(list, { scrollHeight: { value: 1000 }, clientHeight: { value: 200 } })
+  list.scrollTop = 780
+  fireEvent.scroll(list)
+  expect(view.getAllByRole("option")).toHaveLength(40)
+  fireEvent.change(input, { target: { value: "Session 0" } })
+  expect(view.getAllByRole("option")).toHaveLength(20)
+  expect(list.scrollTop).toBe(0)
+})
+
+test("the more-results button loads a page without submitting the highlighted session", () => {
+  const { view, selected } = openPalette(catalog(100))
+  fireEvent.change(view.getByRole("combobox"), { target: { value: "Session" } })
+  const more = view.getByRole("button", { name: /Show more results/ })
+  fireEvent.keyDown(more, { key: "Enter" })
+  expect(selected).toEqual([])
+  fireEvent.click(more)
+  expect(view.getAllByRole("option")).toHaveLength(40)
+  expect(view.getByRole("dialog")).toBeDefined()
+  expect(selected).toEqual([])
+})

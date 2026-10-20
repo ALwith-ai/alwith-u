@@ -73,7 +73,7 @@ import { cn } from "@/lib/utils"
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
 import { type SidebarView, useThreadsUiStore } from "./store"
-import { groupThreads, QUICK_CHATS_GROUP, REVEAL_PAGE_SIZE } from "./thread-groups"
+import { groupThreads, QUICK_CHATS_GROUP } from "./thread-groups"
 import { relativeTime, ThreadInfoCard } from "./thread-info-card"
 import { VirtualThreadRows } from "./virtual-thread-rows"
 
@@ -258,9 +258,6 @@ export function ThreadSidebar({
   const threadsError = useApp(state => state.threadsError)
   const connection = useApp(state => state.connection)
   const connectionError = useApp(state => state.connectionError)
-  const archived = useApp(state => state.archivedThreads)
-  const archivedLoaded = useApp(state => state.archivedLoaded)
-  const archivedCursor = useApp(state => state.archivedCursor)
   const runStates = useApp(state => state.runStates)
   // Keep expansion state in the shared in-memory store, as in Desktop; preserve it while the app runs and reset it on restart.
   const revealed = useThreadsUiStore(s => s.revealed)
@@ -287,8 +284,6 @@ export function ThreadSidebar({
   const [pendingDelete, setPendingDelete] = useState<ThreadSummary | null>(null)
   useSidebarOverlay(pendingDelete !== null)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
-  const [archivedLimit, setArchivedLimit] = useState(REVEAL_PAGE_SIZE)
-  const [archivedOpen, setArchivedOpen] = useState(false)
 
   const [allProjectsShown, setAllProjectsShown] = useState(false)
   const groups = useMemo(() => (threadsLoaded ? groupThreads(threads) : []), [threadsLoaded, threads])
@@ -315,7 +310,7 @@ export function ThreadSidebar({
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]">
-      <SidebarHeader className={cn("shrink-0 gap-1 px-2", isMac() && "pt-9")} data-tauri-drag-region>
+      <SidebarHeader className={cn("shrink-0 gap-1 p-1 px-2", isMac() && "pt-9")} data-tauri-drag-region>
         <div className="flex h-8 items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
@@ -384,8 +379,8 @@ export function ThreadSidebar({
         </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden px-2">
-        <div className="relative flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
+      <SidebarContent className="gap-0 overflow-hidden p-1 px-2">
+        <div className="relative mb-2 flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
             className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
@@ -403,6 +398,7 @@ export function ThreadSidebar({
                     aria-selected={active}
                     title={tab.title}
                     onClick={() => setView(tab.key)}
+                    onDoubleClick={tab.key === "sessions" ? () => setProjectOpen(new Map()) : undefined}
                     className={cn(
                       "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
@@ -518,36 +514,6 @@ export function ThreadSidebar({
                   {t("sidebar.showAll")}
                 </NavigationItemButton>
               )}
-              <NavigationGroup
-                open={archivedOpen}
-                onOpenChange={open => {
-                  setArchivedOpen(open)
-                  if (open && !archivedLoaded) report(client.listThreads({ archived: true }))
-                }}
-                leading={<ArchiveIcon className="text-foreground size-3.5 shrink-0" />}
-                label={t("sidebar.archived")}
-                count={archivedLoaded ? archived.length : undefined}>
-                <VirtualThreadRows
-                  threads={archived.slice(0, archivedLimit)}
-                  viewport={viewport}
-                  renderRow={renderRow}
-                />
-                {(archived.length > archivedLimit || archivedCursor !== null) && (
-                  <NavigationItemButton
-                    className={`${MENU_HIGHLIGHT} text-muted-foreground`}
-                    onClick={() => {
-                      if (archived.length > archivedLimit) setArchivedLimit(value => value + REVEAL_PAGE_SIZE)
-                      else
-                        report(
-                          client
-                            .listThreads({ archived: true })
-                            .then(() => setArchivedLimit(value => value + REVEAL_PAGE_SIZE))
-                        )
-                    }}>
-                    {t("sidebar.loadMore")}
-                  </NavigationItemButton>
-                )}
-              </NavigationGroup>
             </ScrollArea.Content>
           </Pane>
         )}

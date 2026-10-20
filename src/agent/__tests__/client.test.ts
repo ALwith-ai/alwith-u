@@ -294,6 +294,170 @@ test("history replay batches complete upserts and publishes the full transcript 
   expect(notifications).toBeLessThan(10)
 })
 
+test("history opens only the latest page, deduplicates older loads and preserves a live answer during pagination", async () => {
+  let release!: () => void
+  const gate = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const requests: Array<Record<string, unknown>> = []
+  const { client, fake } = await make(fake => {
+    fake.historyResponse.current = async params => {
+      requests.push(params)
+      const older = params.cursor === "older"
+      if (older) await gate
+      return {
+        sessionId: params.sessionId,
+        consistency: "live",
+        revision: null,
+        nextCursor: older ? null : "older",
+        complete: older,
+        turns: [
+          {
+            turnId: older ? "old" : "new",
+            itemsView: "full",
+            updates: [
+              {
+                sessionUpdate: "user_message",
+                messageId: older ? "old-user" : "new-user",
+                content: [{ type: "text", text: older ? "old" : "new" }]
+              },
+              {
+                sessionUpdate: "agent_message",
+                messageId: older ? "old-answer" : "answer",
+                content: [{ type: "text", text: "stored" }]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })
+  await client.open("h1", "/tmp/one")
+  expect(requests).toHaveLength(1)
+  expect(client.session("h1").items.map(item => item.id)).toEqual(["new-user", "answer"])
+  const loading = client.loadOlderHistory("h1")
+  expect(client.loadOlderHistory("h1")).toBe(loading)
+  await fake.pushUpdate("h1", {
+    sessionUpdate: "agent_message",
+    messageId: "answer",
+    content: [{ type: "text", text: "live" }]
+  })
+  await until(() =>
+    client.session("h1").items.some(item => item.kind === "assistant" && textOf(item.content) === "live")
+  )
+  release()
+  await loading
+  expect(client.session("h1").items.map(item => item.id)).toEqual(["old-user", "old-answer", "new-user", "answer"])
+  expect(client.session("h1").items.at(-1)).toMatchObject({ content: [{ text: "live" }] })
+  expect(client.state.historyPages.h1).toEqual({ cursor: null, loading: false, error: null })
+  await client.loadOlderHistory("h1")
+  expect(requests).toHaveLength(2)
+})
+
+test("older history exposes retry errors and a late page cannot resurrect a closed session", async () => {
+  let fail = true
+  let release!: () => void
+  const gate = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const { client } = await make(fake => {
+    fake.historyResponse.current = async params => {
+      if (params.cursor) {
+        if (fail) throw RequestError.invalidRequest({}, "Read failed")
+        await gate
+      }
+      return {
+        sessionId: params.sessionId,
+        consistency: "live",
+        revision: null,
+        turns: [],
+        nextCursor: params.cursor ? null : "next",
+        complete: !!params.cursor,
+        ...(params.cursor ? {} : { turns: [{ turnId: "new", itemsView: "full", updates: [] }] })
+      }
+    }
+  })
+  await client.open("h1", "/tmp/one")
+  await expect(client.loadOlderHistory("h1")).rejects.toThrow("Read failed")
+  expect(client.state.historyPages.h1).toMatchObject({
+    cursor: "next",
+    loading: false,
+    error: expect.stringContaining("Read failed")
+  })
+  fail = false
+  const pending = client.loadOlderHistory("h1")
+  await client.close("h1")
+  release()
+  await pending
+  expect(client.state.sessions.h1).toBeUndefined()
+  expect(client.state.historyPages.h1).toBeUndefined()
+})
+
+test("navigation indexes without replaying bodies, deduplicates hydration and discards a closed session's result", async () => {
+  let release!: () => void
+  const gate = new Promise<void>(resolve => {
+    release = resolve
+  })
+  let itemReads = 0
+  const { client, fake } = await make(fake => {
+    fake.historyResponse.current = params => ({
+      sessionId: params.sessionId,
+      consistency: "live",
+      revision: null,
+      nextCursor: null,
+      complete: true,
+      turns: (params.itemsView === "summary" ? ["new", "old"] : ["new"]).map(turnId => ({
+        turnId,
+        itemsView: params.itemsView,
+        updates:
+          params.itemsView === "summary"
+            ? []
+            : [{ sessionUpdate: "user_message", messageId: "new-user", content: [{ type: "text", text: "new" }] }]
+      }))
+    })
+    fake.app.onRequest(
+      "_codex/session_history_items",
+      value => value as { sessionId: string; turnId: string },
+      async ({ params }) => {
+        itemReads++
+        await gate
+        return {
+          sessionId: params.sessionId,
+          consistency: "live",
+          revision: null,
+          nextCursor: null,
+          complete: true,
+          items: [
+            {
+              turnId: params.turnId,
+              itemId: "old-user",
+              updates: [
+                { sessionUpdate: "user_message", messageId: "old-user", content: [{ type: "text", text: "old" }] }
+              ]
+            }
+          ]
+        }
+      }
+    )
+  })
+  await client.open("h1", "/tmp/one")
+  const session = client.session("h1")
+  const firstIndex = client.loadHistoryNavigation("h1")
+  expect(client.loadHistoryNavigation("h1")).toBe(firstIndex)
+  await firstIndex
+  expect(client.state.historyNavigation.h1.turns.map(turn => turn.turnId)).toEqual(["old", "new"])
+  expect(client.session("h1")).toBe(session)
+  const load = client.loadHistoryTurn("h1", "old")
+  expect(client.loadHistoryTurn("h1", "old")).toBe(load)
+  await until(() => itemReads === 1)
+  await client.close("h1")
+  release()
+  await expect(load).rejects.toThrow("cancelled")
+  expect(client.state.historyNavigation.h1).toBeUndefined()
+  expect(client.state.sessions.h1).toBeUndefined()
+  expect(fake.historyRequests.filter(params => params.itemsView === "summary")).toHaveLength(1)
+})
+
 test("prompt acknowledgement is not completion; cancelling one session leaves the other running", async () => {
   const { client } = await make()
   const [a, b] = await Promise.all([client.newSession("/tmp/a"), client.newSession("/tmp/b")])

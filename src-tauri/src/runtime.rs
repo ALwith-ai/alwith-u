@@ -22,12 +22,21 @@ pub struct RuntimeState {
     pub admission: tokio::sync::Mutex<()>,
     client: Mutex<Option<Arc<RuntimeClient>>>,
     starting: tokio::sync::Mutex<()>,
+    initializations: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
     closing: AtomicBool,
     shutdown_complete: AtomicBool,
     close_signal: tokio::sync::Notify,
 }
 
 impl RuntimeState {
+    /// Webview reloads can overlap while the first ACP handshake is still in flight.
+    /// Only serialize admission: Runtime retains the initialization result and owns the process.
+    async fn initialize_guard(&self, request: &Request) -> Option<tokio::sync::OwnedMutexGuard<()>> {
+        let agent_id = initialization_agent(request)?;
+        let lock = self.initializations.lock().unwrap().entry(agent_id.into()).or_default().clone();
+        Some(lock.lock_owned().await)
+    }
+
     pub fn is_closing(&self) -> bool {
         self.closing.load(Ordering::Acquire)
     }
@@ -321,6 +330,10 @@ pub async fn runtime_send(
     if !current_connection() {
         return Err("Window connection replaced".into());
     }
+    let _initialization = state.initialize_guard(&request).await;
+    if !current_connection() {
+        return Err("Window connection replaced".into());
+    }
     let client = state.current()?;
     let lifecycle = is_admission(&request);
     let _admission = if lifecycle { Some(state.admission.lock().await) } else { None };
@@ -330,7 +343,7 @@ pub async fn runtime_send(
         }
         None => false,
     };
-    if lifecycle && !temporary_gamepad {
+    if requires_provider_application(&request) && !temporary_gamepad {
         crate::providers::apply_locked(window.app_handle(), &client).await?;
     }
     if !current_connection() {
@@ -355,16 +368,55 @@ pub async fn runtime_send(
 }
 
 pub fn request_error(error: ResponseError) -> String {
-    format!("Runtime request failed ({}): {}", error.code, error.message)
+    let details = error.data.filter(|data| !data.is_null()).map(|data| format!("; data: {data}")).unwrap_or_default();
+    format!("Runtime request failed ({}): {}{details}", error.code, error.message)
+}
+
+fn initialization_agent(request: &Request) -> Option<&str> {
+    let params = request.params.as_ref()?;
+    match request.method.as_str() {
+        "initialize" => params.get("agentId")?.as_str(),
+        "acpRequest" if params.get("method")?.as_str()? == "initialize" => params.get("agentId")?.as_str(),
+        _ => None,
+    }
 }
 
 fn is_admission(request: &Request) -> bool {
-    matches!(request.method.as_str(), "sessionNew" | "sessionResume" | "sessionLoad" | "sessionFork" | "prompt")
-        || (request.method == "acpRequest"
-            && matches!(
-                request.params.as_ref().and_then(|p| p.get("method")).and_then(Value::as_str),
-                Some("session/new" | "session/resume" | "session/load" | "session/fork" | "session/prompt")
-            ))
+    match request.method.as_str() {
+        "sessionNew" => !is_draft_session_new(request.params.as_ref()),
+        "sessionResume" | "sessionLoad" | "sessionFork" | "prompt" => true,
+        "acpRequest" => match request.params.as_ref().and_then(|p| p.get("method")).and_then(Value::as_str) {
+            Some("session/new") => !is_draft_session_new(request.params.as_ref().and_then(|p| p.get("params"))),
+            Some("session/resume" | "session/load" | "session/fork" | "session/prompt") => true,
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+/// Restoring history keeps the applied catalog and still serializes with provider updates.
+/// A pending revision must not prevent the user from opening an existing conversation.
+fn requires_provider_application(request: &Request) -> bool {
+    let restoring = match request.method.as_str() {
+        "sessionResume" | "sessionLoad" => true,
+        "acpRequest" => matches!(
+            request.params.as_ref().and_then(|params| params.get("method")).and_then(Value::as_str),
+            Some("session/resume" | "session/load")
+        ),
+        _ => false,
+    };
+    is_admission(request) && !restoring
+}
+
+/// Empty draft sessions may be created on the currently applied provider. The first prompt
+/// remains an admission point and applies a saved provider revision only after active turns end.
+fn is_draft_session_new(params: Option<&Value>) -> bool {
+    let Some(params) = params else { return false };
+    let meta = params.get("_meta").or_else(|| params.get("meta"));
+    meta.and_then(|value| value.get("alwith").or_else(|| value.get("_meta").and_then(|nested| nested.get("alwith"))))
+        .and_then(|value| value.get("draft"))
+        .and_then(Value::as_bool)
+        == Some(true)
 }
 
 /// The dedicated Gamepad agent receives its own catalog from gamepad_ai_prepare.

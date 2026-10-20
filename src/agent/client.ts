@@ -59,6 +59,15 @@ import type {
 import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensions"
 import { forkTitle } from "./fork-title"
 import { exportConversation } from "./history"
+import { type HistoryPageState, prependHistory, readHistoryPage } from "./history-page"
+import {
+  type HistoryNavigationState,
+  historyTurnPreview,
+  mergeNavigationHistory,
+  nativeTurnId,
+  readHistoryIndex,
+  readHistoryTurn
+} from "./history-navigation"
 import { setRunStateSource } from "./run-state-source"
 import { SessionOperations } from "./session-operations"
 
@@ -149,6 +158,8 @@ export type AppState = {
   connectionError: string | null
   agent: acp.InitializeResponse | null
   sessions: Record<string, Session>
+  historyPages: Record<string, HistoryPageState>
+  historyNavigation: Record<string, HistoryNavigationState>
   threads: ThreadSummary[]
   threadsLoaded: boolean
   threadsLoading: boolean
@@ -250,6 +261,12 @@ export class CodexClient {
   private readonly unborn = new Map<string, acp.SessionUpdate[]>()
   /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
   private readonly activeReplays = new Map<string, string>()
+  private readonly historyRequests = new Map<string, Promise<void>>()
+  private readonly navigationRequests = new Map<string, Promise<void>>()
+  private readonly navigationEpochs = new Map<string, object>()
+  private readonly turnHistoryRequests = new Map<string, Map<string, Promise<void>>>()
+  private readonly previewHistoryRequests = new Map<string, Map<string, Promise<void>>>()
+  private readonly loadedHistoryTurns = new Map<string, Set<string>>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>(snapshots => {
     this.store.setState(state => ({ sessions: { ...state.sessions, ...snapshots } }))
@@ -267,6 +284,8 @@ export class CodexClient {
       connectionError: null,
       agent: null,
       sessions: {},
+      historyPages: {},
+      historyNavigation: {},
       forkOrigins: {},
       threads: [],
       threadsLoaded: false,
@@ -415,6 +434,7 @@ export class CodexClient {
     this.listRequests.threads++
     this.listRequests.archived++
     this.updates.cancel()
+    this.historyRequests.clear()
     // The process is gone (or we let go of it): nothing pending can be answered any more.
     this.requests.release()
     const sessions: Record<string, Session> = {}
@@ -477,11 +497,7 @@ export class CodexClient {
       this.followModel("main", session)
       this.followModel("chat", session)
       this.updates.enqueue(sessionId, session)
-      if (
-        update.sessionUpdate !== "agent_message_chunk" &&
-        update.sessionUpdate !== "agent_thought_chunk" &&
-        update.sessionUpdate !== "terminal_output_chunk"
-      ) {
+      if (SessionUpdateGuard.isStateUpdate(update) || SessionUpdateGuard.isConfigOptionUpdate(update)) {
         // Live lifecycle and configuration changes are observable immediately,
         // together with all earlier chunks. A completion must never overtake its text.
         this.updates.flush()
@@ -601,20 +617,24 @@ export class CodexClient {
     return this.state.threads.filter(thread => thread.cwd === project)
   }
 
-  private requireHistory(): void {
+  private historyCapability(mode: "browse" | "export"): boolean {
     const codex = this.state.agent?.capabilities?._meta?.codex
     const capability = codex && typeof codex === "object" && "sessionHistory" in codex ? codex.sessionHistory : null
-    if (
-      !capability ||
-      typeof capability !== "object" ||
-      !("version" in capability) ||
-      capability.version !== 2 ||
-      !("items" in capability) ||
-      capability.items !== true ||
-      !("modes" in capability) ||
-      !Array.isArray(capability.modes) ||
-      !capability.modes.includes("export")
+    return !!(
+      capability &&
+      typeof capability === "object" &&
+      "version" in capability &&
+      capability.version === 2 &&
+      "items" in capability &&
+      capability.items === true &&
+      "modes" in capability &&
+      Array.isArray(capability.modes) &&
+      capability.modes.includes(mode)
     )
+  }
+
+  private requireHistory(): void {
+    if (!this.historyCapability("export"))
       throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
   }
 
@@ -687,23 +707,25 @@ export class CodexClient {
   private async sessionContext(
     cwd: string,
     model: string | null,
-    operation: SessionOperation
+    operation: SessionOperation,
+    draft = false
   ): Promise<{
     revision?: string
     bind?: (sessionId: string) => Promise<void>
     mcpServers?: acp.McpServer[]
     systemPrompt?: acp.SystemPrompt
-    _meta?: { alwith: { model?: string } }
+    _meta?: { alwith: { model?: string; draft?: boolean } }
   }> {
     const hint = modelHint(model)
-    if (!this.options.sessionContext) return hint
+    const alwith = { ...hint._meta?.alwith, ...(draft ? { draft: true } : {}) }
+    if (!this.options.sessionContext) return Object.keys(alwith).length > 0 ? { _meta: { alwith } } : {}
     const context = await this.options.sessionContext(cwd, operation)
     return {
       revision: context.revision,
       bind: context.bind,
       mcpServers: context.mcpServers,
       ...(context.appendSystemPrompt ? { systemPrompt: this.systemPrompt(context.appendSystemPrompt) } : {}),
-      ...hint
+      ...(Object.keys(alwith).length > 0 ? { _meta: { alwith } } : {})
     }
   }
 
@@ -723,7 +745,7 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
-    const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" })
+    const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" }, owner !== null)
     const response = await this.born(
       () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
       response => {
@@ -936,9 +958,21 @@ export class CodexClient {
   private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     const agent = this.live()
+    const history = this.historyCapability("browse")
+    this.historyRequests.delete(id)
+    this.navigationEpochs.set(id, {})
+    this.navigationRequests.delete(id)
+    this.turnHistoryRequests.delete(id)
+    this.previewHistoryRequests.delete(id)
+    this.loadedHistoryTurns.delete(id)
+    this.store.setState(state => {
+      const { [id]: _navigation, ...historyNavigation } = state.historyNavigation
+      return { historyNavigation }
+    })
     // From where this session has the record when the agent can continue from a position; otherwise from the start.
     const cursor = replayCursorFor(agent.initialized, this.sessions.get(id))
-    this.sessions.beginReplay(id, cursor.type === "start" ? "start" : cursor.after)
+    this.sessions.beginReplay(id, history ? 0 : cursor.type === "start" ? "start" : cursor.after)
+    const baseline = this.sessions.get(id)
     this.publishSession(this.sessions.get(id))
     try {
       const model =
@@ -949,11 +983,20 @@ export class CodexClient {
       const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
         sessionId: id,
         cwd,
-        replayFrom: cursor,
+        ...(history ? {} : { replayFrom: cursor }),
         ...context
       })
       await bind?.(id)
       this.contextRevisions.set(id, revision)
+      if (history) {
+        const page = await readHistoryPage(id, cwd, null, params => agent.request("_codex/session_history", params))
+        if (this.agent !== agent) throw new Error("Codex disconnected during history load")
+        this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
+        this.noteLoadedHistory(id, page.turnIds)
+        this.store.setState(state => ({
+          historyPages: { ...state.historyPages, [id]: { cursor: page.cursor, loading: false, error: null } }
+        }))
+      }
       this.sessions.endReplay(id, replayReceiptOf(response))
       this.publishSession({
         ...this.sessions.get(id),
@@ -973,6 +1016,203 @@ export class CodexClient {
       })
       throw error
     }
+  }
+
+  /** One request per session; closing or reconnecting invalidates its result. */
+  loadOlderHistory(id: string): Promise<void> {
+    const pending = this.historyRequests.get(id)
+    if (pending) return pending
+    const page = this.state.historyPages[id]
+    if (!page || page.cursor === null) return Promise.resolve()
+    const agent = this.live()
+    const session = this.sessions.get(id)
+    this.store.setState(state => ({
+      historyPages: { ...state.historyPages, [id]: { ...page, loading: true, error: null } }
+    }))
+    const current = () =>
+      this.agent === agent && this.sessions.sessions.has(id) && this.historyRequests.get(id) === request
+    const request = readHistoryPage(id, session.cwd, page.cursor, params =>
+      agent.request("_codex/session_history", params)
+    )
+      .then(result => {
+        if (!current()) return
+        const navigation = this.state.historyNavigation[id]
+        const merged = navigation?.complete
+          ? mergeNavigationHistory(this.sessions.get(id), result.session, navigation.turns)
+          : prependHistory(this.sessions.get(id), result.session)
+        this.sessions.set(merged)
+        this.noteLoadedHistory(id, result.turnIds)
+        this.updates.remove(id)
+        this.store.setState(state => ({
+          sessions: { ...state.sessions, [id]: merged },
+          historyPages: { ...state.historyPages, [id]: { cursor: result.cursor, loading: false, error: null } }
+        }))
+      })
+      .catch((error: unknown) => {
+        if (current())
+          this.store.setState(state => ({
+            historyPages: {
+              ...state.historyPages,
+              [id]: {
+                ...page,
+                loading: false,
+                error: error instanceof Error ? error.message : String(error)
+              }
+            }
+          }))
+        throw error
+      })
+      .finally(() => {
+        if (this.historyRequests.get(id) === request) this.historyRequests.delete(id)
+      })
+    this.historyRequests.set(id, request)
+    return request
+  }
+
+  private noteLoadedHistory(id: string, turnIds: string[]): void {
+    const loaded = this.loadedHistoryTurns.get(id) ?? new Set<string>()
+    for (const turnId of turnIds) loaded.add(turnId)
+    this.loadedHistoryTurns.set(id, loaded)
+    const navigation = this.state.historyNavigation[id]
+    if (navigation) this.setHistoryNavigation(id, { ...navigation, loadedTurnIds: [...loaded] })
+  }
+
+  private setHistoryNavigation(id: string, navigation: HistoryNavigationState): void {
+    this.store.setState(state => ({ historyNavigation: { ...state.historyNavigation, [id]: navigation } }))
+  }
+
+  /** Turn metadata has its own traversal; opening a thread never waits for its full index. */
+  loadHistoryNavigation(id: string): Promise<void> {
+    const pending = this.navigationRequests.get(id)
+    if (pending) return pending
+    if (this.state.historyNavigation[id]?.complete || !this.state.historyPages[id]) return Promise.resolve()
+    const agent = this.live()
+    const epoch = this.navigationEpochs.get(id)
+    const current = () =>
+      this.agent === agent && this.sessions.sessions.has(id) && this.navigationEpochs.get(id) === epoch
+    const check = () => {
+      if (!current()) throw new Error("History navigation was cancelled")
+    }
+    const loaded =
+      this.loadedHistoryTurns.get(id) ??
+      new Set(
+        this.sessions.get(id).items.flatMap(item => {
+          const turnId = nativeTurnId(item)
+          return turnId === null ? [] : [turnId]
+        })
+      )
+    this.loadedHistoryTurns.set(id, loaded)
+    this.setHistoryNavigation(id, {
+      turns: [],
+      loadedTurnIds: [...loaded],
+      loading: true,
+      complete: false,
+      error: null,
+      previews: {},
+      turnErrors: {}
+    })
+    const request = readHistoryIndex(id, (method, params) => agent.request(method, params), check)
+      .then(turns => {
+        check()
+        const navigation = this.state.historyNavigation[id]
+        this.setHistoryNavigation(id, { ...navigation, turns, loading: false, complete: true })
+      })
+      .catch((error: unknown) => {
+        if (current())
+          this.setHistoryNavigation(id, {
+            ...this.state.historyNavigation[id],
+            loading: false,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        throw error
+      })
+      .finally(() => {
+        if (this.navigationRequests.get(id) === request) this.navigationRequests.delete(id)
+      })
+    this.navigationRequests.set(id, request)
+    return request
+  }
+
+  /** Hover fetches one bounded preview page, leaving the session transcript untouched. */
+  previewHistoryTurn(id: string, turnId: string): Promise<void> {
+    return this.hydrateHistoryTurn(id, turnId, true)
+  }
+
+  loadHistoryTurn(id: string, turnId: string): Promise<void> {
+    return this.hydrateHistoryTurn(id, turnId, false)
+  }
+
+  private hydrateHistoryTurn(id: string, turnId: string, preview: boolean): Promise<void> {
+    if (preview) {
+      const hydrating = this.turnHistoryRequests.get(id)?.get(turnId)
+      if (hydrating) return hydrating
+    }
+    const navigation = this.state.historyNavigation[id]
+    if (navigation?.loadedTurnIds.includes(turnId) || (preview && navigation?.previews[turnId]?.state === "loaded"))
+      return Promise.resolve()
+    const turn = navigation?.turns.find(turn => turn.turnId === turnId)
+    if (!turn) return Promise.reject(new Error(`History navigation turn is missing: ${turnId}`))
+    const requests = preview ? this.previewHistoryRequests : this.turnHistoryRequests
+    const turns = requests.get(id) ?? new Map<string, Promise<void>>()
+    requests.set(id, turns)
+    const pending = turns.get(turnId)
+    if (pending) return pending
+    const agent = this.live()
+    const epoch = this.navigationEpochs.get(id)
+    const current = () =>
+      this.agent === agent && this.sessions.sessions.has(id) && this.navigationEpochs.get(id) === epoch
+    const check = () => {
+      if (!current()) throw new Error("History navigation was cancelled")
+    }
+    this.setHistoryNavigation(id, {
+      ...navigation,
+      previews: { ...navigation.previews, [turnId]: { state: "loading", messages: [] } },
+      turnErrors: { ...navigation.turnErrors, [turnId]: "" }
+    })
+    const request = readHistoryTurn(
+      id,
+      this.sessions.get(id).cwd,
+      turn,
+      (method, params) => agent.request(method, params),
+      check,
+      preview
+    )
+      .then(session => {
+        check()
+        if (!preview) {
+          const merged = mergeNavigationHistory(this.sessions.get(id), session, this.state.historyNavigation[id].turns)
+          this.sessions.set(merged)
+          this.updates.remove(id)
+          this.noteLoadedHistory(id, [turnId])
+          this.publishSession(merged)
+        }
+        const latest = this.state.historyNavigation[id]
+        // A late bounded preview cannot replace a fully hydrated turn's preview.
+        if (!preview || !latest.loadedTurnIds.includes(turnId))
+          this.setHistoryNavigation(id, {
+            ...latest,
+            previews: { ...latest.previews, [turnId]: historyTurnPreview(session) }
+          })
+      })
+      .catch((error: unknown) => {
+        if (current()) {
+          const latest = this.state.historyNavigation[id]
+          if (preview && latest.loadedTurnIds.includes(turnId)) return
+          this.setHistoryNavigation(id, {
+            ...latest,
+            previews: { ...latest.previews, [turnId]: { state: "unavailable", messages: [] } },
+            turnErrors: preview
+              ? latest.turnErrors
+              : { ...latest.turnErrors, [turnId]: error instanceof Error ? error.message : String(error) }
+          })
+        }
+        throw error
+      })
+      .finally(() => {
+        if (turns.get(turnId) === request) turns.delete(turnId)
+      })
+    turns.set(turnId, request)
+    return request
   }
 
   prompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
@@ -1466,6 +1706,12 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
+    this.historyRequests.delete(id)
+    this.navigationEpochs.delete(id)
+    this.navigationRequests.delete(id)
+    this.turnHistoryRequests.delete(id)
+    this.previewHistoryRequests.delete(id)
+    this.loadedHistoryTurns.delete(id)
     this.contextRevisions.delete(id)
     this.updates.remove(id)
     this.requests.cancelSession(id)
@@ -1475,7 +1721,9 @@ export class CodexClient {
       const { [id]: _origin, ...forkOrigins } = state.forkOrigins
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       const { [id]: _window, ...sessionWindows } = state.sessionWindows
-      return { sessions, forkOrigins, draftSessions, sessionWindows }
+      const { [id]: _history, ...historyPages } = state.historyPages
+      const { [id]: _navigation, ...historyNavigation } = state.historyNavigation
+      return { sessions, forkOrigins, draftSessions, sessionWindows, historyPages, historyNavigation }
     })
   }
 }

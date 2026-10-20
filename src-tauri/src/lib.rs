@@ -132,6 +132,8 @@ pub fn run() {
 
     let app = builder
         .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            fullscreen_controls::on_window_event(window, event);
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 voice::detach(window.app_handle(), window.label());
             }
@@ -217,10 +219,17 @@ pub fn run() {
         })
         .invoke_handler({
             let typed = bindings().invoke_handler();
+            #[cfg(target_os = "macos")]
+            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
+                voice::voice_push,
+                settings::settings_request,
+                fullscreen_controls::set_traffic_light_zoom
+            ];
+            #[cfg(not(target_os = "macos"))]
             let binary: fn(tauri::ipc::Invoke) -> bool =
                 tauri::generate_handler![voice::voice_push, settings::settings_request];
             move |invoke| {
-                if matches!(invoke.message.command(), "voice_push" | "settings_request") {
+                if matches!(invoke.message.command(), "voice_push" | "settings_request" | "set_traffic_light_zoom") {
                     binary(invoke)
                 } else {
                     typed(invoke)
@@ -325,6 +334,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 drive::drive_request,
                 drive::drive_path_exists,
                 chat_files::chat_save_file,
+                chat_files::chat_write_text_attachment,
                 chat_files::chat_read_image,
                 chat_files::chat_preview_file,
                 chat_files::chat_read_dropped_file,

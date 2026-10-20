@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
-import { applyProviders } from "@/lib/providers"
+import { applyProvidersWhenIdle } from "@/lib/providers"
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
-import { ComputerControl } from "@/features/computer/computer-control"
+import { FilePreviewModal } from "./dialogs/file-preview-modal"
+import { SessionActions } from "./session-actions"
 import { Composer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
 import { drafts, importDraft } from "./composer/drafts"
@@ -99,13 +100,14 @@ export function DraftChat({
     // Explicit retries and provider revisions invalidate preparation.
     void attempt
     void providerRevision
+    void providerSnapshot?.status
     let active = true
     setPreparing(true)
     setError(null)
     const pending = (async (): Promise<string | null> => {
       const directory = await invoke<string>("draft_directory", { cwd })
       await client.connect()
-      await applyProviders()
+      await applyProvidersWhenIdle()
       if (!active) return null
       const current = currentId.current
       // Normalizing the default directory may rerun this effect after the first
@@ -146,7 +148,7 @@ export function DraftChat({
     return () => {
       active = false
     }
-  }, [owner, cwd, providerRevision, attempt, model])
+  }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model])
 
   const send = async (prompt: acp.ContentBlock[]): Promise<void> => {
     let target: string | null = null
@@ -181,7 +183,6 @@ export function DraftChat({
   return (
     <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
       <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
-        {owner === "chat" && session && !preparing && <ComputerControl />}
         <ChatActionsMenu
           surface={headerTarget === undefined ? "main" : "floating"}
           onOpenWindow={session && !preparing ? onOpenWindow : undefined}
@@ -215,6 +216,7 @@ export function DraftChat({
           )}
         </div>
       )}
+      {id !== null && <SessionActions sessionId={id} />}
       <Composer
         inputHeader={picker}
         session={session ?? pendingComposer}
@@ -243,6 +245,7 @@ export function DraftChat({
         disabled={session === null || preparing || error !== null || connection !== "ready"}
         onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
       />
+      <FilePreviewModal />
     </div>
   )
 }

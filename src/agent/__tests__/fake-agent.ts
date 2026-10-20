@@ -34,6 +34,8 @@ export type FakeAgent = {
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   resumeResponse: { current: (() => Promise<acp.ResumeSessionResponse>) | null }
   replayUpdates: acp.SessionUpdate[]
+  historyRequests: Array<Record<string, unknown>>
+  historyResponse: { current: ((params: Record<string, unknown>) => unknown | Promise<unknown>) | null }
 }
 
 function modelHintOf(params: { _meta?: unknown }): string | null {
@@ -108,6 +110,8 @@ export function createFakeAgent(): FakeAgent {
   const fileSearches: string[] = []
   const resumeResponse: FakeAgent["resumeResponse"] = { current: null }
   const replayUpdates: acp.SessionUpdate[] = []
+  const historyRequests: Array<Record<string, unknown>> = []
+  const historyResponse: FakeAgent["historyResponse"] = { current: null }
   let link: acp.AgentContext | null = null
   const gatewayGroups = (): GatewayGroup[] =>
     [...gateways.entries()].map(([id, params]) => {
@@ -266,27 +270,59 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/resume", async ({ params, client }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
-    for (const update of replayUpdates) await client.notify("session/update", { sessionId: params.sessionId, update })
-    await client.notify("session/update", {
-      sessionId: params.sessionId,
-      update: {
-        sessionUpdate: "user_message",
-        messageId: "u",
-        content: [{ type: "text", text: "history" }]
-      }
-    })
-    await client.notify("session/update", {
-      sessionId: params.sessionId,
-      update: {
-        sessionUpdate: "agent_message",
-        messageId: "m",
-        content: [{ type: "text", text: `restored:${params.sessionId}` }]
-      }
-    })
+    if (params.replayFrom != null) {
+      for (const update of replayUpdates) await client.notify("session/update", { sessionId: params.sessionId, update })
+      await client.notify("session/update", {
+        sessionId: params.sessionId,
+        update: {
+          sessionUpdate: "user_message",
+          messageId: "u",
+          content: [{ type: "text", text: "history" }]
+        }
+      })
+      await client.notify("session/update", {
+        sessionId: params.sessionId,
+        update: {
+          sessionUpdate: "agent_message",
+          messageId: "m",
+          content: [{ type: "text", text: `restored:${params.sessionId}` }]
+        }
+      })
+    }
     if (resumeResponse.current) return resumeResponse.current()
     const origin = origins.get(params.sessionId)
     return { configOptions: optionsFor(hint), ...(origin ? { _meta: { codex: origin } } : {}) }
   })
+  app.onRequest(
+    "_codex/session_history",
+    value => value as Record<string, unknown>,
+    ({ params }) => {
+      historyRequests.push(params)
+      if (historyResponse.current) return historyResponse.current(params)
+      return {
+        sessionId: params.sessionId,
+        consistency: "live",
+        revision: null,
+        nextCursor: null,
+        complete: true,
+        turns: [
+          {
+            turnId: "history",
+            itemsView: "full",
+            updates: [
+              ...replayUpdates,
+              { sessionUpdate: "user_message", messageId: "u", content: [{ type: "text", text: "history" }] },
+              {
+                sessionUpdate: "agent_message",
+                messageId: "m",
+                content: [{ type: "text", text: `restored:${params.sessionId}` }]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  )
   app.onRequest("session/set_config_option", async ({ params }) => {
     if (changingConfig.has(params.sessionId))
       throw acp.RequestError.invalidRequest(
@@ -444,6 +480,8 @@ export function createFakeAgent(): FakeAgent {
     renamed,
     fileSearches,
     replayUpdates,
+    historyRequests,
+    historyResponse,
     resumeResponse,
     pushRateLimits,
     requestForm: async params => {
