@@ -13,7 +13,9 @@ import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/ass
 import { AlertCircleIcon, SparklesIcon } from "lucide-react"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
+
 import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
+
 import { ForkTurnButton } from "../chat-branches"
 import { isHistoryInterrupted, isSessionStatus, messageText, type Turn, turnTiming, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
@@ -97,8 +99,8 @@ function AssistantTurnImpl({
   if (isSessionStatus(turn)) {
     return (
       <ActivityHostProvider host={host}>
-        <div role="status" className="text-muted-foreground flex min-w-0 flex-col gap-2 py-2 text-sm">
-          {turn.work.map(entry => (
+        <div role="status" className="flex min-w-0 flex-col gap-2 py-2 text-sm text-muted-foreground">
+          {turn.work.map((entry) => (
             <WorkEntryView
               key={entry.key}
               entry={entry}
@@ -115,16 +117,16 @@ function AssistantTurnImpl({
   const historyInterrupted = isHistoryInterrupted(turn)
   // Codex streams reasoning only while it is the latest non-user item in the turn.
   // Use item order, not arrival timestamps: patches to earlier items do not resume them.
-  const latestItem = turn.items.findLast(item => item.kind !== "user")
+  const latestItem = turn.items.findLast((item) => item.kind !== "user")
   const streamingThoughtId = active && latestItem?.kind === "thought" ? latestItem.id : null
   const finalText = turn.final.map(messageText).join("\n")
   const time = active ? null : formatTurnTime(turn, "assistant")
   // Generated artifacts are tool results in both live updates and history replay.
   // Project them into the reply without moving items out of the runtime-owned session.
   const displayedImages = new Set(
-    turn.final.flatMap(message => message.content.map(imageIdentity).filter(identity => identity !== null))
+    turn.final.flatMap((message) => message.content.map(imageIdentity).filter((identity) => identity !== null))
   )
-  const artifacts = turn.items.flatMap(item => {
+  const artifacts = turn.items.flatMap((item) => {
     if (item.kind !== "tool" || item.status !== "completed") return []
     return item.content.filter(isContentEntry).flatMap((part, index) => {
       const block = part.content
@@ -144,7 +146,7 @@ function AssistantTurnImpl({
   })
   const hasFinal =
     artifacts.length > 0 ||
-    turn.final.some(message => message.content.some(block => !isText(block) || block.text.trim().length > 0))
+    turn.final.some((message) => message.content.some((block) => !isText(block) || block.text.trim().length > 0))
   return (
     <ActivityHostProvider host={host}>
       <CodexAssistantTurn
@@ -152,7 +154,7 @@ function AssistantTurnImpl({
         active={active}
         {...turnTiming(turn)}
         loading={active && turn.work.length === 0 && !hasFinal}
-        work={turn.work.map(entry => (
+        work={turn.work.map((entry) => (
           <WorkEntryView
             key={entry.key}
             entry={entry}
@@ -166,7 +168,7 @@ function AssistantTurnImpl({
             <div className="flex min-w-0 flex-col gap-3">
               {artifacts.length > 0 && (
                 <div className="codex-reply-artifacts flex min-w-0 flex-col gap-3">
-                  {artifacts.map(artifact => (
+                  {artifacts.map((artifact) => (
                     <AssistantContent
                       key={artifact.key}
                       content={[artifact.block]}
@@ -176,7 +178,7 @@ function AssistantTurnImpl({
                   ))}
                 </div>
               )}
-              {turn.final.map(message => (
+              {turn.final.map((message) => (
                 <AssistantContent
                   key={message.id}
                   content={message.content}

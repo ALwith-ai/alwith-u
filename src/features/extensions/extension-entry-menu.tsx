@@ -4,6 +4,7 @@ import { resolveActionTarget } from "@alwith/module-extension/host"
 import { SettingsIcon } from "lucide-react"
 import { cloneElement, type ReactElement } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { EXTENSION_ICONS } from "./extension-icons"
+
 import { extensionApps } from "./extension-apps"
+import { EXTENSION_ICONS } from "./extension-icons"
 
 export function ExtensionEntryMenu({
   host,
@@ -52,7 +54,8 @@ export function ExtensionEntryMenu({
                     throw new Error(`Extension action target unavailable: ${action.target.id}`)
                   })
                   .catch(onError)
-              }}>
+              }}
+            >
               <Icon className="text-muted-foreground" />
               <span className="min-w-0 truncate">{name}</span>
             </DropdownMenuItem>

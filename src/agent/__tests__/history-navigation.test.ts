@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest"
+
 import { historyTurnPreview, mergeNavigationHistory, readHistoryIndex, readHistoryTurn } from "../history-navigation"
 import { readHistoryPage } from "../history-page"
 
@@ -27,7 +28,7 @@ test("indexes every turn using summary-only pages without fetching transcript bo
     .fn()
     .mockResolvedValueOnce(response({ turns: [summary("new")] }, "older"))
     .mockResolvedValueOnce(response({ turns: [summary("old")] }))
-  expect((await readHistoryIndex("s", request, () => {})).map(turn => turn.turnId)).toEqual(["old", "new"])
+  expect((await readHistoryIndex("s", request, () => {})).map((turn) => turn.turnId)).toEqual(["old", "new"])
   expect(
     request.mock.calls.every(
       ([method, params]) => method === "_codex/session_history" && params.itemsView === "summary"
@@ -91,7 +92,7 @@ test("sparse hydration, later pagination and live upserts retain native chronolo
   const middle = await page("middle")
   const sparse = mergeNavigationHistory(recent, old, index)
   const filled = mergeNavigationHistory(sparse, middle, index)
-  expect(filled.items.map(item => item.id)).toEqual(["u-old", "a-old", "u-middle", "a-middle", "u-new", "a-new"])
+  expect(filled.items.map((item) => item.id)).toEqual(["u-old", "a-old", "u-middle", "a-middle", "u-new", "a-new"])
   const repeated = mergeNavigationHistory(filled, old, index)
   expect(repeated.items).toEqual(filled.items)
   expect(repeated.items[4]).toBe(recent.items[0])

@@ -14,7 +14,9 @@ import { fetch } from "@tauri-apps/plugin-http"
 import { arch, platform } from "@tauri-apps/plugin-os"
 import { LazyStore } from "@tauri-apps/plugin-store"
 import { create } from "zustand"
+
 import { commands } from "@/bindings"
+
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
 
@@ -24,12 +26,12 @@ const LOGOUT_EVENT = "alwith-auth-logout-request"
 const isMain = () => getCurrentWebviewWindow().label === "main"
 const store = new LazyStore(`${authStoreName(API_BASE_URL)}.json`)
 const storage = createTokenStorage({
-  get: key => store.get(key),
+  get: (key) => store.get(key),
   set: async (key, value) => {
     await store.set(key, value)
     await store.save()
   },
-  delete: async key => {
+  delete: async (key) => {
     await store.delete(key)
     await store.save()
   }
@@ -40,7 +42,7 @@ const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
   fetch,
   storage,
-  refresh: refreshToken => commands.refreshTokens({ apiBaseUrl: API_BASE_URL, refreshToken }),
+  refresh: (refreshToken) => commands.refreshTokens({ apiBaseUrl: API_BASE_URL, refreshToken }),
   expired: async () => {
     for (const listener of expiredListeners) listener()
     await storage.clearAllAuth()
@@ -74,9 +76,9 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
     onProfileRestored: () => {},
     clearAccountConversation: async () => {},
     onSignedIn: () => {},
-    subscribeExpired: listener => expiredListeners.add(listener),
-    subscribeState: listener => stateListeners.add(listener),
-    broadcast: event => emit(STATE_EVENT, event)
+    subscribeExpired: (listener) => expiredListeners.add(listener),
+    subscribeState: (listener) => stateListeners.add(listener),
+    broadcast: (event) => emit(STATE_EVENT, event)
   })
 )
 
@@ -106,7 +108,7 @@ export async function loginPlatform(response: LoginResponse): Promise<void> {
 
 /** Register listeners before restoring credentials; called once by each window bootstrap. */
 export async function initPlatformAuth(): Promise<void> {
-  await listen<AuthStateEvent>(STATE_EVENT, event => {
+  await listen<AuthStateEvent>(STATE_EVENT, (event) => {
     for (const listener of stateListeners) listener(event.payload)
   })
   if (isMain())

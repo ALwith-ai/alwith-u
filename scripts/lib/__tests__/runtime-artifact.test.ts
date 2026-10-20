@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { join } from "node:path"
+
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "../runtime-artifact"
 
 test("the npm package is the default; local Runtime builds require explicit opt-in", () => {

@@ -2,6 +2,7 @@ import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, Su
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { useTheme } from "@/components/theme-provider"
@@ -21,7 +22,8 @@ import { useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { openSettingsWindow } from "@/lib/window-manager"
-import { searchPalette, type PaletteSearchGroup } from "./search"
+
+import { type PaletteSearchGroup, searchPalette } from "./search"
 
 const PAGE_SIZE = 20
 
@@ -53,7 +55,8 @@ export function CommandPalette(props: Props) {
       open={props.open}
       onOpenChange={props.onOpenChange}
       title={t("palette.actions")}
-      description={t("palette.placeholder")}>
+      description={t("palette.placeholder")}
+    >
       {props.open && <PaletteContent {...props} />}
     </CommandDialog>
   )
@@ -71,8 +74,8 @@ function PaletteContent({
   const { t } = useTranslation()
   const { host: extensions } = useExtensions()
   const { resolvedTheme, setTheme } = useTheme()
-  const threads = useApp(state => state.threads)
-  const pluginsAvailable = useApp(state => hasPluginStore(state.agent))
+  const threads = useApp((state) => state.threads)
+  const pluginsAvailable = useApp((state) => hasPluginStore(state.agent))
   const [query, setQuery] = useState("")
   const [page, setPage] = useState({ query: "", limit: PAGE_SIZE })
   const list = useRef<HTMLDivElement>(null)
@@ -118,7 +121,7 @@ function PaletteContent({
           action("action:extensions", t("extensions.manage"), <SettingsIcon />, () => {
             void openSettingsWindow("extensions").catch(reportExtensionError)
           }),
-          ...extensions.commands.map(command => ({
+          ...extensions.commands.map((command) => ({
             id: `extension-command:${command.id}`,
             search: `extension-command ${command.id} ${command.title}`,
             label: command.title,
@@ -130,8 +133,8 @@ function PaletteContent({
             }
           })),
           ...extensions.views
-            .filter(view => view.kind === "surfaces")
-            .map(view => ({
+            .filter((view) => view.kind === "surfaces")
+            .map((view) => ({
               id: `extension-surface:${view.id}`,
               search: `extension-surface ${view.id} ${view.title}`,
               label: view.title,
@@ -143,7 +146,7 @@ function PaletteContent({
       {
         id: "chats",
         heading: t("palette.chats"),
-        entries: threads.map(thread => ({
+        entries: threads.map((thread) => ({
           id: `thread:${thread.sessionId}`,
           search: `${thread.title ?? ""} ${thread.cwd} ${thread.sessionId}`,
           label: thread.title ?? t("sidebar.untitled"),
@@ -172,7 +175,7 @@ function PaletteContent({
   const matches = useMemo(() => searchPalette(groups, query), [groups, query])
   const limit = page.query === query ? page.limit : PAGE_SIZE
   const count = matches.reduce((total, group) => total + group.entries.length, 0)
-  const entries = matches.flatMap(group => group.entries)
+  const entries = matches.flatMap((group) => group.entries)
   const visible = entries.slice(0, limit)
   const more = count > limit
   const showMore = () => {
@@ -182,7 +185,7 @@ function PaletteContent({
   return (
     <Command
       shouldFilter={false}
-      onKeyDownCapture={event => {
+      onKeyDownCapture={(event) => {
         if (event.nativeEvent.isComposing || event.keyCode === 229 || !more) return
         const next = event.key === "ArrowDown" || (event.ctrlKey && (event.key === "n" || event.key === "j"))
         if (!next) return
@@ -193,40 +196,43 @@ function PaletteContent({
         // Mount the next page before cmdk handles this same ArrowDown event.
         // Its own selection then retains scrolling and aria-activedescendant.
         flushSync(showMore)
-      }}>
+      }}
+    >
       <CommandInput
         placeholder={t("palette.placeholder")}
         value={query}
-        onValueChange={value => {
+        onValueChange={(value) => {
           setQuery(value)
           if (list.current) list.current.scrollTop = 0
         }}
       />
       <CommandList
         ref={list}
-        onScroll={event => {
+        onScroll={(event) => {
           const root = event.currentTarget
           if (more && root.scrollHeight - root.clientHeight - root.scrollTop < 64) showMore()
-        }}>
+        }}
+      >
         <CommandEmpty>{t("sidebar.noResults")}</CommandEmpty>
-        {matches.map(group => {
+        {matches.map((group) => {
           const current = group.entries.slice(0, remaining)
           remaining -= current.length
           if (current.length === 0) return null
           return (
             <CommandGroup key={group.id} heading={group.heading}>
-              {current.map(entry => (
+              {current.map((entry) => (
                 <CommandItem
                   key={entry.id}
                   value={entry.id}
                   onSelect={() => {
                     onOpenChange(false)
                     entry.run()
-                  }}>
+                  }}
+                >
                   {entry.icon}
                   <span className="min-w-0 truncate">{entry.label}</span>
                   {entry.detail !== undefined && (
-                    <span className="text-muted-foreground ms-auto max-w-1/3 truncate text-xs">{entry.detail}</span>
+                    <span className="ms-auto max-w-1/3 truncate text-xs text-muted-foreground">{entry.detail}</span>
                   )}
                   {entry.shortcut !== undefined && <CommandShortcut>{entry.shortcut}</CommandShortcut>}
                 </CommandItem>
@@ -237,11 +243,12 @@ function PaletteContent({
         {more && (
           <Button
             variant="ghost"
-            className="text-muted-foreground h-8 w-full justify-start px-2 text-xs"
-            onKeyDown={event => {
+            className="h-8 w-full justify-start px-2 text-xs text-muted-foreground"
+            onKeyDown={(event) => {
               if (event.key === "Enter") event.stopPropagation()
             }}
-            onClick={showMore}>
+            onClick={showMore}
+          >
             {t("palette.moreResults", { count: count - limit })}
           </Button>
         )}

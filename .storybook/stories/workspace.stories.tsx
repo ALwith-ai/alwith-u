@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { useState, type ReactNode } from "react"
+import { type ReactNode, useState } from "react"
 import { expect, waitFor } from "storybook/test"
+
 import { Button } from "../../src/components/ui/button"
 import { ChatHeader } from "../../src/features/chat/chat-header"
 import { PreviewSurface } from "../../src/features/workspace/preview-surface"
@@ -11,7 +12,7 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
   const [maximized, setMaximized] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
   return (
-    <div className="bg-sidebar text-foreground flex h-[700px] flex-col p-1" style={{ width }}>
+    <div className="flex h-[700px] flex-col bg-sidebar p-1 text-foreground" style={{ width }}>
       <Button onClick={() => setVisible(true)}>Open preview</Button>
       <WorkspacePanels
         visible={visible}
@@ -32,7 +33,7 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
             treeVisible={treeVisible}
             onTreeVisibleChange={setTreeVisible}
             maximized={maximized}
-            onMaximize={() => setMaximized(value => !value)}
+            onMaximize={() => setMaximized((value) => !value)}
             onClose={() => {
               setVisible(false)
               setMaximized(false)
@@ -79,21 +80,21 @@ export const EqualPanels: Story = {
     await waitFor(() => {
       const left = chat.getBoundingClientRect(),
         right = preview.getBoundingClientRect()
-      expect(left.width).toBeCloseTo(right.width, 0)
-      expect(right.left - left.right).toBe(8)
-      expect(getComputedStyle(chat).borderRadius).toBe("14px")
+      void expect(left.width).toBeCloseTo(right.width, 0)
+      void expect(right.left - left.right).toBe(8)
+      void expect(getComputedStyle(chat).borderRadius).toBe("14px")
     })
     await userEvent.type(canvas.getByRole("textbox", { name: "Message" }), "Keep this message")
     await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
     await waitFor(() => {
-      expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth - 8)
-      expect(chat.closest(".file-workspace-slide")).toHaveAttribute("inert")
+      void expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth - 8)
+      void expect(chat.closest(".file-workspace-slide")).toHaveAttribute("inert")
     })
     await userEvent.click(canvas.getByRole("button", { name: "Restore" }))
     await waitFor(() =>
       expect(chat.getBoundingClientRect().width).toBeCloseTo(preview.getBoundingClientRect().width, 0)
     )
-    expect(canvas.getByRole("textbox", { name: "Message" })).toHaveValue("Keep this message")
+    void expect(canvas.getByRole("textbox", { name: "Message" })).toHaveValue("Keep this message")
     await userEvent.click(canvas.getByRole("button", { name: "Hide tree" }))
     await userEvent.click(canvas.getByRole("button", { name: "Show file tree" }))
     await waitFor(() =>
@@ -105,7 +106,7 @@ export const EqualPanels: Story = {
     await waitFor(() =>
       expect(preview.getBoundingClientRect().width).toBeCloseTo(chat.getBoundingClientRect().width, 0)
     )
-    expect(canvas.getByRole("textbox", { name: "Document" })).toHaveValue("Retained draft")
+    void expect(canvas.getByRole("textbox", { name: "Document" })).toHaveValue("Retained draft")
   }
 }
 
@@ -117,10 +118,10 @@ export const NarrowPanels: Story = {
     const viewport = canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!
     const slides = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
     await waitFor(() => {
-      expect(slides[0].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
-      expect(slides[1].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
-      expect(canvas.queryByRole("button", { name: "Next pane" })).toBeNull()
-      expect(canvas.queryByRole("button", { name: "Previous pane" })).toBeNull()
+      void expect(slides[0].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
+      void expect(slides[1].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
+      void expect(canvas.queryByRole("button", { name: "Next pane" })).toBeNull()
+      void expect(canvas.queryByRole("button", { name: "Previous pane" })).toBeNull()
     })
   }
 }
@@ -140,8 +141,10 @@ export const ResizeBoundaries: Story = {
     await userEvent.click(canvas.getByRole("separator", { name: "Resize workspace" }))
     for (let index = 0; index < 28; index++) await userEvent.keyboard("{ArrowLeft}")
     await waitFor(() => {
-      expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth)
-      expect(canvasElement.querySelector<HTMLElement>(".file-workspace-slide")!.getBoundingClientRect().width).toBe(0)
+      void expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth)
+      void expect(
+        canvasElement.querySelector<HTMLElement>(".file-workspace-slide")!.getBoundingClientRect().width
+      ).toBe(0)
     })
   }
 }
@@ -160,10 +163,10 @@ export const WindowResize: Story = {
     await waitFor(() => expect(preview.getBoundingClientRect().width).toBe(draggedWidth))
     frame.style.width = "1600px"
     await waitFor(() => {
-      expect(preview.getBoundingClientRect().width).toBe(draggedWidth)
-      expect(canvasElement.querySelector<HTMLElement>(".file-workspace-slide")!.getBoundingClientRect().width).toBe(
-        layout.clientWidth - draggedWidth
-      )
+      void expect(preview.getBoundingClientRect().width).toBe(draggedWidth)
+      void expect(
+        canvasElement.querySelector<HTMLElement>(".file-workspace-slide")!.getBoundingClientRect().width
+      ).toBe(layout.clientWidth - draggedWidth)
     })
   }
 }

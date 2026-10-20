@@ -1,5 +1,6 @@
 import type { SessionRunState } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { CodexClient } from "../client"
 import { watchThreadList } from "../thread-list-refresh"
 import { createFakeAgent } from "./fake-agent"
@@ -65,7 +66,7 @@ test("changes during a fetch schedule one trailing refresh; disposal cancels sch
     .spyOn(client, "listThreads")
     .mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           finish = resolve
         })
     )

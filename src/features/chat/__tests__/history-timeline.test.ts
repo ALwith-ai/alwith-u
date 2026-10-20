@@ -1,6 +1,8 @@
 import { applyUpdate, createSession } from "@alwith/api"
 import { expect, test } from "vitest"
+
 import type { HistoryNavigationState } from "@/agent/history-navigation"
+
 import { historyTimeline } from "../history-timeline"
 import { groupTurns } from "../turns"
 

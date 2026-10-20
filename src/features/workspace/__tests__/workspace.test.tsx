@@ -1,14 +1,16 @@
 import type { TextEditorProps } from "@alwith/module-editor"
-import { normalizePath, type FsAdapter, type WriteOptions } from "@alwith/module-fs"
+import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module-fs"
 import type { NativeRequest } from "@alwith/module-fs/tauri"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { ChatHeader } from "@/features/chat/chat-header"
-import { initI18n } from "@/lib/i18n"
 import { openGuideWindow } from "@/features/guide/guide-window"
+import { initI18n } from "@/lib/i18n"
+
 import { WorkspaceHeaderContext } from "../context"
 import { FileWorkspace } from "../file-workspace"
 
@@ -19,6 +21,12 @@ const native = vi.hoisted(() => ({
   listen: vi.fn(async (_event: string, _handler: () => void) => (): void => {}),
   nativeMode: false,
   close: null as ((event: { preventDefault(): void }) => void) | null
+}))
+let clipboardText: string
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: async (text: string): Promise<void> => {
+    clipboardText = text
+  }
 }))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke: native.invoke, isTauri: () => native.nativeMode }))
@@ -40,7 +48,7 @@ vi.mock("@/features/chat/codex/markdown-renderer", () => ({
 }))
 vi.mock("../monaco-editor", () => ({
   default: (props: TextEditorProps) => (
-    <textarea aria-label="Code" value={props.document.text} onChange={event => props.onChange(event.target.value)} />
+    <textarea aria-label="Code" value={props.document.text} onChange={(event) => props.onChange(event.target.value)} />
   ),
   releaseMonaco: vi.fn()
 }))
@@ -159,9 +167,34 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
   )
 }
 
+test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async (surface) => {
+  clipboardText = ""
+  const browserWrite = vi.fn(async (): Promise<void> => {
+    throw new DOMException("Clipboard access denied", "NotAllowedError")
+  })
+  const previousClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard")
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: browserWrite } })
+  try {
+    render(<Surface cwd="/a" />)
+    fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+    const file = await screen.findByRole("treeitem", { name: "one.txt" })
+    if (surface === "tab") {
+      fireEvent.doubleClick(file)
+      await screen.findByRole("textbox", { name: "Code" })
+    }
+    fireEvent.contextMenu(surface === "tree" ? file : screen.getByRole("tab", { name: "one.txt" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Copy path" }))
+    await waitFor(() => expect(clipboardText).toBe("/a/one.txt"))
+    expect(browserWrite).not.toHaveBeenCalled()
+  } finally {
+    if (previousClipboard) Object.defineProperty(navigator, "clipboard", previousClipboard)
+    else Reflect.deleteProperty(navigator, "clipboard")
+  }
+})
+
 test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share\alwith-u`])(
   "Windows breadcrumbs use relative paths and reveal the real folder for %s",
-  async root => {
+  async (root) => {
     vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32")
     const normalizedRoot = normalizePath(root)
     adapter = createMemoryAdapter({ [`${normalizedRoot}/folder/bunfig.toml`]: "content" })
@@ -180,7 +213,7 @@ test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share
     expect(
       within(breadcrumbs)
         .getAllByRole("button")
-        .map(button => button.textContent)
+        .map((button) => button.textContent)
     ).toEqual(["folder", "bunfig.toml"])
     expect(breadcrumbs).toHaveAttribute("title", `${normalizedRoot}/folder/bunfig.toml`)
     native.invoke.mockClear()
@@ -225,7 +258,7 @@ test("right workspace edits, renames and saves through installed packages", asyn
 test("an old authorization response cannot open another chat's workspace", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   const view = render(<Surface cwd="/a" />)
@@ -399,7 +432,7 @@ test("reopening the preview reuses the authorized workspace", async () => {
 test("rapid preview clicks share one pending authorization", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   render(<Surface cwd="/a" />)
@@ -570,7 +603,7 @@ test("row drag prevents native text selection without blocking inline rename inp
 
 test("unmount releases a watch that finishes after workspace creation is cancelled", async () => {
   let completeWatch: (() => void) | null = null
-  const pendingWatch = new Promise<void>(resolve => {
+  const pendingWatch = new Promise<void>((resolve) => {
     completeWatch = resolve
   })
   const originalInvoke = required(native.invoke.getMockImplementation())
@@ -704,7 +737,7 @@ test("native project tree menu opens the current workspace", async () => {
 test("project tree shortcut ignores a response belonging to a previous project", async () => {
   let finish!: (value: string) => void
   authorize = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   const view = render(<Surface cwd="/a" />)

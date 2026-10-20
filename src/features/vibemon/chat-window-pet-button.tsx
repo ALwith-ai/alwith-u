@@ -2,6 +2,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LoaderCircleIcon, Minimize2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog"
 import { requestChatSurface } from "@/lib/chat-window"
+
 import { petErrorMessage } from "./display-error"
 import { collapseChatToPet } from "./window-client"
 
@@ -23,7 +25,6 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
   const [notice, setNotice] = useState<Notice | null>(null)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const operation = useRef<AbortController | null>(null)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A session change must abort the previous operation and clear its notice.
   useEffect(() => {
     setNotice(null)
     setNoticeOpen(false)
@@ -32,7 +33,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
     return () => {
       operation.current?.abort()
       operation.current = null
-      void stop.then(unlisten => unlisten())
+      void stop.then((unlisten) => unlisten())
     }
   }, [sessionId])
   const collapse = async () => {
@@ -83,10 +84,11 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
         title={t("pet.collapse")}
         aria-label={t("pet.collapse")}
         disabled={busy}
-        onClick={() => void collapse()}>
+        onClick={() => void collapse()}
+      >
         {busy ? <LoaderCircleIcon className="animate-spin" /> : <Minimize2Icon />}
       </Button>
-      <Dialog open={noticeOpen} onOpenChange={open => !busy && setNoticeOpen(open)}>
+      <Dialog open={noticeOpen} onOpenChange={(open) => !busy && setNoticeOpen(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t(notice?.type === "setup" ? "pet.setupTitle" : "common:petMode.failed")}</DialogTitle>
@@ -97,7 +99,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
             </DialogDescription>
           </DialogHeader>
           {notice?.type === "setup" && notice.error && (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-sm text-destructive">
               {notice.error}
             </p>
           )}

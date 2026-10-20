@@ -1,5 +1,5 @@
 /** Reproducible vector artwork for the bundled ALwith U agent cursor. */
-import { mkdir, mkdtemp, rm, writeFile, utimes } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 const root = join(import.meta.dir, "../src-tauri/assets/computer")
@@ -84,7 +84,7 @@ for (const action of actions) {
     layers: [layer(1, [path(outline), paint(blue), stroke(white, 3)])]
   })
 }
-await save("manifest.json", { version: "2", animations: actions.map(id => ({ id })) })
+await save("manifest.json", { version: "2", animations: actions.map((id) => ({ id })) })
 await save("cua/theme.json", {
   schema: "cua.cursor-theme/2",
   id: "ai.alwith.u",
@@ -95,7 +95,7 @@ await save("cua/theme.json", {
   compatibility: { profile: "cua-driver-actions-v2", semantics: 2 },
   canvas: { width: 128, height: 128, fps: 30 },
   hotspot: { x: 24, y: 16 },
-  actions: Object.fromEntries(actions.map(id => [id, { animation: id, still_frame: 15 }]))
+  actions: Object.fromEntries(actions.map((id) => [id, { animation: id, still_frame: 15 }]))
 })
 const archive = join(root, "alwith-u.lottie")
 await Bun.file(archive)

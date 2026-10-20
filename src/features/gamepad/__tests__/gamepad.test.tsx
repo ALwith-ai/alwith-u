@@ -1,6 +1,6 @@
 import type { GamepadEvent, GamepadSnapshot } from "@alwith/module-gamepad"
 import { gamepadResources } from "@alwith/module-gamepad/locales"
-import { GamepadPanel, GamepadProvider, type GamepadHost } from "@alwith/module-gamepad/react"
+import { type GamepadHost, GamepadPanel, GamepadProvider } from "@alwith/module-gamepad/react"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { createInstance } from "i18next"
 import { I18nextProvider } from "react-i18next"
@@ -30,7 +30,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
   const listeners = new Set<(event: GamepadEvent) => void>()
   const host: GamepadHost = {
     platform: "macos",
-    request: vi.fn(async request => {
+    request: vi.fn(async (request) => {
       if (request.type === "selectDevice") {
         state = { ...state, sequence: state.sequence + 1, activeDevice: request.id }
         for (const listener of listeners) listener({ type: "snapshot", snapshot: state })
@@ -54,7 +54,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
         }
       return { type: "snapshot" as const, snapshot: state }
     }),
-    listen: async handler => {
+    listen: async (handler) => {
       listeners.add(handler)
       return () => {
         listeners.delete(handler)
@@ -83,7 +83,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
   await waitFor(() => expect(host.request).toHaveBeenCalledWith({ type: "snapshot" }))
   return {
     host,
-    emit: event => {
+    emit: (event) => {
       for (const listener of listeners) listener(event)
     }
   }

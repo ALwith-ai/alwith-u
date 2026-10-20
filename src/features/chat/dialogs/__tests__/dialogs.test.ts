@@ -1,5 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { describe, expect, test } from "vitest"
+
 import { filePatch } from "../diff-modal"
 import { elicitationFields, initialValues, isAnswered } from "../elicitation-form-dialog"
 import { sortPermissionOptions } from "../permission-options"
@@ -39,7 +40,7 @@ describe("sortPermissionOptions", () => {
       { optionId: "ro", name: "No", kind: "reject_once" },
       { optionId: "ao", name: "Yes", kind: "allow_once" }
     ]
-    expect(sortPermissionOptions(options).map(option => option.optionId)).toEqual(["ao", "aa", "ro", "ra"])
+    expect(sortPermissionOptions(options).map((option) => option.optionId)).toEqual(["ao", "aa", "ro", "ra"])
   })
 })
 

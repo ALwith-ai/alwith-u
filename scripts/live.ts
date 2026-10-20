@@ -4,12 +4,13 @@
 import { mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { WebSocketRuntimeClient } from "@alwith/api"
+
+import { isFormElicitation, isStringProperty, isText, type Session, WebSocketRuntimeClient } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
+
 import { CodexClient } from "../src/agent/client"
-import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
-import { isFormElicitation, isStringProperty, isText, type Session } from "@alwith/api"
+import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
 function isNotice(item: Session["items"][number]): boolean {
@@ -21,10 +22,10 @@ function isNotice(item: Session["items"][number]): boolean {
 // Notices (warnings, reroutes) are not part of the persisted transcript, so replay omits them.
 function assistantText(session: Session): string {
   return session.items
-    .filter(item => item.kind === "assistant" && !isNotice(item))
-    .flatMap(item => (item.kind === "assistant" ? item.content : []))
+    .filter((item) => item.kind === "assistant" && !isNotice(item))
+    .flatMap((item) => (item.kind === "assistant" ? item.content : []))
     .filter(isText)
-    .map(block => block.text)
+    .map((block) => block.text)
     .join("")
 }
 
@@ -39,36 +40,36 @@ async function until(predicate: () => boolean | Promise<boolean>, timeoutMs: num
 async function verifyHistory(client: CodexClient, directory: string, replies: Map<string, string>): Promise<void> {
   await client.listThreads({ reset: true })
   const projectThreads = await client.listProjectThreads(directory)
-  if (projectThreads.some(thread => thread.cwd !== directory))
+  if (projectThreads.some((thread) => thread.cwd !== directory))
     throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
     const exported = await client.exportHistory(id, () => {})
     const messages = exported
       .trim()
       .split("\n")
-      .map(line => JSON.parse(line))
+      .map((line) => JSON.parse(line))
     const exportedText = messages
-      .filter(message => message.type === "assistant")
-      .flatMap(message => message.message.content as { type: string; text: string }[])
-      .map(block => block.text)
+      .filter((message) => message.type === "assistant")
+      .flatMap((message) => message.message.content as { type: string; text: string }[])
+      .map((block) => block.text)
       .join("")
-    if (exportedText.trim() !== original.trim() || messages.filter(message => message.type === "user").length !== 1)
+    if (exportedText.trim() !== original.trim() || messages.filter((message) => message.type === "user").length !== 1)
       throw new Error(`Read-only export of ${id} differs from the live transcript`)
-    if (!projectThreads.some(thread => thread.sessionId === id))
+    if (!projectThreads.some((thread) => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from project list`)
-    if (!client.state.threads.some(thread => thread.sessionId === id))
+    if (!client.state.threads.some((thread) => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
     // WebSocket history notifications can arrive after open resolves, in separate batches.
     await until(
       () =>
-        client.session(id).items.some(item => item.kind === "user") &&
+        client.session(id).items.some((item) => item.kind === "user") &&
         assistantText(client.session(id)).trim() === original.trim(),
       10_000,
       `complete history replay for ${id}`
     )
     const replayed = client.session(id)
-    const users = replayed.items.filter(item => item.kind === "user").length
+    const users = replayed.items.filter((item) => item.kind === "user").length
     if (users !== 1) throw new Error(`Expected one user message in ${id}, saw ${users}`)
     if (assistantText(replayed).trim() !== original.trim())
       throw new Error(`Replay of ${id} differs from the live transcript`)
@@ -99,9 +100,9 @@ async function check(transport: "stdio" | "ws") {
     console.log(`agent: ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
 
     const draft = await client.prepareDraft("main", directory)
-    if (!client.session(draft).configOptions.some(option => option.category === "model"))
+    if (!client.session(draft).configOptions.some((option) => option.category === "model"))
       throw new Error("Precreated draft has no model selector")
-    if ((await client.listProjectThreads(directory)).some(thread => thread.sessionId === draft))
+    if ((await client.listProjectThreads(directory)).some((thread) => thread.sessionId === draft))
       throw new Error("Precreated draft leaked into the project index")
     await client.discardDraft("main")
     if (client.state.sessions[draft]) throw new Error("Discarded draft is still attached")
@@ -157,7 +158,7 @@ async function check(transport: "stdio" | "ws") {
     second.disconnect()
     await port.stop("codex")
     // The raw stop command acknowledges the request; registry removal confirms actual exit.
-    await until(async () => !(await port.agents()).some(agent => agent.agentId === "codex"), 10_000, "agent exit")
+    await until(async () => !(await port.agents()).some((agent) => agent.agentId === "codex"), 10_000, "agent exit")
     second = new CodexClient(async () => port, {
       agentId: "codex",
       launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
@@ -165,7 +166,7 @@ async function check(transport: "stdio" | "ws") {
     await second.connect()
     await verifyHistory(second, directory, replies)
     console.log("fresh agent: native history matches live transcripts")
-    const boundary = second.session(a).items.find(item => item.kind === "assistant" && !isNotice(item))
+    const boundary = second.session(a).items.find((item) => item.kind === "assistant" && !isNotice(item))
     const turnId = codexTurnId(boundary?._meta)
     if (turnId === null) throw new Error("Restored answer is missing its Codex turn id")
     const originalTime = codexTurnStartedAt(boundary?._meta)
@@ -182,7 +183,7 @@ async function check(transport: "stdio" | "ws") {
     try {
       await until(
         () =>
-          second!.session(forked).items.some(item => item.kind === "user") &&
+          second!.session(forked).items.some((item) => item.kind === "user") &&
           assistantText(second!.session(forked)).trim() === replyA.trim(),
         10_000,
         "fork history updates"
@@ -194,26 +195,26 @@ async function check(transport: "stdio" | "ws") {
         throw new Error("Fork did not identify the inherited turn boundary")
       if (
         forkSession.items.some(
-          item => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime
+          (item) => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime
         )
       )
         throw new Error("Fork changed the original turn time")
       if (
-        forkSession.items.filter(item => item.kind === "user").length !== 1 ||
+        forkSession.items.filter((item) => item.kind === "user").length !== 1 ||
         assistantText(forkSession).trim() !== replyA.trim()
       )
         throw new Error("Fork did not stop at the selected answer")
       const branches = await second.listProjectThreads(directory)
-      if (![a, forked].every(id => branches.some(thread => thread.sessionId === id)))
+      if (![a, forked].every((id) => branches.some((thread) => thread.sessionId === id)))
         throw new Error("Native branch index is missing the source or fork")
-      if (branches.find(thread => thread.sessionId === forked)?.forkedFromId !== a)
+      if (branches.find((thread) => thread.sessionId === forked)?.forkedFromId !== a)
         throw new Error("Fork lineage does not point to the source")
       await second.close(forked)
       // A fork must survive a full agent restart before the user sends anything in it.
       second.disconnect()
       await port.stop("codex")
       await until(
-        async () => !(await port.agents()).some(agent => agent.agentId === "codex"),
+        async () => !(await port.agents()).some((agent) => agent.agentId === "codex"),
         10_000,
         "new fork agent exit"
       )
@@ -243,7 +244,7 @@ async function check(transport: "stdio" | "ws") {
       second.disconnect()
       await port.stop("codex")
       await until(
-        async () => !(await port.agents()).some(agent => agent.agentId === "codex"),
+        async () => !(await port.agents()).some((agent) => agent.agentId === "codex"),
         10_000,
         "fork agent exit"
       )
@@ -252,7 +253,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      if (!(await second.listProjectThreads(directory)).some(thread => thread.sessionId === forked))
+      if (!(await second.listProjectThreads(directory)).some((thread) => thread.sessionId === forked))
         throw new Error("Continued fork is missing from the persisted native list")
       await second.open(forked, directory)
       await until(
@@ -270,7 +271,7 @@ async function check(transport: "stdio" | "ws") {
       if (
         second
           .session(forked)
-          .items.some(item => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime)
+          .items.some((item) => codexTurnId(item._meta) === turnId && codexTurnStartedAt(item._meta) !== originalTime)
       )
         throw new Error("Fork history time changed after restart")
       console.log(
@@ -283,7 +284,7 @@ async function check(transport: "stdio" | "ws") {
     if (events.length === 0) throw new Error("the Runtime journal has no frames for session A")
     console.log(`journal: ${events.length} frames for A, last sequence ${events.at(-1)!.sequence}`)
     const states = await port.runStates()
-    console.log(`run states: ${states.map(state => `${state.sessionId.slice(0, 8)}=${state.state}`).join(", ")}`)
+    console.log(`run states: ${states.map((state) => `${state.sessionId.slice(0, 8)}=${state.state}`).join(", ")}`)
     // Session close must retire only its Runtime record, including when the session is idle.
     // Unsent native drafts have no persisted rollout to reopen; use materialized conversations.
     const closeTarget = a
@@ -295,11 +296,11 @@ async function check(transport: "stdio" | "ws") {
     if (second.session(closeTarget).attached || assistantText(second.session(closeTarget)) !== retainedText)
       throw new Error("Stopping a session did not retain its detached transcript")
     await until(
-      async () => !(await port.runStates()).some(state => state.sessionId === closeTarget),
+      async () => !(await port.runStates()).some((state) => state.sessionId === closeTarget),
       10_000,
       "idle session removal"
     )
-    if (!(await port.runStates()).some(state => state.sessionId === survivor))
+    if (!(await port.runStates()).some((state) => state.sessionId === survivor))
       throw new Error("Closing one session removed its sibling")
     await second.open(closeTarget, directory)
     await Promise.all([
@@ -308,7 +309,7 @@ async function check(transport: "stdio" | "ws") {
     ])
     await second.stopSession(closeTarget)
     await until(
-      async () => !(await port.runStates()).some(state => state.sessionId === closeTarget),
+      async () => !(await port.runStates()).some((state) => state.sessionId === closeTarget),
       10_000,
       "running session removal"
     )
@@ -319,7 +320,7 @@ async function check(transport: "stdio" | "ws") {
       120_000,
       "sibling completion after close"
     )
-    if (!(await port.agents()).some(agent => agent.agentId === "codex"))
+    if (!(await port.agents()).some((agent) => agent.agentId === "codex"))
       throw new Error("Session close killed the shared agent")
     await second.open(closeTarget, directory)
     if (!second.session(closeTarget).attached) throw new Error("Closed session could not reopen")
@@ -332,9 +333,9 @@ async function check(transport: "stdio" | "ws") {
     second?.disconnect()
     const exited =
       port instanceof ProcessRuntimeClient
-        ? new Promise<void>(resolve => port.onProcessExit(() => resolve()))
+        ? new Promise<void>((resolve) => port.onProcessExit(() => resolve()))
         : runtime
-          ? new Promise<void>(resolve => runtime.process.once("exit", () => resolve()))
+          ? new Promise<void>((resolve) => runtime.process.once("exit", () => resolve()))
           : Promise.resolve()
     port.close()
     runtime?.stop()
@@ -353,15 +354,15 @@ async function verifyUserInput(client: CodexClient, directory: string): Promise<
       }
     ])
     await until(
-      () => client.state.actions.some(action => action.sessionId === id),
+      () => client.state.actions.some((action) => action.sessionId === id),
       120_000,
       "Default-mode structured question"
     )
-    const action = client.state.actions.find(action => action.sessionId === id)
+    const action = client.state.actions.find((action) => action.sessionId === id)
     if (!action || action.kind !== "elicitation" || !isFormElicitation(action.params))
       throw new Error(`Expected a structured question in Default mode, received: ${assistantText(client.session(id))}`)
     const choice = action.params.requestedSchema.properties?.choice
-    if (!choice || !isStringProperty(choice) || !choice.oneOf?.some(option => option.const === "Beta"))
+    if (!choice || !isStringProperty(choice) || !choice.oneOf?.some((option) => option.const === "Beta"))
       throw new Error("The structured question is missing its selectable Beta answer")
     // Default-mode questions may be non-blocking; the pending request owns the form,
     // independently of whether Runtime keeps the turn running while awaiting input.

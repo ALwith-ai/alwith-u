@@ -3,11 +3,13 @@ import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/modul
 import type { GamepadHost } from "@alwith/module-gamepad/react"
 import { invoke } from "@tauri-apps/api/core"
 import { platform } from "@tauri-apps/plugin-os"
+
 import { CodexClient } from "@/agent/client"
 import { commands } from "@/bindings"
 import { loadPreferences } from "@/lib/preferences"
 import { loadProviders, resolveSessionModel } from "@/lib/providers"
 import { runtimeClient } from "@/lib/runtime"
+import { asError } from "@/lib/text"
 
 type GenerateConfig = NonNullable<GamepadHost["generateConfig"]>
 export type GamepadAiContext = {
@@ -26,7 +28,7 @@ async function openContext(): Promise<GamepadAiContext> {
   const client = new CodexClient(async () => port, { agentId, launch: { engine: "codex" } })
   const os = platform()
   if (os !== "macos" && os !== "windows" && os !== "linux") throw new Error(`Unsupported platform: ${os}`)
-  const stop = await port.onRunStates(states => client.applyRunStates(states))
+  const stop = await port.onRunStates((states) => client.applyRunStates(states))
   return {
     client,
     cwd,
@@ -51,7 +53,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
     let unsubscribe = (): void => {}
     let abort = (): void => {}
     let timer: ReturnType<typeof setTimeout> | undefined
-    let failure: unknown
+    let failure: Error | undefined
     let output: Awaited<ReturnType<GenerateConfig>> | undefined
     const cleanupErrors: unknown[] = []
     try {
@@ -73,7 +75,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
             const session = state.sessions[id]
             if (!session) throw new Error("Gamepad generation session closed")
             if (session.error) throw new Error(session.error.error?.message ?? session.error.stopReason)
-            if (state.actions.some(action => action.sessionId === id))
+            if (state.actions.some((action) => action.sessionId === id))
               throw new Error("Gamepad generation requires interactive approval")
             let text = ""
             let chars = 0
@@ -94,10 +96,10 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
             // and the folded turn-end update, which can arrive in either order.
             if (state.runStates[id]?.state === "done" && session.lastStopReason !== null) resolve(text)
           } catch (error) {
-            reject(error)
+            reject(asError(error))
           }
         }
-        abort = () => reject(signal.reason ?? new DOMException("Aborted", "AbortError"))
+        abort = () => reject(signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError"))
         signal.addEventListener("abort", abort, { once: true })
         unsubscribe = client.store.subscribe(inspect)
         timer = setTimeout(() => reject(new Error("Gamepad configuration generation timed out")), 180_000)
@@ -108,7 +110,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
       const [, text] = await Promise.all([sending, result])
       output = sanitizeAiConfig(extractJson(text))
     } catch (error) {
-      failure = error
+      failure = asError(error)
     } finally {
       unsubscribe()
       signal.removeEventListener("abort", abort)

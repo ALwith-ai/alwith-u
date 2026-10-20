@@ -8,3 +8,70 @@ registry = "https://registry.npmmirror.com"
 [install.scopes]
 "@alwith" = { url = "https://registry.npmjs.org" }
 "@nyssance" = { url = "https://registry.npmjs.org" }
+
+# Formatting and linting are built into Bun (1.4.4+); only non-default settings are written. prettier / oxlint / biome are gone.
+[fmt]
+printWidth = 120
+semi = false
+trailingComma = "none"
+sortImports = true
+ignorePatterns = [
+  "bun.lock",
+  "**/*.svg",
+  ".vscode",
+  "dist",
+  "storybook-static",
+  "docs",
+  "node_modules",
+  "src-tauri",
+  "src/components/ui",
+  "vendor",
+  "src/features/chat/codex/markdown-renderer.tsx",
+  "src/features/chat/codex/markdown-rules.ts",
+  "src/features/chat/codex/styles.css",
+  "**/*.html",
+  "**/*.md",
+  "package.json",
+  # Cargo manifests belong to cargo fmt and hand editing; bunfig keeps its hand layout too
+  "**/*.toml",
+]
+
+[fmt.sortTailwindcss]
+stylesheet = "src/index.css"
+
+[lint]
+typeAware = true
+ignorePatterns = [
+  "src/bindings.ts",
+  "**/dist/**",
+  "**/node_modules/**",
+  "**/src-tauri/**",
+  "src/components/ui/**",
+  "docs/**",
+]
+
+[lint.rules]
+# Import cycles were a hard gate before; the rule is off by default
+"import/no-cycle" = ["error", { allowUnsafeDynamicCyclicDependency = true }]
+# Rules on by default that conflict with this repo's conventions are turned off whole; inline suppressions are never allowed (check gate)
+# any only appears at boundaries (Monaco, the legacy extension API, Bun fetch options); accesses flowing out of it are not reported one by one
+"@typescript-eslint/no-explicit-any" = "off"
+"@typescript-eslint/no-unsafe-assignment" = "off"
+"@typescript-eslint/no-unsafe-member-access" = "off"
+"@typescript-eslint/no-unsafe-call" = "off"
+"@typescript-eslint/no-unsafe-return" = "off"
+"@typescript-eslint/no-unsafe-argument" = "off"
+# async is the interface contract; async functions without await (fakes, adapters) are legitimate
+"@typescript-eslint/require-await" = "off"
+# vi.spyOn / zustand getState / destructured methods do not depend on this
+"@typescript-eslint/unbound-method" = "off"
+# Its inference disagrees with tsc: removing the 48 reported assertions breaks 41 compilations; off until it matches tsc
+"@typescript-eslint/no-unnecessary-type-assertion" = "off"
+# A let declared first and assigned inside a callback cannot become const (the callback may run before the assignment)
+"prefer-const" = ["warn", { ignoreReadBeforeAssign = true }]
+
+# Tests verify that non-Error throwables also land on the failure path
+[[lint.overrides]]
+files = ["**/__tests__/**"]
+[lint.overrides.rules]
+"@typescript-eslint/only-throw-error" = "off"

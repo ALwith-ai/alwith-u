@@ -1,6 +1,7 @@
-import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
+import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { expect, test } from "vitest"
+
 import i18n, { initI18n, LANGUAGES } from "@/lib/i18n"
 import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"
@@ -18,7 +19,7 @@ function resourceContract(tree: TranslationTree): Array<[string, string[]]> {
   return leafMessages(tree)
     .map(([key, value]): [string, string[]] => [
       key,
-      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map(match => match[1] ?? "").sort()
+      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((match) => match[1] ?? "").sort()
     ])
     .sort(([left], [right]) => left.localeCompare(right))
 }
@@ -31,7 +32,7 @@ test("every English UI message has an explicit Simplified Chinese translation", 
   const chatContract = (tree: TranslationTree) =>
     resourceContract(tree).map(([key, placeholders]) => [
       key,
-      key.endsWith("_one") ? placeholders.filter(name => name !== "count") : placeholders
+      key.endsWith("_one") ? placeholders.filter((name) => name !== "count") : placeholders
     ])
   expect(chatContract(chatLocales["zh-CN"])).toEqual(chatContract(chatLocales.en))
   expect(i18n.t("chat.project.chatCount", { count: 1 })).toBe("1 个会话")

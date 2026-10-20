@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import type { PetRequest } from "../transport"
 
 const bus = vi.hoisted(() => ({
@@ -41,12 +42,12 @@ test("bubble bootstrap recovers when the main listener starts after the first in
   vi.useFakeTimers()
   const client = createPetSessionClient()
   await vi.advanceTimersByTimeAsync(0)
-  expect(bus.sent.map(request => request.action)).toEqual(["inspect"])
+  expect(bus.sent.map((request) => request.action)).toEqual(["inspect"])
   bus.reply = () => ({ value: null, error: null })
   await vi.advanceTimersByTimeAsync(1000)
   const session = await client
   expect(session.snapshot()).toBeNull()
-  expect(bus.sent.map(request => request.action)).toEqual(["inspect", "inspect"])
+  expect(bus.sent.map((request) => request.action)).toEqual(["inspect", "inspect"])
   expect(bus.listeners.get("vibemon:response")?.size).toBe(0)
   session.dispose()
   expect(bus.listeners.get("vibemon:observation")?.size).toBe(0)
@@ -66,7 +67,7 @@ test("bootstrap retries are bounded when the main window remains unavailable", a
   await vi.advanceTimersByTimeAsync(20_000)
   await failure
   expect(bus.sent).toHaveLength(20)
-  expect(bus.sent.every(request => request.action === "inspect")).toBe(true)
+  expect(bus.sent.every((request) => request.action === "inspect")).toBe(true)
   expect(bus.listeners.get("vibemon:response")?.size).toBe(0)
   expect(vi.getTimerCount()).toBe(0)
 })
@@ -76,5 +77,5 @@ test("message submissions are never retried after a timeout", async () => {
   const failure = expect(requestPet("send", { text: "Send once" })).rejects.toThrow("Vibemon request timed out")
   await vi.advanceTimersByTimeAsync(20_000)
   await failure
-  expect(bus.sent.map(request => request.action)).toEqual(["send"])
+  expect(bus.sent.map((request) => request.action)).toEqual(["send"])
 })

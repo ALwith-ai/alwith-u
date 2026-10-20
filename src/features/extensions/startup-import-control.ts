@@ -1,8 +1,10 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { reportBackgroundError } from "@/lib/background-errors"
+
 import { commands } from "@/bindings"
+import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
+
 import { executeReload, executeStagedInstall } from "./install-service"
 import { type ReloadOutcome, runExtensionReload } from "./reload-service"
 import { requestMainReload, serveMainReload } from "./reload-window"
@@ -16,17 +18,17 @@ let stopReload: (() => void) | undefined
 export function startStartupImports(): Promise<void> {
   if (getCurrentWindow().label !== "main") return Promise.resolve()
   startup ??= (async () => {
-    stopReload = await serveMainReload(async id => {
+    stopReload = await serveMainReload(async (id) => {
       return updateAndReloadExtension(await startExtensionRuntime(), id)
     })
     const runtime = await startExtensionRuntime()
     await runStartupImports({
       ...inboxPort(),
-      install: async pkg => {
+      install: async (pkg) => {
         const result = await executeStagedInstall(runtime, pkg, { update: true }, AbortSignal.timeout(120_000))
         if (result.error) throw new Error(result.error.message)
       },
-      report: message =>
+      report: (message) =>
         reportBackgroundError("extension-startup", message, {
           message: i18n.t("extensions.startupImportFailed", { message })
         })
@@ -43,16 +45,16 @@ export async function updateAndReloadExtension(runtime: ExtensionRuntime, id: st
   await runtime.refresh()
   const check = (): void => {
     const native = runtime.snapshot().native
-    if (!native?.installations.some(item => item.id === id && item.enabled))
+    if (!native?.installations.some((item) => item.id === id && item.enabled))
       throw new Error("Extension is not installed and enabled")
-    if (native.pending.some(item => item.id === id)) throw new Error("Extension is transitioning")
+    if (native.pending.some((item) => item.id === id)) throw new Error("Extension is transitioning")
   }
   check()
   return runExtensionReload(id, {
     ...inboxPort(id),
-    install: async pkg => {
+    install: async (pkg) => {
       check()
-      const selected = runtime.snapshot().native?.installations.find(item => item.id === id)
+      const selected = runtime.snapshot().native?.installations.find((item) => item.id === id)
       if (!selected || selected.source !== pkg.source)
         throw new Error("Extension belongs to a different installation source")
       if (selected.packageRevision === pkg.digest) return "unchanged"
@@ -90,12 +92,12 @@ function inboxPort(
       operationId = result.operationId
       return result
     },
-    prepare: async taskId => {
+    prepare: async (taskId) => {
       const task = await commands.extensionInboxPrepare({ taskId, operationId: operation() })
       if (task.phase !== "prepared" && task.phase !== "committed") throw new Error("Unknown import phase")
       return { ...task, phase: task.phase }
     },
-    complete: async taskId => {
+    complete: async (taskId) => {
       await commands.extensionInboxComplete({ taskId, operationId: operation() })
     },
     failed: async (taskId, message) => {

@@ -7,7 +7,9 @@ import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { fireEvent, render } from "@testing-library/react"
 import { createInstance } from "i18next"
 import { afterEach, expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { projectActivity } from "../activity-projection"
 
 const mounted: Array<ReturnType<typeof render>> = []
@@ -29,7 +31,7 @@ const host: ActivityHost = {
   Markdown: ({ text }) => <p>{text}</p>,
   Output: TerminalOutput,
   Patch: ({ patch }) => <PatchView patch={patch} theme="light" />,
-  openImage: url => openedImages.push(url),
+  openImage: (url) => openedImages.push(url),
   expandToolOutput: true
 }
 
@@ -169,10 +171,10 @@ test("adding chat translations does not replace application strings", async () =
 
 test.each(["failed", "cancelled", "interrupted"] as const)(
   "command summary exposes %s instead of claiming it ran",
-  status => {
+  (status) => {
     const item = tool({ status })
     const view = mount(
-      <ActivityHostProvider host={{ ...host, commandStatus: block => block.status }}>
+      <ActivityHostProvider host={{ ...host, commandStatus: (block) => block.status }}>
         <CodexActivityGroup blocks={[projectActivity(item, {}, false)]} />
       </ActivityHostProvider>
     )

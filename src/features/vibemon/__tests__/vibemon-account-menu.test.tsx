@@ -3,12 +3,13 @@ import { configureVibemon, type VibemonHost } from "@alwith/module-auth/pets/cor
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { usePlatformAuth } from "@/features/auth/store"
 import { SidebarAccountMenu } from "@/features/threads/sidebar-account-menu"
-import { savePreference } from "@/lib/preferences"
 import { must } from "@/lib/__tests__/must"
-import { openGamepadWindow } from "@/lib/window-manager"
 import i18n, { initI18n } from "@/lib/i18n"
+import { savePreference } from "@/lib/preferences"
+import { openGamepadWindow } from "@/lib/window-manager"
 
 vi.mock("@/lib/window-manager", () => ({ openGamepadWindow: vi.fn(async () => {}) }))
 
@@ -50,7 +51,7 @@ function fixture(enabled: boolean, failure?: Error) {
       get: async <T,>(key: string) => (key === "vibemon.accounts" ? structuredClone(accounts) : {}) as T,
       set: async () => {}
     },
-    subscribeStorage: listener => {
+    subscribeStorage: (listener) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
@@ -58,7 +59,7 @@ function fixture(enabled: boolean, failure?: Error) {
     },
     sessions: {} as VibemonHost["sessions"],
     windows: { openPet, closePet } as unknown as VibemonHost["windows"],
-    onError: error => {
+    onError: (error) => {
       throw error
     }
   })
@@ -96,7 +97,7 @@ test("the account menu groups settings and language above tools and sign out", a
   await waitFor(() =>
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
-  expect(view.getAllByRole("menuitem").map(item => item.textContent)).toEqual([
+  expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
     "Settings",
     "Language",
     "Show Vibémon",

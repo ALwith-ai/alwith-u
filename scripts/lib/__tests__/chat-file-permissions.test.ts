@@ -11,9 +11,9 @@ test("chat windows can open generated images through the hidden Codex directory"
   }
   expect(capability.windows).toContain("main")
   expect(capability.windows).toContain("chat")
-  const paths = capability.permissions.flatMap(permission =>
+  const paths = capability.permissions.flatMap((permission) =>
     typeof permission !== "string" && permission.identifier === "opener:allow-open-path"
-      ? (permission.allow?.map(entry => entry.path) ?? [])
+      ? (permission.allow?.map((entry) => entry.path) ?? [])
       : []
   )
   // Tauri's default leading-dot rule makes the general ** scope skip .codex.

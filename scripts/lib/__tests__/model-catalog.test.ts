@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { prepareModelCatalog as prepare, type CatalogRunner } from "../model-catalog"
+
+import { type CatalogRunner, prepareModelCatalog as prepare } from "../model-catalog"
 
 const catalogs: ReturnType<typeof prepare>[] = []
 function prepareModelCatalog(...args: Parameters<typeof prepare>): ReturnType<typeof prepare> {
@@ -32,7 +33,7 @@ function fixture(): { env: NodeJS.ProcessEnv; warnings: string[]; runner: Catalo
       bundled: () => bundled,
       configured: () => bundled,
       refresh: async () => refreshed,
-      warn: message => warnings.push(message)
+      warn: (message) => warnings.push(message)
     }
   }
 }
@@ -81,7 +82,7 @@ test("an expired cache remains usable when refresh fails", async () => {
   const directory = join(env.CODEX_HOME!, "cache", "alwith-u-models")
   const file = join(
     directory,
-    readdirSync(directory).find(name => name.endsWith(".json"))!
+    readdirSync(directory).find((name) => name.endsWith(".json"))!
   )
   const cached = JSON.parse(readFileSync(file, "utf8"))
   writeFileSync(file, JSON.stringify({ ...cached, fetchedAt: 0 }))
@@ -94,7 +95,7 @@ test("an expired cache remains usable when refresh fails", async () => {
   expect(warnings).toHaveLength(1)
 })
 
-test.each(["version", "account", "config", "environment"])("%s changes invalidate the cache", async change => {
+test.each(["version", "account", "config", "environment"])("%s changes invalidate the cache", async (change) => {
   const { env, runner } = fixture()
   await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
   if (change === "account") writeFileSync(join(env.CODEX_HOME!, "auth.json"), '{"OPENAI_API_KEY":"account-b"}')
@@ -111,7 +112,7 @@ test("corrupt cache is reported and replaced without delaying startup", async ()
   const directory = join(env.CODEX_HOME!, "cache", "alwith-u-models")
   const file = join(
     directory,
-    readdirSync(directory).find(name => name.endsWith(".json"))!
+    readdirSync(directory).find((name) => name.endsWith(".json"))!
   )
   writeFileSync(file, "{broken")
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
@@ -144,7 +145,7 @@ test("the U snapshot contains only native metadata; gateway merging belongs to t
 
 test("disposing an adapter aborts refresh without writing cache or reporting a failure", async () => {
   const { env, runner, warnings } = fixture()
-  runner.refresh = signal =>
+  runner.refresh = (signal) =>
     new Promise((_resolve, reject) => {
       signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true })
     })

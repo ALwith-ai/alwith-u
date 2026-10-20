@@ -1,13 +1,14 @@
 import { expect, test } from "vitest"
+
 import { createSurfaceOperation } from "../surface-operation"
 
 test("handoffs lock synchronously, reject overlap and unlock on failure", async () => {
   const changes: boolean[] = []
-  const operation = createSurfaceOperation(value => changes.push(value))
+  const operation = createSurfaceOperation((value) => changes.push(value))
   let finish!: () => void
   const pending = operation.run(
     () =>
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         finish = resolve
       })
   )

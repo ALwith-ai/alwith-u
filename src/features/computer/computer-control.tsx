@@ -1,5 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
+
 import { commands, type ComputerStatus } from "@/bindings"
 
 /** Only native ownership is displayed; polling also observes other windows and driver exits. */

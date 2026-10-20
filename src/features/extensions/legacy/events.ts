@@ -16,16 +16,16 @@ export function createPluginEvents(
     if (!event || event.length > 256 || !/^[a-zA-Z0-9_:/-]+$/.test(event)) {
       throw new Error("无效的扩展事件名称")
     }
-    const identity = Array.from(new TextEncoder().encode(extensionId), byte => byte.toString(16).padStart(2, "0")).join(
-      ""
-    )
+    const identity = Array.from(new TextEncoder().encode(extensionId), (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("")
     return `alwith-plugin:${identity}:${event}`
   }
   return {
     async listen(event, callback): Promise<Dispose> {
       binding.cancellation.throwIfAborted()
       let active = true
-      const dispose = await transport.listen(channel(event), payload => {
+      const dispose = await transport.listen(channel(event), (payload) => {
         if (active && !binding.cancellation.aborted) callback(payload)
       })
       const release = (): void | Promise<void> => {

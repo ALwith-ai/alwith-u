@@ -7,6 +7,7 @@ import {
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
+
 import type { PendingAction } from "@/agent/client"
 
 /** Mirrors Desktop's quick-answer boundary; complex forms retain their full context. */
@@ -28,8 +29,8 @@ export function petPrompt(action: PendingAction | undefined, rawInput?: unknown)
         .filter(Boolean)
         .join("\n"),
       options: action.params.options
-        .filter(option => option.kind === "allow_once" || option.kind === "reject_once")
-        .map(option => ({ id: option.optionId, label: option.name }))
+        .filter((option) => option.kind === "allow_once" || option.kind === "reject_once")
+        .map((option) => ({ id: option.optionId, label: option.name }))
     }
   }
   if (!isFormElicitation(action.params))
@@ -43,8 +44,8 @@ export function petPrompt(action: PendingAction | undefined, rawInput?: unknown)
     token: action.id,
     title: action.params.message,
     detail: [labels.title, labels.description].filter(Boolean).join("\n"),
-    options: options.every(option => !option.preview && !option.description)
-      ? options.map(option => ({ id: option.value, label: option.label }))
+    options: options.every((option) => !option.preview && !option.description)
+      ? options.map((option) => ({ id: option.value, label: option.label }))
       : []
   }
 }
@@ -53,7 +54,7 @@ export function petAnswer(
   action: PendingAction,
   optionId: string
 ): acp.RequestPermissionResponse | acp.CreateElicitationResponse {
-  if (!petPrompt(action)?.options.some(option => option.id === optionId))
+  if (!petPrompt(action)?.options.some((option) => option.id === optionId))
     throw new Error("This question or permission choice is unavailable in the pet bubble")
   if (action.kind === "permission") return { outcome: { outcome: "selected", optionId } }
   if (!isFormElicitation(action.params)) throw new Error("Open this question in the full conversation")

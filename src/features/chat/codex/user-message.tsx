@@ -1,6 +1,7 @@
 import { isEmbeddedResource, isImage, isResourceLink, isText, type MessageItem } from "@alwith/api"
 import { CodexUserMessage } from "@alwith/module-chat/user-message"
 import { memo } from "react"
+
 import { messageText } from "../turns"
 import { useChatActivityHost } from "./activity-host"
 import { questionReply, questionReplyParts } from "./question-reply"
@@ -16,13 +17,15 @@ export const UserMessage = memo(function UserMessage({
   const host = useChatActivityHost()
   const receiptParts = questionReplyParts(item._meta)
   const text = receiptParts
-    ? receiptParts.map(part => (part.question === undefined ? part.text : `${part.question}\n${part.text}`)).join("\n")
+    ? receiptParts
+        .map((part) => (part.question === undefined ? part.text : `${part.question}\n${part.text}`))
+        .join("\n")
     : messageText(item)
   const images = item.content.filter(isImage)
-  const resources = item.content.filter(block => isResourceLink(block) || isEmbeddedResource(block))
+  const resources = item.content.filter((block) => isResourceLink(block) || isEmbeddedResource(block))
   const textParts =
     receiptParts ??
-    item.content.filter(isText).map(block => {
+    item.content.filter(isText).map((block) => {
       const reply = questionReply(block._meta)
       return reply ? { question: reply.question, text: reply.answer } : { text: block.text }
     })
@@ -32,7 +35,6 @@ export const UserMessage = memo(function UserMessage({
       {resources.length > 0 && (
         <div className="codex-user-mentions">
           {resources.map((block, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: ACP resource blocks have no IDs; their positions identify them.
             <ResourceContent key={`${item.id}:${index}`} block={block} />
           ))}
         </div>
@@ -41,7 +43,7 @@ export const UserMessage = memo(function UserMessage({
         host={host}
         message={item}
         text={text}
-        textParts={textParts.some(part => "question" in part) ? textParts : undefined}
+        textParts={textParts.some((part) => "question" in part) ? textParts : undefined}
         images={images}
         mentions={[]}
         messageTime={messageTime}

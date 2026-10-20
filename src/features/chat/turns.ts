@@ -8,8 +8,9 @@
 // what counts as an edit, and stable keys so memoised turn components survive streaming.
 
 import type { CompactionItem, MessageItem, PlanItem, ToolItem } from "@alwith/api"
-import { turns as groupSession, type Item, type Session, type TurnEntry, textOf } from "@alwith/api"
-import { nativeTurnId, type HistoryTurnSummary } from "@/agent/history-navigation"
+import { type Item, type Session, textOf, type TurnEntry, turns as groupSession } from "@alwith/api"
+
+import { type HistoryTurnSummary, nativeTurnId } from "@/agent/history-navigation"
 
 export type WorkEntry =
   | { kind: "activity"; key: string; items: Array<MessageItem | ToolItem> }
@@ -51,7 +52,9 @@ function isNotice(item: MessageItem): boolean {
 /** Lifecycle diagnostics arriving before a prompt are session status, not an agent turn. */
 export function isSessionStatus(turn: Turn): boolean {
   return (
-    turn.user === null && turn.items.length > 0 && turn.items.every(item => item.kind === "assistant" && isNotice(item))
+    turn.user === null &&
+    turn.items.length > 0 &&
+    turn.items.every((item) => item.kind === "assistant" && isNotice(item))
   )
 }
 
@@ -117,13 +120,13 @@ function place(turn: Turn, item: Item): void {
  * one streams.
  */
 export function groupTurns(session: Session, previous: Turn[] = [], historyOrder: HistoryTurnSummary[] = []): Turn[] {
-  const previousByKey = new Map(previous.map(turn => [turn.key, turn]))
+  const previousByKey = new Map(previous.map((turn) => [turn.key, turn]))
   const tools = new Map(
-    session.items.filter((item): item is ToolItem => item.kind === "tool").map(item => [item.id, item])
+    session.items.filter((item): item is ToolItem => item.kind === "tool").map((item) => [item.id, item])
   )
   // Filter the view before grouping so startup-only entries never create empty turns.
   // Runtime remains the authority for the original diagnostics.
-  const visible = { ...session, items: session.items.filter(item => !isMcpStartup(item)) }
+  const visible = { ...session, items: session.items.filter((item) => !isMcpStartup(item)) }
   // Sparse navigation must not attach an assistant-only turn to a distant, unrelated prompt.
   const order = new Map(historyOrder.map((turn, index) => [turn.turnId, index]))
   const runs: Item[][] = [[]]
@@ -135,14 +138,14 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
     if (index !== undefined) beforeIndex = index
   }
   return runs
-    .flatMap(items => groupSession({ ...visible, items }))
-    .map(grouped => {
+    .flatMap((items) => groupSession({ ...visible, items }))
+    .map((grouped) => {
       const items: Item[] = grouped.prompt === null ? [] : [grouped.prompt]
       for (const entry of grouped.entries) flatten(entry, items, tools)
       const first = items[0]
       if (first === undefined) throw new Error("A turn without items")
       const key = `turn:${first.kind}:${first.id}`
-      const endedAt = grouped.endedAt ?? Math.max(...items.map(item => item.at))
+      const endedAt = grouped.endedAt ?? Math.max(...items.map((item) => item.at))
       const before = previousByKey.get(key)
       if (before !== undefined && sameItems(before.items, items) && before.endedAt === endedAt) return before
       const turn: Turn = {
@@ -153,7 +156,7 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
         edits: [],
         startedAt: grouped.startedAt ?? first.at,
         endedAt,
-        replayed: items.every(item => item.replayed),
+        replayed: items.every((item) => item.replayed),
         items
       }
       for (const item of items) place(turn, item)
@@ -170,7 +173,7 @@ export function messageText(item: MessageItem): string {
 }
 
 export function isHistoryInterrupted(turn: Turn): boolean {
-  return turn.items.some(item => {
+  return turn.items.some((item) => {
     const codex = item._meta?.codex
     return (
       typeof codex === "object" && codex !== null && "historyInterrupted" in codex && codex.historyInterrupted === true
@@ -180,7 +183,7 @@ export function isHistoryInterrupted(turn: Turn): boolean {
 
 /** The adapter retains live interruption on its prompt upsert, independently of later turns. */
 export function isTurnInterrupted(turn: Turn): boolean {
-  return turn.items.some(item => {
+  return turn.items.some((item) => {
     const codex = item._meta?.codex
     return typeof codex === "object" && codex !== null && "turnInterrupted" in codex && codex.turnInterrupted === true
   })

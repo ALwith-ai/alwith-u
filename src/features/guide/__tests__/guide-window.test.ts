@@ -58,7 +58,7 @@ test("creation failures reach the caller and a later click can retry", async () 
   expect(state.focus).toHaveBeenCalledOnce()
 })
 
-test.each(["Win32", "MacIntel"])("%s retains native guide window controls", async platform => {
+test.each(["Win32", "MacIntel"])("%s retains native guide window controls", async (platform) => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
   await openGuideWindow()
   expect(state.created).toHaveBeenCalledWith(

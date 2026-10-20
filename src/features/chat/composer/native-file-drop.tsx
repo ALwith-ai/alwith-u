@@ -5,16 +5,18 @@ import { useEffect, useLayoutEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ChatDroppedFile } from "@/bindings"
 import { basename } from "@/lib/path"
+
 import { usePromptInputAttachments } from "./prompt-input"
 
 const sourcePaths = new WeakMap<File, string>()
 export const nativeAttachmentPolicy: AttachmentPolicy = {
-  sourcePath: file => sourcePaths.get(file),
+  sourcePath: (file) => sourcePaths.get(file),
   uniqueFiles(incoming, existing) {
-    const paths = new Set(existing.map(file => file.sourcePath))
-    return incoming.filter(file => {
+    const paths = new Set(existing.map((file) => file.sourcePath))
+    return incoming.filter((file) => {
       const path = sourcePaths.get(file)
       if (path === undefined) return true
       if (paths.has(path)) return false
@@ -50,7 +52,7 @@ export function NativeFileDrop({
     let pending = 0
     const writable = () => !disposed && current.current.sessionId === sessionId && current.current.enabled
     current.current.onBusyChange(false)
-    const listener = getCurrentWebview().onDragDropEvent(event => {
+    const listener = getCurrentWebview().onDragDropEvent((event) => {
       if (disposed || event.payload.type !== "drop") return
       const { paths, position } = event.payload
       const target = document.elementFromPoint(
@@ -68,7 +70,7 @@ export function NativeFileDrop({
       queue = queue
         .then(async () => {
           try {
-            const imagePaths = new Set(current.current.attachments.files.map(file => file.sourcePath))
+            const imagePaths = new Set(current.current.attachments.files.map((file) => file.sourcePath))
             for (const path of new Set(paths)) {
               if (!writable()) return
               try {
@@ -77,7 +79,7 @@ export function NativeFileDrop({
                 if (file.image === null) {
                   flushSync(() => current.current.onMention(file.path))
                 } else if (!imagePaths.has(file.path)) {
-                  const bytes = Uint8Array.from(atob(file.image.data), char => char.charCodeAt(0))
+                  const bytes = Uint8Array.from(atob(file.image.data), (char) => char.charCodeAt(0))
                   const image = new File([bytes], file.name, { type: file.image.mimeType })
                   sourcePaths.set(image, file.path)
                   imagePaths.add(file.path)
@@ -96,16 +98,16 @@ export function NativeFileDrop({
             if (!disposed) flushSync(() => current.current.onBusyChange(pending > 0))
           }
         })
-        .catch(error => {
+        .catch((error) => {
           if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
         })
     })
     void listener
-      .then(unlisten => {
+      .then((unlisten) => {
         if (disposed) unlisten()
         else stop = unlisten
       })
-      .catch(error => {
+      .catch((error) => {
         if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
       })
     return () => {

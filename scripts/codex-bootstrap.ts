@@ -1,6 +1,7 @@
 // U owns startup caching. The ACP adapter is imported unchanged from its published package.
 import { spawnSync } from "node:child_process"
 import { isAbsolute } from "node:path"
+
 import { prepareModelCatalog } from "./lib/model-catalog"
 
 async function start(): Promise<void> {

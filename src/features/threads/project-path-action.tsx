@@ -2,6 +2,7 @@ import { ArrowUpRightIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { Button } from "@/components/ui/button"
 import { ProjectAppIcon, useProjectApps } from "@/features/chat/open-in-editor"
@@ -43,10 +44,11 @@ export function ProjectPathAction({
       aria-label={t("actions.openFolder")}
       title={editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd}
       className="group/path w-full min-w-0 justify-start gap-2 rounded-none border-0 px-3 font-normal active:not-aria-[haspopup]:translate-y-0"
-      onClick={() => void open()}>
+      onClick={() => void open()}
+    >
       <ProjectAppIcon app={editor.active} />
       <OverflowMarquee className="flex-1 text-start">{cwd}</OverflowMarquee>
-      <span className="hover:bg-accent hover:text-accent-foreground invisible shrink-0 rounded-sm p-0.5 group-hover/path:visible group-focus-visible/path:visible">
+      <span className="invisible shrink-0 rounded-sm p-0.5 group-hover/path:visible group-focus-visible/path:visible hover:bg-accent hover:text-accent-foreground">
         <ArrowUpRightIcon className="size-4" />
       </span>
     </Button>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+
 import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@/agent/codex-extensions"
 
 interface SkillsApi {
@@ -29,15 +30,15 @@ export function useSkillCatalog(
       setResult({ request, catalog: { status: "loading" } })
       try {
         const response = await api.listSkills(cwd === null ? [] : [cwd], true)
-        const entries = cwd === null ? response.data : response.data.filter(entry => entry.cwd === cwd)
+        const entries = cwd === null ? response.data : response.data.filter((entry) => entry.cwd === cwd)
         if (entries.length === 0) throw new Error("Codex returned no skill catalog for the requested project")
         if (!disposed && generation === current) {
           setResult({
             request,
             catalog: {
               status: "loaded",
-              skills: entries.flatMap(entry => entry.skills),
-              errors: entries.flatMap(entry => entry.errors)
+              skills: entries.flatMap((entry) => entry.skills),
+              errors: entries.flatMap((entry) => entry.errors)
             }
           })
         }
@@ -60,6 +61,6 @@ export function useSkillCatalog(
   }, [api, cwd, ready, request])
   return {
     catalog: !ready ? { status: "disconnected" } : result?.request === request ? result.catalog : { status: "loading" },
-    refresh: () => setRefreshId(value => value + 1)
+    refresh: () => setRefreshId((value) => value + 1)
   }
 }

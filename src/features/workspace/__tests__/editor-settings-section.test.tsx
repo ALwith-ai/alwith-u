@@ -1,6 +1,8 @@
-import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+
 import { loadEditorSettings } from "../editor-settings"
 import { EditorSettingsSection } from "../editor-settings-dialog"
 import { useEditorPreferences } from "../use-editor-preferences"

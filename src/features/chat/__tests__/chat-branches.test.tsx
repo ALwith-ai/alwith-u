@@ -3,9 +3,11 @@ import { fireEvent, render, waitFor } from "@testing-library/react"
 import { act } from "react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatBranchProvider, ForkOriginDivider, ForkTurnButton } from "../chat-branches"
 
 await initI18n("en")
@@ -50,13 +52,13 @@ test("a completed reply forks its explicit turn once and navigates to the return
   let finish!: (id: string) => void
   const call = vi.spyOn(client, "fork").mockImplementation(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finish = resolve
       })
   )
   restores.push(() => call.mockRestore())
   const selected: ThreadSummary[] = []
-  const view = setup(thread => selected.push(thread))
+  const view = setup((thread) => selected.push(thread))
   const button = view.getByRole("button", { name: "Create chat branch" })
   expect(button.classList.contains("codex-message-action")).toBe(true)
   expect(view.queryByRole("button", { name: "Chat branches" })).toBeNull()
@@ -84,7 +86,7 @@ test("a fork failure keeps the current chat and allows retry", async () => {
     () => error.mockRestore()
   )
   const selected: ThreadSummary[] = []
-  const view = setup(thread => selected.push(thread))
+  const view = setup((thread) => selected.push(thread))
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
   })
@@ -99,13 +101,13 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
   let finish!: (id: string) => void
   const call = vi.spyOn(client, "fork").mockImplementation(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finish = resolve
       })
   )
   restores.push(() => call.mockRestore())
   const selected: ThreadSummary[] = []
-  const view = setup(thread => selected.push(thread))
+  const view = setup((thread) => selected.push(thread))
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
   })
@@ -114,7 +116,7 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
   await act(async () => {
     finish("child")
   })
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
   expect(selected).toEqual([])
 })
 
@@ -129,7 +131,7 @@ test("the inherited-history divider returns to the exact parent and stays before
   const selected: ThreadSummary[] = []
   let view!: ReturnType<typeof setup>
   await act(async () => {
-    view = setup(thread => selected.push(thread))
+    view = setup((thread) => selected.push(thread))
   })
   const { groupTurns } = await import("../turns")
   const session = {
@@ -149,7 +151,7 @@ test("the inherited-history divider returns to the exact parent and stays before
   const turn = groupTurns(session)[0]
   await act(async () => {
     view.rerender(
-      <ChatBranchProvider session={session} onSelect={thread => selected.push(thread)}>
+      <ChatBranchProvider session={session} onSelect={(thread) => selected.push(thread)}>
         <ForkOriginDivider turn={turn} />
         <ForkOriginDivider turn={{ ...turn, items: [] }} />
       </ChatBranchProvider>
@@ -213,7 +215,7 @@ test("several user messages in one native turn place the origin only after its l
   const view = render(
     <ChatBranchProvider session={session} onSelect={() => {}}>
       <ForkOriginDivider />
-      {turns.map(turn => (
+      {turns.map((turn) => (
         <div key={turn.key} data-batch={turn.key}>
           <ForkOriginDivider turn={turn} />
         </div>

@@ -2,6 +2,7 @@ import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith
 import { PetModeButton, PetQuickReply } from "@alwith/module-auth/pets/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 
 let dispose = () => {}
@@ -14,7 +15,7 @@ afterEach(async () => {
 // React is loaded before the per-file DOM, selecting its legacy input plugin.
 // Dispatch input handlers directly while retaining real React state and rendering.
 function inputHandler(node: HTMLElement, name: string, event: unknown) {
-  const key = Object.keys(node).find(key => key.startsWith("__reactProps$"))
+  const key = Object.keys(node).find((key) => key.startsWith("__reactProps$"))
   if (key === undefined) throw new Error("Mounted input requires its React handlers")
   const props = (node as unknown as Record<string, Record<string, (event: unknown) => void>>)[key]
   const handler = props[name]
@@ -67,7 +68,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     subscribeStorage: () => () => {},
     sessions: {
       snapshot: () => value,
-      subscribe: listener => {
+      subscribe: (listener) => {
         listeners.add(listener)
         return () => {
           listeners.delete(listener)
@@ -88,7 +89,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
       openRecharge: async () => {},
       commands: () => () => {}
     },
-    onError: error => {
+    onError: (error) => {
       throw error
     }
   })

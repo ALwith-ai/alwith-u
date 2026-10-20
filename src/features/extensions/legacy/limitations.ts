@@ -1,5 +1,6 @@
 import type { Installation } from "@alwith/module-extension/tauri"
 import { toast } from "sonner"
+
 import { findLegacyProfile, LEGACY_SOURCE } from "./profiles"
 
 /** Called by explicit UI actions, never by activation or background filesystem requests. */

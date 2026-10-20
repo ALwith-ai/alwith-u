@@ -1,11 +1,14 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
+
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient, type PendingAction } from "@/agent/client"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ActionCard } from "../action-card"
 
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.
@@ -24,7 +27,7 @@ afterEach(async () => {
 
 test.each(["Implement this plan?", "Review the implementation plan"])(
   "approval displays the subject title %s only when it differs from the request title",
-  subjectTitle => {
+  (subjectTitle) => {
     const title = "Implement this plan?"
     const action: PendingAction = {
       id: "plan-approval",
@@ -84,7 +87,7 @@ test("U shared approval answers the exact pending request through the real ACP c
     expect(respond).toHaveBeenCalledWith(action.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
     await waitFor(() => expect(client.state.actions.length).toBe(0))
     await waitFor(() => expect(client.session(sessionId).state).toBe("idle"))
-    expect(client.session(sessionId).items.some(item => item.kind === "assistant")).toBe(true)
+    expect(client.session(sessionId).items.some((item) => item.kind === "assistant")).toBe(true)
   } finally {
     respond.mockRestore()
   }

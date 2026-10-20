@@ -1,11 +1,12 @@
 import { expect, test } from "vitest"
+
 import { type ReloadPort, runExtensionReload } from "../reload-service"
 
 function fixture(): { port: ReloadPort; calls: string[] } {
   const calls: string[] = []
   const port: ReloadPort = {
     scan: async () => ({ tasks: [], errors: [] }),
-    prepare: async id => ({
+    prepare: async (id) => ({
       id,
       phase: "prepared",
       package: { id: "notes", path: "/package", version: "2.0.0", digest: "new", source: "local" }
@@ -99,7 +100,7 @@ test("committed tasks finish cleanup before checking for a newer package", async
   const { port, calls } = fixture()
   let scans = 0
   port.scan = async () => ({ tasks: scans++ === 0 ? ["task"] : [], errors: [] })
-  port.prepare = async id => ({ id, phase: "committed", package: null })
+  port.prepare = async (id) => ({ id, phase: "committed", package: null })
   expect(await runExtensionReload("notes", port)).toBe("reloaded")
   expect(calls).toEqual(["clean", "finish", "reload", "finish"])
 })
@@ -125,7 +126,7 @@ test("cleanup recovery rescans and installs the waiting new package", async () =
     throw new Error("Old version cannot activate")
   }
   const prepare = port.prepare
-  port.prepare = async id => (id === "old" ? { id, phase: "committed", package: null } : prepare(id))
+  port.prepare = async (id) => (id === "old" ? { id, phase: "committed", package: null } : prepare(id))
   expect(await runExtensionReload("notes", port)).toBe("updated")
   expect(calls).toEqual(["clean", "finish", "install", "clean", "finish"])
 })

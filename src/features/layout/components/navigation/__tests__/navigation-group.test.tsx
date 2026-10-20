@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { NavigationGroup } from "../navigation-group"
 
 afterEach(() => {

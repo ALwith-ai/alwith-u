@@ -16,6 +16,7 @@ import { ActivityIcon, AppWindowIcon, ArrowLeftIcon, PictureInPicture2Icon } fro
 import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ThreadSummary } from "@/agent/client"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
 import { Pane } from "@/components/alwith-ui/pane"
@@ -32,6 +33,7 @@ import { stopSession, useApp } from "@/lib/client"
 import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
+
 import { useActivityOrder } from "./activity-order"
 import { activityGroupOf } from "./lib/activity-group"
 import { useThreadsUiStore } from "./store"
@@ -49,7 +51,7 @@ function report(promise: Promise<unknown>): Promise<void> {
 /** The thread behind a run state: the listed one, else a summary built from the Runtime's record. */
 function threadOf(threads: ThreadSummary[], record: SessionRunState): ThreadSummary {
   return (
-    threads.find(thread => thread.sessionId === record.sessionId) ?? {
+    threads.find((thread) => thread.sessionId === record.sessionId) ?? {
       sessionId: record.sessionId,
       cwd: record.cwd,
       title: record.title || null,
@@ -67,16 +69,16 @@ export function ActivityPanel({
   onSelect: (thread: ThreadSummary) => void
 }) {
   const { t } = useTranslation()
-  const runStates = useApp(state => state.runStates)
-  const threads = useApp(state => state.threads)
+  const runStates = useApp((state) => state.runStates)
+  const threads = useApp((state) => state.threads)
   const chatSurface = useChatWindowSurface()
-  const sessionWindows = useApp(state => state.sessionWindows)
-  const draftSessions = useApp(state => state.draftSessions)
+  const sessionWindows = useApp((state) => state.sessionWindows)
+  const draftSessions = useApp((state) => state.draftSessions)
 
-  const order = useActivityOrder(state => state.ids)
+  const order = useActivityOrder((state) => state.ids)
   const rows = useMemo(
     () =>
-      order.flatMap(sid => {
+      order.flatMap((sid) => {
         const record = runStates[sid]
         // The derived order and source can notify React separately; never render a retired row.
         return record && (!record.reusableDraft || draftSessions[sid] !== undefined)
@@ -101,20 +103,20 @@ export function ActivityPanel({
       ["foreground", "background"]
         // Keep the Background header visible even with zero tasks: it is a permanent destination, not a section that appears only when tasks exist.
         // Omit the foreground group when empty.
-        .filter(key => byKey.has(key) || key === "background")
-        .map(key => ({
+        .filter((key) => byKey.has(key) || key === "background")
+        .map((key) => ({
           key,
           label: key === "background" ? t("sidebar.background") : t("sidebar.foreground"),
-          icon: key === "background" ? <ActivityIcon className="text-muted-foreground size-3.5 shrink-0" /> : undefined,
+          icon: key === "background" ? <ActivityIcon className="size-3.5 shrink-0 text-muted-foreground" /> : undefined,
           rows: byKey.get(key) ?? []
         }))
     )
   }, [rows, selectedId, chatSurface, t])
   // Collapsed state lives only in process memory: it survives leaving Activity and returning, but resets on restart.
-  const collapsedGroups = useThreadsUiStore(s => s.activityCollapsedGroups)
-  const setCollapsedGroups = useThreadsUiStore(s => s.setActivityCollapsedGroups)
+  const collapsedGroups = useThreadsUiStore((s) => s.activityCollapsedGroups)
+  const setCollapsedGroups = useThreadsUiStore((s) => s.setActivityCollapsedGroups)
   // Cmd/Ctrl+1 through Cmd/Ctrl+9 and numeric hints follow the flattened group order visible to the user.
-  const flatRows = groups.flatMap(group =>
+  const flatRows = groups.flatMap((group) =>
     group.key === "foreground" || !collapsedGroups.has(group.key) ? group.rows : []
   )
 
@@ -163,14 +165,14 @@ export function ActivityPanel({
   return (
     <Pane viewportClassName="pb-1">
       <NavigationStack>
-        {groups.map(group =>
+        {groups.map((group) =>
           group.key === "foreground" ? (
             <NavigationStack key={group.key}>{group.rows.map(renderActivityRow)}</NavigationStack>
           ) : (
             <NavigationGroup
               key={group.key}
               open={!collapsedGroups.has(group.key)}
-              onOpenChange={open => {
+              onOpenChange={(open) => {
                 const next = new Set(collapsedGroups)
                 if (open) next.delete(group.key)
                 else next.add(group.key)
@@ -178,7 +180,8 @@ export function ActivityPanel({
               }}
               leading={group.icon}
               label={group.label}
-              count={group.rows.length}>
+              count={group.rows.length}
+            >
               {group.rows.map(renderActivityRow)}
             </NavigationGroup>
           )
@@ -236,7 +239,7 @@ function ActivityRow({
           />
         }
         onClick={onOpen}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.target !== e.currentTarget) return
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()
@@ -254,11 +257,12 @@ function ActivityRow({
               aria-label={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", {
                 ns: "common"
               })}
-              title={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", { ns: "common" })}>
+              title={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", { ns: "common" })}
+            >
               {windowLabel === "chat" ? (
-                <PictureInPicture2Icon className="text-muted-foreground size-3.5" />
+                <PictureInPicture2Icon className="size-3.5 text-muted-foreground" />
               ) : (
-                <AppWindowIcon className="text-muted-foreground size-3.5" />
+                <AppWindowIcon className="size-3.5 text-muted-foreground" />
               )}
             </span>
           )
@@ -271,12 +275,13 @@ function ActivityRow({
       />
       {/* Subagent rows align with the title column (11px row inset + 16px icon + 8px gap = 35px).
           They always pulse yellow because Runtime only retains nonterminal tasks, showing what the main agent is doing. */}
-      {tasks.map(task => (
+      {tasks.map((task) => (
         <div
           key={task.id}
-          className="flex h-[var(--navigation-row-height)] items-center gap-2 rounded-[10px] ps-10 pe-2 text-xs [corner-shape:superellipse(1.5)]">
+          className="flex h-[var(--navigation-row-height)] items-center gap-2 rounded-[10px] ps-10 pe-2 text-xs [corner-shape:superellipse(1.5)]"
+        >
           <SessionStateDot state="running" />
-          <span className="text-muted-foreground min-w-0 flex-1 truncate" title={task.title}>
+          <span className="min-w-0 flex-1 truncate text-muted-foreground" title={task.title}>
             {task.title}
           </span>
         </div>

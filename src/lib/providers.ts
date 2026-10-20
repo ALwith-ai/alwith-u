@@ -5,6 +5,7 @@
 // completions); Kimi, MiniMax and Zhipu are reached through OpenRouter.
 
 import type { ComponentType, SVGProps } from "react"
+
 import type { GatewayModel } from "@/agent/client"
 import type { CustomInput, CustomModel, Input, Metadata, PublicCustomProvider, Snapshot, TestResult } from "@/bindings"
 import { commands, events } from "@/bindings"
@@ -12,6 +13,7 @@ import { DeepSeekLogo } from "@/components/icons/deepseek-logo"
 import { GrokLogo } from "@/components/icons/grok-logo"
 import { OpenRouterLogo } from "@/components/icons/openrouter-logo"
 import { QwenLogo } from "@/components/icons/qwen-logo"
+
 import catalog from "./provider-catalog.json"
 
 export type { CustomModel } from "@/bindings"
@@ -45,7 +47,7 @@ const logos: Record<string, Provider["logo"]> = {
   qwen: QwenLogo,
   xai: GrokLogo
 }
-export const PROVIDERS: Provider[] = catalog.map(provider => ({ ...provider, logo: logos[provider.id] }))
+export const PROVIDERS: Provider[] = catalog.map((provider) => ({ ...provider, logo: logos[provider.id] }))
 
 export function parseCustomModels(source: string): CustomModel[] {
   const value: unknown = JSON.parse(source)
@@ -81,15 +83,15 @@ export function providerGroups(
   snapshot: ProviderSnapshot
 ): Array<{ id: string; name: string; models: GatewayModel[] }> {
   return [
-    ...PROVIDERS.filter(provider => snapshot.providers[provider.id] !== undefined).map(provider => ({
+    ...PROVIDERS.filter((provider) => snapshot.providers[provider.id] !== undefined).map((provider) => ({
       id: provider.id,
       name: provider.name,
       models: provider.models
     })),
-    ...snapshot.customProviders.map(provider => ({
+    ...snapshot.customProviders.map((provider) => ({
       id: provider.id,
       name: provider.name,
-      models: provider.models.map(model => ({
+      models: provider.models.map((model) => ({
         id: model.api_id,
         label: model.label,
         ...(model.description == null ? {} : { description: model.description })
@@ -100,15 +102,15 @@ export function providerGroups(
 export function gatewayModelId(providerId: string, modelId: string): string {
   // Keep persisted IDs stable; the adapter accepts only [a-z0-9-]+. Match providers.rs.
   const runtimeId = providerId.startsWith("custom_")
-    ? `custom-${Array.from(new TextEncoder().encode(providerId), byte => byte.toString(16).padStart(2, "0")).join("")}`
+    ? `custom-${Array.from(new TextEncoder().encode(providerId), (byte) => byte.toString(16).padStart(2, "0")).join("")}`
     : providerId
   return `gateway:${encodeURIComponent(runtimeId)}:${encodeURIComponent(modelId)}`
 }
 
 /** Desktop's default selection prefers a user-configured provider; native defaults stay engine-owned. */
 export function resolveSessionModel(model: string | null, snapshot: ProviderSnapshot): string | null {
-  const models = providerGroups(snapshot).flatMap(group =>
-    group.models.map(entry => gatewayModelId(group.id, entry.id))
+  const models = providerGroups(snapshot).flatMap((group) =>
+    group.models.map((entry) => gatewayModelId(group.id, entry.id))
   )
   if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
   return models[0] ?? null
@@ -116,7 +118,7 @@ export function resolveSessionModel(model: string | null, snapshot: ProviderSnap
 
 export function providerRegion(provider: Provider, regionId: string | null | undefined): ProviderRegion | null {
   if (!provider.regions) return null
-  const region = provider.regions.find(entry => entry.id === regionId) ?? provider.regions[0]
+  const region = provider.regions.find((entry) => entry.id === regionId) ?? provider.regions[0]
   if (!region) throw new Error(`Provider ${provider.id} declares no regions`)
   return region
 }

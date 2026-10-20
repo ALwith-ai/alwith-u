@@ -1,5 +1,6 @@
-import { initI18n } from "@/lib/i18n"
 import { beforeEach, expect, test, vi } from "vitest"
+
+import { initI18n } from "@/lib/i18n"
 const native = vi.hoisted(() => ({
   ready: vi.fn(),
   context: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("@/bindings", () => ({
 vi.mock("@/features/drive/session-context", () => ({
   driveSessionContext: async () => ({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
 }))
-import { hostSessionContext, computerContextRevision, prepareComputerTools } from "../session-context"
+import { computerContextRevision, hostSessionContext, prepareComputerTools } from "../session-context"
 beforeEach(async () => {
   await initI18n("en")
   vi.clearAllMocks()
@@ -45,7 +46,7 @@ test("all new, resumed and forked conversations receive the application grant", 
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
   }
-  expect(native.context.mock.calls.every(args => args.length === 0)).toBe(true)
+  expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
 })
 test("disabled native authority removes tools for every conversation", async () => {
   expect(await computerContextRevision()).toBe("disabled")

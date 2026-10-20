@@ -4,7 +4,9 @@ import { mountReact } from "@alwith/module-extension/react"
 import { act, fireEvent, render } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { ExtensionViewContent } from "../extension-view"
 
 beforeEach(async () => {
@@ -28,12 +30,12 @@ test("a failed extension view shows a local error and retry recreates its conten
     if (broken) throw new Error("view failed")
     return <span>Recovered view</span>
   }
-  await host.activate(manifest, "one", context => {
+  await host.activate(manifest, "one", (context) => {
     context.view("surfaces", mountReact({ id: "page", title: "Page", render: () => <Content /> }))
     return {}
   })
   const errors: unknown[] = []
-  const ui = render(<ExtensionViewContent host={host} id="broken/page" onError={error => errors.push(error)} />)
+  const ui = render(<ExtensionViewContent host={host} id="broken/page" onError={(error) => errors.push(error)} />)
   try {
     await act(async () => {})
     expect(ui.getByRole("alert").textContent).toContain("view failed")

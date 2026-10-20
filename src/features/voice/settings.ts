@@ -1,5 +1,6 @@
 import { defaultPreferences, parsePreferences, type Provider, type VoicePreferences } from "@alwith/module-voice"
 import type { VoiceSettingsHost } from "@alwith/module-voice/react"
+
 import { commands } from "@/bindings"
 import { settingsStore, updateSettings } from "@/lib/settings-store"
 export type VoiceSettings = VoicePreferences
@@ -40,7 +41,7 @@ export async function saveVoiceEnabled(enabled: boolean): Promise<void> {
   await updateSettings({ "voice.enabled": enabled })
 }
 export async function subscribeVoiceEnabled(changed: (enabled: boolean) => void): Promise<() => void> {
-  return settingsStore.subscribe(keys => {
+  return settingsStore.subscribe((keys) => {
     if (keys.includes("voice.enabled")) changed(settingsStore.get<boolean>("voice.enabled") ?? true)
   })
 }

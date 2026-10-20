@@ -9,6 +9,7 @@
  * Icons alone cannot distinguish actions such as "Move to group" and "Remove from group". The trailing slot is reserved for ✕ (stop session).
  */
 import type { ReactNode } from "react"
+
 import { cn } from "@/lib/utils"
 
 export interface HoverInfoRow {
@@ -43,12 +44,13 @@ export function HoverInfoCard({
           )}
           <div
             data-slot="hover-info-card-title"
-            className="text-foreground line-clamp-2 min-w-0 flex-1 text-sm break-words">
+            className="line-clamp-2 min-w-0 flex-1 text-sm break-words text-foreground"
+          >
             {title}
           </div>
         </div>
         {body != null && (
-          <div data-slot="hover-info-card-body" className="text-muted-foreground line-clamp-2 text-xs break-words">
+          <div data-slot="hover-info-card-body" className="line-clamp-2 text-xs break-words text-muted-foreground">
             {body}
           </div>
         )}
@@ -61,7 +63,7 @@ export function HoverInfoCard({
       )}
       {actions != null && (
         <>
-          <div data-slot="hover-info-card-separator" className="bg-border -mx-3 mt-1.5 h-px" />
+          <div data-slot="hover-info-card-separator" className="-mx-3 mt-1.5 h-px bg-border" />
           <div data-slot="hover-info-card-actions" className="-mx-1 flex flex-col">
             {actions}
           </div>
@@ -74,8 +76,7 @@ export function HoverInfoCard({
 function HoverInfoRows({ rows }: { rows?: HoverInfoRow[] }) {
   return rows?.map((row, index) => (
     // These presentation-only rows have no stable IDs; their order defines their identity.
-    // biome-ignore lint/suspicious/noArrayIndexKey: Static presentation rows have a fixed order and are never reordered.
-    <div key={index} data-slot="hover-info-card-row" className="text-muted-foreground flex items-start gap-1.5 text-xs">
+    <div key={index} data-slot="hover-info-card-row" className="flex items-start gap-1.5 text-xs text-muted-foreground">
       <span data-slot="hover-info-card-icon" className="flex h-5 w-4 shrink-0 items-center justify-center">
         {row.icon}
       </span>
@@ -112,10 +113,11 @@ export function HoverInfoAction({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "text-foreground hover:bg-foreground/5 active:bg-foreground/10 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm disabled:pointer-events-none disabled:opacity-50",
+        "flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm text-foreground hover:bg-foreground/5 active:bg-foreground/10 disabled:pointer-events-none disabled:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground"
-      )}>
+      )}
+    >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}

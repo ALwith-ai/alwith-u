@@ -1,13 +1,14 @@
-import { PetCenter } from "@alwith/module-auth/pets/react"
 import { resourceSyncStatus, subscribeResourceSync, syncVibemonResources } from "@alwith/module-auth/pets/core"
+import { PetCenter } from "@alwith/module-auth/pets/react"
 import { useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
 
 export function VibemonCenter() {
-  const user = usePlatformAuth(state => state.user)
+  const user = usePlatformAuth((state) => state.user)
   const status = useSyncExternalStore(subscribeResourceSync, resourceSyncStatus)
   const { t } = useTranslation()
   return (

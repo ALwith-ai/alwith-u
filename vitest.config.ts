@@ -1,4 +1,5 @@
 import { defineConfig, mergeConfig } from "vitest/config"
+
 import { config as viteConfig } from "./vite.config.ts"
 
 // Same runner as Desktop and Board: vitest + jsdom + jest-dom. Vite options (plugins, dedupe,

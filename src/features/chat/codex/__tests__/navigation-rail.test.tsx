@@ -1,10 +1,12 @@
 import type { MessageItem } from "@alwith/api"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
+
+import type { HistoryNavigationState } from "@/agent/history-navigation"
+
+import { historyTimeline } from "../../history-timeline"
 import type { Turn } from "../../turns"
 import type { NavigationRailItem } from "../navigation-rail"
-import type { HistoryNavigationState } from "@/agent/history-navigation"
-import { historyTimeline } from "../../history-timeline"
 import { navigationSoundStore } from "../navigation-sound-store"
 
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
@@ -71,9 +73,9 @@ describe("navigation rail", () => {
     expect(rail[1]).toMatchObject({ previewState: "loading", isLoaded: false })
     expect(rail[2].id).toBe("user-2")
     const timeline = historyTimeline([latest], navigation)
-    expect(timeline.map(entry => entry.turnKey)).toEqual(["history:native-0", "history:native-1", "history:native-2"])
+    expect(timeline.map((entry) => entry.turnKey)).toEqual(["history:native-0", "history:native-1", "history:native-2"])
     expect(timeline[2].aliases).toEqual([latest.key])
-    expect(timeline.filter(entry => entry.turn !== undefined)).toHaveLength(1)
+    expect(timeline.filter((entry) => entry.turn !== undefined)).toHaveLength(1)
   })
   test("items come from user turns; the preview retains Markdown and the full final answer", () => {
     const rail = toNavigationRailItems([turn(0, "first paragraph\n\nsecond"), turn(1, null)], {
@@ -116,7 +118,7 @@ describe("navigation rail", () => {
         beforeReveal={() => {
           released += 1
         }}
-        ensureItemMounted={async item => {
+        ensureItemMounted={async (item) => {
           revealed.push(item.turnKey)
         }}
       />

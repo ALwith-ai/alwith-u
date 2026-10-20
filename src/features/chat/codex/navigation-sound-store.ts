@@ -1,7 +1,9 @@
 // The navigation rail's sound settings, hydrated from preferences at boot and read
 // reactively by the rail and the Appearance section (Desktop reads them via useSetting).
 import { createStore } from "zustand/vanilla"
+
 import { savePreference } from "@/lib/preferences"
+
 import type { NavigationInstrument, NavigationSoundMode } from "./navigation-instruments"
 
 export type NavigationSoundState = {

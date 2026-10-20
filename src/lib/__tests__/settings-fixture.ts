@@ -1,5 +1,6 @@
 import { vi } from "vitest"
-import { settingsStore, type SettingsSnapshot } from "../settings-store"
+
+import { type SettingsSnapshot, settingsStore } from "../settings-store"
 let revision = 0
 /** Simulate only the native transport. Components use the real client projection and subscriptions. */
 export function settingsFixture(initial: Record<string, unknown> = {}) {
@@ -15,7 +16,7 @@ export function settingsFixture(initial: Record<string, unknown> = {}) {
     settingsStore.accept(next)
     return next
   })
-  const write = vi.spyOn(settingsStore, "write").mockImplementation(async input => {
+  const write = vi.spyOn(settingsStore, "write").mockImplementation(async (input) => {
     for (const [key, value] of Object.entries(input.changes ?? {})) {
       if (value === null) values.delete(key)
       else values.set(key, value)

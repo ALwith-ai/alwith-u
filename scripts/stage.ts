@@ -13,12 +13,14 @@
  */
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { $ } from "bun"
+
 import { stageNative } from "@alwith/native/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
+import { $ } from "bun"
+
+import manifest from "../package.json"
 import { stageComputer } from "./lib/computer-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
-import manifest from "../package.json"
 import { assertVersion, BUN_PACKAGES, toolchainVersions } from "./lib/toolchain"
 
 const root = resolve(import.meta.dirname, "..")

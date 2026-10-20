@@ -1,12 +1,14 @@
 import * as core from "@tauri-apps/api/core"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatDirectoryContext } from "../../file-actions"
 import { CodexMarkdownRenderer } from "../markdown-renderer"
 
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 await initI18n("en")
 const mounted: Array<ReturnType<typeof render>> = []

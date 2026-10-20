@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { useComputerStatus } from "@/features/computer/computer-control"
 import { enableComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
+
 import { SettingGroup, SettingLabel, SettingRow } from "./shared"
 
 export function ComputerSection() {
@@ -42,22 +44,23 @@ export function ComputerSection() {
               disabled={
                 pending || (!status?.enabled && (!status?.available || !status.permissions.supported || !permitted))
               }
-              onCheckedChange={value => void toggle(value)}
+              onCheckedChange={(value) => void toggle(value)}
             />
           </SettingRow>
-          <p className="text-muted-foreground pb-3 text-xs">{t("computer.scope")}</p>
+          <p className="pb-3 text-xs text-muted-foreground">{t("computer.scope")}</p>
           {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
           {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
           {status?.permissions.supported && !permitted && (
-            <p className="text-muted-foreground text-sm">{t("computer.permissions")}</p>
+            <p className="text-sm text-muted-foreground">{t("computer.permissions")}</p>
           )}
           {isMac() &&
             status?.permissions.supported &&
-            (["accessibility", "screenCapture"] as const).map(permission => (
+            (["accessibility", "screenCapture"] as const).map((permission) => (
               <SettingRow
                 key={permission}
                 title={t(`computer.${permission}`)}
-                desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}>
+                desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}
+              >
                 <div className="flex gap-2">
                   {!status.permissions[permission] && (
                     <Button
@@ -65,7 +68,8 @@ export function ComputerSection() {
                       size="sm"
                       onClick={() =>
                         void perform(() => commands.computerRequestPermissions({ permission, request: true }))
-                      }>
+                      }
+                    >
                       {t("computer.grantPermissions")}
                     </Button>
                   )}
@@ -74,14 +78,15 @@ export function ComputerSection() {
                     size="sm"
                     onClick={() =>
                       void perform(() => commands.computerRequestPermissions({ permission, request: false }))
-                    }>
+                    }
+                  >
                     {t("computer.openSettings")}
                   </Button>
                 </div>
               </SettingRow>
             ))}
           {(error || statusError) && (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-sm text-destructive">
               {error ?? statusError}
             </p>
           )}

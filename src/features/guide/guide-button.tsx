@@ -2,10 +2,12 @@ import { CircleHelpIcon, KeyboardIcon, LifeBuoyIcon } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
+
 import { openGuideWindow } from "./guide-window"
 
 export function GuideButton(): ReactNode {
@@ -19,14 +21,15 @@ export function GuideButton(): ReactNode {
     <>
       <DropdownMenu
         open={open}
-        onOpenChange={next => {
+        onOpenChange={(next) => {
           if (next) {
             const row = trigger.current?.parentElement
             if (!row) throw new Error("Help trigger must be mounted in its footer row")
             setMenuWidth(row.clientWidth)
           }
           setOpen(next)
-        }}>
+        }}
+      >
         <DropdownMenuTrigger
           render={
             <Button
@@ -37,7 +40,8 @@ export function GuideButton(): ReactNode {
               aria-label={t("guide.help")}
               title={t("guide.help")}
             />
-          }>
+          }
+        >
           <CircleHelpIcon className="size-4 shrink-0" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="end" sideOffset={8} style={{ width: menuWidth }}>
@@ -51,7 +55,8 @@ export function GuideButton(): ReactNode {
               void openGuideWindow().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))
               )
-            }>
+            }
+          >
             <LifeBuoyIcon className="text-muted-foreground" />
             {t("guide.userGuide")}
           </DropdownMenuItem>

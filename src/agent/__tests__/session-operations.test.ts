@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { SessionOperations } from "../session-operations"
 
 function gate<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void } {

@@ -1,8 +1,9 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
-import { settingsFixture } from "./settings-fixture"
-import { settingsStore } from "../settings-store"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { loadPreferences } from "../preferences"
+import { settingsStore } from "../settings-store"
+import { settingsFixture } from "./settings-fixture"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -78,12 +79,12 @@ test("startup reports failures to persist the cleared project", async () => {
 
 test.each([undefined, { main: "gateway:deepseek:deepseek-flash", chat: "gpt-6-astra" }])(
   "restores per-slot selections %p",
-  async saved => {
+  async (saved) => {
     settingsFixture(saved === undefined ? {} : { "chat.modelSelections": saved })
     expect((await loadPreferences()).modelSelections).toEqual(saved ?? { main: null, chat: null })
   }
 )
-test.each([undefined, false, true])("sidebar pin preference restores %p", async saved => {
+test.each([undefined, false, true])("sidebar pin preference restores %p", async (saved) => {
   settingsFixture(saved === undefined ? {} : { "appearance.sidebarPinned": saved })
   expect((await loadPreferences()).sidebarPinned).toBe(saved ?? false)
 })

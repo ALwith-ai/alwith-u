@@ -19,7 +19,7 @@ export function useWindowFullscreen(): boolean {
     void stop.then(refresh)
     return () => {
       disposed = true
-      void stop.then(unlisten => unlisten())
+      void stop.then((unlisten) => unlisten())
     }
   }, [])
   return fullscreen

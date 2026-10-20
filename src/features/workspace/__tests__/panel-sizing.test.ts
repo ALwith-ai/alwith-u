@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { resolvePanelWidths } from "../panel-sizing"
 
 test("visible panels share the viewport equally by default", () => {

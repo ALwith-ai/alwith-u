@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { startZoomViewport } from "../zoom-viewport"
 
 const { size, scale, callbacks, unlisten } = vi.hoisted(() => ({
@@ -56,7 +57,7 @@ test("late resize responses and disposed listeners cannot overwrite the current 
   let finish: ((value: { width: number }) => void) | undefined
   size.mockImplementationOnce(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finish = resolve
       })
   )

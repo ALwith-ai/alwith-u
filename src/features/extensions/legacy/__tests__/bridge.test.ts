@@ -1,6 +1,8 @@
 import { Blob as NodeBlob } from "node:buffer"
+
 import { ResourceScope } from "@alwith/module-extension/host"
 import { describe, expect, test } from "vitest"
+
 import { type BridgeDependencies, createLegacyBridge } from "../bridge"
 
 function setup(
@@ -32,7 +34,7 @@ function setup(
         dataSchemaVersion: 1
       },
       cancellation: scope.cancellation,
-      own: dispose => scope.own(dispose)
+      own: (dispose) => scope.own(dispose)
     },
     native: async <T>(command: string, args: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args })
@@ -55,14 +57,14 @@ function setup(
     },
     check: () => {},
     openView: () => {},
-    notify: message => {
+    notify: (message) => {
       notices.push(message)
       return { hide() {}, setMessage() {} }
     },
     language: () => "zh-CN",
     openExternal: async () => {},
     clipboard: async () => {},
-    own: dispose => dispose,
+    own: (dispose) => dispose,
     primary: true
   }
   return {
@@ -82,7 +84,7 @@ function setup(
 
 test("shares the current reader document and clears it before removing the local pointer", async () => {
   const shared: unknown[] = []
-  const { bridge } = setup("yup-kb", [], null, true, undefined, async value => {
+  const { bridge } = setup("yup-kb", [], null, true, undefined, async (value) => {
     shared.push(value)
   })
   const path = "/__alwith_legacy/yup-kb/.alwith/extensions/yup-kb/current.json"
@@ -166,7 +168,7 @@ describe("legacy host boundary", () => {
     const { bridge, calls } = setup()
     await expect(bridge.invoke("plugin:fs|read_text_file", { path: "/work/../secret" })).rejects.toThrow()
     await expect(bridge.invoke("plugin:fs|read_text_file", { path: "/work-other/secret" })).rejects.toThrow()
-    expect(calls.filter(call => call.command === "legacy_file")).toHaveLength(0)
+    expect(calls.filter((call) => call.command === "legacy_file")).toHaveLength(0)
   })
 
   test("maps legacy binary write headers to scoped native IO", async () => {
@@ -207,10 +209,10 @@ test("direct data.json IO shares SDK storage and never creates a second file", a
   const release = bridge.bindStorage({
     exists: async () => true,
     read: async () => value as { theme: string },
-    write: async next => {
+    write: async (next) => {
       value = next
     },
-    resource: path => `extension://test/${path}`
+    resource: (path) => `extension://test/${path}`
   })
   const path = "/__alwith_legacy/generic-reader/.alwith/extensions/generic-reader/data.json"
   const bytes = (await bridge.invoke("plugin:fs|read_text_file", { path })) as number[]
@@ -234,7 +236,7 @@ test("direct data.json IO shares SDK storage and never creates a second file", a
   const nullBytes = (await bridge.invoke("plugin:fs|read_text_file", { path: "./data.json" })) as number[]
   expect(new TextDecoder().decode(new Uint8Array(nullBytes))).toBe("null")
   expect(await bridge.invoke("plugin:fs|stat", { path })).toMatchObject({ exists: true, size: 4 })
-  release()
+  void release()
   await expect(bridge.invoke("plugin:fs|read_text_file", { path })).rejects.toThrow()
 })
 
@@ -266,8 +268,8 @@ test("ETMS exports reuse the bound session directory grant without opening a pic
     select()
     await bridge.vault.write("etms-review-fixture.json", "{}")
     await bridge.sendMessage("Analyze etms-review-fixture.json")
-    expect(calls.some(call => call.command === "legacy_pick_directory")).toBe(false)
-    expect(calls.find(call => call.command === "legacy_file")?.args.request).toEqual({
+    expect(calls.some((call) => call.command === "legacy_pick_directory")).toBe(false)
+    expect(calls.find((call) => call.command === "legacy_file")?.args.request).toEqual({
       operation: "write",
       scope: "grant",
       path: "etms-review-fixture.json",
@@ -284,8 +286,8 @@ test("ETMS asks for native directory authorization only when no exact workspace 
   try {
     bridge.captureChatContext()
     await bridge.vault.write("etms-review-new.json", "{}")
-    expect(calls.filter(call => call.command === "legacy_pick_directory")).toHaveLength(1)
-    expect(calls.find(call => call.command === "legacy_file")?.args.request).toMatchObject({ scope: "grant" })
+    expect(calls.filter((call) => call.command === "legacy_pick_directory")).toHaveLength(1)
+    expect(calls.find((call) => call.command === "legacy_file")?.args.request).toMatchObject({ scope: "grant" })
   } finally {
     await dispose()
   }
@@ -293,12 +295,12 @@ test("ETMS asks for native directory authorization only when no exact workspace 
 
 test.each([null, { scope: "wrong", path: "/other" }])(
   "ETMS does not write when directory authorization is cancelled or mismatched",
-  async picked => {
+  async (picked) => {
     const { bridge, calls, dispose } = setup("etms-strategy-review", [], picked)
     try {
       bridge.captureChatContext()
       await expect(bridge.vault.write("etms-review-new.json", "{}")).rejects.toThrow()
-      expect(calls.some(call => call.command === "legacy_file")).toBe(false)
+      expect(calls.some((call) => call.command === "legacy_file")).toBe(false)
     } finally {
       await dispose()
     }
@@ -307,7 +309,7 @@ test.each([null, { scope: "wrong", path: "/other" }])(
 
 test("projects the current U workspace through read-only Desktop settings without granting files", async () => {
   const { bridge, calls, select } = setup()
-  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const appData = (await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })) as string
   const path = `${appData}/ai.alwith.desktop/settings.json`
   const read = async (): Promise<unknown> => {
     const bytes = (await bridge.invoke("plugin:fs|read_text_file", { path })) as number[]
@@ -345,13 +347,13 @@ test("formal plugins use common native IO and never request legacy migration", a
   expect(bridge.acknowledgeInitialData).toBeUndefined()
   await bridge.invoke("plugin:fs|read_text_file", { path: "notes.json" })
   await bridge.fetch("https://api.github.com/example")
-  expect(calls.map(call => call.command)).toEqual(["extension_file", "extension_http"])
+  expect(calls.map((call) => call.command)).toEqual(["extension_file", "extension_http"])
 })
 
 test("workspace projection represents no selected session and refuses other Desktop metadata", async () => {
   const { bridge, calls, clear } = setup()
   clear()
-  const appData = await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })
+  const appData = (await bridge.invoke("plugin:path|resolve_directory", { directory: 4 })) as string
   const bytes = (await bridge.invoke("plugin:fs|read_text_file", {
     path: `${appData}/ai.alwith.desktop/settings.json`
   })) as number[]

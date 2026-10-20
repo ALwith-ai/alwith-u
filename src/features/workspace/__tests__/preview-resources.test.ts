@@ -1,6 +1,7 @@
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { expect, test } from "vitest"
+
 import { resolvePreviewResource } from "../preview-resources"
 
 function setup() {
@@ -10,7 +11,7 @@ function setup() {
       "/repo/assets/a b.css": "body{}",
       "/else/secret.txt": "secret"
     }),
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })
@@ -27,6 +28,6 @@ test.each([
   "file:///else/secret.txt",
   "https://example.com/a.js",
   "//example.com/a.js"
-])("preview resource rejects external access: %s", async reference => {
+])("preview resource rejects external access: %s", async (reference) => {
   await expect(resolvePreviewResource(setup(), "/repo", "/repo/doc.html", reference)).rejects.toThrow()
 })

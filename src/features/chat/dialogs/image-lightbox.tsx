@@ -4,6 +4,7 @@
 import { XIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
@@ -17,12 +18,13 @@ export function openImageLightbox(src: string, alt = ""): void {
 
 export function ImageLightbox() {
   const { t } = useTranslation()
-  const image = useLightbox(state => state.image)
+  const image = useLightbox((state) => state.image)
   return (
-    <Dialog open={image !== null} onOpenChange={open => !open && useLightbox.setState({ image: null })}>
+    <Dialog open={image !== null} onOpenChange={(open) => !open && useLightbox.setState({ image: null })}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-w-[calc(100%-2rem)] items-center justify-center bg-transparent p-0 ring-0 sm:max-w-[90vw]">
+        className="flex max-w-[calc(100%-2rem)] items-center justify-center bg-transparent p-0 ring-0 sm:max-w-[90vw]"
+      >
         <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
         {image !== null && (
           <img src={image.src} alt={image.alt} className="max-h-[90vh] max-w-[90vw] rounded-md object-contain" />
@@ -34,9 +36,10 @@ export function ImageLightbox() {
             <Button
               variant="outline"
               size="icon"
-              className="bg-popover text-popover-foreground absolute top-3 right-3 z-10 rounded-full shadow-sm"
+              className="absolute top-3 right-3 z-10 rounded-full bg-popover text-popover-foreground shadow-sm"
             />
-          }>
+          }
+        >
           <XIcon aria-hidden="true" />
         </DialogClose>
       </DialogContent>

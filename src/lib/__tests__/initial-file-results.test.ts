@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initialFileResults } from "../initial-file-results"
 
 const native = vi.hoisted(() => ({ invoke: vi.fn() }))
@@ -13,7 +14,7 @@ test("one native walk supplies bare @ and typed queries without repeated IPC", a
     initialFileResults("/project-alias")
   ])
   expect(native.invoke).toHaveBeenCalledExactlyOnceWith("workspace_list_files", { path: "/project-alias" })
-  expect(results[0].map(file => file.path)).toEqual(["a.txt", "src/nested.ts"])
+  expect(results[0].map((file) => file.path)).toEqual(["a.txt", "src/nested.ts"])
   expect(results[1]).toEqual([
     { root: "/project", path: "src/nested.ts", file_name: "nested.ts", match_type: "file", score: 0, indices: null }
   ])

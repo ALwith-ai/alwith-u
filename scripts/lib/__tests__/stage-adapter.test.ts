@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test"
-import { dirname, join } from "node:path"
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
+import { dirname, join } from "node:path"
+
 import providers from "../../../src/lib/provider-catalog.json"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
@@ -59,7 +60,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
     const parsed = JSON.parse(catalog.stdout.toString()) as { models: Array<{ slug: string }> }
     for (const model of provider.models) {
       expect(
-        parsed.models.map(entry => entry.slug),
+        parsed.models.map((entry) => entry.slug),
         `${provider.id}/${model.id}`
       ).toContain(model.id)
     }

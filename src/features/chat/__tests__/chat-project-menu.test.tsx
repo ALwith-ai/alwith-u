@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { SidebarProvider } from "@/components/ui/sidebar"
@@ -8,6 +9,7 @@ import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatHeader } from "../chat-header"
 import * as projectApps from "../open-in-editor"
 import { ChatProjectMenu } from "../project-session-popover"
@@ -23,7 +25,7 @@ beforeEach(async () => {
   await initI18n("en")
   resolveDirectory.mockReset().mockResolvedValue(defaultCwd)
   openDirectory.mockClear()
-  vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+  vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
     apps: [],
     active: undefined,
     openWith: () => {},
@@ -67,7 +69,9 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   expect(view.getByRole("dialog", { name: "Quick chats" })).toBeVisible()
   expect(view.getByText("Quick chats")).toBeVisible()
   expect(view.getByText("3 chats")).toBeVisible()
-  expect(view.getAllByRole("button", { name: /^(ALwith|Codex|Windows) chat$/ }).map(item => item.textContent)).toEqual([
+  expect(
+    view.getAllByRole("button", { name: /^(ALwith|Codex|Windows) chat$/ }).map((item) => item.textContent)
+  ).toEqual([
     expect.stringContaining("Windows chat"),
     expect.stringContaining("Codex chat"),
     expect.stringContaining("ALwith chat")
@@ -91,7 +95,7 @@ test.each([
   "/Users/mac/Documents/Codex",
   "/Users/mac/Documents/Codex/nested",
   String.raw`C:\Users\Alice\Documents\ALwith U`
-])("quick-chat directory %s keeps the default-folder and new-chat actions", async cwd => {
+])("quick-chat directory %s keeps the default-folder and new-chat actions", async (cwd) => {
   const newChat = vi.fn()
   const view = render(<ChatProjectMenu cwd={cwd} onSelect={() => {}} onNewChat={newChat} />)
   await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
@@ -163,7 +167,9 @@ test("the sidebar quick-chat hover shares the header list and default folder whi
   const newProjectChat = vi.fn()
   const header = render(<ChatProjectMenu cwd={null} onSelect={select} onNewChat={newChat} />)
   await act(async () => fireEvent.click(header.getByRole("button", { name: "Quick chats" })))
-  const headerChats = header.getAllByRole("button", { name: /^(ALwith|Codex) chat$/ }).map(button => button.textContent)
+  const headerChats = header
+    .getAllByRole("button", { name: /^(ALwith|Codex) chat$/ })
+    .map((button) => button.textContent)
   expect(header.getByText(defaultCwd)).toBeVisible()
   header.unmount()
 
@@ -199,7 +205,7 @@ test("the sidebar quick-chat hover shares the header list and default folder whi
     return within(await sidebar.findByRole("dialog", { name: "Quick chats" }))
   }
   const popup = await open()
-  expect(popup.getAllByRole("button", { name: /^(ALwith|Codex) chat$/ }).map(button => button.textContent)).toEqual(
+  expect(popup.getAllByRole("button", { name: /^(ALwith|Codex) chat$/ }).map((button) => button.textContent)).toEqual(
     headerChats
   )
   expect(popup.queryByRole("button", { name: "Other project" })).toBeNull()

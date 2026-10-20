@@ -2,7 +2,9 @@ import type { ToolItem } from "@alwith/api"
 import { isDiffEntry } from "@alwith/api"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { EditedFilesCard as SharedCard } from "@alwith/module-chat/edited-files-card"
+
 import { CodexFileIcon } from "@/components/icons/codex/file-icon"
+
 import { filePatch, openDiffModal } from "../dialogs/diff-modal"
 import { useChatActivityHost } from "./activity-host"
 
@@ -83,8 +85,8 @@ export function EditedFilesCard({ items }: { items: ToolItem[] }) {
     <ActivityHostProvider host={host}>
       <SharedCard
         files={fileChanges(items)}
-        onOpen={file => openDiffModal({ path: file.path, patch: file.patch })}
-        renderPath={file => (
+        onOpen={(file) => openDiffModal({ path: file.path, patch: file.patch })}
+        renderPath={(file) => (
           <>
             <CodexFileIcon path={file.path} className="codex-edited-file-icon" />
             <span className="codex-edited-file-name">{file.path}</span>

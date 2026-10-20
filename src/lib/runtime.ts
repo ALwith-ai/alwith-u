@@ -2,6 +2,7 @@
 // talks frames through Tauri events and commands (`@alwith/api/tauri`).
 
 import { TauriRuntimeClient } from "@alwith/api/tauri"
+
 import { events, type RuntimeExit } from "@/bindings"
 
 /** Emitted by Rust when the alwith-runtime process ends. */
@@ -38,7 +39,7 @@ function resetHubPort(): void {
 
 /** alwith-runtime ended (crash or kill): the port is dead and every subscription with it. */
 export function onHubExit(handler: (exit: RuntimeExit) => void): Promise<() => void> {
-  return events["runtime:exit"].listen(event => {
+  return events["runtime:exit"].listen((event) => {
     port?.markExited()
     resetHubPort()
     handler(event.payload)

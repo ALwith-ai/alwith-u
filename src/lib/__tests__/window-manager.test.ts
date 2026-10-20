@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import type { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 const host = vi.hoisted(() => ({
   mac: false,

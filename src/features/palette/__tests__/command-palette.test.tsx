@@ -1,11 +1,13 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { CommandPalette } from "../command-palette"
 
 await initI18n("en")
@@ -39,7 +41,7 @@ test("search opens with its command context and closes after selecting the expli
           onOpenPlugins={() => {}}
           onOpenHotkeys={() => {}}
           onOpenExtension={() => {}}
-          onSelect={value => selected.push(value)}
+          onSelect={(value) => selected.push(value)}
         />
       </ThemeProvider>
     )
@@ -78,7 +80,7 @@ function openPalette(threads: ThreadSummary[]) {
           onOpenPlugins={() => {}}
           onOpenHotkeys={() => {}}
           onOpenExtension={() => {}}
-          onSelect={thread => selected.push(thread)}
+          onSelect={(thread) => selected.push(thread)}
         />
       </ThemeProvider>
     )
@@ -103,12 +105,13 @@ test("bounds mounted results while searching titles, directories and IDs through
 
 test.each([{ key: "ArrowDown" }, { key: "n", ctrlKey: true }, { key: "j", ctrlKey: true }])(
   "keyboard navigation %o crosses a page and Enter opens the selected session",
-  async navigation => {
+  async (navigation) => {
     const threads = catalog(100)
     const { view, selected } = openPalette(threads)
     const input = view.getByRole("combobox")
     fireEvent.change(input, { target: { value: "Session" } })
-    const rows = () => view.getAllByRole("option").filter(row => row.getAttribute("data-value")?.startsWith("thread:"))
+    const rows = () =>
+      view.getAllByRole("option").filter((row) => row.getAttribute("data-value")?.startsWith("thread:"))
     expect(rows()).toHaveLength(20)
     const nextId = "thread:thread-20"
     fireEvent.pointerMove(rows()[19])

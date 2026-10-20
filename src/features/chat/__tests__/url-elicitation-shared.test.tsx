@@ -16,11 +16,11 @@ test("URL card opens exactly the supplied URL without inventing an acceptance re
     <UrlElicitationCard
       message="Authorize this connection"
       url="https://example.com/authorize?request=one"
-      t={key => key}
-      onOpen={url => {
+      t={(key) => key}
+      onOpen={(url) => {
         opened.push(url)
       }}
-      onRespond={action => responses.push(action)}
+      onRespond={(action) => responses.push(action)}
     />
   )
   mounted.push(view)
@@ -47,7 +47,7 @@ test("a changed request uses the new host action and URL", () => {
     <UrlElicitationCard
       {...props}
       url="https://example.com/first"
-      onRespond={action => responses.push(`first:${action}`)}
+      onRespond={(action) => responses.push(`first:${action}`)}
     />
   )
   mounted.push(view)
@@ -55,7 +55,7 @@ test("a changed request uses the new host action and URL", () => {
     <UrlElicitationCard
       {...props}
       url="https://example.com/second"
-      onRespond={action => responses.push(`second:${action}`)}
+      onRespond={(action) => responses.push(`second:${action}`)}
     />
   )
   fireEvent.click(view.getByRole("button", { name: "approval.openLink" }))

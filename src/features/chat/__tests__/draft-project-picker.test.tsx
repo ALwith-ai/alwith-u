@@ -2,12 +2,14 @@ import { invoke } from "@tauri-apps/api/core"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { DraftProjectPicker } from "../draft-project-picker"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
-vi.mock("@tauri-apps/plugin-dialog", async importOriginal => ({ ...(await importOriginal<object>()), open: vi.fn() }))
+vi.mock("@tauri-apps/plugin-dialog", async (importOriginal) => ({ ...(await importOriginal<object>()), open: vi.fn() }))
 
 await initI18n("en")
 beforeEach(() => vi.mocked(invoke).mockResolvedValue("/tmp/ALwith U"))
@@ -19,7 +21,7 @@ test("project picker pins the current directory once, marks it selected and repo
     <DraftProjectPicker
       cwd="/tmp/current"
       recentProjects={["/tmp/recent", "/tmp/current"]}
-      onChange={cwd => chosen.push(cwd)}
+      onChange={(cwd) => chosen.push(cwd)}
     />
   )
   await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
@@ -36,7 +38,7 @@ test("canceling the directory dialog keeps a draft without a project", async () 
   const open = vi.spyOn(dialog, "open").mockResolvedValue(null)
   const chosen: string[] = []
   try {
-    const view = render(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={cwd => chosen.push(cwd)} />)
+    const view = render(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={(cwd) => chosen.push(cwd)} />)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Select project" })))
     expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
     expect(view.getAllByRole("menuitem")).toHaveLength(1)
@@ -55,7 +57,7 @@ test("outside-project selection resolves to the host default and hides it from r
   )
   await act(async () => {})
   await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
-  expect(view.getAllByRole("menuitemradio").map(item => item.textContent)).toEqual(["current", "recent"])
+  expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["current", "recent"])
   await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" })))
   expect(onChange).toHaveBeenCalledWith("/tmp/ALwith U")
   expect(invoke).toHaveBeenCalledWith("draft_directory", { cwd: null })
@@ -87,7 +89,7 @@ test("project choices exclude quick-chat directories but retain temporary worksp
   )
   try {
     await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
-    expect(view.getAllByRole("menuitemradio").map(item => item.textContent)).toEqual([
+    expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
       "current",
       "project",
       "project",

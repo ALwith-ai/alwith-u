@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from "react"
+
 import sprite from "./plugin-icons.svg?raw"
 
 /** Mount once outside the tab panels: WebKit loses gradients through external SVG use. */
@@ -11,7 +12,6 @@ export function PluginIconDefinitions(): ReactNode {
       width={0}
       height={0}
       className="pointer-events-none absolute"
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: Static repository SVG, never plugin or user content.
       dangerouslySetInnerHTML={{ __html: sprite }}
     />
   )

@@ -1,10 +1,11 @@
+import { defaultPreferences, type Provider } from "@alwith/module-voice"
+import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
-import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
-import { type Provider, defaultPreferences } from "@alwith/module-voice"
-import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+
 import { commands } from "@/bindings"
 import { VoiceSection } from "@/features/settings/sections/voice-section"
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 const notice = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }))
 vi.mock("sonner", () => ({ toast: notice }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -16,15 +17,15 @@ const slots: VoiceSettingsSlots = {
       {children}
     </div>
   ),
-  Input: props => <input {...props} />,
-  Textarea: props => <textarea {...props} />,
-  Button: props => <button {...props} />,
+  Input: (props) => <input {...props} />,
+  Textarea: (props) => <textarea {...props} />,
+  Button: (props) => <button {...props} />,
   Switch: ({ checked, onCheckedChange, ...props }) => (
-    <input type="checkbox" checked={checked} onChange={event => onCheckedChange(event.target.checked)} {...props} />
+    <input type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} {...props} />
   ),
   Select: ({ label, value, options, onChange }) => (
-    <select aria-label={label} value={value} onChange={event => onChange(event.target.value)}>
-      {options.map(option => (
+    <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -65,7 +66,7 @@ function fixture() {
       devices = next
     },
     view: () =>
-      render(<VoiceSettingsForm host={host} slots={slots} text={key => key} onError={onError} onSaved={onSaved} />)
+      render(<VoiceSettingsForm host={host} slots={slots} text={(key) => key} onError={onError} onSaved={onSaved} />)
   }
 }
 test("saving without a key commits settings and shows a reminder, while a configured key shows success", async () => {

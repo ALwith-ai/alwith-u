@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+
 import { storyAvailable } from "./story-client"
 
 /** Whether the Runtime loaded the story module; probed once per mount, false until known. */
@@ -7,7 +8,7 @@ export function useStoryAvailable(): boolean {
   useEffect(() => {
     let cancelled = false
     void storyAvailable()
-      .then(ok => {
+      .then((ok) => {
         if (!cancelled) setAvailable(ok)
       })
       .catch(() => {})

@@ -1,11 +1,12 @@
 import { expect, test } from "vitest"
+
 import { createWindowController } from "../window-controller"
 
 test("concurrent opens create one window and deliver each intent after readiness", async () => {
   const delivered: string[] = []
   let created = 0
   let ready!: () => void
-  const prepared = new Promise<void>(resolve => {
+  const prepared = new Promise<void>((resolve) => {
     ready = resolve
   })
   let exists = false
@@ -17,7 +18,7 @@ test("concurrent opens create one window and deliver each intent after readiness
       exists = true
     },
     present: async () => {},
-    deliver: async intent => {
+    deliver: async (intent) => {
       delivered.push(intent)
     }
   })

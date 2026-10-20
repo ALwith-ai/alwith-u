@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+
 import {
   defaultEditorSettings,
-  loadEditorSettings,
-  saveEditorSettings,
-  subscribeEditorSettings,
   loadEditorIconTheme,
-  saveEditorIconTheme
+  loadEditorSettings,
+  saveEditorIconTheme,
+  saveEditorSettings,
+  subscribeEditorSettings
 } from "../editor-settings"
 let fixture: ReturnType<typeof settingsFixture>
 beforeEach(() => {

@@ -1,8 +1,10 @@
-import { commands } from "@/bindings"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
+import { commands } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
+
 import { AutostartRow } from "../autostart-row"
 
 vi.mock("@/bindings", () => ({ commands: { autostartSet: vi.fn(), autostartStatus: vi.fn() } }))

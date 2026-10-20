@@ -1,5 +1,6 @@
 import { createSession, SessionStore, textOf } from "@alwith/api"
 import { expect, test, vi } from "vitest"
+
 import { prependHistory, readHistoryPage } from "../history-page"
 
 const turn = (id: string, text = id) => ({
@@ -34,8 +35,8 @@ const page = (turns: unknown[] = [turn("new"), turn("old")], nextCursor: string 
 test("folds descending history in chronological order with replacement tool patches and replay markers", async () => {
   const request = vi.fn().mockResolvedValue(page())
   const result = await readHistoryPage("s", "/work", null, request)
-  expect(result.session.items.map(item => item.id)).toEqual(["u-old", "tool-old", "u-new", "tool-new"])
-  expect(result.session.items.every(item => item.replayed)).toBe(true)
+  expect(result.session.items.map((item) => item.id)).toEqual(["u-old", "tool-old", "u-new", "tool-new"])
+  expect(result.session.items.every((item) => item.replayed)).toBe(true)
   expect(result.session.items[1]).toMatchObject({ status: "completed", content: [{ content: { text: "complete" } }] })
   expect(request).toHaveBeenCalledWith(
     expect.objectContaining({ mode: "browse", itemsView: "full", sortDirection: "desc", limit: 5 })
@@ -98,8 +99,8 @@ test("older pages and refreshing the tail preserve live upserts, earlier history
   store.accept("s", { sessionUpdate: "state_update", state: "running" })
   const merged = prependHistory(store.get("s"), earlier.session)
   const refreshed = prependHistory(merged, recent.session)
-  expect(refreshed.items.map(item => item.id)).toEqual(["u-old", "tool-old", "u-new", "tool-new"])
-  const message = refreshed.items.find(item => item.id === "u-new")
+  expect(refreshed.items.map((item) => item.id)).toEqual(["u-old", "tool-old", "u-new", "tool-new"])
+  const message = refreshed.items.find((item) => item.id === "u-new")
   if (message === undefined) throw new Error("Missing user message")
   expect(message.kind === "user" && textOf(message.content)).toBe("live")
   expect(refreshed).toMatchObject({ attached: true, state: "running", restoring: false })

@@ -1,9 +1,11 @@
-import { commands } from "@/bindings"
 import { LoaderCircleIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
+import { commands } from "@/bindings"
 import { Switch } from "@/components/ui/switch"
+
 import { SettingRow } from "./shared"
 
 /** Desktop's system login item is the source of truth; no second preference is stored. */
@@ -48,12 +50,12 @@ export function AutostartRow() {
   return (
     <SettingRow title={t("settings.petAutostart")} desc={supported ? undefined : t("settings.petAutostartInstalled")}>
       <div className="flex items-center gap-2">
-        {pending && <LoaderCircleIcon className="text-muted-foreground size-4 animate-spin" aria-hidden="true" />}
+        {pending && <LoaderCircleIcon className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />}
         <Switch
           aria-label={t("settings.petAutostart")}
           checked={enabled === true}
           disabled={pending || enabled === null || !supported}
-          onCheckedChange={value => void read(value)}
+          onCheckedChange={(value) => void read(value)}
         />
       </div>
     </SettingRow>

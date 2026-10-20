@@ -10,11 +10,13 @@ import { Image as TauriImage } from "@tauri-apps/api/image"
 import { Menu } from "@tauri-apps/api/menu"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LogicalPosition } from "@tauri-apps/api/window"
+
 import i18n from "@/lib/i18n"
+
+import type { PetCollapseResult } from "./collapse"
 import { sessionIcons } from "./session-icons"
 import { fitSessionMenuLabel } from "./session-menu-label"
 import { requestPet } from "./transport"
-import type { PetCollapseResult } from "./collapse"
 
 let sessionMenu: Menu | null = null
 async function chooseSession(payload: {
@@ -57,13 +59,13 @@ async function chooseSession(payload: {
           ]
             .filter(Boolean)
             .join(" / "),
-          label => metrics.measureText(label).width
+          (label) => metrics.measureText(label).width
         ),
         action: () => void payload.onSelect(candidate.sessionId)
       }))
     })
   } finally {
-    await Promise.all(icons.map(icon => icon.close()))
+    await Promise.all(icons.map((icon) => icon.close()))
   }
   await petWindowCall("focus")
   await sessionMenu.popup(new LogicalPosition(payload.position.x, payload.position.y), window)
@@ -107,7 +109,7 @@ export function createPetWindowClient(): PetWindowHost {
       })
       return () => {
         disposed = true
-        void work.then(stop => stop())
+        void work.then((stop) => stop())
       }
     }
   }

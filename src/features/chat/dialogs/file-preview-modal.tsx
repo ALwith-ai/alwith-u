@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { FilePosition } from "@/features/workspace/context"
@@ -25,7 +26,7 @@ function PreviewContent({ request }: { request: Request }) {
   useEffect(() => {
     let active = true
     void invoke<Preview>("chat_preview_file", { path: request.path }).then(
-      value => {
+      (value) => {
         if (active) setResult(value)
       },
       (error: unknown) => {
@@ -41,18 +42,18 @@ function PreviewContent({ request }: { request: Request }) {
   }, [result])
   if (error !== null)
     return (
-      <div role="alert" className="text-destructive p-4 text-sm">
+      <div role="alert" className="p-4 text-sm text-destructive">
         {error}
       </div>
     )
   if (result === null)
     return (
-      <div role="status" className="text-muted-foreground p-4 text-sm">
+      <div role="status" className="p-4 text-sm text-muted-foreground">
         {t("workspace.loading")}
       </div>
     )
   if (result.kind === "unsupported")
-    return <p className="text-muted-foreground p-4 text-sm">{t("chat.filePreview.unsupported")}</p>
+    return <p className="p-4 text-sm text-muted-foreground">{t("chat.filePreview.unsupported")}</p>
   if (result.kind === "image")
     return (
       <img
@@ -84,12 +85,12 @@ function PreviewContent({ request }: { request: Request }) {
 
 export function FilePreviewModal() {
   const { t } = useTranslation()
-  const request = useFilePreview(state => state.request)
+  const request = useFilePreview((state) => state.request)
   const run = (action: () => Promise<void>) => {
     void action().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
   }
   return (
-    <Dialog open={request !== null} onOpenChange={open => !open && useFilePreview.setState({ request: null })}>
+    <Dialog open={request !== null} onOpenChange={(open) => !open && useFilePreview.setState({ request: null })}>
       <DialogContent className="flex h-[calc(100vh-2.5rem)] max-h-[900px] flex-col gap-3 sm:max-w-[min(1400px,calc(100vw-2.5rem))]">
         <DialogHeader>
           <DialogTitle className="truncate pe-8 font-mono text-sm font-normal" title={request?.path}>

@@ -6,6 +6,7 @@ import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Item } from "@alwith/api"
 import { isText } from "@alwith/api"
 import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"
+
 import type { Turn } from "../turns"
 
 function stringsInValue(value: unknown): string[] {
@@ -45,7 +46,7 @@ export function findCodexSearchSourceMatches(turns: Turn[], rawQuery: string): S
   const query = rawQuery.trim()
   if (query.length === 0) return []
   return findTextSourceMatches(
-    turns.map(turn => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
+    turns.map((turn) => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
     query
   )
 }

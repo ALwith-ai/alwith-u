@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
+
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { resetZoom, ZOOM_LEVELS, zoomIn, zoomOut, zoomStore } from "@/lib/zoom"
@@ -61,7 +62,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
     document.addEventListener("pointerdown", pointerdown, true)
     return () => {
       void listeners
-        .then(stops => {
+        .then((stops) => {
           for (const stop of stops) stop()
         })
         .catch(report)
@@ -80,14 +81,15 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
   return createPortal(
     <fieldset
       aria-label={t("zoom.label")}
-      className="zoom-feedback bg-popover text-popover-foreground fixed z-50 flex h-12 items-center gap-1 rounded-2xl border px-3 shadow-lg [-webkit-app-region:no-drag]"
+      className="zoom-feedback fixed z-50 flex h-12 items-center gap-1 rounded-2xl border bg-popover px-3 text-popover-foreground shadow-lg [-webkit-app-region:no-drag]"
       style={{ top: 40, right: 12 }}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onFocusCapture={() => setKeyboardFocus(keyboard.current)}
-      onBlurCapture={event => {
+      onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocus(false)
-      }}>
+      }}
+    >
       <span className="min-w-12 text-center text-sm font-semibold tabular-nums" role="status" aria-live="polite">
         {Math.round(level * 100)}%
       </span>
@@ -98,7 +100,8 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         disabled={level === ZOOM_LEVELS[0]}
         aria-label={t("shortcuts.items.zoomOut")}
         title={t("shortcuts.items.zoomOut")}
-        onClick={() => void zoomOut().catch(report)}>
+        onClick={() => void zoomOut().catch(report)}
+      >
         <MinusIcon />
       </Button>
       <Button
@@ -108,16 +111,18 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         disabled={level === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
         aria-label={t("shortcuts.items.zoomIn")}
         title={t("shortcuts.items.zoomIn")}
-        onClick={() => void zoomIn().catch(report)}>
+        onClick={() => void zoomIn().catch(report)}
+      >
         <PlusIcon />
       </Button>
-      <span aria-hidden="true" className="bg-border mx-1 h-5 w-px" />
+      <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
       <Button
         variant="ghost"
         size="sm"
         className="rounded-lg"
         disabled={level === 1}
-        onClick={() => void resetZoom().catch(report)}>
+        onClick={() => void resetZoom().catch(report)}
+      >
         {t("zoom.reset")}
       </Button>
     </fieldset>,

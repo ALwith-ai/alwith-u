@@ -1,4 +1,6 @@
 import type { Session } from "@alwith/api"
+
+import { asError } from "@/lib/text"
 /** Observes retained protocol facts for one receipt; never derives completion from busy transitions. */
 export function observeVoiceTurn(
   source: { read(): Session | undefined; subscribe(check: () => void): () => void },
@@ -13,7 +15,7 @@ export function observeVoiceTurn(
     }
     const abort = (): void => {
       cleanup()
-      reject(signal.reason)
+      reject(asError(signal.reason))
     }
     check = (): void => {
       const session = source.read()
@@ -23,7 +25,7 @@ export function observeVoiceTurn(
         return
       }
       if (receipt === null) return
-      if (session.items.findLast(item => item.kind === "user")?.id !== receipt) {
+      if (session.items.findLast((item) => item.kind === "user")?.id !== receipt) {
         cleanup()
         reject(new Error("voice_turn_superseded"))
         return

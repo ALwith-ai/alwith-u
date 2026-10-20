@@ -1,6 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { PromptInput, PromptInputProvider, PromptInputSubmit, PromptInputTextarea } from "../prompt-input"
 
 const mounted: ReturnType<typeof render>[] = []
@@ -15,7 +17,8 @@ test("U consumes Desktop's shared form without enabling Desktop dev commands or 
       <PromptInput
         onSubmit={({ text }) => {
           messages.push(text)
-        }}>
+        }}
+      >
         <PromptInputTextarea aria-label="message" />
         <PromptInputSubmit />
       </PromptInput>
@@ -34,7 +37,8 @@ test("U preserves literal exclamation marks and the common form's submit button"
       <PromptInput
         onSubmit={({ text }) => {
           messages.push(text)
-        }}>
+        }}
+      >
         <PromptInputTextarea aria-label="message" />
         <PromptInputSubmit />
       </PromptInput>
@@ -50,7 +54,7 @@ test("U preserves literal exclamation marks and the common form's submit button"
 
 test("shared form serializes submission until asynchronous preparation and acceptance finish", async () => {
   let finish = () => {}
-  const pending = new Promise<void>(resolve => {
+  const pending = new Promise<void>((resolve) => {
     finish = resolve
   })
   const messages: string[] = []
@@ -60,7 +64,8 @@ test("shared form serializes submission until asynchronous preparation and accep
         onSubmit={async ({ text }) => {
           messages.push(text)
           await pending
-        }}>
+        }}
+      >
         <PromptInputTextarea aria-label="message" />
         <PromptInputSubmit />
       </PromptInput>
@@ -87,7 +92,8 @@ test("failed submission preserves the draft and releases the submission lock for
       <PromptInput
         onSubmit={async () => {
           if (++attempts === 1) throw new Error("offline")
-        }}>
+        }}
+      >
         <PromptInputTextarea aria-label="message" />
         <PromptInputSubmit />
       </PromptInput>

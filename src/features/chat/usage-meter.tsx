@@ -9,11 +9,13 @@ import type { Session } from "@alwith/api"
 import { isSelectOption, type SelectOption } from "@alwith/api"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { hasAccount, type RateLimitSnapshot } from "@/agent/codex-extensions"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { limitWindowLabel } from "@/features/settings/sections/codex-provider-section"
 import { client, useApp } from "@/lib/client"
 import { cn } from "@/lib/utils"
+
 import { flattenSelectOptions } from "./composer/permission-mode-select"
 
 const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
@@ -32,15 +34,15 @@ function contextRingStats(used: number, size: number): { pct: number; className:
 }
 
 function currentModel(session: Session): string | undefined {
-  const option = session.configOptions.find(item => item.category === "model" && isSelectOption(item)) as
+  const option = session.configOptions.find((item) => item.category === "model" && isSelectOption(item)) as
     SelectOption | undefined
   if (option === undefined) return undefined
-  return flattenSelectOptions(option).find(item => item.value === option.currentValue)?.name ?? option.currentValue
+  return flattenSelectOptions(option).find((item) => item.value === option.currentValue)?.name ?? option.currentValue
 }
 
 /** The plan's rate limits, read once and then followed through `_codex/rate_limits_updated`. */
 function useRateLimits(): RateLimitSnapshot | null {
-  const available = useApp(state => state.connection === "ready" && hasAccount(state.agent))
+  const available = useApp((state) => state.connection === "ready" && hasAccount(state.agent))
   const [limits, setLimits] = useState<RateLimitSnapshot | null>(null)
   useEffect(() => {
     if (!available) {
@@ -49,12 +51,12 @@ function useRateLimits(): RateLimitSnapshot | null {
     }
     let alive = true
     client.readRateLimits().then(
-      snapshot => {
+      (snapshot) => {
         if (alive) setLimits(snapshot)
       },
       () => undefined
     )
-    const stop = client.onRateLimits(snapshot => {
+    const stop = client.onRateLimits((snapshot) => {
       if (alive) setLimits(snapshot)
     })
     return () => {
@@ -102,10 +104,11 @@ export function UsageMeter({ session }: { session: Session }) {
           <button
             type="button"
             className={cn(
-              "hover:text-foreground flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums",
+              "flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums hover:text-foreground",
               ring?.className ?? "text-muted-foreground"
             )}
-            aria-label={t("chat.tokens.openDetails")}>
+            aria-label={t("chat.tokens.openDetails")}
+          >
             <svg viewBox="0 0 18 18" className="size-4" aria-hidden="true">
               <circle cx="9" cy="9" r={radius} fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" />
               {ring !== null && (
@@ -130,7 +133,7 @@ export function UsageMeter({ session }: { session: Session }) {
       <HoverCardContent align="end" side="top" sideOffset={8} className="w-56 p-0">
         {model !== undefined && (
           <div className="border-b px-3 py-2">
-            <p className="text-foreground truncate text-xs font-semibold" title={model}>
+            <p className="truncate text-xs font-semibold text-foreground" title={model}>
               {model}
             </p>
           </div>
@@ -152,7 +155,7 @@ export function UsageMeter({ session }: { session: Session }) {
           {usage !== null && usage.size > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               <p className="text-xs font-medium">{t("chat.tokens.context")}</p>
-              <p className="text-muted-foreground text-xs tabular-nums">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {t("chat.tokens.contextSummary", {
                   used: integer.format(usage.used),
                   limit: integer.format(usage.size),
@@ -167,7 +170,7 @@ export function UsageMeter({ session }: { session: Session }) {
               <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
                 {[limits.primary, limits.secondary]
                   .filter((window): window is NonNullable<typeof window> => window !== null)
-                  .map(window => (
+                  .map((window) => (
                     <div className="contents" key={`${window.windowDurationMins ?? "window"}`}>
                       <dt className="text-muted-foreground">{limitWindowLabel(window, t)}</dt>
                       <dd className="text-end tabular-nums">

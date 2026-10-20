@@ -9,7 +9,8 @@ export function WindowFrameIcon(): ReactNode {
       stroke="currentColor"
       strokeWidth="1.5"
       className="size-[18px]"
-      aria-hidden="true">
+      aria-hidden="true"
+    >
       <g opacity="0.5" strokeLinecap="round">
         <path d="M2 9.5H22M9 21.9799V9.5" />
         <path d="M9 6H9.0001M6 6H6.0001" strokeLinejoin="round" />

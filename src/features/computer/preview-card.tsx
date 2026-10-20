@@ -8,9 +8,11 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { ComputerPreview } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
 import { computerActionKey } from "./action-label"
 import { AgentCursor } from "./agent-cursor"
 
@@ -21,7 +23,8 @@ function WindowFrame({ preview }: { preview: ComputerPreview }) {
     return (
       <div
         role="status"
-        className="text-muted-foreground flex min-h-40 flex-col items-center justify-center gap-3 text-xs">
+        className="flex min-h-40 flex-col items-center justify-center gap-3 text-xs text-muted-foreground"
+      >
         <MonitorIcon className="size-7 opacity-40" />
         <span>{t(preview.error ? "computer.preview.unavailable" : "computer.preview.waiting")}</span>
       </div>
@@ -40,7 +43,8 @@ function WindowFrame({ preview }: { preview: ComputerPreview }) {
             left: `${frame.cursor.x * 100}%`,
             top: `${frame.cursor.y * 100}%`,
             transform: "translate(-7.5px, -5px)"
-          }}>
+          }}
+        >
           <AgentCursor />
         </span>
       )}
@@ -67,10 +71,11 @@ export function ComputerPreviewCard({
   return (
     <section
       aria-label={t("computer.preview.title")}
-      className="computer-preview ml-auto w-full max-w-72 shrink-0 px-3 py-2">
-      <div className="bg-card text-card-foreground ml-auto w-full max-w-72 overflow-hidden rounded-xl border shadow-sm">
+      className="computer-preview ml-auto w-full max-w-72 shrink-0 px-3 py-2"
+    >
+      <div className="ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <MonitorIcon className="text-muted-foreground size-3.5 shrink-0" />
+          <MonitorIcon className="size-3.5 shrink-0 text-muted-foreground" />
           <span role="status" className="min-w-0 flex-1 truncate text-xs">
             {queued ? t("computer.preview.queued", { position: preview.activity.queuePosition }) : title}
           </span>
@@ -80,7 +85,8 @@ export function ComputerPreviewCard({
               size="icon-sm"
               aria-label={t(collapsed ? "computer.preview.expand" : "computer.preview.collapse")}
               aria-expanded={!collapsed}
-              onClick={() => setCollapsed(v => !v)}>
+              onClick={() => setCollapsed((v) => !v)}
+            >
               {collapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
             </Button>
           )}
@@ -89,7 +95,8 @@ export function ComputerPreviewCard({
               variant="ghost"
               size="icon-sm"
               aria-label={t("computer.preview.enlarge")}
-              onClick={() => setExpanded(true)}>
+              onClick={() => setExpanded(true)}
+            >
               <ArrowUpRightIcon />
             </Button>
           )}
@@ -98,18 +105,20 @@ export function ComputerPreviewCard({
             size="icon-sm"
             disabled={stopping}
             onClick={onStop}
-            aria-label={t(queued ? "computer.preview.cancelQueue" : "computer.preview.stop")}>
+            aria-label={t(queued ? "computer.preview.cancelQueue" : "computer.preview.stop")}
+          >
             {stopping ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <SquareIcon />}
           </Button>
         </div>
         {!queued && !collapsed && (
           <Button
             variant="ghost"
-            className="bg-muted/40 block h-auto w-full overflow-hidden rounded-none p-0 [&_img]:max-h-44"
+            className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 [&_img]:max-h-44"
             disabled={!preview.frame || !preview.activity.target}
             aria-label={t("computer.preview.focus", { app: title })}
             title={t("computer.preview.focus", { app: title })}
-            onClick={onFocus}>
+            onClick={onFocus}
+          >
             <WindowFrame preview={preview} />
           </Button>
         )}
@@ -122,9 +131,10 @@ export function ComputerPreviewCard({
           </DialogHeader>
           <Button
             variant="ghost"
-            className="bg-muted/30 h-auto overflow-hidden rounded-xl border p-0"
+            className="h-auto overflow-hidden rounded-xl border bg-muted/30 p-0"
             onClick={onFocus}
-            aria-label={t("computer.preview.focus", { app: title })}>
+            aria-label={t("computer.preview.focus", { app: title })}
+          >
             <WindowFrame preview={preview} />
           </Button>
           <div className="flex items-center justify-between text-xs">

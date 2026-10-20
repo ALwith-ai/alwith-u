@@ -1,3 +1,4 @@
+import { asError } from "@/lib/text"
 interface UninstallCompletion {
   state(): { installed: boolean; pending: boolean }
   subscribe(listener: () => void): () => void
@@ -17,7 +18,7 @@ export async function waitForLegacyUninstall(completion: UninstallCompletion): P
         else resolve()
       } catch (error) {
         unsubscribe?.()
-        reject(error)
+        reject(asError(error))
       }
     }
     unsubscribe = completion.subscribe(inspect)

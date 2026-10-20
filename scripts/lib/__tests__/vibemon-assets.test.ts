@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
+
 import { build } from "vite"
 
 for (const base of ["/", "./"]) {
@@ -32,7 +33,7 @@ for (const base of ["/", "./"]) {
         }
       })
       if (Array.isArray(result) || !("output" in result)) throw new Error("Expected one frontend build")
-      const files = new Set(result.output.map(file => file.fileName))
+      const files = new Set(result.output.map((file) => file.fileName))
       expect(files.has("index.html")).toBe(true)
       expect(files.has("vibemon.html")).toBe(true)
       for (const name of [
@@ -49,8 +50,8 @@ for (const base of ["/", "./"]) {
         "proceed-hover",
         "proceed-active"
       ])
-        expect([...files].some(file => basename(file).startsWith(`${name}-`))).toBe(true)
-      expect([...files].filter(file => /\.(mp4|webm)$/.test(file))).toHaveLength(3)
+        expect([...files].some((file) => basename(file).startsWith(`${name}-`))).toBe(true)
+      expect([...files].filter((file) => /\.(mp4|webm)$/.test(file))).toHaveLength(3)
 
       let references = 0
       for (const file of result.output) {

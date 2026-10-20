@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { groupThreads, isQuickChatDirectory, QUICK_CHATS_GROUP } from "../thread-groups"
 
 test.each([
@@ -10,7 +11,7 @@ test.each([
   "C:\\Users\\Alice\\Documents\\Codex\\project",
   "c:/users/Alice/documents/CODEX/2026-09-23/nested/",
   "c:/users/Bob/documents/ALWITH U/"
-])("%s belongs to quick chats", cwd => {
+])("%s belongs to quick chats", (cwd) => {
   expect(isQuickChatDirectory(cwd)).toBe(true)
 })
 
@@ -41,7 +42,7 @@ test.each([
   "/var/folders-other/project",
   "/private/var/project",
   "/var/project"
-])("%s remains an independent project", cwd => {
+])("%s remains an independent project", (cwd) => {
   expect(isQuickChatDirectory(cwd)).toBe(false)
 })
 
@@ -58,7 +59,7 @@ test("quick chats stays first even when empty and grouping preserves each origin
   const groups = groupThreads(threads)
   expect(groups.map(([key]) => key)).toEqual([QUICK_CHATS_GROUP, "/project"])
   expect(groups[0]?.[1]).toEqual(threads.slice(1))
-  expect(threads.map(thread => thread.cwd)).toEqual(paths)
+  expect(threads.map((thread) => thread.cwd)).toEqual(paths)
 })
 
 test("temporary directories form separate project groups and preserve the session cwd", () => {
@@ -75,5 +76,5 @@ test("temporary directories form separate project groups and preserve the sessio
     updatedAt: null,
     archived: false
   }))
-  expect(groupThreads(threads)).toEqual([[QUICK_CHATS_GROUP, []], ...threads.map(thread => [thread.cwd, [thread]])])
+  expect(groupThreads(threads)).toEqual([[QUICK_CHATS_GROUP, []], ...threads.map((thread) => [thread.cwd, [thread]])])
 })

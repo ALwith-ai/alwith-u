@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+
 import { convertLegacyExtension } from "../import"
 
 describe("generic import with optional host adapters", () => {

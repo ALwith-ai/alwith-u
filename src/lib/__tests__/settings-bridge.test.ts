@@ -1,10 +1,11 @@
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test } from "vitest"
+
 import {
   createSettingsAuthClient,
+  serveSettingsBridge,
   type SettingsAgent,
-  type SettingsEvents,
-  serveSettingsBridge
+  type SettingsEvents
 } from "../settings-bridge"
 import { must } from "./must"
 
@@ -61,7 +62,7 @@ test("settings authenticates through main and refreshes the account after login 
   const client = createSettingsAuthClient(bus.events)
   await client.requestSignIn("api-key", { "api-key": { apiKey: "test-only" } })
   expect(calls).toEqual([["api-key", { "api-key": { apiKey: "test-only" } }]])
-  expect(bus.messages.findLast(item => item.event === "settings:account")?.payload).toEqual({
+  expect(bus.messages.findLast((item) => item.event === "settings:account")?.payload).toEqual({
     account: { account: { type: "apiKey" }, requiresOpenaiAuth: true },
     rateLimits: null
   })
@@ -83,7 +84,7 @@ test("overlapping requests match their own results and errors release listeners"
       agent: () => agent,
       subscribe: () => () => {},
       logout: async () => {},
-      login: method =>
+      login: (method) =>
         new Promise<void>((resolve, reject) => {
           finish.set(method, () => (method === "bad" ? reject(new Error("Login rejected")) : resolve()))
         }),

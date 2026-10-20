@@ -1,4 +1,5 @@
 import { settingsStore, updateSettings } from "@/lib/settings-store"
+
 import { type IconTheme, iconThemes } from "./workspace-state"
 
 export interface EditorSettings {
@@ -30,7 +31,7 @@ function validate(value: unknown): EditorSettings {
     typeof settings.fontFamily !== "string" ||
     settings.fontFamily.length > 200 ||
     !["fontLigatures", "wordWrap", "minimap", "lineNumbers", "renderWhitespace"].every(
-      key => typeof settings[key] === "boolean"
+      (key) => typeof settings[key] === "boolean"
     )
   ) {
     throw new Error("Invalid editor settings")
@@ -62,7 +63,7 @@ export async function saveEditorIconTheme(theme: IconTheme): Promise<void> {
   await updateSettings({ "editor.iconTheme": theme })
 }
 export function subscribeEditorSettings(listener: () => void): () => void {
-  return settingsStore.subscribe(keys => {
-    if (keys.some(key => key.startsWith("editor."))) listener()
+  return settingsStore.subscribe((keys) => {
+    if (keys.some((key) => key.startsWith("editor."))) listener()
   })
 }

@@ -12,6 +12,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { platform } from "@tauri-apps/plugin-os"
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef } from "react"
+
 import { commands } from "@/bindings"
 
 // @tauri-apps/api does not export ResizeDirection; infer it from the method signature.
@@ -77,7 +78,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
 
   const previous = pendingResize
   let release!: () => void
-  pendingResize = new Promise<void>(resolve => {
+  pendingResize = new Promise<void>((resolve) => {
     release = resolve
   })
   void (async () => {
@@ -94,7 +95,7 @@ function dragResizeMacos(direction: ResizeDirection, event: ReactPointerEvent<HT
       while (!cancelled) {
         if (movement.latest === null) {
           if (ended) return
-          await new Promise<void>(resolve => {
+          await new Promise<void>((resolve) => {
             wake = resolve
           })
           wake = null

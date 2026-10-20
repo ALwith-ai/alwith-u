@@ -1,10 +1,12 @@
 import { Code, Copy, Download, Eye, Maximize2, MoreHorizontal, X } from "lucide-react"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
 import { downloadChatFile } from "../file-actions"
 import { diagramImage, diagramPng } from "./mermaid-export"
 import { MermaidPreview } from "./mermaid-preview"
@@ -21,7 +23,7 @@ function diagramTheme(element: HTMLElement) {
     context.fillStyle = color
     context.fillRect(0, 0, 1, 1)
     const [r, g, b] = context.getImageData(0, 0, 1, 1).data
-    return `#${[r, g, b].map(channel => channel.toString(16).padStart(2, "0")).join("")}`
+    return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`
   }
   return {
     background: hex(styles.backgroundColor),
@@ -98,25 +100,28 @@ export function MermaidDiagram({ source }: { source: string }) {
       aria-label="下载 PNG"
       title="下载 PNG"
       disabled={svg === null || saving}
-      onClick={() => void download()}>
+      onClick={() => void download()}
+    >
       <Download className="size-4" />
     </Button>
   )
 
   return (
-    <div ref={container} className="group/mermaid bg-background relative my-3 min-w-0 rounded-lg">
+    <div ref={container} className="group/mermaid relative my-3 min-w-0 rounded-lg bg-background">
       <div
         data-open={menuOpen}
-        className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 transition-opacity group-focus-within/mermaid:opacity-100 group-hover/mermaid:opacity-100 data-[open=true]:opacity-100 [@media(hover:none)]:opacity-100">
+        className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 transition-opacity group-focus-within/mermaid:opacity-100 group-hover/mermaid:opacity-100 data-[open=true]:opacity-100 [@media(hover:none)]:opacity-100"
+      >
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger
             aria-label="图表选项"
             title="图表选项"
-            render={<Button variant="ghost" size="icon-sm" />}>
+            render={<Button variant="ghost" size="icon-sm" />}
+          >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem disabled={svg === null} onClick={() => setShowSource(value => !value)}>
+            <DropdownMenuItem disabled={svg === null} onClick={() => setShowSource((value) => !value)}>
               {showSource ? <Eye /> : <Code />}
               {showSource ? "显示图表" : "查看源码"}
             </DropdownMenuItem>
@@ -136,12 +141,13 @@ export function MermaidDiagram({ source }: { source: string }) {
           aria-label="放大图表"
           title="放大图表"
           disabled={svg === null}
-          onClick={() => setExpanded(true)}>
+          onClick={() => setExpanded(true)}
+        >
           <Maximize2 className="size-4" />
         </Button>
       </div>
       {showSource || svg === null ? (
-        <pre className="bg-muted/30 overflow-x-auto rounded-lg p-3 pt-11 text-xs">
+        <pre className="overflow-x-auto rounded-lg bg-muted/30 p-3 pt-11 text-xs">
           <code>{source}</code>
         </pre>
       ) : (
@@ -154,7 +160,8 @@ export function MermaidDiagram({ source }: { source: string }) {
       <Dialog open={expanded && preview !== null} onOpenChange={setExpanded}>
         <DialogContent
           showCloseButton={false}
-          className="bg-background flex h-[calc(100dvh-clamp(1.5rem,10dvh,6rem))] w-[calc(100vw-clamp(1.5rem,10vw,8rem))] max-w-none flex-col gap-2 overflow-hidden p-2 sm:max-w-none sm:p-4">
+          className="flex h-[calc(100dvh-clamp(1.5rem,10dvh,6rem))] w-[calc(100vw-clamp(1.5rem,10vw,8rem))] max-w-none flex-col gap-2 overflow-hidden bg-background p-2 sm:max-w-none sm:p-4"
+        >
           {expanded && preview && (
             <MermaidPreview
               key={preview.src}
@@ -165,7 +172,8 @@ export function MermaidDiagram({ source }: { source: string }) {
                   <DialogClose
                     aria-label="关闭预览"
                     title="关闭预览"
-                    render={<Button variant="ghost" size="icon-sm" />}>
+                    render={<Button variant="ghost" size="icon-sm" />}
+                  >
                     <X className="size-4" />
                   </DialogClose>
                 </>

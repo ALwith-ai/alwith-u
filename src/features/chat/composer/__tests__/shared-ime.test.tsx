@@ -1,6 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { expect, test } from "vitest"
+
 import { PromptInputTextarea } from "../prompt-input"
 import { type Attachment, PromptInputProvider } from "../prompt-input-context"
 
@@ -28,7 +29,7 @@ test("IME deletion preserves images through composition and the WebKit confirmat
   fireEvent.keyDown(input, { key: "Backspace" })
   expect(view.getByRole("status")).toHaveTextContent("1")
   await act(async () => {
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
   })
   fireEvent.keyDown(input, { key: "Backspace", isComposing: true })
   fireEvent.keyDown(input, { key: "Backspace", keyCode: 229 })

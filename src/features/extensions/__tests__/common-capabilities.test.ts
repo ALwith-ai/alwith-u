@@ -1,10 +1,10 @@
 import {
   binaryHttpCapability,
   clipboardCapability,
-  type DirectoryHandle,
   directoriesCapability,
-  type ExtensionManifest,
+  type DirectoryHandle,
   extensionApiVersion,
+  type ExtensionManifest,
   type FilesCapability,
   filesCapability,
   type NoticeHandle,
@@ -68,7 +68,7 @@ test("the installed package exposes common capabilities to a modern extension an
     await host.activate(
       manifest,
       "fixture",
-      context => ({
+      (context) => ({
         async onload() {
           files = context.capability(filesCapability)
           const selected = await context.capability(directoriesCapability).pick()
@@ -92,7 +92,7 @@ test("the installed package exposes common capabilities to a modern extension an
     expect(directory.id).toBe("grant")
     expect(directory.name).toBe("selected")
     expect(Object.keys(directory).sort()).toEqual(["files", "id", "name"])
-    expect(calls.find(call => call.command === "extension_file")?.args).toEqual({
+    expect(calls.find((call) => call.command === "extension_file")?.args).toEqual({
       extensionId: manifest.id,
       request: { operation: "write", scope: "grant", path: "result.bin", body: [0, 128, 255] }
     })

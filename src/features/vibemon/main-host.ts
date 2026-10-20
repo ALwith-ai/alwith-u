@@ -15,21 +15,23 @@ import { emitTo, listen } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
+
 import { runStateSource } from "@/agent/run-state-source"
 import { commands } from "@/bindings"
 import { openPlatformAccount } from "@/features/auth/open-account"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
 import { exportDraft } from "@/features/chat/composer/drafts"
+import { logBackgroundError } from "@/lib/background-errors"
 import { openChatWindow, syncChatWindowSurface } from "@/lib/chat-window"
 import { client } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
-import { logBackgroundError } from "@/lib/background-errors"
-import { reportPetError } from "./display-error"
+
 import { collapseToPet } from "./collapse"
-import { restorePetOnStartup, runPetRestoration } from "./startup"
+import { reportPetError } from "./display-error"
 import { createPetSessionOwner, type PetSurface } from "./session-host"
 import { sessionIcons } from "./session-icons"
+import { restorePetOnStartup, runPetRestoration } from "./startup"
 import { type PetRequest, petScope, servePetRequests } from "./transport"
 import { createPetWindowClient, petWindowCall } from "./window-client"
 
@@ -52,7 +54,7 @@ async function start() {
     state: () => client.state,
     agentId: CODEX_AGENT_ID,
     source: () => runStateSource(client.state.runStates),
-    agentForSession: async id => (await runtimeClient()).agentForSession(id),
+    agentForSession: async (id) => (await runtimeClient()).agentForSession(id),
     claim: (requestId, binding, expectedOwner) =>
       invoke("vibemon_claim", {
         requestId,
@@ -74,7 +76,7 @@ async function start() {
       if (await WebviewWindow.getByLabel("vibemon")) await command("suspend", "")
     }
   })
-  setMainSurface = value => owner.surface("main", value)
+  setMainSurface = (value) => owner.surface("main", value)
   let queue: Promise<unknown> = Promise.resolve()
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
     const result = queue.then(work)
@@ -121,8 +123,8 @@ async function start() {
       return completeOpen()
     }
     const owned = assets.assets.snapshot().owned
-    if (!options.trusted || !owned?.some(item => item.vibemon_uuid === state.pet)) await assets.assets.getMyVibemons()
-    if (!assets.assets.snapshot().owned?.some(item => item.vibemon_uuid === state.pet))
+    if (!options.trusted || !owned?.some((item) => item.vibemon_uuid === state.pet)) await assets.assets.getMyVibemons()
+    if (!assets.assets.snapshot().owned?.some((item) => item.vibemon_uuid === state.pet))
       throw new Error("This account does not own the selected Vibemon")
     if (!(await assets.assets.resources.inspect(state.pet))) await assets.assets.ensureResource(state.pet)
     if (scope !== petScope()) throw new Error("The pet account changed")
@@ -169,11 +171,11 @@ async function start() {
   configureVibemon({
     sessionIcons,
     ...assets,
-    sessions: { ...owner, openChat: binding => owner.openChat(binding) },
+    sessions: { ...owner, openChat: (binding) => owner.openChat(binding) },
     windows,
     onResourceSyncError: (error, context) =>
       logBackgroundError(`pet-sync/${context.phase}/${context.petId ?? "catalog"}`, error),
-    resourcesSynchronized: updated => {
+    resourcesSynchronized: (updated) => {
       const scope = petScope()
       return serialize(() =>
         restoreInBackground(async () => {
@@ -293,7 +295,7 @@ async function start() {
     }
   }
   await servePetRequests(handle)
-  owner.subscribe(value => {
+  owner.subscribe((value) => {
     for (const label of ["vibemon", "bubble-menu-vibemon"])
       void emitTo(label, "vibemon:observation", value).catch(console.error)
   })
@@ -312,7 +314,7 @@ async function start() {
       if (pet !== null && (await pet.isVisible())) await closePet()
       else await ensurePet()
     })
-      .catch(async error => {
+      .catch(async (error) => {
         await commands.showMainWindow()
         report(error)
       })

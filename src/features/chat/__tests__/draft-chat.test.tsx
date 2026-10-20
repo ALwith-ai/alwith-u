@@ -1,9 +1,11 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
+
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
@@ -15,13 +17,14 @@ import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import type { Preferences } from "@/lib/preferences"
 import type { ProviderSnapshot } from "@/lib/providers"
+
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 import { Composer } from "../composer"
 import { drafts, importDraft } from "../composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "../draft-chat"
 import * as projectPicker from "../draft-project-picker"
 
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 // ACP uses native Web Streams; jsdom supplies only the browser surface.
 Object.assign(globalThis, { TransformStream, ReadableStream, WritableStream })
@@ -41,11 +44,11 @@ async function environment(nativeWindow = false) {
   const real = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
   const previous = client.state
   client.store.setState(real.state)
-  const unsubscribe = real.store.subscribe(state => client.store.setState(state))
+  const unsubscribe = real.store.subscribe((state) => client.store.setState(state))
   const invokeHost = core.invoke
   const mocks = [
     vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
-    vi.spyOn(client, "session").mockImplementation(id => real.session(id)),
+    vi.spyOn(client, "session").mockImplementation((id) => real.session(id)),
     vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
     vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
     vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
@@ -91,7 +94,7 @@ async function windowEnvironment() {
   mockWindows("chat")
   let hidden = true
   mockIPC(
-    command => {
+    (command) => {
       if (command === "plugin:log|log") return
       if (command === "plugin:window|is_focused" || command === "plugin:window|is_minimized") return false
       if (command === "plugin:window|is_visible") return !hidden
@@ -111,7 +114,7 @@ async function windowEnvironment() {
   type SurfaceHandler = Parameters<typeof chatWindow.serveChatSurface>[0]
   let surface: SurfaceHandler | null = null
   const mocks = [
-    vi.spyOn(chatWindow, "serveChatSurface").mockImplementation(async handler => {
+    vi.spyOn(chatWindow, "serveChatSurface").mockImplementation(async (handler) => {
       surface = handler
       return () => {
         surface = null
@@ -152,7 +155,7 @@ test.each([
   ["/work/project", "/work/project"]
 ])("floating new chat from %s prepares in %s", async (cwd, expected) => {
   const env = await windowEnvironment()
-  const discard = vi.spyOn(client, "discardDraft").mockImplementation(owner => env.real.discardDraft(owner))
+  const discard = vi.spyOn(client, "discardDraft").mockImplementation((owner) => env.real.discardDraft(owner))
   const view = render(
     <ThemeProvider>
       <ChatWindow preferences={{ ...windowPreferences, lastProjectDirectory: cwd }} />
@@ -178,7 +181,7 @@ test.each([
     })
     expect(discard).toHaveBeenCalledWith("chat")
     expect(env.real.session(previous).cwd).toBe(cwd)
-    expect(env.real.session(previous).items.some(item => item.kind === "user")).toBe(true)
+    expect(env.real.session(previous).items.some((item) => item.kind === "user")).toBe(true)
   } finally {
     await act(async () => view.unmount())
     discard.mockRestore()
@@ -190,9 +193,9 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
   const env = await windowEnvironment()
   importDraft(DRAFT_SESSION_ID, { text: "keep this draft", mentions: [], attachments: [], modelId: null })
   let release: (() => void) | undefined
-  env.fake.newSessionDelay.current = cwd =>
+  env.fake.newSessionDelay.current = (cwd) =>
     cwd === "/tmp/window-replacement"
-      ? new Promise(resolve => {
+      ? new Promise((resolve) => {
           release = resolve
         })
       : Promise.resolve()
@@ -270,10 +273,10 @@ test("a first message sent outside the composer opens the conversation and prese
 
 test.each(["success", "failure", "unmount", "directory-change"] as const)(
   "preparation blocks submission through %s without losing or misrouting input",
-  async outcome => {
+  async (outcome) => {
     const { fake, real, restore } = await environment()
     let release: (() => void) | undefined
-    fake.newSessionDelay.current = cwd =>
+    fake.newSessionDelay.current = (cwd) =>
       cwd === "/tmp/slow-start"
         ? new Promise<void>((resolve, reject) => {
             release = () => (outcome === "failure" ? reject(new Error("Preparation failed")) : resolve())
@@ -324,7 +327,7 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
         const id = must(prompt.mock.calls[0], "sent prompt")[0]
         expect(id).not.toBe(DRAFT_SESSION_ID)
         expect(real.session(id).cwd).toBe("/tmp/slow-start")
-        expect(real.session(id).items.some(item => item.kind === "user")).toBe(true)
+        expect(real.session(id).items.some((item) => item.kind === "user")).toBe(true)
         await waitFor(() => expect(input.value).toBe(""))
         expect(view.getByRole("textbox")).toBe(input)
       } else {
@@ -354,7 +357,7 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
 test("sending after default-directory resolution keeps the submitted conversation selected", async () => {
   const { fake, real, restore } = await environment()
   let accept!: () => void
-  const receipt = new Promise<void>(resolve => {
+  const receipt = new Promise<void>((resolve) => {
     accept = resolve
   })
   vi.spyOn(client, "prompt").mockImplementation(async (...args) => {
@@ -363,7 +366,7 @@ test("sending after default-directory resolution keeps the submitted conversatio
   })
   let release: (() => void) | undefined
   fake.newSessionDelay.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       release = resolve
     })
   importDraft(DRAFT_SESSION_ID, { text: "first launch", mentions: [], attachments: [], modelId: null })
@@ -372,14 +375,14 @@ test("sending after default-directory resolution keeps the submitted conversatio
     const [cwd, setCwd] = useState<string | null>(null)
     const [id, setId] = useState<string | null>(null)
     const [sendingId, setSendingId] = useState<string | null>(null)
-    const draft = useApp(state => id === null || Boolean(state.draftSessions[id]))
+    const draft = useApp((state) => id === null || Boolean(state.draftSessions[id]))
     if (id && !draft && sendingId !== id) return <div data-testid="submitted">{id}</div>
     return (
       <DraftChat
         owner="main"
         cwd={cwd}
         onCwdChange={setCwd}
-        onCreated={value => {
+        onCreated={(value) => {
           selected = value
           setId(value)
         }}
@@ -407,7 +410,7 @@ test("sending after default-directory resolution keeps the submitted conversatio
     )
     expect(fake.modelHints.size).toBe(1)
     expect(Object.keys(real.state.draftSessions)).toHaveLength(0)
-    expect(real.session(must<string>(selected, "submitted session")).items.some(item => item.kind === "user")).toBe(
+    expect(real.session(must<string>(selected, "submitted session")).items.some((item) => item.kind === "user")).toBe(
       true
     )
   } finally {
@@ -423,7 +426,7 @@ test("the composer stays visible while initial providers and the native draft ar
   importDraft(DRAFT_SESSION_ID, { text: "saved input", mentions: [], attachments: [], modelId: null })
   let release: (() => void) | undefined
   fake.newSessionDelay.current = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       release = resolve
     })
   const props = {
@@ -506,7 +509,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
         owner="main"
         cwd={cwd}
         onCwdChange={setCwd}
-        onCreated={id => {
+        onCreated={(id) => {
           selected = id
         }}
         onSendingChange={() => {}}
@@ -543,7 +546,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
 
 test.each(["hello", ""])(
   "first send with text %j clears persisted file references before the normal composer mounts",
-  async text => {
+  async (text) => {
     const { real, restore } = await environment()
     importDraft(DRAFT_SESSION_ID, { text, mentions: ["/tmp/source.ts"], attachments: [], modelId: null })
     let prepared: string | null = null
@@ -551,14 +554,14 @@ test.each(["hello", ""])(
       const [id, setId] = useState<string | null>(null)
       const [sending, setSending] = useState(false)
       const session = useSession(id)
-      const draft = useApp(state => id === null || Boolean(state.draftSessions[id]))
+      const draft = useApp((state) => id === null || Boolean(state.draftSessions[id]))
       if (!draft && !sending && session) return <Composer session={session} />
       return (
         <DraftChat
           owner="main"
           cwd="/tmp/first-send"
           onCwdChange={() => {}}
-          onCreated={value => {
+          onCreated={(value) => {
             prepared = value
             setId(value)
           }}
@@ -576,7 +579,9 @@ test.each(["hello", ""])(
       await waitFor(() => expect(real.state.draftSessions[must<string>(prepared, "prepared draft")]).toBeUndefined())
       await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(""))
       expect(drafts.get(must<string>(prepared, "prepared draft"))?.mentions).toEqual([])
-      expect(real.session(must<string>(prepared, "prepared draft")).items.some(item => item.kind === "user")).toBe(true)
+      expect(real.session(must<string>(prepared, "prepared draft")).items.some((item) => item.kind === "user")).toBe(
+        true
+      )
     } finally {
       await act(async () => view.unmount())
       restore()
@@ -604,7 +609,7 @@ test("choosing a gateway in a prepared draft preserves input and sends on a newl
       owner="main"
       cwd="/tmp/model-picker"
       onCwdChange={() => {}}
-      onCreated={id => {
+      onCreated={(id) => {
         selected = id
       }}
       onSendingChange={() => {}}
@@ -626,7 +631,7 @@ test("choosing a gateway in a prepared draft preserves input and sends on a newl
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("preserve this question")
     expect(drafts.get(replacement)?.mentions).toEqual(["/tmp/source.ts"])
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
-    await waitFor(() => expect(real.session(replacement).items.some(item => item.kind === "user")).toBe(true))
+    await waitFor(() => expect(real.session(replacement).items.some((item) => item.kind === "user")).toBe(true))
     expect(fake.deleted.has(original)).toBe(true)
   } finally {
     await act(async () => view.unmount())
@@ -639,9 +644,9 @@ test("a queued directory failure retains the last successful replacement and its
   importDraft(DRAFT_SESSION_ID, { text: "keep this input", mentions: [], attachments: [], modelId: null })
   let selected: string | null = null
   let release: (() => void) | undefined
-  fake.newSessionDelay.current = cwd =>
+  fake.newSessionDelay.current = (cwd) =>
     cwd === "/tmp/slow-project"
-      ? new Promise(resolve => {
+      ? new Promise((resolve) => {
           release = resolve
         })
       : Promise.resolve()
@@ -678,7 +683,7 @@ test("a queued directory failure retains the last successful replacement and its
 
 test.each([false, true])(
   "a failed first send preserves input and exits the draft only after dispatch: %s",
-  async dispatched => {
+  async (dispatched) => {
     const { real, restore } = await environment()
     importDraft(DRAFT_SESSION_ID, { text: "keep for retry", mentions: [], attachments: [], modelId: null })
     vi.spyOn(client, "prompt").mockImplementation(async (id, prompt) => {
@@ -751,7 +756,7 @@ test("deleting a sent conversation does not resurrect startup placeholder input"
   const { fake, real, restore } = await environment()
   let release: (() => void) | undefined
   fake.newSessionDelay.current = () =>
-    new Promise<void>(resolve => {
+    new Promise<void>((resolve) => {
       release = resolve
     })
   const props = {
@@ -816,8 +821,8 @@ test("switching writable conversations enables sending only for the selected con
     })
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
-    await waitFor(() => expect(real.session(second).items.some(item => item.kind === "user")).toBe(true))
-    expect(real.session(first).items.some(item => item.kind === "user")).toBe(false)
+    await waitFor(() => expect(real.session(second).items.some((item) => item.kind === "user")).toBe(true))
+    expect(real.session(first).items.some((item) => item.kind === "user")).toBe(false)
     view.rerender(<Surface id={first} />)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("first draft")
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
@@ -889,7 +894,7 @@ test("extension drafts fill the mounted composer without sending and protect exi
     await act(async () => setComposerDraft(id, "Review this before sending"))
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
     expect(drafts.get(id)?.text).toBe("Review this before sending")
-    expect(real.session(id).items.filter(item => item.kind === "user")).toHaveLength(0)
+    expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
     expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
     await act(async () => view.unmount())
@@ -900,7 +905,7 @@ test("extension drafts fill the mounted composer without sending and protect exi
   }
 })
 
-test.each(["attachments", "mentions"] as const)("extension drafts preserve existing %s and model", async content => {
+test.each(["attachments", "mentions"] as const)("extension drafts preserve existing %s and model", async (content) => {
   const { setComposerDraft } = await import("../composer/drafts")
   const { real, restore } = await environment()
   await real.connect()
@@ -919,7 +924,7 @@ test.each(["attachments", "mentions"] as const)("extension drafts preserve exist
   try {
     expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
     expect(drafts.get(id)).toEqual(original)
-    expect(real.session(id).items.filter(item => item.kind === "user")).toHaveLength(0)
+    expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
   } finally {
     await act(async () => view.unmount())
     restore()
@@ -989,7 +994,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     await host.activate(
       manifest,
       "fixture",
-      context =>
+      (context) =>
         createPluginExtension(context, {
           manifest,
           create(_api, app, metadata) {
@@ -997,15 +1002,15 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
             return new Plugin(app, metadata)
           }
         }),
-      { data: createMemoryData(), resource: path => path }
+      { data: createMemoryData(), resource: (path) => path }
     )
     const app = must(application, "plugin application")
     await act(async () => app.chat.setDraft("Draft from a plugin"))
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Draft from a plugin")
     expect(presented).toBe(true)
-    expect(real.session(id).items.some(item => item.kind === "user")).toBe(false)
+    expect(real.session(id).items.some((item) => item.kind === "user")).toBe(false)
     await act(async () => app.chat.sendMessage("Send directly"))
-    expect(real.session(id).items.some(item => item.kind === "user")).toBe(true)
+    expect(real.session(id).items.some((item) => item.kind === "user")).toBe(true)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Draft from a plugin")
   } finally {
     await host.dispose()
@@ -1092,10 +1097,10 @@ test("floating window readiness survives a failed connection and a later explici
 
 test.each(["main", "chat"] as const)(
   "%s first-send forms remain visible before prompt acceptance reaches the surface",
-  async owner => {
+  async (owner) => {
     const env = await environment()
     let release!: () => void
-    const receipt = new Promise<void>(resolve => {
+    const receipt = new Promise<void>((resolve) => {
       release = resolve
     })
     vi.mocked(client.prompt).mockImplementation(async (...args) => {
@@ -1109,7 +1114,7 @@ test.each(["main", "chat"] as const)(
           owner={owner}
           cwd="/tmp/question-before-receipt"
           onCwdChange={() => {}}
-          onCreated={id => {
+          onCreated={(id) => {
             selected = id
           }}
           onSendingChange={() => {}}

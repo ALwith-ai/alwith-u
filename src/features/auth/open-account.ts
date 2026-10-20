@@ -1,4 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener"
+
 import { authClient } from "./store"
 
 /** The existing account SSO route opens in the system browser. */

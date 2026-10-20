@@ -1,7 +1,9 @@
 // The Rust side owns the state machine (cargo test in src-tauri/src/updater); this covers the
 // reflection layer: fetch once, follow events, ask to relaunch exactly once per ready version.
 import { expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { createUpdaterStore, type UpdaterIo, type UpdaterState } from "../store"
 
 function fakeIo(initial: UpdaterState, accept = false) {
@@ -12,7 +14,7 @@ function fakeIo(initial: UpdaterState, accept = false) {
       calls.getState += 1
       return initial
     },
-    onStateChange: async handler => {
+    onStateChange: async (handler) => {
       calls.listen += 1
       emit = handler
       return () => undefined
@@ -62,7 +64,7 @@ test("a ready update asks to relaunch once per version and installs only on acce
   await store.getState().init()
   declined.emit(ready)
   declined.emit(ready)
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
   expect(declined.calls.ask).toBe(1)
   expect(declined.calls.install).toBe(0)
 
@@ -107,7 +109,7 @@ test("snapshot failure unsubscribes and permits initialization retry", async () 
   const { io, calls } = fakeIo({ type: "idle" })
   let unsubscribed = 0
   const listen = io.onStateChange
-  io.onStateChange = async handler => {
+  io.onStateChange = async (handler) => {
     await listen(handler)
     return () => {
       unsubscribed += 1

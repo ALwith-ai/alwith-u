@@ -1,11 +1,13 @@
 import { createSession, type Session } from "@alwith/api"
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { Composer } from "../composer"
-import { predictionPreference } from "../composer/prediction-preference"
 import { drafts } from "../composer/drafts"
+import { predictionPreference } from "../composer/prediction-preference"
 import { useComposerPrediction } from "../composer/use-composer-prediction"
 
 await initI18n("en")
@@ -165,7 +167,7 @@ test("null and failed results clear the suggestion; history and read-only sessio
   expect(view.result.current.error).toBe("Prediction failed")
   const replay = completed("history", "t3")
   view.rerender({
-    session: { ...replay, items: replay.items.map(item => ({ ...item, replayed: true })) },
+    session: { ...replay, items: replay.items.map((item) => ({ ...item, replayed: true })) },
     available: true
   })
   view.rerender({ session: { ...completed("readonly", "t4"), readOnly: true }, available: false })

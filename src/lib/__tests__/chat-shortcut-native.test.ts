@@ -2,6 +2,7 @@ import type { Channel } from "@tauri-apps/api/core"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import type { ShortcutEvent } from "@tauri-apps/plugin-global-shortcut"
 import { afterEach, expect, test } from "vitest"
+
 import capability from "../../../src-tauri/capabilities/chat-shortcut.json"
 import { installChatShortcut } from "../chat-shortcut"
 

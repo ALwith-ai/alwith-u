@@ -4,8 +4,10 @@ import { emitTo } from "@tauri-apps/api/event"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+
 import { drive } from "./controller"
 
 export function DriveIntegrations(): ReactNode {
@@ -17,7 +19,6 @@ export function DriveIntegrations(): ReactNode {
   const [archive, setArchive] = useState<ArchiveStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     if (!connected || !snapshot?.configured) {
       setPreferences(null)
@@ -106,7 +107,7 @@ export function DriveIntegrations(): ReactNode {
           aria-label={t("archive.title")}
           checked={preferences?.sessionArchive ?? false}
           disabled={!connected || busy || !preferences}
-          onCheckedChange={value => change("sessionArchive", value)}
+          onCheckedChange={(value) => change("sessionArchive", value)}
         />
       </div>
       {preferences?.sessionArchive && (
@@ -114,7 +115,8 @@ export function DriveIntegrations(): ReactNode {
           variant="outline"
           onClick={() => {
             void emitTo("main", "drive:archive-sync").catch((cause: unknown) => setError(String(cause)))
-          }}>
+          }}
+        >
           {t("archive.syncNow")}
         </Button>
       )}
@@ -127,7 +129,7 @@ export function DriveIntegrations(): ReactNode {
           aria-label={t("knowledge.title")}
           checked={preferences?.knowledgeInject ?? false}
           disabled={!connected || busy || !preferences}
-          onCheckedChange={value => change("knowledgeInject", value)}
+          onCheckedChange={(value) => change("knowledgeInject", value)}
         />
       </div>
     </section>

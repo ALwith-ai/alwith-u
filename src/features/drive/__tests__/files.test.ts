@@ -54,7 +54,7 @@ test.each([
   "file:///etc/passwd",
   "alwith://yup-drive/file/7",
   "https://user:secret@example.test/file"
-])("unsafe shortcut fallback is rejected: %s", async webUrl => {
+])("unsafe shortcut fallback is rejected: %s", async (webUrl) => {
   mocks.snapshot.mockReturnValue({ snapshot: { generation: 1, webBaseUrl: "" } })
   mocks.read.mockResolvedValue(shortcut(7, webUrl))
   await expect(prepareWorkspaceFile("/project/a.yuplink")).rejects.toThrow("safe web destination")
@@ -105,7 +105,7 @@ test("switching accounts while reading a shortcut prevents any target lookup", a
 
 test.each([null, "/other-account/private.md"])(
   "switching accounts during target lookup rejects local and web navigation: %s",
-  async destination => {
+  async (destination) => {
     mocks.request.mockImplementation(async () => {
       mocks.snapshot.mockReturnValue({ snapshot: { generation: 2, webBaseUrl: "https://other.example.test" } })
       return { type: "path", data: destination }

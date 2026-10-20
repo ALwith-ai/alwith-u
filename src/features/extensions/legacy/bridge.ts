@@ -8,6 +8,7 @@ import {
   type NativeFileResponse
 } from "@alwith/module-extension/host"
 import type { LegacyStorage } from "@alwith/module-extension/legacy"
+
 import { createExtensionChatBridge } from "../chat/bridge"
 import type { ExtensionChatSession } from "../chat/navigation"
 import { unsupportedLegacyCommand, validateLegacyExport } from "./adapters"
@@ -53,7 +54,7 @@ function normalizedPath(value: string): string {
   if (result.includes("\0") || result.split("/").includes("..")) throw new Error("扩展文件路径不能越过授权目录")
   const normalized = result
     .split("/")
-    .filter(part => part !== ".")
+    .filter((part) => part !== ".")
     .join("/")
     .replace(/\/+/g, "/")
   return normalized === "/" ? normalized : normalized.replace(/\/$/, "")
@@ -112,7 +113,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     const directories = await files.directories()
     const grant = directories
       .filter(
-        item =>
+        (item) =>
           path === normalizedPath(item.path) ||
           path.startsWith(normalizedPath(item.path) === "/" ? "/" : `${normalizedPath(item.path)}/`)
       )
@@ -188,7 +189,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       result.type === "list" &&
       storage &&
       (await storage.exists()) &&
-      !result.entries.some(entry => entry.name === "data.json")
+      !result.entries.some((entry) => entry.name === "data.json")
     ) {
       result.entries.push({ name: "data.json", isFile: true, isDirectory: false })
     }
@@ -219,7 +220,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     if (exportDirectory) return exportDirectory
     dependencies.notify(`分析文件绑定到会话：${session.title || session.id}`, 5000)
     const grants = await files.directories()
-    const existing = grants.find(grant => normalizedPath(grant.path) === normalizedPath(session.cwd))
+    const existing = grants.find((grant) => normalizedPath(grant.path) === normalizedPath(session.cwd))
     if (existing) {
       exportDirectory = existing
       return existing
@@ -269,7 +270,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       session: () => (exportDirectory ? requireTarget() : dependencies.session()),
       send: dependencies.send,
       setDraft: dependencies.setDraft,
-      prepare: text => {
+      prepare: (text) => {
         let prompt = text
         for (const [relative, absolute] of exported) prompt = prompt.replaceAll(relative, absolute)
         return prompt
@@ -315,7 +316,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       }
       if (command === "alwith-u:legacy-workspaces") {
         const directories = await files.directories()
-        return directories.map(item => item.path)
+        return directories.map((item) => item.path)
       }
       if (command === "plugin:dialog|open") {
         const result = await files.pickDirectory()

@@ -1,12 +1,11 @@
-import { predictionPreference } from "@/features/chat/composer/prediction-preference"
-import { bootstrapSettings } from "@/lib/settings-store"
+import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { isTauri } from "@tauri-apps/api/core"
-import { attachConsole, info, error as logError } from "@tauri-apps/plugin-log"
+import { attachConsole, error as logError, info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
-import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
+
 import { App } from "@/app"
 import { AppDirectionProvider } from "@/components/alwith-ui/app-direction-provider"
 import { WindowsMainWindowShell } from "@/components/alwith-ui/windows-main-window-shell"
@@ -18,13 +17,15 @@ import { ZoomFeedback } from "@/features/appearance/zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
-import { startStartupImports } from "@/features/extensions/startup-import-control"
+import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import { reportExtensionError } from "@/features/extensions/runtime"
+import { startStartupImports } from "@/features/extensions/startup-import-control"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
+import { bootstrapSettings } from "@/lib/settings-store"
 import { hydrateZoom } from "@/lib/zoom"
 import { startZoomViewport } from "@/lib/zoom-viewport"
 import "./index.css"
@@ -55,8 +56,8 @@ function surfaceGlobalError(message: string): void {
   logError(message).catch((failure: unknown) => console.error("[logError]", failure))
 }
 
-window.addEventListener("unhandledrejection", event => surfaceGlobalError(describe(event.reason)))
-window.addEventListener("error", event => {
+window.addEventListener("unhandledrejection", (event) => surfaceGlobalError(describe(event.reason)))
+window.addEventListener("error", (event) => {
   // Benign browser noise: the layout settled one frame late. VS Code and Sentry filter it too.
   if (event.message.startsWith("ResizeObserver loop")) return
   surfaceGlobalError(`${event.message} @ ${event.filename}:${event.lineno}:${event.colno}\n${event.error?.stack ?? ""}`)

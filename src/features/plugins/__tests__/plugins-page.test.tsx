@@ -1,9 +1,11 @@
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
 
@@ -76,7 +78,7 @@ test("plugin controls and skill scopes follow a language change without remounti
       plugin("Installing example")
     ]
   }
-  const skills: SkillMetadata[] = (["user", "repo", "system", "admin"] as const).map(scope => ({
+  const skills: SkillMetadata[] = (["user", "repo", "system", "admin"] as const).map((scope) => ({
     name: `${scope} skill`,
     description: "Catalog description",
     path: `/skills/${scope}`,
@@ -86,7 +88,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   }))
   pluginsStore.setState({
     marketplaces: [marketplace],
-    installed: [installed, disabled].map(plugin => ({ plugin, marketplace })),
+    installed: [installed, disabled].map((plugin) => ({ plugin, marketplace })),
     busyIds: { "Installing example": "installing" },
     skills
   })

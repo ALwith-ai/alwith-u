@@ -10,6 +10,7 @@
 
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
 import type { ComponentProps, Ref, UIEventHandler } from "react"
+
 import { cn } from "@/lib/utils"
 
 interface PaneProps extends Omit<ComponentProps<"div">, "onScroll"> {
@@ -45,7 +46,8 @@ export function Pane({
             "min-h-0 min-w-0 flex-1 overflow-y-auto outline-none",
             viewportClassName,
             viewportProps?.className
-          )}>
+          )}
+        >
           {children}
         </div>
       </div>
@@ -57,15 +59,17 @@ export function Pane({
         onScroll={onScroll}
         data-slot="scroll-area-viewport"
         {...viewportProps}
-        className={cn("size-full rounded-[inherit] outline-none", viewportClassName, viewportProps?.className)}>
+        className={cn("size-full rounded-[inherit] outline-none", viewportClassName, viewportProps?.className)}
+      >
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollAreaPrimitive.Scrollbar
         data-slot="scroll-area-scrollbar"
         data-orientation="vertical"
         orientation="vertical"
-        className="flex h-full w-1.5 touch-none p-px transition-colors select-none">
-        <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="bg-border relative flex-1 rounded-full" />
+        className="flex h-full w-1.5 touch-none p-px transition-colors select-none"
+      >
+        <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="relative flex-1 rounded-full bg-border" />
       </ScrollAreaPrimitive.Scrollbar>
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>

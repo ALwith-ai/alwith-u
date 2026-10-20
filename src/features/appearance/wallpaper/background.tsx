@@ -1,4 +1,5 @@
 import { type ReactElement, type ReactNode, useSyncExternalStore } from "react"
+
 import { wallpaperController } from "./controller"
 
 export function WallpaperBackground({

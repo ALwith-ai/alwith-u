@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ExtensionManifest } from "@alwith/module-extension"
 import type { HostSnapshot } from "@alwith/module-extension/host"
-import { expect, waitFor } from "storybook/test"
+import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
+import { expect, waitFor } from "storybook/test"
+
 import { SidebarInset } from "../../src/components/ui/sidebar"
-import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { ExtensionNavigation } from "../../src/features/extensions/extension-navigation"
+import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../src/features/layout/components/main-sidebar-layout"
 
 const meta = {
@@ -39,7 +40,7 @@ const extensionManifests: ExtensionManifest[] = Array.from({ length: 20 }, (_, i
 const extensionHost: HostSnapshot = {
   instances: [],
   commands: [],
-  views: extensionManifests.map(item => ({
+  views: extensionManifests.map((item) => ({
     id: `${item.id}/page`,
     extensionId: item.id,
     title: item.name,
@@ -62,7 +63,7 @@ export const LeadingApps: Story = {
   render: function Render(args) {
     const [active, setActive] = useState<string | null>(null)
     return (
-      <div className="bg-sidebar h-[640px]">
+      <div className="h-[640px] bg-sidebar">
         <MainSidebarLayout
           {...args}
           leading={
@@ -72,13 +73,14 @@ export const LeadingApps: Story = {
                 onOpenVibemon={() => setActive(null)}
                 onOpenPlugins={() => setActive(null)}
                 onOpenArchives={() => setActive(null)}
-                onOpenExtensions={() => setActive(null)}>
+                onOpenExtensions={() => setActive(null)}
+              >
                 <ExtensionNavigation
                   host={extensionHost}
                   manifests={extensionManifests}
                   activeView={active}
                   onOpenSurface={setActive}
-                  onError={error => {
+                  onError={(error) => {
                     throw error
                   }}
                 />
@@ -112,7 +114,7 @@ export const LeadingFeatures: Story = {
   render: function Render(args) {
     const [page, setPage] = useState<"vibemon" | "plugins" | "extensions" | "archives">("vibemon")
     return (
-      <div className="bg-sidebar h-[640px]">
+      <div className="h-[640px] bg-sidebar">
         <MainSidebarLayout
           {...args}
           leading={
@@ -146,8 +148,8 @@ export const English: Story = {
     await waitFor(() => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const main = canvasElement.querySelector('[data-screen-panel="main"]')!
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(main.getBoundingClientRect().left, 0)
-      expect(getComputedStyle(main).direction).toBe("ltr")
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(main.getBoundingClientRect().left, 0)
+      void expect(getComputedStyle(main).direction).toBe("ltr")
     })
   }
 }
@@ -159,10 +161,10 @@ export const Arabic: Story = {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const main = canvasElement.querySelector('[data-screen-panel="main"]')!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      expect(getComputedStyle(main).direction).toBe("rtl")
-      expect(sidebar.getBoundingClientRect().left).toBeCloseTo(main.getBoundingClientRect().right, 0)
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right, 0)
-      expect(main.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left, 0)
+      void expect(getComputedStyle(main).direction).toBe("rtl")
+      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(main.getBoundingClientRect().right, 0)
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right, 0)
+      void expect(main.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left, 0)
     })
   }
 }
@@ -174,8 +176,8 @@ export const ArabicActivity: Story = {
     await waitFor(() => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const leading = canvasElement.querySelector('[data-screen-panel="leading"]')!
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(leading.getBoundingClientRect().left, 0)
-      expect(getComputedStyle(leading).direction).toBe("rtl")
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(leading.getBoundingClientRect().left, 0)
+      void expect(getComputedStyle(leading).direction).toBe("rtl")
     })
   }
 }
@@ -189,9 +191,9 @@ export const ArabicFloatingSidebar: Story = {
     await waitFor(() => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
-      expect(getComputedStyle(sidebar).visibility).toBe("visible")
+      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
+      void expect(getComputedStyle(sidebar).visibility).toBe("visible")
     })
   }
 }
@@ -199,7 +201,7 @@ export const ArabicFloatingSidebar: Story = {
 /** Observe every resize frame: settled-only checks miss width-transition drift. */
 export const ContinuousResize: Story = {
   globals: { locale: "en" },
-  render: args => (
+  render: (args) => (
     <div data-resize-host style={{ width: 1000, height: 600 }}>
       <MainSidebarLayout
         {...args}
@@ -218,12 +220,12 @@ export const ContinuousResize: Story = {
     const chat = canvasElement.querySelector<HTMLElement>("[data-centered-chat]")!
     for (const width of [980, 940, 900, 850, 800, 850, 920, 1000]) {
       host.style.width = `${width}px`
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       const panel = main.getBoundingClientRect()
       const content = chat.getBoundingClientRect()
-      expect(panel.left).toBeCloseTo(sidebar.getBoundingClientRect().right, 0)
-      expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right, 0)
-      expect((content.left + content.right) / 2).toBeCloseTo((panel.left + panel.right) / 2, 0)
+      void expect(panel.left).toBeCloseTo(sidebar.getBoundingClientRect().right, 0)
+      void expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right, 0)
+      void expect((content.left + content.right) / 2).toBeCloseTo((panel.left + panel.right) / 2, 0)
     }
   }
 }
@@ -237,16 +239,16 @@ export const EnglishFloatingSidebar: Story = {
     await waitFor(() => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
       const style = getComputedStyle(sidebar)
-      expect([
+      void expect([
         style.borderTopLeftRadius,
         style.borderTopRightRadius,
         style.borderBottomLeftRadius,
         style.borderBottomRightRadius
       ]).toEqual(["14px", "14px", "14px", "14px"])
-      expect(style.visibility).toBe("visible")
+      void expect(style.visibility).toBe("visible")
     })
   }
 }

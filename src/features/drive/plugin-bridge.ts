@@ -77,7 +77,7 @@ export async function syncDrivePlugin(host: PluginBridgeHost, disposed: () => bo
       const config = await host.request({ type: "mcpSessionConfig" })
       check()
       if (config.type !== "mcpSessionConfig" || !config.data) throw new Error("Drive credentials are unavailable")
-      const authorization = config.data.headers.find(header => header.name.toLowerCase() === "authorization")?.value
+      const authorization = config.data.headers.find((header) => header.name.toLowerCase() === "authorization")?.value
       if (!authorization?.startsWith("Bearer ")) throw new Error("Invalid Drive authorization header")
       token = authorization.slice("Bearer ".length)
     }

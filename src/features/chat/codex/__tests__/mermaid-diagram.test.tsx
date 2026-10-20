@@ -1,13 +1,14 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { beforeEach, expect, test, vi } from "vitest"
 import { toast } from "sonner"
+import { beforeEach, expect, test, vi } from "vitest"
+
 import { downloadChatFile } from "../../file-actions"
 import { MermaidDiagram } from "../mermaid-diagram"
 import { diagramPng } from "../mermaid-export"
 
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
 vi.mock("../../file-actions", () => ({ downloadChatFile: vi.fn() }))
-vi.mock("../mermaid-export", async importOriginal => ({
+vi.mock("../mermaid-export", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../mermaid-export")>()),
   diagramPng: vi.fn()
 }))
@@ -57,7 +58,7 @@ test("opens the original SVG at 100% without rasterizing and keeps source switch
 test("exports PNG from the preview and disables saving until it finishes", async () => {
   let finish!: (saved: boolean) => void
   vi.mocked(downloadChatFile).mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )
@@ -149,6 +150,6 @@ test("accumulates wheel bursts and uses cumulative WebKit pinch scale without do
   await waitFor(() => expect(percent).toHaveTextContent("100%"))
   fireEvent.wheel(viewport, { deltaY: -100, ctrlKey: true })
   fireEvent.click(percent)
-  await act(async () => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+  await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())))
   expect(percent).toHaveTextContent("100%")
 })

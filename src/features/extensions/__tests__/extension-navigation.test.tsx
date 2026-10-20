@@ -2,7 +2,9 @@ import type { ExtensionManifest } from "@alwith/module-extension"
 import type { HostSnapshot } from "@alwith/module-extension/host"
 import { act, fireEvent, render } from "@testing-library/react"
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { ExtensionNavigation } from "../extension-navigation"
 
 beforeEach(async () => {
@@ -42,7 +44,7 @@ function fixture() {
       }
     ]
   }
-  const manifests: ExtensionManifest[] = ["notes", "runner"].map(id => ({
+  const manifests: ExtensionManifest[] = ["notes", "runner"].map((id) => ({
     id,
     name: `${id} app`,
     version: "1.0.0",
@@ -77,7 +79,7 @@ test("removes the separator and list when extension actions are removed", () => 
 
 test("unavailable targets are disabled and rejected commands report an error", async () => {
   const props = fixture()
-  props.host.views = props.host.views.map(view =>
+  props.host.views = props.host.views.map((view) =>
     view.extensionId === "notes" ? { ...view, id: "notes/other" } : view
   )
   const error = new Error("Unavailable")

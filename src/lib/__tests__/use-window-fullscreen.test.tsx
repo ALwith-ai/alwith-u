@@ -1,5 +1,6 @@
 import { act, cleanup, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { initI18n } from "@/lib/i18n"
 import { zoomStore } from "@/lib/zoom"
@@ -10,7 +11,7 @@ const { native, fullscreen, stop, resized } = vi.hoisted(() => ({
   stop: vi.fn(),
   resized: { callback: () => {} }
 }))
-vi.mock("@tauri-apps/api/core", async importOriginal => ({
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tauri-apps/api/core")>()),
   isTauri: native
 }))
@@ -67,7 +68,7 @@ test("an older fullscreen response cannot overwrite a later transition", async (
   let finish: ((value: boolean) => void) | undefined
   fullscreen.mockImplementationOnce(
     () =>
-      new Promise<boolean>(resolve => {
+      new Promise<boolean>((resolve) => {
         finish = resolve
       })
   )

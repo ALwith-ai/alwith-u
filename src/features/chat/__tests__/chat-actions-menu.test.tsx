@@ -4,22 +4,24 @@ import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { createRef } from "react"
 import { afterAll, expect, test, vi } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatActionsMenu } from "../chat-actions-menu"
 import { ChatSearch } from "../dialogs/chat-search"
 import { threadRegistry } from "../lib/thread-registry"
 import * as projectApps from "../open-in-editor"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({
+vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   openPath: vi.fn()
 }))
 
 await initI18n("en")
-const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation(cwd => ({
+const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
   apps: [],
   active: undefined,
   openWith: () => {},
@@ -59,7 +61,7 @@ test("delete requires confirmation, keeps the dialog on failure and reports the 
         session={createSession("floating-id", "/tmp/project")}
         cwd="/tmp/project"
         onNewChat={() => {}}
-        onDeleted={id => deleted.push(id)}
+        onDeleted={(id) => deleted.push(id)}
       />
     )
     await act(async () => {
@@ -180,7 +182,7 @@ test("floating menu opens a new project after New chat and keeps the action avai
     view
       .getAllByRole("menuitem")
       .slice(0, 2)
-      .map(item => item.textContent)
+      .map((item) => item.textContent)
   ).toEqual(["New chat", "New project"])
   await act(async () => {
     fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
@@ -220,7 +222,7 @@ test("floating chat returns to main immediately before Rename and the main menu 
   const view = render(<ChatActionsMenu surface="floating" {...props} />)
   try {
     await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
-    const names = view.getAllByRole("menuitem").map(item => item.textContent)
+    const names = view.getAllByRole("menuitem").map((item) => item.textContent)
     const index = names.indexOf("Return to main window")
     expect(index).toBeGreaterThanOrEqual(0)
     expect(names[index + 1]).toBe("Rename")
@@ -235,7 +237,7 @@ test("floating chat returns to main immediately before Rename and the main menu 
   }
 })
 
-test.each(["main", "floating"] as const)("MCP startup diagnostics stay hidden in the %s menu", async surface => {
+test.each(["main", "floating"] as const)("MCP startup diagnostics stay hidden in the %s menu", async (surface) => {
   const session = applyUpdate(createSession("mcp-diagnostic", "/tmp"), {
     sessionUpdate: "tool_call_update",
     toolCallId: "mcp-startup:yup-drive",

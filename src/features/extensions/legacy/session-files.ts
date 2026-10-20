@@ -1,4 +1,5 @@
 import type { NativeFileResponse } from "@alwith/module-extension/host"
+
 import type { ThreadSummary } from "@/agent/client"
 
 export interface SessionFileSource {
@@ -31,7 +32,7 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
     if (!refresh && snapshot && snapshot.expires > Date.now()) return snapshot.threads
     pending ??= source
       .list()
-      .then(threads => {
+      .then((threads) => {
         // Both directory scanning and list_sessions must reject ambiguous legacy paths.
         const projects = new Map<string, string>()
         for (const thread of threads) {
@@ -57,8 +58,8 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
       if (baseDir !== root && !baseDir.startsWith(`${root}/`)) throw new Error("会话目录必须位于只读历史投影内")
       const suffix = baseDir === root ? "" : baseDir.slice(root.length + 1)
       if (suffix.includes("/") || suffix === "..") throw new Error("无效的会话目录")
-      const threads = (await index(true)).filter(thread => !suffix || project(thread.cwd) === suffix)
-      return threads.map(thread => ({
+      const threads = (await index(true)).filter((thread) => !suffix || project(thread.cwd) === suffix)
+      return threads.map((thread) => ({
         kind: "session",
         id: thread.sessionId,
         title: thread.title,
@@ -79,21 +80,21 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
           return { type: "stat", exists: true, size: 0, mtime: null, isFile: false, isDirectory: true }
         const entries =
           parts.length === 0
-            ? [...new Set(threads.map(thread => project(thread.cwd)))].map(name => ({
+            ? [...new Set(threads.map((thread) => project(thread.cwd)))].map((name) => ({
                 name,
                 isDirectory: true,
                 isFile: false
               }))
             : threads
-                .filter(thread => project(thread.cwd) === relative)
-                .map(thread => ({
+                .filter((thread) => project(thread.cwd) === relative)
+                .map((thread) => ({
                   name: `${encodeURIComponent(thread.sessionId)}.jsonl`,
                   isDirectory: false,
                   isFile: true
                 }))
         return { type: "list", entries }
       }
-      const thread = threads.find(thread => name(thread) === relative)
+      const thread = threads.find((thread) => name(thread) === relative)
       if (!thread || operation === "list") throw new Error("会话文件不存在")
       const text = await source.read(thread.sessionId)
       source.check()

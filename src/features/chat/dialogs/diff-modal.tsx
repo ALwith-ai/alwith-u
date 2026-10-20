@@ -3,8 +3,10 @@
 // scoped to one file when the patch touches several.
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { PatchView, patchStats } from "../codex/patch-view"
+
+import { patchStats, PatchView } from "../codex/patch-view"
 
 export type DiffModalRequest = { path: string; patch: string }
 
@@ -17,9 +19,9 @@ export function openDiffModal(request: DiffModalRequest): void {
 
 /** The `diff --git` section for one path; the full text when the patch is not split per file. */
 export function filePatch(patch: string, path: string): string {
-  const sections = patch.split(/^(?=diff --git )/m).filter(section => section.length > 0)
+  const sections = patch.split(/^(?=diff --git )/m).filter((section) => section.length > 0)
   if (sections.length <= 1) return patch
-  const wanted = sections.find(section => {
+  const wanted = sections.find((section) => {
     const header = section.split("\n", 1)[0] ?? ""
     return header.endsWith(` b/${path}`) || header.endsWith(` ${path}`) || header.includes(`/${path} `)
   })
@@ -28,10 +30,10 @@ export function filePatch(patch: string, path: string): string {
 
 export function DiffModal() {
   const { t } = useTranslation()
-  const request = useDiffModal(state => state.request)
+  const request = useDiffModal((state) => state.request)
   const stats = request === null ? null : patchStats(request.patch)
   return (
-    <Dialog open={request !== null} onOpenChange={open => !open && useDiffModal.setState({ request: null })}>
+    <Dialog open={request !== null} onOpenChange={(open) => !open && useDiffModal.setState({ request: null })}>
       <DialogContent className="flex h-[calc(100vh-2.5rem)] max-h-[900px] flex-col gap-3 sm:max-w-[min(1400px,calc(100vw-2.5rem))]">
         <DialogHeader>
           <DialogTitle className="truncate pe-8 font-mono text-sm font-normal">{request?.path}</DialogTitle>
@@ -45,7 +47,8 @@ export function DiffModal() {
         </DialogHeader>
         <div
           className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border [&>.codex-patch-view]:h-full"
-          data-stream-style="codexUI">
+          data-stream-style="codexUI"
+        >
           {request !== null && <PatchView patch={request.patch} />}
         </div>
       </DialogContent>

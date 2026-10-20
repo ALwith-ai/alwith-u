@@ -1,5 +1,6 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { gt } from "semver"
+
 import { BUNDLED_SOURCE } from "./policy"
 
 export interface BundledExtension {
@@ -16,8 +17,8 @@ export async function ensureBundledExtension(
   if (bundle.source !== BUNDLED_SOURCE) throw new Error(`Unexpected extension bundle: ${bundle.id}`)
   const native = runtime.snapshot().native
   if (!native) throw new Error("Extension service is not ready")
-  if (native.pending.some(item => item.id === bundle.id)) return
-  const current = native.installations.find(item => item.id === bundle.id)
+  if (native.pending.some((item) => item.id === bundle.id)) return
+  const current = native.installations.find((item) => item.id === bundle.id)
   if (!current) {
     await runtime.request({
       type: "installLocal",

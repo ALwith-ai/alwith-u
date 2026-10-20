@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+
 import { loadVoiceEnabled, subscribeVoiceEnabled } from "./settings"
 
 export function useVoiceEnabled(): boolean | null {
@@ -10,7 +11,7 @@ export function useVoiceEnabled(): boolean | null {
     let stop: (() => void) | undefined
     void (async () => {
       try {
-        const unsubscribe = await subscribeVoiceEnabled(value => {
+        const unsubscribe = await subscribeVoiceEnabled((value) => {
           changed = true
           if (active) setEnabled(value)
         })

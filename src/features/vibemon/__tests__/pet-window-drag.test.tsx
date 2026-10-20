@@ -80,8 +80,8 @@ test("the packaged pet plays successive drag frames until native release and rev
       throw new Error("Cached pet must not download")
     },
     resources: {
-      exists: async path => files.has(path),
-      read: async path => files.get(path) ?? null,
+      exists: async (path) => files.has(path),
+      read: async (path) => files.get(path) ?? null,
       write: vi.fn(),
       replace: vi.fn(),
       remove: vi.fn()
@@ -120,7 +120,7 @@ test("the packaged pet plays successive drag frames until native release and rev
         }
         return responses[action] as T
       },
-      moved: async listener => {
+      moved: async (listener) => {
         moved.listener = listener
         return stop
       },
@@ -148,7 +148,7 @@ test("the packaged pet plays successive drag frames until native release and rev
   })
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 192])
   await act(async () => vi.advanceTimersByTime(300))
-  expect(drawImage.mock.calls.map(call => call.slice(1, 3))).toEqual([
+  expect(drawImage.mock.calls.map((call) => call.slice(1, 3))).toEqual([
     [0, 192],
     [64, 192],
     [128, 192]

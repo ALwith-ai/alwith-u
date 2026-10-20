@@ -1,6 +1,6 @@
 import { SessionUpdate as UpdateGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { createSession, SessionStore, type Session } from "@alwith/api"
+import { createSession, type Session, SessionStore } from "@alwith/api"
 
 export type HistoryPageState = { cursor: string | null; loading: boolean; error: string | null }
 export type BrowseHistoryRequest = {
@@ -68,7 +68,7 @@ export async function readHistoryPage(
   return {
     session: projectHistoryTurns(sessionId, cwd, page.title, [...page.turns].reverse()),
     cursor: page.nextCursor as string | null,
-    turnIds: page.turns.map(rawTurn => object(rawTurn).turnId as string)
+    turnIds: page.turns.map((rawTurn) => object(rawTurn).turnId as string)
   }
 }
 
@@ -105,7 +105,7 @@ export function projectHistoryTurns(sessionId: string, cwd: string, title: unkno
       const value = object(update)
       if (
         typeof value.sessionUpdate !== "string" ||
-        !Object.values(UpdateGuard).some(guard => guard(update as acp.SessionUpdate))
+        !Object.values(UpdateGuard).some((guard) => guard(update as acp.SessionUpdate))
       )
         throw new Error("Unsupported history update")
       const frame = update as acp.SessionUpdate
@@ -138,14 +138,14 @@ export function projectHistoryTurns(sessionId: string, cwd: string, title: unkno
 
 export function prependHistory(current: Session, page: Session, baseline?: Session): Session {
   const identity = (item: Session["items"][number]) => `${item.kind}:${item.id}`
-  const existing = new Map(current.items.map(item => [identity(item), item]))
-  const before = new Map(baseline?.items.map(item => [identity(item), item]))
-  const merged = page.items.map(item => {
+  const existing = new Map(current.items.map((item) => [identity(item), item]))
+  const before = new Map(baseline?.items.map((item) => [identity(item), item]))
+  const merged = page.items.map((item) => {
     const live = existing.get(identity(item))
     return live !== undefined && (baseline === undefined || live !== before.get(identity(item))) ? live : item
   })
   const pageIds = new Set(page.items.map(identity))
-  const overlap = current.items.findIndex(item => pageIds.has(identity(item)))
+  const overlap = current.items.findIndex((item) => pageIds.has(identity(item)))
   const prefix = overlap > 0 ? current.items.slice(0, overlap) : []
   const prefixIds = new Set(prefix.map(identity))
   return {
@@ -157,7 +157,7 @@ export function prependHistory(current: Session, page: Session, baseline?: Sessi
     items: [
       ...prefix,
       ...merged,
-      ...current.items.filter(item => !pageIds.has(identity(item)) && !prefixIds.has(identity(item)))
+      ...current.items.filter((item) => !pageIds.has(identity(item)) && !prefixIds.has(identity(item)))
     ],
     clock: Math.max(current.clock, page.clock),
     terminals: { ...page.terminals, ...current.terminals },

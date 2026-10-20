@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises"
 import { setTimeout as delay } from "node:timers/promises"
+
 import type { ProcessRuntimeClient } from "@alwith/api/node"
 
 export async function deadline<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -24,7 +25,9 @@ export async function withCleanup<T>(work: () => Promise<T>, cleanup: () => Prom
     try {
       await cleanup()
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], "Toolchain check and cleanup both failed")
+      throw new AggregateError([error, cleanupError], "Toolchain check and cleanup both failed", {
+        cause: cleanupError
+      })
     }
     throw error
   }

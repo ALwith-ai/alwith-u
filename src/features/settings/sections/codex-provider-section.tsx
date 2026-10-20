@@ -7,6 +7,7 @@ import type { TFunction } from "i18next"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { RateLimitWindow } from "@/agent/codex-extensions"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,6 +21,7 @@ import {
   useSettingsAccount,
   useSettingsAgent
 } from "@/lib/settings-bridge"
+
 import { SettingGroup, SettingLabel } from "./shared"
 
 /** Desktop's `UsageLimitRow`: label, a long bar, "n% used", then the reset time under it. */
@@ -40,24 +42,25 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
         )}
         {window ? (
           <div
-            className="bg-muted h-2 overflow-hidden rounded-full"
+            className="h-2 overflow-hidden rounded-full bg-muted"
             role="progressbar"
             aria-label={label}
             aria-valuenow={percent}
             aria-valuemin={0}
-            aria-valuemax={100}>
-            <div className="bg-primary h-full rounded-full" style={{ width: `${percent}%` }} />
+            aria-valuemax={100}
+          >
+            <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
           </div>
         ) : (
           <Skeleton className="h-2 rounded-full motion-reduce:animate-none" />
         )}
         {window ? (
-          <span className="text-muted-foreground text-end text-xs tabular-nums">{t("usage.used", { percent })}</span>
+          <span className="text-end text-xs text-muted-foreground tabular-nums">{t("usage.used", { percent })}</span>
         ) : (
           <Skeleton className="h-4 w-14 justify-self-end motion-reduce:animate-none" />
         )}
       </div>
-      <div className="text-muted-foreground flex min-h-4 items-center justify-end text-xs">
+      <div className="flex min-h-4 items-center justify-end text-xs text-muted-foreground">
         {window ? resets : <Skeleton className="h-3 w-32 motion-reduce:animate-none" />}
       </div>
     </div>
@@ -118,7 +121,7 @@ export function CodexAccountSummary({
           {loading ? (
             <UsageLimitRow />
           ) : limits === null ? (
-            <span className="text-muted-foreground text-sm">{t("usage.unavailable")}</span>
+            <span className="text-sm text-muted-foreground">{t("usage.unavailable")}</span>
           ) : (
             <>
               {limits.primary !== null && (
@@ -128,7 +131,7 @@ export function CodexAccountSummary({
                 <UsageLimitRow label={limitWindowLabel(limits.secondary, t)} window={limits.secondary} />
               )}
               {limits.primary === null && limits.secondary === null && (
-                <span className="text-muted-foreground text-sm">{t("usage.unavailable")}</span>
+                <span className="text-sm text-muted-foreground">{t("usage.unavailable")}</span>
               )}
             </>
           )}
@@ -161,7 +164,7 @@ export function CodexProviderSection() {
         {account !== undefined && !account?.account.account && agent && (
           <LoginCard methods={agent.authMethods} signIn={requestSignIn} />
         )}
-        {agent?.actions.map(action => (
+        {agent?.actions.map((action) => (
           <ActionCard
             key={action.id}
             action={action}

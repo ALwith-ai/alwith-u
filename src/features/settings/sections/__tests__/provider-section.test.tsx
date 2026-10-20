@@ -1,16 +1,18 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { beforeAll, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 import { PROVIDERS, type ProviderSnapshot } from "@/lib/providers"
 import type { SettingsAccount } from "@/lib/settings-bridge"
+
 import { CodexAccountSummary } from "../codex-provider-section"
 import { CustomProviderEditor, ProviderRow, ProviderTabs } from "../provider-section"
 
 beforeAll(async () => {
   await initI18n("en")
 })
-const provider = PROVIDERS.find(item => item.id === "qwen")
+const provider = PROVIDERS.find((item) => item.id === "qwen")
 if (!provider) throw new Error("Qwen provider fixture missing")
 function snapshot(revision: number, region = "intl"): ProviderSnapshot {
   return {
@@ -104,7 +106,7 @@ test("a successful save advances the base without erasing text typed while it wa
   let finish!: (value: ProviderSnapshot) => void
   const save = vi.fn(
     () =>
-      new Promise<ProviderSnapshot>(resolve => {
+      new Promise<ProviderSnapshot>((resolve) => {
         finish = resolve
       })
   )

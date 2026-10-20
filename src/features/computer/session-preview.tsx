@@ -1,9 +1,11 @@
 import { isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { commands, events, type ComputerPreview } from "@/bindings"
-import { ComputerPreviewCard } from "./preview-card"
+
+import { commands, type ComputerPreview, events } from "@/bindings"
 import { client } from "@/lib/client"
+
+import { ComputerPreviewCard } from "./preview-card"
 
 /** Ephemeral frames are scoped to a visible conversation, never added to its history. */
 export function SessionPreview({ sessionId }: { sessionId: string }) {

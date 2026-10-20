@@ -4,7 +4,9 @@ import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import { openImageLightbox } from "../dialogs/image-lightbox"
 import { chatFileName, downloadChatFile, useOpenChatLink } from "../file-actions"
 
@@ -16,7 +18,7 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
   if (isResourceLink(block)) {
     if (block.uri === "codex-image:unavailable") {
       return (
-        <span className="text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-sm">
+        <span className="flex items-center gap-2 rounded-lg border p-3 text-sm text-muted-foreground">
           <ImageOffIcon className="size-4" />
           {t("chat.image.unavailable")}
         </span>
@@ -29,11 +31,12 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         className="h-auto max-w-full min-w-0 justify-start gap-3 overflow-hidden p-3"
         aria-label={block.title ?? block.name}
         title={block.uri}
-        onClick={() => openLink(block.uri)}>
+        onClick={() => openLink(block.uri)}
+      >
         <FileIcon />
         <span className="min-w-0 flex-1 text-start">
           <span className="block truncate">{block.title ?? block.name}</span>
-          <span className="text-muted-foreground block truncate text-xs">
+          <span className="block truncate text-xs text-muted-foreground">
             {(block.title ?? block.name) !== name && `${name} · `}
             {block.mimeType ?? name.split(".").at(-1)?.toUpperCase()}
           </span>
@@ -55,7 +58,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
           size="sm"
           className="max-w-full min-w-0"
           title={resource.uri}
-          onClick={() => openLink(resource.uri)}>
+          onClick={() => openLink(resource.uri)}
+        >
           <FileIcon />
           <span className="truncate">{name}</span>
         </Button>
@@ -80,7 +84,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
           variant="ghost"
           className="h-auto max-w-full p-0"
           aria-label={t("chat.image.view")}
-          onClick={() => openImageLightbox(src)}>
+          onClick={() => openImageLightbox(src)}
+        >
           <img
             src={src}
             alt=""
@@ -98,7 +103,8 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         aria-label={t("chat.content.download", { name })}
         onClick={() => {
           void save()
-        }}>
+        }}
+      >
         <DownloadIcon />
         <span className="truncate">{name}</span>
       </Button>

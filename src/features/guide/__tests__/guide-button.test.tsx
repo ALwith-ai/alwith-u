@@ -1,7 +1,9 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
-import { afterEach, expect, test, vi } from "vitest"
 import { toast } from "sonner"
+import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { GuideButton } from "../guide-button"
 import { openGuideWindow } from "../guide-window"
 
@@ -16,7 +18,7 @@ test("help opens an ordered menu and keyboard shortcuts open the existing refere
   await initI18n("zh-CN")
   const view = render(<GuideButton />)
   await act(async () => fireEvent.click(view.getByRole("button", { name: "帮助" })))
-  expect(view.getAllByRole("menuitem").map(item => item.textContent)).toEqual(["键盘快捷键", "用户指南"])
+  expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["键盘快捷键", "用户指南"])
   expect(openGuideWindow).not.toHaveBeenCalled()
   await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "键盘快捷键" })))
   expect(view.getByRole("dialog", { name: "键盘快捷键" })).toBeVisible()

@@ -1,5 +1,6 @@
 import { createPreviewProviders, type PreviewHost, type SpreadsheetWorkbook } from "@alwith/module-editor/previews"
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+
 import SpreadsheetWorker from "./spreadsheet.worker?worker"
 
 function parseSpreadsheet(bytes: Uint8Array, signal?: AbortSignal): Promise<SpreadsheetWorkbook> {
@@ -18,7 +19,7 @@ function parseSpreadsheet(bytes: Uint8Array, signal?: AbortSignal): Promise<Spre
       reject(new DOMException("Preview was closed", "AbortError"))
     }
     signal?.addEventListener("abort", abort, { once: true })
-    worker.onerror = event => {
+    worker.onerror = (event) => {
       close()
       reject(new Error(event.message || "Spreadsheet worker failed"))
     }

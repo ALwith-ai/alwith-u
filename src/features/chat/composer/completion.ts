@@ -1,4 +1,5 @@
 import type { CompletionItem } from "@alwith/module-chat/completion-filter"
+
 import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
 
 export { type CompletionItem, filterSlashCommands } from "@alwith/module-chat/completion-filter"
@@ -13,7 +14,7 @@ function searchResultPath(result: FuzzyFileSearchResult): string {
 
 /** Codex already ranked the hits; the label is the path relative to the search root. */
 export function fileItems(results: FuzzyFileSearchResult[], limit = 50): CompletionItem[] {
-  return results.slice(0, limit).map(result => {
+  return results.slice(0, limit).map((result) => {
     const abs = searchResultPath(result)
     return { key: abs, label: result.path, payload: abs, description: result.match_type === "directory" ? "/" : "" }
   })

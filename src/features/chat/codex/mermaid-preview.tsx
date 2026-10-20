@@ -1,6 +1,7 @@
 import { getPointerCenteredScrollPosition } from "@alwith/module-chat/pointer-centered-zoom"
 import { Maximize2, Minus, Plus } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { DialogTitle } from "@/components/ui/dialog"
 
@@ -162,8 +163,8 @@ export function MermaidPreview({
         aria-label="图表预览"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: The scrollable viewport supports keyboard panning and zoom.
         tabIndex={0}
-        className="focus-visible:ring-ring min-h-0 min-w-0 flex-1 overflow-scroll overscroll-contain outline-none focus-visible:ring-2"
-        onKeyDown={event => {
+        className="min-h-0 min-w-0 flex-1 overflow-scroll overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onKeyDown={(event) => {
           if (event.key === "+" || event.key === "=") {
             event.preventDefault()
             event.stopPropagation()
@@ -177,10 +178,12 @@ export function MermaidPreview({
             event.stopPropagation()
             reset(1)
           }
-        }}>
+        }}
+      >
         <div
           className="grid min-h-full min-w-full place-items-center"
-          style={{ width: Math.ceil(image.width * scale), height: Math.ceil(image.height * scale) }}>
+          style={{ width: Math.ceil(image.width * scale), height: Math.ceil(image.height * scale) }}
+        >
           <img
             ref={imageRef}
             src={image.src}
@@ -199,7 +202,8 @@ export function MermaidPreview({
           aria-label="缩小图片"
           title="缩小图片"
           disabled={scale <= minimum}
-          onClick={() => zoomTo(scale / 1.25)}>
+          onClick={() => zoomTo(scale / 1.25)}
+        >
           <Minus />
         </Button>
         <Button
@@ -207,7 +211,8 @@ export function MermaidPreview({
           className="min-w-16 tabular-nums"
           aria-label="恢复原始尺寸"
           title="恢复原始尺寸"
-          onClick={() => reset(1)}>
+          onClick={() => reset(1)}
+        >
           {Math.round(scale * 100)}%
         </Button>
         <Button
@@ -216,7 +221,8 @@ export function MermaidPreview({
           aria-label="放大图片"
           title="放大图片"
           disabled={scale >= maximum}
-          onClick={() => zoomTo(scale * 1.25)}>
+          onClick={() => zoomTo(scale * 1.25)}
+        >
           <Plus />
         </Button>
         <Button variant="ghost" size="icon-sm" aria-label="适应窗口" title="适应窗口" onClick={() => reset(null)}>

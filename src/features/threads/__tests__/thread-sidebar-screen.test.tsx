@@ -1,11 +1,13 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
+
 import { usePlatformAuth } from "@/features/auth/store"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { useUpdaterStore } from "@/features/updater/store"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 
@@ -21,7 +23,7 @@ afterEach(async () => {
     usePlatformAuth.setState(originalAuth, true)
     useThreadsUiStore.setState(originalUi, true)
     useUpdaterStore.setState(originalUpdater, true)
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 

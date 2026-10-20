@@ -2,6 +2,7 @@
 // the story agent is started by the module (owner-scoped) and driven here over ACP like any other agent.
 import { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type Agent, Agents } from "@alwith/api"
+
 import { runtimeClient } from "@/lib/runtime"
 
 const STORY_MODULE = "alwith-story"
@@ -50,7 +51,7 @@ export async function storyCall<T>(method: string, params: Record<string, unknow
 export async function storyAvailable(): Promise<boolean> {
   const port = await runtimeClient()
   const modules = await port.request<Array<{ name: string; alive: boolean }>>("modules")
-  return modules.some(module => module.name === STORY_MODULE && module.alive)
+  return modules.some((module) => module.name === STORY_MODULE && module.alive)
 }
 
 /** Module `changed` events: `{type:"changed", root, revision, what}`. */
@@ -58,7 +59,7 @@ export async function onStoryChanged(
   handler: (event: { root: string; revision: number; what: string }) => void
 ): Promise<() => void> {
   const port = await runtimeClient()
-  return port.onModuleEvent(STORY_MODULE, event => {
+  return port.onModuleEvent(STORY_MODULE, (event) => {
     if (event.type === "changed") handler(event as unknown as { root: string; revision: number; what: string })
   })
 }
@@ -87,7 +88,7 @@ export function parseFrame(text: string): FrameSection[] {
 }
 
 export function renderFrame(frame: Frame): string {
-  return frame.sections.map(section => `## ${section.key}\n${section.text}`).join("\n\n")
+  return frame.sections.map((section) => `## ${section.key}\n${section.text}`).join("\n\n")
 }
 
 export interface StoryAgent {

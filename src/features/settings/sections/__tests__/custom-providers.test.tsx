@@ -1,13 +1,15 @@
 import { act, fireEvent, render, within } from "@testing-library/react"
 import { beforeAll, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 import { type CustomProviderInput, type ProviderSnapshot, saveCustomProvider } from "@/lib/providers"
 import { useProviders } from "@/lib/use-providers"
+
 import { ProviderSection } from "../provider-section"
 
 vi.mock("@/lib/use-providers", () => ({ useProviders: vi.fn() }))
 vi.mock("../codex-provider-section", () => ({ CodexProviderSection: () => null }))
-vi.mock("@/lib/providers", async importOriginal => ({
+vi.mock("@/lib/providers", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/providers")>()),
   saveCustomProvider: vi.fn()
 }))
@@ -35,14 +37,14 @@ beforeEach(() => {
       snapshot = {
         ...snapshot,
         revision: revision + 1,
-        customProviders: [...snapshot.customProviders.filter(item => item.id !== input.id), provider]
+        customProviders: [...snapshot.customProviders.filter((item) => item.id !== input.id), provider]
       }
       return snapshot
     })
 })
 
 function visibleEditor(view: ReturnType<typeof render>): ReturnType<typeof within> {
-  const input = view.getAllByLabelText("Provider name").find(element => !element.closest("[hidden]"))
+  const input = view.getAllByLabelText("Provider name").find((element) => !element.closest("[hidden]"))
   const editor = input?.closest(".space-y-5")
   if (!(editor instanceof HTMLElement)) throw new Error("Provider editor missing")
   return within(editor)
@@ -79,7 +81,7 @@ test("successive custom providers get independent IDs and existing providers rem
     await act(async () => fireEvent.click(editor.getByText("Save", { selector: "button" })))
   }
   const inputs: CustomProviderInput[] = vi.mocked(saveCustomProvider).mock.calls.map(([, input]) => input)
-  expect(new Set(inputs.map(input => input.id)).size).toBe(3)
+  expect(new Set(inputs.map((input) => input.id)).size).toBe(3)
   for (const name of ["First", "Second", "Third"]) {
     await act(async () => fireEvent.click(tabs.getByText(name, { selector: "span" })))
     expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue(name)

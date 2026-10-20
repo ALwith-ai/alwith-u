@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { hydrateZoom, resetZoom, setZoomLevel, syncZoomLevel, zoomIn, zoomOut, zoomStore } from "../zoom"
 
 const { setZoom, save, invoke, platform } = vi.hoisted(() => ({
@@ -32,7 +33,7 @@ test("rapid input advances immediately and serializes native updates and persist
   let finish: (() => void) | undefined
   setZoom.mockImplementationOnce(
     () =>
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         finish = resolve
       })
   )
@@ -76,7 +77,7 @@ test("macOS zoom waits for native controls and propagates an alignment failure",
   let finish: (() => void) | undefined
   invoke.mockImplementationOnce(
     () =>
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         finish = resolve
       })
   )

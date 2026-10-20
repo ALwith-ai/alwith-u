@@ -13,13 +13,13 @@ export function searchPalette<T extends { search: string }>(
 ): PaletteSearchGroup<T>[] {
   if (query.length === 0) return groups
   return groups
-    .map(group => {
+    .map((group) => {
       const matches = group.entries
-        .map(entry => ({ entry, score: defaultFilter(entry.search, query) }))
-        .filter(result => result.score > 0)
+        .map((entry) => ({ entry, score: defaultFilter(entry.search, query) }))
+        .filter((result) => result.score > 0)
         .sort((a, b) => b.score - a.score)
-      return { ...group, entries: matches.map(result => result.entry), score: matches[0]?.score ?? 0 }
+      return { ...group, entries: matches.map((result) => result.entry), score: matches[0]?.score ?? 0 }
     })
-    .filter(group => group.entries.length > 0)
+    .filter((group) => group.entries.length > 0)
     .sort((a, b) => b.score - a.score)
 }

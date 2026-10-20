@@ -1,4 +1,5 @@
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { createWindowController } from "@/lib/window-controller"
 
 const controller = createWindowController<void>({
@@ -28,10 +29,10 @@ const controller = createWindowController<void>({
     try {
       await Promise.all([
         created,
-        window.once("tauri://created", ready).then(stop => listeners.push(stop)),
+        window.once("tauri://created", ready).then((stop) => listeners.push(stop)),
         window
           .once("tauri://error", ({ payload }) => fail(new Error(String(payload))))
-          .then(stop => listeners.push(stop))
+          .then((stop) => listeners.push(stop))
       ])
     } finally {
       clearTimeout(timer)

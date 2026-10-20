@@ -1,6 +1,8 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
+
 import type { SkillsListResponse } from "@/agent/codex-extensions"
+
 import { useSkillCatalog } from "../skills/use-skill-catalog"
 
 afterEach(cleanup)
@@ -14,7 +16,7 @@ test("catalog reloads on changes and ignores old projects and superseded respons
   let changed = (): void => {}
   const api = {
     listSkills(cwds?: string[]): Promise<SkillsListResponse> {
-      return new Promise(resolve => pending.push({ cwd: cwds?.[0] ?? "", resolve }))
+      return new Promise((resolve) => pending.push({ cwd: cwds?.[0] ?? "", resolve }))
     },
     onSkillsChanged(callback: () => void): () => void {
       changed = callback
@@ -26,7 +28,7 @@ test("catalog reloads on changes and ignores old projects and superseded respons
   const view = renderHook(({ cwd }) => useSkillCatalog(api, cwd, true, "revision"), { initialProps: { cwd: "/a" } })
   expect(view.result.current.catalog.status).toBe("loading")
   view.rerender({ cwd: "/b" })
-  expect(pending.map(item => item.cwd)).toEqual(["/a", "/b"])
+  expect(pending.map((item) => item.cwd)).toEqual(["/a", "/b"])
   await act(async () => pending[0].resolve(response("/a")))
   expect(view.result.current.catalog.status).toBe("loading")
   await act(async () => pending[1].resolve(response("/b")))

@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { assertActiveLogin } from "../login-response"
 
 const response = {

@@ -1,7 +1,9 @@
 import type { CapabilityProvider } from "@alwith/module-extension/host"
+
 import { wallpaperController } from "@/features/appearance/wallpaper/controller"
 import { wallpaperLibrary } from "@/features/appearance/wallpaper/library"
 import i18n from "@/lib/i18n"
+
 import type { WallpaperCapability } from "./wallpaper-contract"
 
 export function createWallpaperCapability(
@@ -23,7 +25,7 @@ export function createWallpaperCapability(
       }
       const language = (): string => i18n.resolvedLanguage ?? i18n.language
       return {
-        show: value => {
+        show: (value) => {
           cancellation.throwIfAborted()
           presentation.show(value)
         },
@@ -37,7 +39,7 @@ export function createWallpaperCapability(
         },
         listImages: () => request(wallpaperLibrary.list),
         importImage: () => request(() => wallpaperLibrary.import(language())),
-        removeImage: id => request(() => wallpaperLibrary.remove(id, language())),
+        removeImage: (id) => request(() => wallpaperLibrary.remove(id, language())),
         imageUrl(id) {
           cancellation.throwIfAborted()
           return wallpaperLibrary.imageUrl(id)

@@ -28,7 +28,7 @@ export class SettingsClient {
     const previous = this.snapshot.values
     this.snapshot = next
     const keys = [...new Set([...Object.keys(previous), ...Object.keys(next.values)])].filter(
-      key => JSON.stringify(previous[key]) !== JSON.stringify(next.values[key])
+      (key) => JSON.stringify(previous[key]) !== JSON.stringify(next.values[key])
     )
     if (keys.length) for (const listener of this.listeners) listener(keys)
   }
@@ -49,13 +49,13 @@ export class SettingsClient {
     return () => this.listeners.delete(listener)
   }
 }
-export const settingsStore = new SettingsClient(input => invoke("settings_request", { input }))
+export const settingsStore = new SettingsClient((input) => invoke("settings_request", { input }))
 let initialization: Promise<void> | undefined
 
 function initializeSettings(): Promise<void> {
   if (initialization) return initialization
   initialization = (async () => {
-    await listen<SettingsSnapshot>("settings:changed", event => settingsStore.accept(event.payload))
+    await listen<SettingsSnapshot>("settings:changed", (event) => settingsStore.accept(event.payload))
     const snapshot = await settingsStore.read()
     if (!snapshot.browserMigrated) {
       const changes: Record<string, unknown> = {}

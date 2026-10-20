@@ -1,14 +1,14 @@
-import { commands } from "@/bindings"
-// The app-wide CodexClient instance and the React bindings to its store.
-
 import type { Session } from "@alwith/api"
+// The app-wide CodexClient instance and the React bindings to its store.
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
+
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { hostSessionContext, computerContextRevision, prepareComputerTools } from "@/features/computer/session-context"
+import { commands } from "@/bindings"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
+import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -22,7 +22,7 @@ export const client =
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
         projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async model => {
+        resolveModel: async (model) => {
           const providers = await applyProvidersWhenIdle()
           // Create a reusable draft on the currently applied catalog. Prompt admission retries
           // the saved provider revision after active turns have finished.
@@ -31,7 +31,7 @@ export const client =
         sessionContext: hostSessionContext,
         sessionContextRevision: computerContextRevision,
         prepareSessionTools: prepareComputerTools,
-        revokeSessionAccess: async sessionId => {
+        revokeSessionAccess: async (sessionId) => {
           await commands.computerStopSession({ sessionId })
         }
       })
@@ -40,7 +40,7 @@ export const client =
 export async function watchRunStates(): Promise<() => void> {
   const port = await runtimeClient()
   let revision = 0
-  const stop = await port.onRunStates(sessions => {
+  const stop = await port.onRunStates((sessions) => {
     revision++
     client.applyRunStates(sessions)
   })
@@ -67,5 +67,5 @@ export function useApp<T>(selector: (state: AppState) => T): T {
 }
 
 export function useSession(id: string | null): Session | null {
-  return useStore(client.store, state => (id === null ? null : (state.sessions[id] ?? null)))
+  return useStore(client.store, (state) => (id === null ? null : (state.sessions[id] ?? null)))
 }

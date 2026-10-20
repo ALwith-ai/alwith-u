@@ -3,7 +3,9 @@ import { ShieldCheckIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+
 import { drive } from "./controller"
 import { useDriveVisible } from "./use-drive-visible"
 
@@ -13,7 +15,6 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
   const { i18n } = useTranslation()
   const [excluded, setExcluded] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     if (!connected || !visible || !snapshot?.configured) {
       setExcluded(null)
@@ -22,7 +23,7 @@ export function DriveArchiveAction({ sessionId }: { sessionId: string }): ReactN
     let active = true
     void drive
       .request({ type: "archivePrivateSessions" })
-      .then(response => {
+      .then((response) => {
         if (response.type !== "archivePrivateSessions") throw new Error("Invalid private session list")
         if (active) setExcluded(response.data.includes(sessionId))
       })

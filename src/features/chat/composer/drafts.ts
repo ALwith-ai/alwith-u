@@ -33,7 +33,7 @@ export function trackDraftAttachmentWrite(attachmentId: string, write: Promise<v
 export async function exportDraft(sessionId: string): Promise<ComposerDraft | null> {
   for (;;) {
     const pending =
-      drafts.get(sessionId)?.attachments.flatMap(file => {
+      drafts.get(sessionId)?.attachments.flatMap((file) => {
         const write = attachmentWrites.get(file.id)
         return write ? [write] : []
       }) ?? []
@@ -43,15 +43,15 @@ export async function exportDraft(sessionId: string): Promise<ComposerDraft | nu
   const draft = drafts.get(sessionId)
   if (!draft) return null
   const attachments = await Promise.all(
-    draft.attachments.map(async attachment => {
+    draft.attachments.map(async (attachment) => {
       if (!attachment.url.startsWith("blob:")) return attachment
       const response = await fetch(attachment.url)
       if (!response.ok) throw new Error("Cannot read draft image")
       const blob = await response.blob()
       const url = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => resolve(String(reader.result))
-        reader.onerror = () => reject(reader.error)
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error!)
         reader.readAsDataURL(blob)
       })
       return { ...attachment, url }

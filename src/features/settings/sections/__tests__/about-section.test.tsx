@@ -3,12 +3,14 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { act, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { useUpdaterStore } from "@/features/updater/store"
 import { initI18n } from "@/lib/i18n"
 import * as bridge from "@/lib/settings-bridge"
+
 import { AboutSection } from "../about-section"
 
-vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 await initI18n("en")
 
@@ -23,7 +25,7 @@ test("About shows the installed app and executable versions instead of the ACP a
     authMethods: [],
     actions: []
   })
-  mockIPC(command => {
+  mockIPC((command) => {
     if (command === "plugin:app|version") return "0.2.0"
     if (command === "codex_version") return "0.159.2"
     throw new Error(`Unexpected command: ${command}`)
@@ -49,7 +51,7 @@ test("a failed Codex version check reports the error and still displays the app 
   const init = vi.spyOn(useUpdaterStore.getState(), "init").mockResolvedValue()
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error-toast")
   mockIPC(
-    command => {
+    (command) => {
       if (command === "plugin:app|version") return "0.2.0"
       if (command === "codex_version") throw new Error("Codex version check failed")
       return undefined

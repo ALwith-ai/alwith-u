@@ -6,6 +6,7 @@
  */
 import { SquareIcon } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -30,11 +31,12 @@ function RowIconButton({
       aria-label={title}
       aria-busy={pending}
       disabled={pending}
-      onKeyDown={event => event.stopPropagation()}
-      onClick={event => {
+      onKeyDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
         event.stopPropagation()
         onPress()
-      }}>
+      }}
+    >
       {children}
     </Button>
   )

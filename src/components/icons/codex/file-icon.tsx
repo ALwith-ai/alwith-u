@@ -2,6 +2,7 @@
 // the Codex icon set the user exported; a stand-in until the app ships its own set.
 import { useTheme } from "@/components/theme-provider"
 import { basename } from "@/lib/path"
+
 import icons from "./file-icons.json"
 
 type FileIconName = keyof typeof icons
@@ -134,7 +135,6 @@ export function CodexFileIcon({ path, className }: { path: string; className?: s
       aria-hidden="true"
       className={className}
       style={{ color: resolvedTheme === "dark" ? icon.dark : icon.light }}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: Renders trusted local SVGs from the bundled icon set, not user content.
       dangerouslySetInnerHTML={{ __html: icon.body }}
     />
   )

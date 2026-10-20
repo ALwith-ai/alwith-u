@@ -1,5 +1,6 @@
 import { ResourceScope } from "@alwith/module-extension/host"
 import { expect, test } from "vitest"
+
 import { authorizeCapability, extensionActions } from "../policy"
 
 test("operation policy follows native bundled provenance for any extension", (): void => {
@@ -23,7 +24,7 @@ test("private capability grants require native bundled provenance and matching i
         return { ok: true }
       }
     },
-    id => ({ id, source })
+    (id) => ({ id, source })
   )
   const manifest = {
     manifestVersion: 3,

@@ -10,7 +10,7 @@ export function errorDetails(error: unknown): string {
       seen.add(value)
       const detail = value.stack ?? value.message
       const fields = Object.fromEntries(
-        ["method", "code", "data", "reason"].flatMap(key => {
+        ["method", "code", "data", "reason"].flatMap((key) => {
           const field = (value as unknown as Record<string, unknown>)[key]
           return field === undefined ? [] : [[key, field]]
         })
@@ -29,7 +29,7 @@ export function errorDetails(error: unknown): string {
 }
 
 export function logBackgroundError(context: string, error: unknown): void {
-  void logError(`[${context}] ${errorDetails(error)}`).catch(failure => console.error("[error-log]", failure))
+  void logError(`[${context}] ${errorDetails(error)}`).catch((failure) => console.error("[error-log]", failure))
 }
 
 /** A stable notice per operation prevents concurrent startup failures from flooding the screen. */

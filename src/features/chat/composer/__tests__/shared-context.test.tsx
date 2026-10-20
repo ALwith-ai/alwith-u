@@ -15,7 +15,7 @@ function Draft() {
       <button type="button" onClick={() => textInput.setInput("Edited")}>
         Edit draft
       </button>
-      <output>{attachments.files.map(file => file.filename).join(",")}</output>
+      <output>{attachments.files.map((file) => file.filename).join(",")}</output>
     </>
   )
 }
@@ -28,7 +28,8 @@ test("shared Desktop controller takes each session's controlled draft without co
       value="First session"
       onValueChange={onValueChange}
       attachments={[]}
-      onAttachmentsChange={onAttachmentsChange}>
+      onAttachmentsChange={onAttachmentsChange}
+    >
       <Draft />
     </PromptInputProvider>
   )
@@ -40,7 +41,8 @@ test("shared Desktop controller takes each session's controlled draft without co
       value="Second session"
       onValueChange={onValueChange}
       attachments={[]}
-      onAttachmentsChange={onAttachmentsChange}>
+      onAttachmentsChange={onAttachmentsChange}
+    >
       <Draft />
     </PromptInputProvider>
   )
@@ -55,7 +57,8 @@ test("unmount does not revoke attachment URLs owned by the session draft", () =>
         value=""
         onValueChange={() => {}}
         attachments={[{ id: "image", type: "file", filename: "a.png", mediaType: "image/png", url: "blob:owned" }]}
-        onAttachmentsChange={() => {}}>
+        onAttachmentsChange={() => {}}
+      >
         <Draft />
       </PromptInputProvider>
     )

@@ -2,6 +2,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
@@ -12,6 +13,7 @@ import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
 import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
+import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import {
   announceChatReady,
   type ChatTransfer,
@@ -26,6 +28,7 @@ import { useProviders } from "@/lib/use-providers"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
@@ -38,18 +41,19 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)
   const [generation, setGeneration] = useState(0)
+  const voiceHandoff = useVoiceHandoff(selectedId, generation)
   const [ready, setReady] = useState(false)
   const [contentMounted, setContentMounted] = useState(false)
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const current = useRef({ selectedId, cwd })
   current.current = { selectedId, cwd }
-  const connection = useApp(state => state.connection)
+  const connection = useApp((state) => state.connection)
   const session = useSession(selectedId)
-  const draftSessions = useApp(state => state.draftSessions)
+  const draftSessions = useApp((state) => state.draftSessions)
   // A replacement is published before its retired id disappears and before
   // DraftChat receives the reply that binds the replacement to this surface.
   const replacingDraft = session === null && Object.values(draftSessions).includes("chat")
-  const runState = useApp(state => (selectedId === null ? null : state.runStates[selectedId]?.state))
+  const runState = useApp((state) => (selectedId === null ? null : state.runStates[selectedId]?.state))
   const surfaceRevision = useRef(0)
   const focused = useWindowFocus()
   const providers = useProviders()
@@ -93,7 +97,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         await publishChatWindowSurface(null, false)
         setContentMounted(false)
         setSelectedId(null)
-        setGeneration(value => value + 1)
+        setGeneration((value) => value + 1)
       })
       .catch(report)
   }, [capture, hide, operation])
@@ -106,7 +110,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         setCwd(directory)
         setSelectedId(null)
         importDraft(DRAFT_SESSION_ID, null)
-        setGeneration(value => value + 1)
+        setGeneration((value) => value + 1)
       })
       .catch(report)
   }, [operation])
@@ -121,7 +125,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
           return
         setSelectedId(null)
         importDraft(DRAFT_SESSION_ID, null)
-        setGeneration(value => value + 1)
+        setGeneration((value) => value + 1)
       })
       .catch(report)
   }, [operation])
@@ -137,7 +141,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     let disposed = false
     let stopSurface: (() => void) | undefined
     const win = getCurrentWebviewWindow()
-    const close = win.onCloseRequested(event => {
+    const close = win.onCloseRequested((event) => {
       event.preventDefault()
       void hide().catch(report)
     })
@@ -146,7 +150,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     void (async () => {
       // A hidden window must accept presents even after the main host reloads or
       // the previous connection fails. Connect inside the request, once main is ready.
-      stopSurface = await serveChatSurface(action =>
+      stopSurface = await serveChatSurface((action) =>
         operation.run(async () => {
           switch (action.type) {
             case "present": {
@@ -175,7 +179,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 current.current = { selectedId: transfer.sessionId, cwd: transfer.cwd }
                 setCwd(transfer.cwd)
                 setSelectedId(transfer.sessionId)
-                setGeneration(value => value + 1)
+                setGeneration((value) => value + 1)
               }
               setContentMounted(true)
               await presentChatWindow()
@@ -202,7 +206,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               // A handoff releases this surface; it must not prepare another draft.
               setContentMounted(false)
               setSelectedId(null)
-              setGeneration(value => value + 1)
+              setGeneration((value) => value + 1)
               return transfer
             }
             default:
@@ -216,15 +220,15 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       }
       setReady(true)
       await announceChatReady()
-    })().catch(error => {
+    })().catch((error) => {
       if (!disposed) report(error)
     })
     return () => {
       disposed = true
       stopSurface?.()
-      void close.then(stop => stop())
-      void menu.then(stop => stop())
-      void settings.then(stop => stop())
+      void close.then((stop) => stop())
+      void menu.then((stop) => stop())
+      void settings.then((stop) => stop())
       client.disconnect()
     }
   }, [capture, hide, newChat, operation, reconnect])
@@ -249,7 +253,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     return () => {
       disposed = true
       void stop
-        .then(listeners => {
+        .then((listeners) => {
           for (const unlisten of listeners) unlisten()
         })
         .catch(report)
@@ -283,9 +287,10 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     <main
       inert={busy}
       aria-busy={busy}
-      className="bg-background text-foreground relative flex h-dvh flex-col overflow-hidden rounded-2xl border">
+      className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground"
+    >
       <WindowResizeEdges />
-      <header className="border-border flex h-11 shrink-0 items-center gap-1 border-b px-3" data-tauri-drag-region>
+      <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
         <ChatWindowPetButton sessionId={selectedId} />
       </header>
@@ -316,8 +321,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               cwd={cwd}
               onCwdChange={setCwd}
               onCreated={setSelectedId}
+              onVoiceHandoff={voiceHandoff.accept}
               onSendingChange={(id, sending) =>
-                setSubmittingDraftId(current => (sending ? id : current === id ? null : current))
+                setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
               }
               onAuthRequired={() => void openSettingsWindow("provider")}
               providerSnapshot={providers}
@@ -326,11 +332,12 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
             <ChatView
               key={`${session.id}-${generation}`}
               session={session}
+              voiceResume={voiceHandoff.resume}
               headerTarget={headerTarget}
               onNewChat={newChat}
               onNewProject={newProject}
               onReturnToMain={returnToMain}
-              onSelectThread={thread => {
+              onSelectThread={(thread) => {
                 void operation
                   .run(async () => {
                     if (client.state.draftSessions[thread.sessionId] !== "chat") await client.discardDraft("chat")

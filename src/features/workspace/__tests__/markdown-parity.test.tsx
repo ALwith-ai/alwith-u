@@ -39,7 +39,7 @@ function fixture(text: string): PreviewProps {
 function Workbench({ props }: { props: PreviewProps }): ReactNode {
   const [actions, setActions] = useState<ReactNode>(null)
   const provider = useMemo(
-    () => createPreviewProviders(props.host).find(candidate => candidate.id === "markdown"),
+    () => createPreviewProviders(props.host).find((candidate) => candidate.id === "markdown"),
     [props.host]
   )
   if (!provider) throw new Error("Missing Markdown preview")
@@ -100,7 +100,7 @@ test("Markdown math renders through KaTeX and real edits still publish and save"
   expect(props.context.onChange).not.toHaveBeenCalled()
   act(() => {
     if (!editor) throw new Error("Missing editor")
-    editor.action(ctx => {
+    editor.action((ctx) => {
       const v = ctx.get(editorViewCtx)
       v.dispatch(v.state.tr.insertText("Edited ", 1))
     })
@@ -131,7 +131,7 @@ test("Drive integration keeps configuration, read-only state, serialization and 
   expect(screen.getByText("Drive comments")).toBeInTheDocument()
   act(() => {
     if (!editor) throw new Error("Missing editor")
-    editor.action(ctx => {
+    editor.action((ctx) => {
       const v = ctx.get(editorViewCtx)
       v.dispatch(v.state.tr.insertText("Edited ", 1))
     })
@@ -181,7 +181,7 @@ test("Markdown image resolution never writes object URLs into the Markdown and l
   expect(props.host.openLink).toHaveBeenCalledWith("https://example.com")
   act(() => {
     if (!editor) throw new Error("Missing editor")
-    editor.action(ctx => {
+    editor.action((ctx) => {
       const v = ctx.get(editorViewCtx)
       v.dispatch(v.state.tr.insertText("Edited ", 1))
     })

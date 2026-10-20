@@ -1,16 +1,17 @@
 import { computerContext } from "@alwith/module-computer"
 import { isTauri } from "@tauri-apps/api/core"
+
 import type { ClientOptions } from "@/agent/client"
-import i18n from "@/lib/i18n"
 import { commands } from "@/bindings"
 import { driveSessionContext } from "@/features/drive/session-context"
+import i18n from "@/lib/i18n"
 
 export async function computerContextRevision(): Promise<string> {
   if (!isTauri()) return "disabled"
   return commands.computerRevision()
 }
 
-export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async cwd => {
+export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd) => {
   const drive = await driveSessionContext(cwd)
   if (!isTauri()) return { ...drive, revision: "disabled" }
   const descriptor = await commands.computerContext()
@@ -34,6 +35,6 @@ export async function prepareComputerTools(sessionId: string): Promise<void> {
   try {
     await commands.computerReady({ sessionId })
   } catch (error) {
-    throw new Error(i18n.t("computer.connectionError", { error: String(error) }))
+    throw new Error(i18n.t("computer.connectionError", { error: String(error) }), { cause: error })
   }
 }

@@ -4,7 +4,9 @@ import { createFileSystem, type FileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { MoveToDialog, pickerRootsOf } from "../move-to-dialog"
 
 const bridge = vi.hoisted(() => ({ state: null as DriveState | null, request: vi.fn(), filesystem: vi.fn() }))
@@ -74,7 +76,7 @@ beforeEach(async () => {
     .mockResolvedValue({ type: "cloudFolders", data: [{ path: "Cloud child", folderId: "cloud-child" }] })
   fs = createFileSystem({
     adapter: createMemoryAdapter({ "/drive/One/source.txt": "contents", "/drive/One/local/keep.txt": "keep" }),
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })
@@ -82,7 +84,7 @@ beforeEach(async () => {
   tree = createFileTreeController({
     fs,
     root: "/drive/One",
-    reportError: error => {
+    reportError: (error) => {
       throw error
     }
   })

@@ -1,17 +1,19 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { textOf } from "@alwith/api"
+import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
 import type { ThreadUserMessageNavigationItem as NavigationRailItem } from "@alwith/module-chat/navigation-rail"
 import {
   type NavigationRailAudio,
   ThreadUserMessageNavigationRail as SharedRail
 } from "@alwith/module-chat/navigation-rail"
 import { type ComponentProps, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
+
 import type { HistoryNavigationState } from "@/agent/history-navigation"
 import { nativeTurnId } from "@/agent/history-navigation"
-import { useTranslation } from "react-i18next"
-import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
 import { useTheme } from "@/components/theme-provider"
+
 import { messageText, type Turn } from "../turns"
 import {
   installThreadUserMessageNavigationAudioUnlock,
@@ -42,7 +44,7 @@ export function toNavigationRailItems(
       response = text
     }
     const usage = turnUsage[turn.user.id]
-    const nativeId = turn.items.map(nativeTurnId).find(id => id !== null)
+    const nativeId = turn.items.map(nativeTurnId).find((id) => id !== null)
     items.push({
       id: turn.user.id,
       turnKey: turn.key,
@@ -61,10 +63,10 @@ export function toNavigationRailItems(
     group.push(item)
     byTurn.set(item.nativeTurnId, group)
   }
-  const indexed = new Set(navigation.turns.map(turn => turn.turnId))
+  const indexed = new Set(navigation.turns.map((turn) => turn.turnId))
   const loaded = new Set(navigation.loadedTurnIds)
   return navigation.turns
-    .flatMap(turn => {
+    .flatMap((turn) => {
       const current = byTurn.get(turn.turnId)
       if (current) return current
       if (loaded.has(turn.turnId)) return []
@@ -84,7 +86,7 @@ export function toNavigationRailItems(
         })
       )
     })
-    .concat(items.filter(item => item.nativeTurnId === undefined || !indexed.has(item.nativeTurnId)))
+    .concat(items.filter((item) => item.nativeTurnId === undefined || !indexed.has(item.nativeTurnId)))
 }
 
 function NavigationPreview({ item }: { item: NavigationRailItem }) {
@@ -97,9 +99,9 @@ function NavigationPreview({ item }: { item: NavigationRailItem }) {
   if (item.previewState === "loading")
     return (
       <div role="status" className="animate-pulse space-y-2 py-1" aria-label={t("chat.navigationLoading")}>
-        <div className="bg-muted h-3 w-3/5 rounded" />
-        <div className="bg-muted h-3 rounded" />
-        <div className="bg-muted h-3 w-4/5 rounded" />
+        <div className="h-3 w-3/5 rounded bg-muted" />
+        <div className="h-3 rounded bg-muted" />
+        <div className="h-3 w-4/5 rounded bg-muted" />
       </div>
     )
   return (
@@ -111,8 +113,9 @@ function NavigationPreview({ item }: { item: NavigationRailItem }) {
       </div>
       {item.response && (
         <div
-          className="text-muted-foreground pointer-events-none mt-1 line-clamp-3 [&_img]:hidden [&_pre]:max-h-20 [&_table]:table-fixed"
-          data-navigation-response>
+          className="pointer-events-none mt-1 line-clamp-3 text-muted-foreground [&_img]:hidden [&_pre]:max-h-20 [&_table]:table-fixed"
+          data-navigation-response
+        >
           <CodexMarkdownRenderer text={item.response} host={host} />
         </div>
       )}
@@ -121,8 +124,8 @@ function NavigationPreview({ item }: { item: NavigationRailItem }) {
 }
 
 export function ThreadUserMessageNavigationRail(props: Omit<ComponentProps<typeof SharedRail>, "audio">) {
-  const navigationInstrument = useStore(navigationSoundStore, state => state.instrument)
-  const navigationSoundMode = useStore(navigationSoundStore, state => state.soundMode)
+  const navigationInstrument = useStore(navigationSoundStore, (state) => state.instrument)
+  const navigationSoundMode = useStore(navigationSoundStore, (state) => state.soundMode)
   const audio = useMemo<NavigationRailAudio>(
     () => ({
       installUnlock: installThreadUserMessageNavigationAudioUnlock,
@@ -134,5 +137,5 @@ export function ThreadUserMessageNavigationRail(props: Omit<ComponentProps<typeo
     }),
     [navigationInstrument, navigationSoundMode]
   )
-  return <SharedRail {...props} audio={audio} renderPreview={item => <NavigationPreview item={item} />} />
+  return <SharedRail {...props} audio={audio} renderPreview={(item) => <NavigationPreview item={item} />} />
 }

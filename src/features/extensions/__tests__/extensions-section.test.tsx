@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { ExtensionsSection } from "../extensions-section"
 import type { InstallResult, PreparedInstall } from "../install-service"
 

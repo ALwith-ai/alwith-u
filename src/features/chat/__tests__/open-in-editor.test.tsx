@@ -1,11 +1,13 @@
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+
 import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as openWithApp from "@/lib/open-with-app"
 import * as preferences from "@/lib/preferences"
 import { setProjectAppPreference } from "@/lib/project-app-preference"
+
 import { useProjectApps } from "../open-in-editor"
 
 await initI18n("en")
@@ -17,7 +19,7 @@ test("main header preloads apps before opening its menu and remounts use the res
   ]
   let finish!: (apps: openWithApp.AppInfo[]) => void
   const readAppsInfo = vi.spyOn(openWithApp, "readAppsInfo").mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )

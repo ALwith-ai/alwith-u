@@ -1,5 +1,6 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { useMainWindowVisible } from "../use-main-window-visible"
 
 const native = vi.hoisted(() => ({

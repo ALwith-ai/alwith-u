@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import {
   ItemActions,
   ItemContent,
@@ -57,7 +58,7 @@ function ExtensionIcon({ src }: { src?: string }): ReactNode {
   const icon = src ? parseManifestIcon(src) : undefined
   if (icon?.type === "lucide") {
     const Icon = EXTENSION_ICONS[icon.name]
-    return <Icon className="text-muted-foreground size-8" />
+    return <Icon className="size-8 text-muted-foreground" />
   }
   return src && !failed ? (
     <img
@@ -68,7 +69,7 @@ function ExtensionIcon({ src }: { src?: string }): ReactNode {
       onError={() => setFailed(true)}
     />
   ) : (
-    <BlocksIcon className="text-muted-foreground size-5" />
+    <BlocksIcon className="size-5 text-muted-foreground" />
   )
 }
 
@@ -92,7 +93,7 @@ export function ExtensionsManager({
   const search = query.trim().toLocaleLowerCase()
   const installations = state.native?.installations ?? []
   const matches = installations
-    .map(item => ({ item, ...resolveManifestText(item.manifest, i18n.language) }))
+    .map((item) => ({ item, ...resolveManifestText(item.manifest, i18n.language) }))
     .filter(({ item, name, description }) =>
       [name, item.id, item.manifest.version, description, item.manifest.author]
         .join(" ")
@@ -105,7 +106,7 @@ export function ExtensionsManager({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{t("sidebar.extensions")}</h1>
-          <Badge className="bg-primary/10 text-primary text-[10px]">BETA</Badge>
+          <Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>
         </div>
         <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
           {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
@@ -113,7 +114,7 @@ export function ExtensionsManager({
         </Button>
       </div>
       {installPhase && (
-        <div role="status" aria-live="polite" className="text-muted-foreground flex items-center gap-2 text-sm">
+        <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden="true" />
           {t(installPhase === "preparing" ? "extensions.preparingInstall" : "extensions.installing")}
         </div>
@@ -129,33 +130,33 @@ export function ExtensionsManager({
           aria-label={t("extensions.search")}
           placeholder={t("extensions.search")}
           value={query}
-          onChange={event => setQuery(event.currentTarget.value)}
+          onChange={(event) => setQuery(event.currentTarget.value)}
         />
         {state.native === null && !state.errors.service && (
-          <div role="status" className="text-muted-foreground flex items-center justify-center gap-2 py-12 text-sm">
+          <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <Spinner />
             {t("extensions.loading")}
           </div>
         )}
         {state.native !== null && matches.length === 0 && (
-          <p className="text-muted-foreground py-12 text-center text-sm">
+          <p className="py-12 text-center text-sm text-muted-foreground">
             {t(installations.length === 0 ? "extensions.empty" : "extensions.noMatches")}
           </p>
         )}
         <PanelList className="grid grid-cols-1 gap-x-4 gap-y-3 @2xl:grid-cols-2">
           {matches.map(({ item, name, description }) => {
             const actions = extensionActions(item)
-            const pending = state.native?.pending.find(value => value.id === item.id)
+            const pending = state.native?.pending.find((value) => value.id === item.id)
             const error = state.errors[item.id]
             const blocked = unavailable || Boolean(pending)
             const surfaces = onOpenSurface
-              ? sortContributions(host.views.filter(view => view.extensionId === item.id && view.kind === "surfaces"))
+              ? sortContributions(host.views.filter((view) => view.extensionId === item.id && view.kind === "surfaces"))
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
                 <PanelItem className="group/extension rounded-md py-3">
                   <ItemMedia>
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-sm">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} />
                     </div>
                   </ItemMedia>
@@ -164,13 +165,14 @@ export function ExtensionsManager({
                       delay={300}
                       render={
                         <ItemContent
-                          className="focus-visible:ring-ring min-w-0 rounded-sm outline-none focus-visible:ring-2"
+                          className="min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           role="group"
                           tabIndex={0}
                           aria-label={t("extensions.details.label", { name })}
                           aria-describedby={`${detailsId}-${item.id}`}
                         />
-                      }>
+                      }
+                    >
                       <PanelItemTitle className="mb-0.5">{name}</PanelItemTitle>
                       {description && <ItemDescription className="line-clamp-1">{description}</ItemDescription>}
                       <ItemDescription className="truncate">
@@ -180,13 +182,14 @@ export function ExtensionsManager({
                               <a
                                 href={item.manifest.authorUrl}
                                 rel="noopener noreferrer"
-                                className="hover:text-foreground underline-offset-4 hover:underline"
-                                onClick={event => {
+                                className="underline-offset-4 hover:text-foreground hover:underline"
+                                onClick={(event) => {
                                   event.preventDefault()
                                   void openExternal(event.currentTarget.href).catch((error: unknown) =>
                                     toast.error(error instanceof Error ? error.message : String(error))
                                   )
-                                }}>
+                                }}
+                              >
                                 {item.manifest.author}
                               </a>
                             ) : (
@@ -204,10 +207,11 @@ export function ExtensionsManager({
                       side="bottom"
                       sideOffset={8}
                       align="start"
-                      className="bg-popover text-popover-foreground border-border [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border p-4 leading-relaxed break-words shadow-md [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b">
+                      className="block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border border-border bg-popover p-4 leading-relaxed break-words text-popover-foreground shadow-md [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b"
+                    >
                       <p className="text-sm font-medium">{name}</p>
-                      {description && <p className="text-muted-foreground whitespace-pre-wrap">{description}</p>}
-                      <dl className="border-border [&>dt]:text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t pt-3">
+                      {description && <p className="whitespace-pre-wrap text-muted-foreground">{description}</p>}
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t border-border pt-3 [&>dt]:text-muted-foreground">
                         <dt>ID</dt>
                         <dd className="break-all">{item.id}</dd>
                         <dt>{t("extensions.details.version")}</dt>
@@ -232,7 +236,7 @@ export function ExtensionsManager({
                       aria-label={t("extensions.enable", { name })}
                       checked={item.enabled}
                       disabled={blocked}
-                      onCheckedChange={enabled =>
+                      onCheckedChange={(enabled) =>
                         onRequest(
                           enabled
                             ? { type: "enable", id: item.id }
@@ -251,17 +255,19 @@ export function ExtensionsManager({
                               aria-label={t("extensions.moreActions", { name })}
                               className="text-muted-foreground"
                             />
-                          }>
+                          }
+                        >
                           <MoreVerticalIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-max min-w-[140px] whitespace-nowrap">
-                          {surfaces.map(view => {
+                          {surfaces.map((view) => {
                             const Icon = EXTENSION_ICONS[view.icon ?? "blocks"]
                             return (
                               <DropdownMenuItem
                                 key={view.id}
                                 disabled={blocked || !item.enabled || Boolean(error)}
-                                onClick={() => onOpenSurface?.(view.id)}>
+                                onClick={() => onOpenSurface?.(view.id)}
+                              >
                                 <Icon />
                                 {view.title}
                               </DropdownMenuItem>
@@ -277,7 +283,8 @@ export function ExtensionsManager({
                             <DropdownMenuItem
                               disabled={blocked || !item.enabled}
                               title={t("extensions.reloadHint")}
-                              onClick={() => onReload(item.id)}>
+                              onClick={() => onReload(item.id)}
+                            >
                               <RefreshCwIcon />
                               {t("extensions.reload")}
                             </DropdownMenuItem>
@@ -286,7 +293,8 @@ export function ExtensionsManager({
                             <DropdownMenuItem
                               disabled={blocked}
                               className="text-destructive"
-                              onClick={() => onUninstall(item.id, name)}>
+                              onClick={() => onUninstall(item.id, name)}
+                            >
                               <Trash2Icon />
                               {t("extensions.uninstall")}
                             </DropdownMenuItem>
@@ -297,7 +305,7 @@ export function ExtensionsManager({
                   </ItemActions>
                 </PanelItem>
                 {item.source === LEGACY_SOURCE &&
-                  findLegacyProfile(item.id)?.limitations.map(message => {
+                  findLegacyProfile(item.id)?.limitations.map((message) => {
                     const key = JSON.stringify([item.installationId, item.packageRevision, message])
                     if (dismissedNotices.has(key)) return null
                     return (
@@ -306,9 +314,10 @@ export function ExtensionsManager({
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="text-muted-foreground absolute top-2 right-2"
+                          className="absolute top-2 right-2 text-muted-foreground"
                           aria-label={t("actions.close")}
-                          onClick={() => setDismissedNotices(previous => new Set(previous).add(key))}>
+                          onClick={() => setDismissedNotices((previous) => new Set(previous).add(key))}
+                        >
                           <XIcon />
                         </Button>
                       </Alert>
@@ -321,21 +330,22 @@ export function ExtensionsManager({
                 )}
                 {pending && (
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-muted-foreground text-sm" role="status">
+                    <span className="text-sm text-muted-foreground" role="status">
                       {t("extensions.stopping", { count: pending.waitingInstances })}
                     </span>
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={unavailable}
-                      onClick={() => onRequest({ type: "abortTransition", id: item.id })}>
+                      onClick={() => onRequest({ type: "abortTransition", id: item.id })}
+                    >
                       {t("extensions.cancel")}
                     </Button>
                   </div>
                 )}
                 {host.views
-                  .filter(view => view.extensionId === item.id && view.kind === "settings")
-                  .map(view => (
+                  .filter((view) => view.extensionId === item.id && view.kind === "settings")
+                  .map((view) => (
                     <div key={view.id} className="px-3 pt-2 pb-4">
                       {renderSettings(view)}
                     </div>

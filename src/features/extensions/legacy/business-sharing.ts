@@ -46,7 +46,7 @@ export function createBusinessSharing(
       await subscription
       await flush()
     },
-    current: value => {
+    current: (value) => {
       if (closed) return Promise.reject(new Error("Business sharing is closed"))
       return enqueue(async () => {
         if (closed) throw new Error("Business sharing is closed")

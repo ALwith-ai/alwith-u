@@ -7,6 +7,7 @@ import {
   playThreadUserMessageNavigationSequence as playSequence,
   preloadThreadUserMessageNavigationInstrument as preloadInstrument
 } from "@alwith/module-chat/navigation-audio"
+
 import type { NavigationInstrument, NavigationSoundMode } from "./navigation-instruments"
 
 // DIAG: environment facts for the "no sound in the packaged app" investigation.

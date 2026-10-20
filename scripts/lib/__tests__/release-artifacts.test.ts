@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+
 import { registerRelease, releaseArtifacts, releaseVersion } from "../release-artifacts"
 
 const directories: string[] = []
@@ -36,7 +37,7 @@ test("registers the actual v0.1.2 Tauri asset names without rewriting download U
   const posted: unknown[] = []
   const request: typeof fetch = Object.assign(
     async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-      posted.push(JSON.parse(String(init?.body)))
+      posted.push(JSON.parse(init?.body as string))
       return new Response("{}", { status: 201 })
     },
     { preconnect: fetch.preconnect }
@@ -92,23 +93,23 @@ test("rejects installer formats belonging to the wrong platform including darwin
 test("maps installers and signed updater packages to the admin contract and public TOS URLs", () => {
   const artifacts = releaseArtifacts(fixture(), "v26.9.24")
   expect(artifacts).toHaveLength(5)
-  expect(artifacts.find(artifact => artifact.format === "dmg")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "dmg")).toMatchObject({
     target: "darwin",
     arch: "darwin-aarch64",
     signature_text: "",
     label: "Apple Silicon"
   })
-  expect(artifacts.find(artifact => artifact.format === "tar.gz")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "tar.gz")).toMatchObject({
     download_url: "https://static.alwith.ai/alwith-u/release/v26.9.24/alwith-u_26.9.24_macos_aarch64.app.tar.gz",
     signature_text: "signed"
   })
   expect(
     artifacts
-      .filter(artifact => artifact.format === "nsis")
-      .map(artifact => artifact.arch)
+      .filter((artifact) => artifact.format === "nsis")
+      .map((artifact) => artifact.arch)
       .sort()
   ).toEqual(["windows-aarch64", "windows-x86_64"])
-  expect(artifacts.find(artifact => artifact.format === "msi")).toMatchObject({
+  expect(artifacts.find((artifact) => artifact.format === "msi")).toMatchObject({
     arch: "windows-aarch64",
     signature_text: "signed"
   })
@@ -147,12 +148,10 @@ test("posts authenticated JSON to the version endpoint and stops on HTTP failure
   const request: typeof fetch = Object.assign(
     async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
       calls++
-      expect(String(url)).toBe(
-        "https://api.alwith.ai/management/ci/open-source/releases/alwith-u/26.9.24/artifacts/by-url"
-      )
+      expect(url).toBe("https://api.alwith.ai/management/ci/open-source/releases/alwith-u/26.9.24/artifacts/by-url")
       expect(init?.method).toBe("POST")
       expect(init?.headers).toEqual({ "X-CI-Token": "test-token", "Content-Type": "application/json" })
-      expect(JSON.parse(String(init?.body)).download_url).toContain("/alwith-u/release/v26.9.24/")
+      expect(JSON.parse(init?.body as string).download_url).toContain("/alwith-u/release/v26.9.24/")
       expect(init?.redirect).toBe("error")
       return new Response("{}", { status: calls > 5 ? 401 : 201 })
     },

@@ -1,5 +1,6 @@
-import { type Item, type Session, textOf } from "@alwith/api"
 import { SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { type Item, type Session, textOf } from "@alwith/api"
+
 import { prependHistory, projectHistoryTurns } from "./history-page"
 
 export type HistoryTurnSummary = {
@@ -185,7 +186,7 @@ export async function readHistoryTurn(
     cursor = preview ? null : (page.nextCursor as string | null)
   } while (cursor !== null)
   const projectedUpdates = preview
-    ? updates.filter(update => {
+    ? updates.filter((update) => {
         const value = update as Parameters<typeof SessionUpdate.isUserMessage>[0]
         return (
           SessionUpdate.isUserMessage(value) ||
@@ -208,7 +209,7 @@ export function nativeTurnId(item: Item): string | null {
 export function mergeNavigationHistory(current: Session, page: Session, turns: HistoryTurnSummary[]): Session {
   const merged = prependHistory(current, page)
   const order = new Map(turns.map((turn, index) => [turn.turnId, index]))
-  const ranks = merged.items.map(item => order.get(nativeTurnId(item) ?? ""))
+  const ranks = merged.items.map((item) => order.get(nativeTurnId(item) ?? ""))
   // Locally inserted prompts can precede their first native turn metadata update.
   let next = turns.length
   for (let index = ranks.length - 1; index >= 0; index--) {
@@ -217,7 +218,7 @@ export function mergeNavigationHistory(current: Session, page: Session, turns: H
   }
   const ranked = merged.items.map((item, index) => ({ item, rank: ranks[index] as number }))
   ranked.sort((a, b) => a.rank - b.rank)
-  return { ...merged, items: ranked.map(entry => entry.item) }
+  return { ...merged, items: ranked.map((entry) => entry.item) }
 }
 
 export function historyTurnPreview(session: Session): HistoryTurnPreview {
@@ -237,6 +238,6 @@ export function historyTurnPreview(session: Session): HistoryTurnPreview {
   }
   return {
     state: "loaded",
-    messages: messages.map(message => ({ ...message, label: clip(message.label), response: clip(message.response) }))
+    messages: messages.map((message) => ({ ...message, label: clip(message.label), response: clip(message.response) }))
   }
 }

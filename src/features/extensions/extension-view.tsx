@@ -2,9 +2,11 @@ import type { ExtensionHost, ViewContribution } from "@alwith/module-extension/h
 import { ExtensionView, useHostSnapshot } from "@alwith/module-extension/react"
 import { type ReactElement, useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
-import { reportExtensionError, useExtensions } from "./runtime"
+
 import { openExtensionConsent } from "./legacy/startup-consent"
+import { reportExtensionError, useExtensions } from "./runtime"
 
 export function ExtensionMount({ id }: { id: string }): ReactElement {
   const { runtime } = useExtensions()
@@ -22,7 +24,7 @@ export function ExtensionViewContent({
 }): ReactElement {
   const { t } = useTranslation()
   const snapshot = useHostSnapshot(host)
-  const view = snapshot.views.find(item => item.id === id)
+  const view = snapshot.views.find((item) => item.id === id)
   useEffect(() => {
     if (view?.kind === "surfaces" || view?.kind === "settingsPages") {
       void openExtensionConsent(view.extensionId).catch(onError)
@@ -59,7 +61,7 @@ export function ExtensionViewContent({
 export function ExtensionPage({ id, onClose }: { id: string; onClose(): void }): ReactElement {
   const { t } = useTranslation()
   const { host } = useExtensions()
-  const view = host.views.find(item => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
+  const view = host.views.find((item) => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 pt-12">
       <div className="flex items-center justify-between gap-4">

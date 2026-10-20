@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+
 import { GuidePage } from "../../src/features/guide/guide-page"
 
 const meta = {
@@ -6,7 +7,7 @@ const meta = {
   component: GuidePage,
   parameters: { layout: "fullscreen" },
   decorators: [
-    Story => (
+    (Story) => (
       <div className="fixed inset-0">
         <Story />
       </div>

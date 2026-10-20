@@ -30,7 +30,7 @@ export function watchThreadList(client: CodexClient): () => void {
     if (state.runStates === previous.runStates) return
     const ids = new Set([...Object.keys(state.runStates), ...Object.keys(previous.runStates)])
     if (
-      [...ids].some(id => {
+      [...ids].some((id) => {
         const before = previous.runStates[id]
         const after = state.runStates[id]
         return (

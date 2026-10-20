@@ -64,7 +64,7 @@ afterEach(() => {
 })
 
 test("startup archive waits for attachment, then checks consent without reporting a connection error", async () => {
-  mocks.request.mockImplementation(async request =>
+  mocks.request.mockImplementation(async (request) =>
     request.type === "snapshot"
       ? { type: "snapshot", data: snapshot }
       : { type: "preferences", data: { sessionArchive: false, knowledgeInject: false } }
@@ -91,7 +91,7 @@ test("timer and manual archive triggers do not request a disconnected service", 
 })
 
 test("a real archive preference failure after attachment remains visible", async () => {
-  mocks.request.mockImplementation(async request => {
+  mocks.request.mockImplementation(async (request) => {
     if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
     throw new Error("Preference storage unavailable")
   })

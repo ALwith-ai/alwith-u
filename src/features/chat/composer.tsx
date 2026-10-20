@@ -5,15 +5,18 @@
  */
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Session } from "@alwith/api"
-import { observeVoiceTurn } from "@/core/voice-turn"
 import type { DraftPort, DraftSnapshot } from "@alwith/module-voice/chat"
-import { VoiceButton } from "@/features/voice/voice-button"
 import { ImageIcon } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
+import { observeVoiceTurn } from "@/core/voice-turn"
+import type { VoiceResume } from "@/features/voice/use-voice-handoff"
+import { VoiceButton } from "@/features/voice/voice-button"
 import { client, useApp } from "@/lib/client"
+
 import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
 import {
@@ -22,12 +25,12 @@ import {
   registerDraftAttachmentWriter,
   updateDraftAttachments
 } from "./composer/drafts"
+import { isPastedTextAttachment, pasteLongText } from "./composer/long-text"
 import { MentionChips } from "./composer/mention-chips"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
-import { isPastedTextAttachment, pasteLongText } from "./composer/long-text"
-import { PastedTextAttachment } from "./composer/pasted-text-attachment"
 import { ModelSelectGroup } from "./composer/model-select-group"
-import { NativeFileDrop, nativeAttachmentPolicy } from "./composer/native-file-drop"
+import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
+import { PastedTextAttachment } from "./composer/pasted-text-attachment"
 import { PermissionModeSelect } from "./composer/permission-mode-select"
 import {
   type Attachment,
@@ -60,9 +63,9 @@ async function readBase64(attachment: FileUIPart): Promise<string> {
   const blob = await (await fetch(attachment.url)).blob()
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(reader.error)
+    reader.onerror = () => reject(reader.error!)
     reader.onload = () => {
-      const url = String(reader.result)
+      const url = reader.result as string
       resolve(url.slice(url.indexOf(",") + 1))
     }
     reader.readAsDataURL(blob)
@@ -77,7 +80,8 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
       aria-label={t("chat.attachImage")}
       title={t("chat.attachImage")}
       onClick={() => attachments.openFileDialog()}
-      {...props}>
+      {...props}
+    >
       <ImageIcon className="size-4" />
     </PromptInputButton>
   )
@@ -86,6 +90,8 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
 export function Composer({
   session,
   onSubmit,
+  onVoiceHandoff,
+  voiceResume,
   modelSelector,
   inputHeader,
   disabled = false,
@@ -98,29 +104,33 @@ export function Composer({
   /** Draft input stays editable while session preparation blocks submission. */
   allowPendingInput?: boolean
   /** The draft surface owns the transition after the first prompt is accepted. */
-  onSubmit?: (prompt: acp.ContentBlock[]) => Promise<void>
+  onSubmit?: (prompt: acp.ContentBlock[], accept?: (receipt: string) => void) => Promise<void>
+  onVoiceHandoff?: (sessionId: string, receipt: string) => void
+  voiceResume?: VoiceResume
   /** Before session/new, the host owns the initial model selection. */
   modelSelector?: import("react").ReactNode
   inputHeader?: import("react").ReactNode
 }) {
   const { t } = useTranslation()
-  const [text, setTextRaw] = useState(() => drafts.get(session.id)?.text ?? "")
+  // Final ASR text can match its preview; its new revision must still reach the form before submission.
+  const [draft, setDraft] = useState(() => ({ text: drafts.get(session.id)?.text ?? "", revision: 0 }))
+  const { text } = draft
   const [attachments, setAttachments] = useState<Attachment[]>(
     () => drafts.get(session.id)?.attachments ?? EMPTY_ATTACHMENTS
   )
   const [mentions, setMentions] = useState<string[]>(() => drafts.get(session.id)?.mentions ?? [])
-  const pasting = attachments.some(file => isPastedTextAttachment(file) && file.pastedText.status !== "ready")
+  const pasting = attachments.some((file) => isPastedTextAttachment(file) && file.pastedText.status !== "ready")
   const [sending, setSending] = useState(false)
   const [dropping, setDropping] = useState(false)
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
   const voiceCancelRef = useRef<(() => void) | null>(null)
-  const draftRef = useRef({ text, revision: 0 })
+  const draftRef = useRef(draft)
   const setText = useCallback((value: string): void => {
     voiceCancelRef.current?.()
     draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
-    setTextRaw(value)
+    setDraft(draftRef.current)
   }, [])
   const draftPort = useMemo<DraftPort>(() => {
     const read = (): DraftSnapshot => {
@@ -136,7 +146,7 @@ export function Composer({
       compareAndSet(expected, value, selection) {
         if (expected.target !== session.id || expected.revision !== draftRef.current.revision) return null
         draftRef.current = { text: value, revision: draftRef.current.revision + 1 }
-        setTextRaw(value)
+        setDraft(draftRef.current)
         const element = textareaRef.current?.getTextarea()
         if (element !== null && element !== undefined) {
           element.value = value
@@ -146,16 +156,19 @@ export function Composer({
       }
     }
   }, [session.id])
-  const receiptObserver = useRef<((id: string) => void) | null>(null)
+  const receiptObserver = useRef<{ accept(id: string): void; signal: AbortSignal } | null>(null)
   const waitForVoiceTurn = useCallback(
     (signal: AbortSignal): Promise<void> => {
       const observation = observeVoiceTurn(
-        { read: () => client.store.getState().sessions[session.id], subscribe: check => client.store.subscribe(check) },
+        {
+          read: () => client.store.getState().sessions[session.id],
+          subscribe: (check) => client.store.subscribe(check)
+        },
         signal
       )
-      receiptObserver.current = observation.accept
+      receiptObserver.current = { accept: observation.accept, signal }
       const release = (): void => {
-        if (receiptObserver.current === observation.accept) receiptObserver.current = null
+        if (receiptObserver.current?.accept === observation.accept) receiptObserver.current = null
       }
       void observation.completed.then(release, release)
       return observation.completed
@@ -163,6 +176,15 @@ export function Composer({
     [session.id]
   )
   const active = session.state !== "idle"
+  const resumeVoice = useMemo(() => {
+    if (voiceResume === undefined) return undefined
+    return (signal: AbortSignal): Promise<void> => {
+      const completed = waitForVoiceTurn(signal)
+      receiptObserver.current?.accept(voiceResume.receipt)
+      voiceResume.consume()
+      return completed
+    }
+  }, [voiceResume, waitForVoiceTurn])
   const ready = !disabled && !preparing && session.attached && !session.restoring && !session.readOnly
   const inputReady = !session.readOnly && (allowPendingInput || ready)
   const prediction = useComposerPrediction(
@@ -181,7 +203,7 @@ export function Composer({
 
   useLayoutEffect(
     () =>
-      registerComposerWriter(session.id, value => {
+      registerComposerWriter(session.id, (value) => {
         if (!inputReady || sending) throw new Error("当前输入框不可写，请稍后重试")
         if (text.length || attachments.length || mentions.length)
           throw new Error("输入框已有草稿，请先发送或清空后重试")
@@ -190,7 +212,7 @@ export function Composer({
     [session.id, inputReady, sending, text, attachments, mentions, setText]
   )
 
-  const fileSearchAvailable = useApp(state => hasFuzzyFileSearch(state.agent))
+  const fileSearchAvailable = useApp((state) => hasFuzzyFileSearch(state.agent))
   const searchFiles = useMemo(
     () =>
       fileSearchAvailable && ready
@@ -199,7 +221,7 @@ export function Composer({
     [fileSearchAvailable, ready, session.cwd]
   )
   const addMention = useCallback((path: string) => {
-    setMentions(current => (current.includes(path) ? current : [...current, path]))
+    setMentions((current) => (current.includes(path) ? current : [...current, path]))
   }, [])
 
   // Mounted per session (ChatView is keyed): focus on arrival.
@@ -227,21 +249,28 @@ export function Composer({
             prompt.push({ type: "resource_link", uri: file.url, name: file.filename ?? "pasted-text.txt" })
           } else prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
         }
-        if (onSubmit) await onSubmit(prompt)
-        else if (observeReceipt === null) await client.prompt(session.id, prompt)
+        if (onSubmit) {
+          if (observeReceipt === null) await onSubmit(prompt)
+          else
+            await onSubmit(prompt, (receipt) => {
+              if (observeReceipt.signal.aborted || receiptObserver.current !== observeReceipt) return
+              observeReceipt.accept(receipt)
+              onVoiceHandoff?.(session.id, receipt)
+            })
+        } else if (observeReceipt === null) await client.prompt(session.id, prompt)
         else {
           const receipt = await client.promptReceipt(session.id, prompt)
-          observeReceipt(receipt)
+          observeReceipt.accept(receipt)
         }
         invalidatePrediction()
-        setMentions(current => (current === mentions ? [] : current))
+        setMentions((current) => (current === mentions ? [] : current))
         textareaRef.current?.resetHeight()
       } finally {
         setSending(false)
         textareaRef.current?.focus()
       }
     },
-    [session.id, mentions, onSubmit, invalidatePrediction]
+    [session.id, mentions, onSubmit, onVoiceHandoff, invalidatePrediction]
   )
 
   const stop = () => {
@@ -270,7 +299,8 @@ export function Composer({
       {inputHeader && (
         <div
           data-chat-input-header
-          className="bg-sidebar dark:bg-foreground/3 relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl px-1.5 pt-1.5 pb-[27px]">
+          className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3"
+        >
           {inputHeader}
         </div>
       )}
@@ -281,10 +311,11 @@ export function Composer({
         onValueChange={setText}
         onSubmittedClear={() => {
           draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
-          setTextRaw("")
+          setDraft(draftRef.current)
         }}
         attachments={attachments}
-        onAttachmentsChange={files => updateDraftAttachments(session.id, () => files)}>
+        onAttachmentsChange={(files) => updateDraftAttachments(session.id, () => files)}
+      >
         <CompletionMenu
           handleRef={textareaRef}
           commands={session.commands}
@@ -301,7 +332,8 @@ export function Composer({
           onSubmit={submit}
           onSubmitAsync={submit}
           canSubmit={() => (ready && !sending && !dropping && !pasting ? true : "chat_not_ready")}
-          className="relative z-10">
+          className="relative z-10"
+        >
           <NativeFileDrop
             sessionId={session.id}
             enabled={inputReady && !sending}
@@ -310,16 +342,16 @@ export function Composer({
           />
           <PromptInputHeader>
             {dropping && (
-              <span role="status" className="text-muted-foreground text-xs">
+              <span role="status" className="text-xs text-muted-foreground">
                 {t("chat.input.addingFiles")}
               </span>
             )}
             <MentionChips
               mentions={mentions}
-              onRemove={path => setMentions(current => current.filter(item => item !== path))}
+              onRemove={(path) => setMentions((current) => current.filter((item) => item !== path))}
             />
             <PromptInputAttachments>
-              {attachment =>
+              {(attachment) =>
                 isPastedTextAttachment(attachment) ? (
                   <PastedTextAttachment data={attachment} sessionId={session.id} />
                 ) : (
@@ -330,7 +362,7 @@ export function Composer({
           </PromptInputHeader>
           <PromptInputBody
             className="mb-1 min-h-10 px-3"
-            onKeyDownCapture={event => {
+            onKeyDownCapture={(event) => {
               if (
                 !prediction.text ||
                 event.nativeEvent.isComposing ||
@@ -347,18 +379,19 @@ export function Composer({
                 event.stopPropagation()
                 setText(prediction.text)
               }
-            }}>
+            }}
+          >
             <PromptInputTextarea
               className="min-h-10"
               ref={textareaRef}
               rows={2}
               disabled={!inputReady}
-              onPasteCapture={event => pasteLongText(event, session.id, t("chat.pastedText.filename"))}
+              onPasteCapture={(event) => pasteLongText(event, session.id, t("chat.pastedText.filename"))}
               placeholder={prediction.text || (active ? t("chat.steerPlaceholder") : t("chat.placeholder"))}
               aria-label={t("chat.placeholder")}
             />
             {prediction.error && (
-              <span className="text-muted-foreground text-xs" role="status" title={prediction.error}>
+              <span className="text-xs text-muted-foreground" role="status" title={prediction.error}>
                 {t("chat.predictionUnavailable")}
               </span>
             )}
@@ -386,7 +419,8 @@ export function Composer({
                   enabled={ready}
                   cancelRef={voiceCancelRef}
                   waitForTurn={waitForVoiceTurn}
-                  supportsHandsfree={onSubmit === undefined}
+                  supportsHandsfree={onSubmit === undefined || onVoiceHandoff !== undefined}
+                  resume={resumeVoice}
                 />
                 <ChatSubmitButton
                   active={active}

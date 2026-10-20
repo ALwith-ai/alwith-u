@@ -1,7 +1,9 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { requestChatSurface } from "@/lib/chat-window"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatWindowPetButton } from "../chat-window-pet-button"
 import { collapseChatToPet } from "../window-client"
 
@@ -18,13 +20,13 @@ afterEach(() => cleanup())
 
 test.each(["equip", "pull"] as const)(
   "guidance opens the requested %s view without transferring the conversation",
-  async target => {
+  async (target) => {
     vi.mocked(collapseChatToPet).mockResolvedValue({ type: "setup", view: target })
     const view = render(<ChatWindowPetButton sessionId="original-session" />)
     await act(async () => fireEvent.click(view.getByRole("button", { name: "Collapse" })))
     expect(view.getByRole("dialog")).toBeVisible()
     const buttons = view.getByRole("dialog").querySelectorAll("button")
-    const action = Array.from(buttons).find(button => /Go to (equip|draw)/i.test(button.textContent ?? ""))
+    const action = Array.from(buttons).find((button) => /Go to (equip|draw)/i.test(button.textContent ?? ""))
     if (!action) throw new Error("Missing equipment guidance action")
     await act(async () => fireEvent.click(action))
     expect(requestChatSurface).toHaveBeenCalledWith("main", { type: "vibemon", view: target })

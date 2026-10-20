@@ -35,7 +35,7 @@ export type FakeAgent = {
   resumeResponse: { current: (() => Promise<acp.ResumeSessionResponse>) | null }
   replayUpdates: acp.SessionUpdate[]
   historyRequests: Array<Record<string, unknown>>
-  historyResponse: { current: ((params: Record<string, unknown>) => unknown | Promise<unknown>) | null }
+  historyResponse: { current: ((params: Record<string, unknown>) => unknown) | null }
 }
 
 function modelHintOf(params: { _meta?: unknown }): string | null {
@@ -60,11 +60,11 @@ const NATIVE_MODELS = [
 
 /** Model option as the adapter's catalog mode shapes it: a Codex group plus one group per gateway. */
 function modelOption(current: string, gateways: GatewayGroup[]): acp.SessionConfigOption {
-  const nativeOptions = NATIVE_MODELS.map(value => ({ value, name: value === "gpt-6.1-sol" ? "GPT-6.1 Sol" : value }))
+  const nativeOptions = NATIVE_MODELS.map((value) => ({ value, name: value === "gpt-6.1-sol" ? "GPT-6.1 Sol" : value }))
   // The real adapter preserves unknown current values in the selector as synthetic choices.
   if (
-    !nativeOptions.some(option => option.value === current) &&
-    !gateways.some(group => group.models.includes(current))
+    !nativeOptions.some((option) => option.value === current) &&
+    !gateways.some((group) => group.models.includes(current))
   )
     nativeOptions.unshift({ value: current, name: current })
   return {
@@ -75,10 +75,10 @@ function modelOption(current: string, gateways: GatewayGroup[]): acp.SessionConf
     currentValue: current,
     options: [
       { groupId: "chatgpt", name: "ChatGPT", options: nativeOptions },
-      ...gateways.map(gateway => ({
+      ...gateways.map((gateway) => ({
         groupId: gateway.id,
         name: gateway.name,
-        options: gateway.models.map(value => ({ value, name: value }))
+        options: gateway.models.map((value) => ({ value, name: value }))
       }))
     ]
   }
@@ -117,7 +117,7 @@ export function createFakeAgent(): FakeAgent {
     [...gateways.entries()].map(([id, params]) => {
       const meta = params._meta as
         { codex?: { name?: string }; alwith?: { models?: Array<{ id: string }> } } | undefined
-      return { id, name: meta?.codex?.name ?? id, models: (meta?.alwith?.models ?? []).map(model => model.id) }
+      return { id, name: meta?.codex?.name ?? id, models: (meta?.alwith?.models ?? []).map((model) => model.id) }
     })
   const optionsFor = (hint: string | null) =>
     sessionOptions.current?.(hint) ?? [modelOption(hint ?? "gpt-6.1-sol", gatewayGroups())]
@@ -185,8 +185,8 @@ export function createFakeAgent(): FakeAgent {
       const root = params.roots[0] ?? "/"
       const all = ["src/app.tsx", "src/agent/client.ts", "README.md"]
       const files = all
-        .filter(path => path.toLowerCase().includes(params.query.toLowerCase()))
-        .map(path => ({ root, path, match_type: "file", file_name: path.split("/").pop(), score: 1, indices: null }))
+        .filter((path) => path.toLowerCase().includes(params.query.toLowerCase()))
+        .map((path) => ({ root, path, match_type: "file", file_name: path.split("/").pop(), score: 1, indices: null }))
       return { files }
     }
   )
@@ -209,7 +209,7 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/new", async ({ params }) => {
     await newSessionDelay.current?.(params.cwd)
     const hint = modelHintOf(params)
-    const configuredGateway = hint !== null && gatewayGroups().some(group => group.models.includes(hint))
+    const configuredGateway = hint !== null && gatewayGroups().some((group) => group.models.includes(hint))
     if (hint?.startsWith("gateway:") && !configuredGateway && sessionOptions.current === null)
       throw acp.RequestError.invalidParams({ model: hint }, "The selected provider connection or model is unavailable")
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
@@ -250,13 +250,13 @@ export function createFakeAgent(): FakeAgent {
           title: "Second",
           _meta: { codex: { archived: true } }
         }
-      ].filter(item => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
+      ].filter((item) => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
     }
   }
   app.onRequest("session/list", ({ params }) => list(params))
   app.onRequest(
     "_codex/session_list",
-    value => value,
+    (value) => value,
     ({ params }) => {
       fullListRequests.push(params)
       return list({})
@@ -264,7 +264,7 @@ export function createFakeAgent(): FakeAgent {
   )
   app.onRequest("session/close", async ({ params }) => {
     active.get(params.sessionId)?.abort()
-    while (active.has(params.sessionId)) await new Promise(resolve => setTimeout(resolve, 1))
+    while (active.has(params.sessionId)) await new Promise((resolve) => setTimeout(resolve, 1))
     return {}
   })
   app.onRequest("session/resume", async ({ params, client }) => {
@@ -295,12 +295,14 @@ export function createFakeAgent(): FakeAgent {
   })
   app.onRequest(
     "_codex/session_history",
-    value => value as Record<string, unknown>,
+    (value) => value as Record<string, unknown>,
     ({ params }) => {
       historyRequests.push(params)
       if (historyResponse.current) return historyResponse.current(params)
+      const sessionId = params.sessionId
+      if (typeof sessionId !== "string") throw new Error("History requests require a session id")
       return {
-        sessionId: params.sessionId,
+        sessionId,
         consistency: "live",
         revision: null,
         nextCursor: null,
@@ -315,7 +317,7 @@ export function createFakeAgent(): FakeAgent {
               {
                 sessionUpdate: "agent_message",
                 messageId: "m",
-                content: [{ type: "text", text: `restored:${params.sessionId}` }]
+                content: [{ type: "text", text: `restored:${sessionId}` }]
               }
             ]
           }
@@ -344,7 +346,7 @@ export function createFakeAgent(): FakeAgent {
   const promptSequence = new Map<string, number>()
   app.onRequest("session/prompt", async ({ params, client }) => {
     const id = params.sessionId
-    const text = params.prompt.map(block => (block.type === "text" ? block.text : "")).join("")
+    const text = params.prompt.map((block) => (block.type === "text" ? block.text : "")).join("")
     const sequence = (promptSequence.get(id) ?? 0) + 1
     promptSequence.set(id, sequence)
     const messageId = sequence === 1 ? "u" : `u${sequence}`
@@ -419,7 +421,7 @@ export function createFakeAgent(): FakeAgent {
             status: "completed"
           })
         } else {
-          await new Promise(resolve => setTimeout(resolve, 80))
+          await new Promise((resolve) => setTimeout(resolve, 80))
           if (!controller.signal.aborted)
             await emit({
               sessionUpdate: "agent_message_chunk",
@@ -428,6 +430,7 @@ export function createFakeAgent(): FakeAgent {
             })
         }
       } catch {
+        // A prompt cancelled by the test rejects here; the finally block still reports idle.
       } finally {
         await emit({
           sessionUpdate: "state_update",
@@ -484,7 +487,7 @@ export function createFakeAgent(): FakeAgent {
     historyResponse,
     resumeResponse,
     pushRateLimits,
-    requestForm: async params => {
+    requestForm: async (params) => {
       if (link === null) throw new Error("Fake agent is not connected")
       return link.request("elicitation/create", params)
     },

@@ -1,9 +1,11 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 
@@ -14,7 +16,7 @@ afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 
@@ -86,7 +88,7 @@ test("a failed initial list offers retry instead of a permanent skeleton", async
   expect(screen.getByRole("button", { name: /retry|重试/i })).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Quick chats" })).toBeNull()
   await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 
@@ -96,7 +98,7 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   const quick = view.getByRole("button", { name: "Quick chats" })
   expect(quick).toHaveAttribute("aria-expanded", "false")
   expect(quick.closest('[data-slot="popover-trigger"]')).not.toBeNull()
-  const groups = view.getAllByRole("button").filter(button => button.hasAttribute("aria-expanded"))
+  const groups = view.getAllByRole("button").filter((button) => button.hasAttribute("aria-expanded"))
   expect(groups[0]).toBe(quick)
 })
 
@@ -213,7 +215,7 @@ test("group expansion, load more and collapse update the scrollbar without scrol
         for (const [callback, elements] of observers) {
           if (elements.has(target)) callback([], {} as ResizeObserver)
         }
-        await new Promise(resolve => requestAnimationFrame(resolve))
+        await new Promise((resolve) => requestAnimationFrame(resolve))
       })
     }
     // Deliver initial measurements, as the browser does when observation starts.
@@ -252,7 +254,7 @@ test("group expansion, load more and collapse update the scrollbar without scrol
   }
 }, 20_000)
 
-test.each([5, 6])("%i projects use a five-project preview independent of quick chats", async count => {
+test.each([5, 6])("%i projects use a five-project preview independent of quick chats", async (count) => {
   client.store.setState({
     threadsLoaded: true,
     threads: Array.from({ length: count }, (_, index) => ({

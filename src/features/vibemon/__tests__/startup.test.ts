@@ -1,7 +1,9 @@
 import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
-import { commands } from "@/bindings"
 import { beforeEach, expect, test, vi } from "vitest"
+
+import { commands } from "@/bindings"
 import { reportBackgroundError } from "@/lib/background-errors"
+
 import { restorePetOnStartup, runPetRestoration } from "../startup"
 
 vi.mock("@alwith/module-auth/pets/core", () => ({ getVibemonState: vi.fn(), refreshSettings: vi.fn() }))

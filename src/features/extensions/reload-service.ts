@@ -47,7 +47,8 @@ async function runPass(id: string, port: ReloadPort): Promise<ReloadOutcome> {
       } catch (recording) {
         throw new AggregateError(
           [error, recording],
-          `${String(error)}; could not save reload failure: ${String(recording)}`
+          `${String(error)}; could not save reload failure: ${String(recording)}`,
+          { cause: recording }
         )
       }
       throw error

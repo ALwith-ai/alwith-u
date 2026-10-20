@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { assertAvailableSkills, inspectRequiredSkills } from "../../chat/skills"
 import { legacyMessageSkills } from "../adapters"
 

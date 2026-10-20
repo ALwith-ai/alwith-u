@@ -2,7 +2,9 @@ import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/mo
 import type { Installation, Request } from "@alwith/module-extension/tauri"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test } from "vitest"
+
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { ExtensionsManager } from "../extensions-manager"
 
 beforeEach(async () => {
@@ -11,7 +13,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => {
     cleanup()
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 function installation(id: string, name: string): Installation {
@@ -124,7 +126,7 @@ test("bundled extensions expose contributed pages without update or uninstall ac
   expect(view.actions).toEqual([{ surface: "alpha/page" }])
 })
 
-test.each(["disabled", "error"])("%s extensions cannot open retained surface contributions", async reason => {
+test.each(["disabled", "error"])("%s extensions cannot open retained surface contributions", async (reason) => {
   const snapshot = state()
   const item = installation("alpha", "Alpha Notes")
   snapshot.native.installations[0] = item
@@ -138,7 +140,7 @@ test.each(["disabled", "error"])("%s extensions cannot open retained surface con
   expect(view.actions).toEqual([])
 })
 
-test.each(["busy", "pending"])("%s extensions cannot open their surface menu", async reason => {
+test.each(["busy", "pending"])("%s extensions cannot open their surface menu", async (reason) => {
   const snapshot = state()
   if (reason === "pending") snapshot.native.pending = [{ id: "alpha", action: "disable", waitingInstances: 1 }]
   const view = setup(snapshot, reason === "busy", {
@@ -296,7 +298,7 @@ test("hovering extension information reveals full metadata and follows language 
     const information = view.getByRole("group", { name: "Details for Alpha Notes" })
     fireEvent.mouseEnter(information)
     fireEvent.mouseMove(information)
-    await new Promise(resolve => setTimeout(resolve, 350))
+    await new Promise((resolve) => setTimeout(resolve, 350))
   })
   const details = within(view.getByRole("tooltip"))
   for (const text of [

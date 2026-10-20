@@ -2,6 +2,7 @@ import { ScrollArea } from "@base-ui/react/scroll-area"
 import { ArchiveIcon, FolderIcon, ListFilterIcon, SearchIcon, Trash2Icon } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner"
 import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
+
 import { groupThreads, isQuickChatDirectory, QUICK_CHATS_GROUP } from "./thread-groups"
 
 function describe(error: unknown): string {
@@ -27,8 +29,8 @@ function describe(error: unknown): string {
 
 export function ArchivedChatsPage(): ReactElement {
   const { t, i18n } = useTranslation()
-  const threads = useApp(state => state.archivedThreads)
-  const connection = useApp(state => state.connection)
+  const threads = useApp((state) => state.archivedThreads)
+  const connection = useApp((state) => state.connection)
   const [query, setQuery] = useState("")
   const [kind, setKind] = useState("all")
   const [project, setProject] = useState("all")
@@ -42,7 +44,6 @@ export function ArchivedChatsPage(): ReactElement {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingAll, setDeletingAll] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry starts a new complete archive fetch after a failure.
   useEffect(() => {
     if (connection !== "ready") return
     let cancelled = false
@@ -74,10 +75,10 @@ export function ArchivedChatsPage(): ReactElement {
   const disabled = !ready || busy
   const title = (thread: ThreadSummary): string => thread.title ?? t("sidebar.untitled")
   const projects = [
-    ...new Set(threads.filter(thread => !isQuickChatDirectory(thread.cwd)).map(thread => thread.cwd))
+    ...new Set(threads.filter((thread) => !isQuickChatDirectory(thread.cwd)).map((thread) => thread.cwd))
   ].sort()
   const search = query.trim().toLocaleLowerCase(i18n.language)
-  const filtered = threads.filter(thread => {
+  const filtered = threads.filter((thread) => {
     const quick = isQuickChatDirectory(thread.cwd)
     return (
       title(thread).toLocaleLowerCase(i18n.language).includes(search) &&
@@ -112,7 +113,7 @@ export function ArchivedChatsPage(): ReactElement {
     try {
       for (const thread of pendingDelete) {
         // A chat restored in another surface after confirmation must not be deleted.
-        if (!client.state.archivedThreads.some(item => item.sessionId === thread.sessionId)) continue
+        if (!client.state.archivedThreads.some((item) => item.sessionId === thread.sessionId)) continue
         try {
           await client.delete(thread.sessionId)
         } catch (error) {
@@ -145,7 +146,8 @@ export function ArchivedChatsPage(): ReactElement {
               setDeleteError(null)
               setDeletingAll(true)
               setPendingDelete([...threads])
-            }}>
+            }}
+          >
             <Trash2Icon aria-hidden="true" />
             {t("archives.deleteAll")}
           </Button>
@@ -155,22 +157,23 @@ export function ArchivedChatsPage(): ReactElement {
           <div className="relative min-w-48 flex-1">
             <SearchIcon
               aria-hidden="true"
-              className="text-muted-foreground pointer-events-none absolute start-3 top-2.5 size-4"
+              className="pointer-events-none absolute start-3 top-2.5 size-4 text-muted-foreground"
             />
             <Input
               aria-label={t("archives.search")}
               placeholder={t("archives.search")}
               value={query}
-              onChange={event => setQuery(event.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               className="rounded-full ps-9"
             />
           </div>
           <Select
             value={kind}
-            onValueChange={value => {
+            onValueChange={(value) => {
               if (value === null) throw new Error("Archive chat type cannot be empty")
               setKind(value)
-            }}>
+            }}
+          >
             <SelectTrigger aria-label={t("archives.chatType")} className="min-w-40 rounded-xl">
               <ListFilterIcon aria-hidden="true" />
               <SelectValue>
@@ -185,10 +188,11 @@ export function ArchivedChatsPage(): ReactElement {
           </Select>
           <Select
             value={project}
-            onValueChange={value => {
+            onValueChange={(value) => {
               if (value === null) throw new Error("Archive project filter cannot be empty")
               setProject(value)
-            }}>
+            }}
+          >
             <SelectTrigger aria-label={t("archives.project")} className="max-w-64 min-w-40 rounded-xl">
               <FolderIcon aria-hidden="true" />
               <SelectValue className="truncate">
@@ -202,7 +206,7 @@ export function ArchivedChatsPage(): ReactElement {
             <SelectContent>
               <SelectItem value="all">{t("archives.allProjects")}</SelectItem>
               <SelectItem value="quick">{t("archives.noProject")}</SelectItem>
-              {projects.map(cwd => (
+              {projects.map((cwd) => (
                 <SelectItem key={cwd} value={cwd} title={cwd}>
                   {basename(cwd)}
                 </SelectItem>
@@ -218,7 +222,7 @@ export function ArchivedChatsPage(): ReactElement {
                 {t("archives.connecting")}
               </p>
             ) : loading ? (
-              <div role="status" className="text-muted-foreground flex items-center gap-2">
+              <div role="status" className="flex items-center gap-2 text-muted-foreground">
                 <Spinner />
                 {t("archives.loading")}
               </div>
@@ -226,18 +230,18 @@ export function ArchivedChatsPage(): ReactElement {
               <Alert variant="destructive">
                 <AlertDescription className="flex items-center justify-between gap-4">
                   <span>{loadError}</span>
-                  <Button variant="outline" onClick={() => setReload(value => value + 1)}>
+                  <Button variant="outline" onClick={() => setReload((value) => value + 1)}>
                     {t("archives.retry")}
                   </Button>
                 </AlertDescription>
               </Alert>
             ) : threads.length === 0 ? (
-              <div className="text-muted-foreground flex flex-col items-center gap-3 py-16">
+              <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <ArchiveIcon aria-hidden="true" className="size-8" />
                 <p>{t("archives.empty")}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-muted-foreground py-12 text-center">{t("archives.noResults")}</p>
+              <p className="py-12 text-center text-muted-foreground">{t("archives.noResults")}</p>
             ) : (
               groupThreads(filtered)
                 .filter(([, items]) => items.length > 0)
@@ -246,22 +250,24 @@ export function ArchivedChatsPage(): ReactElement {
                     <div className="flex items-center justify-between gap-3">
                       <h2
                         className="flex min-w-0 items-center gap-2 text-sm font-medium"
-                        title={cwd === QUICK_CHATS_GROUP ? undefined : cwd}>
+                        title={cwd === QUICK_CHATS_GROUP ? undefined : cwd}
+                      >
                         <FolderIcon aria-hidden="true" className="size-4 shrink-0" />
                         <span className="truncate">
                           {cwd === QUICK_CHATS_GROUP ? t("archives.noProject") : basename(cwd)}
                         </span>
                       </h2>
-                      <span className="text-muted-foreground shrink-0 text-sm">
+                      <span className="shrink-0 text-sm text-muted-foreground">
                         {t("archives.count", { count: items.length })}
                       </span>
                     </div>
-                    <div className="divide-border divide-y overflow-hidden rounded-2xl border">
-                      {items.map(thread => (
+                    <div className="divide-y divide-border overflow-hidden rounded-2xl border">
+                      {items.map((thread) => (
                         <article
                           key={thread.sessionId}
                           aria-label={title(thread)}
-                          className="flex flex-wrap items-center gap-4 px-4 py-3">
+                          className="flex flex-wrap items-center gap-4 px-4 py-3"
+                        >
                           <div className="min-w-0 flex-1 basis-40">
                             <h3 className="truncate text-sm font-medium" title={title(thread)}>
                               {title(thread)}
@@ -270,7 +276,8 @@ export function ArchivedChatsPage(): ReactElement {
                               <time
                                 dateTime={thread.updatedAt}
                                 title={t("archives.updatedAt")}
-                                className="text-muted-foreground text-xs">
+                                className="text-xs text-muted-foreground"
+                              >
                                 {dateFormat.format(new Date(thread.updatedAt))}
                               </time>
                             )}
@@ -287,14 +294,16 @@ export function ArchivedChatsPage(): ReactElement {
                                 setDeleteError(null)
                                 setDeletingAll(false)
                                 setPendingDelete([thread])
-                              }}>
+                              }}
+                            >
                               <Trash2Icon aria-hidden="true" />
                             </Button>
                             <Button
                               variant="secondary"
                               size="sm"
                               disabled={disabled}
-                              onClick={() => void restore(thread)}>
+                              onClick={() => void restore(thread)}
+                            >
                               {t("archives.unarchive")}
                             </Button>
                           </div>
@@ -314,9 +323,10 @@ export function ArchivedChatsPage(): ReactElement {
       </div>
       <Dialog
         open={pendingDelete !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open && !working.current) setPendingDelete(null)
-        }}>
+        }}
+      >
         <DialogContent showCloseButton={!busy}>
           <DialogHeader>
             <DialogTitle>{t("archives.deleteTitle")}</DialogTitle>
@@ -339,7 +349,8 @@ export function ArchivedChatsPage(): ReactElement {
               variant="destructive"
               className="text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]"
               disabled={disabled}
-              onClick={() => void deleteChats()}>
+              onClick={() => void deleteChats()}
+            >
               {busy && <Spinner />}
               {t("archives.confirmDelete")}
             </Button>

@@ -1,5 +1,6 @@
 import { filterFiles } from "@alwith/module-chat/completion-filter"
 import { invoke } from "@tauri-apps/api/core"
+
 import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
 
 interface ProjectFiles {
@@ -19,7 +20,7 @@ export async function initialFileResults(cwd: string, query = ""): Promise<Fuzzy
     })
   }
   const { root, paths } = await snapshot.pending
-  return filterFiles(paths, query, root).map(item => ({
+  return filterFiles(paths, query, root).map((item) => ({
     root,
     path: item.label,
     file_name: item.label.slice(item.label.lastIndexOf("/") + 1),

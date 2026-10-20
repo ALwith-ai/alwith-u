@@ -1,8 +1,9 @@
-import { type ExtensionManifest, extensionApiVersion } from "@alwith/module-extension"
+import { extensionApiVersion, type ExtensionManifest } from "@alwith/module-extension"
 import { createCommonJsEvaluator, ExtensionHost, ResourceScope } from "@alwith/module-extension/host"
 import * as legacy from "@alwith/module-extension/legacy"
 import { createMemoryData } from "@alwith/module-extension/testing"
 import { expect, test } from "vitest"
+
 import { createLegacyBridge } from "../bridge"
 import { convertLegacyExtension } from "../import"
 
@@ -20,7 +21,7 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
   const calls: string[] = []
   const scope = new ResourceScope()
   const bridge = createLegacyBridge(manifest.id, {
-    binding: { manifest, cancellation: scope.cancellation, own: dispose => scope.own(dispose) },
+    binding: { manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) },
     native: async <T>(command: string): Promise<T> => {
       calls.push(command)
       if (command === "legacy_take_initial_data") return { title: "Imported" } as T
@@ -35,7 +36,7 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
     language: () => "en",
     openExternal: async () => {},
     clipboard: async () => {},
-    own: dispose => dispose,
+    own: (dispose) => dispose,
     primary: true
   })
   const host = new ExtensionHost({
@@ -71,7 +72,7 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
   try {
     await host.activate(manifest, "fixture", evaluate(prepared.main), {
       data,
-      resource: path => `https://assets.invalid/${path}`
+      resource: (path) => `https://assets.invalid/${path}`
     })
     expect(host.snapshot().actions[0]).toMatchObject({ icon: "book-open", alignment: "left" })
     expect((await data.read())?.value).toEqual({ title: "Updated" })

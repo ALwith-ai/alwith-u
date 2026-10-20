@@ -1,9 +1,11 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
+
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
 import { DesktopCodexClient } from "../desktop-client"
 
@@ -65,7 +67,7 @@ function eventBus(): ChatEvents {
 test("floating pagination forwards the session id and receives older messages from its owner", async () => {
   const fake = createFakeAgent()
   const requests: Array<Record<string, unknown>> = []
-  fake.historyResponse.current = params => {
+  fake.historyResponse.current = (params) => {
     requests.push(params)
     const older = params.cursor === "older"
     return {
@@ -92,7 +94,7 @@ test("floating pagination forwards the session id and receives older messages fr
   let targetReads = 0
   fake.app.onRequest(
     "_codex/session_history_items",
-    value => value as { sessionId: string; turnId: string },
+    (value) => value as { sessionId: string; turnId: string },
     ({ params }) => {
       expect(params).toMatchObject({ sessionId: "h1", turnId: "distant" })
       targetReads++
@@ -124,25 +126,25 @@ test("floating pagination forwards the session id and receives older messages fr
     await remote.open("h1", "/tmp/one")
     expect(remote.state.historyPages.h1.cursor).toBe("older")
     await remote.loadOlderHistory("h1")
-    expect(requests.map(request => request.sessionId)).toEqual(["h1", "h1"])
-    expect(remote.session("h1").items.map(item => item.id)).toEqual(["old", "new"])
+    expect(requests.map((request) => request.sessionId)).toEqual(["h1", "h1"])
+    expect(remote.session("h1").items.map((item) => item.id)).toEqual(["old", "new"])
     expect(remote.state.historyPages.h1).toEqual({ cursor: null, loading: false, error: null })
-    fake.historyResponse.current = params => ({
+    fake.historyResponse.current = (params) => ({
       sessionId: params.sessionId,
       consistency: "live",
       revision: null,
       nextCursor: null,
       complete: true,
-      turns: ["new", "old", "distant"].map(turnId => ({ turnId, itemsView: "summary", updates: [] }))
+      turns: ["new", "old", "distant"].map((turnId) => ({ turnId, itemsView: "summary", updates: [] }))
     })
     await remote.loadHistoryNavigation("h1")
-    expect(remote.state.historyNavigation.h1.turns.map(turn => turn.turnId)).toEqual(["distant", "old", "new"])
+    expect(remote.state.historyNavigation.h1.turns.map((turn) => turn.turnId)).toEqual(["distant", "old", "new"])
     await remote.previewHistoryTurn("h1", "distant")
     expect(remote.state.historyNavigation.h1.previews.distant.state).toBe("loaded")
     expect(remote.session("h1").items).toHaveLength(2)
     await remote.loadHistoryTurn("h1", "distant")
     expect(targetReads).toBe(2)
-    expect(remote.session("h1").items.map(item => item.id)).toEqual(["distant", "old", "new"])
+    expect(remote.session("h1").items.map((item) => item.id)).toEqual(["distant", "old", "new"])
   } finally {
     remote.disconnect()
     stop()
@@ -167,7 +169,7 @@ test("a slow floating window coalesces queued projections to the latest state", 
         deliveries++
         if (slow) {
           slow = false
-          await new Promise<void>(resolve => {
+          await new Promise<void>((resolve) => {
             release = resolve
           })
         }
@@ -207,7 +209,7 @@ test("floating fork sends the source and turn to the owner and receives the new 
     const source = await remote.newSession("/tmp/floating")
     const child = await remote.fork(source, "/tmp/floating", "turn-1")
     expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
-    expect(remote.state.threads.find(thread => thread.sessionId === child)?.forkedFromId).toBe(source)
+    expect(remote.state.threads.find((thread) => thread.sessionId === child)?.forkedFromId).toBe(source)
     expect(remote.session(child).attached).toBe(true)
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
     expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
@@ -216,7 +218,7 @@ test("floating fork sends the source and turn to the owner and receives the new 
     expect(owner.state.sessions[source]?.attached).toBe(false)
     expect(remote.state.sessions[source]?.attached).toBe(false)
     expect(owner.session(child).attached).toBe(true)
-    expect((await port.agents()).map(agent => agent.agentId)).toEqual(["codex"])
+    expect((await port.agents()).map((agent) => agent.agentId)).toEqual(["codex"])
   } finally {
     remote.disconnect()
     stop()
@@ -311,7 +313,7 @@ test("an already initialized window reconnects the owner after Runtime disconnec
   try {
     await remote.connect()
     owner.disconnect()
-    await new Promise<void>(resolve => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(resolve))
     await remote.connect()
     expect(owner.state.connection).toBe("ready")
     expect(remote.state.connection).toBe("ready")
@@ -333,7 +335,7 @@ test("an existing floating client reconnects after its main window bridge is rep
     await remote.connect()
     const id = await remote.newSession("/tmp/floating-reconnect")
     stop()
-    await new Promise<void>(resolve => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(resolve))
     expect(remote.state.connection).toBe("disconnected")
     stop = await serveChatClient(owner, transport)
     await remote.connect()
@@ -385,14 +387,14 @@ test("a failed state delivery is reported and later updates restore a full snaps
       await bus.emitTo(target, event, payload)
     }
   }
-  const stop = await serveChatClient(owner, transport, error => errors.push(error))
+  const stop = await serveChatClient(owner, transport, (error) => errors.push(error))
   const remote = new RemoteChatClient(transport)
   try {
     await remote.connect()
     failNext = true
     owner.store.setState({ connectionError: "test failure" })
     // Drain the delivery queue, then trigger a distinct update without changing the lost field.
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
     expect(errors).toHaveLength(1)
     expect(remote.state.connectionError).not.toBe("test failure")
     const id = await remote.newSession("/tmp/recovery")
@@ -543,7 +545,7 @@ for (const surface of ["main", "chat"] as const) {
       expect(f.owner.state.configPending[id]).toBe(true)
       expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
       const sending = window.prompt(id, [{ type: "text", text: "Provider selection test" }])
-      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
       expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
       gate.resolve()
       await Promise.all([selecting, sending])
@@ -587,9 +589,9 @@ for (const surface of ["main", "chat"] as const) {
       await entered.promise
       const sending = window.prompt(id, [{ type: "text", text: "Do not send on Codex" }])
       const results = Promise.allSettled([selecting, sending])
-      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
       gate.resolve()
-      expect((await results).map(result => result.status)).toEqual(["rejected", "rejected"])
+      expect((await results).map((result) => result.status)).toEqual(["rejected", "rejected"])
       expect(f.requests.mock.calls.some(([, method]) => method === "session/prompt")).toBe(false)
       expect(f.owner.session(id).configOptions[0]?.currentValue).toBe(codexModel)
       expect(f.remote.session(id).configOptions[0]?.currentValue).toBe(codexModel)
@@ -637,7 +639,7 @@ test("floating project views use the owner's full session list and receive mutat
   const remote = new RemoteChatClient(transport)
   try {
     await remote.connect()
-    expect((await remote.listProjectThreads("/tmp/one")).map(thread => thread.sessionId)).toEqual(["h1"])
+    expect((await remote.listProjectThreads("/tmp/one")).map((thread) => thread.sessionId)).toEqual(["h1"])
     expect(fake.fullListRequests).toEqual([undefined])
     await owner.renameSession("h1", "Renamed")
     expect((await remote.listProjectThreads("/tmp/one"))[0]?.title).toBe("Renamed")

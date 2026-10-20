@@ -3,7 +3,9 @@ import { platform } from "@tauri-apps/plugin-os"
 import { createContext, type ReactElement, type ReactNode, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
+
 import { zoomStore } from "@/lib/zoom"
+
 import appIcon from "../../../src-tauri/icons/64x64.png"
 
 export const WindowsTitleBarContext = createContext<HTMLElement | null>(null)
@@ -20,7 +22,7 @@ function WindowsTitleBar({
   mountExtensionControls: (element: HTMLDivElement | null) => void
 }): ReactElement {
   const { t } = useTranslation()
-  const zoom = useStore(zoomStore, state => state.level)
+  const zoom = useStore(zoomStore, (state) => state.level)
 
   useLayoutEffect(() => {
     const style = document.documentElement.style
@@ -36,12 +38,14 @@ function WindowsTitleBar({
     <header
       className="windows-main-titlebar flex shrink-0 items-center select-none"
       dir="ltr"
-      style={{ height: 32 / zoom, paddingRight: "var(--tauri-plugin-decoration-right-clearance, 0px)" }}>
+      style={{ height: 32 / zoom, paddingRight: "var(--tauri-plugin-decoration-right-clearance, 0px)" }}
+    >
       <div
         className="flex h-full shrink-0 items-center"
         style={{ paddingInline: 12 / zoom }}
         title={t("app.name")}
-        data-tauri-drag-region>
+        data-tauri-drag-region
+      >
         <img
           src={appIcon}
           alt={t("app.name")}

@@ -4,21 +4,24 @@ import { createSession } from "@alwith/api"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { DraftOwner } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProvidersWhenIdle } from "@/lib/providers"
+import { text } from "@/lib/text"
+
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
-import { FilePreviewModal } from "./dialogs/file-preview-modal"
-import { SessionActions } from "./session-actions"
 import { Composer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
 import { drafts, importDraft } from "./composer/drafts"
 import { ModelSelectGroup } from "./composer/model-select-group"
+import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
+import { SessionActions } from "./session-actions"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -32,6 +35,7 @@ export function DraftChat({
   onCwdChange,
   onCreated,
   onSendingChange,
+  onVoiceHandoff,
   onAuthRequired,
   providerSnapshot,
   onOpenWindow,
@@ -49,6 +53,7 @@ export function DraftChat({
   onCreated: (sessionId: string) => void
   /** Hold this composer only while its own first send is waiting for acceptance. */
   onSendingChange: (sessionId: string, sending: boolean) => void
+  onVoiceHandoff?: (sessionId: string, receipt: string) => void
   onAuthRequired: () => void
   providerSnapshot: ProviderSnapshot | null
   runOperation?: (operation: () => Promise<void>) => Promise<void>
@@ -60,10 +65,10 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
-  const threads = useApp(state => state.threads)
-  const connection = useApp(state => state.connection)
+  const threads = useApp((state) => state.threads)
+  const connection = useApp((state) => state.connection)
   const [id, setId] = useState<string | null>(
-    () => Object.keys(client.state.draftSessions).find(key => client.state.draftSessions[key] === owner) ?? null
+    () => Object.keys(client.state.draftSessions).find((key) => client.state.draftSessions[key] === owner) ?? null
   )
   const session = useSession(id)
   // Local input exists before ACP does; this detached view never enters the client store.
@@ -90,7 +95,7 @@ export function DraftChat({
   const recentProjects = useMemo(
     () => [
       ...new Set(
-        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map(thread => thread.cwd)
+        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map((thread) => thread.cwd)
       )
     ],
     [threads]
@@ -150,8 +155,8 @@ export function DraftChat({
     }
   }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model])
 
-  const send = async (prompt: acp.ContentBlock[]): Promise<void> => {
-    let target: string | null = null
+  const send = async (prompt: acp.ContentBlock[], accept?: (receipt: string) => void): Promise<void> => {
+    let target: string | null
     // Follow preparation retries, but never send into a different project or abandoned surface.
     for (;;) {
       const pending = preparation.current
@@ -170,7 +175,8 @@ export function DraftChat({
     }
     onSendingChange(target, true)
     try {
-      await client.prompt(target, prompt)
+      if (accept === undefined) await client.prompt(target, prompt)
+      else accept(await client.promptReceipt(target, prompt))
       // Clear persisted input before the parent mounts the conversation's composer.
       importDraft(target, null)
     } finally {
@@ -200,10 +206,8 @@ export function DraftChat({
       </Empty>
       {!preparing && (error !== null || connection !== "ready") && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
-          <span>
-            {error !== null ? (error instanceof Error ? error.message : String(error)) : t("connection.disconnected")}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => setAttempt(value => value + 1)}>
+          <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
+          <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
             {t("actions.retry")}
           </Button>
           {isAuthError(error) && (
@@ -235,7 +239,7 @@ export function DraftChat({
                 session.restoring ||
                 session.readOnly
               }
-              onModelChange={value => {
+              onModelChange={(value) => {
                 setPreparing(true)
                 setModel(value)
               }}
@@ -243,7 +247,8 @@ export function DraftChat({
           ) : undefined
         }
         disabled={session === null || preparing || error !== null || connection !== "ready"}
-        onSubmit={runOperation ? prompt => runOperation(() => send(prompt)) : send}
+        onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
+        onVoiceHandoff={onVoiceHandoff}
       />
       <FilePreviewModal />
     </div>

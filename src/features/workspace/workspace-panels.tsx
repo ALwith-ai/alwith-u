@@ -3,7 +3,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
+
 import { PanelDivider } from "./panel-divider"
 import { resolvePanelWidths } from "./panel-sizing"
 import "./workspace.css"
@@ -73,7 +75,6 @@ export function WorkspacePanels({
     }
   }, [embla])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Embla must regroup after DOM widths change and after a divider drag finishes.
   useLayoutEffect(() => {
     if (!embla || dragging.current) return
     const selected = embla.internalEngine().slideRegistry[embla.selectedScrollSnap()]
@@ -85,7 +86,7 @@ export function WorkspacePanels({
     previousVisible.current = visible
     previousMaximized.current = maximized
     embla.reInit()
-    const snap = embla.internalEngine().slideRegistry.findIndex(group => group.includes(region))
+    const snap = embla.internalEngine().slideRegistry.findIndex((group) => group.includes(region))
     if (snap >= 0) embla.scrollTo(snap, true)
   }, [embla, chatWidth, fileWidth, visible, maximized, draggingPreview])
 
@@ -141,19 +142,21 @@ export function WorkspacePanels({
       data-open={visible}
       data-view-mode={maximized}
       data-edge={edgeZone}
-      onMouseMove={event => {
+      onMouseMove={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect()
         const x = i18n.dir() === "rtl" ? bounds.right - event.clientX : event.clientX - bounds.left
         setEdgeZone(x < 56 ? "start" : x > bounds.width - 56 ? "end" : null)
       }}
-      onMouseLeave={() => setEdgeZone(null)}>
+      onMouseLeave={() => setEdgeZone(null)}
+    >
       <div ref={emblaRef} className="file-workspace-viewport">
         <div className="file-workspace-track">
           <div
             className="file-workspace-slide"
             style={{ width: !visible && !maximized ? "100%" : chatWidth }}
             inert={maximized}
-            aria-hidden={maximized}>
+            aria-hidden={maximized}
+          >
             <div className="file-workspace-slab">
               <div className="file-workspace-chat">{chat}</div>
             </div>
@@ -174,7 +177,7 @@ export function WorkspacePanels({
                   dragging.current = true
                   setDraggingPreview(true)
                 }}
-                onDrag={dx => {
+                onDrag={(dx) => {
                   const next = Math.max(0, Math.min(viewportWidth, dragStart.current + dx))
                   const hidePreview = dx < 0 && next <= 360
                   const hideChat = dx > 0 && viewportWidth - next <= 300
@@ -197,7 +200,8 @@ export function WorkspacePanels({
           variant="outline"
           size="icon-sm"
           aria-label={t("workspace.previousPane")}
-          onClick={() => embla?.scrollPrev()}>
+          onClick={() => embla?.scrollPrev()}
+        >
           <ChevronLeft />
         </Button>
       )}
@@ -207,7 +211,8 @@ export function WorkspacePanels({
           variant="outline"
           size="icon-sm"
           aria-label={t("workspace.nextPane")}
-          onClick={() => embla?.scrollNext()}>
+          onClick={() => embla?.scrollNext()}
+        >
           <ChevronRight />
         </Button>
       )}

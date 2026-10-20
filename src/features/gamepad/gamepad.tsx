@@ -1,4 +1,4 @@
-import { GamepadPanel, GamepadProvider, type GamepadHost } from "@alwith/module-gamepad/react"
+import { type GamepadHost, GamepadPanel, GamepadProvider } from "@alwith/module-gamepad/react"
 import { createTauriGamepadTransport } from "@alwith/module-gamepad/tauri"
 import "@alwith/module-gamepad/styles.css"
 import { invoke } from "@tauri-apps/api/core"
@@ -12,9 +12,9 @@ import { generateGamepadConfig } from "./ai-host"
 const gamepadWindow = getCurrentWebviewWindow()
 
 const transport = createTauriGamepadTransport({
-  invoke: request => invoke("gamepad_request", { request }),
-  listen: handler =>
-    gamepadWindow.listen("gamepad:event", event => handler(event.payload as Parameters<typeof handler>[0]))
+  invoke: (request) => invoke("gamepad_request", { request }),
+  listen: (handler) =>
+    gamepadWindow.listen("gamepad:event", (event) => handler(event.payload as Parameters<typeof handler>[0]))
 })
 
 function reportError(error: unknown): void {
@@ -50,19 +50,19 @@ const host: GamepadHost = {
   capture: {
     start: () => capture(true),
     stop: () => capture(false),
-    listen: handler =>
-      gamepadWindow.listen("gamepad:capture-key", event => handler(event.payload as Parameters<typeof handler>[0]))
+    listen: (handler) =>
+      gamepadWindow.listen("gamepad:capture-key", (event) => handler(event.payload as Parameters<typeof handler>[0]))
   },
   applications: {
     list: () => invoke("gamepad_catalog", { operation: "applications", path: null }),
     launchable: () => invoke("gamepad_catalog", { operation: "launchable", path: null }),
-    icon: path => invoke("gamepad_catalog", { operation: "icon", path }),
-    subscribe: handler =>
-      gamepadWindow.listen("gamepad:applications-updated", event =>
+    icon: (path) => invoke("gamepad_catalog", { operation: "icon", path }),
+    subscribe: (handler) =>
+      gamepadWindow.listen("gamepad:applications-updated", (event) =>
         handler(event.payload as Parameters<typeof handler>[0])
       ),
-    subscribeLaunchable: handler =>
-      gamepadWindow.listen("gamepad:launchable-apps-updated", event =>
+    subscribeLaunchable: (handler) =>
+      gamepadWindow.listen("gamepad:launchable-apps-updated", (event) =>
         handler(event.payload as Parameters<typeof handler>[0])
       )
   },

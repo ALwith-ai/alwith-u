@@ -3,26 +3,30 @@ import { LockIcon, UnplugIcon } from "lucide-react"
 import { type ReactNode, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ThreadSummary } from "@/agent/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { SessionPreview } from "@/features/computer/session-preview"
+import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client, useApp } from "@/lib/client"
+
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatBody } from "./chat-body"
 import { ChatBranchProvider } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
-import { SessionPreview } from "@/features/computer/session-preview"
 import { Composer } from "./composer"
 import { ChatSearch } from "./dialogs/chat-search"
 import { DiffModal } from "./dialogs/diff-modal"
-import { ChatOpenSessionContext } from "./file-actions"
-import { SessionActions } from "./session-actions"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { ImageLightbox } from "./dialogs/image-lightbox"
+import { ChatOpenSessionContext } from "./file-actions"
+import { SessionActions } from "./session-actions"
 
 export function ChatView({
   session,
+  voiceResume,
   onOpenWindow,
   onReturnToMain,
   headerTarget,
@@ -33,6 +37,7 @@ export function ChatView({
   onSelectThread
 }: {
   session: Session
+  voiceResume?: VoiceResume
   onSelectThread?: (thread: ThreadSummary) => void
   onOpenWindow?: () => void
   onReturnToMain?: () => void
@@ -43,7 +48,7 @@ export function ChatView({
   onDeleted: (sessionId: string) => void
 }) {
   const { t } = useTranslation()
-  const connected = useApp(state => state.connection === "ready")
+  const connected = useApp((state) => state.connection === "ready")
   const rootRef = useRef<HTMLDivElement>(null)
   const reopen = () => {
     client
@@ -63,7 +68,8 @@ export function ChatView({
           <ChatHeader
             target={headerTarget}
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
-            project={projectMenu}>
+            project={projectMenu}
+          >
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}
@@ -116,7 +122,7 @@ export function ChatView({
             <ChatBody session={session} />
           )}
           <SessionActions sessionId={session.id} />
-          <Composer session={session} />
+          <Composer session={session} voiceResume={voiceResume} />
           <DiffModal />
           <FilePreviewModal />
           <ImageLightbox />

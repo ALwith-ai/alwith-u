@@ -1,7 +1,9 @@
 import type { HostSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { act, fireEvent, render } from "@testing-library/react"
 import { beforeEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import {
   ExtensionActions,
   ExtensionSettingsContent,
@@ -83,7 +85,7 @@ test("top bar executes commands and reports rejected operations", async () => {
       onOpenSurface={() => {
         throw new Error("Unexpected navigation")
       }}
-      onError={error => {
+      onError={(error) => {
         errors.push(error)
       }}
     />
@@ -96,12 +98,12 @@ test("status outlets only mount status views and disappear when withdrawn", () =
   const ui = render(
     <ExtensionStatusBar
       views={[view("demo/status", "statusBar"), view("demo/page", "surfaces")]}
-      renderView={item => <span>{item.id}</span>}
+      renderView={(item) => <span>{item.id}</span>}
     />
   )
   expect(ui.getByRole("region", { name: "Extension status bar" }).textContent).toBe("demo/status")
   expect(ui.queryByText("demo/page")).toBeNull()
-  ui.rerender(<ExtensionStatusBar views={[]} renderView={item => <span>{item.id}</span>} />)
+  ui.rerender(<ExtensionStatusBar views={[]} renderView={(item) => <span>{item.id}</span>} />)
   expect(ui.queryByRole("region")).toBeNull()
 })
 test("settings columns select full pages and show unavailable after withdrawal", async () => {
@@ -112,11 +114,11 @@ test("settings columns select full pages and show unavailable after withdrawal",
       <ExtensionSettingsNavigation
         views={[page, view("demo/inline", "settings")]}
         activeId={page.id}
-        onSelect={id => {
+        onSelect={(id) => {
           selected.push(id)
         }}
       />
-      <ExtensionSettingsContent id={page.id} views={[page]} renderView={item => <div>Content of {item.id}</div>} />
+      <ExtensionSettingsContent id={page.id} views={[page]} renderView={(item) => <div>Content of {item.id}</div>} />
     </>
   )
   await act(async () => fireEvent.click(ui.getByRole("button", { name: page.title })))
@@ -141,7 +143,7 @@ test("top bar defaults to left while preserving explicit center/right and sortin
   ]
   const ui = render(<ExtensionActions host={host} placement="topBar" onOpenSurface={() => {}} onError={() => {}} />)
   const labels = (side: string): (string | null)[] =>
-    Array.from(ui.container.querySelectorAll(`[data-extension-alignment="${side}"] button`), item =>
+    Array.from(ui.container.querySelectorAll(`[data-extension-alignment="${side}"] button`), (item) =>
       item.getAttribute("aria-label")
     )
   expect(labels("left")).toEqual(["Left first", "Legacy", "Left last"])
@@ -157,7 +159,7 @@ test("status bar partitions widgets and preserves the legacy left default", () =
         { ...view("demo/left-last", "statusBar"), alignment: "left", order: 20 },
         { ...view("demo/legacy", "statusBar"), order: 10 }
       ]}
-      renderView={item => <span>{item.id}</span>}
+      renderView={(item) => <span>{item.id}</span>}
     />
   )
   expect(ui.container.querySelector('[data-extension-alignment="left"]')?.textContent).toBe("demo/legacydemo/left-last")

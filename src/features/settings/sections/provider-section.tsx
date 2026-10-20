@@ -5,6 +5,7 @@ import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, Serve
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -24,11 +25,11 @@ import type {
   ProviderTestResult
 } from "@/lib/providers"
 import {
-  PROVIDERS,
-  type Provider,
   parseCustomModels,
+  type Provider,
   providerKeyUrl,
   providerRegion,
+  PROVIDERS,
   removeCustomProvider,
   saveCustomProvider,
   saveProviderKey,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/providers"
 import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
+
 import { CodexProviderSection } from "./codex-provider-section"
 import { SettingGroup } from "./shared"
 
@@ -61,7 +63,7 @@ export function ProviderSection() {
     try {
       const result = await saveProviderKey(revision, provider.id, key)
       if (!result.error)
-        setTestResults(current => {
+        setTestResults((current) => {
           const next = { ...current }
           delete next[provider.id]
           return next
@@ -86,7 +88,7 @@ export function ProviderSection() {
     setBusy(providerId)
     try {
       const result = await testProvider(providerId)
-      setTestResults(current => ({ ...current, [providerId]: result }))
+      setTestResults((current) => ({ ...current, [providerId]: result }))
       if (result.ok) toast.success(t("provider.testSuccess", { latency: result.latencyMs ?? 0 }))
       else toast.error(`${t(`provider.testErrors.${result.code}`)}${result.message ? `: ${result.message}` : ""}`)
     } catch (error) {
@@ -102,7 +104,7 @@ export function ProviderSection() {
       const result = await saveCustomProvider(revision, input)
       if (result.error) toast.error(result.error)
       else {
-        setTestResults(current => {
+        setTestResults((current) => {
           const next = { ...current }
           delete next[input.id]
           return next
@@ -135,8 +137,8 @@ export function ProviderSection() {
     }
   }
 
-  const activeBuiltIn = PROVIDERS.find(provider => provider.id === activeId) ?? null
-  const activeCustom = snapshot?.customProviders.find(provider => provider.id === activeId) ?? null
+  const activeBuiltIn = PROVIDERS.find((provider) => provider.id === activeId) ?? null
+  const activeCustom = snapshot?.customProviders.find((provider) => provider.id === activeId) ?? null
 
   useEffect(() => {
     if (!snapshot || activeId === "new" || activeBuiltIn || activeCustom) return
@@ -146,8 +148,8 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-8">
       <CodexProviderSection />
-      {snapshot?.status === "pending" && <p className="text-muted-foreground text-sm">{t("provider.pending")}</p>}
-      {snapshot?.error && <p className="text-destructive text-sm">{snapshot.error}</p>}
+      {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
+      {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
       <SettingGroup>
         {snapshot && (
           <>
@@ -158,7 +160,7 @@ export function ProviderSection() {
               onSelect={setActiveId}
               onAdd={() => setActiveId("new")}
             />
-            {PROVIDERS.map(provider => (
+            {PROVIDERS.map((provider) => (
               <div key={provider.id} hidden={activeId !== provider.id}>
                 <ProviderRow
                   provider={provider}
@@ -171,7 +173,7 @@ export function ProviderSection() {
                 />
               </div>
             ))}
-            {snapshot.customProviders.map(provider => (
+            {snapshot.customProviders.map((provider) => (
               <div key={provider.id} hidden={activeId !== provider.id}>
                 <CustomProviderEditor
                   provider={provider}
@@ -191,8 +193,8 @@ export function ProviderSection() {
                 provider={null}
                 revision={snapshot.revision}
                 busy={busy !== null}
-                onSaved={id => {
-                  setCustomDraftVersion(version => version + 1)
+                onSaved={(id) => {
+                  setCustomDraftVersion((version) => version + 1)
                   setActiveId(id)
                 }}
                 onSave={saveCustom}
@@ -221,9 +223,9 @@ export function ProviderTabs({
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-muted-foreground ms-1 text-sm">{t("provider.label")}</h2>
+      <h2 className="ms-1 text-sm text-muted-foreground">{t("provider.label")}</h2>
       <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
-        {PROVIDERS.map(provider => {
+        {PROVIDERS.map((provider) => {
           const Logo = provider.logo
           const configured = keys[provider.id] !== undefined
           return (
@@ -238,7 +240,7 @@ export function ProviderTabs({
             />
           )
         })}
-        {customProviders.map(provider => (
+        {customProviders.map((provider) => (
           <ProviderTab
             key={provider.id}
             id={provider.id}
@@ -254,7 +256,8 @@ export function ProviderTabs({
           variant="outline"
           aria-pressed={activeId === "new"}
           onClick={onAdd}
-          className={cn("h-9 w-full justify-start gap-2 rounded-full px-4", activeId === "new" && "bg-accent")}>
+          className={cn("h-9 w-full justify-start gap-2 rounded-full px-4", activeId === "new" && "bg-accent")}
+        >
           <PlusIcon className="size-4 shrink-0" />
           <span className="truncate">{t("provider.customButton")}</span>
         </Button>
@@ -285,7 +288,8 @@ function ProviderTab({
       aria-label={name}
       aria-pressed={active}
       onClick={onClick}
-      className={cn("h-9 w-full gap-2 rounded-full px-4", active && "bg-accent")}>
+      className={cn("h-9 w-full gap-2 rounded-full px-4", active && "bg-accent")}
+    >
       {icon}
       <span className="min-w-0 flex-1 truncate text-center">{name}</span>
       <span
@@ -301,7 +305,7 @@ function ProviderTab({
 function TestFeedback({ result }: { result: ProviderTestResult }) {
   const { t } = useTranslation()
   return (
-    <p role="status" className={result.ok ? "text-muted-foreground text-xs" : "text-destructive text-xs"}>
+    <p role="status" className={result.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
       {result.ok
         ? t("provider.testSuccess", { latency: result.latencyMs ?? 0 })
         : `${t(`provider.testErrors.${result.code}`)}${result.status ? ` (HTTP ${result.status})` : ""}`}
@@ -328,7 +332,7 @@ function ProviderActions({
   return (
     <div className="space-y-3 border-t pt-4">
       {result && <TestFeedback result={result} />}
-      {onTest && <p className="text-muted-foreground text-xs leading-relaxed">{t("provider.testDescription")}</p>}
+      {onTest && <p className="text-xs leading-relaxed text-muted-foreground">{t("provider.testDescription")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {onRemove && (
           <Button
@@ -336,7 +340,8 @@ function ProviderActions({
             variant="ghost"
             className="text-destructive hover:text-destructive"
             disabled={busy}
-            onClick={onRemove}>
+            onClick={onRemove}
+          >
             {t("provider.remove")}
           </Button>
         )}
@@ -399,9 +404,9 @@ export function ProviderRow({
     if (!result) return
     const nextSaved = result.providers[provider.id] ?? null
     setBase({ saved: nextSaved, revision: result.revision })
-    setApiKey(current => (current === submittedKey ? "" : current))
-    setRegion(current => (current === submittedRegion ? providerRegion(provider, nextSaved?.region)?.id : current))
-    setBaseUrl(current => (current === baseUrl ? (nextSaved?.base_url ?? "") : current))
+    setApiKey((current) => (current === submittedKey ? "" : current))
+    setRegion((current) => (current === submittedRegion ? providerRegion(provider, nextSaved?.region)?.id : current))
+    setBaseUrl((current) => (current === baseUrl ? (nextSaved?.base_url ?? "") : current))
   }
   const submit = () => {
     if (keyTrimmed === "" && base.saved === null) return
@@ -418,20 +423,20 @@ export function ProviderRow({
         <Logo className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium">{provider.name}</h3>
-          <div className="text-muted-foreground mt-0.5 text-xs">
+          <div className="mt-0.5 text-xs text-muted-foreground">
             {configured
               ? t("provider.active", { name: provider.name, count: provider.models.length })
               : t("provider.inactive")}
           </div>
         </div>
         {provider.regions && (
-          <Select value={region} onValueChange={value => setRegion(value ?? provider.regions?.[0]?.id)}>
+          <Select value={region} onValueChange={(value) => setRegion(value ?? provider.regions?.[0]?.id)}>
             <SelectTrigger className="w-32" aria-label={t("provider.region")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {provider.regions.map(entry => (
+                {provider.regions.map((entry) => (
                   <SelectItem key={entry.id} value={entry.id}>
                     {t(`provider.regions.${entry.id}`)}
                   </SelectItem>
@@ -455,7 +460,7 @@ export function ProviderRow({
               spellCheck={false}
               placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
               value={baseUrl}
-              onChange={event => setBaseUrl(event.target.value)}
+              onChange={(event) => setBaseUrl(event.target.value)}
             />
           </InputGroup>
           <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
@@ -468,8 +473,9 @@ export function ProviderRow({
                 type="button"
                 variant="link"
                 size="sm"
-                className="text-muted-foreground h-auto p-0 text-xs"
-                onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}>
+                className="h-auto p-0 text-xs text-muted-foreground"
+                onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}
+              >
                 {t("provider.getKey", { name: provider.name })}
                 <ExternalLinkIcon className="size-3" aria-hidden="true" />
               </Button>
@@ -483,15 +489,16 @@ export function ProviderRow({
               spellCheck={false}
               placeholder={configured ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
               value={apiKey}
-              onChange={event => setApiKey(event.target.value)}
-              onKeyDown={event => {
+              onChange={(event) => setApiKey(event.target.value)}
+              onKeyDown={(event) => {
                 if (event.key === "Enter" && canSave) submit()
               }}
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
-                onClick={() => setShowKey(value => !value)}>
+                onClick={() => setShowKey((value) => !value)}
+              >
                 {showKey ? <EyeIcon /> : <EyeOffIcon />}
               </InputGroupButton>
             </InputGroupAddon>
@@ -503,7 +510,8 @@ export function ProviderRow({
         canTest={!canSave}
         onTest={configured ? onTest : undefined}
         onRemove={configured ? () => void persist(null) : undefined}
-        result={!canSave ? testResult : undefined}>
+        result={!canSave ? testResult : undefined}
+      >
         <Button size="sm" disabled={!canSave} onClick={submit}>
           {busy && <Spinner data-icon="inline-start" />}
           {t("provider.saveButton")}
@@ -594,9 +602,9 @@ export function CustomProviderEditor({
         <ServerIcon className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium break-words">{provider?.name || t("provider.addCustom")}</h3>
-          <div className="text-muted-foreground mt-0.5 text-xs">{t("provider.customDescription")}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{t("provider.customDescription")}</div>
         </div>
-        {provider && <span className="text-muted-foreground shrink-0 text-xs">{t("provider.configured")}</span>}
+        {provider && <span className="shrink-0 text-xs text-muted-foreground">{t("provider.configured")}</span>}
       </div>
       <Separator />
       <section className="space-y-4" aria-labelledby={`${id}-connection`}>
@@ -605,7 +613,7 @@ export function CustomProviderEditor({
         </h4>
         <Field className="gap-2">
           <FieldLabel htmlFor={nameInputId}>{t("provider.name")}</FieldLabel>
-          <Input id={nameInputId} value={name} onChange={event => setName(event.target.value)} />
+          <Input id={nameInputId} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
         <Field className="gap-2">
           <FieldLabel htmlFor={urlInputId}>{t("provider.baseUrl")}</FieldLabel>
@@ -614,7 +622,7 @@ export function CustomProviderEditor({
             type="url"
             placeholder="https://.../v1"
             value={baseUrl}
-            onChange={event => setBaseUrl(event.target.value)}
+            onChange={(event) => setBaseUrl(event.target.value)}
           />
         </Field>
         <Field className="gap-2">
@@ -626,12 +634,13 @@ export function CustomProviderEditor({
               autoComplete="off"
               placeholder={provider ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
               value={apiKey}
-              onChange={event => setApiKey(event.target.value)}
+              onChange={(event) => setApiKey(event.target.value)}
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
-                onClick={() => setShowKey(value => !value)}>
+                onClick={() => setShowKey((value) => !value)}
+              >
                 {showKey ? <EyeIcon /> : <EyeOffIcon />}
               </InputGroupButton>
             </InputGroupAddon>
@@ -648,13 +657,14 @@ export function CustomProviderEditor({
           </CollapsibleTrigger>
         </div>
         {!modelsOpen && (
-          <ul className="bg-muted/40 divide-y rounded-lg px-3">
-            {previewModels.map(model => (
+          <ul className="divide-y rounded-lg bg-muted/40 px-3">
+            {previewModels.map((model) => (
               <li
                 key={model.api_id}
-                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm"
+              >
                 <span className="break-all">{model.label}</span>
-                <span className="text-muted-foreground font-mono text-xs break-all">{model.api_id}</span>
+                <span className="font-mono text-xs break-all text-muted-foreground">{model.api_id}</span>
               </li>
             ))}
           </ul>
@@ -669,7 +679,7 @@ export function CustomProviderEditor({
               spellCheck={false}
               className="min-h-44 font-mono text-xs"
               value={modelsJson}
-              onChange={event => {
+              onChange={(event) => {
                 setModelsJson(event.target.value)
                 setModelsError(null)
               }}
@@ -677,7 +687,8 @@ export function CustomProviderEditor({
             <FieldDescription
               id={`${modelsInputId}-description`}
               className={cn("text-xs", modelsError && "text-destructive")}
-              role={modelsError ? "alert" : undefined}>
+              role={modelsError ? "alert" : undefined}
+            >
               {modelsError ?? t("provider.modelsJsonDescription")}
             </FieldDescription>
           </Field>
@@ -688,13 +699,15 @@ export function CustomProviderEditor({
         canTest={!dirty}
         onTest={provider ? onTest : undefined}
         onRemove={provider ? onRemove : undefined}
-        result={!dirty ? testResult : undefined}>
+        result={!dirty ? testResult : undefined}
+      >
         <Button
           size="sm"
           disabled={
             busy || !dirty || name.trim() === "" || baseUrl.trim() === "" || (!provider && apiKey.trim() === "")
           }
-          onClick={() => void submit()}>
+          onClick={() => void submit()}
+        >
           {busy && <Spinner data-icon="inline-start" />}
           {t("provider.saveButton")}
         </Button>

@@ -9,9 +9,11 @@ import { FileVisualIcon, getFileVisual, useFileIconTheme } from "@alwith/module-
 import { FileText } from "lucide-react"
 import { type ReactNode, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import type { IconTheme } from "./workspace-state"
 
 export function WorkspaceEditor({
@@ -30,13 +32,13 @@ export function WorkspaceEditor({
 }): ReactNode {
   const { t } = useTranslation()
   const snapshot = useSyncExternalStore(tabs.subscribe, tabs.getSnapshot)
-  const selected = snapshot.tabs.find(tab => tab.id === snapshot.activeId)
+  const selected = snapshot.tabs.find((tab) => tab.id === snapshot.activeId)
   const readyTheme = useFileIconTheme(iconTheme, props.onError)
   const modifierKey = /Mac/.test(navigator.platform) ? "⌘" : "Ctrl"
   return (
     <EditorWorkbench
       {...props}
-      tabBar={prefix => (
+      tabBar={(prefix) => (
         <WorkspaceTabs
           workspace={tabs}
           editor={props.controller}
@@ -54,7 +56,7 @@ export function WorkspaceEditor({
             reveal: t("workspace.reveal")
           }}
           newTabIcon={<FileText />}
-          renderFileIcon={document => <FileVisualIcon icon={getFileVisual(document.path, isDark, readyTheme)} />}
+          renderFileIcon={(document) => <FileVisualIcon icon={getFileVisual(document.path, isDark, readyTheme)} />}
           onCopyPath={props.onCopyPath}
           onReveal={props.onReveal}
           onError={props.onError}
@@ -63,13 +65,14 @@ export function WorkspaceEditor({
       contentOverride={
         selected?.kind === "file"
           ? undefined
-          : prefix =>
+          : (prefix) =>
               selected ? (
                 <div
                   className="workspace-new-tab-panel"
                   role="tabpanel"
                   id={`${prefix}-panel-${selected.id}`}
-                  aria-labelledby={`${prefix}-tab-${selected.id}`}>
+                  aria-labelledby={`${prefix}-tab-${selected.id}`}
+                >
                   <NewTabPage
                     title={t("workspace.tutorialTitle")}
                     link={t("workspace.tutorialLink")}
@@ -92,7 +95,8 @@ export function WorkspaceEditor({
                       variant="ghost"
                       onClick={() => {
                         void openSettingsWindow().catch(props.onError)
-                      }}>
+                      }}
+                    >
                       <span>{t("workspace.emptyOpenSettings")}</span>
                       <span className="workspace-empty-shortcut" aria-hidden="true">
                         <kbd>{modifierKey}</kbd>

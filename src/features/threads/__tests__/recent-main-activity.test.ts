@@ -1,6 +1,8 @@
 import { createSession, type SessionRunState } from "@alwith/api"
 import { expect, test } from "vitest"
+
 import { type AppState, CodexClient } from "@/agent/client"
+
 import { recentMainActivity } from "../recent-main-activity"
 
 function record(sessionId: string, lastActivityAt: number): SessionRunState {
@@ -44,11 +46,11 @@ test("selects the most recently active main conversation after a handoff", () =>
       record("floating", 60),
       { ...record("draft", 70), reusableDraft: true },
       record("local-draft", 80)
-    ].map(record => [record.sessionId, record])
+    ].map((record) => [record.sessionId, record])
   )
   current.sessionWindows = { floating: "chat", older: "main", recent: "main" }
   current.sessions = Object.fromEntries(
-    ["older", "recent", "floating"].map(id => [id, { ...createSession(id, "/tmp"), attached: true }])
+    ["older", "recent", "floating"].map((id) => [id, { ...createSession(id, "/tmp"), attached: true }])
   )
   current.draftSessions = { "local-draft": "main" }
   expect(recentMainActivity(current, "moving")?.sessionId).toBe("recent")

@@ -5,14 +5,16 @@ import {
   type VirtualizedTurnListEntry
 } from "@alwith/module-chat/virtualized-turn-list"
 import { ArrowDownIcon } from "lucide-react"
-import { nativeTurnId, type HistoryTurnSummary } from "@/agent/history-navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
-import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
+
+import { type HistoryTurnSummary, nativeTurnId } from "@/agent/history-navigation"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import { client, useApp } from "@/lib/client"
+
 import { ForkOriginDivider } from "./chat-branches"
 import { AssistantTurn } from "./codex/assistant-turn"
 import {
@@ -23,9 +25,9 @@ import {
 import { formatTurnTime } from "./codex/turn-time"
 import { UserMessage } from "./codex/user-message"
 import { ChatDirectoryContext } from "./file-actions"
+import { historyTimeline, type HistoryTimelineEntry } from "./history-timeline"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { useThreadScroll } from "./lib/use-thread-scroll"
-import { historyTimeline, type HistoryTimelineEntry } from "./history-timeline"
 import { groupTurns, isHistoryInterrupted, isTurnInterrupted, type Turn } from "./turns"
 
 /** The anchored turn sits this far below the viewport top. */
@@ -52,8 +54,8 @@ function HistoryTurnPlaceholder({
   useEffect(() => {
     if (!root || !ref.current || !connected || error) return
     const observer = new IntersectionObserver(
-      entries => {
-        if (entries.some(entry => entry.isIntersecting)) {
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
           observer.disconnect()
           load()
         }
@@ -68,10 +70,11 @@ function HistoryTurnPlaceholder({
       ref={ref}
       className="flex min-h-80 flex-col justify-center gap-3 py-8"
       data-history-turn={turnId}
-      data-markdown-pending>
+      data-markdown-pending
+    >
       {error ? (
         <div className="flex flex-col items-center gap-2">
-          <p role="alert" className="text-destructive text-xs">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
           <Button variant="outline" size="sm" onClick={load} disabled={!connected}>
@@ -80,9 +83,9 @@ function HistoryTurnPlaceholder({
         </div>
       ) : (
         <div role="status" aria-label={t("chat.navigationLoading")} className="space-y-3">
-          <div className="bg-muted ml-auto h-5 w-1/3 rounded" />
-          <div className="bg-muted h-3 w-4/5 rounded" />
-          <div className="bg-muted h-3 w-3/5 rounded" />
+          <div className="ml-auto h-5 w-1/3 rounded bg-muted" />
+          <div className="h-3 w-4/5 rounded bg-muted" />
+          <div className="h-3 w-3/5 rounded bg-muted" />
         </div>
       )}
     </div>
@@ -139,7 +142,7 @@ function useStableTurns(session: Session, historyOrder?: HistoryTurnSummary[]): 
 
 export function ThreadView({ session }: { session: Session }) {
   const { t } = useTranslation()
-  const navigation = useApp(state => state.historyNavigation?.[session.id])
+  const navigation = useApp((state) => state.historyNavigation?.[session.id])
   const turns = useStableTurns(session, navigation?.turns)
   const lastTurnKey = turns.at(-1)?.key
   const running = session.state !== "idle"
@@ -151,8 +154,8 @@ export function ThreadView({ session }: { session: Session }) {
   const turnsRef = useRef(turns)
   turnsRef.current = turns
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
-  const history = useApp(state => state.historyPages[session.id])
-  const connected = useApp(state => state.connection === "ready")
+  const history = useApp((state) => state.historyPages[session.id])
+  const connected = useApp((state) => state.connection === "ready")
   const hasHistory = history !== undefined
   useEffect(() => {
     if (connected && hasHistory && !session.restoring) void client.loadHistoryNavigation(session.id).catch(() => {})
@@ -209,16 +212,16 @@ export function ThreadView({ session }: { session: Session }) {
       try {
         if (item.isLoaded === false && item.nativeTurnId !== undefined) {
           await client.loadHistoryTurn(session.id, item.nativeTurnId)
-          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
         }
         if (!isCurrent()) return null
         const target =
-          turnsRef.current.find(turn => turn.user?.id === (item.messageId ?? item.id)) ??
+          turnsRef.current.find((turn) => turn.user?.id === (item.messageId ?? item.id)) ??
           turnsRef.current.find(
-            turn =>
+            (turn) =>
               turn.user !== null &&
               item.nativeTurnId !== undefined &&
-              turn.items.some(value => nativeTurnId(value) === item.nativeTurnId)
+              turn.items.some((value) => nativeTurnId(value) === item.nativeTurnId)
           )
         if (!target?.user) return null
         const userId = target.user.id
@@ -226,7 +229,7 @@ export function ThreadView({ session }: { session: Session }) {
         if (thread === null) throw new Error("Codex virtual thread is not mounted")
         await thread.scrollToKey(
           target.key,
-          turnElement =>
+          (turnElement) =>
             turnElement.querySelector<HTMLElement>(`[data-content-search-unit-key="${CSS.escape(userId)}"]`),
           { align: "top" }
         )
@@ -413,11 +416,13 @@ export function ThreadView({ session }: { session: Session }) {
           tabIndex: 0,
           role: "log",
           "aria-label": t("chat.thread")
-        }}>
+        }}
+      >
         <div className="min-h-full w-full px-5">
           <div
             data-thread-user-message-navigation-content
-            className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+            className="mx-auto flex min-h-full w-full max-w-3xl flex-col"
+          >
             <VirtualizedTurnList
               ref={threadRef}
               entries={entries}
@@ -446,7 +451,8 @@ export function ThreadView({ session }: { session: Session }) {
             title={navigation.error}
             onClick={() => {
               void client.loadHistoryNavigation(session.id).catch(() => {})
-            }}>
+            }}
+          >
             {t("chat.navigationRetry")}
           </Button>
         </div>
@@ -457,11 +463,12 @@ export function ThreadView({ session }: { session: Session }) {
             variant="outline"
             size="sm"
             disabled={!connected || session.restoring || history.loading}
-            onClick={loadOlder}>
+            onClick={loadOlder}
+          >
             {history.loading ? t("chat.loadingEarlier") : t("chat.loadEarlier")}
           </Button>
           {history.error && (
-            <p role="alert" className="bg-background text-destructive max-w-md rounded px-2 py-1 text-xs">
+            <p role="alert" className="max-w-md rounded bg-background px-2 py-1 text-xs text-destructive">
               {history.error}
             </p>
           )}
@@ -474,7 +481,7 @@ export function ThreadView({ session }: { session: Session }) {
         beforeReveal={stopFollowing}
         ensureItemMounted={ensureTurnMounted}
         onPreviewItem={previewItem}
-        onRevealError={error => toast.error(error instanceof Error ? error.message : String(error))}
+        onRevealError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
         targetTopMarginPx={16}
       />
       <button
@@ -482,7 +489,8 @@ export function ThreadView({ session }: { session: Session }) {
         className={isFollowing ? "codex-scroll-to-bottom codex-scroll-to-bottom-hidden" : "codex-scroll-to-bottom"}
         tabIndex={isFollowing ? -1 : undefined}
         onClick={scrollToBottom}
-        aria-label={t("chat.scrollToBottom")}>
+        aria-label={t("chat.scrollToBottom")}
+      >
         {running ? (
           <span className="codex-scroll-to-bottom-dots" aria-hidden="true">
             <span className="codex-wave-dot" />

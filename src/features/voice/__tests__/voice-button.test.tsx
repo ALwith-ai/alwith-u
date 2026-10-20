@@ -1,14 +1,16 @@
+import type { VoiceEvent, VoiceState } from "@alwith/module-voice"
+import { prepareCapture } from "@alwith/module-voice/audio"
+import { RevisionDraft } from "@alwith/module-voice/chat"
 import { useVoiceInteraction } from "@alwith/module-voice/react"
 import { createTauriTransport } from "@alwith/module-voice/tauri"
-import { prepareCapture } from "@alwith/module-voice/audio"
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { beforeEach, expect, test, vi } from "vitest"
-import { RevisionDraft } from "@alwith/module-voice/chat"
-import type { VoiceState, VoiceEvent } from "@alwith/module-voice"
+
 import { must } from "@/lib/__tests__/must"
-import { VoiceButton } from "../voice-button"
+
 import type { VoiceSettings } from "../settings"
+import { VoiceButton } from "../voice-button"
 interface Callbacks {
   state(value: VoiceState): void
   partial(text: string): void
@@ -47,7 +49,7 @@ vi.mock("@alwith/module-voice/tauri", () => ({
     release: async () => {},
     cancel: async () => {},
     finish: async (id: string) => {
-      const instance = fake.instances.find(item => item.id === id)
+      const instance = fake.instances.find((item) => item.id === id)
       if (instance === undefined) throw new Error("missing recording")
       await instance.finish()
     }
@@ -118,7 +120,7 @@ test("disabling voice removes its controls and cancels an active recording", asy
 test("the next handsfree recording has an enabled stop button and ignores old callbacks", async () => {
   const draft = new RevisionDraft("s", "", [0, 0])
   let endTurn!: () => void
-  const completed = new Promise<void>(resolve => {
+  const completed = new Promise<void>((resolve) => {
     endTurn = resolve
   })
   fake.submit.mockImplementation(async () => {
@@ -160,6 +162,22 @@ test("the next handsfree recording has an enabled stop button and ignores old ca
   fireEvent.click(stop)
   await waitFor(() => expect(must(fake.instances[1], "next controller").finish).toHaveBeenCalledTimes(1))
 })
+test("an existing draft explains why automatic voice sending is blocked", async () => {
+  render(
+    <VoiceButton
+      draft={new RevisionDraft("existing", "unsent text", [11, 11])}
+      cwd="/tmp"
+      enabled
+      cancelRef={{ current: null }}
+      waitForTurn={async () => {}}
+      supportsHandsfree
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "voice.start" }))
+  await waitFor(() => expect(fake.report).toHaveBeenCalledWith("voice.existingDraft"))
+  expect(fake.instances).toHaveLength(0)
+  expect(fake.submit).not.toHaveBeenCalled()
+})
 test("a cancelled pending settings read cannot fail the next recording", async () => {
   let rejectOld!: (error: Error) => void
   fake.load.mockImplementationOnce(
@@ -196,7 +214,7 @@ test("a late unconfigured profile cannot replace the active recording", async ()
   let resolveOld!: (profiles: { vui: boolean; doubao: boolean }) => void
   fake.profiles.mockImplementationOnce(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         resolveOld = resolve
       })
   )
@@ -448,7 +466,7 @@ test("recording waveform follows microphone amplitude and disappears on cancel",
   expect(document.querySelector("[data-voice-level]")).toBeNull()
 })
 
-test.each(["cancel", "finish"])("waveform receives fresh samples after %s and starting again", async ending => {
+test.each(["cancel", "finish"])("waveform receives fresh samples after %s and starting again", async (ending) => {
   fake.load.mockResolvedValue({ ...settings, mode: "dictation" })
   render(
     <VoiceButton

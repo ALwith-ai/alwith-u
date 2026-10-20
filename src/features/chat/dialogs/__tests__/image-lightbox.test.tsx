@@ -1,6 +1,8 @@
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { ImageLightbox, openImageLightbox } from "../image-lightbox"
 
 await initI18n("en")

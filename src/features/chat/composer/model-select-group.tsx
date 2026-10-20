@@ -9,8 +9,10 @@ import { type BooleanOption, isBooleanOption, isGroupedSelect, isSelectOption, t
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import { client, useApp } from "@/lib/client"
+
 import { flattenSelectOptions } from "./permission-mode-select"
 
 /**
@@ -20,7 +22,7 @@ import { flattenSelectOptions } from "./permission-mode-select"
 const PRIMARY_CHATGPT_MODELS = new Set(["gpt-6-astra", "gpt-6.1-sol", "gpt-5.6-terra", "gpt-6-luna"])
 
 function currentName(option: SelectOption): string {
-  return flattenSelectOptions(option).find(item => item.value === option.currentValue)?.name ?? option.currentValue
+  return flattenSelectOptions(option).find((item) => item.value === option.currentValue)?.name ?? option.currentValue
 }
 
 export function ModelSelectGroup({
@@ -36,13 +38,13 @@ export function ModelSelectGroup({
   onModelChange?: (model: string) => void
 }) {
   const { t } = useTranslation()
-  const switching = useApp(state => Boolean(state.configPending[sessionId]))
-  const model = options.find(option => option.category === "model" && isSelectOption(option)) as
+  const switching = useApp((state) => Boolean(state.configPending[sessionId]))
+  const model = options.find((option) => option.category === "model" && isSelectOption(option)) as
     SelectOption | undefined
-  const effort = options.find(option => option.category === "thought_level" && isSelectOption(option)) as
+  const effort = options.find((option) => option.category === "thought_level" && isSelectOption(option)) as
     SelectOption | undefined
   const others = options.filter(
-    option =>
+    (option) =>
       option.category === "model_config" || (option.category !== "mode" && option !== model && option !== effort)
   )
   const selects = others.filter(isSelectOption)
@@ -64,7 +66,7 @@ export function ModelSelectGroup({
     label: item.name,
     more: groupId === NATIVE_MODEL_GROUP.id && !PRIMARY_CHATGPT_MODELS.has(item.value)
   })
-  const models = model ? flattenSelectOptions(model).map(item => toModel(item)) : []
+  const models = model ? flattenSelectOptions(model).map((item) => toModel(item)) : []
   return (
     <ModelSelect
       disabled={disabled || switching}
@@ -73,7 +75,7 @@ export function ModelSelectGroup({
       models={models}
       showModelList={Boolean(model)}
       showDescription
-      onChange={item => {
+      onChange={(item) => {
         if (item.api_id === model?.currentValue) return
         if (onModelChange) onModelChange(item.api_id)
         else if (model) set(model, item.api_id)
@@ -81,14 +83,14 @@ export function ModelSelectGroup({
       header={model ? { name: model.name } : undefined}
       modelGroups={
         model && isGroupedSelect(model.options)
-          ? model.options.map(group => ({
+          ? model.options.map((group) => ({
               id: group.groupId,
               name: group.name,
-              models: group.options.map(item => toModel(item, group.groupId))
+              models: group.options.map((item) => toModel(item, group.groupId))
             }))
           : undefined
       }
-      t={key => t(key, { ns: "alwithChat" })}
+      t={(key) => t(key, { ns: "alwithChat" })}
       effortConfig={
         effort && effortLevels.length > 0
           ? {
@@ -96,27 +98,27 @@ export function ModelSelectGroup({
               value: effort.currentValue,
               levels: effortLevels,
               sizer: effortSizer,
-              onChange: value => set(effort, value)
+              onChange: (value) => set(effort, value)
             }
           : undefined
       }
-      selectOptions={selects.map(option => ({
+      selectOptions={selects.map((option) => ({
         id: option.configId,
         name: option.name,
         value: option.currentValue,
-        options: flattenSelectOptions(option).map(item => ({
+        options: flattenSelectOptions(option).map((item) => ({
           value: item.value,
           label: item.name
         })),
-        onChange: value => set(option, value)
+        onChange: (value) => set(option, value)
       }))}
-      booleanOptions={booleans.map(option => ({
+      booleanOptions={booleans.map((option) => ({
         id: option.configId,
         name: option.name,
         currentValue: option.currentValue
       }))}
       onBooleanChange={(id, value) => {
-        const option = booleans.find(option => option.configId === id)
+        const option = booleans.find((option) => option.configId === id)
         if (!option) throw new Error(`Unknown boolean config: ${id}`)
         set(option, value)
       }}

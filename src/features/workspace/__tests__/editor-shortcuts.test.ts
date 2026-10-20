@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import { routeFind, routeHistory, routeReplace } from "../editor-shortcuts"
 
 afterEach(() => {

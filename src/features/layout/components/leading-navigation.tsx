@@ -1,6 +1,7 @@
 import { ArchiveIcon, BlocksIcon, PawPrintIcon, PuzzleIcon } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -37,7 +38,8 @@ export function LeadingNavigation({
             aria-label={label}
             aria-current={activePage === id ? "page" : undefined}
             onClick={onClick}
-            className="text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground size-9 rounded-[10px] motion-reduce:transition-none">
+            className="size-9 rounded-[10px] text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground motion-reduce:transition-none"
+          >
             <Icon aria-hidden="true" className="size-[18px]" />
           </Button>
         )

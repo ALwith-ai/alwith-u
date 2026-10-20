@@ -1,8 +1,10 @@
 import { createSession } from "@alwith/api"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { commands } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
+
 import { Composer } from "../../composer"
 import * as preview from "../../dialogs/file-preview-modal"
 import { drafts, exportDraft, importDraft } from "../drafts"
@@ -67,7 +69,7 @@ test("uses UTF-16 length for emoji and leaves long typed text inline at submissi
 test("blocks submission while writing and routes completion to the original draft after switching chats", async () => {
   let finish!: (path: string) => void
   vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )
@@ -86,7 +88,7 @@ test("blocks submission while writing and routes completion to the original draf
 test("waits for native writes when transferring a prepared draft to another window", async () => {
   let finish!: (path: string) => void
   vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )
@@ -126,7 +128,7 @@ test("retries failed writes and opens the attachment as a file without changing 
 test("does not resurrect an attachment removed before the native write finishes", async () => {
   let finish!: (path: string) => void
   vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
-    new Promise(resolve => {
+    new Promise((resolve) => {
       finish = resolve
     })
   )

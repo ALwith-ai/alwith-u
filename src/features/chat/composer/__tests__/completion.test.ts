@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+
 import { detectTrigger, fileItems, filterSlashCommands } from "../completion"
 import { countControlCharsBeforeIndex, sanitizeTextareaValue } from "../prompt-input-clipboard"
 
@@ -36,7 +37,7 @@ describe("fileItems", () => {
       { root: "/repo/", path: "src/app.tsx", match_type: "file", file_name: "app.tsx", score: 1, indices: null },
       { root: "/repo", path: "/abs/x.ts", match_type: "file", file_name: "x.ts", score: 1, indices: null }
     ])
-    expect(items.map(item => [item.label, item.payload])).toEqual([
+    expect(items.map((item) => [item.label, item.payload])).toEqual([
       ["src/app.tsx", "/repo/src/app.tsx"],
       ["/abs/x.ts", "/abs/x.ts"]
     ])
@@ -45,11 +46,15 @@ describe("fileItems", () => {
 
 describe("filterSlashCommands", () => {
   test("an empty query lists every command once", () => {
-    expect(filterSlashCommands(commands, "").map(item => item.payload)).toEqual(["review", "review-branch", "compact"])
+    expect(filterSlashCommands(commands, "").map((item) => item.payload)).toEqual([
+      "review",
+      "review-branch",
+      "compact"
+    ])
   })
   test("fuzzy name matches rank above description matches", () => {
-    expect(filterSlashCommands(commands, "rb").map(item => item.payload)).toEqual(["review-branch"])
-    expect(filterSlashCommands(commands, "summar").map(item => item.payload)).toEqual(["compact"])
+    expect(filterSlashCommands(commands, "rb").map((item) => item.payload)).toEqual(["review-branch"])
+    expect(filterSlashCommands(commands, "summar").map((item) => item.payload)).toEqual(["compact"])
   })
 })
 

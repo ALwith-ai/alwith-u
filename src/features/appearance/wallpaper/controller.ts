@@ -27,7 +27,7 @@ export class WallpaperController {
     }
     return {
       dispose,
-      show: value => {
+      show: (value) => {
         if (!active) throw new Error("Wallpaper presentation has been released")
         if (
           value &&

@@ -2,6 +2,7 @@ import { parseManifest } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
 import { expect, test } from "vitest"
+
 import { executePreparedInstall, executeReload, executeStagedInstall } from "../install-service"
 
 const manifest = parseManifest({
@@ -132,25 +133,25 @@ test("duplicate install and source conflict preserve the existing installation",
 test("update waits for another window and rejects an aborted transition", async () => {
   const item = boundary(true)
   let complete = false
-  const operation = executePreparedInstall(item.runtime, selected, { update: true, enable: false }).then(result => {
+  const operation = executePreparedInstall(item.runtime, selected, { update: true, enable: false }).then((result) => {
     complete = true
     return result
   })
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   expect(complete).toBe(false)
   item.commit()
   expect((await operation).packageRevision).toBe("new")
 
   const aborted = boundary(true)
   const rejected = executePreparedInstall(aborted.runtime, selected, { update: true, enable: false })
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   aborted.commit("old")
   await expect(rejected).rejects.toThrow()
 })
 
 test("activation failure reports the committed installation instead of claiming success", async () => {
   const item = boundary()
-  item.runtime.request = async request => {
+  item.runtime.request = async (request) => {
     if (!item.state.native) throw new Error("Missing state")
     if (request.type === "installLocal")
       item.state.native.installations = [
@@ -211,7 +212,7 @@ test("aborting a cross-window wait releases subscriptions without enabling later
     controller.signal
   )
   const rejected = expect(operation).rejects.toThrow("deadline")
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   controller.abort(new Error("deadline"))
   await rejected
   item.commit()
@@ -229,7 +230,7 @@ test("startup updates preserve an enabled installation and check activation", as
     { ...selected, source: "local" },
     { update: true, enable: false }
   )
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   item.host.instances = [{ id: "notes", revision: "new", status: "active", errors: [] }]
   item.commit()
   expect(await operation).toMatchObject({ enabled: true, activeInMainWindow: true, error: null })
@@ -242,7 +243,7 @@ test("reload waits for all leases, preserves enable intent and verifies activati
   if (!installed) throw new Error("Missing fixture installation")
   installed.enabled = true
   const operation = executeReload(item.runtime, "notes", new AbortController().signal)
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   expect(item.state.native?.pending[0]?.action).toBe("reload")
   expect(installed.enabled).toBe(true)
   item.host.instances = [{ id: "notes", revision: "old", status: "active", errors: [] }]
@@ -259,7 +260,7 @@ test("a canceled reload cannot report the old active instance as a successful re
   item.host.instances = [{ id: "notes", revision: "old", status: "active", errors: [] }]
   const operation = executeReload(item.runtime, "notes", new AbortController().signal)
   const rejected = expect(operation).rejects.toThrow("reload did not commit")
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
   item.commit("old")
   await rejected
 })

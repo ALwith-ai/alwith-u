@@ -10,6 +10,7 @@
  *    (data-popup-open), actions remain visible and default content stays hidden. Action clicks do not bubble to the row.
  */
 import type { ReactNode } from "react"
+
 import { cn } from "@/lib/utils"
 
 /** Required group class on the host row container, paired with the group-hover/trailing variants below. */
@@ -41,15 +42,17 @@ export function TrailingSwap({
           className={cn(
             "flex items-center justify-end",
             actions != null && "group-hover/trailing:hidden group-has-[[data-popup-open]]/swap:hidden"
-          )}>
+          )}
+        >
           {content}
         </span>
       )}
       {actions != null && (
         <span
           className="absolute inset-y-0 end-0 hidden w-max items-center justify-end gap-0.5 group-hover/trailing:flex has-[[data-popup-open]]:flex"
-          onClick={e => e.stopPropagation()}
-          onKeyDown={e => e.stopPropagation()}>
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           {actions}
         </span>
       )}

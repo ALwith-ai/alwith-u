@@ -1,9 +1,11 @@
 import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 
@@ -20,20 +22,20 @@ afterEach(async () => {
 })
 
 test.each(
-  (["sessions", "activity"] as const).flatMap(view =>
-    (["running", "requires_action", "idle", "done"] as const).map(state => ({ view, state }))
+  (["sessions", "activity"] as const).flatMap((view) =>
+    (["running", "requires_action", "idle", "done"] as const).map((state) => ({ view, state }))
   )
 )("$view stop closes a $state background session and waits for Runtime removal", async ({ view, state }) => {
   let complete = () => {}
   const close = vi.spyOn(client, "stopSession").mockImplementation(
     () =>
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         complete = resolve
       })
   )
   const cancel = vi.spyOn(client, "cancel")
   const onSelect = vi.fn()
-  const records: SessionRunState[] = ["foreground", "background"].map(sessionId => ({
+  const records: SessionRunState[] = ["foreground", "background"].map((sessionId) => ({
     sessionId,
     state: sessionId === "background" ? state : "running",
     reusableDraft: false,
@@ -51,7 +53,7 @@ test.each(
   }))
   client.store.setState({
     threadsLoaded: true,
-    threads: records.map(record => ({
+    threads: records.map((record) => ({
       sessionId: record.sessionId,
       cwd: record.cwd,
       title: record.title,
@@ -95,7 +97,7 @@ test.each(
   expect(client.state.runStates.background?.state).toBe(state)
   await act(async () => {
     complete()
-    client.applyRunStates(records.filter(record => record.sessionId !== "background"))
+    client.applyRunStates(records.filter((record) => record.sessionId !== "background"))
   })
   if (view === "activity") expect(screen.queryByText("background")).not.toBeInTheDocument()
   else expect(within(row).queryByTitle("Stop")).not.toBeInTheDocument()

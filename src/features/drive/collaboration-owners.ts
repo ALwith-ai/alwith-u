@@ -16,7 +16,7 @@ export function collaborationOwner(path: string): string | undefined {
 
 export function useCollaborationOwner(path: string | undefined): string | undefined {
   return useSyncExternalStore(
-    listener => {
+    (listener) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)

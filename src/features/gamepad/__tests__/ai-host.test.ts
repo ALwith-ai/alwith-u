@@ -1,6 +1,8 @@
 import { createSession, type SessionRunState } from "@alwith/api"
 import { expect, test, vi } from "vitest"
+
 import { CodexClient } from "@/agent/client"
+
 import { createGamepadConfigGenerator } from "../ai-host"
 
 function harness() {
@@ -61,7 +63,7 @@ test("acceptance does not complete generation; only the explicit session's Runti
   const h = harness()
   const progress = vi.fn()
   let settled = false
-  const result = h.generate("copy", h.config, new AbortController().signal, progress).then(value => {
+  const result = h.generate("copy", h.config, new AbortController().signal, progress).then((value) => {
     settled = true
     return value
   })

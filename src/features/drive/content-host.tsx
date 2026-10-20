@@ -9,10 +9,12 @@ import { containsPath } from "@alwith/module-fs"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+
 import { setCollaborationOwner } from "./collaboration-owners"
 import { drive, driveTransport } from "./controller"
 
@@ -20,7 +22,6 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
   const { i18n } = useTranslation()
   const { connected, snapshot } = useDrive(drive)
   const [userName, setUserName] = useState("")
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload account-scoped data after native generation changes.
   useEffect(() => {
     let active = true
     if (!connected || !snapshot?.configured) {
@@ -29,7 +30,7 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
     }
     void drive
       .request({ type: "configuration" })
-      .then(response => {
+      .then((response) => {
         if (response.type !== "configuration") throw new Error("Invalid Drive configuration")
         if (active) setUserName(response.data.userName ?? "")
       })
@@ -50,9 +51,9 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
       language: i18n.language,
       pushConnected: snapshot?.status?.pushConnected ?? false,
       translate: driveContentTranslator(i18n.language.startsWith("zh") ? "zh-CN" : "en"),
-      onError: error => toast.error(String(error)),
+      onError: (error) => toast.error(String(error)),
       notify: toast,
-      searchUsers: async keyword => {
+      searchUsers: async (keyword) => {
         const response = await drive.request({ type: "searchUsers", query: keyword })
         if (response.type !== "users") throw new Error("Invalid Drive user search")
         return response.data
@@ -62,7 +63,7 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
         Input,
         Textarea,
         Checkbox: ({ checked, onCheckedChange }) => (
-          <Checkbox checked={checked} onCheckedChange={value => onCheckedChange(value)} />
+          <Checkbox checked={checked} onCheckedChange={(value) => onCheckedChange(value)} />
         )
       }
     }),
@@ -82,7 +83,7 @@ export function DriveDocumentSurface({
   const managed =
     path !== null &&
     snapshot?.running &&
-    snapshot.roots.some(root => root.drivePath && containsPath(root.localPath, path))
+    snapshot.roots.some((root) => root.drivePath && containsPath(root.localPath, path))
   return (
     <DriveContentProvider host={host}>
       {managed ? (

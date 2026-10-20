@@ -1,10 +1,11 @@
 import { createTokenStorage } from "@alwith/module-auth"
 import { describe, expect, test } from "vitest"
+
 import { createAuthTransport } from "../http"
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>(done => {
+  const promise = new Promise<T>((done) => {
     resolve = done
   })
   return { promise, resolve }
@@ -19,7 +20,7 @@ async function setup(
     set: async (key, value) => {
       values.set(key, value)
     },
-    delete: async key => {
+    delete: async (key) => {
       values.delete(key)
     }
   })
@@ -28,7 +29,7 @@ async function setup(
   const transport = createAuthTransport({
     baseUrl: "https://api.example.test/service",
     storage,
-    fetch: ((url, init) => fetcher(String(url), init ?? {})) as typeof fetch,
+    fetch: ((url, init) => fetcher(url as string, init ?? {})) as typeof fetch,
     refresh,
     expired: async () => {
       expirations++
@@ -46,7 +47,7 @@ describe("ALwith account HTTP adapter", () => {
         throw new Error("must not refresh")
       }
     )
-    const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch(error => error)
+    const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error) => error)
     expect(error).toBeInstanceOf(Error)
     expect(error).toMatchObject({ message: "验证码错误或已过期。" })
   })
@@ -62,7 +63,7 @@ describe("ALwith account HTTP adapter", () => {
         async () => new Response(body, { status: 400 }),
         async () => fresh
       )
-      const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch(error => error)
+      const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error) => error)
       expect(error).toBeInstanceOf(Error)
       expect(error).toMatchObject({ message: "ALwith HTTP 400" })
     }
@@ -112,7 +113,7 @@ describe("ALwith account HTTP adapter", () => {
         new Headers(init.headers).get("Authorization") === "Bearer old-access"
           ? new Response(null, { status: 401 })
           : Response.json({ ok: true }),
-      async token => {
+      async (token) => {
         calls++
         expect(token).toBe("old-refresh")
         started.resolve()
@@ -163,7 +164,7 @@ describe("ALwith account HTTP adapter", () => {
         return result.promise
       }
     )
-    const request = transport.request("/api/v1/me/profile", "GET").catch(error => error)
+    const request = transport.request("/api/v1/me/profile", "GET").catch((error) => error)
     await started.promise
     const settled = transport.invalidate()
     result.resolve(fresh)
