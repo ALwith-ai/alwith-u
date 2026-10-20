@@ -20,7 +20,6 @@ function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
     <fieldset className="mt-1 min-w-0">
       <legend className="text-xs text-muted-foreground">{item.title ?? item.name}</legend>
       {resources.map((part, index) => (
-        // eslint-disable-next-line react/no-array-index-key -- ACP resource blocks have no IDs; their positions identify them.
         <ResourceContent key={`${item.id}:${index}`} block={part.content} />
       ))}
     </fieldset>

@@ -75,7 +75,6 @@ export function HoverInfoCard({
 function HoverInfoRows({ rows }: { rows?: HoverInfoRow[] }) {
   return rows?.map((row, index) => (
     // These presentation-only rows have no stable IDs; their order defines their identity.
-    // eslint-disable-next-line react/no-array-index-key -- Static presentation rows have a fixed order and are never reordered.
     <div key={index} data-slot="hover-info-card-row" className="flex items-start gap-1.5 text-xs text-muted-foreground">
       <span data-slot="hover-info-card-icon" className="flex h-5 w-4 shrink-0 items-center justify-center">
         {row.icon}

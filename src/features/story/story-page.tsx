@@ -230,7 +230,6 @@ export function StoryPage() {
               <div className="flex flex-col gap-2 p-3 text-sm">
                 {lines.map((line, index) => (
                   <div
-                    // eslint-disable-next-line react/no-array-index-key -- append-only transcript
                     key={index}
                     className={
                       line.kind === "input"

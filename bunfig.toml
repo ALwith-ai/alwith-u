@@ -80,22 +80,7 @@ correctness = "error"
 "react/set-state-in-render" = "off"
 "react/static-components" = "off"
 "react/use-memo" = "off"
-# The biome recommended rules this repo actually relied on, kept under their oxlint names
+# Only the hook call-site rule stays: it checks a syntactic fact, not a heuristic
 "react-hooks/rules-of-hooks" = "error"
-"react-hooks/exhaustive-deps" = "error"
-"react/no-array-index-key" = "error"
-"react/no-danger" = "error"
-"@typescript-eslint/no-explicit-any" = "error"
-"unicorn/no-thenable" = "error"
-"no-misleading-character-class" = "error"
 # A let assigned later inside a callback cannot become const: the callback may run before the assignment
 "prefer-const" = ["error", { ignoreReadBeforeAssign = true }]
-# a11y: SVGs are third-party or decorative icons; the tool cannot tell hover/drag/propagation handlers from keyboard-activatable
-# interactions, click-events-have-key-events checks the missing keyboard support
-"jsx-a11y/no-static-element-interactions" = "off"
-"jsx-a11y/click-events-have-key-events" = "error"
-"jsx-a11y/no-noninteractive-tabindex" = "error"
-"jsx-a11y/media-has-caption" = "error"
-"jsx-a11y/role-supports-aria-props" = "error"
-# Equivalent of the former biome option: a label wrapping its control counts (assert = either), one container deep (depth = 3)
-"jsx-a11y/label-has-associated-control" = ["error", { assert = "either", depth = 3, controlComponents = ["Checkbox", "Input", "RadioGroupItem", "Select", "Slider", "Switch", "Textarea"] }]

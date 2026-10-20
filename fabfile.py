@@ -353,6 +353,8 @@ def check(_context: object) -> None:
     steps = [
         ("types", ["bun", "run", "typecheck"], ROOT),
         ("lint", ["bun", "run", "lint"], ROOT),
+        # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
+        ("lint suppressions", ["sh", "-c", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx"], ROOT),
         ("knip", ["bun", "run", "knip"], ROOT),
         ("tests", ["bun", "run", "test"], ROOT),
         ("rustfmt", ["cargo", "fmt", *workspace_packages(), "--", "--check"], ROOT / "src-tauri"),
