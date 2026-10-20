@@ -31,15 +31,16 @@ test("host session context is resolved for each explicit session operation witho
     expect(created).toMatchObject({
       cwd: "/tmp/project",
       mcpServers: [server],
-      _meta: { alwith: { appendSystemPrompt: "Knowledge for /tmp/project" } }
+      systemPrompt: { mode: "append", content: [{ type: "text", text: "Knowledge for /tmp/project" }] }
     })
+    expect(created).not.toHaveProperty("_meta")
     await client.fork(id, "/tmp/other")
     const fork = request.mock.calls.find(call => call[1] === "session/fork")?.[2]
     expect(fork).toMatchObject({
       sessionId: id,
       cwd: "/tmp/other",
       mcpServers: [server],
-      _meta: { alwith: { appendSystemPrompt: "Knowledge for /tmp/other" } }
+      systemPrompt: { mode: "append", content: [{ type: "text", text: "Knowledge for /tmp/other" }] }
     })
     await client.open(id, "/tmp/project")
     expect(context.mock.calls).toEqual([

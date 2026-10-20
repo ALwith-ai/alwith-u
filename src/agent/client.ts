@@ -692,21 +692,27 @@ export class CodexClient {
     revision?: string
     bind?: (sessionId: string) => Promise<void>
     mcpServers?: acp.McpServer[]
-    _meta?: { alwith: { model?: string; appendSystemPrompt?: string } }
+    systemPrompt?: acp.SystemPrompt
+    _meta?: { alwith: { model?: string } }
   }> {
     const hint = modelHint(model)
     if (!this.options.sessionContext) return hint
     const context = await this.options.sessionContext(cwd, operation)
-    const alwith = {
-      ...hint._meta?.alwith,
-      ...(context.appendSystemPrompt ? { appendSystemPrompt: context.appendSystemPrompt } : {})
-    }
     return {
       revision: context.revision,
       bind: context.bind,
       mcpServers: context.mcpServers,
-      ...(Object.keys(alwith).length ? { _meta: { alwith } } : {})
+      ...(context.appendSystemPrompt ? { systemPrompt: this.systemPrompt(context.appendSystemPrompt) } : {}),
+      ...hint
     }
+  }
+
+  /** ACP v2 alpha.9 `systemPrompt` (append). The protocol only lets a client send it to an agent that advertises `session.systemPrompt`. */
+  private systemPrompt(text: string): acp.SystemPrompt {
+    if (!this.state.agent?.capabilities?.session?.systemPrompt) {
+      throw new Error("The agent does not advertise capabilities.session.systemPrompt")
+    }
+    return { mode: "append", content: [{ type: "text", text }] }
   }
 
   async newSession(cwd: string, model: string | null = null, owner: DraftOwner = "main"): Promise<string> {
@@ -1279,6 +1285,7 @@ export class CodexClient {
           sessionId: id,
           cwd,
           ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
+          ...(hint.systemPrompt ? { systemPrompt: hint.systemPrompt } : {}),
           _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
         }),
       // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
