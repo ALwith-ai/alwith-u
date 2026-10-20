@@ -2,6 +2,7 @@ import { parseManifest } from "@alwith/module-extension"
 import type { RuntimeSnapshot } from "@alwith/module-extension/host"
 import type { Installation, Request } from "@alwith/module-extension/tauri"
 import { expect, test } from "vitest"
+
 import { ensureBundledExtension } from "../bundled"
 
 const manifest = parseManifest({

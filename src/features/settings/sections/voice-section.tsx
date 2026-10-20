@@ -1,16 +1,18 @@
 import { VoiceSettingsForm, type VoiceSettingsSlots } from "@alwith/module-voice/react"
-import { type ReactNode, useState, useMemo } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
-import { Kbd } from "@/components/ui/kbd"
-import { openExternal } from "@/lib/open"
 import { Input } from "@/components/ui/input"
+import { Kbd } from "@/components/ui/kbd"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createVoiceSettingsHost, loadVoiceSettings, saveVoiceEnabled, voiceProfiles } from "@/features/voice/settings"
 import { useVoiceEnabled } from "@/features/voice/use-voice-enabled"
+import { openExternal } from "@/lib/open"
+
 import { SettingGroup, SettingRow } from "./shared"
 const slots: VoiceSettingsSlots = {
   Group: SettingGroup,
@@ -23,14 +25,14 @@ const slots: VoiceSettingsSlots = {
     <Button
       {...props}
       variant="link"
-      className="text-muted-foreground hover:text-foreground h-auto p-0 text-sm font-normal"
+      className="h-auto p-0 text-sm font-normal text-muted-foreground hover:text-foreground"
     />
   ),
   KeyLink: ({ href, children, ...props }) => (
     <a
       {...props}
       href={href}
-      className="text-muted-foreground text-sm underline-offset-4 hover:underline"
+      className="text-sm text-muted-foreground underline-offset-4 hover:underline"
       onClick={event => {
         event.preventDefault()
         // The shell plugin also intercepts _blank links on body, ignoring defaultPrevented.

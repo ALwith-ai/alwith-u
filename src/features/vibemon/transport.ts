@@ -1,5 +1,6 @@
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { API_BASE_URL, usePlatformAuth } from "@/features/auth/store"
 
 export type PetRequest = { id: string; from: string; scope: string; deadline: number; action: string; payload: unknown }

@@ -7,7 +7,9 @@ import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { fireEvent, render } from "@testing-library/react"
 import { createInstance } from "i18next"
 import { afterEach, expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { projectActivity } from "../activity-projection"
 
 const mounted: Array<ReturnType<typeof render>> = []

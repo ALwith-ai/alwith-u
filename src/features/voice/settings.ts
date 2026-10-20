@@ -1,5 +1,6 @@
 import { defaultPreferences, parsePreferences, type Provider, type VoicePreferences } from "@alwith/module-voice"
 import type { VoiceSettingsHost } from "@alwith/module-voice/react"
+
 import { commands } from "@/bindings"
 import { settingsStore, updateSettings } from "@/lib/settings-store"
 export type VoiceSettings = VoicePreferences

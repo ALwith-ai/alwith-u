@@ -1,9 +1,11 @@
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
 

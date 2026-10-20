@@ -1,14 +1,14 @@
-import { commands } from "@/bindings"
-// The app-wide CodexClient instance and the React bindings to its store.
-
 import type { Session } from "@alwith/api"
+// The app-wide CodexClient instance and the React bindings to its store.
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
+
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { hostSessionContext, computerContextRevision, prepareComputerTools } from "@/features/computer/session-context"
+import { commands } from "@/bindings"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
+import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"

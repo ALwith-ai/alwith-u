@@ -1,7 +1,9 @@
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { type ClientOptions, CodexClient, type GatewayModel } from "../client"
 import { macProjectPaths, type ProjectPaths } from "../project-path"
 import { createFakeAgent } from "./fake-agent"

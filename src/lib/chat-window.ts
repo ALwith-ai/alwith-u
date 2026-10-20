@@ -1,7 +1,9 @@
 import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { commands } from "@/bindings"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
+
 import { type ChatWindowSurface, useChatWindowSurface } from "./chat-window-state"
 import { client } from "./client"
 import i18n from "./i18n"

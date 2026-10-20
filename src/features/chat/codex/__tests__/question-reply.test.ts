@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { questionReply, questionReplyParts } from "../question-reply"
 
 test("reads reply metadata without treating unrelated content as a questionnaire", () => {

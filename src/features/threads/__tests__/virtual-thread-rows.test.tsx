@@ -1,12 +1,14 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useEffect } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import {
   NavigationSessionItem,
   useNavigationHoverCardClose,
   useNavigationHoverCardPin
 } from "@/features/layout/components/navigation/navigation-session-item"
+
 import { VirtualThreadRows } from "../virtual-thread-rows"
 
 const entries: ThreadSummary[] = Array.from({ length: 1000 }, (_, index) => ({

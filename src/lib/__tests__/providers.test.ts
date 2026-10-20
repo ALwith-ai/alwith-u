@@ -1,9 +1,10 @@
 import { expect, test } from "vitest"
+
 import {
   gatewayModelId,
-  type ProviderSnapshot,
   parseCustomModels,
   providerGroups,
+  type ProviderSnapshot,
   resolveSessionModel
 } from "../providers"
 

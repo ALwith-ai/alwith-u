@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { createHash } from "node:crypto"
+
 import { verifyComputerArtifact } from "../computer-artifact"
 
 test("Cua artifacts must match the pinned digest before extraction", () => {

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { useState, type ReactNode } from "react"
+import { type ReactNode, useState } from "react"
 import { expect, waitFor } from "storybook/test"
+
 import { Button } from "../../src/components/ui/button"
 import { ChatHeader } from "../../src/features/chat/chat-header"
 import { PreviewSurface } from "../../src/features/workspace/preview-surface"
@@ -11,7 +12,7 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
   const [maximized, setMaximized] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
   return (
-    <div className="bg-sidebar text-foreground flex h-[700px] flex-col p-1" style={{ width }}>
+    <div className="flex h-[700px] flex-col bg-sidebar p-1 text-foreground" style={{ width }}>
       <Button onClick={() => setVisible(true)}>Open preview</Button>
       <WorkspacePanels
         visible={visible}

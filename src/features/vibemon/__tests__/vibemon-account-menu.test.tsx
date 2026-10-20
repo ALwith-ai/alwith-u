@@ -3,12 +3,13 @@ import { configureVibemon, type VibemonHost } from "@alwith/module-auth/pets/cor
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { usePlatformAuth } from "@/features/auth/store"
 import { SidebarAccountMenu } from "@/features/threads/sidebar-account-menu"
-import { savePreference } from "@/lib/preferences"
 import { must } from "@/lib/__tests__/must"
-import { openGamepadWindow } from "@/lib/window-manager"
 import i18n, { initI18n } from "@/lib/i18n"
+import { savePreference } from "@/lib/preferences"
+import { openGamepadWindow } from "@/lib/window-manager"
 
 vi.mock("@/lib/window-manager", () => ({ openGamepadWindow: vi.fn(async () => {}) }))
 

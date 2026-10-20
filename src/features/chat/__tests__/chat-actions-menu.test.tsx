@@ -4,9 +4,11 @@ import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { createRef } from "react"
 import { afterAll, expect, test, vi } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatActionsMenu } from "../chat-actions-menu"
 import { ChatSearch } from "../dialogs/chat-search"
 import { threadRegistry } from "../lib/thread-registry"

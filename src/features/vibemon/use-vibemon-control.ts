@@ -2,7 +2,9 @@ import { accountKey } from "@alwith/module-auth/pets"
 import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-auth/pets/core"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { usePlatformAuth } from "@/features/auth/store"
+
 import { reportPetError } from "./display-error"
 
 export function useVibemonControl() {

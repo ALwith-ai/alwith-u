@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import type { PetRequest } from "../transport"
 
 const bus = vi.hoisted(() => ({

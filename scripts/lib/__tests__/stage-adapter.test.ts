@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test"
-import { dirname, join } from "node:path"
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
+import { dirname, join } from "node:path"
+
 import providers from "../../../src/lib/provider-catalog.json"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {

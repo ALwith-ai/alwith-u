@@ -1,4 +1,5 @@
 import { reportBackgroundError } from "@/lib/background-errors"
+
 import { drive } from "./controller"
 
 export { drive } from "./controller"
@@ -23,12 +24,14 @@ import { CloudIcon } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useWorkspace } from "@/features/workspace/context"
 import { openExternal } from "@/lib/open"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import { driveControls, driveDialogClassName } from "./controls"
 import { driveFileSystem, drivePathExists } from "./filesystem"
 import { DriveIntegrations } from "./integrations"

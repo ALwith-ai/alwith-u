@@ -1,21 +1,23 @@
 import "./voice-waveform.css"
-import { VoiceWaveform } from "./voice-waveform"
-import { VoiceControls } from "@alwith/module-voice/react"
+import { usePromptInputSubmission } from "@alwith/module-chat/composer-context"
 import { recordingSettings } from "@alwith/module-voice"
 import { prepareCapture } from "@alwith/module-voice/audio"
 import type { DraftPort } from "@alwith/module-voice/chat"
+import { VoiceControls } from "@alwith/module-voice/react"
 import { createTauriTransport } from "@alwith/module-voice/tauri"
 import workletUrl from "@alwith/module-voice/worklet?url"
-import { usePromptInputSubmission } from "@alwith/module-chat/composer-context"
 import { Channel, invoke } from "@tauri-apps/api/core"
-import { MicIcon, SquareIcon, XIcon, Loader2Icon } from "lucide-react"
+import { Loader2Icon, MicIcon, SquareIcon, XIcon } from "lucide-react"
 import type { MutableRefObject, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { PromptInputButton } from "@/features/chat/composer/prompt-input"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import { loadVoiceSettings, voiceProfiles } from "./settings"
 import { useVoiceEnabled } from "./use-voice-enabled"
+import { VoiceWaveform } from "./voice-waveform"
 const transport = createTauriTransport({ invoke, channel: receive => new Channel(receive) })
 export function VoiceButton({
   draft,
@@ -54,8 +56,8 @@ export function VoiceButton({
       }}
       icons={{
         start: <MicIcon className="size-4" />,
-        stop: <SquareIcon className="text-foreground size-3 fill-current" />,
-        cancel: <XIcon className="text-foreground size-4" />,
+        stop: <SquareIcon className="size-3 fill-current text-foreground" />,
+        cancel: <XIcon className="size-4 text-foreground" />,
         busy: <Loader2Icon className="size-4 animate-spin" />
       }}
       renderLayout={({ controls, state, audioLevel }) => (

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+
 import { expect, test } from "vitest"
 
 const styles = readFileSync(join(__dirname, "../../../../index.css"), "utf8")

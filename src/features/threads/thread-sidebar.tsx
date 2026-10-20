@@ -32,11 +32,10 @@ import type { ReactElement, ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ThreadSummary } from "@/agent/client"
 import { hasRename } from "@/agent/codex-extensions"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
-import { NavigationAds } from "@/features/layout/components/navigation-ads"
-import { GuideButton } from "@/features/guide/guide-button"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
@@ -57,7 +56,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
+import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
+import { NavigationAds } from "@/features/layout/components/navigation-ads"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
@@ -70,6 +71,7 @@ import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 import { cn } from "@/lib/utils"
+
 import { ActivityPanel } from "./activity-panel"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
 import { type SidebarView, useThreadsUiStore } from "./store"
@@ -128,7 +130,7 @@ function ThreadRow({
       hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} />}
       meta={
         thread.updatedAt !== null ? (
-          <span className="text-muted-foreground shrink-0 text-xs">
+          <span className="shrink-0 text-xs text-muted-foreground">
             {relativeTime(thread.updatedAt, i18n.language)}
           </span>
         ) : undefined
@@ -366,7 +368,7 @@ export function ThreadSidebar({
           {renderExtensionEntry(
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "extensions"}
-              className={`${MENU_HIGHLIGHT} data-popup-open:bg-foreground/5 h-8 gap-2 px-2`}
+              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2 data-popup-open:bg-foreground/5`}
               onClick={onOpenExtensions}>
               <BlocksIcon />
               <span>{t("sidebar.extensions")}</span>
@@ -388,7 +390,7 @@ export function ThreadSidebar({
         <div className="relative flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
-            className={`${MENU_HIGHLIGHT} bg-foreground/5 flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] [corner-shape:superellipse(1.5)]`}>
+            className={`${MENU_HIGHLIGHT} flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}>
             {tabs
               .filter(tab => tab.key !== "drive" || driveVisible)
               .map(tab => {
@@ -411,7 +413,7 @@ export function ThreadSidebar({
                       <motion.span
                         layoutId="navigation-selected-pill"
                         aria-hidden="true"
-                        className="bg-foreground/8 pointer-events-none absolute inset-0 -z-10 rounded-[10px] [corner-shape:superellipse(1.5)]"
+                        className="pointer-events-none absolute inset-0 -z-10 rounded-[10px] bg-foreground/8 [corner-shape:superellipse(1.5)]"
                         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       />
                     )}
@@ -454,16 +456,16 @@ export function ThreadSidebar({
                         data-slot="project-skeleton-row"
                         className="relative flex h-[var(--navigation-row-height)] w-full items-center gap-1 rounded-[10px] ps-1 pe-1.5 [corner-shape:superellipse(1.5)]">
                         <NavigationLeading>
-                          <FolderClosedIcon className="text-foreground/40 size-3.5" />
+                          <FolderClosedIcon className="size-3.5 text-foreground/40" />
                         </NavigationLeading>
-                        <Skeleton className={cn("bg-foreground/12 h-3 rounded-sm", width)} />
-                        <Skeleton className="bg-foreground/12 ms-auto h-2.5 w-4 rounded-sm" />
+                        <Skeleton className={cn("h-3 rounded-sm bg-foreground/12", width)} />
+                        <Skeleton className="ms-auto h-2.5 w-4 rounded-sm bg-foreground/12" />
                       </div>
                     ))}
                   </div>
                 )}
               {threadsError !== null && (
-                <div role="alert" className="text-muted-foreground flex flex-col items-start gap-2 px-3 py-4 text-sm">
+                <div role="alert" className="flex flex-col items-start gap-2 px-3 py-4 text-sm text-muted-foreground">
                   <span>{threadsError}</span>
                   <Button variant="outline" size="sm" onClick={() => report(client.listThreads({ reset: true }))}>
                     {t("actions.retry")}
@@ -491,11 +493,11 @@ export function ThreadSidebar({
                     leading={
                       // Project (workspace) groups use an open folder icon when expanded and a closed folder icon when collapsed.
                       quick ? (
-                        <MessagesSquareIcon className="text-foreground size-3.5 shrink-0" />
+                        <MessagesSquareIcon className="size-3.5 shrink-0 text-foreground" />
                       ) : isOpen ? (
-                        <FolderOpenIcon className="text-foreground size-3.5 shrink-0" />
+                        <FolderOpenIcon className="size-3.5 shrink-0 text-foreground" />
                       ) : (
-                        <FolderClosedIcon className="text-foreground size-3.5 shrink-0" />
+                        <FolderClosedIcon className="size-3.5 shrink-0 text-foreground" />
                       )
                     }
                     label={quick ? t("sidebar.quickChats") : basename(cwd)}
@@ -503,7 +505,7 @@ export function ThreadSidebar({
                     <VirtualThreadRows threads={list.slice(0, limit)} viewport={viewport} renderRow={renderRow} />
                     {list.length > limit && (
                       <NavigationItemButton
-                        className={`${MENU_HIGHLIGHT} text-muted-foreground ps-8`}
+                        className={`${MENU_HIGHLIGHT} ps-8 text-muted-foreground`}
                         onClick={() => reveal(cwd, Number.POSITIVE_INFINITY)}>
                         {t("sidebar.showAll")}
                       </NavigationItemButton>
@@ -524,7 +526,7 @@ export function ThreadSidebar({
                   setArchivedOpen(open)
                   if (open && !archivedLoaded) report(client.listThreads({ archived: true }))
                 }}
-                leading={<ArchiveIcon className="text-foreground size-3.5 shrink-0" />}
+                leading={<ArchiveIcon className="size-3.5 shrink-0 text-foreground" />}
                 label={t("sidebar.archived")}
                 count={archivedLoaded ? archived.length : undefined}>
                 <VirtualThreadRows
@@ -561,7 +563,7 @@ export function ThreadSidebar({
           <Button
             variant="ghost"
             className={cn(
-              "hover:bg-foreground/5 h-8 min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)]",
+              "h-8 min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)] hover:bg-foreground/5",
               screen === "main" ? "justify-start" : "justify-end"
             )}
             aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}

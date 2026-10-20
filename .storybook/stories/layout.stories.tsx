@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ExtensionManifest } from "@alwith/module-extension"
 import type { HostSnapshot } from "@alwith/module-extension/host"
-import { expect, waitFor } from "storybook/test"
+import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
+import { expect, waitFor } from "storybook/test"
+
 import { SidebarInset } from "../../src/components/ui/sidebar"
-import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { ExtensionNavigation } from "../../src/features/extensions/extension-navigation"
+import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../src/features/layout/components/main-sidebar-layout"
 
 const meta = {
@@ -62,7 +63,7 @@ export const LeadingApps: Story = {
   render: function Render(args) {
     const [active, setActive] = useState<string | null>(null)
     return (
-      <div className="bg-sidebar h-[640px]">
+      <div className="h-[640px] bg-sidebar">
         <MainSidebarLayout
           {...args}
           leading={
@@ -112,7 +113,7 @@ export const LeadingFeatures: Story = {
   render: function Render(args) {
     const [page, setPage] = useState<"vibemon" | "plugins" | "extensions" | "archives">("vibemon")
     return (
-      <div className="bg-sidebar h-[640px]">
+      <div className="h-[640px] bg-sidebar">
         <MainSidebarLayout
           {...args}
           leading={

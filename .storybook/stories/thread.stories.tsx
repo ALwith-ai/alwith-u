@@ -1,6 +1,7 @@
 import { addPrompt, applyUpdate, createSession } from "@alwith/api"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor } from "storybook/test"
+
 import { ThreadView } from "../../src/features/chat/thread-view"
 
 const output = Array.from({ length: 60 }, (_, index) => `project-file-${index}.ts`).join("\n")

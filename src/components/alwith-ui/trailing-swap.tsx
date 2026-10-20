@@ -10,6 +10,7 @@
  *    (data-popup-open), actions remain visible and default content stays hidden. Action clicks do not bubble to the row.
  */
 import type { ReactNode } from "react"
+
 import { cn } from "@/lib/utils"
 
 /** Required group class on the host row container, paired with the group-hover/trailing variants below. */

@@ -4,7 +4,9 @@ import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import { openImageLightbox } from "../dialogs/image-lightbox"
 import { chatFileName, downloadChatFile, useOpenChatLink } from "../file-actions"
 
@@ -16,7 +18,7 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
   if (isResourceLink(block)) {
     if (block.uri === "codex-image:unavailable") {
       return (
-        <span className="text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-sm">
+        <span className="flex items-center gap-2 rounded-lg border p-3 text-sm text-muted-foreground">
           <ImageOffIcon className="size-4" />
           {t("chat.image.unavailable")}
         </span>
@@ -33,7 +35,7 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
         <FileIcon />
         <span className="min-w-0 text-start">
           <span className="block truncate">{block.title ?? block.name}</span>
-          <span className="text-muted-foreground block text-xs">
+          <span className="block text-xs text-muted-foreground">
             {(block.title ?? block.name) !== name && `${name} · `}
             {block.mimeType ?? name.split(".").at(-1)?.toUpperCase()}
           </span>

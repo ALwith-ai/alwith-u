@@ -1,10 +1,11 @@
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test } from "vitest"
+
 import {
   createSettingsAuthClient,
+  serveSettingsBridge,
   type SettingsAgent,
-  type SettingsEvents,
-  serveSettingsBridge
+  type SettingsEvents
 } from "../settings-bridge"
 import { must } from "./must"
 

@@ -1,8 +1,9 @@
 // On-demand windows, reduced from ALwith Desktop's window-manager to the one this app has.
 
-import { platform } from "@tauri-apps/plugin-os"
 import { emitTo } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { platform } from "@tauri-apps/plugin-os"
+
 import { commands } from "@/bindings"
 import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"

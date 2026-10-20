@@ -5,6 +5,7 @@
 import { ask } from "@tauri-apps/plugin-dialog"
 import i18n from "i18next"
 import { create } from "zustand"
+
 import type { State as UpdaterState } from "@/bindings"
 import { commands, events } from "@/bindings"
 

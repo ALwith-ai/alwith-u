@@ -2,6 +2,7 @@
 // the Codex icon set the user exported; a stand-in until the app ships its own set.
 import { useTheme } from "@/components/theme-provider"
 import { basename } from "@/lib/path"
+
 import icons from "./file-icons.json"
 
 type FileIconName = keyof typeof icons

@@ -1,8 +1,9 @@
-import { type ExtensionManifest, extensionApiVersion } from "@alwith/module-extension"
+import { extensionApiVersion, type ExtensionManifest } from "@alwith/module-extension"
 import { createCommonJsEvaluator, ExtensionHost, ResourceScope } from "@alwith/module-extension/host"
 import * as legacy from "@alwith/module-extension/legacy"
 import { createMemoryData } from "@alwith/module-extension/testing"
 import { expect, test } from "vitest"
+
 import { createLegacyBridge } from "../bridge"
 import { convertLegacyExtension } from "../import"
 

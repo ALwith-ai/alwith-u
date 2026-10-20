@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises"
-import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 
 const root = fileURLToPath(new URL("../", import.meta.url))
 async function output(command: string[], stdin?: string): Promise<string> {

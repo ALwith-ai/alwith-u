@@ -1,4 +1,5 @@
 import { capability, type Dispose } from "@alwith/module-extension"
+
 import type { ImportedWallpaper, WallpaperPresentation } from "@/features/appearance/wallpaper/types"
 
 export interface WallpaperCapability {

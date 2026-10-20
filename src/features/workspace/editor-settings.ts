@@ -1,4 +1,5 @@
 import { settingsStore, updateSettings } from "@/lib/settings-store"
+
 import { type IconTheme, iconThemes } from "./workspace-state"
 
 export interface EditorSettings {

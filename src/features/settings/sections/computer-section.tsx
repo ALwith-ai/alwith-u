@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { useComputerStatus } from "@/features/computer/computer-control"
 import { enableComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
+
 import { SettingGroup, SettingLabel, SettingRow } from "./shared"
 
 export function ComputerSection() {
@@ -45,11 +47,11 @@ export function ComputerSection() {
               onCheckedChange={value => void toggle(value)}
             />
           </SettingRow>
-          <p className="text-muted-foreground pb-3 text-xs">{t("computer.scope")}</p>
+          <p className="pb-3 text-xs text-muted-foreground">{t("computer.scope")}</p>
           {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
           {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
           {status?.permissions.supported && !permitted && (
-            <p className="text-muted-foreground text-sm">{t("computer.permissions")}</p>
+            <p className="text-sm text-muted-foreground">{t("computer.permissions")}</p>
           )}
           {isMac() &&
             status?.permissions.supported &&
@@ -81,7 +83,7 @@ export function ComputerSection() {
               </SettingRow>
             ))}
           {(error || statusError) && (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-sm text-destructive">
               {error ?? statusError}
             </p>
           )}

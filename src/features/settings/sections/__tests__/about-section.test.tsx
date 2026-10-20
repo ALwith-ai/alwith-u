@@ -3,9 +3,11 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { act, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { useUpdaterStore } from "@/features/updater/store"
 import { initI18n } from "@/lib/i18n"
 import * as bridge from "@/lib/settings-bridge"
+
 import { AboutSection } from "../about-section"
 
 vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))

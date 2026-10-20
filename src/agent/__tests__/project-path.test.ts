@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { macProjectPaths } from "../project-path"
 
 test.each(["var", "tmp", "etc"])("macOS %s aliases keep one identity without accessing deleted directories", root => {

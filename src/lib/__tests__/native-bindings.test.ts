@@ -1,5 +1,6 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { afterEach, expect, test } from "vitest"
+
 import { commands, events } from "../../bindings"
 
 afterEach(clearMocks)

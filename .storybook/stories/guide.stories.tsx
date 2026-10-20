@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+
 import { GuidePage } from "../../src/features/guide/guide-page"
 
 const meta = {

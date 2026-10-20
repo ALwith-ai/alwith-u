@@ -5,8 +5,10 @@ import { useEffect, useLayoutEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ChatDroppedFile } from "@/bindings"
 import { basename } from "@/lib/path"
+
 import { usePromptInputAttachments } from "./prompt-input"
 
 const sourcePaths = new WeakMap<File, string>()

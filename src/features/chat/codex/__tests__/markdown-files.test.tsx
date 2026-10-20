@@ -1,8 +1,10 @@
 import * as core from "@tauri-apps/api/core"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatDirectoryContext } from "../../file-actions"
 import { CodexMarkdownRenderer } from "../markdown-renderer"
 

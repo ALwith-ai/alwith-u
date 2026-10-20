@@ -1,8 +1,10 @@
 import { act, fireEvent, render, within } from "@testing-library/react"
 import { beforeAll, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 import { type CustomProviderInput, type ProviderSnapshot, saveCustomProvider } from "@/lib/providers"
 import { useProviders } from "@/lib/use-providers"
+
 import { ProviderSection } from "../provider-section"
 
 vi.mock("@/lib/use-providers", () => ({ useProviders: vi.fn() }))

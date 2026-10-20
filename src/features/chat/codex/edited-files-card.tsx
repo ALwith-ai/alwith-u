@@ -2,7 +2,9 @@ import type { ToolItem } from "@alwith/api"
 import { isDiffEntry } from "@alwith/api"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { EditedFilesCard as SharedCard } from "@alwith/module-chat/edited-files-card"
+
 import { CodexFileIcon } from "@/components/icons/codex/file-icon"
+
 import { filePatch, openDiffModal } from "../dialogs/diff-modal"
 import { useChatActivityHost } from "./activity-host"
 

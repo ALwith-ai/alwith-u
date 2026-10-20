@@ -3,9 +3,11 @@ import { invoke, isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useUpdaterStore } from "@/features/updater/store"
+
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AboutSection() {
@@ -81,7 +83,7 @@ export function AboutSection() {
       </SettingRow>
       <Separator />
       <SettingRow title={t("settings.engine")}>
-        <span className="text-muted-foreground text-sm">
+        <span className="text-sm text-muted-foreground">
           {t("settings.codexVersion", { version: cliVersion ?? "—" })}
         </span>
       </SettingRow>

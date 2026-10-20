@@ -1,9 +1,11 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
-import { initI18n } from "@/lib/i18n"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppearanceSection } from "@/features/settings/sections/appearance-section"
+import { initI18n } from "@/lib/i18n"
 import { hydrateZoom, setZoomLevel, syncZoomLevel, zoomStore } from "@/lib/zoom"
+
 import { ZoomFeedback } from "../zoom-feedback"
 
 const { listeners, stop, setZoom, save } = vi.hoisted(() => ({

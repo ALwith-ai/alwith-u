@@ -1,6 +1,8 @@
 import { PanelsTopLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
+
 import { useWorkspace } from "./context"
 export function WorkspaceButton() {
   const workspace = useWorkspace()

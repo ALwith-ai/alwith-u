@@ -2,6 +2,7 @@ import { ScrollArea } from "@base-ui/react/scroll-area"
 import { ArchiveIcon, FolderIcon, ListFilterIcon, SearchIcon, Trash2Icon } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner"
 import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
+
 import { groupThreads, isQuickChatDirectory, QUICK_CHATS_GROUP } from "./thread-groups"
 
 function describe(error: unknown): string {
@@ -154,7 +156,7 @@ export function ArchivedChatsPage(): ReactElement {
           <div className="relative min-w-48 flex-1">
             <SearchIcon
               aria-hidden="true"
-              className="text-muted-foreground pointer-events-none absolute start-3 top-2.5 size-4"
+              className="pointer-events-none absolute start-3 top-2.5 size-4 text-muted-foreground"
             />
             <Input
               aria-label={t("archives.search")}
@@ -217,7 +219,7 @@ export function ArchivedChatsPage(): ReactElement {
                 {t("archives.connecting")}
               </p>
             ) : loading ? (
-              <div role="status" className="text-muted-foreground flex items-center gap-2">
+              <div role="status" className="flex items-center gap-2 text-muted-foreground">
                 <Spinner />
                 {t("archives.loading")}
               </div>
@@ -231,12 +233,12 @@ export function ArchivedChatsPage(): ReactElement {
                 </AlertDescription>
               </Alert>
             ) : threads.length === 0 ? (
-              <div className="text-muted-foreground flex flex-col items-center gap-3 py-16">
+              <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <ArchiveIcon aria-hidden="true" className="size-8" />
                 <p>{t("archives.empty")}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-muted-foreground py-12 text-center">{t("archives.noResults")}</p>
+              <p className="py-12 text-center text-muted-foreground">{t("archives.noResults")}</p>
             ) : (
               groupThreads(filtered)
                 .filter(([, items]) => items.length > 0)
@@ -251,11 +253,11 @@ export function ArchivedChatsPage(): ReactElement {
                           {cwd === QUICK_CHATS_GROUP ? t("archives.noProject") : basename(cwd)}
                         </span>
                       </h2>
-                      <span className="text-muted-foreground shrink-0 text-sm">
+                      <span className="shrink-0 text-sm text-muted-foreground">
                         {t("archives.count", { count: items.length })}
                       </span>
                     </div>
-                    <div className="divide-border divide-y overflow-hidden rounded-2xl border">
+                    <div className="divide-y divide-border overflow-hidden rounded-2xl border">
                       {items.map(thread => (
                         <article
                           key={thread.sessionId}
@@ -269,7 +271,7 @@ export function ArchivedChatsPage(): ReactElement {
                               <time
                                 dateTime={thread.updatedAt}
                                 title={t("archives.updatedAt")}
-                                className="text-muted-foreground text-xs">
+                                className="text-xs text-muted-foreground">
                                 {dateFormat.format(new Date(thread.updatedAt))}
                               </time>
                             )}

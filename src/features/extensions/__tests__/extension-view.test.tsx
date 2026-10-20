@@ -4,7 +4,9 @@ import { mountReact } from "@alwith/module-extension/react"
 import { act, fireEvent, render } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { ExtensionViewContent } from "../extension-view"
 
 beforeEach(async () => {

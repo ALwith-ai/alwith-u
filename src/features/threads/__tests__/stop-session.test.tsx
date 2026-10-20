@@ -1,9 +1,11 @@
 import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { useThreadsUiStore } from "../store"
 import { ThreadSidebar } from "../thread-sidebar"
 

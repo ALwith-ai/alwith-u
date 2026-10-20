@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import { runStartupImports, type StartupImportPort } from "../startup-import"
 
 function fixture(): StartupImportPort {

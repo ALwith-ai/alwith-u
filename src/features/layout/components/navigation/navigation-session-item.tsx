@@ -1,6 +1,7 @@
 import { LockIcon } from "lucide-react"
 import { type ComponentProps, createContext, type ReactNode, useContext, useLayoutEffect, useState } from "react"
 import { toast } from "sonner"
+
 import { CodexHoverCard } from "@/components/alwith-ui/codex-hover-card"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { SessionStateDot } from "@/components/alwith-ui/session-state-dot"
@@ -65,7 +66,7 @@ export function NavigationSessionItem({
       className={cn(
         TRAILING_GROUP,
         ROW_HIGHLIGHT,
-        "group/navigation-row focus-visible:outline-ring flex h-[var(--navigation-row-height)] w-full items-center gap-1 overflow-hidden rounded-[10px] ps-1 pe-1.5 text-start text-sm outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+        "group/navigation-row flex h-[var(--navigation-row-height)] w-full items-center gap-1 overflow-hidden rounded-[10px] ps-1 pe-1.5 text-start text-sm outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
         listeningPorts != null && listeningPorts.length > 0 && "h-auto min-h-[var(--navigation-row-height)] py-1",
         className
       )}
@@ -75,9 +76,9 @@ export function NavigationSessionItem({
       </NavigationLeading>
       <span className="flex min-w-0 flex-1 flex-col">
         <OverflowMarquee className={cn("leading-none", state === "done" && "font-semibold")}>{title}</OverflowMarquee>
-        {subtitle != null && <OverflowMarquee className="text-muted-foreground text-xs">{subtitle}</OverflowMarquee>}
+        {subtitle != null && <OverflowMarquee className="text-xs text-muted-foreground">{subtitle}</OverflowMarquee>}
         {listeningPorts != null && listeningPorts.length > 0 && (
-          <span className="text-muted-foreground flex gap-2 font-mono text-xs">
+          <span className="flex gap-2 font-mono text-xs text-muted-foreground">
             {listeningPorts.map(port => {
               const url = `http://localhost:${port}`
               return (
@@ -101,7 +102,7 @@ export function NavigationSessionItem({
         )}
       </span>
       <span className="relative ms-auto flex shrink-0 items-center gap-1">
-        {leased && <LockIcon className="text-muted-foreground size-3" />}
+        {leased && <LockIcon className="size-3 text-muted-foreground" />}
         <TrailingSwap
           content={accessory != null ? <TrailingSlot>{accessory}</TrailingSlot> : (meta ?? <TrailingSlot />)}
           actions={actions}

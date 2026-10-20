@@ -3,9 +3,11 @@ import * as core from "@tauri-apps/api/core"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { WorkspaceContext } from "@/features/workspace/context"
 import { initI18n } from "@/lib/i18n"
+
 import { formatMentionUri } from "../../composer/mention-uri"
 import * as preview from "../../dialogs/file-preview-modal"
 import { ImageLightbox } from "../../dialogs/image-lightbox"

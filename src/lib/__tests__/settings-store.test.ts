@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { SettingsClient, type SettingsSnapshot } from "../settings-store"
 
 test("a late read cannot overwrite a newer native change event", async () => {

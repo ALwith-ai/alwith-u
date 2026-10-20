@@ -2,6 +2,7 @@ import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith
 import { PetModeButton, PetQuickReply } from "@alwith/module-auth/pets/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 
 let dispose = () => {}

@@ -1,5 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { useThreadScroll } from "../use-thread-scroll"
 
 const originalRequest = globalThis.requestAnimationFrame

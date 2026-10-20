@@ -1,8 +1,10 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ArchivedChatsPage } from "../archived-chats-page"
 
 await initI18n("en")

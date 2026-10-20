@@ -8,7 +8,7 @@
 // what counts as an edit, and stable keys so memoised turn components survive streaming.
 
 import type { CompactionItem, MessageItem, PlanItem, ToolItem } from "@alwith/api"
-import { turns as groupSession, type Item, type Session, type TurnEntry, textOf } from "@alwith/api"
+import { type Item, type Session, textOf, type TurnEntry, turns as groupSession } from "@alwith/api"
 
 export type WorkEntry =
   | { kind: "activity"; key: string; items: Array<MessageItem | ToolItem> }

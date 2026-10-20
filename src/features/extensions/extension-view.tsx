@@ -2,9 +2,11 @@ import type { ExtensionHost, ViewContribution } from "@alwith/module-extension/h
 import { ExtensionView, useHostSnapshot } from "@alwith/module-extension/react"
 import { type ReactElement, useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
-import { reportExtensionError, useExtensions } from "./runtime"
+
 import { openExtensionConsent } from "./legacy/startup-consent"
+import { reportExtensionError, useExtensions } from "./runtime"
 
 export function ExtensionMount({ id }: { id: string }): ReactElement {
   const { runtime } = useExtensions()

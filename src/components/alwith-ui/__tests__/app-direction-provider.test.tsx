@@ -2,7 +2,9 @@ import { useDirection } from "@base-ui/react/direction-provider"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { createPortal } from "react-dom"
 import { afterEach, expect, test } from "vitest"
+
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { AppDirectionProvider } from "../app-direction-provider"
 
 afterEach(cleanup)

@@ -3,6 +3,7 @@ import { MonitorIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { commands, type ComputerStatus } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { openSettingsWindow } from "@/lib/window-manager"

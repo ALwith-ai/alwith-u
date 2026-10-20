@@ -1,10 +1,12 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest"
+
 import type { ChatDroppedFile } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
 import { basename } from "@/lib/path"
-import { NativeFileDrop, nativeAttachmentPolicy } from "../native-file-drop"
+
+import { nativeAttachmentPolicy, NativeFileDrop } from "../native-file-drop"
 import { PromptInput, PromptInputProvider, usePromptInputAttachments } from "../prompt-input"
 
 type Drop = { payload: { type: "drop"; paths: string[]; position: { x: number; y: number } } }

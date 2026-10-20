@@ -1,9 +1,11 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
+
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
@@ -15,6 +17,7 @@ import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import type { Preferences } from "@/lib/preferences"
 import type { ProviderSnapshot } from "@/lib/providers"
+
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 import { Composer } from "../composer"
 import { drafts, importDraft } from "../composer/drafts"

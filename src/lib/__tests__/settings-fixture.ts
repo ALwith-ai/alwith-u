@@ -1,5 +1,6 @@
 import { vi } from "vitest"
-import { settingsStore, type SettingsSnapshot } from "../settings-store"
+
+import { type SettingsSnapshot, settingsStore } from "../settings-store"
 let revision = 0
 /** Simulate only the native transport. Components use the real client projection and subscriptions. */
 export function settingsFixture(initial: Record<string, unknown> = {}) {

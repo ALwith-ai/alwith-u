@@ -3,11 +3,13 @@
 import { appDataDir, join } from "@tauri-apps/api/path"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Pane } from "@/components/alwith-ui/pane"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+
 import {
   type Frame,
   type LedgerEntry,
@@ -15,11 +17,11 @@ import {
   onStoryChanged,
   parseFrame,
   renderFrame,
-  type StoryAgent,
-  type StorySnapshot,
   startStoryAgent,
+  type StoryAgent,
   storyAvailable,
   storyCall,
+  type StorySnapshot,
   transcriptLine
 } from "./story-client"
 
@@ -172,7 +174,7 @@ export function StoryPage() {
   }, [prompt, fail])
 
   if (available === false) {
-    return <div className="text-muted-foreground mx-auto max-w-xl p-10 text-sm">{t("story.unavailable")}</div>
+    return <div className="mx-auto max-w-xl p-10 text-sm text-muted-foreground">{t("story.unavailable")}</div>
   }
 
   return (
@@ -189,12 +191,12 @@ export function StoryPage() {
           {t("story.open")}
         </Button>
         {snapshot !== null && (
-          <span className="text-muted-foreground text-xs">
+          <span className="text-xs text-muted-foreground">
             {t("story.status", { revision: snapshot.revision, entries: snapshot.ledgerLength, notes: snapshot.notes })}
           </span>
         )}
       </div>
-      {error !== null && <div className="text-destructive font-mono text-xs">{error}</div>}
+      {error !== null && <div className="font-mono text-xs text-destructive">{error}</div>}
       {snapshot !== null && (
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-3">
           <section className="flex min-h-0 flex-col gap-2">
@@ -204,7 +206,7 @@ export function StoryPage() {
                 {t("story.saveFrame")}
               </Button>
             </header>
-            <p className="text-muted-foreground text-xs">{t("story.frameHint")}</p>
+            <p className="text-xs text-muted-foreground">{t("story.frameHint")}</p>
             <Textarea
               className="min-h-0 flex-1 font-mono text-xs"
               value={frameText}
@@ -232,10 +234,10 @@ export function StoryPage() {
                     key={index}
                     className={
                       line.kind === "input"
-                        ? "bg-muted rounded-md px-2 py-1"
+                        ? "rounded-md bg-muted px-2 py-1"
                         : line.kind === "prose"
                           ? "whitespace-pre-wrap"
-                          : "text-muted-foreground font-mono text-xs"
+                          : "font-mono text-xs text-muted-foreground"
                     }>
                     {line.text}
                   </div>
@@ -290,7 +292,7 @@ export function StoryPage() {
               <div className="flex flex-col gap-2 p-3 text-xs">
                 {ledger.map(entry => (
                   <div key={entry.seq} className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0 font-mono">
+                    <span className="shrink-0 font-mono text-muted-foreground">
                       #{entry.seq} {entry.kind}
                     </span>
                     <span className="whitespace-pre-wrap">{entry.text}</span>

@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { createWorkspaceStateStore } from "../workspace-state"
 
 beforeEach(() => localStorage.clear())

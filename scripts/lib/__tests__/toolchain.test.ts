@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+
 import manifest from "../../../package.json"
 import { assertVersion, toolchainVersions } from "../toolchain"
 

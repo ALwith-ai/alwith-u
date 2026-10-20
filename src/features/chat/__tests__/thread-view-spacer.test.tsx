@@ -1,6 +1,7 @@
 import { addPrompt, applyUpdate, createSession } from "@alwith/api"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 

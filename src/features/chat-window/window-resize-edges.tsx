@@ -12,6 +12,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { platform } from "@tauri-apps/plugin-os"
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef } from "react"
+
 import { commands } from "@/bindings"
 
 // @tauri-apps/api does not export ResizeDirection; infer it from the method signature.

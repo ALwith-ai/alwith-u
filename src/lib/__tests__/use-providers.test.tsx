@@ -1,6 +1,7 @@
 import * as events from "@tauri-apps/api/event"
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, expect, type MockInstance, test, vi } from "vitest"
+
 import type { ProviderSnapshot } from "../providers"
 import * as providers from "../providers"
 import { useProviders } from "../use-providers"

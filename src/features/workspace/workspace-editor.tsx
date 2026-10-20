@@ -9,9 +9,11 @@ import { FileVisualIcon, getFileVisual, useFileIconTheme } from "@alwith/module-
 import { FileText } from "lucide-react"
 import { type ReactNode, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import type { IconTheme } from "./workspace-state"
 
 export function WorkspaceEditor({

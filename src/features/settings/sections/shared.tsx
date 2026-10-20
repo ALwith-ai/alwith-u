@@ -1,10 +1,11 @@
 // Settings primitives reduced from ALwith Desktop's settings sections: a group of rows,
 // a muted group label, and a row with a title, optional description and a control.
 import type { ReactNode } from "react"
+
 import { cn } from "@/lib/utils"
 
 export function SettingLabel({ children }: { children: ReactNode }) {
-  return <div className="text-muted-foreground ms-1 mb-2 cursor-default text-sm">{children}</div>
+  return <div className="ms-1 mb-2 cursor-default text-sm text-muted-foreground">{children}</div>
 }
 
 export function SettingGroup({ children }: { children: ReactNode }) {
@@ -31,7 +32,7 @@ export function SettingRow({
       )}>
       <div className="min-w-0">
         <div className="text-sm">{title}</div>
-        {desc && <div className="text-muted-foreground mt-0.5 text-xs">{desc}</div>}
+        {desc && <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>}
       </div>
       {children && <div className={cn(desc && "pt-0.5", aligned ? "min-w-0" : "shrink-0")}>{children}</div>}
     </div>

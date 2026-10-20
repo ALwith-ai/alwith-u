@@ -1,7 +1,9 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { requestChatSurface } from "@/lib/chat-window"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatWindowPetButton } from "../chat-window-pet-button"
 import { collapseChatToPet } from "../window-client"
 

@@ -2,12 +2,14 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
+
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
-import { Button } from "@/components/ui/button"
 import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
+import { Button } from "@/components/ui/button"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as preferences from "@/lib/preferences"
+
 import { type MainScreen, MainSidebarLayout } from "../main-sidebar-layout"
 
 await initI18n("en")

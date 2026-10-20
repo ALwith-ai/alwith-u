@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { groupThreads, isQuickChatDirectory, QUICK_CHATS_GROUP } from "../thread-groups"
 
 test.each([

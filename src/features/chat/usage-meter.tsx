@@ -9,11 +9,13 @@ import type { Session } from "@alwith/api"
 import { isSelectOption, type SelectOption } from "@alwith/api"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { hasAccount, type RateLimitSnapshot } from "@/agent/codex-extensions"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { limitWindowLabel } from "@/features/settings/sections/codex-provider-section"
 import { client, useApp } from "@/lib/client"
 import { cn } from "@/lib/utils"
+
 import { flattenSelectOptions } from "./composer/permission-mode-select"
 
 const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
@@ -102,7 +104,7 @@ export function UsageMeter({ session }: { session: Session }) {
           <button
             type="button"
             className={cn(
-              "hover:text-foreground flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums",
+              "flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums hover:text-foreground",
               ring?.className ?? "text-muted-foreground"
             )}
             aria-label={t("chat.tokens.openDetails")}>
@@ -130,7 +132,7 @@ export function UsageMeter({ session }: { session: Session }) {
       <HoverCardContent align="end" side="top" sideOffset={8} className="w-56 p-0">
         {model !== undefined && (
           <div className="border-b px-3 py-2">
-            <p className="text-foreground truncate text-xs font-semibold" title={model}>
+            <p className="truncate text-xs font-semibold text-foreground" title={model}>
               {model}
             </p>
           </div>
@@ -152,7 +154,7 @@ export function UsageMeter({ session }: { session: Session }) {
           {usage !== null && usage.size > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               <p className="text-xs font-medium">{t("chat.tokens.context")}</p>
-              <p className="text-muted-foreground text-xs tabular-nums">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {t("chat.tokens.contextSummary", {
                   used: integer.format(usage.used),
                   limit: integer.format(usage.size),

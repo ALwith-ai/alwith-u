@@ -1,13 +1,15 @@
-import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 // Preferences live in one store file shared by every window. A change made in one window
 // (the settings window) is broadcast as `preferences:changed`; each window applies what
 // concerns it (ALwith Desktop does the same through its store-changed events).
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { navigationSoundStore } from "@/features/chat/codex/navigation-sound-store"
+import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import i18n, { isLanguageCode } from "@/lib/i18n"
-import { PREFERENCES_CHANGED, type PreferenceChange } from "@/lib/preferences"
+import { type PreferenceChange, PREFERENCES_CHANGED } from "@/lib/preferences"
 import { syncZoomLevel } from "@/lib/zoom"
+
 import { setProjectAppPreference } from "./project-app-preference"
 
 export function startPreferenceSync(): Promise<() => void> {

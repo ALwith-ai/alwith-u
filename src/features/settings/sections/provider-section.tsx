@@ -5,6 +5,7 @@ import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, Serve
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -24,11 +25,11 @@ import type {
   ProviderTestResult
 } from "@/lib/providers"
 import {
-  PROVIDERS,
-  type Provider,
   parseCustomModels,
+  type Provider,
   providerKeyUrl,
   providerRegion,
+  PROVIDERS,
   removeCustomProvider,
   saveCustomProvider,
   saveProviderKey,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/providers"
 import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
+
 import { CodexProviderSection } from "./codex-provider-section"
 import { SettingGroup } from "./shared"
 
@@ -146,8 +148,8 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-8">
       <CodexProviderSection />
-      {snapshot?.status === "pending" && <p className="text-muted-foreground text-sm">{t("provider.pending")}</p>}
-      {snapshot?.error && <p className="text-destructive text-sm">{snapshot.error}</p>}
+      {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
+      {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
       <SettingGroup>
         {snapshot && (
           <>
@@ -221,7 +223,7 @@ export function ProviderTabs({
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-muted-foreground ms-1 text-sm">{t("provider.label")}</h2>
+      <h2 className="ms-1 text-sm text-muted-foreground">{t("provider.label")}</h2>
       <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
         {PROVIDERS.map(provider => {
           const Logo = provider.logo
@@ -301,7 +303,7 @@ function ProviderTab({
 function TestFeedback({ result }: { result: ProviderTestResult }) {
   const { t } = useTranslation()
   return (
-    <p role="status" className={result.ok ? "text-muted-foreground text-xs" : "text-destructive text-xs"}>
+    <p role="status" className={result.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
       {result.ok
         ? t("provider.testSuccess", { latency: result.latencyMs ?? 0 })
         : `${t(`provider.testErrors.${result.code}`)}${result.status ? ` (HTTP ${result.status})` : ""}`}
@@ -328,7 +330,7 @@ function ProviderActions({
   return (
     <div className="space-y-3 border-t pt-4">
       {result && <TestFeedback result={result} />}
-      {onTest && <p className="text-muted-foreground text-xs leading-relaxed">{t("provider.testDescription")}</p>}
+      {onTest && <p className="text-xs leading-relaxed text-muted-foreground">{t("provider.testDescription")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {onRemove && (
           <Button
@@ -418,7 +420,7 @@ export function ProviderRow({
         <Logo className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium">{provider.name}</h3>
-          <div className="text-muted-foreground mt-0.5 text-xs">
+          <div className="mt-0.5 text-xs text-muted-foreground">
             {configured
               ? t("provider.active", { name: provider.name, count: provider.models.length })
               : t("provider.inactive")}
@@ -468,7 +470,7 @@ export function ProviderRow({
                 type="button"
                 variant="link"
                 size="sm"
-                className="text-muted-foreground h-auto p-0 text-xs"
+                className="h-auto p-0 text-xs text-muted-foreground"
                 onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}>
                 {t("provider.getKey", { name: provider.name })}
                 <ExternalLinkIcon className="size-3" aria-hidden="true" />
@@ -594,9 +596,9 @@ export function CustomProviderEditor({
         <ServerIcon className="size-6 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium break-words">{provider?.name || t("provider.addCustom")}</h3>
-          <div className="text-muted-foreground mt-0.5 text-xs">{t("provider.customDescription")}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{t("provider.customDescription")}</div>
         </div>
-        {provider && <span className="text-muted-foreground shrink-0 text-xs">{t("provider.configured")}</span>}
+        {provider && <span className="shrink-0 text-xs text-muted-foreground">{t("provider.configured")}</span>}
       </div>
       <Separator />
       <section className="space-y-4" aria-labelledby={`${id}-connection`}>
@@ -648,13 +650,13 @@ export function CustomProviderEditor({
           </CollapsibleTrigger>
         </div>
         {!modelsOpen && (
-          <ul className="bg-muted/40 divide-y rounded-lg px-3">
+          <ul className="divide-y rounded-lg bg-muted/40 px-3">
             {previewModels.map(model => (
               <li
                 key={model.api_id}
                 className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
                 <span className="break-all">{model.label}</span>
-                <span className="text-muted-foreground font-mono text-xs break-all">{model.api_id}</span>
+                <span className="font-mono text-xs break-all text-muted-foreground">{model.api_id}</span>
               </li>
             ))}
           </ul>

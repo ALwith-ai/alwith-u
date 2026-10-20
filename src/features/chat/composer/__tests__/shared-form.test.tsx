@@ -1,6 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { PromptInput, PromptInputProvider, PromptInputSubmit, PromptInputTextarea } from "../prompt-input"
 
 const mounted: ReturnType<typeof render>[] = []

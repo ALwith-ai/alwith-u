@@ -2,7 +2,9 @@ import { ask } from "@tauri-apps/plugin-dialog"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { commands } from "@/bindings"
+
 import { ExtensionMount } from "./extension-view"
 import { type ExtensionInstallPhase, ExtensionsManager } from "./extensions-manager"
 import { executePreparedInstall } from "./install-service"

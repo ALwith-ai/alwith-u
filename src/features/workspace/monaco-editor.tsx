@@ -8,7 +8,9 @@ import HtmlWorker from "monaco-editor/language/html/html.worker?worker"
 import JsonWorker from "monaco-editor/language/json/json.worker?worker"
 import TsWorker from "monaco-editor/language/typescript/ts.worker?worker"
 import { useEffect, useMemo, useRef } from "react"
+
 import { useTheme } from "@/components/theme-provider"
+
 import type { FilePosition } from "./context"
 import type { EditorSettings } from "./editor-settings"
 

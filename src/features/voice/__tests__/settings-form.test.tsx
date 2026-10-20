@@ -1,10 +1,11 @@
+import { defaultPreferences, type Provider } from "@alwith/module-voice"
+import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
-import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
-import { type Provider, defaultPreferences } from "@alwith/module-voice"
-import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+
 import { commands } from "@/bindings"
 import { VoiceSection } from "@/features/settings/sections/voice-section"
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 const notice = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }))
 vi.mock("sonner", () => ({ toast: notice }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))

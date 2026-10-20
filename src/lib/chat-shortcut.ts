@@ -1,4 +1,5 @@
 import { isRegistered, register, unregister } from "@tauri-apps/plugin-global-shortcut"
+
 import { savePreference } from "./preferences"
 
 export type ShortcutHost = {

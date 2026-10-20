@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { SidebarProvider } from "@/components/ui/sidebar"
@@ -8,6 +9,7 @@ import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatHeader } from "../chat-header"
 import * as projectApps from "../open-in-editor"
 import { ChatProjectMenu } from "../project-session-popover"

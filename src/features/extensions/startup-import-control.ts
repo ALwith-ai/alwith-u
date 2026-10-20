@@ -1,8 +1,10 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { reportBackgroundError } from "@/lib/background-errors"
+
 import { commands } from "@/bindings"
+import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
+
 import { executeReload, executeStagedInstall } from "./install-service"
 import { type ReloadOutcome, runExtensionReload } from "./reload-service"
 import { requestMainReload, serveMainReload } from "./reload-window"

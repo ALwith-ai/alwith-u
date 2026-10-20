@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initialFileResults } from "../initial-file-results"
 
 const native = vi.hoisted(() => ({ invoke: vi.fn() }))

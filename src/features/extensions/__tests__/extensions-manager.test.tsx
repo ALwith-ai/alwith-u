@@ -2,7 +2,9 @@ import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/mo
 import type { Installation, Request } from "@alwith/module-extension/tauri"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test } from "vitest"
+
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { ExtensionsManager } from "../extensions-manager"
 
 beforeEach(async () => {

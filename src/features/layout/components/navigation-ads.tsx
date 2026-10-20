@@ -3,6 +3,7 @@ import useEmblaCarousel from "embla-carousel-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { openGamepadWindow } from "@/lib/window-manager"
 

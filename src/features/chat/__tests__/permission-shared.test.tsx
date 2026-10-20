@@ -1,11 +1,14 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
+
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient, type PendingAction } from "@/agent/client"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ActionCard } from "../action-card"
 
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.

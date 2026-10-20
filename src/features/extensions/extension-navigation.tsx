@@ -2,9 +2,11 @@ import type { ExtensionManifest } from "@alwith/module-extension"
 import { type HostSnapshot, resolveActionTarget } from "@alwith/module-extension/host"
 import type { ReactElement } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+
 import { extensionApps } from "./extension-apps"
 import { EXTENSION_ICONS } from "./extension-icons"
 
@@ -46,7 +48,7 @@ export function ExtensionNavigation({
                     aria-label={name}
                     aria-current={active ? "page" : undefined}
                     disabled={!target}
-                    className="text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground size-9 rounded-[10px] motion-reduce:transition-none"
+                    className="size-9 rounded-[10px] text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground motion-reduce:transition-none"
                     onClick={() => {
                       void Promise.resolve()
                         .then(() => {

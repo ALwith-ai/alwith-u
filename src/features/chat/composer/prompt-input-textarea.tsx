@@ -1,9 +1,10 @@
 import {
+  PromptInputTextarea as SharedTextarea,
   type PromptInputTextareaHandle,
-  type PromptInputTextareaProps,
-  PromptInputTextarea as SharedTextarea
+  type PromptInputTextareaProps
 } from "@alwith/module-chat/composer-textarea"
 import { forwardRef } from "react"
+
 import { cn } from "@/lib/utils"
 
 export type { PromptInputTextareaHandle, PromptInputTextareaProps } from "@alwith/module-chat/composer-textarea"

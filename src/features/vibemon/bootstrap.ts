@@ -1,8 +1,10 @@
 import { configureVibemon, initializeSettings } from "@alwith/module-auth/pets/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
+
 import { reportPetError } from "./display-error"
 import { createPetSessionClient } from "./session-client"
 import { sessionIcons } from "./session-icons"

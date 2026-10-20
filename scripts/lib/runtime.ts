@@ -1,9 +1,10 @@
 // Runs the staged alwith-runtime over WebSocket for scripts and live checks (Bun only).
-import { spawn, type ChildProcess } from "node:child_process"
+import { type ChildProcess, spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { delimiter, resolve } from "node:path"
-import providerCatalog from "../../src/lib/provider-catalog.json"
 import { createInterface } from "node:readline"
+
+import providerCatalog from "../../src/lib/provider-catalog.json"
 
 const root = resolve(import.meta.dirname, "../..")
 const TRIPLES = ["aarch64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]

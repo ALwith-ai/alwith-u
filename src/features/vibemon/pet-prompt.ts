@@ -7,6 +7,7 @@ import {
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
+
 import type { PendingAction } from "@/agent/client"
 
 /** Mirrors Desktop's quick-answer boundary; complex forms retain their full context. */

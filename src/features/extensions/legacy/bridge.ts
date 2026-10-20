@@ -8,6 +8,7 @@ import {
   type NativeFileResponse
 } from "@alwith/module-extension/host"
 import type { LegacyStorage } from "@alwith/module-extension/legacy"
+
 import { createExtensionChatBridge } from "../chat/bridge"
 import type { ExtensionChatSession } from "../chat/navigation"
 import { unsupportedLegacyCommand, validateLegacyExport } from "./adapters"

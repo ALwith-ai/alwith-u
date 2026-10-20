@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { prepareModelCatalog as prepare, type CatalogRunner } from "../model-catalog"
+
+import { type CatalogRunner, prepareModelCatalog as prepare } from "../model-catalog"
 
 const catalogs: ReturnType<typeof prepare>[] = []
 function prepareModelCatalog(...args: Parameters<typeof prepare>): ReturnType<typeof prepare> {

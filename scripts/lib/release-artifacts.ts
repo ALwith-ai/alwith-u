@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, lstatSync } from "node:fs"
+import { lstatSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+
 import { valid } from "semver"
 
 type Artifact = {

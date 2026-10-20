@@ -4,7 +4,9 @@ import { CodexActivityGroup } from "@alwith/module-chat/activity"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { memo, type ReactElement, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
+
 import { useChatActivityHost } from "./activity-host"
 import { projectActivity } from "./activity-projection"
 import { ResourceContent } from "./resource-content"
@@ -16,7 +18,7 @@ function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
   if (resources.length === 0) return null
   return (
     <fieldset className="mt-1 min-w-0">
-      <legend className="text-muted-foreground text-xs">{item.title ?? item.name}</legend>
+      <legend className="text-xs text-muted-foreground">{item.title ?? item.name}</legend>
       {resources.map((part, index) => (
         // eslint-disable-next-line react/no-array-index-key -- ACP resource blocks have no IDs; their positions identify them.
         <ResourceContent key={`${item.id}:${index}`} block={part.content} />

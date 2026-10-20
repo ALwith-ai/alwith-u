@@ -1,14 +1,16 @@
+import type { VoiceEvent, VoiceState } from "@alwith/module-voice"
+import { prepareCapture } from "@alwith/module-voice/audio"
+import { RevisionDraft } from "@alwith/module-voice/chat"
 import { useVoiceInteraction } from "@alwith/module-voice/react"
 import { createTauriTransport } from "@alwith/module-voice/tauri"
-import { prepareCapture } from "@alwith/module-voice/audio"
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { beforeEach, expect, test, vi } from "vitest"
-import { RevisionDraft } from "@alwith/module-voice/chat"
-import type { VoiceState, VoiceEvent } from "@alwith/module-voice"
+
 import { must } from "@/lib/__tests__/must"
-import { VoiceButton } from "../voice-button"
+
 import type { VoiceSettings } from "../settings"
+import { VoiceButton } from "../voice-button"
 interface Callbacks {
   state(value: VoiceState): void
   partial(text: string): void

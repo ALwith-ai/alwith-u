@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react"
+
 import type { ThreadSummary } from "@/agent/client"
 
 // Sidebar rows are 30px tall with NavigationStack's 2px gap.

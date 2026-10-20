@@ -2,6 +2,7 @@
 // shortcuts. Menu accelerators are fixed in src-tauri/src/menu.rs and listed here by hand.
 import { Fragment } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { Separator } from "@/components/ui/separator"
@@ -48,10 +49,10 @@ export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <div className="grid grid-cols-2 gap-4">
           {groups.map(group => (
             <div key={group.title}>
-              <div className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+              <div className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 {group.title}
               </div>
-              <div className="bg-muted/40 rounded-lg px-3">
+              <div className="rounded-lg bg-muted/40 px-3">
                 {group.items.map((item, index) => (
                   <Fragment key={item.label}>
                     <div className="flex items-center justify-between gap-4 py-2.5">
@@ -59,7 +60,7 @@ export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                       <KbdGroup className="gap-1.5">
                         {item.keys.map((key, keyIndex) => (
                           <Fragment key={`${item.label}-${key}`}>
-                            {keyIndex > 0 && <span className="text-muted-foreground text-xs">+</span>}
+                            {keyIndex > 0 && <span className="text-xs text-muted-foreground">+</span>}
                             <Kbd>{key}</Kbd>
                           </Fragment>
                         ))}

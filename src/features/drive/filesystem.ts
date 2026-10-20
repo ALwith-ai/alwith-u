@@ -2,6 +2,7 @@ import { containsPath, createFileSystem, type FileSystem } from "@alwith/module-
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
+
 import { drive } from "./controller"
 
 /** Authorize only paths belonging to indexed Drive projects, including launcher searches. */

@@ -1,8 +1,9 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
-import { settingsFixture } from "./settings-fixture"
-import { settingsStore } from "../settings-store"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { loadPreferences } from "../preferences"
+import { settingsStore } from "../settings-store"
+import { settingsFixture } from "./settings-fixture"
 
 afterEach(() => {
   vi.restoreAllMocks()

@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest"
+
 import { createBusinessSharing } from "../business-sharing"
 
 test("publishes saved settings, clears stale context and shares reader changes in order", async () => {

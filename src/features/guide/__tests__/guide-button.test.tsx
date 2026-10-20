@@ -1,7 +1,9 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
-import { afterEach, expect, test, vi } from "vitest"
 import { toast } from "sonner"
+import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { GuideButton } from "../guide-button"
 import { openGuideWindow } from "../guide-window"
 

@@ -4,6 +4,7 @@ import { resolveActionTarget } from "@alwith/module-extension/host"
 import { SettingsIcon } from "lucide-react"
 import { cloneElement, type ReactElement } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { EXTENSION_ICONS } from "./extension-icons"
+
 import { extensionApps } from "./extension-apps"
+import { EXTENSION_ICONS } from "./extension-icons"
 
 export function ExtensionEntryMenu({
   host,

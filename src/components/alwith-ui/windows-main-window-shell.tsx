@@ -3,7 +3,9 @@ import { platform } from "@tauri-apps/plugin-os"
 import { createContext, type ReactElement, type ReactNode, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
+
 import { zoomStore } from "@/lib/zoom"
+
 import appIcon from "../../../src-tauri/icons/64x64.png"
 
 export const WindowsTitleBarContext = createContext<HTMLElement | null>(null)

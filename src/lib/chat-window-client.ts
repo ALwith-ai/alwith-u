@@ -3,6 +3,7 @@
 
 import type { Session } from "@alwith/api"
 import { emitTo, listen } from "@tauri-apps/api/event"
+
 import { type AppState, CodexClient } from "@/agent/client"
 import type { RateLimitSnapshot } from "@/agent/codex-extensions"
 import { macProjectPaths } from "@/agent/project-path"

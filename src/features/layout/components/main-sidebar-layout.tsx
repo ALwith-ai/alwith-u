@@ -1,8 +1,8 @@
 import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
 import {
   type CSSProperties,
-  type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -14,6 +14,7 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
+
 import { SidebarOverlayContext } from "@/components/alwith-ui/sidebar-overlay-context"
 import { WindowsTitleBarContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { Button } from "@/components/ui/button"

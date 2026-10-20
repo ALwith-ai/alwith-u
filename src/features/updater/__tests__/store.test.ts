@@ -1,7 +1,9 @@
 // The Rust side owns the state machine (cargo test in src-tauri/src/updater); this covers the
 // reflection layer: fetch once, follow events, ask to relaunch exactly once per ready version.
 import { expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { createUpdaterStore, type UpdaterIo, type UpdaterState } from "../store"
 
 function fakeIo(initial: UpdaterState, accept = false) {

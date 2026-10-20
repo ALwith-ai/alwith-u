@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+
 import { loadVoiceEnabled, subscribeVoiceEnabled } from "./settings"
 
 export function useVoiceEnabled(): boolean | null {

@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from "react"
+
 import sprite from "./plugin-icons.svg?raw"
 
 /** Mount once outside the tab panels: WebKit loses gradients through external SVG use. */

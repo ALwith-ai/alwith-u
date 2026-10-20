@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
+
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { resetZoom, ZOOM_LEVELS, zoomIn, zoomOut, zoomStore } from "@/lib/zoom"
@@ -80,7 +81,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
   return createPortal(
     <fieldset
       aria-label={t("zoom.label")}
-      className="zoom-feedback bg-popover text-popover-foreground fixed z-50 flex h-12 items-center gap-1 rounded-2xl border px-3 shadow-lg [-webkit-app-region:no-drag]"
+      className="zoom-feedback fixed z-50 flex h-12 items-center gap-1 rounded-2xl border bg-popover px-3 text-popover-foreground shadow-lg [-webkit-app-region:no-drag]"
       style={{ top: 40, right: 12 }}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
@@ -111,7 +112,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         onClick={() => void zoomIn().catch(report)}>
         <PlusIcon />
       </Button>
-      <span aria-hidden="true" className="bg-border mx-1 h-5 w-px" />
+      <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
       <Button
         variant="ghost"
         size="sm"

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+
 import { expect, test } from "vitest"
+
 import { must } from "@/lib/__tests__/must"
+
 import { pluginIconSrc } from "../plugin-icon"
 
 test("canonical names use Desktop's stable hash into the Figma collection", (): void => {

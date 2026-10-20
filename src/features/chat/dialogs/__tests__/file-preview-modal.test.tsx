@@ -2,7 +2,9 @@ import * as core from "@tauri-apps/api/core"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { FilePreviewModal, openFilePreview } from "../file-preview-modal"
 
 vi.mock("@tauri-apps/api/core", async importOriginal => ({ ...(await importOriginal<object>()) }))

@@ -1,5 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core"
+
 import { commands } from "@/bindings"
+
 import type { ImportedWallpaper } from "./types"
 
 export const wallpaperLibrary = {

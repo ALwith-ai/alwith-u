@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { toast } from "sonner"
+
 import { markRead, useApp } from "./client"
 
 /** A focused window can still be showing another screen instead of its selected chat. */

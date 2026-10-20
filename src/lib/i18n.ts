@@ -1,8 +1,9 @@
-import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { vibemonLocales } from "@alwith/module-auth/pets/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
+import { gamepadResources } from "@alwith/module-gamepad/locales"
 import i18n, { type Resource } from "i18next"
 import { initReactI18next } from "react-i18next"
+
 import ar from "@/locales/ar.json"
 import de from "@/locales/de.json"
 import en from "@/locales/en.json"

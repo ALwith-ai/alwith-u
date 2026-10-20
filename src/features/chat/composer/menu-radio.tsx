@@ -3,6 +3,7 @@
  * (value / label / icon / description) inside a DropdownMenuContent. From ALwith Desktop.
  */
 import type { ReactNode } from "react"
+
 import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -38,7 +39,7 @@ export function MenuRadioSelect({
           {option.description ? (
             <div className="min-w-0 flex-1">
               <div className="text-xs font-medium">{option.label}</div>
-              <div className="text-muted-foreground text-[11px] font-normal">{option.description}</div>
+              <div className="text-[11px] font-normal text-muted-foreground">{option.description}</div>
             </div>
           ) : (
             <span className="min-w-0 flex-1 truncate text-start">{option.label}</span>

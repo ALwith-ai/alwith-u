@@ -1,4 +1,5 @@
 import type { CompletionItem } from "@alwith/module-chat/completion-filter"
+
 import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
 
 export { type CompletionItem, filterSlashCommands } from "@alwith/module-chat/completion-filter"

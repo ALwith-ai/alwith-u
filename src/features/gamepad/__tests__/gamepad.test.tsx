@@ -1,6 +1,6 @@
 import type { GamepadEvent, GamepadSnapshot } from "@alwith/module-gamepad"
 import { gamepadResources } from "@alwith/module-gamepad/locales"
-import { GamepadPanel, GamepadProvider, type GamepadHost } from "@alwith/module-gamepad/react"
+import { type GamepadHost, GamepadPanel, GamepadProvider } from "@alwith/module-gamepad/react"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { createInstance } from "i18next"
 import { I18nextProvider } from "react-i18next"

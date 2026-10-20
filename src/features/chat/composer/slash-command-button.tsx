@@ -5,6 +5,7 @@
 import { SquareSlashIcon } from "lucide-react"
 import { type RefObject, useRef } from "react"
 import { useTranslation } from "react-i18next"
+
 import { PromptInputButton, type PromptInputTextareaHandle } from "./prompt-input"
 
 export function SlashCommandButton({

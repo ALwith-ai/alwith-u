@@ -1,8 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { settingsFixture } from "@/lib/__tests__/settings-fixture"
-import { settingsStore, type SettingsSnapshot } from "@/lib/settings-store"
 import type { VoiceSettingsSlots } from "@alwith/module-voice/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+import { type SettingsSnapshot, settingsStore } from "@/lib/settings-store"
+
 import { VoiceSection } from "../voice-section"
 
 const { openExternal, reportError } = vi.hoisted(() => ({

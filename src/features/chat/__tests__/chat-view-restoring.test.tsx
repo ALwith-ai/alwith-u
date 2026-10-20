@@ -1,8 +1,10 @@
 import { applyUpdate, createSession } from "@alwith/api"
 import { act, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
+
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))

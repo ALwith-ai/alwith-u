@@ -13,7 +13,9 @@ import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/ass
 import { AlertCircleIcon, SparklesIcon } from "lucide-react"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
+
 import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
+
 import { ForkTurnButton } from "../chat-branches"
 import { isHistoryInterrupted, isSessionStatus, messageText, type Turn, turnTiming, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
@@ -97,7 +99,7 @@ function AssistantTurnImpl({
   if (isSessionStatus(turn)) {
     return (
       <ActivityHostProvider host={host}>
-        <div role="status" className="text-muted-foreground flex min-w-0 flex-col gap-2 py-2 text-sm">
+        <div role="status" className="flex min-w-0 flex-col gap-2 py-2 text-sm text-muted-foreground">
           {turn.work.map(entry => (
             <WorkEntryView
               key={entry.key}

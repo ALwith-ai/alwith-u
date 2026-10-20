@@ -20,12 +20,14 @@ import {
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
-import content from "../../../guide/index.md?raw"
-import logo from "../../../src-tauri/icons/128x128.png"
+
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { openExternal } from "@/lib/open"
+
+import content from "../../../guide/index.md?raw"
+import logo from "../../../src-tauri/icons/128x128.png"
 import "@alwith/module-chat/styles.css"
 import "./guide.css"
 

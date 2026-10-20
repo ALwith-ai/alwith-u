@@ -1,9 +1,10 @@
 import "../src/index.css"
-import { mockIPC } from "@tauri-apps/api/mocks"
-import { useEffect, type ReactNode } from "react"
-import type { Preview } from "@storybook/react-vite"
 import { withThemeByClassName } from "@storybook/addon-themes"
+import type { Preview } from "@storybook/react-vite"
+import { mockIPC } from "@tauri-apps/api/mocks"
+import { type ReactNode, useEffect } from "react"
 import { I18nextProvider } from "react-i18next"
+
 import { AppDirectionProvider } from "../src/components/alwith-ui/app-direction-provider"
 import { ThemeProvider, useTheme } from "../src/components/theme-provider"
 import i18n, { initI18n } from "../src/lib/i18n"
@@ -47,7 +48,7 @@ const preview: Preview = {
         <AppDirectionProvider>
           <ThemeProvider>
             <ThemeSync theme={context.globals.theme === "dark" ? "dark" : "light"}>
-              <div className="bg-background text-foreground mx-auto max-w-3xl p-4" data-stream-style="codexUI">
+              <div className="mx-auto max-w-3xl bg-background p-4 text-foreground" data-stream-style="codexUI">
                 <Story />
               </div>
             </ThemeSync>

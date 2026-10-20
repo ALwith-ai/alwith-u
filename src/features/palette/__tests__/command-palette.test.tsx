@@ -1,11 +1,13 @@
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { CommandPalette } from "../command-palette"
 
 await initI18n("en")

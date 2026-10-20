@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+
 import { createVoiceSettingsHost } from "../settings"
 let fixture: ReturnType<typeof settingsFixture>
 beforeEach(() => {

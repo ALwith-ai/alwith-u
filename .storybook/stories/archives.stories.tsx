@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, spyOn, waitFor, within } from "storybook/test"
+
 import type { ThreadSummary } from "../../src/agent/client"
 import { SidebarInset } from "../../src/components/ui/sidebar"
 import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
@@ -59,7 +60,7 @@ const meta = {
     }
   },
   render: () => (
-    <div className="bg-sidebar h-[640px]">
+    <div className="h-[640px] bg-sidebar">
       <MainSidebarLayout
         initialPinned={false}
         screen="leading"

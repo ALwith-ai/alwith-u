@@ -2,6 +2,7 @@ import { Allotment, LayoutPriority } from "allotment"
 import { FolderTree, Maximize2, Minimize2, X } from "lucide-react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import "allotment/dist/style.css"
 

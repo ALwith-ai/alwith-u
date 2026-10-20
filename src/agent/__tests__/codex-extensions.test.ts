@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { codexTurnError } from "../codex-extensions"
 
 test("standard errors preserve the message and Codex retry classification", () => {

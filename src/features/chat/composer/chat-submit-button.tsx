@@ -4,7 +4,9 @@
  */
 import { SquareIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
 import { cn } from "@/lib/utils"
+
 import { PromptInputButton, PromptInputSubmit, usePromptInputController } from "./prompt-input"
 
 export function ChatSubmitButton({
@@ -31,7 +33,7 @@ export function ChatSubmitButton({
         <PromptInputButton
           aria-label={t("actions.stop")}
           title={t("actions.stop")}
-          className="border-border size-7 rounded-full border"
+          className="size-7 rounded-full border border-border"
           onClick={onStop}>
           <SquareIcon className="size-3 fill-current" />
         </PromptInputButton>

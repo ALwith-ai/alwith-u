@@ -4,8 +4,10 @@ import { emitTo } from "@tauri-apps/api/event"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+
 import { drive } from "./controller"
 
 export function DriveIntegrations(): ReactNode {

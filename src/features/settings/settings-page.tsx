@@ -19,6 +19,7 @@ import {
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
@@ -32,13 +33,14 @@ import { NavigationItemButton } from "@/features/layout/components/navigation/na
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"
+
 import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
 import { GeneralSection } from "./sections/general-section"
-import { VoiceSection } from "./sections/voice-section"
 import { ProviderSection } from "./sections/provider-section"
+import { VoiceSection } from "./sections/voice-section"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,

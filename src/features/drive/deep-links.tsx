@@ -4,7 +4,9 @@ import { isTauri } from "@tauri-apps/api/core"
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link"
 import { useEffect, useRef } from "react"
 import { toast } from "sonner"
+
 import { openExternal } from "@/lib/open"
+
 import { drive } from "./controller"
 import { safeDriveWebUrl } from "./files"
 

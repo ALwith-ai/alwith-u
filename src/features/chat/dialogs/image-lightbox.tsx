@@ -4,6 +4,7 @@
 import { XIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
@@ -34,7 +35,7 @@ export function ImageLightbox() {
             <Button
               variant="outline"
               size="icon"
-              className="bg-popover text-popover-foreground absolute top-3 right-3 z-10 rounded-full shadow-sm"
+              className="absolute top-3 right-3 z-10 rounded-full bg-popover text-popover-foreground shadow-sm"
             />
           }>
           <XIcon aria-hidden="true" />

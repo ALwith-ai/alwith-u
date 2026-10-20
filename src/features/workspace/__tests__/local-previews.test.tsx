@@ -1,4 +1,5 @@
 import { Blob as NodeBlob } from "node:buffer"
+
 import {
   createEditorController,
   type EditorDocument,
@@ -7,15 +8,16 @@ import {
 } from "@alwith/module-editor"
 import {
   createPreviewProviders,
+  prepareHtmlPreview,
   type PreviewHost,
-  type PreviewResource,
-  prepareHtmlPreview
+  type PreviewResource
 } from "@alwith/module-editor/previews"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { Editor, editorViewCtx } from "@milkdown/core"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { routeHistory } from "../editor-shortcuts"
 
 const audioAnalyzers = vi.hoisted(() => ({ destroy: vi.fn() }))

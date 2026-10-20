@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { chmod, copyFile, mkdir, readdir } from "node:fs/promises"
 import { join } from "node:path"
+
 import manifest from "@alwith/module-computer/artifacts"
 
 export function verifyComputerArtifact(bytes: Uint8Array, sha256: string): void {

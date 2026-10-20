@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor } from "storybook/test"
+
 import { NavigationAds } from "../../src/features/layout/components/navigation-ads"
 
 const meta = {

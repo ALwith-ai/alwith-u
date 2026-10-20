@@ -1,11 +1,13 @@
-import { type ExtensionManifest, extensionApiVersion } from "@alwith/module-extension"
+import { extensionApiVersion, type ExtensionManifest } from "@alwith/module-extension"
 import { ExtensionHost } from "@alwith/module-extension/host"
 import { createLegacyExtension } from "@alwith/module-extension/legacy"
 import { createMemoryData } from "@alwith/module-extension/testing"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { connectExtensionNavigation } from "../chat/navigation"
 import { ExtensionViewContent } from "../extension-view"
 import { createLegacyHost } from "../legacy/host"

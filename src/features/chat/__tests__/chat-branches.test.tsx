@@ -3,9 +3,11 @@ import { fireEvent, render, waitFor } from "@testing-library/react"
 import { act } from "react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatBranchProvider, ForkOriginDivider, ForkTurnButton } from "../chat-branches"
 
 await initI18n("en")

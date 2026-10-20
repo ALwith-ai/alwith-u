@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { PanelDivider } from "../panel-divider"
 
 afterEach(() => {

@@ -7,10 +7,12 @@ import type { Installation } from "@alwith/module-extension/tauri"
 import { invoke } from "@tauri-apps/api/core"
 import { emit, listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
+
 import { assertPluginSessionArchiveAllowed } from "@/features/drive/plugin-bridge"
 import { client } from "@/lib/client"
 import i18n from "@/lib/i18n"
 import { openExternal } from "@/lib/open"
+
 import { commonCapabilities } from "../capabilities/common"
 import { extensionNavigation } from "../chat/navigation"
 import { legacyMessageSkills } from "./adapters"

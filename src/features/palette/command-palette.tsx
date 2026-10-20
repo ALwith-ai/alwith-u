@@ -1,5 +1,6 @@
 import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { useTheme } from "@/components/theme-provider"
@@ -130,7 +131,7 @@ export function CommandPalette({
                   onSelect={() => run(() => onSelect(thread))}>
                   <MessageSquareIcon />
                   <span className="truncate">{thread.title ?? t("sidebar.untitled")}</span>
-                  <span className="text-muted-foreground ms-auto truncate text-xs">{basename(thread.cwd)}</span>
+                  <span className="ms-auto truncate text-xs text-muted-foreground">{basename(thread.cwd)}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

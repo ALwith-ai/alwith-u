@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import {
   ItemActions,
   ItemContent,
@@ -57,7 +58,7 @@ function ExtensionIcon({ src }: { src?: string }): ReactNode {
   const icon = src ? parseManifestIcon(src) : undefined
   if (icon?.type === "lucide") {
     const Icon = EXTENSION_ICONS[icon.name]
-    return <Icon className="text-muted-foreground size-8" />
+    return <Icon className="size-8 text-muted-foreground" />
   }
   return src && !failed ? (
     <img
@@ -68,7 +69,7 @@ function ExtensionIcon({ src }: { src?: string }): ReactNode {
       onError={() => setFailed(true)}
     />
   ) : (
-    <BlocksIcon className="text-muted-foreground size-5" />
+    <BlocksIcon className="size-5 text-muted-foreground" />
   )
 }
 
@@ -105,7 +106,7 @@ export function ExtensionsManager({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{t("sidebar.extensions")}</h1>
-          <Badge className="bg-primary/10 text-primary text-[10px]">BETA</Badge>
+          <Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>
         </div>
         <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
           {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
@@ -113,7 +114,7 @@ export function ExtensionsManager({
         </Button>
       </div>
       {installPhase && (
-        <div role="status" aria-live="polite" className="text-muted-foreground flex items-center gap-2 text-sm">
+        <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden="true" />
           {t(installPhase === "preparing" ? "extensions.preparingInstall" : "extensions.installing")}
         </div>
@@ -132,13 +133,13 @@ export function ExtensionsManager({
           onChange={event => setQuery(event.currentTarget.value)}
         />
         {state.native === null && !state.errors.service && (
-          <div role="status" className="text-muted-foreground flex items-center justify-center gap-2 py-12 text-sm">
+          <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <Spinner />
             {t("extensions.loading")}
           </div>
         )}
         {state.native !== null && matches.length === 0 && (
-          <p className="text-muted-foreground py-12 text-center text-sm">
+          <p className="py-12 text-center text-sm text-muted-foreground">
             {t(installations.length === 0 ? "extensions.empty" : "extensions.noMatches")}
           </p>
         )}
@@ -155,7 +156,7 @@ export function ExtensionsManager({
               <section key={item.installationId} aria-label={name} className="min-w-0">
                 <PanelItem className="group/extension rounded-md py-3">
                   <ItemMedia>
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-sm">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} />
                     </div>
                   </ItemMedia>
@@ -164,7 +165,7 @@ export function ExtensionsManager({
                       delay={300}
                       render={
                         <ItemContent
-                          className="focus-visible:ring-ring min-w-0 rounded-sm outline-none focus-visible:ring-2"
+                          className="min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           role="group"
                           tabIndex={0}
                           aria-label={t("extensions.details.label", { name })}
@@ -180,7 +181,7 @@ export function ExtensionsManager({
                               <a
                                 href={item.manifest.authorUrl}
                                 rel="noopener noreferrer"
-                                className="hover:text-foreground underline-offset-4 hover:underline"
+                                className="underline-offset-4 hover:text-foreground hover:underline"
                                 onClick={event => {
                                   event.preventDefault()
                                   void openExternal(event.currentTarget.href).catch((error: unknown) =>
@@ -204,10 +205,10 @@ export function ExtensionsManager({
                       side="bottom"
                       sideOffset={8}
                       align="start"
-                      className="bg-popover text-popover-foreground border-border [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border p-4 leading-relaxed break-words shadow-md [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b">
+                      className="block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border border-border bg-popover p-4 leading-relaxed break-words text-popover-foreground shadow-md [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b">
                       <p className="text-sm font-medium">{name}</p>
-                      {description && <p className="text-muted-foreground whitespace-pre-wrap">{description}</p>}
-                      <dl className="border-border [&>dt]:text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t pt-3">
+                      {description && <p className="whitespace-pre-wrap text-muted-foreground">{description}</p>}
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t border-border pt-3 [&>dt]:text-muted-foreground">
                         <dt>ID</dt>
                         <dd className="break-all">{item.id}</dd>
                         <dt>{t("extensions.details.version")}</dt>
@@ -306,7 +307,7 @@ export function ExtensionsManager({
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="text-muted-foreground absolute top-2 right-2"
+                          className="absolute top-2 right-2 text-muted-foreground"
                           aria-label={t("actions.close")}
                           onClick={() => setDismissedNotices(previous => new Set(previous).add(key))}>
                           <XIcon />
@@ -321,7 +322,7 @@ export function ExtensionsManager({
                 )}
                 {pending && (
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-muted-foreground text-sm" role="status">
+                    <span className="text-sm text-muted-foreground" role="status">
                       {t("extensions.stopping", { count: pending.waitingInstances })}
                     </span>
                     <Button

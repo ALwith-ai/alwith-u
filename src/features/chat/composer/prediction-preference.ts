@@ -1,4 +1,5 @@
 import { createStore } from "zustand/vanilla"
+
 import { savePreference } from "@/lib/preferences"
 
 export const predictionPreference = createStore(() => ({ enabled: true }))

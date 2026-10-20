@@ -1,20 +1,22 @@
-import { useStore } from "zustand"
-import { Switch } from "@/components/ui/switch"
-import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { getVersion } from "@tauri-apps/api/app"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { useStore } from "zustand"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { useExternalApps } from "@/features/chat/open-in-editor"
 import { requestChatSurface } from "@/lib/chat-window"
 import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
-import { SettingGroup, SettingRow } from "./shared"
+
 import { AutostartRow } from "./autostart-row"
+import { SettingGroup, SettingRow } from "./shared"
 
 export function GeneralSection() {
   const { t } = useTranslation()
@@ -38,7 +40,7 @@ export function GeneralSection() {
   return (
     <SettingGroup>
       <SettingRow title={t("settings.versionLabel")} aligned>
-        <span className="text-muted-foreground block text-end text-sm">v{version}</span>
+        <span className="block text-end text-sm text-muted-foreground">v{version}</span>
       </SettingRow>
       <Separator />
       <SettingRow title={t("chatWindow.shortcut")} aligned>

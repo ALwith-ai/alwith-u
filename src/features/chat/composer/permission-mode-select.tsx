@@ -9,6 +9,7 @@ import { PermissionModeSelect as SharedPermissionModeSelect } from "@alwith/modu
 import { CodeXmlIcon, EyeIcon, type LucideIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { client } from "@/lib/client"
 
 const MODE_ICONS: Record<string, LucideIcon> = {

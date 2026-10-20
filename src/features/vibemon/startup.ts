@@ -1,7 +1,8 @@
+import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
+
+import { commands } from "@/bindings"
 import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
-import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
-import { commands } from "@/bindings"
 
 /** Only a login launch overrides the previous enabled state of an equipped pet. */
 export async function restorePetOnStartup(

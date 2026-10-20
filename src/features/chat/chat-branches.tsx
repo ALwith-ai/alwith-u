@@ -3,11 +3,13 @@ import { SplitIcon } from "lucide-react"
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ForkOrigin, ThreadSummary } from "@/agent/client"
 import { codexExtensionCapabilities, codexTurnId } from "@/agent/codex-extensions"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { client, useApp } from "@/lib/client"
+
 import type { Turn } from "./turns"
 
 type BranchActions = {
@@ -145,7 +147,7 @@ export function ForkOriginDivider({ turn }: { turn?: Turn }) {
       <Button
         variant="link"
         size="xs"
-        className="text-muted-foreground max-w-[75%] min-w-0"
+        className="max-w-[75%] min-w-0 text-muted-foreground"
         disabled={actions.openingSource}
         onClick={actions.openSource}>
         <SplitIcon className="size-3.5 rotate-90" />

@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { fitSessionMenuLabel } from "../session-menu-label"
 
 const measure = (text: string) =>

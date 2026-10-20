@@ -1,4 +1,4 @@
-import { GamepadPanel, GamepadProvider, type GamepadHost } from "@alwith/module-gamepad/react"
+import { type GamepadHost, GamepadPanel, GamepadProvider } from "@alwith/module-gamepad/react"
 import { createTauriGamepadTransport } from "@alwith/module-gamepad/tauri"
 import "@alwith/module-gamepad/styles.css"
 import { invoke } from "@tauri-apps/api/core"

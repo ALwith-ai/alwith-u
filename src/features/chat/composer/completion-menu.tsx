@@ -3,7 +3,9 @@ import { CompletionMenu as SharedCompletionMenu } from "@alwith/module-chat/comp
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
+
 import { fileItems } from "./completion"
 import type { PromptInputTextareaHandle } from "./prompt-input"
 

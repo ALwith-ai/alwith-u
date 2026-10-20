@@ -1,5 +1,6 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
 import { gt } from "semver"
+
 import { BUNDLED_SOURCE } from "./policy"
 
 export interface BundledExtension {

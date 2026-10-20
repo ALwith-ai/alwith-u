@@ -1,5 +1,6 @@
 // Desktop notifications for state changes the user is not looking at.
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
+
 import type { CodexClient } from "@/agent/client"
 import i18n from "@/lib/i18n"
 

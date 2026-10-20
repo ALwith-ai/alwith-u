@@ -1,5 +1,6 @@
 import { act, cleanup, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { initI18n } from "@/lib/i18n"
 import { zoomStore } from "@/lib/zoom"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+
 import { isMac } from "@/lib/platform"
 
 /** Whether the platform primary modifier is held; controls activity navigation hints.

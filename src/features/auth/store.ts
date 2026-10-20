@@ -14,7 +14,9 @@ import { fetch } from "@tauri-apps/plugin-http"
 import { arch, platform } from "@tauri-apps/plugin-os"
 import { LazyStore } from "@tauri-apps/plugin-store"
 import { create } from "zustand"
+
 import { commands } from "@/bindings"
+
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
 

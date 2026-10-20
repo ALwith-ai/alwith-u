@@ -3,11 +3,13 @@ import { spawnSync } from "node:child_process"
 import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { delimiter, join, resolve } from "node:path"
+
+import { ProcessRuntimeClient } from "@alwith/api/node"
+
 import manifest from "../package.json"
+import providers from "../src/lib/provider-catalog.json"
 import { assertVersion, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
-import { ProcessRuntimeClient } from "@alwith/api/node"
-import providers from "../src/lib/provider-catalog.json"
 
 const argument = process.argv[2]
 if (!argument)

@@ -3,7 +3,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
+
 import { PanelDivider } from "./panel-divider"
 import { resolvePanelWidths } from "./panel-sizing"
 import "./workspace.css"

@@ -5,22 +5,24 @@
  */
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Session } from "@alwith/api"
-import { observeVoiceTurn } from "@/core/voice-turn"
 import type { DraftPort, DraftSnapshot } from "@alwith/module-voice/chat"
-import { VoiceButton } from "@/features/voice/voice-button"
 import { ImageIcon } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
+import { observeVoiceTurn } from "@/core/voice-turn"
+import { VoiceButton } from "@/features/voice/voice-button"
 import { client, useApp } from "@/lib/client"
+
 import { ChatSubmitButton } from "./composer/chat-submit-button"
 import { CompletionMenu } from "./composer/completion-menu"
 import { drafts, registerComposerWriter } from "./composer/drafts"
 import { MentionChips } from "./composer/mention-chips"
 import { formatMentionUri, mentionDisplayName } from "./composer/mention-uri"
 import { ModelSelectGroup } from "./composer/model-select-group"
-import { NativeFileDrop, nativeAttachmentPolicy } from "./composer/native-file-drop"
+import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
 import { PermissionModeSelect } from "./composer/permission-mode-select"
 import {
   type Attachment,
@@ -255,7 +257,7 @@ export function Composer({
       {inputHeader && (
         <div
           data-chat-input-header
-          className="bg-sidebar dark:bg-foreground/3 relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl px-1.5 pt-1.5 pb-[27px]">
+          className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3">
           {inputHeader}
         </div>
       )}
@@ -295,7 +297,7 @@ export function Composer({
           />
           <PromptInputHeader>
             {dropping && (
-              <span role="status" className="text-muted-foreground text-xs">
+              <span role="status" className="text-xs text-muted-foreground">
                 {t("chat.input.addingFiles")}
               </span>
             )}
@@ -334,7 +336,7 @@ export function Composer({
               aria-label={t("chat.placeholder")}
             />
             {prediction.error && (
-              <span className="text-muted-foreground text-xs" role="status" title={prediction.error}>
+              <span className="text-xs text-muted-foreground" role="status" title={prediction.error}>
                 {t("chat.predictionUnavailable")}
               </span>
             )}

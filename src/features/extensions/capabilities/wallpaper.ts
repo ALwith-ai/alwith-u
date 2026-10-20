@@ -1,7 +1,9 @@
 import type { CapabilityProvider } from "@alwith/module-extension/host"
+
 import { wallpaperController } from "@/features/appearance/wallpaper/controller"
 import { wallpaperLibrary } from "@/features/appearance/wallpaper/library"
 import i18n from "@/lib/i18n"
+
 import type { WallpaperCapability } from "./wallpaper-contract"
 
 export function createWallpaperCapability(

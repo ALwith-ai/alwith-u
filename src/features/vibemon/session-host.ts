@@ -8,7 +8,9 @@ import {
   type PetSurface,
   sameBinding
 } from "@alwith/module-auth/pets/core"
+
 import type { AppState } from "@/agent/client"
+
 import { petAnswer, petPrompt } from "./pet-prompt"
 
 export interface PetSessionOwner {

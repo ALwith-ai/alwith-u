@@ -1,6 +1,7 @@
 import { FolderClosedIcon, MessageSquareIcon, PlusIcon } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
@@ -13,6 +14,7 @@ import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
 import { basename } from "@/lib/path"
+
 import { newChatDirectory } from "./new-chat-directory"
 
 type ProjectActions = {
@@ -154,7 +156,7 @@ function ProjectPopover({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8 shrink-0 transition-colors duration-150 ease-out"
+              className="shrink-0 transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
               aria-label={label}
               title={cwd ?? label}
             />
@@ -233,7 +235,7 @@ function ProjectContents({
           <span className="min-w-0 flex-1 truncate font-semibold">
             {cwd === null ? t("sidebar.quickChats") : basename(cwd)}
           </span>
-          <span className="text-muted-foreground shrink-0 text-xs" aria-live="polite">
+          <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
             {result?.status === "ready" ? t("chat.project.chatCount", { count: result.threads.length }) : null}
           </span>
         </div>
@@ -244,13 +246,13 @@ function ProjectContents({
         viewportRef={listRef}
         viewportProps={{ tabIndex: -1 }}>
         {(result === undefined || result.status === "loading") && (
-          <p role="status" className="text-muted-foreground px-3 py-2 text-sm">
+          <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
             {t("chat.project.loading")}
           </p>
         )}
         {result?.status === "failed" && (
           <div className="px-3 py-2">
-            <p role="alert" className="text-muted-foreground text-sm">
+            <p role="alert" className="text-sm text-muted-foreground">
               {result.error}
             </p>
             <Button variant="ghost" size="sm" onClick={retry}>
@@ -259,7 +261,7 @@ function ProjectContents({
           </div>
         )}
         {result?.status === "ready" && result.threads.length === 0 && (
-          <p className="text-muted-foreground px-3 py-2 text-sm">{t("sidebar.noResults")}</p>
+          <p className="px-3 py-2 text-sm text-muted-foreground">{t("sidebar.noResults")}</p>
         )}
         {result?.status === "ready" &&
           (expanded ? result.threads : result.threads.slice(0, 5)).map(thread => (
@@ -273,7 +275,7 @@ function ProjectContents({
               <MessageSquareIcon />
               <OverflowMarquee className="flex-1 text-start">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
               {thread.updatedAt !== null && (
-                <span className="text-muted-foreground shrink-0 text-xs">
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {relativeTime(thread.updatedAt, i18n.language)}
                 </span>
               )}
@@ -284,7 +286,7 @@ function ProjectContents({
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground h-8 justify-start rounded-none border-0 ps-9 pe-3"
+          className="h-8 justify-start rounded-none border-0 ps-9 pe-3 text-muted-foreground"
           onClick={event => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
@@ -296,13 +298,13 @@ function ProjectContents({
       <Separator />
       {directory.status === "ready" && <ProjectPathAction cwd={directory.cwd} onOpened={onOpened} />}
       {directory.status === "loading" && (
-        <p role="status" className="text-muted-foreground px-3 py-2 text-sm">
+        <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
           {t("chat.project.loading")}
         </p>
       )}
       {directory.status === "failed" && (
         <div className="px-3 py-2">
-          <p role="alert" className="text-muted-foreground text-sm">
+          <p role="alert" className="text-sm text-muted-foreground">
             {directory.error}
           </p>
           <Button variant="ghost" size="sm" onClick={directory.retry}>

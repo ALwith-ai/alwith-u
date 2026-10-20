@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { type ReloadPort, runExtensionReload } from "../reload-service"
 
 function fixture(): { port: ReloadPort; calls: string[] } {

@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 import { openGamepadWindow } from "@/lib/window-manager"
+
 import { NavigationAds } from "../navigation-ads"
 
 vi.mock("@/lib/window-manager", () => ({ openGamepadWindow: vi.fn(async () => {}) }))

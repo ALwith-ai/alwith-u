@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react"
+
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { TRAILING_GROUP, TrailingSlot, TrailingSwap } from "@/components/alwith-ui/trailing-swap"
@@ -52,7 +53,7 @@ export function NavigationGroup({
           content={
             count !== undefined ? (
               <TrailingSlot
-                className={cn("text-muted-foreground justify-end text-xs opacity-70", countLabel && "w-auto")}>
+                className={cn("justify-end text-xs text-muted-foreground opacity-70", countLabel && "w-auto")}>
                 <span dir="ltr">{countLabel ?? count}</span>
               </TrailingSlot>
             ) : undefined
@@ -80,7 +81,7 @@ export function NavigationGroup({
           type="button"
           aria-expanded={open}
           aria-label={typeof label === "string" ? label : tooltip}
-          className="focus-visible:outline-ring absolute inset-0 rounded-[10px] outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+          className="absolute inset-0 rounded-[10px] outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
         />
         {rowContent}
       </div>

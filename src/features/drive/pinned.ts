@@ -1,4 +1,4 @@
-import { type PinnedDoc, parsePinnedDocs } from "@alwith/module-drive/react"
+import { parsePinnedDocs, type PinnedDoc } from "@alwith/module-drive/react"
 import { useSyncExternalStore } from "react"
 import { toast } from "sonner"
 

@@ -2,6 +2,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { LoaderCircleIcon, Minimize2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog"
 import { requestChatSurface } from "@/lib/chat-window"
+
 import { petErrorMessage } from "./display-error"
 import { collapseChatToPet } from "./window-client"
 
@@ -96,7 +98,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
             </DialogDescription>
           </DialogHeader>
           {notice?.type === "setup" && notice.error && (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-sm text-destructive">
               {notice.error}
             </p>
           )}

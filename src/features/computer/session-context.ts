@@ -1,9 +1,10 @@
 import { computerContext } from "@alwith/module-computer"
 import { isTauri } from "@tauri-apps/api/core"
+
 import type { ClientOptions } from "@/agent/client"
-import i18n from "@/lib/i18n"
 import { commands } from "@/bindings"
 import { driveSessionContext } from "@/features/drive/session-context"
+import i18n from "@/lib/i18n"
 
 export async function computerContextRevision(): Promise<string> {
   if (!isTauri()) return "disabled"

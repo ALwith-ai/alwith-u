@@ -1,5 +1,6 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { afterEach, expect, test } from "vitest"
+
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 
 afterEach(clearMocks)

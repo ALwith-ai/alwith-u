@@ -1,6 +1,7 @@
+import { observeResourceSync, syncVibemonResources } from "@alwith/module-auth/pets/core"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
-import { observeResourceSync, syncVibemonResources } from "@alwith/module-auth/pets/core"
+
 import { VibemonCenter } from "../pet-center"
 
 vi.mock("@alwith/module-auth/pets/core", async importOriginal => ({

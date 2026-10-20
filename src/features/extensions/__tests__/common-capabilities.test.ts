@@ -1,10 +1,10 @@
 import {
   binaryHttpCapability,
   clipboardCapability,
-  type DirectoryHandle,
   directoriesCapability,
-  type ExtensionManifest,
+  type DirectoryHandle,
   extensionApiVersion,
+  type ExtensionManifest,
   type FilesCapability,
   filesCapability,
   type NoticeHandle,

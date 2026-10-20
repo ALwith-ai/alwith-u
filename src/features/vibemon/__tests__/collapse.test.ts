@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest"
+
 import { collapseToPet, type PetCollapseHost } from "../collapse"
 
 function fixture(overrides: Partial<PetCollapseHost> = {}) {

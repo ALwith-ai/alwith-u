@@ -1,6 +1,7 @@
 import { error as logError } from "@tauri-apps/plugin-log"
 import { toast } from "sonner"
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { errorDetails, logBackgroundError, reportBackgroundError } from "../background-errors"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))

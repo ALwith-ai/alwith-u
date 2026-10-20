@@ -7,6 +7,7 @@ import {
 } from "@alwith/module-chat/navigation-rail"
 import { type ComponentProps, useMemo } from "react"
 import { useStore } from "zustand"
+
 import { messageText, type Turn } from "../turns"
 import {
   installThreadUserMessageNavigationAudioUnlock,

@@ -14,13 +14,15 @@ import {
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import * as React from "react"
 import { useEffect, useSyncExternalStore } from "react"
+import * as reactDom from "react-dom/client"
 import * as jsxDevRuntime from "react/jsx-dev-runtime"
 import * as jsxRuntime from "react/jsx-runtime"
-import * as reactDom from "react-dom/client"
-import { reportBackgroundError } from "@/lib/background-errors"
+
 import { commands } from "@/bindings"
 import { bindDrivePluginData } from "@/features/drive/plugin-bridge"
+import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
+
 import { version as hostVersion } from "../../../package.json"
 import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"

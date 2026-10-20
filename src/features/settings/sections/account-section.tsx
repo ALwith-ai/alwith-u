@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 
@@ -13,8 +14,8 @@ export function AccountSection() {
     <section className="flex flex-col gap-4 pt-6">
       <h2 className="text-lg font-semibold">ALwith</h2>
       <p>{user.nickname}</p>
-      <p className="text-muted-foreground text-sm">{user.login_email}</p>
-      <p className="text-muted-foreground text-sm">{t("platformAuth.accountHint")}</p>
+      <p className="text-sm text-muted-foreground">{user.login_email}</p>
+      <p className="text-sm text-muted-foreground">{t("platformAuth.accountHint")}</p>
       <Button
         variant="outline"
         disabled={busy}

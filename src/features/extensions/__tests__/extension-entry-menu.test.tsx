@@ -2,8 +2,10 @@ import type { ExtensionManifest } from "@alwith/module-extension"
 import type { HostSnapshot } from "@alwith/module-extension/host"
 import { act, fireEvent, render } from "@testing-library/react"
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { initI18n } from "@/lib/i18n"
+
 import { ExtensionEntryMenu } from "../extension-entry-menu"
 import { ExtensionNavigation } from "../extension-navigation"
 

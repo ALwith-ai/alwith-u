@@ -10,6 +10,7 @@
 
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
 import type { ComponentProps, Ref, UIEventHandler } from "react"
+
 import { cn } from "@/lib/utils"
 
 interface PaneProps extends Omit<ComponentProps<typeof ScrollAreaPrimitive.Root>, "onScroll"> {
@@ -46,7 +47,7 @@ export function Pane({
         data-orientation="vertical"
         orientation="vertical"
         className="flex h-full w-1.5 touch-none p-px transition-colors select-none">
-        <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="bg-border relative flex-1 rounded-full" />
+        <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="relative flex-1 rounded-full bg-border" />
       </ScrollAreaPrimitive.Scrollbar>
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>

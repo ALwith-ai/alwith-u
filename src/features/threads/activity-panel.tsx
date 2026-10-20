@@ -16,6 +16,7 @@ import { ActivityIcon, AppWindowIcon, ArrowLeftIcon, PictureInPicture2Icon } fro
 import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { ThreadSummary } from "@/agent/client"
 import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
 import { Pane } from "@/components/alwith-ui/pane"
@@ -32,6 +33,7 @@ import { stopSession, useApp } from "@/lib/client"
 import { isMac } from "@/lib/platform"
 import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
+
 import { useActivityOrder } from "./activity-order"
 import { activityGroupOf } from "./lib/activity-group"
 import { useThreadsUiStore } from "./store"
@@ -105,7 +107,7 @@ export function ActivityPanel({
         .map(key => ({
           key,
           label: key === "background" ? t("sidebar.background") : t("sidebar.foreground"),
-          icon: key === "background" ? <ActivityIcon className="text-muted-foreground size-3.5 shrink-0" /> : undefined,
+          icon: key === "background" ? <ActivityIcon className="size-3.5 shrink-0 text-muted-foreground" /> : undefined,
           rows: byKey.get(key) ?? []
         }))
     )
@@ -256,9 +258,9 @@ function ActivityRow({
               })}
               title={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", { ns: "common" })}>
               {windowLabel === "chat" ? (
-                <PictureInPicture2Icon className="text-muted-foreground size-3.5" />
+                <PictureInPicture2Icon className="size-3.5 text-muted-foreground" />
               ) : (
-                <AppWindowIcon className="text-muted-foreground size-3.5" />
+                <AppWindowIcon className="size-3.5 text-muted-foreground" />
               )}
             </span>
           )
@@ -276,7 +278,7 @@ function ActivityRow({
           key={task.id}
           className="flex h-[var(--navigation-row-height)] items-center gap-2 rounded-[10px] ps-10 pe-2 text-xs [corner-shape:superellipse(1.5)]">
           <SessionStateDot state="running" />
-          <span className="text-muted-foreground min-w-0 flex-1 truncate" title={task.title}>
+          <span className="min-w-0 flex-1 truncate text-muted-foreground" title={task.title}>
             {task.title}
           </span>
         </div>

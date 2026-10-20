@@ -9,8 +9,10 @@ import { type BooleanOption, isBooleanOption, isGroupedSelect, isSelectOption, t
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import { client, useApp } from "@/lib/client"
+
 import { flattenSelectOptions } from "./permission-mode-select"
 
 /**

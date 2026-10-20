@@ -1,5 +1,7 @@
 import { expect, test } from "vitest"
+
 import type { PendingAction } from "@/agent/client"
+
 import { petAnswer, petPrompt } from "../pet-prompt"
 
 function question(properties: Record<string, unknown>): PendingAction {

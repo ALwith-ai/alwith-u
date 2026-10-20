@@ -1,6 +1,8 @@
 import { act, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+
 import i18n, { initI18n } from "@/lib/i18n"
+
 import { ErrorBoundary } from "../error-boundary"
 
 function Broken(): never {

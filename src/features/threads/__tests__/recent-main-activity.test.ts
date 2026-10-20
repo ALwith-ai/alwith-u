@@ -1,6 +1,8 @@
 import type { SessionRunState } from "@alwith/api"
 import { expect, test } from "vitest"
+
 import { type AppState, CodexClient } from "@/agent/client"
+
 import { recentMainActivity } from "../recent-main-activity"
 
 function record(sessionId: string, lastActivityAt: number): SessionRunState {

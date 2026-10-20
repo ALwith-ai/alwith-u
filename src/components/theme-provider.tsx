@@ -1,8 +1,9 @@
-import { settingsStore, updateSettings } from "@/lib/settings-store"
-import { toast } from "sonner"
 import { setTheme as setNativeTheme } from "@tauri-apps/api/app"
 import { isTauri } from "@tauri-apps/api/core"
 import * as React from "react"
+import { toast } from "sonner"
+
+import { settingsStore, updateSettings } from "@/lib/settings-store"
 
 export type Theme = "dark" | "light" | "system"
 export type ResolvedTheme = "dark" | "light"

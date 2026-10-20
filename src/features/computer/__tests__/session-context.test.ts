@@ -1,5 +1,6 @@
-import { initI18n } from "@/lib/i18n"
 import { beforeEach, expect, test, vi } from "vitest"
+
+import { initI18n } from "@/lib/i18n"
 const native = vi.hoisted(() => ({
   ready: vi.fn(),
   context: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("@/bindings", () => ({
 vi.mock("@/features/drive/session-context", () => ({
   driveSessionContext: async () => ({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
 }))
-import { hostSessionContext, computerContextRevision, prepareComputerTools } from "../session-context"
+import { computerContextRevision, hostSessionContext, prepareComputerTools } from "../session-context"
 beforeEach(async () => {
   await initI18n("en")
   vi.clearAllMocks()

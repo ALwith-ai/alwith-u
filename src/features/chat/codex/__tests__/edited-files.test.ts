@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+
 import { patchStatsByFile } from "../edited-files-card"
 
 const patch = `diff --git a/src/a.ts b/src/a.ts

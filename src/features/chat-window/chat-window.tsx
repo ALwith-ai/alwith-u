@@ -2,6 +2,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
@@ -26,6 +27,7 @@ import { useProviders } from "@/lib/use-providers"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
+
 import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
@@ -283,7 +285,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     <main
       inert={busy}
       aria-busy={busy}
-      className="bg-background text-foreground relative flex h-dvh flex-col overflow-hidden rounded-2xl border">
+      className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground">
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />

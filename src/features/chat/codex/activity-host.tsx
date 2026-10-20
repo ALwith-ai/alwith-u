@@ -2,6 +2,7 @@ import type { ActivityHost } from "@alwith/module-chat/activity-host"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+
 import { openImageLightbox } from "../dialogs/image-lightbox"
 import { ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
 import { CodexMarkdownRenderer } from "./markdown-renderer"

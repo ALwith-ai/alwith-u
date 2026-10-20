@@ -3,9 +3,11 @@
 import { invoke } from "@tauri-apps/api/core"
 import { emit } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { settingsStore, updateSettings } from "./settings-store"
+
 import type { NavigationInstrument, NavigationSoundMode } from "@/features/chat/codex/navigation-instruments"
+
 import { setProjectAppPreference } from "./project-app-preference"
+import { settingsStore, updateSettings } from "./settings-store"
 
 export type Preferences = {
   composerPredictions?: boolean

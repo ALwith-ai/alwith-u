@@ -2,8 +2,10 @@ import { containsPath } from "@alwith/module-fs"
 import { invoke } from "@tauri-apps/api/core"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
+
 import { useWorkspace } from "@/features/workspace/context"
 import { fileLocationPath, openExternal } from "@/lib/open"
+
 import { openFilePreview } from "./dialogs/file-preview-modal"
 
 // Scope relative file references to their owning thread, including inactive chats.

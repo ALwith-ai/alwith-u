@@ -2,6 +2,7 @@ import { createPetAssets, type PetAccount } from "@alwith/module-auth/pets"
 import { invoke } from "@tauri-apps/api/core"
 import { emit, listen } from "@tauri-apps/api/event"
 import { LazyStore } from "@tauri-apps/plugin-store"
+
 import { API_BASE_URL, platformApiRequest, usePlatformAuth } from "./store"
 
 const store = new LazyStore("vibemon.json")

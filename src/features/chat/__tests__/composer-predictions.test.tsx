@@ -1,11 +1,13 @@
 import { createSession, type Session } from "@alwith/api"
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { Composer } from "../composer"
-import { predictionPreference } from "../composer/prediction-preference"
 import { drafts } from "../composer/drafts"
+import { predictionPreference } from "../composer/prediction-preference"
 import { useComposerPrediction } from "../composer/use-composer-prediction"
 
 await initI18n("en")
@@ -183,7 +185,6 @@ test("the submitted draft cannot dismiss a new turn's prediction before the inpu
   view.rerender({ session: predicted(completed()), available: true, hasDraft: false })
   expect(view.result.current.text).toBe("Run the tests")
 })
-
 
 test("disabling predictions hides results and prevents requests until enabled", () => {
   predictionPreference.setState({ enabled: false })

@@ -7,6 +7,7 @@ import { enUS, zhCN } from "date-fns/locale"
 import { ClockIcon, MessageSquareIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { ThreadSummary } from "@/agent/client"
 import { HoverInfoCard, type HoverInfoRow } from "@/components/alwith-ui/hover-info-card"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
@@ -16,6 +17,7 @@ import {
   useNavigationHoverCardClose,
   useNavigationHoverCardPin
 } from "@/features/layout/components/navigation/navigation-session-item"
+
 import { ProjectPathAction } from "./project-path-action"
 
 const DATE_FNS_LOCALES = { en: enUS, "zh-CN": zhCN } as const

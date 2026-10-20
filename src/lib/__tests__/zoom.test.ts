@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest"
+
 import { hydrateZoom, resetZoom, setZoomLevel, syncZoomLevel, zoomIn, zoomOut, zoomStore } from "../zoom"
 
 const { setZoom, save } = vi.hoisted(() => ({

@@ -1,10 +1,12 @@
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { SettingGroup, SettingRow } from "@/features/settings/sections/shared"
+
 import { saveEditorIconTheme, saveEditorSettings } from "./editor-settings"
 import { useEditorPreferences } from "./use-editor-preferences"
 import { type IconTheme, iconThemes } from "./workspace-state"

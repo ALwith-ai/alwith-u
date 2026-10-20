@@ -2,6 +2,7 @@
 // talks frames through Tauri events and commands (`@alwith/api/tauri`).
 
 import { TauriRuntimeClient } from "@alwith/api/tauri"
+
 import { events, type RuntimeExit } from "@/bindings"
 
 /** Emitted by Rust when the alwith-runtime process ends. */

@@ -1,5 +1,5 @@
 /** Reproducible vector artwork for the bundled ALwith U agent cursor. */
-import { mkdir, mkdtemp, rm, writeFile, utimes } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 const root = join(import.meta.dir, "../src-tauri/assets/computer")

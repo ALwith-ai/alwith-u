@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { FilePosition } from "@/features/workspace/context"
@@ -41,18 +42,18 @@ function PreviewContent({ request }: { request: Request }) {
   }, [result])
   if (error !== null)
     return (
-      <div role="alert" className="text-destructive p-4 text-sm">
+      <div role="alert" className="p-4 text-sm text-destructive">
         {error}
       </div>
     )
   if (result === null)
     return (
-      <div role="status" className="text-muted-foreground p-4 text-sm">
+      <div role="status" className="p-4 text-sm text-muted-foreground">
         {t("workspace.loading")}
       </div>
     )
   if (result.kind === "unsupported")
-    return <p className="text-muted-foreground p-4 text-sm">{t("chat.filePreview.unsupported")}</p>
+    return <p className="p-4 text-sm text-muted-foreground">{t("chat.filePreview.unsupported")}</p>
   if (result.kind === "image")
     return (
       <img

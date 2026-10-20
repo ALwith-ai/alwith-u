@@ -1,8 +1,10 @@
-import { reportBackgroundError } from "@/lib/background-errors"
 import { isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { useEffect } from "react"
+
+import { reportBackgroundError } from "@/lib/background-errors"
 import { client } from "@/lib/client"
+
 import { createDriveArchive } from "./archive"
 import { drive } from "./controller"
 export const DRIVE_ARCHIVE_SYNC = "drive:archive-sync"

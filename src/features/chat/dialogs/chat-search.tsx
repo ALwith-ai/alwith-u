@@ -3,7 +3,9 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
+
 import { events } from "@/bindings"
+
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
 import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"

@@ -1,9 +1,11 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test, vi } from "vitest"
+
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
+
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
 import { DesktopCodexClient } from "../desktop-client"
 

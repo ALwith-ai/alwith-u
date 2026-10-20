@@ -1,5 +1,6 @@
 import { createSession, type Session } from "@alwith/api"
 import { expect, test } from "vitest"
+
 import { observeVoiceTurn } from "../voice-turn"
 function fixture() {
   let session: Session = { ...createSession("s", "/tmp"), attached: true }

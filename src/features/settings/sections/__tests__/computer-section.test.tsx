@@ -1,6 +1,7 @@
-import { must } from "@/lib/__tests__/must"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
+import { must } from "@/lib/__tests__/must"
 const native = vi.hoisted(() => ({
   permission: vi.fn(),
   enable: vi.fn(),

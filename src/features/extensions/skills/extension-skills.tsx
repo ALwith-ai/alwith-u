@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
+
 import { inspectRequiredSkills } from "../chat/skills"
 import type { SkillCatalog } from "./use-skill-catalog"
 
@@ -47,7 +49,7 @@ export function ExtensionSkills({
           )}
         </>
       )}
-      <p className="text-muted-foreground text-xs">{t("extensions.skills.note")}</p>
+      <p className="text-xs text-muted-foreground">{t("extensions.skills.note")}</p>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={onManage}>
           {t("extensions.skills.manage")}

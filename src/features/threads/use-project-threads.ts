@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from "react"
 import { useStore } from "zustand"
+
 import { client } from "@/lib/client"
+
 import { isQuickChatDirectory } from "./thread-groups"
 
 export function useProjectThreads(cwd: string | null) {

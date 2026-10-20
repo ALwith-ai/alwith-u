@@ -2,8 +2,10 @@ import { parseManifest } from "@alwith/module-extension"
 import { ResourceScope } from "@alwith/module-extension/host"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { expect, test } from "vitest"
+
 import { wallpaperController } from "@/features/appearance/wallpaper/controller"
 import { initI18n } from "@/lib/i18n"
+
 import { createWallpaperCapability } from "../capabilities/wallpaper"
 
 const manifest = parseManifest({

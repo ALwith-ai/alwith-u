@@ -1,4 +1,5 @@
 import { type ComponentProps, useRef, useState } from "react"
+
 import { cn } from "@/lib/utils"
 
 /** Marquee speed in px/s, comparable to macOS Finder. */

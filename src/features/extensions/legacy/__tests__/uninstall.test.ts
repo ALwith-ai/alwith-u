@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { waitForLegacyUninstall } from "../uninstall"
 
 test("waits for all windows before cleaning grants and import certificates", async () => {

@@ -1,7 +1,9 @@
 import { containsPath } from "@alwith/module-fs"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactElement, useContext, useEffect, useState } from "react"
+
 import { fileLocationPath } from "@/lib/open"
+
 import { ChatDirectoryContext } from "../file-actions"
 import { ResourceContent } from "./resource-content"
 
@@ -49,7 +51,7 @@ export function LinkedImage({ uri, name }: { uri: string; name: string }): React
     <div className="min-w-0">
       {current?.payload && <ResourceContent block={{ type: "image", uri, ...current.payload }} />}
       {current?.error && (
-        <div role="alert" className="text-muted-foreground text-xs">
+        <div role="alert" className="text-xs text-muted-foreground">
           {current.error}
         </div>
       )}

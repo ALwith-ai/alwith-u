@@ -2,6 +2,7 @@ import { type CloseDecision, createEditorController } from "@alwith/module-edito
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { moveWorkspaceFiles, type WorkspaceMoveOwner } from "../move-workspace-files"
 
 const disposals: (() => void)[] = []

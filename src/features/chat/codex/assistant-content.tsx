@@ -2,6 +2,7 @@ import { type ContentBlock, ContentBlock as ContentBlockGuard } from "@agentclie
 import { isEmbeddedResource, isResourceLink } from "@alwith/api"
 import type { ReactElement } from "react"
 import { useTranslation } from "react-i18next"
+
 import { CodexMarkdownRenderer } from "./markdown-renderer"
 import { ResourceContent } from "./resource-content"
 

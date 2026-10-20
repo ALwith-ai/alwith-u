@@ -1,5 +1,6 @@
 import type { CapabilityProvider } from "@alwith/module-extension/host"
 import type { Installation } from "@alwith/module-extension/tauri"
+
 import { authorizeCapability } from "../policy"
 import { createWallpaperCapability } from "./wallpaper"
 import { wallpaperCapability } from "./wallpaper-contract"

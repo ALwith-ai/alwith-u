@@ -1,6 +1,7 @@
-import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
+import { gamepadResources } from "@alwith/module-gamepad/locales"
 import { expect, test } from "vitest"
+
 import i18n, { initI18n, LANGUAGES } from "@/lib/i18n"
 import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"

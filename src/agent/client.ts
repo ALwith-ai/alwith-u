@@ -8,20 +8,20 @@ import {
   AgentRequests,
   Agents,
   assertPromptSupported,
-  ConfigStaleError,
   configOptionRequest,
   configRevisionOf,
+  ConfigStaleError,
   configStaleOf,
   createSession,
   isBooleanOption,
+  isGroupedSelect,
+  isSelectOption,
   markDisconnected,
+  type PendingRequest,
   promptConfigMeta,
   replayCursorFor,
   replayIdOf,
   replayReceiptOf,
-  isGroupedSelect,
-  isSelectOption,
-  type PendingRequest,
   type RuntimeClient,
   type Session,
   type SessionRunState,
@@ -30,6 +30,7 @@ import {
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
+
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,

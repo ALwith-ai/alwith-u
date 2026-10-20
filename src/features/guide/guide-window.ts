@@ -1,4 +1,5 @@
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+
 import { createWindowController } from "@/lib/window-controller"
 
 const controller = createWindowController<void>({

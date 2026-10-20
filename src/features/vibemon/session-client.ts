@@ -1,5 +1,6 @@
 import type { PetObservation, PetSessionHost } from "@alwith/module-auth/pets/core"
 import { listen } from "@tauri-apps/api/event"
+
 import { inspectPet, requestPet } from "./transport"
 
 export async function createPetSessionClient(): Promise<PetSessionHost & { dispose(): void }> {

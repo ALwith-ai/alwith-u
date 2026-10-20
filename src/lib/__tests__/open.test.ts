@@ -1,5 +1,6 @@
 import * as opener from "@tauri-apps/plugin-opener"
 import { afterEach, expect, type MockInstance, test, vi } from "vitest"
+
 import { openExternal } from "../open"
 
 vi.mock("@tauri-apps/plugin-opener", async importOriginal => ({ ...(await importOriginal<object>()) }))

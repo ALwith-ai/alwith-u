@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { type ReactNode, useEffect, useRef } from "react"
 
 /** Retain real amplitude samples while moving the history from right to left. */
 export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode {

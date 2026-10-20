@@ -1,9 +1,11 @@
 import { applyUpdate, createSession } from "@alwith/api"
 import { act, fireEvent, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+
 import { ThemeProvider } from "@/components/theme-provider"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import { ChatView } from "../chat-view"
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 

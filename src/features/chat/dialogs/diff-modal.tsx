@@ -3,8 +3,10 @@
 // scoped to one file when the patch touches several.
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { PatchView, patchStats } from "../codex/patch-view"
+
+import { patchStats, PatchView } from "../codex/patch-view"
 
 export type DiffModalRequest = { path: string; patch: string }
 

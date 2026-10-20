@@ -5,6 +5,7 @@
 // completions); Kimi, MiniMax and Zhipu are reached through OpenRouter.
 
 import type { ComponentType, SVGProps } from "react"
+
 import type { GatewayModel } from "@/agent/client"
 import type { CustomInput, CustomModel, Input, Metadata, PublicCustomProvider, Snapshot, TestResult } from "@/bindings"
 import { commands, events } from "@/bindings"
@@ -12,6 +13,7 @@ import { DeepSeekLogo } from "@/components/icons/deepseek-logo"
 import { GrokLogo } from "@/components/icons/grok-logo"
 import { OpenRouterLogo } from "@/components/icons/openrouter-logo"
 import { QwenLogo } from "@/components/icons/qwen-logo"
+
 import catalog from "./provider-catalog.json"
 
 export type { CustomModel } from "@/bindings"

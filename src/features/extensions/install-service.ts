@@ -1,4 +1,5 @@
 import type { ExtensionRuntime } from "@alwith/module-extension/host"
+
 import { convertLegacyExtension, type PreparedLegacyImport } from "./legacy/import"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 

@@ -1,5 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { expect, test, vi } from "vitest"
+
 import { CodexClient } from "../client"
 import type { ClientOptions } from "../client"
 import { createFakeAgent } from "./fake-agent"

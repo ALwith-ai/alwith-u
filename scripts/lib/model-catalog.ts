@@ -1,5 +1,5 @@
-import { createHash, randomUUID } from "node:crypto"
 import { execFile, spawnSync } from "node:child_process"
+import { createHash, randomUUID } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"

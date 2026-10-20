@@ -1,9 +1,11 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { beforeAll, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
 import { PROVIDERS, type ProviderSnapshot } from "@/lib/providers"
 import type { SettingsAccount } from "@/lib/settings-bridge"
+
 import { CodexAccountSummary } from "../codex-provider-section"
 import { CustomProviderEditor, ProviderRow, ProviderTabs } from "../provider-section"
 

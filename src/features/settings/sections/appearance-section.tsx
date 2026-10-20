@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
+
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -9,8 +10,8 @@ import {
   NAVIGATION_INSTRUMENT_GROUPS,
   NAVIGATION_SOUND_MODES,
   type NavigationInstrument,
-  type NavigationSoundMode,
-  navigationInstrumentLabel
+  navigationInstrumentLabel,
+  type NavigationSoundMode
 } from "@/features/chat/codex/navigation-instruments"
 import {
   navigationSoundStore,
@@ -18,6 +19,7 @@ import {
   setNavigationSoundMode
 } from "@/features/chat/codex/navigation-sound-store"
 import { setZoomLevel, ZOOM_LEVELS, zoomStore } from "@/lib/zoom"
+
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AppearanceSection() {

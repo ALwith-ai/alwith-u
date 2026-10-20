@@ -12,9 +12,9 @@ import {
   type CloseDecision,
   createEditorController,
   createEditorWorkspace,
-  type EditorWorkspaceController,
   type EditorController,
   type EditorLabels,
+  type EditorWorkspaceController,
   ImagePreview
 } from "@alwith/module-editor"
 import {
@@ -23,16 +23,17 @@ import {
   type FileTreeController,
   type FileTreeLabels
 } from "@alwith/module-file-tree"
-import { containsPath, createFileSystem, dirname, normalizePath, type FileSystem } from "@alwith/module-fs"
+import { containsPath, createFileSystem, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { confirm } from "@tauri-apps/plugin-dialog"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
 import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
 import { driveControls, driveDialogClassName } from "@/features/drive/controls"
 import { useDriveDeepLinks } from "@/features/drive/deep-links"
-import { DriveSharingDialog, drive } from "@/features/drive/drive"
+import { drive, DriveSharingDialog } from "@/features/drive/drive"
 import { prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
@@ -61,16 +62,18 @@ import {
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
+
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
 import { useHostDialog } from "./host-dialog"
-import { WorkspaceButton } from "./workspace-button"
-import { WorkspacePanels } from "./workspace-panels"
 import { PreviewSurface } from "./preview-surface"
+import { WorkspaceButton } from "./workspace-button"
 import { WorkspaceEditor } from "./workspace-editor"
+import { WorkspacePanels } from "./workspace-panels"
 import "./workspace.css"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
 import { createHtmlPreviewHost } from "./html-preview"
@@ -987,7 +990,7 @@ export function FileWorkspace({
                       }
                       renderTextEditor={props => (
                         <Suspense
-                          fallback={<div className="text-muted-foreground p-6 text-sm">{t("workspace.loading")}</div>}>
+                          fallback={<div className="p-6 text-sm text-muted-foreground">{t("workspace.loading")}</div>}>
                           <CodeEditor
                             {...props}
                             controller={workspace.editor}

@@ -1,12 +1,14 @@
 import { isValidPassword } from "@alwith/module-auth"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { authClient, loginPlatform, usePlatformAuth } from "./store"
 
 type Mode = "code" | "password" | "register"
@@ -78,12 +80,12 @@ function PlatformLogin() {
     await loginPlatform(response)
   }
   return (
-    <main className="bg-background text-foreground flex h-dvh flex-col overflow-auto">
+    <main className="flex h-dvh flex-col overflow-auto bg-background text-foreground">
       <div data-tauri-drag-region className="h-10 shrink-0" />
       <div className="m-auto flex w-full max-w-md flex-col gap-6 px-6 py-8">
         <header className="flex flex-col gap-2">
           <h1 className="text-xl font-semibold">{t("app.name")}</h1>
-          <p className="text-muted-foreground text-sm">{t("platformAuth.intro")}</p>
+          <p className="text-sm text-muted-foreground">{t("platformAuth.intro")}</p>
         </header>
         <Tabs
           value={mode}
@@ -175,7 +177,7 @@ function PlatformLogin() {
             </Button>
           </FieldGroup>
         </form>
-        <p className="text-muted-foreground text-xs">{t("platformAuth.independent")}</p>
+        <p className="text-xs text-muted-foreground">{t("platformAuth.independent")}</p>
       </div>
     </main>
   )

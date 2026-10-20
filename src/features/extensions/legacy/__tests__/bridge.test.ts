@@ -1,6 +1,8 @@
 import { Blob as NodeBlob } from "node:buffer"
+
 import { ResourceScope } from "@alwith/module-extension/host"
 import { describe, expect, test } from "vitest"
+
 import { type BridgeDependencies, createLegacyBridge } from "../bridge"
 
 function setup(

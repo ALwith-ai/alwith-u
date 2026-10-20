@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { startZoomViewport } from "../zoom-viewport"
 
 const { size, scale, callbacks, unlisten } = vi.hoisted(() => ({

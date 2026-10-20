@@ -1,7 +1,9 @@
 import { fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { LeadingNavigation } from "../leading-navigation"
 import { MainSidebarLayout } from "../main-sidebar-layout"
 

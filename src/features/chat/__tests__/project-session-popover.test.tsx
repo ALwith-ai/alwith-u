@@ -1,6 +1,7 @@
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
+
 import type { ThreadSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
@@ -8,6 +9,7 @@ import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+
 import * as projectApps from "../open-in-editor"
 import { ProjectSessionPopover } from "../project-session-popover"
 

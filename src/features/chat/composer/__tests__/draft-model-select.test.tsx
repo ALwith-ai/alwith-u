@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, beforeAll, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { DraftModelSelect } from "../draft-model-select"
 
 beforeAll(async () => {

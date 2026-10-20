@@ -6,9 +6,11 @@ import { PermissionView } from "@alwith/module-chat/permission-view"
 import { UrlElicitationCard } from "@alwith/module-chat/url-elicitation-card"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import type { PendingAction } from "@/agent/client"
 import { client } from "@/lib/client"
 import { openExternal } from "@/lib/open"
+
 import { PatchView } from "./codex/patch-view"
 
 function optionDescription(option: acp.PermissionOption): string | null {
@@ -54,7 +56,7 @@ function Subject({ subject, requestTitle }: { subject: acp.RequestPermissionSubj
         <div className="text-sm font-medium">{toolCall.title}</div>
       )}
       {command !== null && (
-        <pre className="bg-muted overflow-x-auto rounded-lg p-3 font-mono text-xs whitespace-pre-wrap">
+        <pre className="overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
           <span className="text-muted-foreground select-none">$ </span>
           {command}
         </pre>
@@ -65,12 +67,12 @@ function Subject({ subject, requestTitle }: { subject: acp.RequestPermissionSubj
         </div>
       )}
       {patch === null && command === null && text.length > 0 && (
-        <pre className="bg-muted max-h-60 overflow-auto rounded-lg p-3 font-mono text-xs whitespace-pre-wrap">
+        <pre className="max-h-60 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
           {text}
         </pre>
       )}
       {(toolCall.locations ?? []).length > 0 && (
-        <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
+        <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
           {(toolCall.locations ?? []).map(location => (
             <li key={`${location.path}:${location.line ?? ""}`} className="truncate font-mono">
               {location.path}
@@ -121,7 +123,7 @@ function PermissionCard({
           outcome: optionId === null ? { outcome: "cancelled" } : { outcome: "selected", optionId }
         })
       }>
-      {params.description && <div className="text-muted-foreground mt-0.5 text-xs">{params.description}</div>}
+      {params.description && <div className="mt-0.5 text-xs text-muted-foreground">{params.description}</div>}
       {params.subject && <Subject subject={params.subject} requestTitle={params.title} />}
     </PermissionView>
   )

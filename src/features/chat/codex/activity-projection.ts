@@ -1,4 +1,4 @@
-import { type MessageItem, type Terminal, type ToolItem, terminalOf, textOf } from "@alwith/api"
+import { type MessageItem, type Terminal, terminalOf, textOf, type ToolItem } from "@alwith/api"
 import type { CodexActivityBlock } from "@alwith/module-chat/group-blocks"
 import type { CollabAgent, CollabTool, SubagentActivityKind } from "@alwith/module-chat/types"
 

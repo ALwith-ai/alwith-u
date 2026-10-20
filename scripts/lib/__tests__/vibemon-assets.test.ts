@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
+
 import { build } from "vite"
 
 for (const base of ["/", "./"]) {

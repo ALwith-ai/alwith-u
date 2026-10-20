@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
+
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { cn } from "@/lib/utils"
 
@@ -35,7 +36,7 @@ export function ChatHeader({
   if (floating) return target === null ? null : createPortal(content, target)
   return (
     <header
-      className="border-border @container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b px-1"
+      className="@container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border px-1"
       data-main-chat-header
       data-tauri-drag-region>
       {content}

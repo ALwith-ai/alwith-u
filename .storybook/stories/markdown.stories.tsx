@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, fn, waitFor } from "storybook/test"
+
 import { CodexMarkdownRenderer } from "../../src/features/chat/codex/markdown-renderer"
 import { ChatDirectoryContext } from "../../src/features/chat/file-actions"
-import { WorkspaceContext, type WorkspaceActions } from "../../src/features/workspace/context"
+import { type WorkspaceActions, WorkspaceContext } from "../../src/features/workspace/context"
 import { openExternal } from "../fixtures/open"
 
 const meta = { title: "Chat/Markdown", component: CodexMarkdownRenderer } satisfies Meta<typeof CodexMarkdownRenderer>

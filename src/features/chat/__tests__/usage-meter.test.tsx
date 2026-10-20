@@ -1,7 +1,9 @@
 import { applyUpdate, createSession } from "@alwith/api"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { UsageMeter } from "../usage-meter"
 
 await initI18n("en")

@@ -5,9 +5,11 @@ import { XIcon } from "lucide-react"
 import type { CSSProperties, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
+import { commands } from "@/bindings"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { commands } from "@/bindings"
+
 import { GamepadSettings } from "./gamepad"
 import { GAMEPAD_SOCIAL_LINKS } from "./social-links"
 import { useMainWindowVisible } from "./use-main-window-visible"
@@ -26,12 +28,12 @@ export function GamepadWindow(): ReactNode {
   const mainVisible = useMainWindowVisible(report)
   return (
     <div
-      className="bg-background text-foreground flex h-screen flex-col"
+      className="flex h-screen flex-col bg-background text-foreground"
       style={{ fontFamily: "system-ui, sans-serif" }}>
       <header className="relative flex h-8 shrink-0 items-center justify-end px-2" data-tauri-drag-region>
-        <span className="text-muted-foreground absolute start-1/2 flex -translate-x-1/2 items-center gap-1.5 text-[13px] font-semibold rtl:translate-x-1/2">
+        <span className="absolute start-1/2 flex -translate-x-1/2 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground rtl:translate-x-1/2">
           🎮 ALwith Gamepad
-          <Badge className="bg-primary/15 text-primary text-[10px] uppercase">Beta</Badge>
+          <Badge className="bg-primary/15 text-[10px] text-primary uppercase">Beta</Badge>
         </span>
         <Button
           variant="ghost"
@@ -47,7 +49,7 @@ export function GamepadWindow(): ReactNode {
           <Button
             variant="ghost"
             size="icon-xs"
-            className="text-muted-foreground hover:text-muted-foreground hover:bg-transparent dark:hover:bg-transparent"
+            className="text-muted-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent"
             title={t("common.close")}
             aria-label={t("common.close")}
             onClick={() => void getCurrentWebviewWindow().close().catch(report)}>
@@ -59,11 +61,11 @@ export function GamepadWindow(): ReactNode {
         <GamepadSettings />
       </main>
       <footer className="relative flex h-8 shrink-0 items-center justify-end px-2">
-        <p className="text-muted-foreground absolute start-1/2 -translate-x-1/2 text-xs rtl:translate-x-1/2">
+        <p className="absolute start-1/2 -translate-x-1/2 text-xs text-muted-foreground rtl:translate-x-1/2">
           © 2026{" "}
           <button
             type="button"
-            className="hover:text-foreground underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:text-foreground hover:underline"
             onClick={() => void openUrl("https://alwith.ai").catch(report)}>
             ALwith.ai
           </button>

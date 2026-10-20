@@ -13,6 +13,7 @@ import {
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { hasRename } from "@/agent/codex-extensions"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { client, useApp } from "@/lib/client"
+
 import { openChatSearch } from "./dialogs/chat-search"
 import { McpDiagnostics } from "./mcp-diagnostics"
 import { ExternalEditorMenu, ProjectAppIcon, useProjectApps } from "./open-in-editor"
@@ -113,7 +115,7 @@ export function ChatActionsMenu({
               ref={trigger}
               variant="ghost"
               size="icon-sm"
-              className="hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8 transition-colors duration-150 ease-out"
+              className="transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
               aria-label={t("actions.more")}
               title={t("actions.more")}
             />

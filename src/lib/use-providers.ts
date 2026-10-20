@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+
 import { events } from "@/bindings"
+
 import { loadProviders, type ProviderSnapshot } from "./providers"
 
 export function useProviders() {

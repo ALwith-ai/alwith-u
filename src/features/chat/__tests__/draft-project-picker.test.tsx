@@ -2,7 +2,9 @@ import { invoke } from "@tauri-apps/api/core"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { DraftProjectPicker } from "../draft-project-picker"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.

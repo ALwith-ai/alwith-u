@@ -4,6 +4,7 @@
 
 import type { VirtualizedTurnListApi } from "@alwith/module-chat/virtualized-turn-list"
 import { createStore } from "zustand/vanilla"
+
 import type { Turn } from "../turns"
 
 export type ThreadRegistry = {

@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import type { ComputerPreview } from "@/bindings"
 const native = vi.hoisted(() => ({
   subscribe: vi.fn(),

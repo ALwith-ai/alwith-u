@@ -3,9 +3,11 @@ import type { ActionContribution, HostSnapshot, ViewContribution } from "@alwith
 import { resolveActionTarget, sortContributions } from "@alwith/module-extension/host"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
+
 import { EXTENSION_ICONS } from "./extension-icons"
 
 const ALIGNMENTS = ["left", "center", "right"] as const
@@ -67,7 +69,7 @@ export function ExtensionActions({
         key={action.id}
         variant="ghost"
         size="icon-xs"
-        className="text-sidebar-foreground shrink-0"
+        className="shrink-0 text-sidebar-foreground"
         aria-label={action.title}
         title={available ? action.title : t("extensions.targetUnavailable", { name: action.title })}
         disabled={!available}
@@ -153,7 +155,7 @@ export function ExtensionSettingsNavigation({
   const pages = sortContributions(views.filter(view => view.kind === "settingsPages"))
   if (!pages.length) return null
   return (
-    <nav aria-label={t("extensions.outlets.settingsPages")} className="border-border mt-3 space-y-0.5 border-t pt-3">
+    <nav aria-label={t("extensions.outlets.settingsPages")} className="mt-3 space-y-0.5 border-t border-border pt-3">
       {pages.map(view => {
         const Icon = EXTENSION_ICONS[view.icon ?? "settings"]
         return (

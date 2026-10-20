@@ -1,7 +1,9 @@
 import { expect, test, vi } from "vitest"
+
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import type { ChatTransfer } from "@/lib/chat-window"
-import { type SelectThreadActions, selectThread } from "../select-thread"
+
+import { selectThread, type SelectThreadActions } from "../select-thread"
 
 const thread = {
   sessionId: "history-1",

@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { WallpaperController } from "../controller"
 
 test("revoking the owner clears its wallpaper and rejects late updates", (): void => {

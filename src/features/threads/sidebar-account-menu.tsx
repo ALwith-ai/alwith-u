@@ -1,7 +1,8 @@
-import { GlobeIcon, Gamepad2Icon, LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
+import { Gamepad2Icon, GlobeIcon, LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,9 +12,9 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
-
 import { LANGUAGES } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
 import { openGamepadWindow } from "@/lib/window-manager"
@@ -39,7 +39,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
   const avatar = (
     <Avatar className="size-5 after:border-0">
       <AvatarImage src={user.avatar} alt="" />
-      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+      <AvatarFallback className="bg-primary text-xs text-primary-foreground">
         {Array.from(displayName).slice(0, 2).join("").toLocaleUpperCase()}
       </AvatarFallback>
     </Avatar>
@@ -52,7 +52,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
           <Button
             variant="ghost"
             disabled={busy}
-            className="text-muted-foreground hover:bg-foreground/5 data-popup-open:bg-foreground/5 h-8 w-full justify-start gap-2 rounded-[10px] px-2 font-normal [corner-shape:superellipse(1.5)]"
+            className="h-8 w-full justify-start gap-2 rounded-[10px] px-2 font-normal text-muted-foreground [corner-shape:superellipse(1.5)] hover:bg-foreground/5 data-popup-open:bg-foreground/5"
           />
         }>
         {avatar}
@@ -60,7 +60,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[calc(var(--anchor-width)+36px)]">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-popover-foreground flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium">
+          <DropdownMenuLabel className="flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium text-popover-foreground">
             {avatar}
             <span className="min-w-0 truncate">{displayName}</span>
           </DropdownMenuLabel>

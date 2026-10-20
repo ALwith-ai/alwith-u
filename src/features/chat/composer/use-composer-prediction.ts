@@ -1,9 +1,11 @@
-import { useStore } from "zustand"
-import { predictionPreference } from "./prediction-preference"
 import type { Session } from "@alwith/api"
 import { useEffect, useRef, useState } from "react"
+import { useStore } from "zustand"
+
 import { codexExtensionCapabilities, codexTurnId, composerPrediction } from "@/agent/codex-extensions"
 import { client, useApp } from "@/lib/client"
+
+import { predictionPreference } from "./prediction-preference"
 
 /** Predictions are transient UI hints, tied to the exact source turn and model configuration. */
 export function useComposerPrediction(session: Session, available: boolean, hasDraft: boolean) {

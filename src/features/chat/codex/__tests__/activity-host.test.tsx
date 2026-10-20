@@ -1,6 +1,8 @@
 import { render } from "@testing-library/react"
 import { expect, test } from "vitest"
+
 import i18n, { initI18n, LANGUAGES } from "@/lib/i18n"
+
 import { useChatActivityHost } from "../activity-host"
 
 function HostLanguage() {
