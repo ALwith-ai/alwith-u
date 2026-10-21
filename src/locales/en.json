@@ -193,6 +193,7 @@
     "interrupted": "Stopped",
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",
+    "compactionFailed": "Context compaction failed",
     "attachImage": "Attach image",
     "pastedText": {
       "filename": "Pasted text.txt",
@@ -234,6 +235,8 @@
     },
     "image": {
       "view": "View image",
+      "previous": "Previous image",
+      "next": "Next image",
       "unavailable": "Image unavailable"
     },
     "content": {
@@ -254,7 +257,10 @@
     },
     "error": {
       "title": "Chat encountered an error",
-      "retryable": "You can retry this turn."
+      "retry": "Retry",
+      "retryCountdown": "Retry in {{seconds}}s",
+      "capacityReconnecting": "Server overloaded, reconnecting",
+      "capacityReconnectingProgress": "Server overloaded, reconnecting {{progress}}"
     },
     "tool": {
       "running": "Running",

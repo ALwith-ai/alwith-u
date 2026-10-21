@@ -26,6 +26,7 @@ import { isMac } from "@/lib/platform"
 import { savePreference } from "@/lib/preferences"
 import { useWindowFullscreen } from "@/lib/use-window-fullscreen"
 import { zoomStore } from "@/lib/zoom"
+
 import { CanvasContext } from "../lib/canvas-context"
 import { useMainCanvas } from "../lib/use-main-canvas"
 import { CanvasDots } from "./canvas-dots"

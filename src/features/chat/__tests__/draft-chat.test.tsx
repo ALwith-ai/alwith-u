@@ -2,7 +2,7 @@ import { ReadableStream, TransformStream, WritableStream } from "node:stream/web
 
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
-import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
 
@@ -152,6 +152,54 @@ async function windowEnvironment() {
   }
 }
 
+test("floating project menus switch from a draft to another conversation and exclude the displayed session", async () => {
+  const env = await windowEnvironment()
+  const view = render(
+    <ThemeProvider>
+      <ChatWindow preferences={windowPreferences} />
+    </ThemeProvider>
+  )
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => client.connect())
+    let existing = ""
+    await act(async () => {
+      existing = await env.real.newSession("/tmp/window-original", null, "chat")
+    })
+    await act(() => env.present())
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const draft = must(Object.keys(env.real.state.draftSessions)[0], "the floating draft")
+    await act(async () => {
+      env.real.store.setState({
+        threadsLoaded: true,
+        threads: [
+          { sessionId: draft, cwd: "/tmp/window-original", title: "Current draft", updatedAt: null, archived: false },
+          {
+            sessionId: existing,
+            cwd: "/tmp/window-original",
+            title: "Other conversation",
+            updatedAt: null,
+            archived: false
+          }
+        ]
+      })
+    })
+    const header = within(must(view.container.querySelector("header"), "the floating window header"))
+    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    expect(view.queryByRole("button", { name: "Current draft" })).toBeNull()
+    expect(view.getByText("1 chat")).toBeVisible()
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Other conversation" })))
+    await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(existing, true))
+    expect(env.real.state.draftSessions[draft]).toBeUndefined()
+    expect(env.real.state.sessionWindows[existing]).toBe("chat")
+    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    expect(view.queryByRole("button", { name: "Other conversation" })).toBeNull()
+  } finally {
+    await act(async () => view.unmount())
+    env.restore()
+  }
+})
+
 test.each([
   ["/private/var/folders/example/T/project", "/private/var/folders/example/T/project"],
   ["/Users/mac/Documents/Codex/project", "/tmp/ALwith U"],
@@ -235,7 +283,11 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     expect(env.hidden).toBe(false)
     await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this draft")
-    expect(view.getByRole("button", { name: "window-replacement" })).toBeTruthy()
+    expect(
+      within(must(view.container.querySelector("header"), "the floating window header")).getByRole("button", {
+        name: "window-replacement"
+      })
+    ).toBeVisible()
     const replacement = must(Object.keys(env.real.state.draftSessions)[0], "replacement draft")
     let transfer: chatWindow.ChatTransfer | null = null
     await act(async () => {

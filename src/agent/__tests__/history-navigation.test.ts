@@ -1,9 +1,10 @@
 import { expect, test, vi } from "vitest"
 
+import { codexMessageError } from "../codex-extensions"
 import { historyTurnPreview, mergeNavigationHistory, readHistoryIndex, readHistoryTurn } from "../history-navigation"
 import { readHistoryPage } from "../history-page"
 
-const summary = (turnId: string) => ({ turnId, itemsView: "summary", startedAt: 100, completedAt: 105 })
+const summary = (turnId: string) => ({ turnId, itemsView: "summary", startedAt: 100, completedAt: 105, updates: [] })
 const response = (data: object, nextCursor: string | null = null) => ({
   sessionId: "s",
   consistency: "live",
@@ -21,6 +22,31 @@ const answer = (id: string) => ({
   sessionUpdate: "agent_message",
   messageId: `a-${id}`,
   content: [{ type: "text", text: `**${id}**\n\nanswer` }]
+})
+
+test("sparse navigation retains terminal errors supplied by the turn index", async () => {
+  const error = {
+    sessionUpdate: "agent_message",
+    messageId: "codex-error:old",
+    content: [{ type: "text", text: "At capacity" }],
+    _meta: { codex: { turnId: "old", error: { message: "At capacity", category: "overloaded", retryable: true } } }
+  }
+  const index = await readHistoryIndex(
+    "s",
+    async () => response({ turns: [{ ...summary("old"), status: "failed", updates: [error] }] }),
+    () => {}
+  )
+  const session = await readHistoryTurn(
+    "s",
+    "/tmp",
+    index[0],
+    async () => response({ items: [{ turnId: "old", itemId: "u-old", updates: [user("old")] }] }),
+    () => {}
+  )
+  const item = session.items.at(-1)
+  if (item?.kind !== "assistant") throw new Error("The error was not restored")
+  expect(codexMessageError(item)?.error?.message).toBe("At capacity")
+  expect(session.lastStopReason).toBe("error")
 })
 
 test("indexes every turn using summary-only pages without fetching transcript bodies", async () => {

@@ -1,7 +1,7 @@
 import type * as eventApi from "@tauri-apps/api/event"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
 import type * as windowApi from "@tauri-apps/api/webviewWindow"
-import { expect, test, vi } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 
 type Handler = (event: Event<unknown>) => void | Promise<void>
 
@@ -46,8 +46,65 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   }
 }))
 
-const { useChatWindowSurface } = await import("../chat-window-state")
+const { useChatWindowSurface, useMainWindowSurface } = await import("../chat-window-state")
 const { requestChatSurface, serveChatSurface } = await import("../chat-window")
+const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow")
+
+afterEach(() => {
+  useChatWindowSurface.setState({ sessionId: null, visible: false }, true)
+  useMainWindowSurface.setState({ sessionId: null, visible: false }, true)
+})
+
+test("main surface snapshots reach a newly reporting chat window and follow selection and visibility", async () => {
+  currentLabel = "main"
+  useMainWindowSurface.setState({ sessionId: "main-before-chat", visible: true })
+  const stopMain = await serveChatSurface(async () => {
+    throw new Error("Surface synchronization must not navigate")
+  })
+  currentLabel = "chat"
+  const reports: unknown[] = []
+  const stopReports = await getCurrentWebviewWindow().listen("chat:main-surface", ({ payload }) =>
+    reports.push(payload)
+  )
+  try {
+    await requestChatSurface("main", { type: "surface", sessionId: "floating", visible: true })
+    expect(reports).toEqual([{ sessionId: "main-before-chat", visible: true }])
+    useMainWindowSurface.setState({ sessionId: "main-after-switch", visible: true })
+    await Promise.resolve()
+    useMainWindowSurface.setState({ visible: false })
+    await Promise.resolve()
+    expect(reports).toEqual([
+      { sessionId: "main-before-chat", visible: true },
+      { sessionId: "main-after-switch", visible: true },
+      { sessionId: "main-after-switch", visible: false }
+    ])
+    stopMain()
+    useMainWindowSurface.setState({ sessionId: "after-cleanup" })
+    await Promise.resolve()
+    expect(reports).toHaveLength(3)
+  } finally {
+    stopMain()
+    stopReports()
+  }
+})
+
+test("the floating window applies main surface updates and removes the listener on cleanup", async () => {
+  currentLabel = "chat"
+  const stopChat = await serveChatSurface(async () => {
+    throw new Error("Surface synchronization must not navigate")
+  })
+  try {
+    await emitTo("chat", "chat:main-surface", { sessionId: "main-session", visible: true })
+    expect(useMainWindowSurface.getState()).toEqual({ sessionId: "main-session", visible: true })
+    await emitTo("chat", "chat:main-surface", { sessionId: "main-session", visible: false })
+    expect(useMainWindowSurface.getState()).toEqual({ sessionId: "main-session", visible: false })
+    stopChat()
+    await emitTo("chat", "chat:main-surface", { sessionId: "after-cleanup", visible: true })
+    expect(useMainWindowSurface.getState()).toEqual({ sessionId: "main-session", visible: false })
+  } finally {
+    stopChat()
+  }
+})
 
 test("a chat-targeted release is handled only by the chat window", async () => {
   const mainActions: string[] = []

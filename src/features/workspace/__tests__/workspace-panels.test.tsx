@@ -1,8 +1,10 @@
-import { useState } from "react"
 import { cleanup, fireEvent, render } from "@testing-library/react"
+import { useState } from "react"
 import { afterEach, expect, test, vi } from "vitest"
+
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 import { initI18n } from "@/lib/i18n"
+
 import { PreviewSurface } from "../preview-surface"
 import { WorkspacePanels } from "../workspace-panels"
 

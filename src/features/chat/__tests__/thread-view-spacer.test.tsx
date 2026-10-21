@@ -20,7 +20,7 @@ afterEach(async () => {
   if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight)
 })
 
-test("the latest turn stays anchored through growth and loading-placeholder shrink, until the user scrolls", async () => {
+test("new turns follow their real content through growth and placeholder shrink, until the user scrolls", async () => {
   const observers: { targets: Set<Element>; notify: () => void }[] = []
   class Observer implements ResizeObserver {
     readonly targets = new Set<Element>()
@@ -54,11 +54,19 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
   const viewport = view.getByRole("log")
   let latestHeight = 80
   let position = 0
-  const spacer = viewport.querySelector<HTMLElement>("[data-turn-anchor-spacer]")
-  if (spacer === null) throw new Error("Test spacer is missing")
   Object.defineProperties(viewport, {
     clientHeight: { configurable: true, value: 500 },
-    scrollHeight: { configurable: true, get: () => 412 + latestHeight + 24 + Number.parseFloat(spacer.style.height) },
+    scrollHeight: {
+      configurable: true,
+      get: () =>
+        Math.max(
+          500,
+          412 +
+            latestHeight +
+            24 +
+            Number.parseFloat(viewport.querySelector<HTMLElement>("[data-turn-anchor-spacer]")?.style.height ?? "0")
+        )
+    },
     scrollTop: {
       configurable: true,
       get() {
@@ -99,7 +107,7 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
       <ThreadView session={second} />
     </ThemeProvider>
   )
-  await waitFor(() => expect(viewport.scrollTop).toBe(348))
+  await waitFor(() => expect(viewport.scrollTop).toBe(16))
   const latest = viewport.querySelector<HTMLElement>('[data-codex-turn="turn:user:second"]')
   if (latest === null) throw new Error("Test latest turn is missing")
   const observer = observers.find((observer) => observer.targets.has(latest))
@@ -110,30 +118,29 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
       observer.notify()
     })
   resize(120)
-  expect(spacer.style.height).toBe("292px")
-  expect(latest.getBoundingClientRect().top).toBe(64)
+  await waitFor(() => expect(viewport.scrollTop).toBe(56))
   resize(60)
-  expect(spacer.style.height).toBe("352px")
-  expect(latest.getBoundingClientRect().top).toBe(64)
+  await waitFor(() => expect(viewport.scrollTop).toBe(0))
+  resize(600)
+  await waitFor(() => expect(viewport.scrollTop).toBe(536))
   act(() => {
     viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -148 }))
     viewport.scrollTop = 200
     viewport.dispatchEvent(new Event("scroll"))
   })
-  resize(80)
+  resize(680)
   expect(viewport.scrollTop).toBe(200)
-  resize(40)
-  expect(spacer.style.height).toBe("332px")
+  resize(400)
   expect(viewport.scrollTop).toBe(200)
 })
 
-test("completed answer releases the temporary turn anchor space", async () => {
+test("a short reply received together with completion never leaves extra scroll range", async () => {
   const first = applyUpdate(
     addPrompt(createSession("anchor-space", "/tmp"), [{ type: "text", text: "first" }], "first"),
     { sessionUpdate: "state_update", state: "idle" } as never
   )
   const second = addPrompt(first, [{ type: "text", text: "second" }], "second")
-  const running = applyUpdate(second, { sessionUpdate: "state_update", state: "running" } as never)
+  const completed = applyUpdate(second, { sessionUpdate: "state_update", state: "idle" } as never)
   const view = render(
     <ThemeProvider>
       <ThreadView session={first} />
@@ -142,7 +149,11 @@ test("completed answer releases the temporary turn anchor space", async () => {
   const viewport = view.getByRole("log")
   Object.defineProperties(viewport, {
     clientHeight: { configurable: true, value: 500 },
-    scrollHeight: { configurable: true, value: 300 },
+    scrollHeight: {
+      configurable: true,
+      get: () =>
+        500 + Number.parseFloat(viewport.querySelector<HTMLElement>("[data-turn-anchor-spacer]")?.style.height ?? "0")
+    },
     scrollTo: { configurable: true, value: () => {} }
   })
   HTMLElement.prototype.getBoundingClientRect = function () {
@@ -158,20 +169,15 @@ test("completed answer releases the temporary turn anchor space", async () => {
   await waitFor(() => expect(viewport.querySelectorAll("[data-codex-turn]")).toHaveLength(1))
   view.rerender(
     <ThemeProvider>
-      <ThreadView session={running} />
-    </ThemeProvider>
-  )
-  const spacer = viewport.querySelector<HTMLElement>("[data-turn-anchor-spacer]")
-  expect(spacer).not.toBeNull()
-  await waitFor(() => expect(Number.parseFloat(spacer?.style.height ?? "0")).toBeGreaterThan(0))
-
-  const completed = applyUpdate(running, { sessionUpdate: "state_update", state: "idle" } as never)
-  view.rerender(
-    <ThemeProvider>
       <ThreadView session={completed} />
     </ThemeProvider>
   )
-  expect(spacer?.style.height).toBe("0px")
+  // Flush deferred positioning as well as the initial render; the completed
+  // response used to schedule a new anchor after completion had already cleared it.
+  await act(async () => {
+    for (let frame = 0; frame < 8; frame++) await new Promise(requestAnimationFrame)
+  })
+  expect(viewport.scrollHeight).toBe(viewport.clientHeight)
 })
 
 test("layout compensation near the bottom does not resume following while reading history", () => {

@@ -3,9 +3,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   type ReactNode,
   type Ref,
-  useImperativeHandle,
   useContext,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState
@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
-import { PanelControlsContext, type PanelControls } from "./panel-controls-context"
+import { type PanelControls, PanelControlsContext } from "./panel-controls-context"
 import { PanelDivider } from "./panel-divider"
 import { resolvePanelWidths } from "./panel-sizing"
 import "./workspace.css"

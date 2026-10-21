@@ -406,8 +406,8 @@ export function ThreadSidebar({
         </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden p-1 px-2">
-        <div className="relative mb-2 flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
+      <SidebarContent className="gap-0 overflow-hidden px-0 py-1">
+        <div className="relative mx-2 mb-2 flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
             className={`${MENU_HIGHLIGHT} flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}
@@ -426,7 +426,14 @@ export function ThreadSidebar({
                     aria-selected={active}
                     title={tab.title}
                     onClick={() => setView(tab.key)}
-                    onDoubleClick={tab.key === "sessions" ? () => setProjectOpen(new Map()) : undefined}
+                    onDoubleClick={
+                      tab.key === "sessions"
+                        ? () => {
+                            setProjectOpen(new Map())
+                            setAllProjectsShown(false)
+                          }
+                        : undefined
+                    }
                     className={cn(
                       "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
@@ -466,7 +473,7 @@ export function ThreadSidebar({
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
-            className={cn("min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
+            className={cn("mx-2 min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
           >
             {drivePanel}
           </div>
@@ -474,7 +481,7 @@ export function ThreadSidebar({
         {view === "drive" ? null : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <Pane viewportRef={setViewport} viewportClassName="pb-1">
+          <Pane viewportRef={setViewport} viewportClassName="ps-2 pe-0.5 pb-1">
             {/* Observe content height as groups expand, collapse or reveal more rows. */}
             <ScrollArea.Content render={<NavigationStack />} style={{ minWidth: 0 }}>
               {!threadsLoaded &&

@@ -4,7 +4,7 @@ import { type ActivityHost, ActivityHostProvider } from "@alwith/module-chat/act
 import { withChatResources } from "@alwith/module-chat/locales"
 import { PatchView } from "@alwith/module-chat/patch-view"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
-import { fireEvent, render } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import { createInstance } from "i18next"
 import { afterEach, expect, test } from "vitest"
 
@@ -107,7 +107,7 @@ test("shared activity renders the original ACP patch instead of reducing it to a
   expect(view.container.querySelector(".codex-patch-view")?.textContent).toContain("old line")
 })
 
-test("image results retain the application's lightbox action", () => {
+test("image results retain the application's lightbox action", async () => {
   const item = tool({
     name: "view_image",
     toolKind: "read",
@@ -115,7 +115,8 @@ test("image results retain the application's lightbox action", () => {
     content: [{ type: "content", content: { type: "image", data: "aGVsbG8=", mimeType: "image/png" } }]
   })
   const view = mount(display(item))
-  fireEvent.click(view.getByRole("button", { name: "Read files" }))
+  fireEvent.click(view.getByRole("button", { name: "Viewed 1 image" }))
+  await waitFor(() => expect(view.container.querySelector("img")).not.toBeNull())
   const picture = must(view.container.querySelector("img"), "the attached picture")
   fireEvent.click(must(picture.closest("button"), "the picture button"))
   expect(openedImages.at(-1)).toBe("data:image/png;base64,aGVsbG8=")
@@ -133,13 +134,18 @@ test("thinking identity survives message upserts and virtualized unmounts", () =
   }
   const view = mount(display(item, {}, true))
   const toggle = view.getByRole("button", { name: "Thinking" })
-  fireEvent.click(toggle)
   expect(toggle.getAttribute("aria-expanded")).toBe("false")
   const updated = { ...item, content: [{ type: "text" as const, text: "First thought continued" }] }
   view.rerender(display(updated, {}, true))
   expect(view.getByRole("button", { name: "Thinking" }).getAttribute("aria-expanded")).toBe("false")
+  fireEvent.click(view.getByRole("button", { name: "Thinking" }))
+  expect(view.getByRole("button", { name: "Thinking" }).getAttribute("aria-expanded")).toBe("true")
+  view.rerender(display({ ...updated }, {}, true))
+  expect(view.getByRole("button", { name: "Thinking" }).getAttribute("aria-expanded")).toBe("true")
   view.unmount()
   const restored = mount(display(updated, {}, false))
+  expect(restored.getByRole("button", { name: "Thought" }).getAttribute("aria-expanded")).toBe("true")
+  fireEvent.click(restored.getByRole("button", { name: "Thought" }))
   expect(restored.getByRole("button", { name: "Thought" }).getAttribute("aria-expanded")).toBe("false")
 })
 

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import type { ThreadSummary } from "@/agent/client"
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
@@ -11,6 +12,7 @@ import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
+import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
 import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
@@ -135,6 +137,20 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       if (current.current.selectedId === sessionId) newChat()
     },
     [newChat]
+  )
+
+  const selectThread = useCallback(
+    (thread: ThreadSummary) => {
+      void operation
+        .run(async () => {
+          if (client.state.draftSessions[thread.sessionId] !== "chat") await client.discardDraft("chat")
+          await client.open(thread.sessionId, thread.cwd)
+          setCwd(thread.cwd)
+          setSelectedId(thread.sessionId)
+        })
+        .catch(report)
+    },
+    [operation]
   )
 
   useEffect(() => {
@@ -313,6 +329,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
             <DraftChat
               owner="chat"
               headerTarget={headerTarget}
+              projectMenu={
+                <ChatProjectMenu cwd={cwd} currentSessionId={selectedId} onSelect={selectThread} onNewChat={newChat} />
+              }
               onNewChat={newChat}
               onNewProject={newProject}
               onReturnToMain={returnToMain}
@@ -334,19 +353,18 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               session={session}
               voiceResume={voiceHandoff.resume}
               headerTarget={headerTarget}
+              projectMenu={
+                <ChatProjectMenu
+                  cwd={session.cwd}
+                  currentSessionId={session.id}
+                  onSelect={selectThread}
+                  onNewChat={newChat}
+                />
+              }
               onNewChat={newChat}
               onNewProject={newProject}
               onReturnToMain={returnToMain}
-              onSelectThread={(thread) => {
-                void operation
-                  .run(async () => {
-                    if (client.state.draftSessions[thread.sessionId] !== "chat") await client.discardDraft("chat")
-                    await client.open(thread.sessionId, thread.cwd)
-                    setCwd(thread.cwd)
-                    setSelectedId(thread.sessionId)
-                  })
-                  .catch(report)
-              }}
+              onSelectThread={selectThread}
               onDeleted={deleted}
             />
           ) : null)}

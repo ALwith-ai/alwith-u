@@ -13,12 +13,14 @@ import { Separator } from "@/components/ui/separator"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
+import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { basename } from "@/lib/path"
 
 import { newChatDirectory } from "./new-chat-directory"
 
 type ProjectActions = {
   cwd: string | null
+  currentSessionId?: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
 }
@@ -71,6 +73,7 @@ export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactE
 /** Header click and sidebar hover share the same list and actions, as in Desktop. */
 function ProjectPopover({
   cwd,
+  currentSessionId,
   directory,
   onSelect,
   onNewChat,
@@ -188,6 +191,7 @@ function ProjectPopover({
           <ProjectContents
             key={cwd ?? "quick-chats"}
             cwd={cwd}
+            currentSessionId={currentSessionId}
             directory={directory}
             showHeading={trigger === undefined}
             expanded={expanded}
@@ -213,6 +217,7 @@ function distanceToPopup(point: { x: number; y: number }, bounds: DOMRect): numb
 
 function ProjectContents({
   cwd,
+  currentSessionId,
   directory,
   onSelect,
   onNewChat,
@@ -229,6 +234,17 @@ function ProjectContents({
 }) {
   const { t, i18n } = useTranslation()
   const { result, retry } = useProjectThreads(cwd)
+  const mainSessionId = useMainWindowSurface((state) => (state.visible ? state.sessionId : null))
+  const chatSessionId = useChatWindowSurface((state) => (state.visible ? state.sessionId : null))
+  const threads =
+    result?.status === "ready"
+      ? result.threads.filter(
+          (thread) =>
+            thread.sessionId !== currentSessionId &&
+            thread.sessionId !== mainSessionId &&
+            thread.sessionId !== chatSessionId
+        )
+      : []
   const listRef = useRef<HTMLDivElement>(null)
   return (
     <>
@@ -239,13 +255,13 @@ function ProjectContents({
             {cwd === null ? t("sidebar.quickChats") : basename(cwd)}
           </span>
           <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
-            {result?.status === "ready" ? t("chat.project.chatCount", { count: result.threads.length }) : null}
+            {result?.status === "ready" ? t("chat.project.chatCount", { count: threads.length }) : null}
           </span>
         </div>
       )}
       <Pane
         className="flex max-h-70 flex-auto flex-col"
-        viewportClassName="h-auto min-h-0"
+        viewportClassName="h-auto min-h-0 pe-0"
         viewportRef={listRef}
         viewportProps={{ tabIndex: -1 }}
       >
@@ -264,11 +280,11 @@ function ProjectContents({
             </Button>
           </div>
         )}
-        {result?.status === "ready" && result.threads.length === 0 && (
+        {result?.status === "ready" && threads.length === 0 && (
           <p className="px-3 py-2 text-sm text-muted-foreground">{t("sidebar.noResults")}</p>
         )}
         {result?.status === "ready" &&
-          (expanded ? result.threads : result.threads.slice(0, 5)).map((thread) => (
+          (expanded ? threads : threads.slice(0, 5)).map((thread) => (
             <Button
               key={thread.sessionId}
               variant="ghost"
@@ -287,7 +303,7 @@ function ProjectContents({
             </Button>
           ))}
       </Pane>
-      {result?.status === "ready" && !expanded && result.threads.length > 5 && (
+      {result?.status === "ready" && !expanded && threads.length > 5 && (
         <Button
           variant="ghost"
           size="sm"

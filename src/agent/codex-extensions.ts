@@ -3,7 +3,7 @@
 // client reads. Keep in step with `@nyssance/codex-acp-v2` docs/protocol.md.
 
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { DISCONNECTED, type TurnError } from "@alwith/api"
+import { DISCONNECTED, type MessageItem, textOf, type TurnError } from "@alwith/api"
 
 type SkillScope = "user" | "repo" | "system" | "admin"
 
@@ -251,6 +251,7 @@ export type FuzzyFileSearchSessionUpdated = { sessionId: string; query: string; 
 
 /** What the adapter advertised under `capabilities._meta.codex`. */
 export type CodexExtensionCapabilities = {
+  sessionRetry: boolean
   composerPredictions: boolean
   forkAtTurn: boolean
   sessionLineage: boolean
@@ -265,6 +266,10 @@ export function codexExtensionCapabilities(agent: acp.InitializeResponse | null)
   const codex = agent?.capabilities?._meta?.codex
   const flags = typeof codex === "object" && codex !== null ? (codex as Record<string, unknown>) : {}
   return {
+    sessionRetry:
+      typeof flags.sessionRetry === "object" &&
+      flags.sessionRetry !== null &&
+      (flags.sessionRetry as { version?: unknown }).version === 1,
     composerPredictions: flags.composerPredictions === true,
     forkAtTurn: flags.forkAtTurn === true,
     sessionLineage: flags.sessionLineage === true,
@@ -338,6 +343,34 @@ export function codexTurnError(error: TurnError): CodexTurnError {
     retryable: fields?.retryable === true
   }
 }
+
+/** Error diagnostics are transcript items; the session error is only the current run's state. */
+export function codexMessageError(item: Pick<MessageItem, "content" | "_meta">): TurnError | null {
+  const codex = item._meta?.codex
+  if (typeof codex !== "object" || codex === null) return null
+  const error = (codex as { error?: unknown }).error
+  if (typeof error !== "object" || error === null) return null
+  const detail = error as Record<string, unknown>
+  if (typeof detail.message !== "string") return null
+  return {
+    stopReason: typeof detail.stopReason === "string" ? detail.stopReason : "error",
+    error: { code: -32603, message: textOf(item.content), data: { codex: detail } },
+    meta: item._meta
+  }
+}
+
+export function codexRetryNotice(meta: SessionMeta): { message: string; capacity: boolean } | null {
+  const codex = meta?.codex
+  if (typeof codex !== "object" || codex === null) return null
+  const retry = (codex as { retry?: unknown }).retry
+  if (typeof retry !== "object" || retry === null) return null
+  const value = retry as Record<string, unknown>
+  return typeof value.message === "string"
+    ? { message: value.message, capacity: value.codexErrorInfo === "serverOverloaded" }
+    : null
+}
+
+type SessionMeta = Record<string, unknown> | null
 
 export type ComposerPrediction = {
   sourceTurnId: string

@@ -61,6 +61,7 @@ import {
   syncChatWindowSurface
 } from "@/lib/chat-window"
 import { serveChatClient } from "@/lib/chat-window-client"
+import { useMainWindowSurface } from "@/lib/chat-window-state"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
 import { watchForNotifications } from "@/lib/notifications"
 import { type Preferences, savePreference } from "@/lib/preferences"
@@ -192,6 +193,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const visible = (focused || (await window.isVisible())) && !(await window.isMinimized())
       if (!cancelled) {
         setMainVisible(visible)
+        useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" })
         await updateMainPetSurface(selectedId, visible && view === "chat")
       }
     })().catch((error) => toast.error(describe(error)))
@@ -530,7 +532,14 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           key={`${session.id}-${surfaceGeneration}`}
           session={session}
           voiceResume={voiceHandoff.resume}
-          projectMenu={<ChatProjectMenu cwd={session.cwd} onSelect={select} onNewChat={newProjectChat} />}
+          projectMenu={
+            <ChatProjectMenu
+              cwd={session.cwd}
+              currentSessionId={session.id}
+              onSelect={select}
+              onNewChat={newProjectChat}
+            />
+          }
           onSelectThread={select}
           onOpenWindow={moveToWindow}
           onNewChat={newProjectChat}
@@ -545,7 +554,14 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
-          projectMenu={<ChatProjectMenu cwd={lastDirectory} onSelect={select} onNewChat={newProjectChat} />}
+          projectMenu={
+            <ChatProjectMenu
+              cwd={lastDirectory}
+              currentSessionId={selectedId}
+              onSelect={select}
+              onNewChat={newProjectChat}
+            />
+          }
           onCwdChange={chooseDraftFolder}
           onCreated={draftCreated}
           onSendingChange={(id, sending) =>

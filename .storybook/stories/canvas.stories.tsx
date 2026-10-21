@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useContext, useRef, useState } from "react"
 import { expect, waitFor, within } from "storybook/test"
-import i18n from "../../src/lib/i18n"
-import { SidebarInset } from "../../src/components/ui/sidebar"
+
 import { Button } from "../../src/components/ui/button"
-import { MainSidebarLayout, type MainScreen } from "../../src/features/layout/components/main-sidebar-layout"
+import { SidebarInset } from "../../src/components/ui/sidebar"
+import { type MainScreen, MainSidebarLayout } from "../../src/features/layout/components/main-sidebar-layout"
 import { CanvasContext } from "../../src/features/layout/lib/canvas-context"
-import { PreviewSurface } from "../../src/features/workspace/preview-surface"
 import type { PanelControls } from "../../src/features/workspace/panel-controls-context"
+import { PreviewSurface } from "../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../src/features/workspace/workspace-panels"
+import i18n from "../../src/lib/i18n"
 
 function ReturnToChat({ restore }: { restore: () => void }) {
   const canvas = useContext(CanvasContext)

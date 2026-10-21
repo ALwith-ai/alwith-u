@@ -4,7 +4,7 @@ import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewW
 import { commands } from "@/bindings"
 import type { ComposerDraft } from "@/features/chat/composer/drafts"
 
-import { type ChatWindowSurface, useChatWindowSurface } from "./chat-window-state"
+import { type ChatWindowSurface, useChatWindowSurface, useMainWindowSurface } from "./chat-window-state"
 import { client } from "./client"
 import i18n from "./i18n"
 import { createWindowController } from "./window-controller"
@@ -23,6 +23,7 @@ type SurfaceResponse = { id: string; value: ChatTransfer | null; error: string |
 const REQUEST = "chat:surface-request"
 const RESPONSE = "chat:surface-response"
 const READY = "chat:surface-ready"
+const MAIN_SURFACE = "chat:main-surface"
 let hostReady: Promise<unknown> | null = null
 export function setChatWindowHostReady(ready: Promise<unknown>): void {
   hostReady = ready
@@ -58,7 +59,7 @@ export async function serveChatSurface(
   handler: (action: SurfaceAction) => Promise<ChatTransfer | null>
 ): Promise<() => void> {
   const window = getCurrentWebviewWindow()
-  return window.listen<SurfaceRequest>(
+  const stop = await window.listen<SurfaceRequest>(
     REQUEST,
     ({ payload }) =>
       void (async () => {
@@ -74,6 +75,9 @@ export async function serveChatSurface(
             )
               throw new Error("Invalid chat surface state")
             useChatWindowSurface.setState({ sessionId: action.sessionId, visible: action.visible })
+            // The chat window is listening before it reports its surface, so this also
+            // supplies the initial main-window snapshot after either webview reloads.
+            await emitTo("chat", MAIN_SURFACE, useMainWindowSurface.getState())
           } else if (action.type === "inspectSurface") {
             if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
             const visible = (await window.isVisible()) && !(await window.isMinimized())
@@ -89,6 +93,23 @@ export async function serveChatSurface(
         }
       })()
   )
+  const stopMainSurface =
+    window.label === "chat"
+      ? await window.listen<ChatWindowSurface>(MAIN_SURFACE, ({ payload }) => {
+          if (
+            (payload.sessionId !== null && typeof payload.sessionId !== "string") ||
+            typeof payload.visible !== "boolean"
+          )
+            throw new Error("Invalid main surface state")
+          useMainWindowSurface.setState(payload)
+        })
+      : useMainWindowSurface.subscribe((surface) => {
+          void emitTo("chat", MAIN_SURFACE, surface).catch(console.error)
+        })
+  return () => {
+    stop()
+    stopMainSurface()
+  }
 }
 
 function forgetChatWindow(): void {

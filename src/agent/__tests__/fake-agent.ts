@@ -139,7 +139,8 @@ export function createFakeAgent(): FakeAgent {
             rename: true,
             account: true,
             fuzzyFileSearch: true,
-            sessionHistory: { version: 2, items: true, modes: ["browse", "export"] }
+            sessionHistory: { version: 2, items: true, modes: ["browse", "export"] },
+            sessionRetry: { version: 1 }
           }
         }
       },

@@ -6,12 +6,14 @@ import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
 
 import { reportPetError } from "./display-error"
+import { preventVibemonImageDragging } from "./image-drag"
 import { createPetSessionClient } from "./session-client"
 import { sessionIcons } from "./session-icons"
 import { requestPet } from "./transport"
 import { createPetWindowClient } from "./window-client"
 
 export async function bootstrapVibemonWindow(): Promise<void> {
+  const stopImageDragging = preventVibemonImageDragging()
   if (usePlatformAuth.getState().isLoading)
     await new Promise<void>((resolve) => {
       const stop = usePlatformAuth.subscribe((state) => {
@@ -44,6 +46,7 @@ export async function bootstrapVibemonWindow(): Promise<void> {
   addEventListener(
     "pagehide",
     () => {
+      stopImageDragging()
       sessions.dispose()
       assets.dispose()
     },

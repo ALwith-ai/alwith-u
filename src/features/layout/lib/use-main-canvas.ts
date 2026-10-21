@@ -1,20 +1,22 @@
 import { isTauri } from "@tauri-apps/api/core"
 import useEmblaCarousel from "embla-carousel-react"
 import {
+  type ContextType,
+  type RefCallback,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
-  type ContextType,
-  type RefCallback
+  useState
 } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
 import { events } from "@/bindings"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
+
 import { CanvasContext, type CanvasWorkspace } from "./canvas-context"
 import { resolveCanvasGeometry } from "./canvas-geometry"
 import { attachCanvasInput } from "./canvas-input"

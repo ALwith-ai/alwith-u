@@ -43,6 +43,7 @@ function turn(index: number, final: string | null): Turn {
     user,
     work: [],
     final: finals,
+    errors: [],
     edits: [],
     startedAt: 0,
     endedAt: 0,

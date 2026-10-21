@@ -20,7 +20,7 @@ export function ChatHeader({
   const content = (
     <>
       <div className="flex min-w-0 flex-1 items-center gap-1.5" data-tauri-drag-region>
-        {!floating && project}
+        {project}
         <OverflowMarquee
           className={cn(
             "block min-w-0 text-sm font-medium select-none [&>span]:pointer-events-none",

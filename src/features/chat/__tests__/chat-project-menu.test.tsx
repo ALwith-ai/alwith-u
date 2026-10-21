@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { useThreadsUiStore } from "@/features/threads/store"
 import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { must } from "@/lib/__tests__/must"
+import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -16,6 +17,8 @@ import { ChatProjectMenu } from "../project-session-popover"
 
 const original = client.state
 const originalUi = useThreadsUiStore.getState()
+const originalChatSurface = useChatWindowSurface.getState()
+const originalMainSurface = useMainWindowSurface.getState()
 const defaultCwd = "/Volumes/Work/Documents/ALwith U"
 const openDirectory = vi.fn(async (_cwd: string | null) => {})
 const resolveDirectory = vi.spyOn(commands, "draftDirectory")
@@ -38,12 +41,86 @@ afterEach(() => {
   cleanup()
   client.store.setState(original, true)
   useThreadsUiStore.setState(originalUi, true)
+  useChatWindowSurface.setState(originalChatSurface, true)
+  useMainWindowSurface.setState(originalMainSurface, true)
   vi.mocked(projectApps.useProjectApps).mockRestore()
 })
 
 function thread(sessionId: string, cwd: string): ThreadSummary {
   return { sessionId, cwd, title: sessionId, updatedAt: "2026-10-14T00:00:00Z", archived: false }
 }
+
+test.each(["main", "floating"] as const)(
+  "%s header excludes displayed conversations before counting and expanding the project list",
+  async (surface) => {
+    const cwd = "/tmp/project"
+    const entries = Array.from({ length: 7 }, (_, index) => thread(`Chat ${index}`, cwd))
+    const main = thread("Main chat", cwd)
+    const floating = thread("Floating chat", cwd)
+    client.store.setState({ threads: [main, floating, ...entries] })
+    useMainWindowSurface.setState({ sessionId: main.sessionId, visible: true })
+    useChatWindowSurface.setState({ sessionId: floating.sessionId, visible: true })
+    const select = vi.fn()
+    const target = surface === "floating" ? document.createElement("div") : undefined
+    if (target) document.body.append(target)
+    const view = render(
+      <ChatHeader
+        target={target}
+        title="Current conversation"
+        project={
+          <ChatProjectMenu
+            cwd={cwd}
+            currentSessionId={surface === "main" ? main.sessionId : floating.sessionId}
+            onSelect={select}
+            onNewChat={() => {}}
+          />
+        }
+      >
+        <span>Actions</span>
+      </ChatHeader>
+    )
+    try {
+      const folder = view.getByRole("button", { name: "project" })
+      if (target) expect(target).toContainElement(folder)
+      await act(async () => fireEvent.click(folder))
+      expect(view.queryByRole("button", { name: "Main chat" })).toBeNull()
+      expect(view.queryByRole("button", { name: "Floating chat" })).toBeNull()
+      expect(view.getByText("7 chats")).toBeVisible()
+      expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(5)
+      await act(async () => fireEvent.click(view.getByRole("button", { name: "Show more" })))
+      expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
+      await act(async () => fireEvent.click(view.getByRole("button", { name: "Chat 6" })))
+      expect(select).toHaveBeenCalledExactlyOnceWith(entries[6])
+    } finally {
+      view.unmount()
+      target?.remove()
+    }
+  }
+)
+
+test("quick chats update their empty state as windows hide and keep the current conversation excluded", async () => {
+  const cwd = "/Users/mac/Documents/ALwith U"
+  const main = thread("Main chat", cwd)
+  const floating = thread("Floating chat", cwd)
+  client.store.setState({ threads: [main, floating] })
+  useMainWindowSurface.setState({ sessionId: main.sessionId, visible: true })
+  useChatWindowSurface.setState({ sessionId: floating.sessionId, visible: true })
+  const view = render(
+    <ChatProjectMenu cwd={cwd} currentSessionId={main.sessionId} onSelect={() => {}} onNewChat={() => {}} />
+  )
+  await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+  expect(view.getByText("0 chats")).toBeVisible()
+  expect(view.getByText("No chats found")).toBeVisible()
+  expect(view.queryByRole("button", { name: "Show more" })).toBeNull()
+  await act(async () => {
+    useChatWindowSurface.setState({ visible: false })
+    useMainWindowSurface.setState({ visible: false })
+  })
+  expect(view.getByText("1 chat")).toBeVisible()
+  expect(view.queryByText("No chats found")).toBeNull()
+  expect(view.getByRole("button", { name: "Floating chat" })).toBeVisible()
+  expect(view.queryByRole("button", { name: "Main chat" })).toBeNull()
+})
 
 test("quick chats use the sidebar grouping and ordering before the default directory resolves", async () => {
   const pending = Promise.withResolvers<string>()

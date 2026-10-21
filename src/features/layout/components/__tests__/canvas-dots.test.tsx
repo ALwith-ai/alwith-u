@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { CanvasDots } from "../canvas-dots"
 await initI18n("en")
 afterEach(cleanup)

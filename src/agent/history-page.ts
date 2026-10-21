@@ -79,6 +79,7 @@ export function projectHistoryTurns(sessionId: string, cwd: string, title: unkno
   projection.set(createSession(sessionId, cwd, typeof title === "string" ? title : null))
   projection.beginReplay(sessionId)
   const seen = new Set<string>()
+  let lastStopReason: string | null = null
   for (const rawTurn of turns) {
     const turn = object(rawTurn)
     if (
@@ -89,6 +90,14 @@ export function projectHistoryTurns(sessionId: string, cwd: string, title: unkno
     )
       throw new Error("Invalid history turn")
     seen.add(turn.turnId)
+    lastStopReason =
+      turn.status === "failed"
+        ? "error"
+        : turn.status === "completed"
+          ? "end_turn"
+          : turn.status === "interrupted"
+            ? "cancelled"
+            : null
     const timestamp = (value: unknown): number | null => {
       if (value == null) return null
       if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 8.64e12)
@@ -133,7 +142,7 @@ export function projectHistoryTurns(sessionId: string, cwd: string, title: unkno
       })
     }
   }
-  return projection.get(sessionId)
+  return { ...projection.get(sessionId), lastStopReason }
 }
 
 export function prependHistory(current: Session, page: Session, baseline?: Session): Session {
@@ -150,7 +159,14 @@ export function prependHistory(current: Session, page: Session, baseline?: Sessi
   const prefixIds = new Set(prefix.map(identity))
   return {
     ...current,
-    title: current.title === baseline?.title ? (page.title ?? current.title) : (current.title ?? page.title),
+    lastStopReason:
+      baseline !== undefined && current.items === baseline.items && current.lastStopReason === baseline.lastStopReason
+        ? page.lastStopReason
+        : current.lastStopReason,
+    title:
+      baseline !== undefined && current.title === baseline.title
+        ? (page.title ?? current.title)
+        : (current.title ?? page.title),
     items: [
       ...prefix,
       ...merged,

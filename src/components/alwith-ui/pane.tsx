@@ -2,14 +2,15 @@
  * Pane provides a shared scrollable panel area.
  *
  * Built on the Base UI ScrollArea primitives (same primitives and data-slot as shadcn ui/scroll-area, sharing global auto-hide CSS).
- * Scrollbars appear only on scroll/hover; no horizontal bar is rendered, and the panel fills its parent. Use `<Pane>` for panel scroll areas.
+ * Scrollbars appear on hover, scroll, keyboard focus and throughout dragging. A permanent gutter keeps content clear of the track.
+ * No horizontal bar is rendered, and the panel fills its parent. Use `<Pane>` for panel scroll areas.
  *
  * Using the primitives directly, instead of the ui/scroll-area wrapper, lets `viewportRef` / `onScroll` reach the actual scrolling
  * Viewport. Chat needs that element for automatic scrolling and jumping to the bottom; a simple wrapper does not expose it.
  */
 
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
-import type { ComponentProps, Ref, UIEventHandler } from "react"
+import { type ComponentProps, type Ref, type UIEventHandler, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -35,6 +36,7 @@ export function Pane({
   children,
   ...props
 }: PaneProps) {
+  const [dragging, setDragging] = useState(false)
   if (nativeScroll)
     return (
       <div className={cn("relative flex min-h-0 flex-1", className)} {...props}>
@@ -53,13 +55,17 @@ export function Pane({
       </div>
     )
   return (
-    <ScrollAreaPrimitive.Root data-slot="scroll-area" className={cn("relative min-h-0 flex-1", className)} {...props}>
+    <ScrollAreaPrimitive.Root
+      data-slot="scroll-area"
+      className={cn("relative min-h-0 flex-1 pe-[var(--app-scrollbar-track-size)]", className)}
+      {...props}
+    >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         onScroll={onScroll}
         data-slot="scroll-area-viewport"
         {...viewportProps}
-        className={cn("size-full rounded-[inherit] outline-none", viewportClassName, viewportProps?.className)}
+        className={cn("size-full rounded-[inherit] pe-2 outline-none", viewportClassName, viewportProps?.className)}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
@@ -67,7 +73,14 @@ export function Pane({
         data-slot="scroll-area-scrollbar"
         data-orientation="vertical"
         orientation="vertical"
-        className="flex h-full w-1.5 touch-none p-px transition-colors select-none"
+        data-dragging={dragging ? "" : undefined}
+        onPointerDownCapture={(event) => {
+          if (event.button === 0) setDragging(true)
+        }}
+        onPointerUpCapture={() => setDragging(false)}
+        onPointerCancelCapture={() => setDragging(false)}
+        onLostPointerCapture={() => setDragging(false)}
+        className="flex h-full w-[var(--app-scrollbar-track-size)] touch-none px-[2px] select-none"
       >
         <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="relative flex-1 rounded-full bg-border" />
       </ScrollAreaPrimitive.Scrollbar>

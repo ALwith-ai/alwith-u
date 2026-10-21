@@ -1,6 +1,8 @@
 import { SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type Item, type Session, textOf } from "@alwith/api"
 
+import { codexMessageError } from "./codex-extensions"
 import { prependHistory, projectHistoryTurns } from "./history-page"
 
 export type HistoryTurnSummary = {
@@ -9,6 +11,7 @@ export type HistoryTurnSummary = {
   startedAt?: number | null
   completedAt?: number | null
   durationMs?: number | null
+  errorUpdates?: acp.SessionUpdate[]
 }
 export type HistoryTurnPreview = {
   state: "loading" | "loaded" | "unavailable"
@@ -78,7 +81,13 @@ export async function readHistoryIndex(
       throw new Error("History index made no progress")
     for (const raw of page.turns) {
       const turn = object(raw)
-      if (typeof turn.turnId !== "string" || !turn.turnId || ids.has(turn.turnId) || turn.itemsView !== "summary")
+      if (
+        typeof turn.turnId !== "string" ||
+        !turn.turnId ||
+        ids.has(turn.turnId) ||
+        turn.itemsView !== "summary" ||
+        !Array.isArray(turn.updates)
+      )
         throw new Error("Invalid history turn index")
       for (const key of ["startedAt", "completedAt", "durationMs"])
         if (turn[key] != null && (typeof turn[key] !== "number" || !Number.isFinite(turn[key])))
@@ -89,7 +98,13 @@ export async function readHistoryIndex(
         status: typeof turn.status === "string" ? turn.status : undefined,
         startedAt: turn.startedAt as number | null,
         completedAt: turn.completedAt as number | null,
-        durationMs: turn.durationMs as number | null
+        durationMs: turn.durationMs as number | null,
+        errorUpdates: turn.updates.filter((rawUpdate: unknown): rawUpdate is acp.SessionUpdate => {
+          const update = object(rawUpdate) as acp.SessionUpdate
+          if (!SessionUpdate.isAgentMessage(update)) return false
+          if (!Array.isArray(update.content)) throw new Error("Invalid history error content")
+          return codexMessageError({ content: update.content, _meta: update._meta ?? null }) !== null
+        })
       })
     }
     cursor = page.nextCursor as string | null
@@ -195,7 +210,9 @@ export async function readHistoryTurn(
         )
       })
     : updates
-  return projectHistoryTurns(sessionId, cwd, title, [{ ...turn, itemsView: "full", updates: projectedUpdates }])
+  return projectHistoryTurns(sessionId, cwd, title, [
+    { ...turn, itemsView: "full", updates: [...projectedUpdates, ...(turn.errorUpdates ?? [])] }
+  ])
 }
 
 export function nativeTurnId(item: Item): string | null {

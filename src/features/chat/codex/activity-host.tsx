@@ -1,15 +1,31 @@
 import type { ActivityHost } from "@alwith/module-chat/activity-host"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
+import { invoke } from "@tauri-apps/api/core"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
-import { openImageLightbox } from "../dialogs/image-lightbox"
-import { ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
+import { openImageGallery, openImageLightbox } from "../dialogs/image-lightbox"
+import { ChatDirectoryContext, ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
 import { CodexMarkdownRenderer } from "./markdown-renderer"
 import { PatchView } from "./patch-view"
 
+// Adapter image paths are filesystem paths, so preserve literal percent signs and hashes.
+function imageFilePath(path: string, cwd: string | null): string {
+  if (path.startsWith("file:")) {
+    const url = new URL(path)
+    let value = decodeURIComponent(url.pathname)
+    if (/^\/[A-Za-z]:\//.test(value)) value = value.slice(1)
+    if (url.hostname && url.hostname !== "localhost") value = `//${url.hostname}${value}`
+    return value
+  }
+  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path) || path.startsWith(String.raw`\\`)) return path
+  if (cwd === null) throw new Error("Image view directory is unavailable")
+  return `${cwd.replace(/[\\/]$/, "")}/${path}`
+}
+
 export function useChatActivityHost(): ActivityHost {
   const openLink = useOpenChatLink()
+  const cwd = useContext(ChatDirectoryContext)
   const openSession = useContext(ChatOpenSessionContext)
   const { t, i18n } = useTranslation()
   const language = i18n.resolvedLanguage ?? "en"
@@ -23,6 +39,14 @@ export function useChatActivityHost(): ActivityHost {
         Output: TerminalOutput,
         Patch: PatchView,
         openImage: openImageLightbox,
+        openImageGallery,
+        loadImage: async (path) => {
+          const preview = await invoke<
+            { kind: "image"; data: string; mimeType: string } | { kind: "text"; text: string } | { kind: "unsupported" }
+          >("chat_preview_file", { path: imageFilePath(path, cwd) })
+          if (preview.kind !== "image") throw new Error("Image preview is unavailable")
+          return `data:${preview.mimeType};base64,${preview.data}`
+        },
         ...(openSession === null ? {} : { openSession }),
         expandToolOutput: true,
         commandStatus: (block) => {
@@ -33,6 +57,6 @@ export function useChatActivityHost(): ActivityHost {
           return t(block.status === "failed" ? "chat.tool.failed" : "chat.tool.success")
         }
       }) satisfies ActivityHost,
-    [i18n, language, t, openLink, openSession]
+    [i18n, language, t, openLink, openSession, cwd]
   )
 }

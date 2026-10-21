@@ -46,12 +46,14 @@ function setup(top = 800, running = true, roundPixels = false) {
   document.body.append(scrollArea)
   let height = 1400
   let position = top
+  const scrollWrites: number[] = []
   Object.defineProperties(root, {
     clientHeight: { value: 600 },
     scrollHeight: { get: () => height },
     scrollTop: {
       get: () => position,
       set: (value: number) => {
+        scrollWrites.push(value)
         position = Math.max(0, Math.min(roundPixels ? Math.round(value) : value, height - 600))
       }
     },
@@ -62,10 +64,10 @@ function setup(top = 800, running = true, roundPixels = false) {
       }
     }
   })
-  const releaseTurnAnchor = () => {}
-  const hook = renderHook(() => useThreadScroll(root, running, releaseTurnAnchor))
+  const hook = renderHook(() => useThreadScroll(root, running))
   return {
     root,
+    scrollWrites,
     scrollArea,
     result: hook.result,
     unmount: hook.unmount,
@@ -76,6 +78,12 @@ function setup(top = 800, running = true, roundPixels = false) {
     scroll(value: number) {
       act(() => {
         root.scrollTop = value
+        root.dispatchEvent(new Event("scroll"))
+      })
+    },
+    nativeScroll(value: number) {
+      act(() => {
+        position = value
         root.dispatchEvent(new Event("scroll"))
       })
     },
@@ -124,6 +132,34 @@ test("layout correction while following does not release the viewport", () => {
   expect(view.root.scrollTop).toBe(1000)
 })
 
+test("continued downward input at the bottom does not write the native scroll position", () => {
+  const view = setup()
+  for (let i = 0; i < 6; i++) {
+    view.wheel(100)
+    act(() => view.result.current.contentResized())
+    settle()
+  }
+  expect(view.scrollWrites).toEqual([])
+  expect(view.result.current.isFollowing).toBe(true)
+})
+
+test("a queued follow frame does not pull back native bottom overscroll", () => {
+  const view = setup(780)
+  act(() => view.result.current.scrollToBottom())
+  view.nativeScroll(836)
+  view.wheel(80)
+  settle()
+  expect(view.root.scrollTop).toBe(836)
+  expect(view.scrollWrites).toEqual([])
+
+  view.nativeScroll(800)
+  view.resize(1600)
+  act(() => view.result.current.contentResized())
+  settle()
+  expect(view.root.scrollTop).toBe(1000)
+  expect(view.result.current.isFollowing).toBe(true)
+})
+
 test("downward input near a streaming answer resumes smoothly and tracks growth", () => {
   const view = setup(400)
   view.wheel(300)
@@ -153,63 +189,6 @@ test("return animation starts each frame from the actual position, including fur
   act(() => view.result.current.contentResized())
   settle()
   expect(view.root.scrollTop).toBe(680)
-})
-
-test("new-turn positioning suspends pins and user input invalidates its completion", () => {
-  const view = setup()
-  let location!: ReturnType<typeof view.result.current.beginLocate>
-  act(() => {
-    location = view.result.current.beginLocate(true)
-    view.result.current.contentResized()
-  })
-  expect(frames.size).toBe(0)
-  view.wheel(-80)
-  view.scroll(720)
-  act(() => location.finish(800))
-  expect(location.isCurrent()).toBe(false)
-  expect(view.root.scrollTop).toBe(720)
-})
-
-test("a completed new-turn location resumes follow; a history location remains released", () => {
-  const view = setup(200)
-  act(() => view.result.current.beginLocate(true).finish(750))
-  view.resize(1600)
-  act(() => view.result.current.contentResized())
-  settle()
-  expect(view.root.scrollTop).toBe(1000)
-  act(() => view.result.current.beginLocate(false).finish(400))
-  act(() => view.result.current.contentResized())
-  settle()
-  expect(view.root.scrollTop).toBe(400)
-  expect(view.result.current.isFollowing).toBe(false)
-})
-
-test("downward user input also cancels an unfinished new-turn location", () => {
-  const view = setup(200)
-  let location!: ReturnType<typeof view.result.current.beginLocate>
-  act(() => {
-    location = view.result.current.beginLocate(true)
-  })
-  view.wheel(100)
-  view.scroll(300)
-  act(() => location.finish(800))
-  expect(location.isCurrent()).toBe(false)
-  expect(view.root.scrollTop).toBe(300)
-})
-
-test("completion cancels an unfinished new-turn location without losing follow intent", () => {
-  const view = setup()
-  let location!: ReturnType<typeof view.result.current.beginLocate>
-  act(() => {
-    location = view.result.current.beginLocate(true)
-    view.result.current.cancelLocation()
-  })
-  act(() => location.finish(200))
-  expect(view.root.scrollTop).toBe(800)
-  view.resize(1600)
-  act(() => view.result.current.contentResized())
-  settle()
-  expect(view.root.scrollTop).toBe(1000)
 })
 
 test("collapsing content naturally to the bottom restores following", () => {

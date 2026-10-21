@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
 import { initI18n } from "@/lib/i18n"
+
 import { useMainCanvas } from "../use-main-canvas"
 
 const carousel = vi.hoisted(() => {

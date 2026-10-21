@@ -1,5 +1,7 @@
 import type { UseEmblaCarouselType } from "embla-carousel-react"
+
 import type { TrackpadGesture } from "@/bindings"
+
 import { resolveReleaseSnap } from "./canvas-geometry"
 
 type CanvasApi = NonNullable<UseEmblaCarouselType[1]>

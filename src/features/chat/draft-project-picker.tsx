@@ -69,7 +69,7 @@ export function DraftProjectPicker({
       <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
-            <Pane className="flex-none" viewportClassName="max-h-64">
+            <Pane className="flex-none" viewportClassName="max-h-64 pe-0">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map((path) => (
                   <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>

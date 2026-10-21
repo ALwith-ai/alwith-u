@@ -224,6 +224,7 @@ function PaletteContent({
                 <CommandItem
                   key={entry.id}
                   value={entry.id}
+                  className="[&>svg:last-child]:hidden"
                   onSelect={() => {
                     onOpenChange(false)
                     entry.run()

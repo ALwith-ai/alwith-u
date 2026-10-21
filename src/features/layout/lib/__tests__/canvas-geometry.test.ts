@@ -1,4 +1,5 @@
 import { expect, test } from "vitest"
+
 import { resolveCanvasGeometry, resolveReleaseSnap } from "../canvas-geometry"
 
 test("a pinned sidebar is shared by leading and chat, never a separate stop", () => {

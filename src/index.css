@@ -476,6 +476,11 @@ html[data-window-backdrop="acrylic"]
 .windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
+/* Keep application buttons stationary while pressed, including composed triggers. */
+[class~="group/button"]:active {
+  translate: none;
+}
+
 /* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
 :root {
   --native-viewport-width: 100vw;
@@ -520,8 +525,14 @@ body,
   user-select: none;
 }
 
+[data-vibemon-window] img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* Keep native scrollers compact, including containers supplied by shared modules. */
 :root {
+  --app-scrollbar-track-size: 10px;
   --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
   --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
 }
@@ -555,8 +566,7 @@ body,
   display: none;
 }
 
-/* From ALwith Desktop `styles/global-utilities.css`: Pane (Base UI ScrollArea) hides the native
-   scrollbar and shows its own overlay one only while hovering or scrolling (macOS style). */
+/* Pane keeps its track outside the viewport, with stable content clearance even when hidden. */
 [data-slot="scroll-area-viewport"] {
   scrollbar-width: none;
 }
@@ -565,18 +575,26 @@ body,
 }
 [data-slot="scroll-area-scrollbar"] {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 150ms ease;
 }
 [data-slot="scroll-area-thumb"] {
   background: var(--app-scrollbar-thumb);
 }
-[data-slot="scroll-area-thumb"]:hover {
+[data-slot="scroll-area-thumb"]:hover,
+[data-slot="scroll-area-scrollbar"][data-dragging] [data-slot="scroll-area-thumb"] {
   background: var(--app-scrollbar-thumb-hover);
 }
 [data-slot="scroll-area-scrollbar"][data-hovering],
-[data-slot="scroll-area-scrollbar"][data-scrolling] {
+[data-slot="scroll-area-scrollbar"][data-scrolling],
+[data-slot="scroll-area-scrollbar"][data-dragging],
+[data-slot="scroll-area"]:focus-within > [data-slot="scroll-area-scrollbar"] {
   opacity: 1;
   transition-duration: 0.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="scroll-area-scrollbar"] {
+    transition: none;
+  }
 }
 
 /* Only the main application shell consumes extension wallpaper requests. */

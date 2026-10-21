@@ -72,10 +72,10 @@ import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
 import { useHostDialog } from "./host-dialog"
+import type { PanelControls } from "./panel-controls-context"
 import { PreviewSurface } from "./preview-surface"
 import { WorkspaceButton } from "./workspace-button"
 import { WorkspaceEditor } from "./workspace-editor"
-import type { PanelControls } from "./panel-controls-context"
 import { WorkspacePanels } from "./workspace-panels"
 import "./workspace.css"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
@@ -819,7 +819,8 @@ export function FileWorkspace({
   }
   return (
     <WorkspaceContext.Provider value={context}>
-      {showMainControls && headerTarget !== null &&
+      {showMainControls &&
+        headerTarget !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
             <ChatCondenseEntry
@@ -838,7 +839,8 @@ export function FileWorkspace({
           </div>,
           headerTarget
         )}
-      {showMainControls && windowsControls !== null &&
+      {showMainControls &&
+        windowsControls !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
             <WorkspaceButton />

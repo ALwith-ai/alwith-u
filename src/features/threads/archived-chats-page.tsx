@@ -215,7 +215,7 @@ export function ArchivedChatsPage(): ReactElement {
           </Select>
         </div>
 
-        <Pane className="[&>[data-slot=scroll-area-scrollbar]]:translate-x-[18px]">
+        <Pane>
           <ScrollArea.Content className="flex flex-col gap-8" style={{ minWidth: 0 }}>
             {connection !== "ready" ? (
               <p role="status" className="text-muted-foreground">
