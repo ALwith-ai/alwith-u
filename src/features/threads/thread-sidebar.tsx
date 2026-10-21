@@ -268,6 +268,28 @@ export function ThreadSidebar({
   // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
   const view = useThreadsUiStore((s) => s.view)
   const setView = useThreadsUiStore((s) => s.setView)
+  const activitySeen = useThreadsUiStore((s) => s.activitySeen)
+  const setActivitySeen = useThreadsUiStore((s) => s.setActivitySeen)
+  const draftSessions = useApp((state) => state.draftSessions)
+  const activityNotifications = useMemo(
+    () =>
+      new Map(
+        Object.values(runStates)
+          .filter(
+            (record) =>
+              (record.state === "done" || record.state === "requires_action") &&
+              (!record.reusableDraft || draftSessions[record.sessionId] !== undefined)
+          )
+          .map((record) => [record.sessionId, JSON.stringify([record.state, record.since, record.interruption])])
+      ),
+    [runStates, draftSessions]
+  )
+  const hasActivityNotification =
+    view !== "activity" &&
+    [...activityNotifications].some(([id, notification]) => activitySeen.get(id) !== notification)
+  useEffect(() => {
+    if (view === "activity") setActivitySeen(activityNotifications)
+  }, [view, activityNotifications, setActivitySeen])
   // Tabs share the navigation icon buttons' 32px height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const driveVisible = useDriveVisible()
@@ -419,6 +441,13 @@ export function ThreadSidebar({
                       />
                     )}
                     {tab.icon}
+                    {tab.key === "activity" && hasActivityNotification && (
+                      <span
+                        data-activity-notification
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-1 right-1 z-20 size-1.5 rounded-full bg-destructive motion-safe:animate-[activity-notification-pulse_2s_ease-in-out_infinite]"
+                      />
+                    )}
                     <span
                       className={cn(
                         "relative z-10 grid",

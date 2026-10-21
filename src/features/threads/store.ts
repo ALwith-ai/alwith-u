@@ -11,6 +11,9 @@ interface ThreadsUiState {
   /** Current sidebar panel: session list or activity. */
   view: SidebarView
   setView: (view: SidebarView) => void
+  /** Acknowledged Activity notifications, independent of Runtime conversation read state. */
+  activitySeen: ReadonlyMap<string, string>
+  setActivitySeen: (next: ReadonlyMap<string, string>) => void
   /** Project expansion state lives only in process memory and resets on app restart. */
   projectOpen: Map<string, boolean>
   setProjectOpen: (next: Map<string, boolean>) => void
@@ -24,6 +27,8 @@ interface ThreadsUiState {
 export const useThreadsUiStore = create<ThreadsUiState>((set) => ({
   view: "sessions",
   setView: (view) => set({ view }),
+  activitySeen: new Map(),
+  setActivitySeen: (activitySeen) => set({ activitySeen }),
   projectOpen: new Map(),
   setProjectOpen: (next) => set({ projectOpen: next }),
   revealed: new Map(),
