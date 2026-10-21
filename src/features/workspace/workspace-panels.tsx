@@ -243,6 +243,8 @@ export function WorkspacePanels({
                     setManuallySeparated(next.chat + next.preview > budget)
                   }}
                   onEnd={() => {
+                    // A manual resize on main overrides preview intent retained from an earlier merged layout.
+                    if (canvas?.selected === 1 && !maximized) canvas.navigate("chat")
                     dragging.current = false
                     setDraggingPreview(false)
                     canvas?.setDividerDragging(false)

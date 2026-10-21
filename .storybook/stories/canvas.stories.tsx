@@ -760,3 +760,50 @@ export const ThreeScreenTransitions: Story = {
   }
 }
 export const ThreeScreenTransitionsRtl: Story = { ...ThreeScreenTransitions, globals: { locale: "ar" } }
+
+export const SplitFromMainStaysOnMain: Story = {
+  ...Unified,
+  globals: { locale: "en" },
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const dots = (): HTMLButtonElement[] => within(canvas.getByRole("navigation")).getAllByRole("button")
+    const host = canvasElement.querySelector<HTMLElement>("[data-canvas-moving]")!
+    await waitFor(() => expect(dots()).toHaveLength(3))
+    // Preview intent survives merging into the shared main screen; manual resizing must supersede it.
+    await userEvent.click(dots()[2])
+    await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
+    await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
+    await waitFor(() => {
+      expect(dots()).toHaveLength(2)
+      expect(dots()[1]).toHaveAttribute("aria-current", "page")
+    })
+    const divider = canvas.getByRole("separator")
+    const bounds = divider.getBoundingClientRect()
+    const x = bounds.left + bounds.width / 2
+    const y = bounds.top + 150
+    const dx = i18n.dir() === "rtl" ? -100 : 100
+    await userEvent.pointer({ target: divider, keys: "[MouseLeft>]", coords: { clientX: x, clientY: y } })
+    await userEvent.pointer({ target: divider, coords: { clientX: x + dx, clientY: y } })
+    await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
+    await waitFor(
+      () => {
+        expect(dots()).toHaveLength(3)
+        expect(dots()[1]).toHaveAttribute("aria-current", "page")
+        expect(host).toHaveAttribute("data-canvas-moving", "false")
+      },
+      { timeout: 3000 }
+    )
+    for (let frame = 0; frame < 30; frame++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      expect(dots()[1]).toHaveAttribute("aria-current", "page")
+      const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
+      const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
+      expect(chat.left).toBeGreaterThanOrEqual(body.left)
+      expect(chat.right).toBeLessThanOrEqual(body.right)
+    }
+    expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+    await userEvent.click(dots()[2])
+    await waitFor(() => expect(dots()[2]).toHaveAttribute("aria-current", "page"))
+    expect(canvas.getByRole("heading", { name: "Preview pane" })).toBeInTheDocument()
+  }
+}
+export const SplitFromMainStaysOnMainRtl: Story = { ...SplitFromMainStaysOnMain, globals: { locale: "ar" } }
