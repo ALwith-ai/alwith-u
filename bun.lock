@@ -86,7 +86,7 @@
       "devDependencies": {
         "@alwith/native": "^0.1.4",
         "@nyssance/codex-acp-v2": "^0.7.25",
-        "@nyssance/ts7-lint": "^0.1.2",
+        "@nyssance/ts7-lint": "^0.1.3",
         "@openai/codex": "0.163.0",
         "@storybook/addon-a11y": "^10.6.3",
         "@storybook/addon-docs": "^10.6.3",
@@ -452,7 +452,7 @@
 
     "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.25", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2", "ws": "^8.22.0" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-dfDZeaSaNKwTHuRiPE6U+9Ej0Y2Yru7WaegHHRYrKnIU/9kEpsT2ruKrO2MqF+j9b3ja03enkv3vaBX9Jw9z6g=="],
 
-    "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.2", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-hPc3fU+gbRHHQwXOIZXlSXWpNEWjxKTqG/FVIib/BIvlf59NfUoYePXnIkKRbGkPEgoJ4zZlyrCLUgz9G1EkOw=="],
+    "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
     "@openai/codex": ["@openai/codex@0.163.0", "https://registry.npmmirror.com/@openai/codex/-/codex-0.163.0.tgz", { "optionalDependencies": { "@openai/codex-darwin-arm64": "npm:@openai/codex@0.163.0-darwin-arm64", "@openai/codex-darwin-x64": "npm:@openai/codex@0.163.0-darwin-x64", "@openai/codex-linux-arm64": "npm:@openai/codex@0.163.0-linux-arm64", "@openai/codex-linux-x64": "npm:@openai/codex@0.163.0-linux-x64", "@openai/codex-win32-arm64": "npm:@openai/codex@0.163.0-win32-arm64", "@openai/codex-win32-x64": "npm:@openai/codex@0.163.0-win32-x64" }, "bin": { "codex": "bin/codex.js" } }, "sha512-HNd7vR9oTK6M2ikxFnvNDCdYUgAsyo9VVnd5KnEd2ON0GYI++7MiX9XNPUkhtdgGKFPsWS+CEppQ1UU63uVhUw=="],
 

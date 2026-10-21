@@ -20,7 +20,8 @@
     "typecheck": "tsc -b",
     "test": "bun run test:scripts && vitest run",
     "test:live": "bun run stage && bun scripts/live.ts",
-    "lint": "ts7-lint --check && bun lint",
+    "lint": "bun lint",
+    "ts7-lint": "ts7-lint",
     "format": "bun fmt",
     "stage": "bun scripts/stage.ts",
     "lint:fix": "bun lint --fix",
@@ -112,7 +113,7 @@
   "devDependencies": {
     "@alwith/native": "^0.1.4",
     "@nyssance/codex-acp-v2": "^0.7.25",
-    "@nyssance/ts7-lint": "^0.1.2",
+    "@nyssance/ts7-lint": "^0.1.3",
     "@openai/codex": "0.163.0",
     "@storybook/addon-a11y": "^10.6.3",
     "@storybook/addon-docs": "^10.6.3",
