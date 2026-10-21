@@ -8,8 +8,8 @@ are omitted; the application owns dependency resolution.
 
 Backport: [tauri-apps/wry#1856](https://github.com/tauri-apps/wry/pull/1856),
 through commit `a1e9973c44f1e6ccb6a1f17a16ded28be26d3ff1`, including
-`00e921316f0bee9f2577dc858294bc6268b15ebe`. Only the Apple `dispatch2`
-dependency and `src/wkwebview/class/url_scheme_handler.rs` change. The source
+`00e921316f0bee9f2577dc858294bc6268b15ebe`. The crash fix changes the Apple `dispatch2`
+dependency and `src/wkwebview/class/url_scheme_handler.rs`. The source
 keeps the published crate's import formatting.
 
 ## Failure and fix
@@ -30,6 +30,13 @@ The application-level `[patch.crates-io]` applies to the single Wry instance
 used by Tauri, covering IPC and every custom protocol. Public APIs and the
 release panic strategy are unchanged.
 
+## macOS 26 baseline
+
+The application supports macOS 26 and later only. Remove the build-host
+macOS 12 probe and older macOS runtime branches. Keep iOS availability
+checks and the WebKit custom-protocol crash fix. Use current modifier flag
+bindings and remove unnecessary unsafe wrappers around safe methods.
+
 ## Verification
 
 From `src-tauri`, in a logged-in macOS graphical session:
@@ -46,7 +53,7 @@ worker. Worker delivery and abandonment must return while the main loop is
 paused; the original implementation fails the delivery check. A stale page
 callback or missing final page callback also fails the run.
 
-The release run exercises the application's `panic = "abort"` configuration.
+The release run exercises the application's release configuration.
 It does not require an account, a sidecar, a development server or network
 access. It must be run outside a sandbox that denies WindowServer access.
 
@@ -56,3 +63,25 @@ When the resolved upstream Wry version includes this fix (including responder
 cleanup), remove the Cargo patch and this snapshot together, update the
 application lockfile, and rerun the native regression and application checks.
 Do not keep an older local version silently shadowing an upstream update.
+
+## Upstream follow-up — 2026-10-21
+
+Status: waiting for an official release. Wry 0.57.0 remains the latest published
+release checked on this date; [PR #1856](https://github.com/tauri-apps/wry/pull/1856)
+is still open. Retain this local patch until the resolved official release
+contains both serialized response delivery and abandoned-responder cleanup.
+
+- [ ] Verify that an official release includes the complete fix, not only part of the PR.
+- [ ] Upgrade within Tauri's supported dependency range. If the fix is still absent,
+      update the local base and reapply the required patch instead of dropping it.
+- [ ] Run `wry_protocol_regression` against the actual resolved official Wry,
+      covering worker delivery, cancellation, and abandoned responders.
+- [ ] After verification passes, remove the path override, workspace exclusion,
+      and local snapshot together, then refresh Cargo.lock and verify its registry source.
+
+Restored after accidental removal during snapshot cleanup. The application's
+minimum supported macOS version remains 26.0. Restoration has not been compiled
+or runtime-tested in this maintenance session.
+
+File drops read individual `NSPasteboardTypeFileURL` items and decode file URLs
+without the deprecated filename pasteboard type. Drag locations use safe bindings.

@@ -6,12 +6,16 @@ fn credentials_persist_independently_and_removal_survives_restart() {
     let path = directory.path().join("credentials.json");
     let mut store = SecretStore::load(path.clone()).unwrap();
     assert_eq!(store.get("service-a"), None);
-    store.set("service-a", "first").unwrap();
-    store.set("service-b", "other").unwrap();
-    store.set("service-a", "updated").unwrap();
+    store.replace(BTreeMap::from([("service-a".into(), "first".into())])).unwrap();
+    store
+        .replace(BTreeMap::from([("service-a".into(), "first".into()), ("service-b".into(), "other".into())]))
+        .unwrap();
+    store
+        .replace(BTreeMap::from([("service-a".into(), "updated".into()), ("service-b".into(), "other".into())]))
+        .unwrap();
     let mut restarted = SecretStore::load(path.clone()).unwrap();
     assert_eq!(restarted.get("service-a"), Some("updated"));
-    restarted.remove("service-a").unwrap();
+    restarted.replace(BTreeMap::from([("service-b".into(), "other".into())])).unwrap();
     let restarted = SecretStore::load(path).unwrap();
     assert_eq!(restarted.get("service-a"), None);
     assert_eq!(restarted.get("service-b"), Some("other"));
@@ -33,11 +37,11 @@ fn failed_write_preserves_both_active_and_persisted_credentials() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("credentials.json");
     let mut store = SecretStore::load(path.clone()).unwrap();
-    store.set("service", "saved").unwrap();
+    store.replace(BTreeMap::from([("service".into(), "saved".into())])).unwrap();
     store.path = directory.path().join("blocked").join("credentials.json");
     std::fs::write(directory.path().join("blocked"), "file").unwrap();
-    assert!(store.set("service", "replacement").is_err());
-    assert!(store.remove("service").is_err());
+    assert!(store.replace(BTreeMap::from([("service".into(), "replacement".into())])).is_err());
+    assert!(store.replace(BTreeMap::new()).is_err());
     assert_eq!(store.get("service"), Some("saved"));
     assert_eq!(SecretStore::load(path).unwrap().get("service"), Some("saved"));
 }
@@ -52,7 +56,7 @@ fn existing_and_replaced_files_are_owner_only() {
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
     let mut store = SecretStore::load(path.clone()).unwrap();
     assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
-    store.set("service", "updated").unwrap();
+    store.replace(BTreeMap::from([("service".into(), "updated".into())])).unwrap();
     assert_eq!(std::fs::metadata(path).unwrap().permissions().mode() & 0o777, 0o600);
 }
 

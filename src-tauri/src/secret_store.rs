@@ -40,16 +40,6 @@ impl SecretStore {
     pub fn replace(&mut self, values: BTreeMap<String, String>) -> Result<(), String> {
         self.persist(values)
     }
-    pub fn set(&mut self, key: &str, secret: &str) -> Result<(), String> {
-        let mut next = self.values.clone();
-        next.insert(key.into(), secret.into());
-        self.persist(next)
-    }
-    pub fn remove(&mut self, key: &str) -> Result<(), String> {
-        let mut next = self.values.clone();
-        next.remove(key);
-        self.persist(next)
-    }
     fn persist(&mut self, values: BTreeMap<String, String>) -> Result<(), String> {
         write_json(&self.path, &values)?;
         self.values = values;

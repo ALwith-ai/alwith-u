@@ -152,9 +152,6 @@ impl SettingsStore {
     pub fn browser_migrated(&self) -> bool {
         self.browser_migrated
     }
-    pub fn revision(&self) -> u64 {
-        self.revision
-    }
     pub fn snapshot(&self) -> Result<(u64, BTreeMap<String, Value>), String> {
         self.ready()?;
         Ok((self.revision, self.values.clone()))

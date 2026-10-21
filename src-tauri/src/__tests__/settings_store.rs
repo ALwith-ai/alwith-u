@@ -29,7 +29,7 @@ fn ordinary_updates_reject_secrets_unknown_keys_and_stale_forms() {
     let mut s = SettingsStore::load(dir.path().into()).unwrap();
     assert!(s.update(changes(json!({"voice.doubao.apiKey":"secret"})), None).is_err());
     assert!(s.update(changes(json!({"unknown.option":true})), None).is_err());
-    let revision = s.revision();
+    let revision = s.snapshot().unwrap().0;
     s.update(changes(json!({"voice.enabled":false})), None).unwrap();
     assert!(s.update(changes(json!({"voice.provider":"vui"})), Some(revision)).is_err());
     assert_eq!(s.values["voice.enabled"], false);
@@ -41,7 +41,7 @@ fn voice_configuration_and_secret_survive_restart_together() {
     s.save_voice(
         changes(json!({"voice.provider":"doubao"})),
         Some(("voice.doubao.apiKey".into(), "test-key".into())),
-        s.revision(),
+        s.snapshot().unwrap().0,
         || Ok(()),
     )
     .unwrap();
@@ -88,7 +88,7 @@ fn partial_commit_blocks_reads_until_recovery() {
         s.save_voice(
             changes(json!({"voice.provider":"doubao"})),
             Some(("voice.doubao.apiKey".into(), "pending".into())),
-            s.revision(),
+            s.snapshot().unwrap().0,
             || Ok(())
         )
         .is_err()
@@ -149,7 +149,7 @@ fn validates_voice_modes_and_silence_limits_at_the_native_boundary() {
 fn rejected_voice_saves_do_not_cancel_recording() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();
-    let old = store.revision();
+    let old = store.snapshot().unwrap().0;
     store.update(changes(json!({"voice.enabled":false})), None).unwrap();
     let mut cancelled = false;
     assert!(
@@ -168,7 +168,7 @@ fn rejected_voice_saves_do_not_cancel_recording() {
     assert!(!cancelled);
     assert!(
         store
-            .save_voice(changes(json!({"voice.provider":"invalid"})), None, store.revision(), || {
+            .save_voice(changes(json!({"voice.provider":"invalid"})), None, store.snapshot().unwrap().0, || {
                 cancelled = true;
                 Ok(())
             })

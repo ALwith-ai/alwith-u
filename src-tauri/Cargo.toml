@@ -88,8 +88,7 @@ resolver = "3"
 exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration"]
 
 [patch.crates-io]
-# Keep WebKit response delivery and task cancellation on the main thread.
-# Remove after upstream ships the fix documented in patches/wry/PATCH.md.
+# Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.
 wry = { path = "patches/wry" }
 
 [profile.dev]

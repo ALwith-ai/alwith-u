@@ -10,6 +10,7 @@ mod navigation;
 mod proxy;
 #[cfg(target_os = "macos")]
 mod synthetic_mouse_events;
+#[cfg(target_os = "ios")]
 mod util;
 
 #[cfg(target_os = "ios")]
@@ -219,23 +220,17 @@ impl InnerWebView {
       let config = WKWebViewConfiguration::new(mtm);
 
       // Incognito mode
-      let (os_major_version, _, _) = util::operating_system_version();
-      #[cfg(target_os = "macos")]
-      let custom_data_store_available = os_major_version >= 14;
       #[cfg(target_os = "ios")]
-      let custom_data_store_available = os_major_version >= 17;
+      let (os_major_version, _, _) = util::operating_system_version();
 
       let data_store = if using_existing_config {
         config.websiteDataStore()
       } else {
-        let data_store = match (
-          attributes.incognito,
-          custom_data_store_available,
-          pl_attrs.data_store_identifier,
-        ) {
-          (true, _, _) => WKWebsiteDataStore::nonPersistentDataStore(mtm),
-          // if data_store_identifier is given and custom data stores are available, use custom store
-          (false, true, Some(data_store)) => {
+        let data_store = match (attributes.incognito, pl_attrs.data_store_identifier) {
+          (true, _) => WKWebsiteDataStore::nonPersistentDataStore(mtm),
+          #[cfg(target_os = "ios")]
+          (false, Some(_)) if os_major_version < 17 => WKWebsiteDataStore::defaultDataStore(mtm),
+          (false, Some(data_store)) => {
             let identifier = NSUUID::from_bytes(data_store);
             // <https://developer.apple.com/documentation/webkit/wkwebsitedatastore/init(foridentifier:)>
             // Available: macOS 14+, iOS 17+
@@ -366,6 +361,7 @@ impl InnerWebView {
         config.setMediaTypesRequiringUserActionForPlayback(WKAudiovisualMediaTypes::None);
       }
 
+      #[cfg(target_os = "ios")]
       let version = util::operating_system_version();
 
       if attributes.transparent || attributes.background_color.is_some() {
@@ -374,9 +370,10 @@ impl InnerWebView {
         config.setValue_forKey(Some(&no), ns_string!("drawsBackground"));
       }
 
-      if (cfg!(target_os = "macos") && (version.0 > 12 || (version.0 == 12 && version.1 >= 3)))
-        || (cfg!(target_os = "ios") && (version.0 > 15 || (version.0 == 15 && version.1 >= 4)))
-      {
+      #[cfg(target_os = "macos")]
+      _preference.setElementFullscreenEnabled(true);
+      #[cfg(target_os = "ios")]
+      if version.0 > 15 || (version.0 == 15 && version.1 >= 4) {
         // NOTE: Public API alternative for private config fullScreenEnabled (see below)
         // Only available on macOS 12.3+ and iOS 15.4+
         _preference.setElementFullscreenEnabled(true);
@@ -428,18 +425,16 @@ impl InnerWebView {
         // Set the under-page background color for overscroll areas (public API, macOS 12+).
         // drawsBackground is already disabled on the config above, so the window background
         // shows through. This handles the color visible when scrolling past page bounds.
-        if os_major_version >= 12 {
-          if let Some((red, green, blue, alpha)) = attributes.background_color {
-            let color = objc2_app_kit::NSColor::colorWithSRGBRed_green_blue_alpha(
-              red as f64 / 255.0,
-              green as f64 / 255.0,
-              blue as f64 / 255.0,
-              alpha as f64 / 255.0,
-            );
-            // <https://developer.apple.com/documentation/webkit/wkwebview/underpagebackgroundcolor>
-            // Available: macOS 12+, iOS 15+
-            webview.setUnderPageBackgroundColor(Some(&color));
-          }
+        if let Some((red, green, blue, alpha)) = attributes.background_color {
+          let color = objc2_app_kit::NSColor::colorWithSRGBRed_green_blue_alpha(
+            red as f64 / 255.0,
+            green as f64 / 255.0,
+            blue as f64 / 255.0,
+            alpha as f64 / 255.0,
+          );
+          // <https://developer.apple.com/documentation/webkit/wkwebview/underpagebackgroundcolor>
+          // Available: macOS 12+, iOS 15+
+          webview.setUnderPageBackgroundColor(Some(&color));
         }
 
         webview
@@ -470,29 +465,26 @@ impl InnerWebView {
         webview
       };
 
-      // change background throttling policy if attributes.background_throttling is set
-      // which works for iOS 17.0+,iPadOS 17.0+,Mac Catalyst 17.0+, macOS 14.0+, visionOS 1.0+
-      #[cfg(any(target_os = "ios", target_os = "macos"))]
-      {
-        let is_supported_os = (cfg!(target_os = "ios") && os_major_version >= 17)
-          || (cfg!(target_os = "macos") && os_major_version >= 14);
+      #[cfg_attr(target_os = "macos", allow(unused_labels))]
+      'background_policy: {
+        #[cfg(target_os = "ios")]
+        if os_major_version < 17 {
+          break 'background_policy;
+        }
+        if let Some(policy) = attributes.background_throttling {
+          let policy_value = match policy {
+            BackgroundThrottlingPolicy::Disabled => WKInactiveSchedulingPolicy::None.0,
+            BackgroundThrottlingPolicy::Suspend => WKInactiveSchedulingPolicy::Suspend.0,
+            BackgroundThrottlingPolicy::Throttle => WKInactiveSchedulingPolicy::Throttle.0,
+          };
 
-        if is_supported_os {
-          if let Some(policy) = attributes.background_throttling {
-            let policy_value = match policy {
-              BackgroundThrottlingPolicy::Disabled => WKInactiveSchedulingPolicy::None.0,
-              BackgroundThrottlingPolicy::Suspend => WKInactiveSchedulingPolicy::Suspend.0,
-              BackgroundThrottlingPolicy::Throttle => WKInactiveSchedulingPolicy::Throttle.0,
-            };
-
-            if let Ok(policy_number) = policy_value.try_into() {
-              // <https://developer.apple.com/documentation/webkit/wkpreferences/inactiveschedulingpolicy>
-              // Available: macOS 14+, iOS 17+
-              _preference.setValue_forKey(
-                Some(&NSNumber::numberWithInt(policy_number)),
-                ns_string!("inactiveSchedulingPolicy"),
-              );
-            }
+          if let Ok(policy_number) = policy_value.try_into() {
+            // <https://developer.apple.com/documentation/webkit/wkpreferences/inactiveschedulingpolicy>
+            // Available: macOS 14+, iOS 17+
+            _preference.setValue_forKey(
+              Some(&NSNumber::numberWithInt(policy_number)),
+              ns_string!("inactiveSchedulingPolicy"),
+            );
           }
         }
       }
@@ -693,14 +685,7 @@ impl InnerWebView {
 
         // make sure the window is always on top when we create a new webview
         let app = NSApplication::sharedApplication(mtm);
-        if os_major_version >= 14 {
-          // <https://developer.apple.com/documentation/appkit/nsapplication/activate()>
-          // Available: macOS 14+
-          NSApplication::activate(&app);
-        } else {
-          #[allow(deprecated)]
-          NSApplication::activateIgnoringOtherApps(&app, true);
-        }
+        NSApplication::activate(&app);
       }
 
       #[cfg(target_os = "ios")]
@@ -993,18 +978,15 @@ impl InnerWebView {
         .webview
         .setValue_forKey(Some(&no), ns_string!("drawsBackground"));
 
-      let (os_major_version, _, _) = util::operating_system_version();
-      if os_major_version >= 12 {
-        let color = objc2_app_kit::NSColor::colorWithSRGBRed_green_blue_alpha(
-          red as f64 / 255.0,
-          green as f64 / 255.0,
-          blue as f64 / 255.0,
-          alpha as f64 / 255.0,
-        );
-        // <https://developer.apple.com/documentation/webkit/wkwebview/underpagebackgroundcolor>
-        // Available: macOS 12+, iOS 15+
-        self.webview.setUnderPageBackgroundColor(Some(&color));
-      }
+      let color = objc2_app_kit::NSColor::colorWithSRGBRed_green_blue_alpha(
+        red as f64 / 255.0,
+        green as f64 / 255.0,
+        blue as f64 / 255.0,
+        alpha as f64 / 255.0,
+      );
+      // <https://developer.apple.com/documentation/webkit/wkwebview/underpagebackgroundcolor>
+      // Available: macOS 12+, iOS 15+
+      self.webview.setUnderPageBackgroundColor(Some(&color));
     }
 
     Ok(())
@@ -1095,8 +1077,15 @@ impl InnerWebView {
     cookie_builder = cookie_builder.secure(secure);
 
     // Using string comparison because of https://github.com/tauri-apps/wry/issues/1616
-    let (major, minor, _) = util::operating_system_version();
-    if major > 10 || (major == 10 && minor >= 15) {
+    #[cfg_attr(target_os = "macos", allow(unused_labels))]
+    'same_site: {
+      #[cfg(target_os = "ios")]
+      {
+        let (major, minor, _) = util::operating_system_version();
+        if major < 10 || (major == 10 && minor < 15) {
+          break 'same_site;
+        }
+      }
       // <https://developer.apple.com/documentation/foundation/httpcookie/samesitepolicy>
       // Available: macOS 10.15+, iOS 13+
       let same_site = cookie.sameSitePolicy();

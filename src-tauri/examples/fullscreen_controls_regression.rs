@@ -1,6 +1,6 @@
 //! Run AppKit control regressions on the actual main thread, without application data.
 #[cfg(target_os = "macos")]
-#[path = "../src/fullscreen_controls.rs"]
+#[path = "../src/fullscreen_controls/native.rs"]
 mod controls;
 #[cfg(target_os = "macos")]
 #[path = "../src/__tests__/fullscreen_controls.rs"]

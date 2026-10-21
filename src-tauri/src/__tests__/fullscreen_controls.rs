@@ -80,7 +80,6 @@ fn verify_zoom_alignment(window: &NSWindow, mtm: MainThreadMarker) {
 pub fn run() {
     let mtm = MainThreadMarker::new().expect("Native regression main thread");
     let app = NSApplication::sharedApplication(mtm);
-    let _plugin = crate::controls::init();
     let mut builder = ClassBuilder::new(c"AlwithFullscreenRegressionDelegate", NSObject::class()).unwrap();
     builder.add_protocol(AnyProtocol::get(c"NSWindowDelegate").unwrap());
     for selector in [

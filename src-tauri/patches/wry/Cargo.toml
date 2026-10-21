@@ -289,6 +289,7 @@ features = [
     "NSWindow",
     "NSView",
     "NSPasteboard",
+    "NSPasteboardItem",
     "NSPanel",
     "NSResponder",
     "NSOpenPanel",
@@ -417,13 +418,6 @@ default-features = false
 [target.'cfg(target_vendor = "apple")'.dependencies.url]
 version = "2.5"
 
-[target.'cfg(target_vendor = "apple")'.build-dependencies.objc2-foundation]
-version = "0.3.2"
-features = [
-    "std",
-    "NSProcessInfo",
-]
-default-features = false
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

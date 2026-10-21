@@ -275,6 +275,13 @@ pub fn document_ready(app: &tauri::AppHandle, label: &str) {
         state.generations.lock().expect("voice generations").entry(label.into()).or_default().ready = true;
     }
 }
+pub fn cancel_provider(app: &tauri::AppHandle, provider: &str) -> Result<(), String> {
+    if !matches!(provider, "vui" | "doubao") {
+        return Err("Unknown voice provider".into());
+    }
+    app.state::<VoiceState>().service.command(json!({"action":"cancelProvider","provider":provider}))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Document, Voice};
@@ -302,11 +309,4 @@ mod tests {
         document.ready = true;
         assert_eq!(document.capture_identity("chat").unwrap(), "chat:1");
     }
-}
-
-pub fn cancel_provider(app: &tauri::AppHandle, provider: &str) -> Result<(), String> {
-    if !matches!(provider, "vui" | "doubao") {
-        return Err("Unknown voice provider".into());
-    }
-    app.state::<VoiceState>().service.command(json!({"action":"cancelProvider","provider":provider}))
 }
