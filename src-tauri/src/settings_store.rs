@@ -285,6 +285,7 @@ fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
             "voice.enabled"
             | "voice.smooth"
             | "appearance.sidebarPinned"
+            | "appearance.threeFingerSwipe"
             | "editor.fontLigatures"
             | "editor.wordWrap"
             | "editor.minimap"

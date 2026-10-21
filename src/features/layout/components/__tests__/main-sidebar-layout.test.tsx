@@ -403,7 +403,8 @@ test("window chrome stays outside the sliding screens across navigation and side
   view.rerender(layout("leading"))
   expect(view.getByRole("banner")).toBe(header)
   expect(view.getByRole("contentinfo")).toBe(footer)
-  expect(header).toContainElement(view.getByRole("button", { name: "Workspace" }))
+  expect(view.queryByRole("button", { name: "Workspace" })).not.toBeInTheDocument()
+  expect(view.queryByRole("switch")).not.toBeInTheDocument()
 })
 
 test("Windows hosts workspace actions in the title bar instead of the body", () => {

@@ -68,12 +68,14 @@ import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
+import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
 import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
 import { useHostDialog } from "./host-dialog"
 import { PreviewSurface } from "./preview-surface"
 import { WorkspaceButton } from "./workspace-button"
 import { WorkspaceEditor } from "./workspace-editor"
+import type { PanelControls } from "./panel-controls-context"
 import { WorkspacePanels } from "./workspace-panels"
 import "./workspace.css"
 import { routeHistory, routeReplace } from "./editor-shortcuts"
@@ -163,17 +165,22 @@ export function FileWorkspace({
     }),
     []
   )
+  const panelControls = useRef<PanelControls | null>(null)
   const headerTarget = useContext(WorkspaceHeaderContext)
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false)
+  const canvas = useContext(CanvasContext)
+  const navigateCanvas = canvas?.navigate
+  const showMainControls = canvas === null || canvas.selected === 1
   const previousChatRevealRequest = useRef(chatRevealRequest)
   useEffect(() => {
     if (previousChatRevealRequest.current === chatRevealRequest) return
     previousChatRevealRequest.current = chatRevealRequest
     // New and returned chats must be visible even when the chat pane was collapsed.
     setViewMode(false)
-  }, [chatRevealRequest])
+    navigateCanvas?.("chat")
+  }, [chatRevealRequest, navigateCanvas])
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [navigation, setNavigation] = useState<{ path: string; position: FilePosition } | null>(null)
   const editorSnapshot = useSyncExternalStore(
@@ -506,11 +513,13 @@ export function FileWorkspace({
   const openDriveLink = useCallback((path: string): Promise<void> => routeDriveTarget.current(path), [])
   useDriveDeepLinks(openDriveLink)
   const toggle = useCallback((): void => {
-    if (visible && !viewMode) {
-      setVisible(false)
-      setViewMode(false)
-    } else if (visible) {
-      setViewMode(false)
+    if (visible) {
+      // Use the layout's effective state, including a preview moved onto the third screen.
+      if (panelControls.current?.expanded) panelControls.current.toggleExpanded()
+      else {
+        setVisible(false)
+        setViewMode(false)
+      }
     } else {
       const generation = ++requestGeneration.current,
         owner = cwd
@@ -523,7 +532,7 @@ export function FileWorkspace({
         })
         .catch(report)
     }
-  }, [cwd, ensure, visible, viewMode])
+  }, [cwd, ensure, visible])
   const showProjectTree = useCallback((): void => {
     const generation = ++requestGeneration.current,
       owner = cwd
@@ -800,7 +809,7 @@ export function FileWorkspace({
   }
   return (
     <WorkspaceContext.Provider value={context}>
-      {headerTarget !== null &&
+      {showMainControls && headerTarget !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
             <ChatCondenseEntry
@@ -819,7 +828,7 @@ export function FileWorkspace({
           </div>,
           headerTarget
         )}
-      {windowsControls !== null &&
+      {showMainControls && windowsControls !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
             <WorkspaceButton />
@@ -827,6 +836,7 @@ export function FileWorkspace({
           windowsControls
         )}
       <WorkspacePanels
+        controlsRef={panelControls}
         visible={visible && workspace !== null}
         maximized={visible && workspace !== null && viewMode}
         onMaximizedChange={setViewMode}

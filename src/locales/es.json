@@ -165,7 +165,13 @@
     "provider": "Proveedor de modelos",
     "externalEditor": "Abrir proyectos con",
     "licensesTitle": "Licencias",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "threeFingerSwipe": "Deslizamiento horizontal con tres dedos",
+    "threeFingerSwipeGuidance": {
+      "mac": "Cambia de página con tres dedos. Los gestos de Mission Control o App Exposé de macOS pueden interrumpirlo; ajústalos en Ajustes del Sistema.",
+      "windows": "Cambia de página con tres dedos en un panel táctil de precisión. También pueden activarse gestos del sistema; selecciona Nada para los deslizamientos con tres dedos en Configuración de Windows > Bluetooth y dispositivos > Panel táctil.",
+      "unsupported": "No compatible con Linux. Usa los botones de navegación o arrastra con el botón central del ratón."
+    }
   },
   "usage": {
     "usage": "Uso",
@@ -340,5 +346,9 @@
   "notify": {
     "needsInput": "Se necesita tu intervención",
     "finished": "Tarea completada"
+  },
+  "canvas": {
+    "navigation": "Navegación de páginas",
+    "page": "Página {{number}}"
   }
 }

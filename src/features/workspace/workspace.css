@@ -2,7 +2,7 @@
 [data-wallpaper="active"] .main-chat-surface.main-workspace-surface {
   background: transparent;
   border-radius: 0;
-  margin-inline: 4px;
+  margin-inline: 0;
 }
 
 .file-workspace-layout {
@@ -255,7 +255,7 @@
   height: 16px;
 }
 
-/* The docked sidebar supplies the content-facing gutter; do not double it inside the first slab. */
-[data-sidebar-mode="pinned"] .main-screen-content .file-workspace-slide:first-child > .file-workspace-slab {
-  padding-inline-start: 0;
+/* The main window's parent canvas supplies width and translation. Detached chats retain their local viewport. */
+[data-unified-canvas="true"] > .file-workspace-viewport {
+  overflow: visible;
 }

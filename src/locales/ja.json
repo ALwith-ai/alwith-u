@@ -171,7 +171,13 @@
     "provider": "モデルプロバイダー",
     "externalEditor": "プロジェクトを開くアプリ",
     "licensesTitle": "ライセンス",
-    "version": "バージョン {{version}}"
+    "version": "バージョン {{version}}",
+    "threeFingerSwipe": "3本指の横スワイプ",
+    "threeFingerSwipeGuidance": {
+      "mac": "3本指でページを切り替えます。macOS の Mission Control やアプリケーション Exposé が操作を中断する場合は、システム設定で変更してください。",
+      "windows": "高精度タッチパッドで3本指の横スワイプを使用します。システム操作も実行される場合は、Windows の設定 > Bluetooth とデバイス > タッチパッドで3本指のスワイプを「何もしない」に設定してください。",
+      "unsupported": "Linux では未対応です。ナビゲーションボタンまたはマウスの中ボタンでドラッグしてください。"
+    }
   },
   "usage": {
     "usage": "使用量",
@@ -356,5 +362,9 @@
   "notify": {
     "needsInput": "入力が必要です",
     "finished": "タスク完了"
+  },
+  "canvas": {
+    "navigation": "ページナビゲーション",
+    "page": "ページ {{number}}"
   }
 }
