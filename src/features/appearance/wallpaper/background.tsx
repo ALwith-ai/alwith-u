@@ -7,7 +7,7 @@ export function WallpaperBackground({
   onError
 }: {
   children: ReactNode
-  onError(error: Error): void
+  onError: (error: Error) => void
 }): ReactElement {
   const value = useSyncExternalStore(wallpaperController.subscribe, wallpaperController.snapshot)
   return (

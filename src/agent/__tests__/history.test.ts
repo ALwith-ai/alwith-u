@@ -35,7 +35,7 @@ test("exports paginated text conversations without resuming a session", async ()
   const records = body
     .trim()
     .split("\n")
-    .map((line) => JSON.parse(line))
+    .map((line) => JSON.parse(line) as { type: string })
   expect(records.map((record) => record.type)).toEqual(["user", "assistant"])
   expect(records[0]).toMatchObject({
     sessionId: "s",
@@ -64,7 +64,7 @@ test("rejects cross-session, partial, running and changed history instead of exp
     await expect(
       exportConversation(
         "s",
-        async () => invalid,
+        () => Promise.resolve(invalid),
         () => {}
       )
     ).rejects.toThrow()
@@ -81,12 +81,13 @@ test("rejects repeated cursors and respects activation cancellation", async () =
   await expect(
     exportConversation(
       "s",
-      async () => ({
-        ...page,
-        items: [{ ...page.items[0], itemId: String(index++) }],
-        complete: false,
-        nextCursor: "loop"
-      }),
+      () =>
+        Promise.try(() => ({
+          ...page,
+          items: [{ ...page.items[0], itemId: String(index++) }],
+          complete: false,
+          nextCursor: "loop"
+        })),
       () => {}
     )
   ).rejects.toThrow("repeated cursor")

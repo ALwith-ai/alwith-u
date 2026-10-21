@@ -18,9 +18,9 @@ const mock = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: mock.tauri }))
 vi.mock("@tauri-apps/plugin-deep-link", () => ({
   getCurrent: mock.current,
-  onOpenUrl: async (handler: (urls: string[]) => void) => {
+  onOpenUrl: (handler: (urls: string[]) => void) => {
     mock.receive = handler
-    return mock.stop
+    return Promise.resolve(mock.stop)
   }
 }))
 vi.mock("../controller", () => ({
@@ -57,9 +57,11 @@ test("cold startup links wait until Drive is configured and running", async () =
   const hook = renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(mock.current).toHaveBeenCalled())
   expect(open).not.toHaveBeenCalled()
-  await act(async () => {
-    mock.snapshot.running = true
-    mock.changed?.()
+  await act(() => {
+    return Promise.try(() => {
+      mock.snapshot.running = true
+      mock.changed?.()
+    })
   })
   await waitFor(() => expect(open).toHaveBeenCalledWith("/drive/project/note.md"))
   expect(mock.request).toHaveBeenCalledWith({ type: "localPath", fileId: 7 })
@@ -73,7 +75,7 @@ test("hot links and duplicate cold delivery open a file once", async () => {
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(open).toHaveBeenCalledOnce())
-  await act(async () => mock.receive?.(["alwith-u://yup-drive/file/7", "alwith-u://yup-drive/file/7"]))
+  await act(() => Promise.try(() => mock.receive?.(["alwith-u://yup-drive/file/7", "alwith-u://yup-drive/file/7"])))
   expect(open).toHaveBeenCalledOnce()
 })
 
@@ -110,25 +112,29 @@ test("an account change while resolving discards the previous account's local pa
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(mock.request).toHaveBeenCalledOnce())
-  await act(async () => {
-    mock.snapshot.generation++
-    finish?.({ type: "path", data: "/old-account/private.md" })
+  await act(() => {
+    return Promise.try(() => {
+      mock.snapshot.generation++
+      finish?.({ type: "path", data: "/old-account/private.md" })
+    })
   })
   expect(open).not.toHaveBeenCalled()
   expect(mock.external).not.toHaveBeenCalled()
   expect(mock.error).toHaveBeenCalledWith(expect.stringContaining("profile changed"))
 })
 
-test("ordinary browser renders never call native deep-link APIs", async () => {
-  mock.tauri.mockReturnValue(false)
-  const open = vi.fn(async (_path: string) => {})
-  const hook = renderHook(() => useDriveDeepLinks(open))
-  expect(mock.receive).toBeNull()
-  expect(mock.changed).toBeNull()
-  expect(mock.current).not.toHaveBeenCalled()
-  expect(mock.request).not.toHaveBeenCalled()
-  expect(mock.error).not.toHaveBeenCalled()
-  hook.unmount()
+test("ordinary browser renders never call native deep-link APIs", () => {
+  return Promise.try(() => {
+    mock.tauri.mockReturnValue(false)
+    const open = vi.fn(async (_path: string) => {})
+    const hook = renderHook(() => useDriveDeepLinks(open))
+    expect(mock.receive).toBeNull()
+    expect(mock.changed).toBeNull()
+    expect(mock.current).not.toHaveBeenCalled()
+    expect(mock.request).not.toHaveBeenCalled()
+    expect(mock.error).not.toHaveBeenCalled()
+    hook.unmount()
+  })
 })
 
 test("cold links remain queued until the controller attaches", async () => {
@@ -139,9 +145,11 @@ test("cold links remain queued until the controller attaches", async () => {
   await act(async () => {})
   expect(mock.request).not.toHaveBeenCalled()
   expect(mock.external).not.toHaveBeenCalled()
-  await act(async () => {
-    mock.connected = true
-    mock.changed?.()
+  await act(() => {
+    return Promise.try(() => {
+      mock.connected = true
+      mock.changed?.()
+    })
   })
   await waitFor(() => expect(open).toHaveBeenCalledWith("/drive/project/note.md"))
   expect(mock.error).not.toHaveBeenCalled()

@@ -11,24 +11,18 @@
   },
   {
     "name": "@alwith/module-drive",
-    "file": "vendor/alwith-module-drive-0.1.0-rc.20-2737c59854df.tgz",
-    "sha256": "2737c59854dfee95ad94d5c35c76016bbe5dfb708be3fd9580d7af5affaaa44e",
+    "file": "vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
+    "sha256": "8fb0bfa0b033d58f67c189d731b2545feaee12da6328e4c08bf3fd9e2ce1d030",
     "source": "alwith-modules/packages/drive",
-    "baseCommit": "a6b641cbfd10a182e423f1e0f1c4bc860ce92b47",
-    "sourceSnapshotSha256": "12033adb242ef7c5c978e629e1834941cd9c4f9e4ad31bb170f76ec674474a56",
-    "sourceState": "working-tree snapshot; condense upload feedback, retained task lifecycle and host notifications; native condense errors remain request-scoped; includes prior configuration reconciliation and dialog fixes; built with build-npm.ts; Rust service.rs rebuilt from shared source, remaining Rust distribution preserved",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files",
-    "nativeServiceSha256": "6594fd823d07e3eae2303456d72550b529ccc5ebbe3700840b6f77e9076c9efd",
-    "sourceCommit": "9f144caef0e8281314a25e01d81cee442e8c94b1"
+    "baseCommit": "20f6e20a2cbf2b59e4b0c621fa7c4e9b172f06f8",
+    "sourceState": "committed; alwith-modules 20f6e20; built with the package build script and bun pm pack"
   },
   {
     "name": "@alwith/module-extension",
-    "file": "vendor/alwith-module-extension-0.1.0-rc.11-f06f7fcdafca.tgz",
-    "sha256": "f06f7fcdafca574a786cc9f2ce7ed66550f072a06947801f64290bb73cd51262",
+    "file": "vendor/alwith-module-extension-0.1.0-rc.11-d7587e3aec22.tgz",
+    "sha256": "d7587e3aec227e30d1ea8f40893d38a0f0749602da49dde5cb7b66ba8258e788",
     "source": "alwith-modules/packages/extension",
-    "baseCommit": "228219cfb5b3c9f657d2a8ce8807c749ef0684d4",
-    "sourceSnapshotSha256": "b377e8acb1abc2cf5419aefb59ae7cf5501cc7f26265539dffe038f6353cf3b5",
-    "sourceState": "committed; extension package source tree clean at 228219cfb5b3c9f657d2a8ce8807c749ef0684d4; built with build-npm.ts and bun pm pack; Rust distribution unchanged",
-    "sourceSnapshotFormat": "SHA256 of compact JSON [relative path, file SHA256] entries: package.json, then sorted src files"
+    "baseCommit": "20f6e20a2cbf2b59e4b0c621fa7c4e9b172f06f8",
+    "sourceState": "committed; alwith-modules 20f6e20; built with the package build script and bun pm pack"
   }
 ]

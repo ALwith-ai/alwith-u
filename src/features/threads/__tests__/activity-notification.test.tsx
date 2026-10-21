@@ -13,10 +13,12 @@ await initI18n("en")
 const originalState = client.state
 const originalUi = useThreadsUiStore.getState()
 afterEach(async () => {
-  await act(async () => {
-    cleanup()
-    client.store.setState(originalState, true)
-    useThreadsUiStore.setState(originalUi, true)
+  await act(() => {
+    return Promise.try(() => {
+      cleanup()
+      client.store.setState(originalState, true)
+      useThreadsUiStore.setState(originalUi, true)
+    })
   })
   vi.restoreAllMocks()
 })
@@ -67,12 +69,12 @@ test.each(["done", "requires_action", "running", "idle"] as const)(
       return
     }
     expect(badge()).toBeInTheDocument()
-    await act(async () => fireEvent.click(activity))
+    await act(() => Promise.try(() => fireEvent.click(activity)))
     expect(badge()).not.toBeInTheDocument()
     expect(client.state.runStates.background?.state).toBe(state)
     act(() => client.applyRunStates(records.map((record) => ({ ...record, version: 2, since: 50 }))))
     expect(badge()).not.toBeInTheDocument()
-    await act(async () => fireEvent.click(screen.getByRole("tab", { name: "Chats" })))
+    await act(() => Promise.try(() => fireEvent.click(screen.getByRole("tab", { name: "Chats" }))))
     expect(badge()).not.toBeInTheDocument()
     act(() =>
       client.applyRunStates(

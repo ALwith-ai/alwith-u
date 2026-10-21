@@ -101,7 +101,7 @@ const archive = join(root, "alwith-u.lottie")
 await Bun.file(archive)
   .delete()
   .catch(() => {})
-const zip = Bun.spawn(["zip", "-q", "-X", archive, ...files.sort()], {
+const zip = Bun.spawn(["zip", "-q", "-X", archive, ...files.toSorted()], {
   cwd: source,
   stdout: "inherit",
   stderr: "inherit"

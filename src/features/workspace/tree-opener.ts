@@ -3,11 +3,11 @@ import type { EditorController, EditorWorkspaceController } from "@alwith/module
 /** Desktop selectFile policy: one transient preview; double-click and edits pin it. */
 export function createTreeOpener(
   editor: EditorController,
-  prepare: (path: string) => Promise<string | null> = async (path) => path,
+  prepare: (path: string) => Promise<string | null> = (path) => Promise.resolve(path),
   tabs?: EditorWorkspaceController
 ): {
-  open(path: string, pinned?: boolean): Promise<void>
-  dispose(): void
+  open: (path: string, pinned?: boolean) => Promise<void>
+  dispose: () => void
 } {
   let preview: string | null = editor.getSnapshot().documents.find((document) => !document.pinned)?.id ?? null
   let pending: Promise<void> = Promise.resolve()

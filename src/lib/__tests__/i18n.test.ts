@@ -19,9 +19,9 @@ function resourceContract(tree: TranslationTree): Array<[string, string[]]> {
   return leafMessages(tree)
     .map(([key, value]): [string, string[]] => [
       key,
-      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((match) => match[1] ?? "").sort()
+      [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((match) => match[1] ?? "").toSorted()
     ])
-    .sort(([left], [right]) => left.localeCompare(right))
+    .toSorted(([left], [right]) => left.localeCompare(right))
 }
 
 test("every English UI message has an explicit Simplified Chinese translation", async () => {

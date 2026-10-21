@@ -15,7 +15,7 @@ afterEach(() => {
 async function make() {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   await client.connect()
   cleanups.push(() => client.disconnect())
   return client

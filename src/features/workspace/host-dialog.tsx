@@ -32,7 +32,7 @@ export function useHostDialog(): { ask: (request: DialogRequest) => Promise<stri
     }
     active.current = item.resolve
     setRequest(item.request)
-    setInput(item.request.initial === undefined ? "" : item.request.initial)
+    setInput(item.request.initial ?? "")
   }, [])
   const ask = useCallback(
     (value: DialogRequest): Promise<string | null> =>

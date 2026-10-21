@@ -16,7 +16,7 @@ for (const provider of providers) {
   test(`${provider.id}: every selectable model has packaged metadata`, () => {
     expect(provider.catalog, `${provider.id}: missing catalog`).toBeString()
     if (!provider.catalog) throw new Error(`${provider.id}: missing catalog`)
-    const directory = provider.catalog.split("/")[0]!
+    const directory = provider.catalog.split("/")[0]
     expect(tauri.bundle.resources).toHaveProperty(`resources/${directory}`, directory)
     const catalog = JSON.parse(
       readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources", provider.catalog), "utf8")
@@ -41,16 +41,17 @@ test("Qwen 3.8 exposes its documented levels without compatibility aliases", () 
   expect(provider?.catalog).toBe("qwen/models.json")
   const catalog = JSON.parse(
     readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources/qwen/models.json"), "utf8")
-  )
+  ) as {
+    models: Array<{
+      slug: string
+      default_reasoning_level: string
+      supported_reasoning_levels: Array<{ effort: string }>
+    }>
+  }
   for (const slug of ["qwen3.8-max", "qwen3.8-flash"]) {
-    const model = catalog.models.find((entry: { slug: string }) => entry.slug === slug)
-    expect(model.default_reasoning_level).toBe("xhigh")
-    expect(model.supported_reasoning_levels.map((entry: { effort: string }) => entry.effort)).toEqual([
-      "none",
-      "low",
-      "medium",
-      "xhigh"
-    ])
+    const model = catalog.models.find((entry) => entry.slug === slug)
+    expect(model?.default_reasoning_level).toBe("xhigh")
+    expect(model?.supported_reasoning_levels.map((entry) => entry.effort)).toEqual(["none", "low", "medium", "xhigh"])
   }
   expect(tauri.bundle.resources).toHaveProperty("resources/qwen", "qwen")
 })

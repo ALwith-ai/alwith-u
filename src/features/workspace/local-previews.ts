@@ -33,7 +33,7 @@ function parseSpreadsheet(bytes: Uint8Array, signal?: AbortSignal): Promise<Spre
       else if (event.data.book && Array.isArray(event.data.book.SheetNames)) resolve(event.data.book)
       else reject(new Error("Invalid spreadsheet worker response"))
     }
-    const copy = bytes.slice()
+    const copy = new Uint8Array(bytes)
     worker.postMessage(copy, [copy.buffer])
   })
 }

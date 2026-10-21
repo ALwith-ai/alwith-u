@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@/agent/codex-extensions"
 
 interface SkillsApi {
-  listSkills(cwds?: string[], forceReload?: boolean): Promise<SkillsListResponse>
-  onSkillsChanged(listener: () => void): () => void
+  listSkills: (cwds?: string[], forceReload?: boolean) => Promise<SkillsListResponse>
+  onSkillsChanged: (listener: () => void) => () => void
 }
 
 export type SkillCatalog =
@@ -17,7 +17,7 @@ export function useSkillCatalog(
   cwd: string | null,
   ready: boolean,
   revision: string
-): { catalog: SkillCatalog; refresh(): void } {
+): { catalog: SkillCatalog; refresh: () => void } {
   const [refreshId, setRefreshId] = useState(0)
   const request = useMemo(() => ({ api, cwd, ready, revision, refreshId }), [api, cwd, ready, revision, refreshId])
   const [result, setResult] = useState<{ request: typeof request; catalog: SkillCatalog } | null>(null)

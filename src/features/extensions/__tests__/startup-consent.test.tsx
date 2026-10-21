@@ -116,7 +116,7 @@ test.each(["同意并启用", "暂不启用"])("startup defers consent until the
     )
     await act(async () => {})
     expect(ui.getByRole("dialog")).toHaveTextContent("启用 AI 对话归档同步？")
-    await act(async () => fireEvent.click(ui.getByRole("button", { name: label })))
+    await act(() => Promise.try(() => fireEvent.click(ui.getByRole("button", { name: label }))))
     expect(ui.queryByRole("dialog")).toBeNull()
     expect((await data.read())?.value).toEqual({
       _sessionsSync: { consented: label === "同意并启用" ? true : "declined" }
@@ -145,7 +145,7 @@ test.each([true, "declined"] as const)(
       )
       await act(async () => {})
       expect(ui.queryByRole("dialog")).toBeNull()
-      await act(async () => fireEvent.click(ui.getByRole("button", { name: "Enable archive" })))
+      await act(() => Promise.try(() => fireEvent.click(ui.getByRole("button", { name: "Enable archive" }))))
       expect((await data.read())?.value).toEqual({ _sessionsSync: { consented: true } })
       ui.unmount()
     } finally {

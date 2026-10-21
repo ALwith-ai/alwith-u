@@ -17,15 +17,20 @@ export function questionReplyParts(meta: unknown): Array<{ text: string; questio
   if (!codex || typeof codex !== "object" || !("questionReplyParts" in codex)) return null
   const parts = codex.questionReplyParts
   if (!Array.isArray(parts) || parts.length === 0) return null
+  const entries: unknown[] = parts
   if (
-    !parts.every(
-      (part) =>
-        part &&
+    !entries.every(
+      (part): part is { text: string; question?: string } =>
+        !!part &&
         typeof part === "object" &&
+        "text" in part &&
         typeof part.text === "string" &&
-        (part.question === undefined || typeof part.question === "string")
+        (!("question" in part) || part.question === undefined || typeof part.question === "string")
     )
   )
     return null
-  return parts.map((part) => ({ text: part.text, ...(part.question === undefined ? {} : { question: part.question }) }))
+  return entries.map((part) => ({
+    text: part.text,
+    ...(part.question === undefined ? {} : { question: part.question })
+  }))
 }

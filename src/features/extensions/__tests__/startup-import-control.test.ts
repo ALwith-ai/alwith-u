@@ -19,12 +19,12 @@ const fixture = vi.hoisted(() => ({
   startupTasks: [] as string[]
 }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: fixture.label }) }))
-vi.mock("../runtime", () => ({ startExtensionRuntime: async () => fixture.runtime }))
+vi.mock("../runtime", () => ({ startExtensionRuntime: () => Promise.resolve(fixture.runtime) }))
 vi.mock("../reload-window", () => ({
   requestMainReload: fixture.request,
-  serveMainReload: async (handler: (id: string) => Promise<string>) => {
+  serveMainReload: (handler: (id: string) => Promise<string>) => {
     fixture.handler = handler
-    return () => {}
+    return Promise.resolve(() => {})
   }
 }))
 vi.mock("../install-service", () => ({ executeStagedInstall: fixture.install, executeReload: fixture.install }))
@@ -32,13 +32,14 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("@/lib/i18n", () => ({ default: { t: (key: string) => key } }))
 vi.mock("@/bindings", () => ({
   commands: {
-    extensionInboxScan: async () => ({ operationId: "startup", tasks: fixture.startupTasks, errors: [] }),
+    extensionInboxScan: () => Promise.resolve({ operationId: "startup", tasks: fixture.startupTasks, errors: [] }),
     extensionInboxScanExtension: fixture.scan,
-    extensionInboxPrepare: async () => ({
-      id: "task",
-      phase: "prepared",
-      package: { id: "notes", digest: "new", source: "local", path: "/package", version: "2" }
-    }),
+    extensionInboxPrepare: () =>
+      Promise.resolve({
+        id: "task",
+        phase: "prepared",
+        package: { id: "notes", digest: "new", source: "local", path: "/package", version: "2" }
+      }),
     extensionInboxComplete: fixture.complete,
     extensionInboxFailed: fixture.failed,
     extensionInboxFinish: fixture.finish

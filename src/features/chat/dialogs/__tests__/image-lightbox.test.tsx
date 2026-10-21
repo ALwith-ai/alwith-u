@@ -8,8 +8,10 @@ import { ImageLightbox, openImageLightbox } from "../image-lightbox"
 await initI18n("en")
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(async () => {
-  await act(async () => {
-    for (const view of mounted.splice(0)) view.unmount()
+  await act(() => {
+    return Promise.try(() => {
+      for (const view of mounted.splice(0)) view.unmount()
+    })
   })
 })
 

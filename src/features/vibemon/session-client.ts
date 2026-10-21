@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event"
 
 import { inspectPet, requestPet } from "./transport"
 
-export async function createPetSessionClient(): Promise<PetSessionHost & { dispose(): void }> {
+export async function createPetSessionClient(): Promise<PetSessionHost & { dispose: () => void }> {
   let snapshot: PetObservation | null = null
   let revision = 0
   const listeners = new Set<(value: PetObservation | null) => void>()

@@ -38,8 +38,10 @@ const preferenceKeys: Record<keyof Preferences, string> = {
   externalEditor: "general.externalEditor"
 }
 const store = {
-  async get<T>(key: keyof Preferences): Promise<T | undefined> {
-    return settingsStore.get<T>(preferenceKeys[key])
+  get<T>(key: keyof Preferences): Promise<T | undefined> {
+    return Promise.try(() => {
+      return settingsStore.get<T>(preferenceKeys[key])
+    })
   }
 }
 

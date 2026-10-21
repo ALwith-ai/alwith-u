@@ -10,7 +10,7 @@ import { SettingGroup, SettingRow } from "@/features/settings/sections/shared"
 
 import { saveEditorIconTheme, saveEditorSettings } from "./editor-settings"
 import { useEditorPreferences } from "./use-editor-preferences"
-import { type IconTheme, iconThemes } from "./workspace-state"
+import { iconThemes } from "./workspace-state"
 
 export function EditorSettingsSection(): ReactNode {
   const { t } = useTranslation()
@@ -50,8 +50,8 @@ export function EditorSettingsSection(): ReactNode {
         <Select
           value={iconTheme ?? "vscode-icons"}
           onValueChange={(value) => {
-            if (value === null || !iconThemes.includes(value as IconTheme)) throw new Error("Unknown file icon theme")
-            save(() => saveEditorIconTheme(value as IconTheme))
+            if (value === null || !iconThemes.includes(value)) throw new Error("Unknown file icon theme")
+            save(() => saveEditorIconTheme(value))
           }}
         >
           <SelectTrigger className="w-full" aria-label={t("workspace.iconTheme")}>

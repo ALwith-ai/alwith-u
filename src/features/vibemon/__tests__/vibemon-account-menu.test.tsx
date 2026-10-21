@@ -18,10 +18,12 @@ vi.mock("@/lib/preferences", () => ({ savePreference: vi.fn(async () => {}) }))
 const originalAuth = usePlatformAuth.getState()
 let dispose = () => {}
 afterEach(async () => {
-  await act(async () => {
-    cleanup()
-    dispose()
-    usePlatformAuth.setState(originalAuth, true)
+  await act(() => {
+    return Promise.try(() => {
+      cleanup()
+      dispose()
+      usePlatformAuth.setState(originalAuth, true)
+    })
   })
 })
 
@@ -34,21 +36,25 @@ function fixture(enabled: boolean, failure?: Error) {
   const changed = () => {
     for (const listener of listeners) listener()
   }
-  const openPet = vi.fn(async () => {
-    if (failure) throw failure
-    must(accounts[accountKey(account)], "pet account").enabled = true
-    changed()
-    return "shown" as const
+  const openPet = vi.fn(() => {
+    return Promise.try(() => {
+      if (failure) throw failure
+      must(accounts[accountKey(account)], "pet account").enabled = true
+      changed()
+      return "shown" as const
+    })
   })
-  const closePet = vi.fn(async () => {
-    must(accounts[accountKey(account)], "pet account").enabled = false
-    changed()
+  const closePet = vi.fn(() => {
+    return Promise.try(() => {
+      must(accounts[accountKey(account)], "pet account").enabled = false
+      changed()
+    })
   })
   dispose = configureVibemon({
     account: () => account,
     assets: {} as VibemonHost["assets"],
     storage: {
-      get: async <T,>(key: string) => (key === "vibemon.accounts" ? structuredClone(accounts) : {}) as T,
+      get: <T,>(key: string) => Promise.try(() => (key === "vibemon.accounts" ? structuredClone(accounts) : {}) as T),
       set: async () => {}
     },
     subscribeStorage: (listener) => {
@@ -86,7 +92,7 @@ function fixture(enabled: boolean, failure?: Error) {
 
 async function openMenu() {
   const view = render(<SidebarAccountMenu onOpenSettings={() => {}} />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   return view
 }
 
@@ -118,11 +124,11 @@ test("the account menu groups settings and language above tools and sign out", a
     "role",
     "separator"
   )
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" }))))
   expect(f.openPet).toHaveBeenCalledTimes(1)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Hide Vibémon" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Hide Vibémon" }))))
   expect(f.closePet).toHaveBeenCalledTimes(1)
 })
 
@@ -131,7 +137,7 @@ test("closing from the pet updates the account menu and language changes transla
   const f = fixture(true)
   const view = await openMenu()
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
-  await act(async () => f.closeExternally())
+  await act(() => Promise.try(() => f.closeExternally()))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
@@ -146,7 +152,7 @@ test("account changes display the new account's switch state", async () => {
   const f = fixture(true)
   const view = await openMenu()
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
-  await act(async () => f.switchAccount())
+  await act(() => Promise.try(() => f.switchAccount()))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
 })
 
@@ -159,10 +165,10 @@ test("failed presentation reports the error and keeps the saved switch disabled"
     await waitFor(() =>
       expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
     )
-    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" }))))
     expect(f.openPet).toHaveBeenCalledTimes(1)
     expect(error).toHaveBeenCalledWith("Vibémon display unavailable", expect.objectContaining({ id: "pet-operation" }))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: /Pet tester/ })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
     expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy()
   } finally {
     error.mockRestore()
@@ -173,7 +179,7 @@ test("the Gamepad menu action opens its dedicated window", async () => {
   await initI18n("en")
   fixture(false)
   const view = await openMenu()
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Gamepad" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Gamepad" }))))
   expect(openGamepadWindow).toHaveBeenCalledOnce()
 })
 
@@ -181,9 +187,9 @@ test("the language submenu marks the current language and saves a new selection"
   await initI18n("en")
   fixture(false)
   const view = await openMenu()
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Language" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Language" }))))
   expect(view.getByRole("menuitemradio", { name: "English" })).toHaveAttribute("aria-checked", "true")
-  await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: "简体中文" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemradio", { name: "简体中文" }))))
   expect(i18n.language).toBe("zh-CN")
   expect(savePreference).toHaveBeenCalledWith("language", "zh-CN")
 })

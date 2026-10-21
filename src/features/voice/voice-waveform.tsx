@@ -8,7 +8,7 @@ export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode
   useEffect(() => {
     const element = svg.current
     if (element === null) throw new Error("waveform_not_mounted")
-    const bars = Array.from(element.querySelectorAll("rect"))
+    const bars = [...element.querySelectorAll("rect")]
     const levels = bars.map(() => 0)
     const reduced = matchMedia("(prefers-reduced-motion: reduce)")
     const sampleDuration = 300
@@ -16,7 +16,7 @@ export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode
     let previous: number | null = null
     let frame: number
     const draw = (now: number): void => {
-      if (previous === null) previous = now
+      previous ??= now
       const steps = Math.floor((now - previous) / sampleDuration)
       if (steps > 0) {
         for (let index = 0; index < Math.min(steps, levels.length); index++) {

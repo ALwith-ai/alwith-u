@@ -1,12 +1,12 @@
 import { assertAvailableSkills } from "./skills"
 
 interface ChatDependencies {
-  check?(): void
-  session(id: string): { cwd: string } | null
-  skills(cwd: string): Promise<readonly { name: string; enabled: boolean; path: string }[]>
-  present(id: string): void
-  writeDraft?(id: string, text: string): void
-  prompt(id: string, text: string): Promise<void>
+  check?: () => void
+  session: (id: string) => { cwd: string } | null
+  skills: (cwd: string) => Promise<readonly { name: string; enabled: boolean; path: string }[]>
+  present: (id: string) => void
+  writeDraft?: (id: string, text: string) => void
+  prompt: (id: string, text: string) => Promise<void>
 }
 
 /** Keep the destination explicit across catalog discovery and prompt acceptance. */
@@ -27,7 +27,7 @@ async function dispatchMessage(
   }
   dependencies.check?.()
   const current = dependencies.session(id)
-  if (!current || current.cwd !== session.cwd) throw new Error("目标会话已变化，请返回聊天确认会话后重试")
+  if (current?.cwd !== session.cwd) throw new Error("目标会话已变化，请返回聊天确认会话后重试")
   await deliver(prompt)
 }
 

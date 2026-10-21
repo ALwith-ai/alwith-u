@@ -4,8 +4,10 @@ import { afterEach, expect, test } from "vitest"
 
 const mounted: ReturnType<typeof render>[] = []
 afterEach(async () => {
-  await act(async () => {
-    for (const view of mounted.splice(0)) view.unmount()
+  await act(() => {
+    return Promise.try(() => {
+      for (const view of mounted.splice(0)) view.unmount()
+    })
   })
 })
 

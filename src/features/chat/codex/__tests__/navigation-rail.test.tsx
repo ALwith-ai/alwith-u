@@ -118,15 +118,19 @@ describe("navigation rail", () => {
         beforeReveal={() => {
           released += 1
         }}
-        ensureItemMounted={async (item) => {
-          revealed.push(item.turnKey)
+        ensureItemMounted={(item) => {
+          return Promise.try(() => {
+            revealed.push(item.turnKey)
+          })
         }}
       />
     )
     const rows = container.querySelectorAll("[data-thread-user-message-navigation-item-id]")
     expect(rows.length).toBe(5)
-    await act(async () => {
-      fireEvent.click(rows[2])
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(rows[2])
+      })
     })
     expect(released).toBe(1)
     expect(revealed).toEqual(["turn:user:user-2"])

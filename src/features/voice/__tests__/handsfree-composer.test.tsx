@@ -10,19 +10,22 @@ import { drafts } from "@/features/chat/composer/drafts"
 import { DraftChat } from "@/features/chat/draft-chat"
 import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+import { mockOf } from "@/test/mock-of"
 
 import { useVoiceHandoff } from "../use-voice-handoff"
 
 const fake = vi.hoisted(() => ({
-  recordings: [] as { id: string; receive(event: VoiceEvent): void }[],
+  recordings: [] as { id: string; receive: (event: VoiceEvent) => void }[],
   error: vi.fn()
 }))
 vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 vi.mock("@alwith/module-voice/tauri", () => ({
   createTauriTransport: () => ({
-    start: async (options: { recordingId: string }, receive: (event: VoiceEvent) => void) => {
-      fake.recordings.push({ id: options.recordingId, receive })
-      receive({ type: "ready", recordingId: options.recordingId })
+    start: (options: { recordingId: string }, receive: (event: VoiceEvent) => void) => {
+      return Promise.try(() => {
+        fake.recordings.push({ id: options.recordingId, receive })
+        receive({ type: "ready", recordingId: options.recordingId })
+      })
     },
     push: async () => {},
     release: async () => {},
@@ -31,18 +34,19 @@ vi.mock("@alwith/module-voice/tauri", () => ({
   })
 }))
 vi.mock("@alwith/module-voice/audio", () => ({
-  prepareCapture: async () => ({ start: () => {}, stop: async () => {}, cancel: async () => {} })
+  prepareCapture: () => Promise.resolve({ start: () => {}, stop: async () => {}, cancel: async () => {} })
 }))
 vi.mock("../settings", () => ({
-  loadVoiceSettings: async () => ({
-    provider: "vui",
-    deviceId: "",
-    mode: "handsfree",
-    hotwords: "",
-    projectHotwords: {},
-    smooth: false
-  }),
-  voiceProfiles: async () => ({ vui: true, doubao: true })
+  loadVoiceSettings: () =>
+    Promise.resolve({
+      provider: "vui",
+      deviceId: "",
+      mode: "handsfree",
+      hotwords: "",
+      projectHotwords: {},
+      smooth: false
+    }),
+  voiceProfiles: () => Promise.resolve({ vui: true, doubao: true })
 }))
 vi.mock("../use-voice-enabled", () => ({ useVoiceEnabled: () => true }))
 vi.mock("sonner", () => ({ toast: { error: fake.error, info: vi.fn() } }))
@@ -60,7 +64,7 @@ afterEach(() => {
   drafts.clear()
 })
 
-function deferredAcceptance(): { accepted: Promise<void>; accept(): void } {
+function deferredAcceptance(): { accepted: Promise<void>; accept: () => void } {
   let accept!: () => void
   const accepted = new Promise<void>((resolve) => {
     accept = resolve
@@ -172,16 +176,18 @@ test("a new chat can start handsfree and hand its accepted receipt to the conver
   const handoff = vi.fn()
   const session = client.store.getState().sessions.voice
   if (!session) throw new Error("missing session")
-  const send = vi.fn(async (_prompt: unknown, accept?: (receipt: string) => void) => {
-    client.store.setState({
-      sessions: {
-        voice: {
-          ...session,
-          items: [{ kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content: [], _meta: null }]
+  const send = vi.fn((_prompt: unknown, accept?: (receipt: string) => void) => {
+    return Promise.try(() => {
+      client.store.setState({
+        sessions: {
+          voice: {
+            ...session,
+            items: [{ kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content: [], _meta: null }]
+          }
         }
-      }
+      })
+      accept?.("first-receipt")
     })
-    accept?.("first-receipt")
   })
   render(<Composer session={session} onSubmit={send} onVoiceHandoff={handoff} />)
   fireEvent.click(screen.getByRole("button", { name: "Voice input" }))
@@ -207,20 +213,22 @@ test.each(["complete", "cancel", "shortcut", "modified-shortcut", "blur-shortcut
           key="draft"
           session={initial}
           onVoiceHandoff={handoff.accept}
-          onSubmit={async (content, accept) => {
-            client.store.setState({
-              sessions: {
-                voice: {
-                  ...initial,
-                  items: [
-                    { kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content, _meta: null }
-                  ]
+          onSubmit={(content, accept) => {
+            return Promise.try(() => {
+              client.store.setState({
+                sessions: {
+                  voice: {
+                    ...initial,
+                    items: [
+                      { kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content, _meta: null }
+                    ]
+                  }
                 }
-              }
+              })
+              accept?.("first-receipt")
+              drafts.delete("voice")
+              setCreated(true)
             })
-            accept?.("first-receipt")
-            drafts.delete("voice")
-            setCreated(true)
           }}
         />
       )
@@ -307,35 +315,39 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
     status: "applied" as const,
     error: null
   }
-  vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string): Promise<T> => {
-    const value: unknown =
-      command === "draft_directory"
-        ? "/tmp"
-        : command === "providers_apply"
-          ? providers
-          : command === "read_apps_info"
-            ? []
-            : command === "settings_request"
-              ? { revision: 1, values: {}, browserMigrated: true }
-              : undefined
-    if (value === undefined) throw new Error(`Unexpected host command: ${command}`)
-    return value as T
+  vi.spyOn(core, "invoke").mockImplementation(<T,>(command: string): Promise<T> => {
+    return Promise.try(() => {
+      const value: unknown =
+        command === "draft_directory"
+          ? "/tmp"
+          : command === "providers_apply"
+            ? providers
+            : command === "read_apps_info"
+              ? []
+              : command === "settings_request"
+                ? { revision: 1, values: {}, browserMigrated: true }
+                : undefined
+      if (value === undefined) throw new Error(`Unexpected host command: ${command}`)
+      return value as T
+    })
   })
   vi.spyOn(client, "connect").mockResolvedValue()
   vi.spyOn(client, "prepareDraft").mockResolvedValue("voice")
-  vi.spyOn(client, "promptReceipt").mockImplementation(async (id, content) => {
-    const session = client.store.getState().sessions[id]
-    if (!session) throw new Error("missing session")
-    client.store.setState({
-      draftSessions: {},
-      sessions: {
-        [id]: {
-          ...session,
-          items: [{ kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content, _meta: null }]
+  vi.spyOn(client, "promptReceipt").mockImplementation((id, content) => {
+    return Promise.try(() => {
+      const session = client.store.getState().sessions[id]
+      if (!session) throw new Error("missing session")
+      client.store.setState({
+        draftSessions: {},
+        sessions: {
+          [id]: {
+            ...session,
+            items: [{ kind: "user", id: "first-receipt", at: 1, replayed: false, echo: null, content, _meta: null }]
+          }
         }
-      }
+      })
+      return "first-receipt"
     })
-    return "first-receipt"
   })
   client.store.setState({ connection: "ready", draftSessions: { voice: "main" } })
   function Surface() {
@@ -372,7 +384,9 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
   await screen.findByRole("button", { name: "Finish recording" })
   transcribe(0, "final", "first voice message")
   await waitFor(() =>
-    expect(client.promptReceipt).toHaveBeenCalledWith("voice", [{ type: "text", text: "first voice message" }])
+    expect(mockOf(client, "promptReceipt")).toHaveBeenCalledWith("voice", [
+      { type: "text", text: "first voice message" }
+    ])
   )
   await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue(""))
   act(() => {

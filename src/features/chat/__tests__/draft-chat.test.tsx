@@ -17,6 +17,7 @@ import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import type { Preferences } from "@/lib/preferences"
 import type { ProviderSnapshot } from "@/lib/providers"
+import { mockOf } from "@/test/mock-of"
 
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 import { Composer } from "../composer"
@@ -38,43 +39,45 @@ const providers: ProviderSnapshot = {
   error: null
 }
 
-async function environment(nativeWindow = false) {
-  const fake = createFakeAgent()
-  const port = new FakeHubPort(() => fake.app)
-  const real = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
-  const previous = client.state
-  client.store.setState(real.state)
-  const unsubscribe = real.store.subscribe((state) => client.store.setState(state))
-  const invokeHost = core.invoke
-  const mocks = [
-    vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
-    vi.spyOn(client, "session").mockImplementation((id) => real.session(id)),
-    vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
-    vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
-    vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
-    vi.spyOn(client, "prompt").mockImplementation((...args) => real.prompt(...args)),
-    vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
-    vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
-      let result: unknown
-      if (command === "draft_directory") result = (args as { cwd: string | null }).cwd ?? "/tmp/ALwith U"
-      else if (command === "providers_apply" || command === "providers_read") result = providers
-      else if (command === "read_apps_info") result = []
-      else if (nativeWindow) return invokeHost<T>(command, args)
-      else throw new Error(`Unexpected host command: ${command}`)
-      return result as T
-    })
-  ]
-  return {
-    real,
-    fake,
-    restore: () => {
-      unsubscribe()
-      for (const mock of mocks) mock.mockRestore()
-      real.disconnect()
-      client.store.setState(previous, true)
-      drafts.clear()
+function environment(nativeWindow = false) {
+  return Promise.try(() => {
+    const fake = createFakeAgent()
+    const port = new FakeHubPort(() => fake.app)
+    const real = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    const previous = client.state
+    client.store.setState(real.state)
+    const unsubscribe = real.store.subscribe((state) => client.store.setState(state))
+    const invokeHost = core.invoke
+    const mocks = [
+      vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
+      vi.spyOn(client, "session").mockImplementation((id) => real.session(id)),
+      vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
+      vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
+      vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
+      vi.spyOn(client, "prompt").mockImplementation((...args) => real.prompt(...args)),
+      vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
+      vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
+        let result: unknown
+        if (command === "draft_directory") result = (args as { cwd: string | null }).cwd ?? "/tmp/ALwith U"
+        else if (command === "providers_apply" || command === "providers_read") result = providers
+        else if (command === "read_apps_info") result = []
+        else if (nativeWindow) return invokeHost<T>(command, args)
+        else throw new Error(`Unexpected host command: ${command}`)
+        return result as T
+      })
+    ]
+    return {
+      real,
+      fake,
+      restore: () => {
+        unsubscribe()
+        for (const mock of mocks) mock.mockRestore()
+        real.disconnect()
+        client.store.setState(previous, true)
+        drafts.clear()
+      }
     }
-  }
+  })
 }
 
 const windowPreferences: Preferences = {
@@ -114,11 +117,11 @@ async function windowEnvironment() {
   type SurfaceHandler = Parameters<typeof chatWindow.serveChatSurface>[0]
   let surface: SurfaceHandler | null = null
   const mocks = [
-    vi.spyOn(chatWindow, "serveChatSurface").mockImplementation(async (handler) => {
+    vi.spyOn(chatWindow, "serveChatSurface").mockImplementation((handler) => {
       surface = handler
-      return () => {
+      return Promise.resolve(() => {
         surface = null
-      }
+      })
     }),
     vi.spyOn(chatWindow, "announceChatReady").mockResolvedValue(),
     vi.spyOn(chatWindow, "publishChatWindowSurface").mockResolvedValue(),
@@ -166,14 +169,16 @@ test.each([
     await act(() => env.present())
     await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
     const previous = must(Object.keys(env.real.state.draftSessions)[0], "the first draft session")
-    await act(async () => {
-      fireEvent.input(view.getByRole("textbox"), { target: { value: "First message" } })
-      fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.input(view.getByRole("textbox"), { target: { value: "First message" } })
+        fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+      })
     })
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(env.real.state.draftSessions[previous]).toBeUndefined())
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
-    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New chat" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "New chat" }))))
     await waitFor(() => {
       const id = must(Object.keys(env.real.state.draftSessions)[0], "the new draft session")
       expect(id).not.toBe(previous)
@@ -183,7 +188,7 @@ test.each([
     expect(env.real.session(previous).cwd).toBe(cwd)
     expect(env.real.session(previous).items.some((item) => item.kind === "user")).toBe(true)
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     discard.mockRestore()
     env.restore()
   }
@@ -216,15 +221,15 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this draft")
     await act(() => env.present(original))
     expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(original, true)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
-    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "New project" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "New project" }))))
     await waitFor(() => expect(release).toBeDefined())
     // Escape belongs to the menu until its exit transition removes it.
     await waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull())
-    await act(async () => fireEvent.keyDown(window, { key: "Escape" }))
+    await act(() => Promise.try(() => fireEvent.keyDown(window, { key: "Escape" })))
     expect(env.hidden).toBe(true)
     expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(original, false)
-    await act(async () => must(release, "pending replacement")())
+    await act(() => Promise.try(() => must(release, "pending replacement")()))
     await waitFor(() => expect(env.fake.deleted.has(original)).toBe(true))
     await act(() => env.present())
     expect(env.hidden).toBe(false)
@@ -243,7 +248,7 @@ test("a hidden floating window reopens the replacement draft with its unsent inp
     expect(env.fake.modelHints.size).toBe(2)
   } finally {
     release?.()
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     env.restore()
   }
 })
@@ -266,7 +271,7 @@ test("a first message sent outside the composer opens the conversation and prese
     expect(env.real.state.draftSessions[id]).toBeUndefined()
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("my unsent input")
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     env.restore()
   }
 })
@@ -297,32 +302,36 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
       await waitFor(() => expect(release).toBeDefined())
       const input = view.getByRole("textbox") as HTMLTextAreaElement
       expect(input.disabled).toBe(false)
-      await act(async () => {
-        fireEvent.focusIn(input)
-        fireEvent.input(input, { target: { value: "send after preparation" } })
-        fireEvent.keyUp(input, { key: "n" })
+      await act(() => {
+        return Promise.try(() => {
+          fireEvent.focusIn(input)
+          fireEvent.input(input, { target: { value: "send after preparation" } })
+          fireEvent.keyUp(input, { key: "n" })
+        })
       })
       expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
       expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("true")
       expect(view.getByRole("button", { name: "Send" }).querySelector(".animate-spin")).not.toBeNull()
-      await act(async () => {
-        fireEvent.click(view.getByRole("button", { name: "Send" }))
-        fireEvent.keyDown(input, { key: "Enter", code: "Enter" })
-        fireEvent.submit(must(input.form, "composer form"))
+      await act(() => {
+        return Promise.try(() => {
+          fireEvent.click(view.getByRole("button", { name: "Send" }))
+          fireEvent.keyDown(input, { key: "Enter", code: "Enter" })
+          fireEvent.submit(must(input.form, "composer form"))
+        })
       })
       expect(prompt).not.toHaveBeenCalled()
       expect(input.value).toBe("send after preparation")
       expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
-      if (outcome === "unmount") await act(async () => view.unmount())
+      if (outcome === "unmount") await act(() => Promise.try(() => view.unmount()))
       if (outcome === "directory-change") view.rerender(<DraftChat {...props} cwd="/tmp/other-project" />)
-      await act(async () => must(release, "initial preparation")())
+      await act(() => Promise.try(() => must(release, "initial preparation")()))
       if (outcome === "success") {
         await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
         expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
         expect(view.getByRole("button", { name: "Send" }).querySelector(".animate-spin")).toBeNull()
         expect(prompt).not.toHaveBeenCalled()
         expect(input.value).toBe("send after preparation")
-        await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+        await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
         await waitFor(() => expect(prompt).toHaveBeenCalledTimes(1))
         const id = must(prompt.mock.calls[0], "sent prompt")[0]
         expect(id).not.toBe(DRAFT_SESSION_ID)
@@ -348,7 +357,7 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
       }
     } finally {
       release?.()
-      await act(async () => view.unmount())
+      await act(() => Promise.try(() => view.unmount()))
       restore()
     }
   }
@@ -397,14 +406,14 @@ test("sending after default-directory resolution keeps the submitted conversatio
   try {
     await waitFor(() => expect(release).toBeDefined())
     fake.newSessionDelay.current = null
-    await act(async () => must(release, "default preparation")())
+    await act(() => Promise.try(() => must(release, "default preparation")()))
     await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(real.state.threads).toHaveLength(1))
     await waitFor(() => expect(view.queryByRole("status")).toBeNull())
     expect(fake.modelHints.size).toBe(1)
     expect(Object.keys(real.state.draftSessions)).toHaveLength(0)
-    await act(async () => accept())
+    await act(() => Promise.try(() => accept()))
     await waitFor(() =>
       expect(view.getByTestId("submitted").textContent).toBe(must<string>(selected, "selected conversation"))
     )
@@ -416,7 +425,7 @@ test("sending after default-directory resolution keeps the submitted conversatio
   } finally {
     release?.()
     accept()
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -451,7 +460,7 @@ test("the composer stays visible while initial providers and the native draft ar
     await waitFor(() => expect(release).toBeDefined())
     expect(view.getByRole("textbox")).toBe(input)
     expect(input.disabled).toBe(false)
-    await act(async () => must(release, "initial session creation")())
+    await act(() => Promise.try(() => must(release, "initial session creation")()))
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect(view.getByRole("textbox")).toBe(input)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("saved input")
@@ -461,7 +470,7 @@ test("the composer stays visible while initial providers and the native draft ar
     expect(real.state.threads).toHaveLength(0)
   } finally {
     release?.()
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -488,12 +497,12 @@ test("initial preparation failure keeps the composer visible and retry preserves
     expect((view.getByRole("textbox") as HTMLTextAreaElement).disabled).toBe(false)
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
     expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Retry" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("retry input")
     expect(view.queryByText("Preparation failed")).toBeNull()
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     failure.mockRestore()
     restore()
   }
@@ -536,10 +545,10 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/ALwith U")
     expect(real.session(must<string>(selected, "selected draft")).items).toEqual([])
     expect(real.state.threads).toEqual([])
-    await act(async () => fireEvent.click(view.getByTestId("model-trigger")))
+    await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
     expect(view.getByRole("menuitemradio", { name: "GPT-6.1 Sol" })).toBeTruthy()
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -575,7 +584,7 @@ test.each(["hello", ""])(
     const view = render(<Surface />)
     try {
       await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
-      await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+      await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
       await waitFor(() => expect(real.state.draftSessions[must<string>(prepared, "prepared draft")]).toBeUndefined())
       await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(""))
       expect(drafts.get(must<string>(prepared, "prepared draft"))?.mentions).toEqual([])
@@ -583,7 +592,7 @@ test.each(["hello", ""])(
         true
       )
     } finally {
-      await act(async () => view.unmount())
+      await act(() => Promise.try(() => view.unmount()))
       restore()
     }
   }
@@ -621,8 +630,8 @@ test("choosing a gateway in a prepared draft preserves input and sends on a newl
   try {
     await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
     const original = must<string>(selected, "original draft")
-    await act(async () => fireEvent.click(view.getByTestId("model-trigger")))
-    await act(async () => fireEvent.click(view.getByText("deepseek-flash")))
+    await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByText("deepseek-flash"))))
     await waitFor(() => expect(selected).not.toBe(original))
     await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
     const replacement = must<string>(selected, "replacement draft")
@@ -630,11 +639,11 @@ test("choosing a gateway in a prepared draft preserves input and sends on a newl
     expect(fake.configChanges).toEqual([])
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("preserve this question")
     expect(drafts.get(replacement)?.mentions).toEqual(["/tmp/source.ts"])
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(real.session(replacement).items.some((item) => item.kind === "user")).toBe(true))
     expect(fake.deleted.has(original)).toBe(true)
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -668,7 +677,7 @@ test("a queued directory failure retains the last successful replacement and its
     view.rerender(<DraftChat {...props} cwd="/tmp/slow-project" />)
     await waitFor(() => expect(release).toBeDefined())
     view.rerender(<DraftChat {...props} cwd="/needs-auth" />)
-    await act(async () => must(release, "pending session creation")())
+    await act(() => Promise.try(() => must(release, "pending session creation")()))
     await waitFor(() => expect(view.getByRole("button", { name: "Configure provider" })).toBeTruthy())
     expect(selected).not.toBe(original)
     expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/slow-project")
@@ -676,7 +685,7 @@ test("a queued directory failure retains the last successful replacement and its
     expect(fake.deleted.has(must<string>(selected, "selected draft"))).toBe(false)
     expect(Object.keys(real.state.draftSessions)).toEqual([must<string>(selected, "selected draft")])
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -707,13 +716,13 @@ test.each([false, true])(
     )
     try {
       await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
-      await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+      await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
       await waitFor(() => expect(view.getByRole("button", { name: /Send|Steer/ }).hasAttribute("disabled")).toBe(false))
       expect(sendingStates).toEqual([true, false])
       expect(Object.keys(real.state.draftSessions)).toHaveLength(dispatched ? 0 : 1)
       expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep for retry")
     } finally {
-      await act(async () => view.unmount())
+      await act(() => Promise.try(() => view.unmount()))
       restore()
     }
   }
@@ -747,7 +756,7 @@ test("a failed project change preserves the real draft and leaves the project pi
     expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/recovered-project")
     expect(fake.deleted.has(original)).toBe(true)
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -773,25 +782,27 @@ test("deleting a sent conversation does not resurrect startup placeholder input"
   try {
     await waitFor(() => expect(release).toBeDefined())
     const input = view.getByRole("textbox") as HTMLTextAreaElement
-    await act(async () => {
-      fireEvent.input(input, { target: { value: "already sent text" } })
-      fireEvent.keyUp(input, { key: "t" })
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.input(input, { target: { value: "already sent text" } })
+        fireEvent.keyUp(input, { key: "t" })
+      })
     })
     fake.newSessionDelay.current = null
-    await act(async () => must(release, "prepare")())
+    await act(() => Promise.try(() => must(release, "prepare")()))
     await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
     const id = must(Object.keys(real.state.draftSessions)[0], "draft")
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(real.state.draftSessions[id]).toBeUndefined())
     await waitFor(() => expect(input.value).toBe(""))
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     await act(async () => real.delete(id))
     view = render(<DraftChat {...props} />)
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("")
   } finally {
     release?.()
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -807,20 +818,24 @@ test("switching writable conversations enables sending only for the selected con
   }
   const view = render(<Surface id={first} />)
   try {
-    await act(async () => {
-      fireEvent.input(view.getByRole("textbox"), { target: { value: "first draft" } })
-      fireEvent.keyUp(view.getByRole("textbox"), { key: "t" })
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.input(view.getByRole("textbox"), { target: { value: "first draft" } })
+        fireEvent.keyUp(view.getByRole("textbox"), { key: "t" })
+      })
     })
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
     view.rerender(<Surface id={second} />)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("")
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
-    await act(async () => {
-      fireEvent.input(view.getByRole("textbox"), { target: { value: "second message" } })
-      fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.input(view.getByRole("textbox"), { target: { value: "second message" } })
+        fireEvent.keyUp(view.getByRole("textbox"), { key: "e" })
+      })
     })
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(real.session(second).items.some((item) => item.kind === "user")).toBe(true))
     expect(real.session(first).items.some((item) => item.kind === "user")).toBe(false)
     view.rerender(<Surface id={first} />)
@@ -828,7 +843,7 @@ test("switching writable conversations enables sending only for the selected con
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
     expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("false")
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -837,10 +852,12 @@ test("returning a floating draft transfers its input and releases the surface on
   const env = await windowEnvironment()
   const requests: { target: string; action: Parameters<typeof chatWindow.requestChatSurface>[1] }[] = []
   let reject = true
-  const request = vi.spyOn(chatWindow, "requestChatSurface").mockImplementation(async (target, action) => {
-    requests.push({ target, action })
-    if (reject) throw new Error("Main window is busy")
-    return null
+  const request = vi.spyOn(chatWindow, "requestChatSurface").mockImplementation((target, action) => {
+    return Promise.try(() => {
+      requests.push({ target, action })
+      if (reject) throw new Error("Main window is busy")
+      return null
+    })
   })
   importDraft(DRAFT_SESSION_ID, { text: "return this input", mentions: [], attachments: [], modelId: null })
   const view = render(
@@ -854,8 +871,8 @@ test("returning a floating draft transfers its input and releases the surface on
     await waitFor(() => expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("return this input"))
     const id = must(Object.keys(env.real.state.draftSessions)[0], "floating draft")
     const returnToMain = async (): Promise<void> => {
-      await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
-      await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" })))
+      await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
+      await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" }))))
     }
     await returnToMain()
     expect(env.hidden).toBe(false)
@@ -878,7 +895,7 @@ test("returning a floating draft transfers its input and releases the surface on
       }))
     )
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     request.mockRestore()
     env.restore()
   }
@@ -891,16 +908,16 @@ test("extension drafts fill the mounted composer without sending and protect exi
   const id = await real.prepareDraft("main", "/tmp/extension-draft")
   const view = render(<Composer session={real.session(id)} />)
   try {
-    await act(async () => setComposerDraft(id, "Review this before sending"))
+    await act(() => Promise.try(() => setComposerDraft(id, "Review this before sending")))
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
     expect(drafts.get(id)?.text).toBe("Review this before sending")
     expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
     expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     expect(() => setComposerDraft(id, "after close")).toThrow("输入框")
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -926,7 +943,7 @@ test.each(["attachments", "mentions"] as const)("extension drafts preserve exist
     expect(drafts.get(id)).toEqual(original)
     expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -947,7 +964,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
   let application: import("@alwith/module-extension/plugin").PluginApp | undefined
   const dependencies = {
     session: (target: string) => (target === id ? { cwd: "/tmp/extension-draft" } : null),
-    skills: async () => [],
+    skills: () => Promise.resolve([]),
     writeDraft: setComposerDraft,
     present: () => {
       presented = true
@@ -967,7 +984,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
         version: "1.0.0",
         value: {
           ...chat,
-          fetch: async () => new Response(""),
+          fetch: () => Promise.try(() => new Response("")),
           captureChatContext: () => {},
           openView: () => {},
           notify: () => ({ hide() {}, setMessage() {} }),
@@ -1014,7 +1031,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Draft from a plugin")
   } finally {
     await host.dispose()
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     restore()
   }
 })
@@ -1060,16 +1077,18 @@ test("floating background sessions reopen in their host and returning one hides 
     expect(env.real.state.sessionWindows[first]).toBeUndefined()
     expect(env.real.state.sessionWindows[second]).toBe("chat")
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     env.restore()
   }
 })
 
 test("floating window readiness survives a failed connection and a later explicit open", async () => {
   const env = await windowEnvironment()
-  const connect = vi.mocked(client.connect)
-  connect.mockImplementationOnce(async () => {
-    throw new Error("Main host is not ready")
+  const connect = mockOf(client, "connect")
+  connect.mockImplementationOnce(() => {
+    return Promise.try(() => {
+      throw new Error("Main host is not ready")
+    })
   })
   const view = render(
     <ThemeProvider>
@@ -1090,7 +1109,7 @@ test("floating window readiness survives a failed connection and a later explici
     await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
     expect(env.real.state.connection).toBe("ready")
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.try(() => view.unmount()))
     env.restore()
   }
 })
@@ -1103,7 +1122,7 @@ test.each(["main", "chat"] as const)(
     const receipt = new Promise<void>((resolve) => {
       release = resolve
     })
-    vi.mocked(client.prompt).mockImplementation(async (...args) => {
+    mockOf(client, "prompt").mockImplementation(async (...args) => {
       await env.real.prompt(...args)
       await receipt
     })

@@ -97,7 +97,7 @@ function nullableString(value: unknown, field: string, itemId: string): string |
 }
 
 function agentName(path: unknown, itemId: string): string {
-  const name = typeof path === "string" ? path.split("/").filter(Boolean).at(-1) : undefined
+  const name = typeof path === "string" ? path.split("/").findLast(Boolean) : undefined
   if (name === undefined) throw new Error(`Subagent ${itemId} has no agent path`)
   return name
 }

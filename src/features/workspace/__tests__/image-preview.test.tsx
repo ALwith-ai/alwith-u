@@ -29,7 +29,7 @@ test("SVG preview reflects unsaved source and revokes the previous image URL", a
   })
   const editor = createEditorController({
     fs,
-    confirmClose: async () => "cancel",
+    confirmClose: () => Promise.resolve("cancel"),
     reportError: (error) => {
       throw error
     }

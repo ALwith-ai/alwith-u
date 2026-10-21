@@ -29,16 +29,18 @@ test("catalog reloads on changes and ignores old projects and superseded respons
   expect(view.result.current.catalog.status).toBe("loading")
   view.rerender({ cwd: "/b" })
   expect(pending.map((item) => item.cwd)).toEqual(["/a", "/b"])
-  await act(async () => pending[0].resolve(response("/a")))
+  await act(() => Promise.try(() => pending[0].resolve(response("/a"))))
   expect(view.result.current.catalog.status).toBe("loading")
-  await act(async () => pending[1].resolve(response("/b")))
+  await act(() => Promise.try(() => pending[1].resolve(response("/b"))))
   expect(view.result.current.catalog).toEqual({ status: "loaded", skills: [], errors: [] })
-  await act(async () => {
-    changed()
-    changed()
+  await act(() => {
+    return Promise.try(() => {
+      changed()
+      changed()
+    })
   })
-  await act(async () => pending[3].resolve(response("/b")))
-  await act(async () => pending[2].resolve({ data: [] }))
+  await act(() => Promise.try(() => pending[3].resolve(response("/b"))))
+  await act(() => Promise.try(() => pending[2].resolve({ data: [] })))
   expect(view.result.current.catalog.status).toBe("loaded")
   view.unmount()
   changed()
@@ -48,9 +50,11 @@ test("catalog reloads on changes and ignores old projects and superseded respons
 test("connection and catalog errors never report missing skills and retry can recover", async () => {
   let fail = true
   const api = {
-    async listSkills(): Promise<SkillsListResponse> {
-      if (fail) throw new Error("Catalog unavailable")
-      return { data: [{ cwd: "/a", skills: [], errors: [{ path: "/broken/SKILL.md", message: "Invalid skill" }] }] }
+    listSkills(): Promise<SkillsListResponse> {
+      return Promise.try(() => {
+        if (fail) throw new Error("Catalog unavailable")
+        return { data: [{ cwd: "/a", skills: [], errors: [{ path: "/broken/SKILL.md", message: "Invalid skill" }] }] }
+      })
     },
     onSkillsChanged(): () => void {
       return () => {}
@@ -60,10 +64,10 @@ test("connection and catalog errors never report missing skills and retry can re
     initialProps: { ready: false }
   })
   expect(view.result.current.catalog.status).toBe("disconnected")
-  await act(async () => view.rerender({ ready: true }))
+  await act(() => Promise.try(() => view.rerender({ ready: true })))
   expect(view.result.current.catalog).toEqual({ status: "error", message: "Catalog unavailable" })
   fail = false
-  await act(async () => view.result.current.refresh())
+  await act(() => Promise.try(() => view.result.current.refresh()))
   expect(view.result.current.catalog).toEqual({
     status: "loaded",
     skills: [],
@@ -74,8 +78,8 @@ test("connection and catalog errors never report missing skills and retry can re
 test("extension changes recheck the catalog and disconnect hides the previous result", async () => {
   let enabled = true
   const api = {
-    async listSkills(): Promise<SkillsListResponse> {
-      return {
+    listSkills(): Promise<SkillsListResponse> {
+      return Promise.resolve({
         data: [
           {
             cwd: "/a",
@@ -92,7 +96,7 @@ test("extension changes recheck the catalog and disconnect hides the previous re
             ]
           }
         ]
-      }
+      })
     },
     onSkillsChanged(): () => void {
       return () => {}
@@ -104,7 +108,7 @@ test("extension changes recheck the catalog and disconnect hides the previous re
   await act(async () => {})
   expect(view.result.current.catalog).toMatchObject({ status: "loaded", skills: [{ enabled: true }] })
   enabled = false
-  await act(async () => view.rerender({ revision: "updated", ready: true }))
+  await act(() => Promise.try(() => view.rerender({ revision: "updated", ready: true })))
   expect(view.result.current.catalog).toMatchObject({ status: "loaded", skills: [{ enabled: false }] })
   view.rerender({ revision: "updated", ready: false })
   expect(view.result.current.catalog.status).toBe("disconnected")

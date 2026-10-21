@@ -79,7 +79,7 @@ export async function exportConversation(
       const identity = JSON.stringify([item.turnId, item.itemId])
       if (items.has(identity)) throw new Error("History returned a duplicate item")
       items.add(identity)
-      const timestamp = item.startedAtMs == null ? page.createdAt * 1000 : item.startedAtMs
+      const timestamp = item.startedAtMs ?? page.createdAt * 1000
       if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) throw new Error("Invalid history timestamp")
       for (const rawUpdate of item.updates) {
         const update = object(rawUpdate)
@@ -111,7 +111,7 @@ export async function exportConversation(
         lines.push(line)
       }
     }
-    cursor = page.nextCursor === null ? undefined : (page.nextCursor as string)
+    cursor = page.nextCursor ?? undefined
     if (cursor !== undefined) {
       if (cursors.has(cursor)) throw new Error("History returned a repeated cursor")
       cursors.add(cursor)

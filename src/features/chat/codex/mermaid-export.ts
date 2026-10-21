@@ -7,7 +7,7 @@ export function diagramImage(svg: string): { src: string; width: number; height:
     ?.trim()
     .split(/[\s,]+/)
     .map(Number)
-  if (root.localName !== "svg" || !box || box.length !== 4 || !box.every(Number.isFinite) || box[2] <= 0 || box[3] <= 0)
+  if (root.localName !== "svg" || box?.length !== 4 || !box.every(Number.isFinite) || box[2] <= 0 || box[3] <= 0)
     throw new Error("Mermaid SVG has no valid viewBox")
   const [, , width, height] = box
   root.setAttribute("xmlns", "http://www.w3.org/2000/svg")

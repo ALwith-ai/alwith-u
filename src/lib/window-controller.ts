@@ -1,11 +1,11 @@
 export type WindowHost<Intent> = {
-  exists(): Promise<boolean>
-  create(): Promise<void>
-  present(): Promise<void>
-  deliver(intent: Intent): Promise<void>
+  exists: () => Promise<boolean>
+  create: () => Promise<void>
+  present: () => Promise<void>
+  deliver: (intent: Intent) => Promise<void>
 }
 
-export function createWindowController<Intent>(host: WindowHost<Intent>): { open(intent?: Intent): Promise<void> } {
+export function createWindowController<Intent>(host: WindowHost<Intent>): { open: (intent?: Intent) => Promise<void> } {
   let pending = Promise.resolve()
   return {
     open(intent) {

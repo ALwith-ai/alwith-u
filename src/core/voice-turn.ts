@@ -3,9 +3,9 @@ import type { Session } from "@alwith/api"
 import { asError } from "@/lib/text"
 /** Observes retained protocol facts for one receipt; never derives completion from busy transitions. */
 export function observeVoiceTurn(
-  source: { read(): Session | undefined; subscribe(check: () => void): () => void },
+  source: { read: () => Session | undefined; subscribe: (check: () => void) => () => void },
   signal: AbortSignal
-): { completed: Promise<void>; accept(messageId: string): void } {
+): { completed: Promise<void>; accept: (messageId: string) => void } {
   let receipt: string | null = null
   let check!: () => void
   const completed = new Promise<void>((resolve, reject) => {

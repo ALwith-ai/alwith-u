@@ -3,17 +3,17 @@ import { isRegistered, register, unregister } from "@tauri-apps/plugin-global-sh
 import { savePreference } from "./preferences"
 
 export type ShortcutHost = {
-  register(shortcut: string, handler: () => void): Promise<void>
-  unregister(shortcut: string): Promise<void>
-  save(shortcut: string): Promise<void>
+  register: (shortcut: string, handler: () => void) => Promise<void>
+  unregister: (shortcut: string) => Promise<void>
+  save: (shortcut: string) => Promise<void>
 }
 
 export function createChatShortcut(
   host: ShortcutHost,
   open: () => void
 ): {
-  set(shortcut: string, persist?: boolean): Promise<void>
-  dispose(): Promise<void>
+  set: (shortcut: string, persist?: boolean) => Promise<void>
+  dispose: () => Promise<void>
 } {
   let active = ""
   let pending = Promise.resolve()

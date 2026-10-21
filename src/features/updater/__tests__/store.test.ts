@@ -10,21 +10,22 @@ function fakeIo(initial: UpdaterState, accept = false) {
   const calls = { getState: 0, listen: 0, ask: 0, install: 0 }
   let emit: ((state: UpdaterState) => void) | undefined
   const io: UpdaterIo = {
-    getState: async () => {
+    getState: () => {
       calls.getState += 1
-      return initial
+      return Promise.resolve(initial)
     },
-    onStateChange: async (handler) => {
+    onStateChange: (handler) => {
       calls.listen += 1
       emit = handler
-      return () => undefined
+      return Promise.resolve(() => undefined)
     },
-    askRelaunch: async () => {
+    askRelaunch: () => {
       calls.ask += 1
-      return accept
+      return Promise.resolve(accept)
     },
-    installAndRelaunch: async () => {
+    installAndRelaunch: () => {
       calls.install += 1
+      return Promise.resolve()
     }
   }
   return { io, calls, emit: (state: UpdaterState) => must(emit, "a registered state listener")(state) }
@@ -76,17 +77,21 @@ test("a ready update asks to relaunch once per version and installs only on acce
 
 test("confirmInstallAndRelaunch surfaces install failures", async () => {
   const { io } = fakeIo({ type: "idle" }, true)
-  io.installAndRelaunch = async () => {
-    throw new Error("disk full")
+  io.installAndRelaunch = () => {
+    return Promise.try(() => {
+      throw new Error("disk full")
+    })
   }
   await expect(createUpdaterStore(io).getState().confirmInstallAndRelaunch()).rejects.toThrow("disk full")
 })
 
 test("an event received during the initial snapshot wins over stale state", async () => {
   const { io, emit, calls } = fakeIo({ type: "idle" })
-  io.getState = async () => {
-    if (calls.listen) emit(ready)
-    return { type: "idle" }
+  io.getState = () => {
+    return Promise.try(() => {
+      if (calls.listen) emit(ready)
+      return { type: "idle" }
+    })
   }
   const store = createUpdaterStore(io)
   await store.getState().init()
@@ -115,14 +120,16 @@ test("snapshot failure unsubscribes and permits initialization retry", async () 
       unsubscribed += 1
     }
   }
-  io.getState = async () => {
-    throw new Error("IPC unavailable")
+  io.getState = () => {
+    return Promise.try(() => {
+      throw new Error("IPC unavailable")
+    })
   }
   const store = createUpdaterStore(io)
   await expect(store.getState().init()).rejects.toThrow("IPC unavailable")
   expect(unsubscribed).toBe(1)
   expect(store.getState().initialized).toBe(false)
-  io.getState = async () => ready
+  io.getState = () => Promise.resolve(ready)
   await store.getState().init()
   expect(store.getState().state).toEqual(ready)
   expect(calls.listen).toBe(2)

@@ -9,8 +9,8 @@ import { drive } from "./controller"
 import { driveFileSystem } from "./filesystem"
 
 export interface WorkspaceFileHost {
-  readFile(path: string): Promise<Uint8Array>
-  openTarget(path: string): Promise<void>
+  readFile: (path: string) => Promise<Uint8Array>
+  openTarget: (path: string) => Promise<void>
 }
 
 export function safeDriveWebUrl(raw: string): string {

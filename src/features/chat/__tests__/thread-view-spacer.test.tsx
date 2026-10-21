@@ -10,11 +10,11 @@ const { ThreadView } = await import("../thread-view")
 const { navigationSoundStore } = await import("../codex/navigation-sound-store")
 await initI18n("en")
 navigationSoundStore.setState({ soundMode: "none" })
-const originalRect = HTMLElement.prototype.getBoundingClientRect
+const originalRect = Reflect.get(HTMLElement.prototype, "getBoundingClientRect")
 const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")
 const originalResizeObserver = globalThis.ResizeObserver
 afterEach(async () => {
-  await act(async () => cleanup())
+  await act(() => Promise.try(() => cleanup()))
   globalThis.ResizeObserver = originalResizeObserver
   HTMLElement.prototype.getBoundingClientRect = originalRect
   if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight)
@@ -84,12 +84,12 @@ test("the latest turn stays anchored through growth and loading-placeholder shri
         ...originalRect.call(this),
         top: (key.endsWith("second") ? 412 : 0) - viewport.scrollTop,
         height: key.endsWith("second") ? latestHeight : 400
-      } as DOMRect
+      }
     return originalRect.call(this)
   }
   Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
     configurable: true,
-    get() {
+    get(this: HTMLElement) {
       const key = this.getAttribute("data-turn-key")
       return key === null ? 0 : key.endsWith("second") ? latestHeight : 400
     }
@@ -146,12 +146,12 @@ test("completed answer releases the temporary turn anchor space", async () => {
     scrollTo: { configurable: true, value: () => {} }
   })
   HTMLElement.prototype.getBoundingClientRect = function () {
-    if (this.hasAttribute("data-codex-turn")) return { ...originalRect.call(this), top: 400 } as DOMRect
+    if (this.hasAttribute("data-codex-turn")) return { ...originalRect.call(this), top: 400 }
     return originalRect.call(this)
   }
   Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
     configurable: true,
-    get() {
+    get(this: HTMLElement) {
       return this.hasAttribute("data-turn-key") ? 80 : 0
     }
   })

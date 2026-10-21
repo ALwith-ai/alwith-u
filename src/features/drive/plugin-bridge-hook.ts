@@ -28,7 +28,7 @@ async function declineSessionSync(check: () => void): Promise<void> {
   const state = value as Record<string, unknown>
   if (state.consented === "declined") return
   check()
-  await file("write", Array.from(new TextEncoder().encode(JSON.stringify({ ...state, consented: "declined" }))))
+  await file("write", [...new TextEncoder().encode(JSON.stringify({ ...state, consented: "declined" }))])
 }
 
 /** Main-window bridge: settings windows only notify this authoritative coordinator. */

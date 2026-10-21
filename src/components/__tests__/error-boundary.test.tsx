@@ -13,7 +13,7 @@ test("the mounted production error fallback follows language changes", async () 
   await initI18n("en")
   const runtime = window as unknown as Record<string, unknown>
   const originalTauriInternals = runtime.__TAURI_INTERNALS__
-  runtime.__TAURI_INTERNALS__ = { invoke: async () => undefined }
+  runtime.__TAURI_INTERNALS__ = { invoke: () => Promise.resolve(undefined) }
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined)
   // Vitest runs in development mode; the production fallback is the one under test.
   vi.stubEnv("DEV", false)

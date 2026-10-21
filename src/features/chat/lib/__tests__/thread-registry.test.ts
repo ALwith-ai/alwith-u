@@ -16,10 +16,12 @@ test("search releases following before mounting and aligning the target turn", a
       calls.push("release")
     },
     api: {
-      scrollToKey: async (key, target, options) => {
-        expect(target).toBeUndefined()
-        expect(options).toEqual({ align: "top" })
-        calls.push(key)
+      scrollToKey: (key, target, options) => {
+        return Promise.try(() => {
+          expect(target).toBeUndefined()
+          expect(options).toEqual({ align: "top" })
+          calls.push(key)
+        })
       }
     }
   })
@@ -36,8 +38,10 @@ test("aborted and stale-session searches cannot move the newly selected chat", a
       calls.push("release")
     },
     api: {
-      scrollToKey: async () => {
-        calls.push("scroll")
+      scrollToKey: () => {
+        return Promise.try(() => {
+          calls.push("scroll")
+        })
       }
     }
   })

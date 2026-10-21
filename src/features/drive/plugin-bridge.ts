@@ -49,11 +49,11 @@ function object(value: Json | null): Record<string, Json> {
 }
 class Superseded extends Error {}
 export interface PluginBridgeHost {
-  request(request: DriveRequest): Promise<DriveResponse>
-  binding(): PluginDataBinding | null
-  generation(): number | undefined
-  setArchiveOwner(enabled: boolean): void
-  declineSessionSync(check: () => void): Promise<void>
+  request: (request: DriveRequest) => Promise<DriveResponse>
+  binding: () => PluginDataBinding | null
+  generation: () => number | undefined
+  setArchiveOwner: (enabled: boolean) => void
+  declineSessionSync: (check: () => void) => Promise<void>
 }
 
 /** Patch the existing extension CAS store; never open another storage service or cache credentials. */

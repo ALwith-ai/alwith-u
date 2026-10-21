@@ -36,9 +36,11 @@ test("registers the actual v0.1.2 Tauri asset names without rewriting download U
   )
   const posted: unknown[] = []
   const request: typeof fetch = Object.assign(
-    async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-      posted.push(JSON.parse(init?.body as string))
-      return new Response("{}", { status: 201 })
+    (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      return Promise.try(() => {
+        posted.push(JSON.parse(init?.body as string))
+        return new Response("{}", { status: 201 })
+      })
     },
     { preconnect: fetch.preconnect }
   )
@@ -107,7 +109,7 @@ test("maps installers and signed updater packages to the admin contract and publ
     artifacts
       .filter((artifact) => artifact.format === "nsis")
       .map((artifact) => artifact.arch)
-      .sort()
+      .toSorted()
   ).toEqual(["windows-aarch64", "windows-x86_64"])
   expect(artifacts.find((artifact) => artifact.format === "msi")).toMatchObject({
     arch: "windows-aarch64",
@@ -130,9 +132,11 @@ test("validates all signatures before sending any request", async () => {
   writeFileSync(join(directory, "alwith-u_26.9.24_windows_x64-setup.exe.sig"), "\n")
   let calls = 0
   const request = Object.assign(
-    async (): Promise<Response> => {
-      calls++
-      return new Response("{}", { status: 201 })
+    (): Promise<Response> => {
+      return Promise.try(() => {
+        calls++
+        return new Response("{}", { status: 201 })
+      })
     },
     { preconnect: fetch.preconnect }
   )
@@ -146,14 +150,18 @@ test("posts authenticated JSON to the version endpoint and stops on HTTP failure
   const directory = fixture()
   let calls = 0
   const request: typeof fetch = Object.assign(
-    async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-      calls++
-      expect(url).toBe("https://api.alwith.ai/management/ci/open-source/releases/alwith-u/26.9.24/artifacts/by-url")
-      expect(init?.method).toBe("POST")
-      expect(init?.headers).toEqual({ "X-CI-Token": "test-token", "Content-Type": "application/json" })
-      expect(JSON.parse(init?.body as string).download_url).toContain("/alwith-u/release/v26.9.24/")
-      expect(init?.redirect).toBe("error")
-      return new Response("{}", { status: calls > 5 ? 401 : 201 })
+    (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      return Promise.try(() => {
+        calls++
+        expect(url).toBe("https://api.alwith.ai/management/ci/open-source/releases/alwith-u/26.9.24/artifacts/by-url")
+        expect(init?.method).toBe("POST")
+        expect(init?.headers).toEqual({ "X-CI-Token": "test-token", "Content-Type": "application/json" })
+        expect((JSON.parse(init?.body as string) as { download_url: string }).download_url).toContain(
+          "/alwith-u/release/v26.9.24/"
+        )
+        expect(init?.redirect).toBe("error")
+        return new Response("{}", { status: calls > 5 ? 401 : 201 })
+      })
     },
     { preconnect: fetch.preconnect }
   )

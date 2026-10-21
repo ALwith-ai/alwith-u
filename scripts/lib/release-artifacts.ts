@@ -21,7 +21,7 @@ export function releaseVersion(tag: string): string {
 export function releaseArtifacts(directory: string, tag: string): Artifact[] {
   const version = releaseVersion(tag)
   const artifacts: Artifact[] = []
-  for (const filename of readdirSync(directory).sort()) {
+  for (const filename of readdirSync(directory).toSorted()) {
     if (!/\.(dmg|exe|msi|app\.tar\.gz)$/.test(filename)) continue
     const prefix = `alwith-u_${version}_`
     if (!filename.startsWith(prefix)) throw new Error(`Asset version does not match ${tag}: ${filename}`)

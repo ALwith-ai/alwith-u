@@ -57,20 +57,26 @@ test("project popover shows the full count, expands beyond five chats and routes
       <ProjectSessionPopover cwd="/tmp/project" onSelect={(thread) => selected.push(thread)} onNewChat={() => {}} />
     )
     expect(list).not.toHaveBeenCalled()
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
     expect(list).not.toHaveBeenCalled()
     expect(view.getByText("7 chats")).toBeDefined()
     expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(5)
     expect(view.getAllByRole("button", { name: /^Chat / })[0]?.textContent).toContain("Chat 6")
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Show more" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Show more" }))
+      })
     })
     expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
     expect(view.queryByRole("button", { name: /collection|favorite/i })).toBeNull()
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Chat 0" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Chat 0" }))
+      })
     })
     expect(selected[0]?.sessionId).toBe("chat-0")
     expect(selected[0]?.cwd).toBe("/tmp/project")
@@ -85,15 +91,17 @@ test("loading and failure expose shared list state, and retry refreshes the shar
   const list = vi.spyOn(client, "listThreads").mockResolvedValue()
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
     expect(view.getByRole("status").textContent).toContain("Loading chats")
     expect(view.queryByText(/\d+ chats?/)).toBeNull()
-    await act(async () => client.store.setState({ threadsLoading: false, threadsError: "Unavailable" }))
+    await act(() => Promise.try(() => client.store.setState({ threadsLoading: false, threadsError: "Unavailable" })))
     expect(view.getByRole("alert").textContent).toBe("Unavailable")
-    list.mockImplementation(async () => {
-      client.store.setState({ threadsLoaded: true, threadsError: null })
+    list.mockImplementation(() => {
+      return Promise.try(() => {
+        client.store.setState({ threadsLoaded: true, threadsError: null })
+      })
     })
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Retry" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))
     expect(list).toHaveBeenLastCalledWith({ reset: true })
     expect(view.getByText("0 chats")).toBeDefined()
   } finally {
@@ -115,19 +123,27 @@ test("project actions open the directory itself and delegate new chat to the hos
         }}
       />
     )
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Open project folder" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Open project folder" }))
+      })
     })
     expect(open).toHaveBeenCalledWith("/tmp/project")
     await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "New chat" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "New chat" }))
+      })
     })
     expect(created).toBe(1)
     expect(list).not.toHaveBeenCalled()
@@ -139,21 +155,25 @@ test("project actions open the directory itself and delegate new chat to the hos
 
 test("changing projects selects from the latest shared snapshot", async () => {
   const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
-  await act(async () =>
-    view.rerender(<ProjectSessionPopover cwd="/tmp/other" onSelect={() => {}} onNewChat={() => {}} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
+  await act(() =>
+    Promise.try(() =>
+      view.rerender(<ProjectSessionPopover cwd="/tmp/other" onSelect={() => {}} onNewChat={() => {}} />)
+    )
   )
-  await act(async () =>
-    client.store.setState({
-      threads: [
-        ...threads(),
-        {
-          ...must(threads("/tmp/other")[0], "a thread in the other project"),
-          sessionId: "other",
-          title: "Other project"
-        }
-      ]
-    })
+  await act(() =>
+    Promise.try(() =>
+      client.store.setState({
+        threads: [
+          ...threads(),
+          {
+            ...must(threads("/tmp/other")[0], "a thread in the other project"),
+            sessionId: "other",
+            title: "Other project"
+          }
+        ]
+      })
+    )
   )
   expect(view.getByText("1 chat")).toBeDefined()
   expect(view.getByRole("button", { name: "Other project" })).toBeDefined()
@@ -166,8 +186,10 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
   const toggles: boolean[] = []
   try {
     const header = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(header.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(header.getByRole("button", { name: "project" }))
+      })
     })
     expect(header.getByText("7 chats")).toBeDefined()
     header.unmount()
@@ -183,8 +205,10 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
         <span>Children</span>
       </NavigationGroup>
     )
-    await act(async () => {
-      fireEvent.click(sidebar.getByRole("button", { name: "Project group" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(sidebar.getByRole("button", { name: "Project group" }))
+      })
     })
     expect(toggles).toEqual([true])
     expect(sidebar.queryByRole("dialog")).toBeNull()
@@ -192,16 +216,20 @@ test("sidebar hover shares the header cache while clicking still toggles the pro
       sidebar.container.querySelector<HTMLElement>('[data-slot="popover-trigger"]'),
       "the popover trigger"
     )
-    await act(async () => {
-      fireEvent.pointerEnter(trigger, { pointerType: "mouse" })
-      fireEvent.mouseEnter(trigger)
-      fireEvent.mouseMove(trigger)
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.pointerEnter(trigger, { pointerType: "mouse" })
+        fireEvent.mouseEnter(trigger)
+        fireEvent.mouseMove(trigger)
+      })
     })
     await waitFor(() => expect(sidebar.getByRole("button", { name: "Chat 6" })).toBeDefined())
     expect(list).not.toHaveBeenCalled()
     expect(sidebar.queryByText("7 chats")).toBeNull()
-    await act(async () => {
-      fireEvent.click(sidebar.getByRole("button", { name: "Show more" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(sidebar.getByRole("button", { name: "Show more" }))
+      })
     })
     expect(sidebar.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
   } finally {
@@ -214,17 +242,25 @@ test("a changed project list invalidates its closed popup before reopening", asy
   const list = vi.spyOn(client, "listThreads")
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
-    await act(async () => {
-      client.store.setState({ threads: [{ ...must(threads()[0], "the first thread"), title: "Renamed" }] })
+    await act(() => {
+      return Promise.try(() => {
+        client.store.setState({ threads: [{ ...must(threads()[0], "the first thread"), title: "Renamed" }] })
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "project" }))
+      })
     })
     expect(view.getByRole("button", { name: "Renamed" })).toBeDefined()
     expect(list).not.toHaveBeenCalled()
@@ -252,8 +288,10 @@ test("session-card title and path scroll only on hover and the path opens its ow
       fireEvent.mouseLeave(viewport)
       expect(content.style.transform).toBe("translateX(0px)")
     }
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Open project folder" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Open project folder" }))
+      })
     })
     expect(open).toHaveBeenCalledWith(thread.cwd)
   } finally {
@@ -267,21 +305,27 @@ test("project path aliases share the popover cache and still show every matching
   const list = vi.spyOn(client, "listThreads")
   try {
     const first = render(<ProjectSessionPopover cwd="/var/deleted-project" onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(first.getByRole("button", { name: "deleted-project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(first.getByRole("button", { name: "deleted-project" }))
+      })
     })
     expect(first.getByText("7 chats")).toBeDefined()
     first.unmount()
     const second = render(
       <ProjectSessionPopover cwd="/private/var/deleted-project" onSelect={() => {}} onNewChat={() => {}} />
     )
-    await act(async () => {
-      fireEvent.click(second.getByRole("button", { name: "deleted-project" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(second.getByRole("button", { name: "deleted-project" }))
+      })
     })
     expect(second.getByText("7 chats")).toBeDefined()
     expect(list).not.toHaveBeenCalled()
-    await act(async () => {
-      fireEvent.click(second.getByRole("button", { name: "Show more" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(second.getByRole("button", { name: "Show more" }))
+      })
     })
     expect(second.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
   } finally {
@@ -295,7 +339,7 @@ test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith U"])(
   async (cwd) => {
     client.store.setState({ threads: threads("/Users/mac/Documents/Codex/nested") })
     const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
     expect(view.getByText("7 chats")).toBeVisible()
     expect(view.getByText("/Users/mac/Documents/ALwith U")).toBeVisible()
   }
@@ -310,6 +354,6 @@ test.each([
 ])("temporary directory %s exposes its project chats", async (cwd) => {
   client.store.setState({ threads: threads(cwd) })
   const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
   expect(view.getByText("7 chats")).toBeDefined()
 })

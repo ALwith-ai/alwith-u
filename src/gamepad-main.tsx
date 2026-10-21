@@ -6,5 +6,5 @@ bootstrapAuxWindow({
   component: GamepadWindow,
   logTag: "gamepad",
   toaster: true,
-  setup: async () => registerGamepadLocales()
+  setup: () => Promise.try(() => registerGamepadLocales())
 })

@@ -37,9 +37,9 @@ test("logged out or unequipped startup never opens a pet or a setup dialog", asy
 test("an account change during the launch query cancels restoration", async () => {
   let account = "first"
   vi.mocked(getVibemonState).mockResolvedValue({ pet: "pet", enabled: false, position: null })
-  vi.mocked(commands.autostartLaunch).mockImplementation(async () => {
+  vi.mocked(commands.autostartLaunch).mockImplementation(() => {
     account = "second"
-    return true
+    return Promise.resolve(true)
   })
   const present = vi.fn()
   await restorePetOnStartup(present, () => account)
@@ -51,15 +51,17 @@ test("automatic restoration reports one actionable notice and retries only for t
   const retry = vi.fn()
   const error = new Error("download failed")
   await runPetRestoration(
-    async () => {
-      throw error
+    () => {
+      return Promise.try(() => {
+        throw error
+      })
     },
     () => account,
     retry
   )
   expect(reportBackgroundError).toHaveBeenCalledExactlyOnceWith("pet-startup", error, {
     message: "pet.restoreFailed",
-    action: { label: "pet.retry", onClick: expect.any(Function) }
+    action: { label: "pet.retry", onClick: expect.any(Function) as () => void }
   })
   const action = vi.mocked(reportBackgroundError).mock.calls[0][2]?.action
   expect(action).toBeDefined()
@@ -73,9 +75,11 @@ test("automatic restoration reports one actionable notice and retries only for t
 test("account cancellation and successful restoration do not notify", async () => {
   let account: string | null = "first"
   await runPetRestoration(
-    async () => {
-      account = null
-      throw new Error("cancelled")
+    () => {
+      return Promise.try(() => {
+        account = null
+        throw new Error("cancelled")
+      })
     },
     () => account,
     vi.fn()

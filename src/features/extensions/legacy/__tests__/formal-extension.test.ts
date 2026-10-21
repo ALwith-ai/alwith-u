@@ -21,8 +21,10 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
   const bridge = createLegacyBridge(manifest.id, {
     imported: false,
     binding: { manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) },
-    native: async (): Promise<never> => {
-      throw new Error("Formal Plugin data must use SDK storage")
+    native: (): Promise<never> => {
+      return Promise.try(() => {
+        throw new Error("Formal Plugin data must use SDK storage")
+      })
     },
     session: () => null,
     send: async () => {},
@@ -41,7 +43,7 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
     capabilities: { [plugin.pluginHostCapability.id]: { version: "1.0.0", value: bridge } },
     contributions: { surfaces: "1.0.0", commands: "1.0.0", settingsPages: "1.0.0" }
   })
-  const entry = createCommonJsEvaluator({ "@alwith/module-extension/plugin": plugin })(`
+  const entry = await createCommonJsEvaluator({ "@alwith/module-extension/plugin": plugin })(`
     const {createPluginExtension,Plugin,ItemView}=require('@alwith/module-extension/plugin');
     module.exports.default=context=>createPluginExtension(context,{
       manifest:{id:'formal-notes',name:'Notes',version:'1.0.0'},

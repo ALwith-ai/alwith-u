@@ -96,7 +96,9 @@ afterEach(() => {
 })
 function confirm(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".alwith-directory-picker-footer button")
-  fireEvent.click(buttons[buttons.length - 1])
+  const last = [...buttons].at(-1)
+  if (last === undefined) throw new Error("The dialog has no buttons")
+  fireEvent.click(last)
 }
 test("picker roots retain writable unsynced projects, exclude archive/skills, and fall back locally", () => {
   expect(
@@ -108,7 +110,7 @@ test("picker roots retain writable unsynced projects, exclude archive/skills, an
   expect(pickerRootsOf([], "/local")).toEqual([{ path: "/local", label: "local", synced: true }])
 })
 test("same-workspace destination moves through the filesystem controller", async () => {
-  const onMoveTo = vi.fn(async () => true),
+  const onMoveTo = vi.fn(() => Promise.resolve(true)),
     onClose = vi.fn()
   render(
     <MoveToDialog
@@ -128,7 +130,7 @@ test("same-workspace destination moves through the filesystem controller", async
   expect(onMoveTo).not.toHaveBeenCalled()
 })
 test("cloud folders absent locally remain selectable and use the host move route", async () => {
-  const onMoveTo = vi.fn(async () => true),
+  const onMoveTo = vi.fn(() => Promise.resolve(true)),
     onClose = vi.fn()
   render(
     <MoveToDialog
@@ -155,7 +157,7 @@ test("unsynced libraries use the cloud-move warning instead of the local cross-p
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={() => {}}
     />
   )

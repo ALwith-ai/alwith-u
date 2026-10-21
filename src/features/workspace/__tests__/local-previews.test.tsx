@@ -55,8 +55,10 @@ function contextFixture(): PreviewContext {
 function hostFixture(overrides: Partial<PreviewHost> = {}): PreviewHost {
   return {
     pdfWorkerSrc: "worker.js",
-    resolveResource: vi.fn(async () => {
-      throw new Error("Unexpected resource")
+    resolveResource: vi.fn(() => {
+      return Promise.try(() => {
+        throw new Error("Unexpected resource")
+      })
     }),
     ...overrides
   }
@@ -83,7 +85,7 @@ function installObjectUrls(): { create: ReturnType<typeof vi.fn>; revoke: Return
 }
 function captureEditors(): Editor[] {
   const editors: Editor[] = []
-  const original = Editor.make
+  const original = Editor.make.bind(Editor)
   vi.spyOn(Editor, "make").mockImplementation(() => {
     const editor = original()
     editors.push(editor)
@@ -158,8 +160,9 @@ test("Markdown does not publish read-only collaboration updates or flush an auto
       autoSaveDelay: 800,
       createMarkdownIntegration: () => ({
         configure: () => {},
-        ready: async () => {
+        ready: () => {
           initialized = true
+          return Promise.resolve()
         },
         dispose: () => {},
         editable: () => writable,
@@ -200,7 +203,7 @@ test("Markdown does not publish read-only collaboration updates or flush an auto
 
 test("Markdown publishes edits before an immediate close, and external replacement cancels pending autosave", async () => {
   const editors = captureEditors()
-  const confirmClose = vi.fn(async () => "cancel" as const)
+  const confirmClose = vi.fn(() => Promise.resolve("cancel" as const))
   const onError = vi.fn()
   const fs = createFileSystem({
     adapter: createMemoryAdapter({ "/repo/doc.md": "# Initial\n\nParagraph" }),
@@ -326,8 +329,10 @@ test("HTML preview ignores missing favicon and preload hints while preserving it
 })
 
 test.each(["stylesheet", "script"])("HTML preview still reports missing %s dependencies", async (kind) => {
-  const resolveResource = vi.fn(async () => {
-    throw new Error("Required dependency unavailable")
+  const resolveResource = vi.fn(() => {
+    return Promise.try(() => {
+      throw new Error("Required dependency unavailable")
+    })
   })
   const source =
     kind === "stylesheet"
@@ -347,7 +352,7 @@ test("Markdown native undo and redo use Milkdown history and publish changes wit
     adapter: createMemoryAdapter({ "/repo/history.md": originalText }),
     reportError: onError
   })
-  const controller = createEditorController({ fs, confirmClose: async () => "cancel", reportError: onError })
+  const controller = createEditorController({ fs, confirmClose: () => Promise.resolve("cancel"), reportError: onError })
   const initial = await controller.open("/repo/history.md")
   const onChange = vi.fn((text: string) => controller.update(initial.id, text))
   const context: PreviewContext = { readOnly: false, onChange, onSave: vi.fn(), onError }

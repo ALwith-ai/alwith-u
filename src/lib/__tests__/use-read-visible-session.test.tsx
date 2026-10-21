@@ -48,10 +48,10 @@ test("done arriving while the chat is offscreen is read only after returning to 
   const view = renderHook(({ visible }) => useReadVisibleSession("selected", visible), {
     initialProps: { visible: false }
   })
-  await act(async () => clientModule.client.applyRunStates([runState("selected", "done")]))
+  await act(() => Promise.try(() => clientModule.client.applyRunStates([runState("selected", "done")])))
   expect(runtime.marked).toEqual([])
   expect(clientModule.client.state.runStates.selected?.state).toBe("done")
-  await act(async () => view.rerender({ visible: true }))
+  await act(() => Promise.try(() => view.rerender({ visible: true })))
   expect(runtime.marked).toEqual(["selected"])
 })
 
@@ -66,10 +66,10 @@ test("drafts, running chats and action requests are never marked read; routing u
   const view = renderHook(({ sessionId, visible }: VisibleSession) => useReadVisibleSession(sessionId, visible), {
     initialProps
   })
-  await act(async () => view.rerender({ sessionId: "running", visible: true }))
-  await act(async () => view.rerender({ sessionId: "action", visible: true }))
-  await act(async () => view.rerender({ sessionId: "first", visible: false }))
+  await act(() => Promise.try(() => view.rerender({ sessionId: "running", visible: true })))
+  await act(() => Promise.try(() => view.rerender({ sessionId: "action", visible: true })))
+  await act(() => Promise.try(() => view.rerender({ sessionId: "first", visible: false })))
   expect(runtime.marked).toEqual([])
-  await act(async () => view.rerender({ sessionId: "second", visible: true }))
+  await act(() => Promise.try(() => view.rerender({ sessionId: "second", visible: true })))
   expect(runtime.marked).toEqual(["second"])
 })

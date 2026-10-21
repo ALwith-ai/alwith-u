@@ -38,7 +38,7 @@ export function SessionPreview({ sessionId }: { sessionId: string }) {
       void commands.computerUnsubscribe({ subscriptionId }).catch(() => {})
     }
   }, [sessionId])
-  if (!preview || preview.activity.sessionId !== sessionId || preview.activity.phase === "idle") return null
+  if (preview?.activity.sessionId !== sessionId || preview.activity.phase === "idle") return null
   const stop = async () => {
     setStopping(true)
     try {

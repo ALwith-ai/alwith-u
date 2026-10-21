@@ -14,8 +14,9 @@ test("waits for all windows before cleaning grants and import certificates", asy
         listeners.delete(listener)
       }
     },
-    cleanup: async () => {
+    cleanup: () => {
       cleaned = true
+      return Promise.resolve()
     }
   })
   await Promise.resolve()
@@ -33,8 +34,9 @@ test("an aborted uninstall preserves grants and reports failure", async () => {
     waitForLegacyUninstall({
       state: () => ({ installed: true, pending: false }),
       subscribe: () => () => {},
-      cleanup: async () => {
+      cleanup: () => {
         cleaned = true
+        return Promise.resolve()
       }
     })
   ).rejects.toThrow("卸载")

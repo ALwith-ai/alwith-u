@@ -12,7 +12,7 @@ vi.mock("../use-drive-visible", () => ({ useDriveVisible: () => true }))
 vi.mock("sonner", () => ({ toast: { error: mock.error } }))
 vi.mock("../controller", async () => {
   const { createDriveController } = await import("@alwith/module-drive")
-  const transport = { request: mock.request, subscribe: async () => () => {} }
+  const transport = { request: mock.request, subscribe: () => Promise.resolve(() => {}) }
   return { drive: createDriveController(transport), driveTransport: transport }
 })
 
@@ -42,38 +42,40 @@ const save = async (_path: string): Promise<void> => {}
 
 beforeEach(async () => {
   await i18n.use(initReactI18next).init({ lng: "en", resources: { en: { translation: {} } } })
-  mock.request.mockImplementation(async (request) => {
-    switch (request.type) {
-      case "snapshot":
-        return { type: "snapshot", data: snapshot }
-      case "configuration":
-        return {
-          type: "configuration",
-          data: { deviceId: "test", userId: "1", userName: "Test User", clientConfig: null }
-        }
-      case "preferences":
-        return { type: "preferences", data: { sessionArchive: false, knowledgeInject: false } }
-      case "archiveStatus":
-        return {
-          type: "archiveStatus",
-          data: {
-            enabled: false,
-            syncing: false,
-            lastRunAt: null,
-            lastUploadAt: null,
-            synced: 0,
-            lastUploaded: 0,
-            lastError: null,
-            mode: null
+  mock.request.mockImplementation((request) => {
+    return Promise.try(() => {
+      switch (request.type) {
+        case "snapshot":
+          return { type: "snapshot", data: snapshot }
+        case "configuration":
+          return {
+            type: "configuration",
+            data: { deviceId: "test", userId: "1", userName: "Test User", clientConfig: null }
           }
-        }
-      case "archivePrivateSessions":
-        return { type: "archivePrivateSessions", data: [] }
-      case "failedUploads":
-        return { type: "failedUploads", data: [] }
-      default:
-        throw new Error(`Unexpected request: ${request.type}`)
-    }
+        case "preferences":
+          return { type: "preferences", data: { sessionArchive: false, knowledgeInject: false } }
+        case "archiveStatus":
+          return {
+            type: "archiveStatus",
+            data: {
+              enabled: false,
+              syncing: false,
+              lastRunAt: null,
+              lastUploadAt: null,
+              synced: 0,
+              lastUploaded: 0,
+              lastError: null,
+              mode: null
+            }
+          }
+        case "archivePrivateSessions":
+          return { type: "archivePrivateSessions", data: [] }
+        case "failedUploads":
+          return { type: "failedUploads", data: [] }
+        default:
+          throw new Error(`Unexpected request: ${request.type}`)
+      }
+    })
   })
 })
 afterEach(() => {

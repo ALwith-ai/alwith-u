@@ -62,30 +62,32 @@ function boundary(existing = false, source = "local") {
       }
     },
     settled: async (): Promise<void> => {},
-    request: async (request: Request): Promise<void> => {
-      writes++
-      if (!state.native) throw new Error("Missing state")
-      if (request.type === "installLocal")
-        state.native.installations = [
-          {
-            id: "notes",
-            source: request.source,
-            enabled: false,
-            installationId: "identity",
-            packageRevision: request.expectedDigest ?? "missing",
-            dataGeneration: 1,
-            manifest
-          }
-        ]
-      if (request.type === "beginTransition")
-        state.native.pending = [{ id: request.id, action: request.action, waitingInstances: 1 }]
-      if (request.type === "enable") {
-        const installed = state.native.installations[0]
-        if (!installed) throw new Error("Missing installation")
-        installed.enabled = true
-        host.instances = [{ id: "notes", revision: "new", status: "active", errors: [] }]
-      }
-      notify()
+    request: (request: Request): Promise<void> => {
+      return Promise.try(() => {
+        writes++
+        if (!state.native) throw new Error("Missing state")
+        if (request.type === "installLocal")
+          state.native.installations = [
+            {
+              id: "notes",
+              source: request.source,
+              enabled: false,
+              installationId: "identity",
+              packageRevision: request.expectedDigest ?? "missing",
+              dataGeneration: 1,
+              manifest
+            }
+          ]
+        if (request.type === "beginTransition")
+          state.native.pending = [{ id: request.id, action: request.action, waitingInstances: 1 }]
+        if (request.type === "enable") {
+          const installed = state.native.installations[0]
+          if (!installed) throw new Error("Missing installation")
+          installed.enabled = true
+          host.instances = [{ id: "notes", revision: "new", status: "active", errors: [] }]
+        }
+        notify()
+      })
     }
   }
   return {
@@ -151,26 +153,28 @@ test("update waits for another window and rejects an aborted transition", async 
 
 test("activation failure reports the committed installation instead of claiming success", async () => {
   const item = boundary()
-  item.runtime.request = async (request) => {
-    if (!item.state.native) throw new Error("Missing state")
-    if (request.type === "installLocal")
-      item.state.native.installations = [
-        {
-          id: "notes",
-          source: "local",
-          enabled: false,
-          installationId: "identity",
-          packageRevision: "new",
-          dataGeneration: 1,
-          manifest
-        }
-      ]
-    if (request.type === "enable") {
-      const installed = item.state.native.installations[0]
-      if (!installed) throw new Error("Missing installation")
-      installed.enabled = true
-      item.state.errors.notes = "broken activation"
-    }
+  item.runtime.request = (request) => {
+    return Promise.try(() => {
+      if (!item.state.native) throw new Error("Missing state")
+      if (request.type === "installLocal")
+        item.state.native.installations = [
+          {
+            id: "notes",
+            source: "local",
+            enabled: false,
+            installationId: "identity",
+            packageRevision: "new",
+            dataGeneration: 1,
+            manifest
+          }
+        ]
+      if (request.type === "enable") {
+        const installed = item.state.native.installations[0]
+        if (!installed) throw new Error("Missing installation")
+        installed.enabled = true
+        item.state.errors.notes = "broken activation"
+      }
+    })
   }
   const result = await executePreparedInstall(item.runtime, selected, { update: false, enable: true })
   expect(result).toMatchObject({
@@ -183,10 +187,12 @@ test("activation failure reports the committed installation instead of claiming 
 
 test("a package replaced while activation settles cannot be reported as the selected installation", async () => {
   const item = boundary()
-  item.runtime.settled = async () => {
-    const installed = item.state.native?.installations[0]
-    if (!installed) throw new Error("Missing installation")
-    installed.packageRevision = "another-package"
+  item.runtime.settled = () => {
+    return Promise.try(() => {
+      const installed = item.state.native?.installations[0]
+      if (!installed) throw new Error("Missing installation")
+      installed.packageRevision = "another-package"
+    })
   }
   await expect(executePreparedInstall(item.runtime, selected, { update: false, enable: false })).rejects.toThrow()
 })

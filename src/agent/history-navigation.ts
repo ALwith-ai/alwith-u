@@ -94,7 +94,7 @@ export async function readHistoryIndex(
     }
     cursor = page.nextCursor as string | null
   } while (cursor !== null)
-  return turns.reverse()
+  return turns.toReversed()
 }
 
 /** Preview reads are bounded; navigation hydrates the selected turn without walking earlier turns. */
@@ -154,7 +154,7 @@ export async function readHistoryTurn(
       )
         throw new Error("Invalid history turn item")
       ids.add(item.itemId)
-      updates.push(...item.updates)
+      updates.push(...(item.updates as unknown[]))
     }
     if (preview && page.nextCursor !== null) {
       // Codex previews the tail while retaining the opening prompt. Bound both reads.
@@ -173,13 +173,13 @@ export async function readHistoryTurn(
       )
       check()
       if (!Array.isArray(tail.items)) throw new Error("Invalid history preview tail")
-      for (const rawItem of [...tail.items].reverse()) {
+      for (const rawItem of (tail.items as unknown[]).toReversed()) {
         const item = object(rawItem)
         if (item.turnId !== turn.turnId || typeof item.itemId !== "string" || !Array.isArray(item.updates))
           throw new Error("Invalid history preview item")
         if (!ids.has(item.itemId)) {
           ids.add(item.itemId)
-          updates.push(...item.updates)
+          updates.push(...(item.updates as unknown[]))
         }
       }
     }
@@ -233,7 +233,7 @@ export function historyTurnPreview(session: Session): HistoryTurnPreview {
     }
   }
   const clip = (text: string) => {
-    const characters = Array.from(text)
+    const characters = [...text]
     return characters.length <= 240 ? text : `${characters.slice(0, 239).join("")}…`
   }
   return {

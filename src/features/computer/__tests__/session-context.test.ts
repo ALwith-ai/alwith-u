@@ -18,7 +18,7 @@ vi.mock("@/bindings", () => ({
   }
 }))
 vi.mock("@/features/drive/session-context", () => ({
-  driveSessionContext: async () => ({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
+  driveSessionContext: () => Promise.resolve({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
 }))
 import { computerContextRevision, hostSessionContext, prepareComputerTools } from "../session-context"
 beforeEach(async () => {

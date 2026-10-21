@@ -106,10 +106,12 @@ test("extension menu opens only its own contributed surface with the exact view 
     ]
   }
   const view = setup(state(), false, contributions)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  await act(() =>
+    Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  )
   expect(view.queryByRole("menuitem", { name: "Timer workspace" })).toBeNull()
   expect(view.queryByRole("menuitem", { name: "Preferences" })).toBeNull()
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "个人笔记" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "个人笔记" }))))
   expect(view.actions).toEqual([{ surface: "alpha/vivarium-notes" }])
 })
 
@@ -119,10 +121,12 @@ test("bundled extensions expose contributed pages without update or uninstall ac
   item.source = "bundled:alwith-u"
   snapshot.native.installations[0] = item
   const view = setup(snapshot, false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] })
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  await act(() =>
+    Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  )
   expect(view.queryByRole("menuitem", { name: "Update from folder" })).toBeNull()
   expect(view.queryByRole("menuitem", { name: "Uninstall" })).toBeNull()
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Notes workspace" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Notes workspace" }))))
   expect(view.actions).toEqual([{ surface: "alpha/page" }])
 })
 
@@ -133,10 +137,12 @@ test.each(["disabled", "error"])("%s extensions cannot open retained surface con
   if (reason === "disabled") item.enabled = false
   else snapshot.errors.alpha = "Activation failed"
   const view = setup(snapshot, false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] })
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  await act(() =>
+    Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  )
   const page = view.getByRole("menuitem", { name: "Notes workspace" })
   expect(page.getAttribute("aria-disabled")).toBe("true")
-  await act(async () => fireEvent.click(page))
+  await act(() => Promise.try(() => fireEvent.click(page)))
   expect(view.actions).toEqual([])
 })
 
@@ -149,14 +155,16 @@ test.each(["busy", "pending"])("%s extensions cannot open their surface menu", a
   })
   const trigger = view.getByRole("button", { name: "More actions for Alpha Notes" }) as HTMLButtonElement
   expect(trigger.disabled).toBe(true)
-  await act(async () => fireEvent.click(trigger))
+  await act(() => Promise.try(() => fireEvent.click(trigger)))
   expect(view.queryByRole("menuitem", { name: "Notes workspace" })).toBeNull()
   expect(view.actions).toEqual([])
 })
 
 test("settings windows omit surface navigation when no host callback is provided", async (): Promise<void> => {
   const view = setup(state(), false, { ...host, views: [surface("alpha", "alpha/page", "Notes workspace")] }, false)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  await act(() =>
+    Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions for Alpha Notes" })))
+  )
   expect(view.queryByRole("menuitem", { name: "Notes workspace" })).toBeNull()
   expect(view.getByRole("menuitem", { name: "Uninstall" })).toBeTruthy()
 })
@@ -168,35 +176,39 @@ test("extension manager shows installed data directly, searches and supports loc
   expect(view.queryByRole("tablist")).toBeNull()
   expect(view.getByText("Alpha Notes")).toBeTruthy()
   expect(view.getByText("Beta Timer")).toBeTruthy()
-  await act(async () => {
-    const input = view.getByRole("searchbox")
-    input.focus()
-    fireEvent.input(input, { target: { value: " ALPHA " } })
-    fireEvent.keyUp(input, { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      const input = view.getByRole("searchbox")
+      input.focus()
+      fireEvent.input(input, { target: { value: " ALPHA " } })
+      fireEvent.keyUp(input, { key: "a" })
+    })
   })
   expect(view.getByText("Alpha Notes")).toBeTruthy()
   expect(view.queryByText("Beta Timer")).toBeNull()
-  await act(async () => {
-    const input = view.getByRole("searchbox")
-    input.focus()
-    fireEvent.input(input, { target: { value: "missing" } })
-    fireEvent.keyUp(input, { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      const input = view.getByRole("searchbox")
+      input.focus()
+      fireEvent.input(input, { target: { value: "missing" } })
+      fireEvent.keyUp(input, { key: "a" })
+    })
   })
   expect(view.getByText("No matching extensions.")).toBeTruthy()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Install from folder" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Install from folder" }))))
   expect(view.actions).toEqual([{ install: null }])
 })
 
 test("installed row forwards toggle, folder update and uninstall with the correct identity", async () => {
   const view = setup()
   const row = within(view.getByRole("region", { name: "Alpha Notes" }))
-  await act(async () => fireEvent.click(row.getByRole("switch", { name: "Enable Alpha Notes" })))
+  await act(() => Promise.try(() => fireEvent.click(row.getByRole("switch", { name: "Enable Alpha Notes" }))))
   expect(view.actions[0]).toEqual({ type: "beginTransition", id: "alpha", action: "disable" })
-  await act(async () => fireEvent.click(row.getByRole("button", { name: "More actions for Alpha Notes" })))
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Update from folder" })))
+  await act(() => Promise.try(() => fireEvent.click(row.getByRole("button", { name: "More actions for Alpha Notes" }))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Update from folder" }))))
   expect(view.actions[1]).toEqual({ install: "alpha" })
-  await act(async () => fireEvent.click(row.getByRole("button", { name: "More actions for Alpha Notes" })))
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Uninstall" })))
+  await act(() => Promise.try(() => fireEvent.click(row.getByRole("button", { name: "More actions for Alpha Notes" }))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Uninstall" }))))
   expect(view.actions[2]).toEqual({ uninstall: "alpha", name: "Alpha Notes" })
 })
 
@@ -210,7 +222,7 @@ test("pending transitions remain cancellable while errors and blocked controls s
   expect(row.getByRole("alert").textContent).toContain("Cleanup failed")
   const toggle = row.getByRole("switch")
   expect(toggle.getAttribute("aria-disabled")).toBe("true")
-  await act(async () => fireEvent.click(row.getByRole("button", { name: "Cancel operation" })))
+  await act(() => Promise.try(() => fireEvent.click(row.getByRole("button", { name: "Cancel operation" }))))
   expect(view.actions).toEqual([{ type: "abortTransition", id: "alpha" }])
 })
 
@@ -233,8 +245,10 @@ test("bundled wallpaper can be disabled but has no manual update or uninstall ac
   expect(within(menu).getByRole("menuitem", { name: "Reload" })).toBeTruthy()
   expect(within(menu).queryByRole("menuitem", { name: "Update from folder" })).toBeNull()
   expect(view.queryByText("Uninstall")).toBeNull()
-  await act(async () => {
-    fireEvent.click(view.getByRole("switch"))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("switch"))
+    })
   })
   expect(view.actions).toEqual([{ type: "beginTransition", id: builtin.id, action: "disable" }])
 })
@@ -261,7 +275,7 @@ test("metadata displays description, author link and remote icon even when disab
   if (!image) throw new Error("Remote extension icon is missing")
   expect(image?.getAttribute("src")).toBe("http://example.com/icon.png")
   expect(image?.getAttribute("referrerpolicy")).toBe("no-referrer")
-  await act(async () => fireEvent.error(image))
+  await act(() => Promise.try(() => fireEvent.error(image)))
   expect(view.container.querySelector("img")).toBeNull()
   expect(view.getByRole("region", { name: "Alpha Notes" }).querySelector(".lucide-blocks")).toBeTruthy()
 })
@@ -273,11 +287,13 @@ test("search includes optional description and author", async (): Promise<void> 
   snapshot.native.installations[0] = item
   const view = setup(snapshot)
   for (const value of ["notebook", "example team"]) {
-    await act(async () => {
-      const input = view.getByRole("searchbox")
-      input.focus()
-      fireEvent.input(input, { target: { value } })
-      fireEvent.keyUp(input, { key: "e" })
+    await act(() => {
+      return Promise.try(() => {
+        const input = view.getByRole("searchbox")
+        input.focus()
+        fireEvent.input(input, { target: { value } })
+        fireEvent.keyUp(input, { key: "e" })
+      })
     })
     expect(view.getByText("Alpha Notes")).toBeTruthy()
     expect(view.queryByText("Beta Timer")).toBeNull()
@@ -340,10 +356,14 @@ test("host language changes localize disabled extensions and uninstall prompts w
   expect(view.getByRole("switch", { name: i18n.t("extensions.enable", { name: "阿尔法笔记" }) })).toBeTruthy()
   expect(view.actions).toEqual([])
   expect(JSON.stringify(item.manifest)).toBe(original)
-  await act(async () =>
-    fireEvent.click(view.getByRole("button", { name: i18n.t("extensions.moreActions", { name: "阿尔法笔记" }) }))
+  await act(() =>
+    Promise.try(() =>
+      fireEvent.click(view.getByRole("button", { name: i18n.t("extensions.moreActions", { name: "阿尔法笔记" }) }))
+    )
   )
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: i18n.t("extensions.uninstall") })))
+  await act(() =>
+    Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: i18n.t("extensions.uninstall") })))
+  )
   expect(view.actions).toEqual([{ uninstall: "alpha", name: "阿尔法笔记" }])
   await act(async () => {
     await i18n.changeLanguage("fr")

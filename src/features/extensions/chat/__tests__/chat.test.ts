@@ -9,16 +9,20 @@ function setup() {
   let afterCatalog = (): void => {}
   const dependencies = {
     session: (id: string) => (id === "target" && writable ? { cwd: "/work" } : null),
-    skills: async (cwd: string) => {
-      events.push(`skills:${cwd}`)
-      afterCatalog()
-      return [{ name: "bi-add-metric", enabled, path: "/plugins/bi-add-metric/SKILL.md" }]
+    skills: (cwd: string) => {
+      return Promise.try(() => {
+        events.push(`skills:${cwd}`)
+        afterCatalog()
+        return [{ name: "bi-add-metric", enabled, path: "/plugins/bi-add-metric/SKILL.md" }]
+      })
     },
     present: (id: string): void => {
       events.push(`present:${id}`)
     },
-    prompt: async (id: string, text: string): Promise<void> => {
-      events.push(`prompt:${id}:${text}`)
+    prompt: (id: string, text: string): Promise<void> => {
+      return Promise.try(() => {
+        events.push(`prompt:${id}:${text}`)
+      })
     }
   }
   return {
@@ -69,9 +73,11 @@ test("validates writable sessions even when no skill is required", async () => {
 
 test("propagates prompt rejection without retrying", async () => {
   const { dependencies, events } = setup()
-  dependencies.prompt = async () => {
-    events.push("rejected")
-    throw new Error("offline")
+  dependencies.prompt = () => {
+    return Promise.try(() => {
+      events.push("rejected")
+      throw new Error("offline")
+    })
   }
   await expect(sendExtensionMessage("target", "hello", [], dependencies)).rejects.toThrow("offline")
   expect(events).toEqual(["present:target", "rejected"])
@@ -79,9 +85,10 @@ test("propagates prompt rejection without retrying", async () => {
 
 test("uses the resolved plugin skill name in the outgoing business prompt", async () => {
   const { dependencies, events } = setup()
-  dependencies.skills = async () => [
-    { name: "finture-bi:bi-add-metric", enabled: true, path: "/plugins/finture-bi/skills/bi-add-metric/SKILL.md" }
-  ]
+  dependencies.skills = () =>
+    Promise.resolve([
+      { name: "finture-bi:bi-add-metric", enabled: true, path: "/plugins/finture-bi/skills/bi-add-metric/SKILL.md" }
+    ])
   await sendExtensionMessage("target", "按 bi-add-metric skill 建卡", ["bi-add-metric"], dependencies)
   expect(events).toEqual(["present:target", "prompt:target:按 finture-bi:bi-add-metric skill 建卡"])
 })
@@ -130,9 +137,9 @@ test("draft placement rejects unavailable sessions and missing skills", async ()
 test("an extension unloaded during skill discovery cannot send", async () => {
   const { dependencies, events } = setup()
   let unloaded = false
-  dependencies.skills = async () => {
+  dependencies.skills = () => {
     unloaded = true
-    return [{ name: "bi-add-metric", enabled: true, path: "/skills/bi-add-metric/SKILL.md" }]
+    return Promise.resolve([{ name: "bi-add-metric", enabled: true, path: "/skills/bi-add-metric/SKILL.md" }])
   }
   await expect(
     sendExtensionMessage("target", "build", ["bi-add-metric"], {

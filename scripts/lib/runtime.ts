@@ -20,7 +20,7 @@ export function staged(name: string): string {
   return binary
 }
 
-export type RunningRuntime = { url: string; token: string; process: ChildProcess; stop(): void }
+export type RunningRuntime = { url: string; token: string; process: ChildProcess; stop: () => void }
 
 export function stagedCodexEngine(): {
   command: string
@@ -58,7 +58,7 @@ export async function startRuntime(journalRoot: string): Promise<RunningRuntime>
       ALWITH_RUNTIME_PARENT_PID: String(process.pid)
     }
   })
-  const lines = createInterface({ input: child.stdout! })
+  const lines = createInterface({ input: child.stdout })
   const url = await new Promise<string>((resolveUrl, reject) => {
     child.once("exit", (code) => reject(new Error(`alwith-runtime exited before ready (code ${code})`)))
     lines.on("line", (line) => {

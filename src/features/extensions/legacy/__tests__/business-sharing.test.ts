@@ -7,13 +7,20 @@ test("publishes saved settings, clears stale context and shares reader changes i
   let changed = (): void => {}
   const writes: unknown[] = []
   const sharing = createBusinessSharing(
-    { read: async () => settings, write: async () => {}, exists: async () => true, resource: (p) => p },
-    async (file, value) => {
-      writes.push([file, value])
+    {
+      read: () => Promise.resolve(settings),
+      write: async () => {},
+      exists: () => Promise.resolve(true),
+      resource: (p) => p
     },
-    async (callback) => {
+    (file, value) => {
+      return Promise.try(() => {
+        writes.push([file, value])
+      })
+    },
+    (callback) => {
       changed = callback
-      return () => {}
+      return Promise.resolve(() => {})
     },
     (error) => {
       throw error
@@ -38,9 +45,14 @@ test("a failed share blocks the caller and can retry", async () => {
   const report = vi.fn()
   const publish = vi.fn().mockRejectedValueOnce(new Error("disk unavailable")).mockResolvedValue(undefined)
   const sharing = createBusinessSharing(
-    { read: async () => ({ token: "value" }), write: async () => {}, exists: async () => true, resource: (p) => p },
+    {
+      read: () => Promise.resolve({ token: "value" }),
+      write: async () => {},
+      exists: () => Promise.resolve(true),
+      resource: (p) => p
+    },
     publish,
-    async () => () => {},
+    () => Promise.resolve(() => {}),
     report,
     false
   )
@@ -57,14 +69,21 @@ test("reports background publication failure and stops listening after disposal"
   let reject = false
   const writes: unknown[] = []
   const sharing = createBusinessSharing(
-    { read: async () => ({ token: "value" }), write: async () => {}, exists: async () => true, resource: (p) => p },
-    async (file, value) => {
-      if (reject) throw new Error("unavailable")
-      writes.push([file, value])
+    {
+      read: () => Promise.resolve({ token: "value" }),
+      write: async () => {},
+      exists: () => Promise.resolve(true),
+      resource: (p) => p
     },
-    async (callback) => {
+    (file, value) => {
+      return Promise.try(() => {
+        if (reject) throw new Error("unavailable")
+        writes.push([file, value])
+      })
+    },
+    (callback) => {
       changed = callback
-      return unsubscribe
+      return Promise.resolve(unsubscribe)
     },
     report,
     false
@@ -85,14 +104,16 @@ test("a failed document switch is retried before an AI request can continue", as
   let fail = false
   let published: unknown
   const sharing = createBusinessSharing(
-    { read: async () => ({}), write: async () => {}, exists: async () => true, resource: (p) => p },
-    async (file, value) => {
-      if (file === "current") {
-        if (fail) throw new Error("read-only disk")
-        published = value
-      }
+    { read: () => Promise.resolve({}), write: async () => {}, exists: () => Promise.resolve(true), resource: (p) => p },
+    (file, value) => {
+      return Promise.try(() => {
+        if (file === "current") {
+          if (fail) throw new Error("read-only disk")
+          published = value
+        }
+      })
     },
-    async () => () => {},
+    () => Promise.resolve(() => {}),
     () => {},
     true
   )

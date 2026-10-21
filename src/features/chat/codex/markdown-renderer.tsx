@@ -40,10 +40,11 @@ function segments(text: string, streaming?: boolean): Segment[] {
     if (pending.length > 0) { result.push({ key: offset - pending.length, text: pending + definitions }); pending = "" }
   }
   for (const token of tokens) {
-    if (token.type === "code" && token.lang?.toLowerCase() === "mermaid" && !streaming) {
+    const code = token.type === "code" ? (token as Tokens.Code) : undefined
+    if (code?.lang?.toLowerCase() === "mermaid" && !streaming) {
       flush()
-      result.push({ key: offset, mermaid: token.text })
-      offset += token.raw.length
+      result.push({ key: offset, mermaid: code.text })
+      offset += code.raw.length
       continue
     }
     const inline = token.type === "paragraph" ? (token as Tokens.Paragraph).tokens : undefined

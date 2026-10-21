@@ -21,14 +21,14 @@ test("local files and Markdown line locations use the native path opener", async
   spies()
   await openExternal("file:///tmp/report%20one.pdf")
   await openExternal("/tmp/source.ts:12:3")
-  await openExternal("C:\\project\\source.ts#L12")
+  await openExternal(String.raw`C:\project\source.ts#L12`)
   await openExternal("file:///tmp/source.ts:12:3")
   await openExternal("/tmp/report%20one.pdf")
   await openExternal("/tmp/100%.pdf")
   expect(path.mock.calls).toEqual([
     ["/tmp/report one.pdf"],
     ["/tmp/source.ts"],
-    ["C:\\project\\source.ts"],
+    [String.raw`C:\project\source.ts`],
     ["/tmp/source.ts"],
     ["/tmp/report one.pdf"],
     ["/tmp/100%.pdf"]

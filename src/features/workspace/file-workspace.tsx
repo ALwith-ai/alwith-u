@@ -132,8 +132,10 @@ export function FileWorkspace({
     // Closed files already have their latest contents on disk.
   }, [])
   const contentHost = useDriveContentHost(saveDriveDocument)
-  const routeDriveTarget = useRef<(path: string) => Promise<void>>(async () => {
-    throw new Error("Workspace navigation is not ready")
+  const routeDriveTarget = useRef<(path: string) => Promise<void>>(() => {
+    return Promise.try(() => {
+      throw new Error("Workspace navigation is not ready")
+    })
   })
   const lifecycle = useRef(new AbortController())
   const stateStore = useMemo(() => createWorkspaceStateStore(), [])
@@ -145,20 +147,26 @@ export function FileWorkspace({
   const [moveSources, setMoveSources] = useState<{ owner: Workspace; paths: readonly string[] } | null>(null)
   const condenseHost = useMemo(
     () => ({
-      readSnooze: async (id: RemoteId): Promise<number | null> => {
-        const profile = drive.getSnapshot().snapshot
-        const raw = localStorage.getItem(`alwith:drive:condense-snooze:${profile?.baseUrl}:${profile?.localRoot}:${id}`)
-        if (raw === null) return null
-        const value = Number(raw)
-        if (!Number.isFinite(value)) throw new Error("Invalid Drive suggestion preference")
-        return value
+      readSnooze: (id: RemoteId): Promise<number | null> => {
+        return Promise.try(() => {
+          const profile = drive.getSnapshot().snapshot
+          const raw = localStorage.getItem(
+            `alwith:drive:condense-snooze:${profile?.baseUrl}:${profile?.localRoot}:${id}`
+          )
+          if (raw === null) return null
+          const value = Number(raw)
+          if (!Number.isFinite(value)) throw new Error("Invalid Drive suggestion preference")
+          return value
+        })
       },
-      writeSnooze: async (id: RemoteId, until: number): Promise<void> => {
-        const profile = drive.getSnapshot().snapshot
-        localStorage.setItem(
-          `alwith:drive:condense-snooze:${profile?.baseUrl}:${profile?.localRoot}:${id}`,
-          String(until)
-        )
+      writeSnooze: (id: RemoteId, until: number): Promise<void> => {
+        return Promise.try(() => {
+          const profile = drive.getSnapshot().snapshot
+          localStorage.setItem(
+            `alwith:drive:condense-snooze:${profile?.baseUrl}:${profile?.localRoot}:${id}`,
+            String(until)
+          )
+        })
       }
     }),
     []
@@ -344,7 +352,8 @@ export function FileWorkspace({
           }
         })
         let expanded = saved?.expanded ?? [root]
-        let persistState: (() => void) | undefined
+        // assigned below once the editor exists; earlier tree callbacks skip persistence
+        const late: { persistState?: () => void } = {}
         const tree = createFileTreeController({
           fs,
           root,
@@ -352,7 +361,7 @@ export function FileWorkspace({
           expanded,
           onExpandedChange: (paths) => {
             expanded = [...paths]
-            persistState?.()
+            late.persistState?.()
           },
           confirmReplace: async (paths) =>
             (await ask({
@@ -430,7 +439,7 @@ export function FileWorkspace({
           )
         }
         let serialized = ""
-        persistState = () => {
+        const persistState = () => {
           const snapshot = editor.getSnapshot(),
             treeSnapshot = tree.getSnapshot()
           const state: WorkspaceState = {
@@ -450,6 +459,7 @@ export function FileWorkspace({
             report(error)
           })
         }
+        late.persistState = persistState
         const stopEditorState = editor.subscribe(persistState),
           stopTreeState = tree.subscribe(persistState),
           stopTabState = created.tabs.subscribe(persistState)
@@ -479,7 +489,7 @@ export function FileWorkspace({
       const authorized = [...workspaces.current.values()].find(
         (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
       )
-      const target = authorized === undefined ? await ensure(root) : authorized
+      const target = authorized ?? (await ensure(root))
       if (!containsPath(target.root, path)) {
         openFilePreview(path, position)
         return
@@ -672,7 +682,7 @@ export function FileWorkspace({
         const scale = await getCurrentWindow().scaleFactor()
         if (cancelled) return
         const element = document.elementFromPoint(payload.position.x / scale, payload.position.y / scale)
-        if (element === null || element.closest(".file-workspace-tree") === null) return
+        if (!element?.closest(".file-workspace-tree")) return
         const row = element.closest<HTMLElement>("[data-file-path]")
         let destination = owner.root
         if (row !== null) {
@@ -902,8 +912,10 @@ export function FileWorkspace({
                   onOpenExternal={openExternal}
                   onReveal={(path) => revealItemsInDir(path)}
                   onCopyPath={writeText}
-                  onMove={async (paths) => {
-                    setMoveSources({ owner: workspace, paths })
+                  onMove={(paths) => {
+                    return Promise.try(() => {
+                      setMoveSources({ owner: workspace, paths })
+                    })
                   }}
                   onImport={async (destination, directory) => {
                     const paths = await openDialog({
@@ -970,7 +982,7 @@ export function FileWorkspace({
                       controller={workspace.editor}
                       labels={editorLabels}
                       compactToolbar
-                      rootPath={/Win/.test(navigator.platform) ? normalizePath(workspace.root) : workspace.root}
+                      rootPath={navigator.platform.includes("Win") ? normalizePath(workspace.root) : workspace.root}
                       onRevealPath={(path) => workspace.tree.reveal(path)}
                       onReveal={(document) => revealItemsInDir(document.path)}
                       onCopyPath={(document) => writeText(document.path)}

@@ -45,12 +45,12 @@ interface ExtensionsManagerProps {
   host: HostSnapshot
   busy: boolean
   installPhase?: ExtensionInstallPhase | null
-  onInstall(id?: string): void
-  onRequest(request: Request): void
-  onReload?(id: string): void
-  onUninstall(id: string, name: string): void
-  onOpenSurface?(id: string): void
-  renderSettings(view: ViewContribution): ReactNode
+  onInstall: (id?: string) => void
+  onRequest: (request: Request) => void
+  onReload?: (id: string) => void
+  onUninstall: (id: string, name: string) => void
+  onOpenSurface?: (id: string) => void
+  renderSettings: (view: ViewContribution) => ReactNode
 }
 
 function ExtensionIcon({ src }: { src?: string }): ReactNode {

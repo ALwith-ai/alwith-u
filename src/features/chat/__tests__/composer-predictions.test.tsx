@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
+import { mockOf } from "@/test/mock-of"
 
 import { Composer } from "../composer"
 import { drafts } from "../composer/drafts"
@@ -55,7 +56,7 @@ test("Tab accepts an editable draft without sending; Shift-Tab and IME leave it 
   const session = completed()
   const submit = vi.fn()
   const view = render(<Composer session={session} onSubmit={submit} />)
-  await waitFor(() => expect(client.requestPrediction).toHaveBeenCalledWith("s1", "t1"))
+  await waitFor(() => expect(mockOf(client, "requestPrediction")).toHaveBeenCalledWith("s1", "t1"))
   view.rerender(<Composer session={predicted(session)} onSubmit={submit} />)
   const input = view.getByRole("textbox")
   expect(input).toHaveAttribute("placeholder", "Run the tests")
@@ -72,7 +73,7 @@ test("Tab accepts an editable draft without sending; Shift-Tab and IME leave it 
   expect(input).toHaveAttribute("placeholder", "Run the tests")
   fireEvent.keyDown(input, { key: "Tab" })
   expect(input).toHaveValue("Run the tests")
-  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
   expect(view.queryByText(/Tab to accept/)).not.toBeInTheDocument()
   fireEvent.keyDown(input, { key: "Enter" })
   await waitFor(() => expect(submit).toHaveBeenCalledTimes(1))
@@ -80,20 +81,22 @@ test("Tab accepts an editable draft without sending; Shift-Tab and IME leave it 
   await waitFor(() => expect(input).not.toHaveAttribute("placeholder", "Run the tests"))
 })
 
-test("typing, clearing and Escape preserve a prediction for repeated Tab acceptance", async () => {
-  const session = completed()
-  const view = render(<Composer session={session} />)
-  view.rerender(<Composer session={predicted(session)} />)
-  const input = view.getByRole("textbox")
-  fireEvent.keyDown(input, { key: "Escape" })
-  expect(input).toHaveAttribute("placeholder", "Run the tests")
-  view.unmount()
-  drafts.clear()
-  const next = render(<Composer session={session} />)
-  next.rerender(<Composer session={predicted(session)} />)
-  fireEvent.change(next.getByRole("textbox"), { target: { value: "My message" } })
-  fireEvent.change(next.getByRole("textbox"), { target: { value: "" } })
-  expect(next.getByRole("textbox")).toHaveAttribute("placeholder", "Run the tests")
+test("typing, clearing and Escape preserve a prediction for repeated Tab acceptance", () => {
+  return Promise.try(() => {
+    const session = completed()
+    const view = render(<Composer session={session} />)
+    view.rerender(<Composer session={predicted(session)} />)
+    const input = view.getByRole("textbox")
+    fireEvent.keyDown(input, { key: "Escape" })
+    expect(input).toHaveAttribute("placeholder", "Run the tests")
+    view.unmount()
+    drafts.clear()
+    const next = render(<Composer session={session} />)
+    next.rerender(<Composer session={predicted(session)} />)
+    fireEvent.change(next.getByRole("textbox"), { target: { value: "My message" } })
+    fireEvent.change(next.getByRole("textbox"), { target: { value: "" } })
+    expect(next.getByRole("textbox")).toHaveAttribute("placeholder", "Run the tests")
+  })
 })
 
 test("stale turns, running, drafts, replay, unsupported agents and unavailable results stay hidden", () => {
@@ -112,11 +115,11 @@ test("stale turns, running, drafts, replay, unsupported agents and unavailable r
   act(() => client.store.setState({ agent: null }))
   view.rerender({ session: predicted(completed("s2", "t2"), "t2"), draft: false })
   expect(view.result.current.text).toBeNull()
-  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
 })
 
 test("request failures are visible without affecting the conversation", async () => {
-  vi.mocked(client.requestPrediction).mockRejectedValue(new Error("Account is not eligible"))
+  mockOf(client, "requestPrediction").mockRejectedValue(new Error("Account is not eligible"))
   const session = completed()
   const view = renderHook(() => useComposerPrediction(session, true, false))
   await waitFor(() => expect(view.result.current.error).toBe("Account is not eligible"))
@@ -148,7 +151,7 @@ test("late results from another turn or a changed model never become a draft", (
     }
   })
   expect(view.result.current.text).toBeNull()
-  expect(client.requestPrediction).toHaveBeenCalledTimes(2)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(2)
 })
 
 test("null and failed results clear the suggestion; history and read-only sessions do not request", () => {
@@ -171,17 +174,17 @@ test("null and failed results clear the suggestion; history and read-only sessio
     available: true
   })
   view.rerender({ session: { ...completed("readonly", "t4"), readOnly: true }, available: false })
-  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
 })
 
 test("the submitted draft cannot dismiss a new turn's prediction before the input clears", () => {
-  const running = { ...completed(), state: "running" as const, lastStopReason: null }
+  const running: Session = { ...completed(), state: "running", lastStopReason: null }
   const view = renderHook(({ session, available, hasDraft }) => useComposerPrediction(session, available, hasDraft), {
-    initialProps: { session: running as Session, available: false, hasDraft: true }
+    initialProps: { session: running, available: false, hasDraft: true }
   })
   view.rerender({ session: completed(), available: false, hasDraft: true })
   view.rerender({ session: completed(), available: true, hasDraft: false })
-  expect(client.requestPrediction).toHaveBeenCalledWith("s1", "t1")
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledWith("s1", "t1")
   view.rerender({ session: predicted(completed()), available: true, hasDraft: false })
   expect(view.result.current.text).toBe("Run the tests")
 })
@@ -192,14 +195,14 @@ test("disabling predictions hides results and prevents requests until enabled", 
   const view = renderHook(({ session }) => useComposerPrediction(session, true, false), {
     initialProps: { session }
   })
-  expect(client.requestPrediction).not.toHaveBeenCalled()
+  expect(mockOf(client, "requestPrediction")).not.toHaveBeenCalled()
   act(() => predictionPreference.setState({ enabled: true }))
-  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
   view.rerender({ session: predicted(session) })
   expect(view.result.current.text).toBe("Run the tests")
   act(() => predictionPreference.setState({ enabled: false }))
   expect(view.result.current.text).toBeNull()
   act(() => predictionPreference.setState({ enabled: true }))
   expect(view.result.current.text).toBe("Run the tests")
-  expect(client.requestPrediction).toHaveBeenCalledTimes(1)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
 })

@@ -23,7 +23,7 @@ export function useProjectThreads(cwd: string | null) {
           .filter((thread) =>
             project === null ? isQuickChatDirectory(thread.cwd) : client.projectPath(thread.cwd) === project
           )
-          .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
+          .toSorted((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
       }
     if (error !== null) return { status: "failed" as const, error }
     return { status: "loading" as const }

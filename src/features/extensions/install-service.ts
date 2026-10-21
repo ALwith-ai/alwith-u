@@ -27,10 +27,10 @@ export interface InstallResult {
 }
 
 interface InstallPort {
-  stageLegacy(
+  stageLegacy: (
     ticket: string,
     converted: Awaited<ReturnType<typeof convertLegacyExtension>>
-  ): Promise<{
+  ) => Promise<{
     path: string
     id: string
     version: string
@@ -124,16 +124,17 @@ export async function executeStagedInstall(
 
   // request() settles this WebView, but another window can still hold the old package.
   await new Promise<void>((resolve, reject) => {
-    let unsubscribe: (() => void) | undefined
+    // filled once subscribed; inspect may run before that
+    const subscription: { unsubscribe?: () => void } = {}
     const inspect = (): void => {
       const state = runtime.snapshot().native
       if (!state) {
-        unsubscribe?.()
+        subscription.unsubscribe?.()
         reject(new Error("Extension service became unavailable"))
         return
       }
       if (state.pending.some((item) => item.id === id)) return
-      unsubscribe?.()
+      subscription.unsubscribe?.()
       const installed = state.installations.find((item) => item.id === id)
       if (installed?.packageRevision !== staged.digest || installed.source !== source)
         reject(new Error("Extension installation did not commit the selected package"))
@@ -142,11 +143,11 @@ export async function executeStagedInstall(
       else resolve()
     }
     const aborted = (): void => {
-      unsubscribe?.()
+      subscription.unsubscribe?.()
       reject(asError(signal?.reason))
     }
     const stop = runtime.subscribe(inspect)
-    unsubscribe = () => {
+    subscription.unsubscribe = () => {
       stop()
       signal?.removeEventListener("abort", aborted)
     }

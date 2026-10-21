@@ -29,14 +29,18 @@ test("draft shows the configured provider models before any session exists", asy
     />
   )
   const trigger = view.getByRole("button")
-  await act(async () => {
-    fireEvent.click(trigger)
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(trigger)
+    })
   })
   expect(document.body.textContent).toContain("DeepSeek-Flash")
   expect(document.body.textContent).not.toContain("OpenRouter")
   expect(document.body.innerHTML).not.toContain("test-secret-never-render")
-  await act(async () => {
-    fireEvent.click(view.getByText("DeepSeek-Flash"))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByText("DeepSeek-Flash"))
+    })
   })
   expect(selected).toBe("gateway:deepseek:deepseek-flash")
 })

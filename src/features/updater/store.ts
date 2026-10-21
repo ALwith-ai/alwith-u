@@ -13,10 +13,10 @@ export type { State as UpdaterState } from "@/bindings"
 
 /** The Tauri surface the store talks to; tests pass fakes instead of mocking modules. */
 export interface UpdaterIo {
-  getState(): Promise<UpdaterState>
-  onStateChange(handler: (state: UpdaterState) => void): Promise<() => void>
-  askRelaunch(): Promise<boolean>
-  installAndRelaunch(): Promise<void>
+  getState: () => Promise<UpdaterState>
+  onStateChange: (handler: (state: UpdaterState) => void) => Promise<() => void>
+  askRelaunch: () => Promise<boolean>
+  installAndRelaunch: () => Promise<void>
 }
 
 export interface UpdaterStore {

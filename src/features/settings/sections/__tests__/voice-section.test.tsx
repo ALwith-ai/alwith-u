@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 import { type SettingsSnapshot, settingsStore } from "@/lib/settings-store"
+import { mockOf } from "@/test/mock-of"
 
 import { VoiceSection } from "../voice-section"
 
@@ -65,23 +66,25 @@ test("voice is enabled by default and its topmost switch persists changes", asyn
 
 test("a late initial read does not overwrite a newer voice preference", async () => {
   let resolve!: (value: SettingsSnapshot) => void
-  vi.mocked(settingsStore.read).mockImplementationOnce(
+  mockOf(settingsStore, "read").mockImplementationOnce(
     () =>
       new Promise<SettingsSnapshot>((done) => {
         resolve = done
       })
   )
   render(<VoiceSection />)
-  await waitFor(() => expect(settingsStore.read).toHaveBeenCalled())
-  await act(async () => {
-    changed(false)
-    resolve({ revision: 0, values: { "voice.enabled": true }, browserMigrated: true })
+  await waitFor(() => expect(mockOf(settingsStore, "read")).toHaveBeenCalled())
+  await act(() => {
+    return Promise.try(() => {
+      changed(false)
+      resolve({ revision: 0, values: { "voice.enabled": true }, browserMigrated: true })
+    })
   })
   expect(screen.getByRole("switch", { name: "voice.enabled" })).not.toBeChecked()
 })
 
 test("a failed preference save reports the error and allows retrying", async () => {
-  vi.mocked(settingsStore.write).mockRejectedValueOnce(new Error("disk full"))
+  mockOf(settingsStore, "write").mockRejectedValueOnce(new Error("disk full"))
   render(<VoiceSection />)
   const toggle = screen.getByRole("switch", { name: "voice.enabled" })
   await waitFor(() => expect(toggle).toBeChecked())
@@ -89,7 +92,7 @@ test("a failed preference save reports the error and allows retrying", async () 
   await waitFor(() => expect(reportError).toHaveBeenCalledWith("disk full"))
   expect(toggle).toBeEnabled()
   fireEvent.click(toggle)
-  await waitFor(() => expect(settingsStore.write).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(mockOf(settingsStore, "write")).toHaveBeenCalledTimes(2))
   expect(toggle).not.toBeChecked()
 })
 

@@ -11,15 +11,17 @@ test("concurrent opens create one window and deliver each intent after readiness
   })
   let exists = false
   const controller = createWindowController<string>({
-    exists: async () => exists,
+    exists: () => Promise.resolve(exists),
     create: async () => {
       created++
       await prepared
       exists = true
     },
     present: async () => {},
-    deliver: async (intent) => {
-      delivered.push(intent)
+    deliver: (intent) => {
+      return Promise.try(() => {
+        delivered.push(intent)
+      })
     }
   })
   const first = controller.open("one")
@@ -38,9 +40,11 @@ test("concurrent opens create one window and deliver each intent after readiness
 test("a failed creation rejects its caller and permits a later explicit open", async () => {
   let attempts = 0
   const controller = createWindowController<string>({
-    exists: async () => false,
-    create: async () => {
-      if (++attempts === 1) throw new Error("creation failed")
+    exists: () => Promise.resolve(false),
+    create: () => {
+      return Promise.try(() => {
+        if (++attempts === 1) throw new Error("creation failed")
+      })
     },
     present: async () => {},
     deliver: async () => {}

@@ -453,7 +453,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [newChat])
 
   useEffect(() => {
-    if (!/Win/.test(navigator.platform)) return
+    if (!navigator.platform.includes("Win")) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (!event.ctrlKey) return
       if (event.key === "n") {

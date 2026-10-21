@@ -5,8 +5,8 @@ interface Host {
   baseUrl: string
   fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   storage: Storage
-  refresh(token: string): Promise<{ access_token: string; refresh_token: string }>
-  expired(): Promise<void>
+  refresh: (token: string) => Promise<{ access_token: string; refresh_token: string }>
+  expired: () => Promise<void>
 }
 
 /** App transport only: authentication contracts and native refresh belong to @alwith/module-auth. */

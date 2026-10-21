@@ -35,7 +35,7 @@ test("a stopped chat keeps its transcript and reconnects that session", async ()
   )
   try {
     expect(view.getByText("Retained question")).toBeInTheDocument()
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Reconnect" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Reconnect" }))))
     expect(open).toHaveBeenCalledExactlyOnceWith("stopped", "/tmp/stopped")
     view.rerender(
       <ThemeProvider>
@@ -63,7 +63,7 @@ test("a read-only chat retries its own session and disables retry while restorin
   )
   const view = render(renderChat(false))
   try {
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Try again" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Try again" }))))
     expect(open).toHaveBeenCalledExactlyOnceWith("locked", "/tmp/locked")
     view.rerender(renderChat(true))
     const retry = view.getByRole("button", { name: "Restoring conversation" })

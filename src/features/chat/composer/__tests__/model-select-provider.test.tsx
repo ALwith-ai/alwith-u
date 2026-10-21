@@ -42,16 +42,16 @@ afterEach(() => {
 test("the shared window model menu selects the DeepSeek gateway and returns to the native Codex model", async () => {
   controls.setConfig.mockResolvedValue(undefined)
   const view = render(<ModelSelectGroup sessionId="floating-session" options={options(nativeModel)} disabled={false} />)
-  await act(async () => fireEvent.click(view.getByRole("button")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
   expect(view.getByText("DeepSeek")).toBeVisible()
-  await act(async () => fireEvent.click(view.getByText("DeepSeek-Flash")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", providerModel)
   // Only the confirmed session configuration changes the selected label.
   expect(view.getByRole("button").textContent).toContain("GPT-6-Astra")
   view.rerender(<ModelSelectGroup sessionId="floating-session" options={options(providerModel)} disabled={false} />)
   expect(view.getByRole("button").textContent).toContain("DeepSeek-Flash")
-  await act(async () => fireEvent.click(view.getByRole("button")))
-  await act(async () => fireEvent.click(view.getByText("GPT-6-Astra")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("GPT-6-Astra"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", nativeModel)
   expect(controls.setConfig).toHaveBeenCalledTimes(2)
 })
@@ -67,8 +67,8 @@ test("the model picker is disabled during a provider change", () => {
 test("a rejected provider switch reports the failure and keeps the confirmed model label", async () => {
   controls.setConfig.mockRejectedValue(new Error("DeepSeek unavailable"))
   const view = render(<ModelSelectGroup sessionId="main-session" options={options(nativeModel)} disabled={false} />)
-  await act(async () => fireEvent.click(view.getByRole("button")))
-  await act(async () => fireEvent.click(view.getByText("DeepSeek-Flash")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("DeepSeek unavailable"))
   expect(view.getByRole("button").textContent).toContain("GPT-6-Astra")
 })
@@ -78,8 +78,8 @@ test("unsent draft provider changes go through replacement instead of changing t
   const view = render(
     <ModelSelectGroup sessionId="draft" options={options(nativeModel)} disabled={false} onModelChange={onModelChange} />
   )
-  await act(async () => fireEvent.click(view.getByRole("button")))
-  await act(async () => fireEvent.click(view.getByText("DeepSeek-Flash")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   expect(onModelChange).toHaveBeenCalledWith(providerModel)
   expect(controls.setConfig).not.toHaveBeenCalled()
 })

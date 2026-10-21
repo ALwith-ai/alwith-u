@@ -27,7 +27,7 @@ function actions(open: () => Promise<void>, selected: string[], errors: unknown[
   return {
     connect: async () => {},
     unarchive: async () => {},
-    release: async (): Promise<ChatTransfer | null> => null,
+    release: (): Promise<ChatTransfer | null> => Promise.resolve(null),
     importDraft: (_id: string, _draft: ComposerDraft | null) => {},
     include: () => {},
     open: async () => open(),
@@ -58,8 +58,10 @@ test("includes a selected project chat before showing it, after restoring an arc
   const callbacks = actions(() => restoration.promise, selected, [])
   const include = vi.fn()
   callbacks.include = include
-  callbacks.unarchive = async () => {
-    expect(include).not.toHaveBeenCalled()
+  callbacks.unarchive = () => {
+    return Promise.try(() => {
+      expect(include).not.toHaveBeenCalled()
+    })
   }
   callbacks.show = (id) => {
     expect(include).toHaveBeenCalledExactlyOnceWith(thread)

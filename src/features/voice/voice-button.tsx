@@ -25,7 +25,7 @@ interface VoiceButtonProps {
   cwd: string
   enabled: boolean
   cancelRef: MutableRefObject<(() => void) | null>
-  waitForTurn(signal: AbortSignal): Promise<void>
+  waitForTurn: (signal: AbortSignal) => Promise<void>
   supportsHandsfree: boolean
   resume?: (signal: AbortSignal) => Promise<void>
 }

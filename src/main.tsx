@@ -60,7 +60,9 @@ window.addEventListener("unhandledrejection", (event) => surfaceGlobalError(desc
 window.addEventListener("error", (event) => {
   // Benign browser noise: the layout settled one frame late. VS Code and Sentry filter it too.
   if (event.message.startsWith("ResizeObserver loop")) return
-  surfaceGlobalError(`${event.message} @ ${event.filename}:${event.lineno}:${event.colno}\n${event.error?.stack ?? ""}`)
+  surfaceGlobalError(
+    `${event.message} @ ${event.filename}:${event.lineno}:${event.colno}\n${(event.error as { stack?: string } | null | undefined)?.stack ?? ""}`
+  )
 })
 
 async function bootstrap(): Promise<void> {

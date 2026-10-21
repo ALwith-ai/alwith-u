@@ -20,7 +20,7 @@ export function ExtensionViewContent({
 }: {
   host: ExtensionHost
   id: string
-  onError(error: unknown): void
+  onError: (error: unknown) => void
 }): ReactElement {
   const { t } = useTranslation()
   const snapshot = useHostSnapshot(host)
@@ -58,7 +58,7 @@ export function ExtensionViewContent({
   )
 }
 
-export function ExtensionPage({ id, onClose }: { id: string; onClose(): void }): ReactElement {
+export function ExtensionPage({ id, onClose }: { id: string; onClose: () => void }): ReactElement {
   const { t } = useTranslation()
   const { host } = useExtensions()
   const view = host.views.find((item) => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))

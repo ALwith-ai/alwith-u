@@ -19,7 +19,7 @@ afterEach(() => {
 async function fixture() {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "fake" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "fake" } })
   clients.push(client)
   await client.connect()
   const a = { id: await client.newSession("/tmp") }
@@ -43,20 +43,24 @@ async function fixture() {
   client.applyRunStates([run(a.id), run(b.id)], "snapshot")
   let agent: string | null = "codex"
   const claimed = new Set<string>()
-  const prompt = vi.fn(async (id: string) => {
-    expect(id).toBe(a.id)
+  const prompt = vi.fn((id: string) => {
+    return Promise.try(() => {
+      expect(id).toBe(a.id)
+    })
   })
   const openChat = vi.fn(async (_id: string | null, _window: "main" | "chat") => {})
-  const agentForSession = vi.fn(async () => agent)
+  const agentForSession = vi.fn(() => Promise.resolve(agent))
   const host = createPetSessionOwner({
     state: () => client.state,
     agentId: "codex",
     source: () => runStateSource(client.state.runStates),
     agentForSession,
-    claim: async (id) => {
-      if (claimed.has(id)) return false
-      claimed.add(id)
-      return true
+    claim: (id) => {
+      return Promise.try(() => {
+        if (claimed.has(id)) return false
+        claimed.add(id)
+        return true
+      })
     },
     prompt,
     respond: client.respond.bind(client),

@@ -38,7 +38,7 @@ test("requirements expose actual Codex names and a working management action", a
   expect(view.getByText("finture-bi:yup-kb")).toBeTruthy()
   expect(view.getByText("Enabled")).toBeTruthy()
   expect(view.getByText("Not installed")).toBeTruthy()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Manage skills and plugins" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Manage skills and plugins" }))))
   expect(managed).toBe(1)
 })
 
@@ -70,6 +70,6 @@ test("failed requests stay distinct from missing skills and offer retry", async 
   )
   expect(view.queryByText("Not installed")).toBeNull()
   expect(view.getByText(/Disconnected/)).toBeTruthy()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Check again" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Check again" }))))
   expect(retried).toBe(1)
 })

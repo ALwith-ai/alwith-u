@@ -21,7 +21,7 @@ test("a background sync failure stays in the pet center with a retry action", as
   observeResourceSync("error")
   render(<VibemonCenter />)
   expect(screen.getByRole("alert")).toHaveTextContent("pet.syncFailed")
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: "pet.retry" })))
+  await act(() => Promise.try(() => fireEvent.click(screen.getByRole("button", { name: "pet.retry" }))))
   expect(syncVibemonResources).toHaveBeenCalledOnce()
   act(() => observeResourceSync("checking"))
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()

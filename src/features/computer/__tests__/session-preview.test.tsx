@@ -3,9 +3,9 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import type { ComputerPreview } from "@/bindings"
 const native = vi.hoisted(() => ({
-  subscribe: vi.fn(),
+  subscribe: vi.fn<(request: { subscriptionId: string }) => Promise<unknown>>(),
   unsubscribe: vi.fn(),
-  listen: vi.fn(),
+  listen: vi.fn<(handler: (event: { payload: unknown }) => void) => Promise<() => void>>(),
   cancel: vi.fn(),
   focus: vi.fn(),
   unlisten: vi.fn()
@@ -32,8 +32,10 @@ beforeEach(() => {
 afterEach(cleanup)
 async function emit(sessionId: string, phase: string, subscriptionId?: string) {
   await waitFor(() => expect(native.subscribe).toHaveBeenCalled())
+  const subscription = native.subscribe.mock.lastCall
+  if (subscription === undefined) throw new Error("The preview never subscribed")
   const payload: ComputerPreview = {
-    subscriptionId: subscriptionId ?? native.subscribe.mock.calls.at(-1)?.[0].subscriptionId,
+    subscriptionId: subscriptionId ?? subscription[0].subscriptionId,
     activity: {
       sessionId,
       phase,

@@ -30,20 +30,22 @@ const fake = vi.hoisted(() => ({
 }))
 vi.mock("@alwith/module-voice/tauri", () => ({
   createTauriTransport: () => ({
-    start: async (options: { recordingId: string }, receive: (event: VoiceEvent) => void) => {
-      const id = options.recordingId
-      const instance = {
-        id,
-        callbacks: {
-          state: () => {},
-          partial: (text: string) => receive({ type: "partial", recordingId: id, text }),
-          final: (text: string) => receive({ type: "final", recordingId: id, text }),
-          error: (error: Error) => receive({ type: "failed", recordingId: id, message: error.message })
-        },
-        finish: vi.fn(async () => "")
-      }
-      fake.instances.push(instance)
-      receive({ type: "ready", recordingId: id })
+    start: (options: { recordingId: string }, receive: (event: VoiceEvent) => void) => {
+      return Promise.try(() => {
+        const id = options.recordingId
+        const instance = {
+          id,
+          callbacks: {
+            state: () => {},
+            partial: (text: string) => receive({ type: "partial", recordingId: id, text }),
+            final: (text: string) => receive({ type: "final", recordingId: id, text }),
+            error: (error: Error) => receive({ type: "failed", recordingId: id, message: error.message })
+          },
+          finish: vi.fn(() => Promise.resolve(""))
+        }
+        fake.instances.push(instance)
+        receive({ type: "ready", recordingId: id })
+      })
     },
     push: async () => {},
     release: async () => {},
@@ -56,13 +58,14 @@ vi.mock("@alwith/module-voice/tauri", () => ({
   })
 }))
 vi.mock("@alwith/module-voice/audio", () => ({
-  prepareCapture: async () => ({
-    start: (consume: (bytes: Uint8Array) => void) => {
-      fake.consume = consume
-    },
-    stop: async () => {},
-    cancel: fake.cancelCapture
-  })
+  prepareCapture: () =>
+    Promise.resolve({
+      start: (consume: (bytes: Uint8Array) => void) => {
+        fake.consume = consume
+      },
+      stop: async () => {},
+      cancel: fake.cancelCapture
+    })
 }))
 vi.mock("@alwith/module-chat/composer-context", () => ({ usePromptInputSubmission: () => fake.submit }))
 vi.mock("@/features/chat/composer/prompt-input", () => ({
@@ -123,9 +126,11 @@ test("the next handsfree recording has an enabled stop button and ignores old ca
   const completed = new Promise<void>((resolve) => {
     endTurn = resolve
   })
-  fake.submit.mockImplementation(async () => {
-    draft.edit("", [0, 0])
-    return { status: "accepted" }
+  fake.submit.mockImplementation(() => {
+    return Promise.try(() => {
+      draft.edit("", [0, 0])
+      return { status: "accepted" }
+    })
   })
   render(
     <VoiceButton
@@ -374,16 +379,17 @@ test("headless interaction exposes recording state, final text, cancellation and
       draft,
       canStart: () => true,
       supportsHandsfree: () => false,
-      loadSettings: async () => ({
-        provider: "doubao" as const,
-        mode: "dictation" as const,
-        deviceId: "",
-        hotwords: [],
-        smooth: false
-      }),
-      isConfigured: async () => true,
+      loadSettings: () =>
+        Promise.resolve({
+          provider: "doubao" as const,
+          mode: "dictation" as const,
+          deviceId: "",
+          hotwords: [],
+          smooth: false
+        }),
+      isConfigured: () => Promise.resolve(true),
       configure: async () => {},
-      submit: async () => ({ status: "accepted" as const }),
+      submit: () => Promise.resolve({ status: "accepted" as const }),
       waitForTurn: async () => {},
       onError: fake.report,
       onNoSpeech: vi.fn()
@@ -491,7 +497,7 @@ test.each(["cancel", "finish"])("waveform receives fresh samples after %s and st
     if (ending === "cancel") fireEvent.click(screen.getByRole("button", { name: "voice.cancel" }))
     else {
       fireEvent.click(screen.getByRole("button", { name: "voice.stop" }))
-      await act(async () => must(fake.instances[attempt], "recording").callbacks.final(""))
+      await act(() => Promise.try(() => must(fake.instances[attempt], "recording").callbacks.final("")))
       await screen.findByRole("button", { name: "voice.start" })
     }
     expect(document.querySelector("[data-voice-level]")).toBeNull()

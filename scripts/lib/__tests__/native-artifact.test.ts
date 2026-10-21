@@ -37,7 +37,9 @@ async function fixture() {
   }
   writeFileSync(join(platform, "artifact.json"), JSON.stringify(pin))
   for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) writeFileSync(join(platform, name), "fixture licence")
-  const { stageNative } = await import(pathToFileURL(join(bridge, "stage.mjs")).href)
+  const { stageNative } = (await import(pathToFileURL(join(bridge, "stage.mjs")).href)) as {
+    stageNative: (target: string, native: string, legal: string) => string
+  }
   return {
     root,
     platform,

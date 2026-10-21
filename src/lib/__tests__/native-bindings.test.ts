@@ -3,6 +3,9 @@ import { afterEach, expect, test } from "vitest"
 
 import { commands, events } from "../../bindings"
 
+/** Native and transport layers reject with plain values; tests reproduce that exactly. */
+const nonError = (value: unknown): unknown => value
+
 afterEach(clearMocks)
 
 test("generated runtime commands preserve SDK names, argument casing and null results", async () => {
@@ -25,7 +28,7 @@ test("generated runtime commands preserve SDK names, argument casing and null re
 test("generated commands preserve rejected native errors", async () => {
   const failure = { kind: "connection_replaced", message: "Window connection replaced" }
   mockIPC(() => {
-    throw failure
+    throw nonError(failure)
   })
   await expect(commands.runtimeSend({ connectionId: "stale", line: "{}" })).rejects.toEqual(failure)
 })

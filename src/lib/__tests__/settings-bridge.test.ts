@@ -1,4 +1,4 @@
-import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
+import type { EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test } from "vitest"
 
 import {
@@ -23,9 +23,11 @@ function eventBus() {
         bucket.delete(handler as EventCallback<unknown>)
       }
     },
-    emitTo: async (_target, event, payload) => {
-      messages.push({ event, payload })
-      for (const handler of listeners.get(event) ?? []) handler({ event, id: 0, payload } as Event<unknown>)
+    emitTo: (_target, event, payload) => {
+      return Promise.try(() => {
+        messages.push({ event, payload })
+        for (const handler of listeners.get(event) ?? []) handler({ event, id: 0, payload })
+      })
     }
   }
   return { events, messages, count: (event: string) => listeners.get(event)?.size ?? 0 }
@@ -41,20 +43,24 @@ test("settings authenticates through main and refreshes the account after login 
     {
       agent: () => agent,
       subscribe: () => () => {},
-      login: async (method, extra) => {
-        calls.push([method, extra])
-        signedIn = true
+      login: (method, extra) => {
+        return Promise.try(() => {
+          calls.push([method, extra])
+          signedIn = true
+        })
       },
-      logout: async () => {
+      logout: () => {
         signedIn = false
+        return Promise.resolve()
       },
       respond: (id, answer) => {
         calls.push([id, answer])
       },
-      account: async () => ({
-        account: { account: signedIn ? { type: "apiKey" } : null, requiresOpenaiAuth: true },
-        rateLimits: null
-      }),
+      account: () =>
+        Promise.resolve({
+          account: { account: signedIn ? { type: "apiKey" } : null, requiresOpenaiAuth: true },
+          rateLimits: null
+        }),
       onRateLimits: () => () => {}
     },
     bus.events
@@ -89,7 +95,7 @@ test("overlapping requests match their own results and errors release listeners"
           finish.set(method, () => (method === "bad" ? reject(new Error("Login rejected")) : resolve()))
         }),
       respond: () => {},
-      account: async () => null,
+      account: () => Promise.resolve(null),
       onRateLimits: () => () => {}
     },
     bus.events
@@ -113,8 +119,10 @@ test("failed delivery releases the response subscription", async () => {
   const bus = eventBus()
   const client = createSettingsAuthClient({
     ...bus.events,
-    emitTo: async () => {
-      throw new Error("Main unavailable")
+    emitTo: () => {
+      return Promise.try(() => {
+        throw new Error("Main unavailable")
+      })
     }
   })
   await expect(client.requestSignOut()).rejects.toThrow("Main unavailable")

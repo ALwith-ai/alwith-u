@@ -247,7 +247,7 @@ export function ThreadSidebar({
   onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
-  renderExtensionEntry?(entry: ReactElement<{ onClick?: () => void }>): ReactNode
+  renderExtensionEntry?: (entry: ReactElement<{ onClick?: () => void }>) => ReactNode
   extensionNavigation?: ReactNode
   drivePanel?: ReactNode
   onOpenExtensions: () => void

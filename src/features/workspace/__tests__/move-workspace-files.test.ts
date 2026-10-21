@@ -17,7 +17,7 @@ function fixture(files: Record<string, string>) {
     })
     const editor = createEditorController({
       fs,
-      confirmClose: async () => decision,
+      confirmClose: () => Promise.resolve(decision),
       reportError: (error) => {
         throw error
       }
@@ -104,7 +104,8 @@ test("successful cloud move leaves source tabs closed without a local destinatio
     await moveWorkspaceFiles(["/source/a.md"], "/cloud", {
       owners: [owner],
       open,
-      invokeMove: async () => ({ moves: [{ from: "/source/a.md", to: "/cloud/a.md" }], cloud: true, error: null })
+      invokeMove: () =>
+        Promise.resolve({ moves: [{ from: "/source/a.md", to: "/cloud/a.md" }], cloud: true, error: null })
     })
   ).toBe(true)
   expect(owner.editor.getSnapshot().documents).toHaveLength(0)
@@ -128,8 +129,10 @@ test("restoration failures aggregate with the native error and do not prevent ot
     await moveWorkspaceFiles(["/source"], "/target", {
       owners: [owner],
       open: vi.fn(),
-      invokeMove: async () => {
-        throw failure
+      invokeMove: () => {
+        return Promise.try(() => {
+          throw failure
+        })
       }
     })
   } catch (error) {

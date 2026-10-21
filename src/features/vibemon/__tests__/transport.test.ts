@@ -8,19 +8,23 @@ const bus = vi.hoisted(() => ({
   reply: null as null | ((request: PetRequest) => { value: unknown; error: string | null })
 }))
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: async (name: string, callback: (event: { payload: unknown }) => void) => {
-    const bucket = bus.listeners.get(name) ?? new Set()
-    bucket.add(callback)
-    bus.listeners.set(name, bucket)
-    return () => bucket.delete(callback)
+  listen: (name: string, callback: (event: { payload: unknown }) => void) => {
+    return Promise.try(() => {
+      const bucket = bus.listeners.get(name) ?? new Set()
+      bucket.add(callback)
+      bus.listeners.set(name, bucket)
+      return () => bucket.delete(callback)
+    })
   },
-  emitTo: async (_target: string, name: string, request: PetRequest) => {
-    if (name !== "vibemon:request") throw new Error("Unexpected event")
-    bus.sent.push(request)
-    if (bus.reply) {
-      const response = { id: request.id, ...bus.reply(request) }
-      for (const callback of bus.listeners.get("vibemon:response") ?? []) callback({ payload: response })
-    }
+  emitTo: (_target: string, name: string, request: PetRequest) => {
+    return Promise.try(() => {
+      if (name !== "vibemon:request") throw new Error("Unexpected event")
+      bus.sent.push(request)
+      if (bus.reply) {
+        const response = { id: request.id, ...bus.reply(request) }
+        for (const callback of bus.listeners.get("vibemon:response") ?? []) callback({ payload: response })
+      }
+    })
   }
 }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({ getCurrentWebviewWindow: () => ({ label: "bubble-menu-vibemon" }) }))

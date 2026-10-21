@@ -6,16 +6,20 @@ import { createPluginEvents } from "../events"
 test("isolates plugin events by extension and releases listeners on unload", async () => {
   const listeners = new Map<string, Set<(payload: unknown) => void>>()
   const transport = {
-    async listen(event: string, callback: (payload: unknown) => void): Promise<() => void> {
-      const callbacks = listeners.get(event) ?? new Set()
-      callbacks.add(callback)
-      listeners.set(event, callbacks)
-      return () => {
-        callbacks.delete(callback)
-      }
+    listen(event: string, callback: (payload: unknown) => void): Promise<() => void> {
+      return Promise.try(() => {
+        const callbacks = listeners.get(event) ?? new Set()
+        callbacks.add(callback)
+        listeners.set(event, callbacks)
+        return () => {
+          callbacks.delete(callback)
+        }
+      })
     },
-    async emit(event: string, payload: unknown): Promise<void> {
-      for (const callback of listeners.get(event) ?? []) callback(payload)
+    emit(event: string, payload: unknown): Promise<void> {
+      return Promise.try(() => {
+        for (const callback of listeners.get(event) ?? []) callback(payload)
+      })
     }
   }
   const first = new ResourceScope()

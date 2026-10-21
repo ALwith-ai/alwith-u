@@ -76,7 +76,7 @@ export function ArchivedChatsPage(): ReactElement {
   const title = (thread: ThreadSummary): string => thread.title ?? t("sidebar.untitled")
   const projects = [
     ...new Set(threads.filter((thread) => !isQuickChatDirectory(thread.cwd)).map((thread) => thread.cwd))
-  ].sort()
+  ].toSorted()
   const search = query.trim().toLocaleLowerCase(i18n.language)
   const filtered = threads.filter((thread) => {
     const quick = isQuickChatDirectory(thread.cwd)

@@ -5,7 +5,7 @@ const socket = process.argv[2]
 assert.ok(socket, "Pass the isolated instance's TAURI_HASGARD_SOCKET")
 assert.equal(process.platform, "darwin", "This scenario uses the macOS Close Window shortcut")
 
-async function hasgard(args: string[], window = "main") {
+async function hasgard<T>(args: string[], window = "main"): Promise<T | null> {
   const child = Bun.spawn(["tauri-hasgard", "--socket", socket, "--window", window, "--json", ...args], {
     stdout: "pipe",
     stderr: "pipe"
@@ -16,13 +16,15 @@ async function hasgard(args: string[], window = "main") {
     child.exited
   ])
   assert.equal(status, 0, error)
-  return output.trim() === "" ? null : JSON.parse(output)
+  return output.trim() === "" ? null : (JSON.parse(output) as T)
 }
 async function labels(): Promise<string[]> {
-  return await hasgard(["ipc", "plugin:window|get_all_windows", "--args", "{}"])
+  const result = await hasgard<string[]>(["ipc", "plugin:window|get_all_windows", "--args", "{}"])
+  assert.ok(result, "get_all_windows returned nothing")
+  return result
 }
 async function ping() {
-  const result = await hasgard([
+  const result = await hasgard<{ error: unknown; result: unknown }>([
     "eval",
     `(async () => {
     const api = window.__TAURI_INTERNALS__;
@@ -47,6 +49,7 @@ async function ping() {
     }
   })()`
   ])
+  assert.ok(result, "ping returned nothing")
   assert.equal(result.error, null)
   assert.equal(result.result, "pong")
 }

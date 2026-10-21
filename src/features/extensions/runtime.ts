@@ -75,8 +75,8 @@ function getRuntime(): ExtensionRuntime {
       statusBar: "1.0.0",
       settingsPages: "1.0.0"
     },
-    evaluate: (source) => {
-      const factory = createCommonJsEvaluator({
+    evaluate: async (source) => {
+      const factory = await createCommonJsEvaluator({
         "@alwith/u-extension-ui": extensionUi,
         "@alwith/module-extension": sdk,
         "@alwith/module-extension/dom": dom,

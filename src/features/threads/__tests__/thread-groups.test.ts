@@ -7,8 +7,8 @@ test.each([
   "/Users/alice/Documents/Codex/project",
   "/Users/alice/Documents/Codex/2026-09-23/nested/",
   "/Users/bob/Documents/ALwith U/",
-  "C:\\Users\\Alice\\Documents\\Codex",
-  "C:\\Users\\Alice\\Documents\\Codex\\project",
+  String.raw`C:\Users\Alice\Documents\Codex`,
+  String.raw`C:\Users\Alice\Documents\Codex\project`,
   "c:/users/Alice/documents/CODEX/2026-09-23/nested/",
   "c:/users/Bob/documents/ALWITH U/"
 ])("%s belongs to quick chats", (cwd) => {
@@ -32,9 +32,9 @@ test.each([
   String.raw`D:\Scratch\project`,
   String.raw`\\server\share\Temp\project`,
   "/Users/alice/Documents/ALwith U/project",
-  "C:\\Users\\Alice\\Documents\\ALwith U\\project",
+  String.raw`C:\Users\Alice\Documents\ALwith U\project`,
   "/Users/alice/Documents/Codex-other",
-  "C:\\Users\\Alice\\Documents\\Codex-other\\project",
+  String.raw`C:\Users\Alice\Documents\Codex-other\project`,
   "/work/Codex",
   "/Users/alice/Documents/codex",
   String.raw`C:\projects\Temp\project`,
@@ -48,7 +48,7 @@ test.each([
 
 test("quick chats stays first even when empty and grouping preserves each original cwd", () => {
   expect(groupThreads([])).toEqual([[QUICK_CHATS_GROUP, []]])
-  const paths = ["/project", "/Users/mac/Documents/Codex", "C:\\Users\\mac\\Documents\\ALwith U"]
+  const paths = ["/project", "/Users/mac/Documents/Codex", String.raw`C:\Users\mac\Documents\ALwith U`]
   const threads = paths.map((cwd, index) => ({
     sessionId: String(index),
     cwd,

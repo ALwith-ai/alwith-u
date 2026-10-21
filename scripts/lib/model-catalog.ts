@@ -5,14 +5,14 @@ import { homedir, tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 
 export type CatalogRunner = {
-  bundled(): string
-  configured(): string
-  refresh(signal: AbortSignal): Promise<string>
-  warn(message: string): void
+  bundled: () => string
+  configured: () => string
+  refresh: (signal: AbortSignal) => Promise<string>
+  warn: (message: string) => void
 }
 type Launcher = { command: string; prefixArgs: string[]; shell: boolean }
 type Catalog = { models: Array<Record<string, unknown>>; [key: string]: unknown }
-type PreparedCatalog = { path: string | null; refresh: Promise<void>; dispose(): void }
+type PreparedCatalog = { path: string | null; refresh: Promise<void>; dispose: () => void }
 const refreshAfterMs = 60 * 60 * 1000
 const maxBuffer = 64 * 1024 * 1024
 
@@ -34,9 +34,13 @@ function parseCatalog(value: unknown): Catalog {
     !("models" in value) ||
     !Array.isArray(value.models) ||
     value.models.length === 0 ||
-    value.models.some(
+    (value.models as unknown[]).some(
       (model) =>
-        typeof model !== "object" || model === null || typeof model.slug !== "string" || model.slug.length === 0
+        typeof model !== "object" ||
+        model === null ||
+        !("slug" in model) ||
+        typeof model.slug !== "string" ||
+        model.slug.length === 0
     )
   ) {
     throw new Error("Invalid model catalog: expected models with non-empty slugs")
@@ -131,7 +135,7 @@ function cachePath(launcher: Launcher, env: NodeJS.ProcessEnv, version: string):
   if (auth === null && !env.OPENAI_API_KEY && !env.CODEX_API_KEY) return null
   const environment = Object.entries(env)
     .filter(([key]) => /^(CODEX_|OPENAI_|AZURE_OPENAI_)/.test(key) && key !== "CODEX_ACP_MODEL_CATALOGS")
-    .sort(([a], [b]) => a.localeCompare(b))
+    .toSorted(([a], [b]) => a.localeCompare(b))
   const key = createHash("sha256")
     .update(JSON.stringify({ schema: 1, launcher, version, home, auth, config, environment }))
     .digest("hex")

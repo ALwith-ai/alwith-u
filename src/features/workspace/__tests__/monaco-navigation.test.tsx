@@ -7,7 +7,7 @@ import { expect, test, vi } from "vitest"
 test("line navigation applies on mount and repeat clicks without resetting a restored tab", () => {
   const position = { lineNumber: 2, column: 3 }
   const model = {
-    validatePosition: vi.fn((value) => value),
+    validatePosition: vi.fn((value: { lineNumber: number; column: number }) => value),
     getValue: () => "one\ntwo\nthree",
     onDidChangeContent: () => ({ dispose: vi.fn() }),
     dispose: vi.fn()

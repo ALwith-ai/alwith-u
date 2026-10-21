@@ -16,22 +16,22 @@ import { createSessionFiles, type SessionFileSource } from "./session-files"
 
 export interface BridgeDependencies {
   binding: CapabilityBinding
-  native<T>(command: string, args: Record<string, unknown>): Promise<T>
-  session(): ExtensionChatSession | null
-  setDraft?(id: string, text: string): Promise<void>
-  send(id: string, text: string): Promise<void>
-  check(): void
-  openView(id: string): void
-  notify(message: string, duration?: number): { hide(): void; setMessage(message: string): void }
-  language(): string
-  openExternal(url: string): Promise<void>
-  clipboard(text: string): Promise<void>
-  own(dispose: Dispose): Dispose
+  native: <T>(command: string, args: Record<string, unknown>) => Promise<T>
+  session: () => ExtensionChatSession | null
+  setDraft?: (id: string, text: string) => Promise<void>
+  send: (id: string, text: string) => Promise<void>
+  check: () => void
+  openView: (id: string) => void
+  notify: (message: string, duration?: number) => { hide: () => void; setMessage: (message: string) => void }
+  language: () => string
+  openExternal: (url: string) => Promise<void>
+  clipboard: (text: string) => Promise<void>
+  own: (dispose: Dispose) => Dispose
   primary: boolean
   imported?: boolean
   history?: SessionFileSource
-  bindBusinessStorage?(storage: LegacyStorage): Dispose
-  shareCurrent?(value: Json | null): Promise<void>
+  bindBusinessStorage?: (storage: LegacyStorage) => Dispose
+  shareCurrent?: (value: Json | null) => Promise<void>
 }
 
 interface DirectoryGrant {
@@ -56,7 +56,7 @@ function normalizedPath(value: string): string {
     .split("/")
     .filter((part) => part !== ".")
     .join("/")
-    .replace(/\/+/g, "/")
+    .replaceAll(/\/+/g, "/")
   return normalized === "/" ? normalized : normalized.replace(/\/$/, "")
 }
 
@@ -117,7 +117,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
           path === normalizedPath(item.path) ||
           path.startsWith(normalizedPath(item.path) === "/" ? "/" : `${normalizedPath(item.path)}/`)
       )
-      .sort((a, b) => b.path.length - a.path.length)[0]
+      .toSorted((a, b) => b.path.length - a.path.length)[0]
     if (!grant) throw new Error("此目录尚未授权，请在扩展中重新选择目录")
     return { scope: grant.scope, path: path.slice(normalizedPath(grant.path).length).replace(/^\//, "") || "." }
   }
@@ -139,7 +139,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
         "window.scopedState": session ? { main: { lastOpenedWorkspace: { path: session.cwd } } } : {},
         recentWorkspaces: session ? [session.cwd] : []
       }
-      const body = Array.from(new TextEncoder().encode(JSON.stringify(settings)))
+      const body = [...new TextEncoder().encode(JSON.stringify(settings))]
       return operation === "read"
         ? { type: "read", body }
         : { type: "stat", exists: true, size: body.length, mtime: null, isFile: true, isDirectory: false }
@@ -148,12 +148,12 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
     if (!location.scope && location.path === "current.json" && dependencies.shareCurrent) {
       if (operation === "remove") await dependencies.shareCurrent(null)
       if (operation === "write") {
-        const value: Json = JSON.parse(
+        const value = JSON.parse(
           new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(extra.body as number[]))
-        )
+        ) as Json
         // Record the reader's intent before local IO, so a failed private write cannot retain an older shared document.
         await dependencies.shareCurrent(value)
-        return files.file({ operation, ...location, ...extra } as NativeFileRequest)
+        return files.file({ operation, ...location, ...extra })
       }
     }
     if (!location.scope && location.path === "data.json") {
@@ -161,7 +161,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
       if (operation === "write") {
         const body = extra.body as number[]
         if (body.length > 8 * 1024 * 1024) throw new Error("扩展配置超过 8 MiB")
-        const value: Json = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(body)))
+        const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(body))) as Json
         await storage.write(value)
         return { type: "ok" }
       }
@@ -178,7 +178,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
         }
       if (operation === "read") {
         if (!exists) throw new Error("文件不存在：data.json")
-        return { type: "read", body: Array.from(new TextEncoder().encode(JSON.stringify(value))) }
+        return { type: "read", body: [...new TextEncoder().encode(JSON.stringify(value))] }
       }
       throw new Error("配置文件仅支持读取和写入，请使用 saveData 更新配置")
     }
@@ -284,7 +284,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
           operation: "write",
           scope: directory.scope,
           path,
-          body: Array.from(new TextEncoder().encode(data))
+          body: [...new TextEncoder().encode(data)]
         })
         exported.set(path, `${normalizedPath(directory.path)}/${path}`)
       },
@@ -326,7 +326,7 @@ export function createLegacyBridge(extensionId: string, dependencies: BridgeDepe
         if (!(args instanceof Uint8Array)) throw new Error("写文件必须提供字节数组")
         const headers = object(object(options).headers)
         const path = decodeURIComponent(string(headers.path))
-        await file("write", path, { body: Array.from(args) })
+        await file("write", path, { body: [...args] })
         return null
       }
       const operations: Record<string, string> = {

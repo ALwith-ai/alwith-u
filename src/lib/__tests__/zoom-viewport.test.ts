@@ -3,8 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { startZoomViewport } from "../zoom-viewport"
 
 const { size, scale, callbacks, unlisten } = vi.hoisted(() => ({
-  size: vi.fn(async () => ({ width: 1920 })),
-  scale: vi.fn(async () => 2),
+  size: vi.fn(() => Promise.resolve({ width: 1920 })),
+  scale: vi.fn(() => Promise.resolve(2)),
   callbacks: { resized: () => {}, scaled: () => {} },
   unlisten: vi.fn()
 }))
@@ -13,13 +13,13 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({
     innerSize: size,
     scaleFactor: scale,
-    onResized: async (fn: () => void) => {
+    onResized: (fn: () => void) => {
       callbacks.resized = fn
-      return unlisten
+      return Promise.resolve(unlisten)
     },
-    onScaleChanged: async (fn: () => void) => {
+    onScaleChanged: (fn: () => void) => {
       callbacks.scaled = fn
-      return unlisten
+      return Promise.resolve(unlisten)
     }
   })
 }))

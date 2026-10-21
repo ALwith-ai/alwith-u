@@ -1,5 +1,5 @@
 function normalizeSlashes(value: string): string {
-  return value.replace(/\\/g, "/")
+  return value.replaceAll("\\", "/")
 }
 
 /**

@@ -90,7 +90,7 @@ export function VirtualThreadRows({
       style={{ height: threads.length * ROW_STEP - (ROW_STEP - ROW_HEIGHT) }}
     >
       {[...visible]
-        .sort((a, b) => a - b)
+        .toSorted((a, b) => a - b)
         .map((index) => {
           const thread = threads[index]
           return (

@@ -26,16 +26,20 @@ function runtimeFixture(): {
     agentExit: (agentId: string): void => handler?.({ agentId }),
     processExit: (): void => process.resolve(),
     runtime: {
-      onExit: async (callback) => {
-        calls.push("subscribe")
-        handler = callback
-        return (): void => {
-          calls.push("unsubscribe")
-          handler = undefined
-        }
+      onExit: (callback) => {
+        return Promise.try(() => {
+          calls.push("subscribe")
+          handler = callback
+          return (): void => {
+            calls.push("unsubscribe")
+            handler = undefined
+          }
+        })
       },
-      stop: async (agentId) => {
-        calls.push(`stop:${agentId}`)
+      stop: (agentId) => {
+        return Promise.try(() => {
+          calls.push(`stop:${agentId}`)
+        })
       },
       close: (): void => {
         calls.push("close")
@@ -78,8 +82,10 @@ test("a failed start closes the Runtime without waiting for a nonexistent agent"
 test("agent stop failure still closes Runtime and preserves the failure", async () => {
   const fixture = runtimeFixture()
   const failure = new Error("stop rejected")
-  fixture.runtime.stop = async (): Promise<void> => {
-    throw failure
+  fixture.runtime.stop = (): Promise<void> => {
+    return Promise.try(() => {
+      throw failure
+    })
   }
   fixture.processExit()
   await expect(stopRuntime(fixture.runtime, fixture.exited, true, 1000)).rejects.toBe(failure)
@@ -115,8 +121,10 @@ test("temporary lock errors are retried asynchronously before directory removal"
           throw Object.assign(new Error("locked"), { code: ["EBUSY", "EPERM", "ENOTEMPTY"][attempts - 1] })
         await rm(path, options)
       },
-      async (milliseconds) => {
-        delays.push(milliseconds)
+      (milliseconds) => {
+        return Promise.try(() => {
+          delays.push(milliseconds)
+        })
       }
     )
     expect(attempts).toBe(4)
@@ -134,12 +142,16 @@ test("a permanent lock exhausts a finite retry budget and preserves the error", 
   await expect(
     removeTemporaryDirectory(
       "unused",
-      async () => {
-        attempts++
-        throw failure
+      () => {
+        return Promise.try(() => {
+          attempts++
+          throw failure
+        })
       },
-      async (milliseconds) => {
-        delays.push(milliseconds)
+      (milliseconds) => {
+        return Promise.try(() => {
+          delays.push(milliseconds)
+        })
       }
     )
   ).rejects.toBe(failure)
@@ -153,12 +165,16 @@ test("non-lock errors fail immediately without a retry", async () => {
   await expect(
     removeTemporaryDirectory(
       "unused",
-      async () => {
-        attempts++
-        throw failure
+      () => {
+        return Promise.try(() => {
+          attempts++
+          throw failure
+        })
       },
-      async () => {
-        throw new Error("unexpected retry")
+      () => {
+        return Promise.try(() => {
+          throw new Error("unexpected retry")
+        })
       }
     )
   ).rejects.toBe(failure)
@@ -169,9 +185,11 @@ test("cleanup failure prevents a successful result", async () => {
   const failure = new Error("cleanup failed")
   await expect(
     withCleanup(
-      async () => "success",
-      async () => {
-        throw failure
+      () => Promise.resolve("success"),
+      () => {
+        return Promise.try(() => {
+          throw failure
+        })
       }
     )
   ).rejects.toBe(failure)
@@ -181,11 +199,15 @@ test("verification and cleanup failures are both retained", async () => {
   const primary = new Error("initialization failed")
   const cleanup = new Error("cleanup failed")
   const result = await withCleanup(
-    async () => {
-      throw primary
+    () => {
+      return Promise.try(() => {
+        throw primary
+      })
     },
-    async () => {
-      throw cleanup
+    () => {
+      return Promise.try(() => {
+        throw cleanup
+      })
     }
   ).catch((error: unknown) => error)
   expect(result).toBeInstanceOf(AggregateError)
@@ -196,15 +218,17 @@ test("successful cleanup preserves the original failure or result", async () => 
   const primary = new Error("initialization failed")
   await expect(
     withCleanup(
-      async () => {
-        throw primary
+      () => {
+        return Promise.try(() => {
+          throw primary
+        })
       },
       async () => {}
     )
   ).rejects.toBe(primary)
   expect(
     await withCleanup(
-      async () => "verified",
+      () => Promise.resolve("verified"),
       async () => {}
     )
   ).toBe("verified")

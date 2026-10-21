@@ -20,8 +20,8 @@ async function dispatch(listeners: Iterable<Handler>, event: string, payload: un
   for (const handler of listeners) await handler({ event, id: 0, payload })
 }
 
-const listen = async <T>(event: EventName, handler: EventCallback<T>): Promise<() => void> =>
-  addListener(globalListeners, event, handler as Handler)
+const listen = <T>(event: EventName, handler: EventCallback<T>): Promise<() => void> =>
+  Promise.try(() => addListener(globalListeners, event, handler as Handler))
 
 const emitTo: typeof eventApi.emitTo = async (target, event, payload): Promise<void> => {
   if (typeof target !== "string") throw new Error("Expected a window label")
@@ -35,10 +35,12 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
     const label = currentLabel
     return {
       label,
-      listen: async <T>(event: EventName, handler: EventCallback<T>) => {
-        const listeners = windowListeners.get(label) ?? new Map<string, Set<Handler>>()
-        windowListeners.set(label, listeners)
-        return addListener(listeners, event, handler as Handler)
+      listen: <T>(event: EventName, handler: EventCallback<T>) => {
+        return Promise.try(() => {
+          const listeners = windowListeners.get(label) ?? new Map<string, Set<Handler>>()
+          windowListeners.set(label, listeners)
+          return addListener(listeners, event, handler as Handler)
+        })
       }
     } as windowApi.WebviewWindow
   }
@@ -52,9 +54,11 @@ test("a chat-targeted release is handled only by the chat window", async () => {
   const chatActions: string[] = []
 
   currentLabel = "main"
-  const stopMain = await serveChatSurface(async (action) => {
-    mainActions.push(action.type)
-    throw new Error("Unsupported main window action")
+  const stopMain = await serveChatSurface((action) => {
+    return Promise.try(() => {
+      mainActions.push(action.type)
+      throw new Error("Unsupported main window action")
+    })
   })
   currentLabel = "chat"
   const stopChat = await serveChatSurface(async (action) => {
@@ -77,9 +81,11 @@ test("a chat-targeted release is handled only by the chat window", async () => {
 test("chat surface reports reach the main registry without invoking navigation", async () => {
   currentLabel = "main"
   const actions: string[] = []
-  const stopMain = await serveChatSurface(async (action) => {
-    actions.push(action.type)
-    throw new Error("Surface reports must not navigate")
+  const stopMain = await serveChatSurface((action) => {
+    return Promise.try(() => {
+      actions.push(action.type)
+      throw new Error("Surface reports must not navigate")
+    })
   })
   try {
     currentLabel = "chat"

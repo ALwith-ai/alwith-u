@@ -25,7 +25,7 @@ function decode(values: Record<string, unknown>): VoiceSettings {
 function comparable(settings: VoiceSettings): string {
   return JSON.stringify(settings, (_key, value: unknown): unknown => {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return value
-    return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+    return Object.fromEntries(Object.entries(value).toSorted(([a], [b]) => a.localeCompare(b)))
   })
 }
 function encode(settings: VoiceSettings): Record<string, unknown> {
@@ -40,9 +40,11 @@ export async function loadVoiceEnabled(): Promise<boolean> {
 export async function saveVoiceEnabled(enabled: boolean): Promise<void> {
   await updateSettings({ "voice.enabled": enabled })
 }
-export async function subscribeVoiceEnabled(changed: (enabled: boolean) => void): Promise<() => void> {
-  return settingsStore.subscribe((keys) => {
-    if (keys.includes("voice.enabled")) changed(settingsStore.get<boolean>("voice.enabled") ?? true)
+export function subscribeVoiceEnabled(changed: (enabled: boolean) => void): Promise<() => void> {
+  return Promise.try(() => {
+    return settingsStore.subscribe((keys) => {
+      if (keys.includes("voice.enabled")) changed(settingsStore.get<boolean>("voice.enabled") ?? true)
+    })
   })
 }
 export async function loadVoiceSettings(): Promise<VoiceSettings> {
@@ -66,8 +68,9 @@ export function createVoiceSettingsHost(): VoiceSettingsHost {
       return loaded
     },
     profiles: voiceProfiles,
-    async saveCredential(provider, key) {
+    saveCredential(provider, key) {
       pending = { provider, key }
+      return Promise.resolve()
     },
     async save(settings) {
       const credential = pending

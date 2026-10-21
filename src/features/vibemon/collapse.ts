@@ -1,14 +1,14 @@
 export type PetCollapseResult = { type: "shown" } | { type: "setup"; view: "pull" | "equip" }
 
 export interface PetCollapseHost {
-  validate(): void
-  equippedPet(): Promise<string>
-  hasPets(): Promise<boolean>
-  showPet(): Promise<void>
-  bindSession(): Promise<void>
-  openBubble(): Promise<void>
-  hideChat(): Promise<void>
-  restoreChat(): Promise<void>
+  validate: () => void
+  equippedPet: () => Promise<string>
+  hasPets: () => Promise<boolean>
+  showPet: () => Promise<void>
+  bindSession: () => Promise<void>
+  openBubble: () => Promise<void>
+  hideChat: () => Promise<void>
+  restoreChat: () => Promise<void>
 }
 
 /** Keep the chat visible until its replacement is ready; never bind an unprepared pet. */

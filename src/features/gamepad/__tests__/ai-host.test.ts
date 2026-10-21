@@ -8,8 +8,10 @@ import { createGamepadConfigGenerator } from "../ai-host"
 function harness() {
   // No connection is opened: the host's transport boundary is controlled in-process.
   const client = new CodexClient(
-    async () => {
-      throw new Error("Unexpected transport access")
+    () => {
+      return Promise.try(() => {
+        throw new Error("Unexpected transport access")
+      })
     },
     {
       agentId: "gamepad-test",
@@ -18,21 +20,25 @@ function harness() {
   )
   const session = createSession("generated", "/workspace")
   session.attached = true
-  const connect = vi.spyOn(client, "connect").mockImplementation(async () => {
-    client.store.setState({ connection: "ready", sessions: { generated: session } })
+  const connect = vi.spyOn(client, "connect").mockImplementation(() => {
+    return Promise.try(() => {
+      client.store.setState({ connection: "ready", sessions: { generated: session } })
+    })
   })
   vi.spyOn(client, "newSession").mockResolvedValue("generated")
   const prompt = vi.spyOn(client, "prompt").mockResolvedValue()
   const cancel = vi.spyOn(client, "cancel").mockResolvedValue()
   const close = vi.spyOn(client, "close").mockResolvedValue()
   const dispose = vi.fn(async () => {})
-  const generate = createGamepadConfigGenerator(async () => ({
-    client,
-    cwd: "/workspace",
-    model: "gpt-test",
-    platform: "macos",
-    dispose
-  }))
+  const generate = createGamepadConfigGenerator(() =>
+    Promise.resolve({
+      client,
+      cwd: "/workspace",
+      model: "gpt-test",
+      platform: "macos",
+      dispose
+    })
+  )
   const config = { buttons: {}, left_stick: {}, right_stick: {} } as Parameters<typeof generate>[1]
   const finish = (text: string, done = true): void => {
     client.store.setState({

@@ -34,7 +34,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
     const keydown = (event: KeyboardEvent) => {
       keyboard.current = true
       if (
-        !/Win/.test(navigator.platform) ||
+        !navigator.platform.includes("Win") ||
         !event.ctrlKey ||
         event.altKey ||
         event.metaKey ||
@@ -108,7 +108,7 @@ export function ZoomFeedback({ showFeedback = true }: { showFeedback?: boolean }
         variant="ghost"
         size="icon-sm"
         className="rounded-lg"
-        disabled={level === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+        disabled={level === ZOOM_LEVELS.at(-1)}
         aria-label={t("shortcuts.items.zoomIn")}
         title={t("shortcuts.items.zoomIn")}
         onClick={() => void zoomIn().catch(report)}

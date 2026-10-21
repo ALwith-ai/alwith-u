@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 export interface VoiceResume {
   receipt: string
-  consume(): void
+  consume: () => void
 }
 
 /** Only the surface that accepted the first voice message may resume its next recording. */
@@ -10,7 +10,7 @@ export function useVoiceHandoff(
   sessionId: string | null,
   generation: number
 ): {
-  accept(target: string, receipt: string): void
+  accept: (target: string, receipt: string) => void
   resume: VoiceResume | undefined
 } {
   const [pending, setPending] = useState<{ sessionId: string; receipt: string; generation: number } | null>(null)

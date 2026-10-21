@@ -12,9 +12,9 @@ const native = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   WebviewWindow: { getByLabel: native.getByLabel },
   getCurrentWebviewWindow: () => ({
-    onFocusChanged: async (callback: () => void): Promise<() => void> => {
+    onFocusChanged: (callback: () => void): Promise<() => void> => {
       native.focus = callback
-      return native.stop
+      return Promise.resolve(native.stop)
     }
   })
 }))
@@ -25,7 +25,7 @@ afterEach(() => {
 
 test("refreshes the main-window active state on focus changes and unsubscribes", async () => {
   native.visible = true
-  native.getByLabel.mockImplementation(async () => ({ isVisible: async () => native.visible }))
+  native.getByLabel.mockImplementation(() => Promise.resolve({ isVisible: () => Promise.resolve(native.visible) }))
   const onError = vi.fn()
   const { result, unmount } = renderHook(() => useMainWindowVisible(onError))
   await waitFor(() => expect(result.current).toBe(true))

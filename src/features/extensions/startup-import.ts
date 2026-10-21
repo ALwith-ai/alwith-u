@@ -7,13 +7,13 @@ interface ImportPackage {
 }
 
 export interface StartupImportPort {
-  scan(): Promise<{ tasks: string[]; errors: string[] }>
-  prepare(id: string): Promise<{ id: string; phase: "prepared" | "committed"; package: ImportPackage | null }>
-  install(pkg: ImportPackage): Promise<void>
-  complete(id: string): Promise<void>
-  failed(id: string, message: string): Promise<void>
-  report(message: string): void
-  finish?(): Promise<void>
+  scan: () => Promise<{ tasks: string[]; errors: string[] }>
+  prepare: (id: string) => Promise<{ id: string; phase: "prepared" | "committed"; package: ImportPackage | null }>
+  install: (pkg: ImportPackage) => Promise<void>
+  complete: (id: string) => Promise<void>
+  failed: (id: string, message: string) => Promise<void>
+  report: (message: string) => void
+  finish?: () => Promise<void>
 }
 
 /** A failed package must not prevent independent packages from being processed. */

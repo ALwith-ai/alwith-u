@@ -47,9 +47,9 @@ test("search opens with its command context and closes after selecting the expli
     )
   }
   const view = render(<Harness />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Search" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Search" }))))
   expect(view.getByRole("combobox")).toBeTruthy()
-  await act(async () => fireEvent.click(view.getByRole("option", { name: /Floating layout review/ })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("option", { name: /Floating layout review/ }))))
   expect(selected).toEqual([thread])
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
@@ -131,18 +131,20 @@ test.each([{ key: "ArrowDown" }, { key: "n", ctrlKey: true }, { key: "j", ctrlKe
   }
 )
 
-test("scrolling loads further results and a new search resets the page", async () => {
-  const { view } = openPalette(catalog(100))
-  const input = view.getByRole("combobox")
-  fireEvent.change(input, { target: { value: "Session" } })
-  const list = view.getByRole("listbox")
-  Object.defineProperties(list, { scrollHeight: { value: 1000 }, clientHeight: { value: 200 } })
-  list.scrollTop = 780
-  fireEvent.scroll(list)
-  expect(view.getAllByRole("option")).toHaveLength(40)
-  fireEvent.change(input, { target: { value: "Session 0" } })
-  expect(view.getAllByRole("option")).toHaveLength(20)
-  expect(list.scrollTop).toBe(0)
+test("scrolling loads further results and a new search resets the page", () => {
+  return Promise.try(() => {
+    const { view } = openPalette(catalog(100))
+    const input = view.getByRole("combobox")
+    fireEvent.change(input, { target: { value: "Session" } })
+    const list = view.getByRole("listbox")
+    Object.defineProperties(list, { scrollHeight: { value: 1000 }, clientHeight: { value: 200 } })
+    list.scrollTop = 780
+    fireEvent.scroll(list)
+    expect(view.getAllByRole("option")).toHaveLength(40)
+    fireEvent.change(input, { target: { value: "Session 0" } })
+    expect(view.getAllByRole("option")).toHaveLength(20)
+    expect(list.scrollTop).toBe(0)
+  })
 })
 
 test("the more-results button loads a page without submitting the highlighted session", () => {

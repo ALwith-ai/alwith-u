@@ -81,7 +81,7 @@ export async function moveWorkspaceFiles(
     try {
       const move = outcome?.moves
         .filter((mapping) => containsPath(mapping.from, document.path))
-        .sort((a, b) => b.from.length - a.from.length)[0]
+        .toSorted((a, b) => b.from.length - a.from.length)[0]
       if (move) {
         if (outcome?.cloud) continue
         await dependencies.open(rebasePath(document.path, move.from, move.to), document.pinned, tab.active)

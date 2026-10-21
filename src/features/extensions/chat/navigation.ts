@@ -5,10 +5,10 @@ export interface ExtensionChatSession {
 }
 
 interface ExtensionNavigation {
-  currentSession(): ExtensionChatSession | null
-  openView(id: string): void
-  setDraft(sessionId: string, text: string, requiredSkills: string[], check?: () => void): Promise<void>
-  send(sessionId: string, text: string, requiredSkills: string[], check?: () => void): Promise<void>
+  currentSession: () => ExtensionChatSession | null
+  openView: (id: string) => void
+  setDraft: (sessionId: string, text: string, requiredSkills: string[], check?: () => void) => Promise<void>
+  send: (sessionId: string, text: string, requiredSkills: string[], check?: () => void) => Promise<void>
 }
 
 let navigation: ExtensionNavigation | undefined

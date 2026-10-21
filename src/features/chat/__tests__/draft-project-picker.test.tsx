@@ -24,12 +24,12 @@ test("project picker pins the current directory once, marks it selected and repo
       onChange={(cwd) => chosen.push(cwd)}
     />
   )
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
   const projects = view.getAllByRole("menuitemradio")
   expect(projects).toHaveLength(2)
   expect(projects[0]?.textContent).toBe("current")
   expect(projects[0]?.getAttribute("aria-checked")).toBe("true")
-  await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: "recent" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemradio", { name: "recent" }))))
   expect(chosen).toEqual(["/tmp/recent"])
   await waitFor(() => expect(view.queryByRole("menu")).toBeNull())
 })
@@ -39,10 +39,10 @@ test("canceling the directory dialog keeps a draft without a project", async () 
   const chosen: string[] = []
   try {
     const view = render(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={(cwd) => chosen.push(cwd)} />)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Select project" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Select project" }))))
     expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
     expect(view.getAllByRole("menuitem")).toHaveLength(1)
-    await act(async () => fireEvent.click(view.getByRole("menuitem")))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem"))))
     expect(open).toHaveBeenCalledWith({ directory: true, multiple: false, defaultPath: undefined })
     expect(chosen).toEqual([])
   } finally {
@@ -56,13 +56,13 @@ test("outside-project selection resolves to the host default and hides it from r
     <DraftProjectPicker cwd="/tmp/current" recentProjects={["/tmp/ALwith U", "/tmp/recent"]} onChange={onChange} />
   )
   await act(async () => {})
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
   expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["current", "recent"])
-  await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" }))))
   expect(onChange).toHaveBeenCalledWith("/tmp/ALwith U")
   expect(invoke).toHaveBeenCalledWith("draft_directory", { cwd: null })
   view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={["/tmp/ALwith U"]} onChange={onChange} />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Select project" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Select project" }))))
   expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
   expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
 })
@@ -88,7 +88,7 @@ test("project choices exclude quick-chat directories but retain temporary worksp
     />
   )
   try {
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "current" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
     expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
       "current",
       "project",
@@ -99,7 +99,7 @@ test("project choices exclude quick-chat directories but retain temporary worksp
       "real-project",
       "ordinary"
     ])
-    await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: "recent" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemradio", { name: "recent" }))))
     expect(onChange.mock.calls[0]?.[0]).toBe("/work/recent")
   } finally {
     view.unmount()

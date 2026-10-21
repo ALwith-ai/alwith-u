@@ -90,8 +90,10 @@ test("failed submission preserves the draft and releases the submission lock for
   const view = render(
     <PromptInputProvider initialInput="retry me">
       <PromptInput
-        onSubmit={async () => {
-          if (++attempts === 1) throw new Error("offline")
+        onSubmit={() => {
+          return Promise.try(() => {
+            if (++attempts === 1) throw new Error("offline")
+          })
         }}
       >
         <PromptInputTextarea aria-label="message" />

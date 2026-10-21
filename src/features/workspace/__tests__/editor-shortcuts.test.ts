@@ -10,12 +10,12 @@ test("find routes to the focused workspace editor and preserves chat search else
   document.body.innerHTML =
     '<section class="alwith-editor"><div data-code-editor><textarea></textarea></div></section><input id="chat" />'
   const openChat = vi.fn(),
-    action = vi.fn()
+    action = vi.fn<(event: Event) => void>()
   window.addEventListener("workspace:editor-action", action)
   document.querySelector("textarea")?.focus()
   routeFind(openChat)
   expect(openChat).not.toHaveBeenCalled()
-  expect(action.mock.calls[0][0].detail).toBe("find")
+  expect((action.mock.calls[0][0] as CustomEvent<string>).detail).toBe("find")
   document.querySelector<HTMLInputElement>("#chat")?.focus()
   routeFind(openChat)
   expect(openChat).toHaveBeenCalledOnce()
@@ -28,11 +28,11 @@ test("native undo reaches Monaco and uses native editable history elsewhere", ()
     '<section class="alwith-editor"><div data-code-editor><textarea></textarea></div></section><input id="chat" />'
   const exec = vi.fn()
   Object.defineProperty(document, "execCommand", { configurable: true, value: exec })
-  const action = vi.fn()
+  const action = vi.fn<(event: Event) => void>()
   window.addEventListener("workspace:editor-action", action)
   document.querySelector("textarea")?.focus()
   routeHistory("undo")
-  expect(action.mock.calls[0][0].detail).toBe("undo")
+  expect((action.mock.calls[0][0] as CustomEvent<string>).detail).toBe("undo")
   expect(exec).not.toHaveBeenCalled()
   document.querySelector<HTMLInputElement>("#chat")?.focus()
   routeHistory("redo")

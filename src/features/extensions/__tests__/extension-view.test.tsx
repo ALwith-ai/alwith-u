@@ -42,8 +42,10 @@ test("a failed extension view shows a local error and retry recreates its conten
     expect(errors).toHaveLength(1)
     expect(host.snapshot().instances[0]?.status).toBe("active")
     broken = false
-    await act(async () => {
-      fireEvent.click(ui.getByRole("button", { name: "Retry" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(ui.getByRole("button", { name: "Retry" }))
+      })
     })
     expect(ui.queryByRole("alert")).toBeNull()
     expect(ui.getByText("Recovered view")).toBeTruthy()

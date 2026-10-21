@@ -37,7 +37,7 @@ export function pickerRootsOf(roots: readonly RootInfo[], rootPath: string): Dir
       label: root.name || basename(root.localPath),
       synced: root.selected
     }))
-    .sort((a, b) => Number(b.synced) - Number(a.synced))
+    .toSorted((a, b) => Number(b.synced) - Number(a.synced))
   return available.length > 0 ? available : [{ path: rootPath, label: basename(rootPath) || rootPath, synced: true }]
 }
 
@@ -97,7 +97,7 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
       const errors = results.filter((result) => result.status === "rejected").map((result) => result.reason as unknown)
       if (errors.length === results.length) throw new AggregateError(errors, "Could not read destination directories")
       for (const error of errors) report(error)
-      return [...new Set(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))].sort()
+      return [...new Set(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))].toSorted()
     },
     [cloudCache, fs, rootPath, tree]
   )

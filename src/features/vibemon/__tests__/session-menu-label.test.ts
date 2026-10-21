@@ -3,7 +3,7 @@ import { expect, test } from "vitest"
 import { fitSessionMenuLabel } from "../session-menu-label"
 
 const measure = (text: string) =>
-  Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length * 10
+  [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].length * 10
 
 test("short native menu labels are preserved", () => {
   expect(fitSessionMenuLabel("独立浮窗 / project / 新对话", measure)).toBe("独立浮窗 / project / 新对话")

@@ -7,9 +7,11 @@ import { initI18n } from "@/lib/i18n"
 
 let dispose = () => {}
 afterEach(async () => {
-  await act(async () => {
-    cleanup()
-    dispose()
+  await act(() => {
+    return Promise.try(() => {
+      cleanup()
+      dispose()
+    })
   })
 })
 // React is loaded before the per-file DOM, selecting its legacy input plugin.
@@ -24,7 +26,7 @@ function inputHandler(node: HTMLElement, name: string, event: unknown) {
 }
 async function type(view: ReturnType<typeof render>, value: string) {
   const input = view.getByRole("textbox")
-  await act(async () => inputHandler(input, "onChange", { target: { value } }))
+  await act(() => Promise.try(() => inputHandler(input, "onChange", { target: { value } })))
 }
 async function fixture(patch: Partial<PetObservation> = {}) {
   await initI18n("en")
@@ -60,11 +62,11 @@ async function fixture(patch: Partial<PetObservation> = {}) {
   const send = vi.fn(() => pending.promise)
   const answer = vi.fn(async () => {})
   const openChat = vi.fn(async () => {})
-  const call = async <T,>(_action: string, _payload?: Record<string, unknown>): Promise<T> => undefined as T
+  const call = <T,>(_action: string, _payload?: Record<string, unknown>): Promise<T> => Promise.resolve(undefined as T)
   dispose = configureVibemon({
     account: () => ({ apiHost: "test", userId: "user", revision: 1 }),
     assets: {} as VibemonHost["assets"],
-    storage: { get: async () => undefined, set: async () => {} },
+    storage: { get: () => Promise.resolve(undefined), set: async () => {} },
     subscribeStorage: () => () => {},
     sessions: {
       snapshot: () => value,
@@ -82,9 +84,9 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     },
     windows: {
       call,
-      geometry: async () => () => {},
-      moved: async () => () => {},
-      openPet: async () => "shown",
+      geometry: () => Promise.resolve(() => {}),
+      moved: () => Promise.resolve(() => {}),
+      openPet: () => Promise.resolve("shown"),
       closePet: async () => {},
       openRecharge: async () => {},
       commands: () => () => {}
@@ -100,9 +102,11 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     openChat,
     call,
     async update(patch: Partial<PetObservation>) {
-      await act(async () => {
-        value = { ...value, ...patch }
-        for (const listener of listeners) listener(value)
+      await act(() => {
+        return Promise.try(() => {
+          value = { ...value, ...patch }
+          for (const listener of listeners) listener(value)
+        })
       })
     }
   }
@@ -112,10 +116,10 @@ test("the input hides historical replies and submission acceptance does not show
   const view = render(<PetQuickReply />)
   expect(view.queryByText("Previous answer")).toBeNull()
   await type(view, "New request")
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
   expect(f.send).toHaveBeenCalledTimes(1)
   expect(view.queryByRole("textbox")).toBeNull()
-  await act(async () => f.pending.resolve())
+  await act(() => Promise.try(() => f.pending.resolve()))
   expect(view.getByRole("status").textContent).toBe("Sent")
   expect(view.queryByRole("img", { name: "Completed" })).toBeNull()
   const now = Date.now() + 10
@@ -145,7 +149,7 @@ test("approval detail and once-only buttons use the existing answer path without
   })
   const view = render(<PetQuickReply />)
   expect(view.getByText("command: ls")).not.toBeNull()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Allow once" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Allow once" }))))
   expect(f.answer).toHaveBeenCalledTimes(1)
   expect((view.getByRole("button", { name: "Allow once" }) as HTMLButtonElement).disabled).toBe(true)
 })
@@ -155,7 +159,7 @@ test("complex questions and read-only ownership use the full conversation", asyn
     prompt: { kind: "question", token: "q", title: "Question", detail: "More context", options: [] }
   })
   const view = render(<PetQuickReply />)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Open conversation to answer" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Open conversation to answer" }))))
   expect(f.openChat).toHaveBeenCalledTimes(1)
   expect(f.answer).not.toHaveBeenCalled()
   await f.update({
@@ -170,7 +174,7 @@ test("an in-flight reply cannot update a newly bound conversation", async () => 
   const f = await fixture()
   const view = render(<PetQuickReply />)
   await type(view, "Old draft")
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
   await f.update({
     binding: {
       connectionEpoch: "epoch",
@@ -182,7 +186,7 @@ test("an in-flight reply cannot update a newly bound conversation", async () => 
     title: "Second",
     reply: null
   })
-  await act(async () => f.pending.resolve())
+  await act(() => Promise.try(() => f.pending.resolve()))
   expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("")
   expect(view.queryByText("Sent")).toBeNull()
 })
@@ -191,16 +195,18 @@ test("IME confirmation never sends a message and Shift+Enter retains multiline e
   const view = render(<PetQuickReply />)
   const input = view.getByRole("textbox")
   await type(view, "你好")
-  await act(async () => {
-    inputHandler(input, "onCompositionStart", {})
-    inputHandler(input, "onKeyDown", {
-      key: "Enter",
-      nativeEvent: { keyCode: 229, isComposing: true },
-      preventDefault() {}
+  await act(() => {
+    return Promise.try(() => {
+      inputHandler(input, "onCompositionStart", {})
+      inputHandler(input, "onKeyDown", {
+        key: "Enter",
+        nativeEvent: { keyCode: 229, isComposing: true },
+        preventDefault() {}
+      })
+      inputHandler(input, "onCompositionEnd", {})
+      inputHandler(input, "onKeyDown", { key: "Enter", nativeEvent: {}, preventDefault() {} })
+      inputHandler(input, "onKeyDown", { key: "Enter", shiftKey: true, nativeEvent: {}, preventDefault() {} })
     })
-    inputHandler(input, "onCompositionEnd", {})
-    inputHandler(input, "onKeyDown", { key: "Enter", nativeEvent: {}, preventDefault() {} })
-    inputHandler(input, "onKeyDown", { key: "Enter", shiftKey: true, nativeEvent: {}, preventDefault() {} })
   })
   expect(f.send).not.toHaveBeenCalled()
 })

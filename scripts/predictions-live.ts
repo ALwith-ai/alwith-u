@@ -16,7 +16,7 @@ function createClient() {
     engines: { codex: stagedCodexEngine() },
     journalRoot: join(cwd, "journal")
   })
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } }
   })
@@ -72,7 +72,7 @@ try {
   await snapshot("generating")
   await until(() => composerPrediction(client.session(id)._meta)?.sourceTurnId === sourceTurnId, "prediction")
   const prediction = composerPrediction(client.session(id)._meta)
-  if (!prediction || prediction.result.type !== "completed") throw new Error("Codex prediction generation failed")
+  if (prediction?.result.type !== "completed") throw new Error("Codex prediction generation failed")
   if (client.session(id).state !== "idle" || client.session(id).items.length !== count)
     throw new Error("Prediction mutated the conversation")
   if (leakedSessions.size) throw new Error("Temporary fork events entered UI session state")

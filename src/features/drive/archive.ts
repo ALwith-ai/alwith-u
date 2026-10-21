@@ -1,19 +1,19 @@
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
 
 interface ArchiveSource {
-  list(
+  list: (
     check: () => void
-  ): Promise<Array<{ sessionId: string; cwd: string; title: string | null; updatedAt: string | null }>>
-  export(sessionId: string, check: () => void, signal: AbortSignal): Promise<string>
+  ) => Promise<Array<{ sessionId: string; cwd: string; title: string | null; updatedAt: string | null }>>
+  export: (sessionId: string, check: () => void, signal: AbortSignal) => Promise<string>
 }
 export interface ArchiveHost {
   source: ArchiveSource
-  request(request: DriveRequest): Promise<DriveResponse>
-  onError(error: unknown): void
+  request: (request: DriveRequest) => Promise<DriveResponse>
+  onError: (error: unknown) => void
 }
 
 /** No conversation cache: enumerate and export from the adapter only after native opt-in. */
-export function createDriveArchive(host: ArchiveHost): { sync(): Promise<void>; dispose(): void } {
+export function createDriveArchive(host: ArchiveHost): { sync: () => Promise<void>; dispose: () => void } {
   const abort = new AbortController()
   let pending: Promise<void> | null = null
   const run = async (): Promise<void> => {
@@ -60,10 +60,9 @@ export function createDriveArchive(host: ArchiveHost): { sync(): Promise<void>; 
   return {
     sync() {
       if (abort.signal.aborted) return Promise.resolve()
-      if (!pending)
-        pending = run().finally(() => {
-          pending = null
-        })
+      pending ??= run().finally(() => {
+        pending = null
+      })
       return pending
     },
     dispose() {

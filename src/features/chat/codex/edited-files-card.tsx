@@ -50,7 +50,7 @@ export function patchStatsByFile(patch: string): Map<string, Stats> {
 
 /** The patch names files relative to the repository; `changes[].path` is absolute. */
 function statsFor(byFile: Map<string, Stats>, path: string): Stats {
-  const normalized = path.replace(/\\/g, "/")
+  const normalized = path.replaceAll("\\", "/")
   for (const [file, stats] of byFile) if (normalized === file || normalized.endsWith(`/${file}`)) return stats
   return { additions: 0, deletions: 0 }
 }

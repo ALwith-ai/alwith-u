@@ -49,57 +49,79 @@ function fakeApi(): PluginsApi & { calls: string[]; installed: Set<string> } {
   return {
     calls,
     installed,
-    async listSkills(cwds) {
-      calls.push(`skills:${(cwds ?? []).join(",")}`)
-      return {
-        data: [
-          { cwd: "/a", skills: [skill("/home/s1", true), skill("/a/.codex/s2", false)], errors: [] },
-          { cwd: "/b", skills: [skill("/home/s1", true)], errors: [{ path: "/b/bad", message: "broken" }] }
-        ]
-      }
+    listSkills(cwds) {
+      return Promise.try(() => {
+        calls.push(`skills:${(cwds ?? []).join(",")}`)
+        return {
+          data: [
+            { cwd: "/a", skills: [skill("/home/s1", true), skill("/a/.codex/s2", false)], errors: [] },
+            { cwd: "/b", skills: [skill("/home/s1", true)], errors: [{ path: "/b/bad", message: "broken" }] }
+          ]
+        }
+      })
     },
-    async setSkillEnabled(params) {
-      calls.push(`skill:${params.path}:${params.enabled}`)
-      return { effectiveEnabled: params.enabled }
+    setSkillEnabled(params) {
+      return Promise.try(() => {
+        calls.push(`skill:${params.path}:${params.enabled}`)
+        return { effectiveEnabled: params.enabled }
+      })
     },
-    async listPlugins() {
-      return { marketplaces: [catalog], marketplaceLoadErrors: [], featuredPluginIds: [] }
+    listPlugins() {
+      return Promise.resolve({ marketplaces: [catalog], marketplaceLoadErrors: [], featuredPluginIds: [] })
     },
-    async installedPlugins() {
-      return {
-        marketplaces: [{ ...catalog, plugins: catalog.plugins.map((p) => ({ ...p, installed: installed.has(p.id) })) }],
-        marketplaceLoadErrors: []
-      }
+    installedPlugins() {
+      return Promise.try(() => {
+        return {
+          marketplaces: [
+            { ...catalog, plugins: catalog.plugins.map((p) => ({ ...p, installed: installed.has(p.id) })) }
+          ],
+          marketplaceLoadErrors: []
+        }
+      })
     },
-    async installPlugin(params) {
-      calls.push(`install:${params.pluginName}:${params.remoteMarketplaceName ?? params.marketplacePath}`)
-      installed.add(params.pluginName)
-      return { authPolicy: "ON_USE", appsNeedingAuth: [] }
+    installPlugin(params) {
+      return Promise.try(() => {
+        calls.push(`install:${params.pluginName}:${params.remoteMarketplaceName ?? params.marketplacePath}`)
+        installed.add(params.pluginName)
+        return { authPolicy: "ON_USE", appsNeedingAuth: [] }
+      })
     },
-    async setPluginEnabled(pluginId, enabled) {
-      calls.push(`enabled:${pluginId}:${enabled}`)
-      const target = catalog.plugins.find((plugin) => plugin.id === pluginId)
-      if (!target) throw new Error("Missing fake plugin")
-      target.enabled = enabled
-      return { enabled }
+    setPluginEnabled(pluginId, enabled) {
+      return Promise.try(() => {
+        calls.push(`enabled:${pluginId}:${enabled}`)
+        const target = catalog.plugins.find((plugin) => plugin.id === pluginId)
+        if (!target) throw new Error("Missing fake plugin")
+        target.enabled = enabled
+        return { enabled }
+      })
     },
-    async uninstallPlugin(pluginId) {
-      calls.push(`uninstall:${pluginId}`)
-      installed.delete(pluginId)
+    uninstallPlugin(pluginId) {
+      return Promise.try(() => {
+        calls.push(`uninstall:${pluginId}`)
+        installed.delete(pluginId)
+      })
     },
-    async readPlugin() {
-      throw new Error("readPlugin is not exercised by this fake")
+    readPlugin() {
+      return Promise.try(() => {
+        throw new Error("readPlugin is not exercised by this fake")
+      })
     },
-    async addMarketplace(params) {
-      calls.push(`add:${params.source}`)
-      return { marketplaceName: "x", alreadyAdded: false, installedRoot: "/marketplaces/x" }
+    addMarketplace(params) {
+      return Promise.try(() => {
+        calls.push(`add:${params.source}`)
+        return { marketplaceName: "x", alreadyAdded: false, installedRoot: "/marketplaces/x" }
+      })
     },
-    async removeMarketplace(name) {
-      calls.push(`remove:${name}`)
+    removeMarketplace(name) {
+      return Promise.try(() => {
+        calls.push(`remove:${name}`)
+      })
     },
-    async upgradeMarketplaces() {
-      calls.push("upgrade")
-      return { errors: [], selectedMarketplaces: [], upgradedRoots: [] }
+    upgradeMarketplaces() {
+      return Promise.try(() => {
+        calls.push("upgrade")
+        return { errors: [], selectedMarketplaces: [], upgradedRoots: [] }
+      })
     }
   }
 }
@@ -129,7 +151,7 @@ describe("plugins store", () => {
     expect(
       installParams({ plugin: plugin("z", false), marketplace: { ...remote, path: "/m/marketplace.json" } })
     ).toEqual({
-      installAttemptId: expect.any(String),
+      installAttemptId: expect.any(String) as string,
       marketplacePath: "/m/marketplace.json",
       pluginName: "z"
     })
@@ -149,11 +171,13 @@ describe("plugins store", () => {
     const store = createPluginsStore(api)
     await store.getState().refresh()
     const target = { ...plugin("alpha", true), remotePluginId: "plugin_supabase" }
-    api.uninstallPlugin = vi.fn(async (id) => {
-      expect(id).toBe("plugin_supabase")
-      expect(store.getState().busyIds).toEqual({ alpha: "uninstalling" })
-      expect(store.getState().upgrading).toBe(false)
-      api.installed.delete("alpha")
+    api.uninstallPlugin = vi.fn((id) => {
+      return Promise.try(() => {
+        expect(id).toBe("plugin_supabase")
+        expect(store.getState().busyIds).toEqual({ alpha: "uninstalling" })
+        expect(store.getState().upgrading).toBe(false)
+        api.installed.delete("alpha")
+      })
     })
     await store.getState().uninstall(target)
     expect(store.getState().installed).toEqual([])
@@ -245,7 +269,7 @@ test("remote app aliases use the service ID for install and read; local sources 
     scheduledTasks: null
   }
   const api = fakeApi()
-  api.readPlugin = vi.fn(async () => ({ plugin: detail }))
+  api.readPlugin = vi.fn(() => Promise.resolve({ plugin: detail }))
   const store = createPluginsStore(api)
   expect(await store.getState().readPlugin({ plugin: target, marketplace })).toEqual(detail)
   expect(api.readPlugin).toHaveBeenCalledWith({

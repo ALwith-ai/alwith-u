@@ -1,17 +1,17 @@
 import type { ExtensionChatSession } from "./navigation"
 
 interface ChatBridgeDependencies {
-  check(): void
-  session(): ExtensionChatSession | null
-  send(id: string, text: string): Promise<void>
-  setDraft?(id: string, text: string): Promise<void>
-  prepare?(text: string): string
+  check: () => void
+  session: () => ExtensionChatSession | null
+  send: (id: string, text: string) => Promise<void>
+  setDraft?: (id: string, text: string) => Promise<void>
+  prepare?: (text: string) => string
 }
 
 /** Bind once at invocation; never infer a new destination after awaiting the host. */
 export function createExtensionChatBridge(dependencies: ChatBridgeDependencies): {
-  sendMessage(text: string): Promise<void>
-  setDraft(text: string): Promise<void>
+  sendMessage: (text: string) => Promise<void>
+  setDraft: (text: string) => Promise<void>
 } {
   async function perform(text: string, draft: boolean): Promise<void> {
     dependencies.check()

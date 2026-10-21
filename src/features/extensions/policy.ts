@@ -23,7 +23,7 @@ export function authorizeCapability<T>(
     create(binding) {
       binding.cancellation.throwIfAborted()
       const selected = installation(binding.manifest.id)
-      if (!selected || selected.id !== binding.manifest.id || selected.source !== BUNDLED_SOURCE)
+      if (selected?.id !== binding.manifest.id || selected.source !== BUNDLED_SOURCE)
         throw new Error(`Extension ${binding.manifest.id} is not authorized for ${capabilityId}`)
       return provider.create ? provider.create(binding) : provider.value
     }

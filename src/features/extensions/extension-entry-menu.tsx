@@ -27,9 +27,9 @@ export function ExtensionEntryMenu({
   manifests: ExtensionManifest[]
   host: HostSnapshot
   trigger: ReactElement<{ onClick?: () => void }>
-  onManage(): void
-  onOpenSurface(id: string): void
-  onError(error: unknown): void
+  onManage: () => void
+  onOpenSurface: (id: string) => void
+  onError: (error: unknown) => void
 }): ReactElement {
   const { t, i18n } = useTranslation()
   const apps = extensionApps(host, manifests, i18n.language)

@@ -45,7 +45,7 @@ test("ready card displays the version and opens the existing confirmation", asyn
   useUpdaterStore.setState({ state: { type: "ready", update }, confirmInstallAndRelaunch: confirm })
   const view = render(<UpdateStatusButton />)
   expect(view.getByText("v0.2.5")).toBeInTheDocument()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: /Relaunch to update/ })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Relaunch to update/ }))))
   expect(confirm).toHaveBeenCalledOnce()
 })
 

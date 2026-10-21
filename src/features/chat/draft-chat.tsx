@@ -95,7 +95,9 @@ export function DraftChat({
   const recentProjects = useMemo(
     () => [
       ...new Set(
-        [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).map((thread) => thread.cwd)
+        [...threads]
+          .toSorted((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
+          .map((thread) => thread.cwd)
       )
     ],
     [threads]

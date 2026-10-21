@@ -15,7 +15,7 @@ vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
 test("floating file completion delegates both empty and typed queries to the main owner", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new DesktopCodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new DesktopCodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -58,8 +58,10 @@ function eventBus(): ChatEvents {
         bucket.delete(callback as EventCallback<unknown>)
       }
     },
-    emitTo: async (_target, event, payload) => {
-      for (const callback of handlers.get(event) ?? []) callback({ event, id: 0, payload: structuredClone(payload) })
+    emitTo: (_target, event, payload) => {
+      return Promise.try(() => {
+        for (const callback of handlers.get(event) ?? []) callback({ event, id: 0, payload: structuredClone(payload) })
+      })
     }
   }
 }
@@ -117,7 +119,7 @@ test("floating pagination forwards the session id and receives older messages fr
     }
   )
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -154,7 +156,7 @@ test("floating pagination forwards the session id and receives older messages fr
 
 test("a slow floating window coalesces queued projections to the latest state", async () => {
   const fake = createFakeAgent()
-  const owner = new CodexClient(async () => new FakeHubPort(() => fake.app), {
+  const owner = new CodexClient(() => Promise.try(() => new FakeHubPort(() => fake.app)), {
     agentId: "codex",
     launch: { engine: "codex" }
   })
@@ -200,7 +202,7 @@ test("a slow floating window coalesces queued projections to the latest state", 
 test("floating fork sends the source and turn to the owner and receives the new session", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -229,7 +231,7 @@ test("floating fork sends the source and turn to the owner and receives the new 
 test("chat window operates the existing client without starting or attaching a second agent", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const events = eventBus()
   const stop = await serveChatClient(owner, events)
   const remote = new RemoteChatClient(events)
@@ -255,7 +257,7 @@ test("chat window operates the existing client without starting or attaching a s
 test("the bridge returns operation errors and disconnect rejects pending calls", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const events = eventBus()
   const stop = await serveChatClient(owner, events)
   const remote = new RemoteChatClient(events)
@@ -276,7 +278,7 @@ test("the bridge returns operation errors and disconnect rejects pending calls",
 test("floating rename and delete target only the explicit session and synchronize both windows", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -306,7 +308,7 @@ test("floating rename and delete target only the explicit session and synchroniz
 test("an already initialized window reconnects the owner after Runtime disconnect", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -327,7 +329,7 @@ test("an already initialized window reconnects the owner after Runtime disconnec
 test("an existing floating client reconnects after its main window bridge is replaced", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   let stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -352,7 +354,7 @@ test("an existing floating client reconnects after its main window bridge is rep
 test("a disposed StrictMode initialization cannot disconnect its replacement", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -373,7 +375,7 @@ test("a disposed StrictMode initialization cannot disconnect its replacement", a
 test("a failed state delivery is reported and later updates restore a full snapshot", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const bus = eventBus()
   let failNext = false
   const errors: unknown[] = []
@@ -410,7 +412,7 @@ test("a failed state delivery is reported and later updates restore a full snaps
 test("draft handoff keeps its model and only the new owner can discard it", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -476,7 +478,7 @@ async function providerWindows() {
   fake.sessionOptions.current = providerOptions
   const port = new FakeHubPort(() => fake.app)
   const requests = vi.spyOn(port, "acpRequest")
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -562,7 +564,7 @@ for (const surface of ["main", "chat"] as const) {
           {
             sessionId: id,
             prompt: [{ type: "text", text: "Provider selection test" }],
-            _meta: { codex: { messageSentAt: expect.any(Number) } }
+            _meta: { codex: { messageSentAt: expect.any(Number) as number } }
           }
         ]
       ])
@@ -633,7 +635,7 @@ for (const surface of ["main", "chat"] as const) {
 test("floating project views use the owner's full session list and receive mutations", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)

@@ -82,8 +82,10 @@ export async function stopRuntime(
         await deadline(exited, timeoutMs)
       } catch (error) {
         await withCleanup(
-          async () => {
-            throw error
+          () => {
+            return Promise.try(() => {
+              throw error
+            })
           },
           async () => {
             runtime.kill()

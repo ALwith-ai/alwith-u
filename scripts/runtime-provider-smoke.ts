@@ -64,7 +64,17 @@ const [output, error, status] = await Promise.all([
   child.exited
 ])
 assert.equal(status, 0, error)
-const result = JSON.parse(output)
+const result = JSON.parse(output) as {
+  saved: { status: string }
+  changed: { status: string }
+  read: { providers: { qwen: { region: string } } }
+  removed: { status: string; providers: unknown }
+  staleRejected: boolean
+  oldConnectionRejected: boolean
+  ping: string
+  leaked: boolean
+  wireEvents: number
+}
 assert.equal(result.saved.status, "applied", JSON.stringify(result))
 assert.equal(result.changed.status, "applied")
 assert.equal(result.read.providers.qwen.region, "intl")

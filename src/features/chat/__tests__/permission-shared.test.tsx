@@ -19,9 +19,11 @@ await initI18n("en")
 const clients: CodexClient[] = []
 const mounted: ReturnType<typeof render>[] = []
 afterEach(async () => {
-  await act(async () => {
-    for (const view of mounted.splice(0)) view.unmount()
-    for (const client of clients.splice(0)) client.disconnect()
+  await act(() => {
+    return Promise.try(() => {
+      for (const view of mounted.splice(0)) view.unmount()
+      for (const client of clients.splice(0)) client.disconnect()
+    })
   })
 })
 
@@ -71,7 +73,7 @@ test.each(["Implement this plan?", "Review the implementation plan"])(
 test("U shared approval answers the exact pending request through the real ACP client", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
   const sessionId = await client.newSession("/tmp/approval-test")

@@ -58,18 +58,24 @@ test("the sidebar shows loading rows until the initial list completes, then keep
     expect(row.querySelector(".lucide-folder-closed")).not.toBeNull()
     expect(row.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(2)
   }
-  await act(async () => {
-    client.store.setState({ connection: "ready", threadsLoading: true })
+  await act(() => {
+    return Promise.try(() => {
+      client.store.setState({ connection: "ready", threadsLoading: true })
+    })
   })
   expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(2)
   expect(screen.queryByRole("button", { name: "Quick chats" })).toBeNull()
-  await act(async () => {
-    client.store.setState({ threadsLoaded: true, threadsLoading: false, threads: [] })
+  await act(() => {
+    return Promise.try(() => {
+      client.store.setState({ threadsLoaded: true, threadsLoading: false, threads: [] })
+    })
   })
   expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(0)
   expect(screen.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "false")
-  await act(async () => {
-    client.store.setState({ threadsLoading: true })
+  await act(() => {
+    return Promise.try(() => {
+      client.store.setState({ threadsLoading: true })
+    })
   })
   expect(screen.container.querySelectorAll('[data-slot="project-skeleton-row"]')).toHaveLength(0)
   expect(screen.getByRole("button", { name: "Quick chats" })).toBeTruthy()
@@ -98,8 +104,7 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   const quick = view.getByRole("button", { name: "Quick chats" })
   expect(quick).toHaveAttribute("aria-expanded", "false")
   expect(quick.closest('[data-slot="popover-trigger"]')).not.toBeNull()
-  const groups = view.getAllByRole("button").filter((button) => button.hasAttribute("aria-expanded"))
-  expect(groups[0]).toBe(quick)
+  expect(view.getAllByRole("button").find((button) => button.hasAttribute("aria-expanded"))).toBe(quick)
 })
 
 test("double clicking Chats collapses quick chats and project groups", () => {
@@ -141,14 +146,14 @@ test("each group starts with five sessions and reveals all from memory", async (
     })
     const view = showSidebar()
     expect(view.container.querySelectorAll("[data-session-id]")).toHaveLength(0)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
     expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "5")
     expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Show all" }))))
     expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
     expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
     expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
     expect(view.container.querySelectorAll("[data-session-id]").length).toBeLessThan(30)
     expect(view.container.querySelector('[data-slot="virtual-thread-rows"]')).toHaveAttribute("data-count", "205")
@@ -157,7 +162,7 @@ test("each group starts with five sessions and reveals all from memory", async (
     expect(list).not.toHaveBeenCalled()
   } finally {
     list.mockRestore()
-    await act(async () => useThreadsUiStore.setState(originalUi, true))
+    await act(() => Promise.try(() => useThreadsUiStore.setState(originalUi, true)))
   }
 }, 20_000)
 
@@ -223,7 +228,7 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     await deliverResize(content)
     expect(view.container.querySelector('[data-slot="scroll-area-scrollbar"]')).toBeNull()
 
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
     contentHeight = 3300
     await deliverResize(content)
     const scrollbar = must(
@@ -235,14 +240,14 @@ test("group expansion, load more and collapse update the scrollbar without scrol
     const expandedThumb = Number.parseFloat(scrollbar.style.getPropertyValue("--scroll-area-thumb-height"))
     expect(expandedThumb).toBeGreaterThan(20)
 
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Show all" }))))
     contentHeight = 6500
     await deliverResize(content)
     expect(Number.parseFloat(scrollbar.style.getPropertyValue("--scroll-area-thumb-height"))).toBeLessThan(
       expandedThumb
     )
 
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
     contentHeight = 100
     await deliverResize(content)
     expect(view.container.querySelector('[data-slot="scroll-area-scrollbar"]')).toBeNull()
@@ -270,7 +275,7 @@ test.each([5, 6])("%i projects use a five-project preview independent of quick c
   expect(view.getAllByRole("button", { name: /^project-/ })).toHaveLength(5)
   if (count === 5) expect(view.queryByRole("button", { name: "Show all" })).toBeNull()
   else {
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Show all" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Show all" }))))
     expect(view.getAllByRole("button", { name: /^project-/ })).toHaveLength(6)
     expect(view.queryByRole("button", { name: "Show all" })).toBeNull()
   }

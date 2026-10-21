@@ -46,6 +46,6 @@ Price $10 and $20. Code: ${"`\\(literal\\)`"}`}
   )
   expect(view.container.querySelectorAll(".katex")).toHaveLength(4)
   expect(view.container.querySelectorAll(".katex-display")).toHaveLength(2)
-  expect(view.container.querySelector(".codex-markdown-inline-code")?.textContent).toBe("\\(literal\\)")
+  expect(view.container.querySelector(".codex-markdown-inline-code")?.textContent).toBe(String.raw`\(literal\)`)
   expect(view.container.textContent).toContain("Price $10 and $20")
 })

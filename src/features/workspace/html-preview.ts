@@ -31,12 +31,14 @@ export function createHtmlPreviewHost(
         }
       }
     },
-    async subscribe(path, onChange) {
-      const directory = dirname(path)
-      return fs.subscribe((change) => {
-        const paths =
-          change.type === "change" ? change.paths : "to" in change ? [change.path, change.to] : [change.path]
-        if (paths.some((changed) => containsPath(directory, changed) || containsPath(changed, directory))) onChange()
+    subscribe(path, onChange) {
+      return Promise.try(() => {
+        const directory = dirname(path)
+        return fs.subscribe((change) => {
+          const paths =
+            change.type === "change" ? change.paths : "to" in change ? [change.path, change.to] : [change.path]
+          if (paths.some((changed) => containsPath(directory, changed) || containsPath(changed, directory))) onChange()
+        })
       })
     }
   }

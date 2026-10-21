@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
-const IS_WINDOWS = /Win/.test(navigator.platform)
+const IS_WINDOWS = navigator.platform.includes("Win")
 
 export function AuxWindowShell({
   title,

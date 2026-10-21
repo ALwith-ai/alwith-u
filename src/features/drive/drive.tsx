@@ -91,7 +91,7 @@ export function DrivePage({
       const root = drive
         .getSnapshot()
         .snapshot?.roots.filter((root) => root.drivePath && containsPath(root.localPath, entry.path))
-        .sort((a, b) => b.localPath.length - a.localPath.length)[0]
+        .toSorted((a, b) => b.localPath.length - a.localPath.length)[0]
       if (!root) throw new Error("Drive project is unavailable")
       await openProject(root)
       if (entry.isDirectory) await workspace.revealEntry(entry.path, root.localPath)
@@ -100,11 +100,15 @@ export function DrivePage({
     onRevealPath: (path) => revealItemsInDir(path),
     onOpenExternal: openExternal,
     pinnedDocs: pins,
-    onPinnedDocsChange: async (docs) => {
-      saveDrivePins(profile, docs)
+    onPinnedDocsChange: (docs) => {
+      return Promise.try(() => {
+        saveDrivePins(profile, docs)
+      })
     },
-    onCondense: async (root) => {
-      setCondense({ projectId: root.projectId, projectName: root.name, scopePath: null })
+    onCondense: (root) => {
+      return Promise.try(() => {
+        setCondense({ projectId: root.projectId, projectName: root.name, scopePath: null })
+      })
     }
   }
   return (
@@ -176,14 +180,18 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
                   isDirectory: entry.kind === "directory"
                 })),
               pathExists: drivePathExists,
-              onOpenEntry: async () => {
-                throw new Error("Navigation is unavailable in this permissions dialog")
+              onOpenEntry: () => {
+                return Promise.try(() => {
+                  throw new Error("Navigation is unavailable in this permissions dialog")
+                })
               },
               onRevealPath: revealItemsInDir,
               onOpenExternal: openExternal,
               pinnedDocs: [],
-              onPinnedDocsChange: async () => {
-                throw new Error("Pins are unavailable in this permissions dialog")
+              onPinnedDocsChange: () => {
+                return Promise.try(() => {
+                  throw new Error("Pins are unavailable in this permissions dialog")
+                })
               }
             }}
             controls={driveControls}
@@ -205,20 +213,28 @@ export function DriveSettings(): ReactNode {
   const locale = i18n.language.startsWith("zh") ? "zh-CN" : "en"
   const host = useMemo<DriveHost>(
     () => ({
-      readDirectory: async () => {
-        throw new Error("Project browsing belongs to the main window")
+      readDirectory: () => {
+        return Promise.try(() => {
+          throw new Error("Project browsing belongs to the main window")
+        })
       },
-      pathExists: async () => {
-        throw new Error("Project browsing belongs to the main window")
+      pathExists: () => {
+        return Promise.try(() => {
+          throw new Error("Project browsing belongs to the main window")
+        })
       },
-      onOpenEntry: async () => {
-        throw new Error("Project browsing belongs to the main window")
+      onOpenEntry: () => {
+        return Promise.try(() => {
+          throw new Error("Project browsing belongs to the main window")
+        })
       },
       onRevealPath: (path) => revealItemsInDir(path),
       onOpenExternal: openExternal,
       pinnedDocs: [],
-      onPinnedDocsChange: async () => {
-        throw new Error("Pinned documents belong to the main window")
+      onPinnedDocsChange: () => {
+        return Promise.try(() => {
+          throw new Error("Pinned documents belong to the main window")
+        })
       },
       integrations: <DriveIntegrations />
     }),
@@ -232,8 +248,10 @@ export function DriveSettings(): ReactNode {
       host={host}
       controls={driveControls}
       defaultBaseUrl="https://yup-knowledge-server.finture.id/yup-knowledge"
-      onOpenProject={async () => {
-        throw new Error("Project navigation belongs to the main window")
+      onOpenProject={() => {
+        return Promise.try(() => {
+          throw new Error("Project navigation belongs to the main window")
+        })
       }}
       chooseDirectory={async () => {
         const path = await open({ directory: true, multiple: false })
@@ -290,24 +308,34 @@ export function DriveStatus(): ReactNode {
           controls={driveControls}
           onOpenSettings={openDriveSettings}
           host={{
-            readDirectory: async () => {
-              throw new Error("Project browsing belongs to the launcher")
+            readDirectory: () => {
+              return Promise.try(() => {
+                throw new Error("Project browsing belongs to the launcher")
+              })
             },
-            pathExists: async () => {
-              throw new Error("Project browsing belongs to the launcher")
+            pathExists: () => {
+              return Promise.try(() => {
+                throw new Error("Project browsing belongs to the launcher")
+              })
             },
-            onOpenEntry: async () => {
-              throw new Error("Project navigation belongs to the launcher")
+            onOpenEntry: () => {
+              return Promise.try(() => {
+                throw new Error("Project navigation belongs to the launcher")
+              })
             },
             onRevealPath: (path) => revealItemsInDir(path),
             onOpenExternal: openExternal,
             pinnedDocs: [],
-            onPinnedDocsChange: async () => {
-              throw new Error("Pinned documents belong to the launcher")
+            onPinnedDocsChange: () => {
+              return Promise.try(() => {
+                throw new Error("Pinned documents belong to the launcher")
+              })
             }
           }}
-          onOpenProject={async () => {
-            throw new Error("Projects cannot be opened from sync status")
+          onOpenProject={() => {
+            return Promise.try(() => {
+              throw new Error("Projects cannot be opened from sync status")
+            })
           }}
           confirm={(message) => confirm(message, { title: "YUP Drive", kind: "warning" })}
         />

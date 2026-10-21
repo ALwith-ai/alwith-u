@@ -3,27 +3,31 @@ import { afterEach, expect, test, vi } from "vitest"
 const state = vi.hoisted(() => ({
   exists: false,
   failure: false,
-  created: vi.fn(),
+  created: vi.fn<(label: string, options: { decorations?: boolean }) => void>(),
   show: vi.fn(),
   focus: vi.fn(),
   unminimize: vi.fn()
 }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   WebviewWindow: class {
-    static async getByLabel(label: string) {
-      expect(label).toBe("guide")
-      return state.exists ? { show: state.show, setFocus: state.focus, unminimize: state.unminimize } : null
+    static getByLabel(label: string) {
+      return Promise.try(() => {
+        expect(label).toBe("guide")
+        return state.exists ? { show: state.show, setFocus: state.focus, unminimize: state.unminimize } : null
+      })
     }
     constructor(label: string, options: unknown) {
-      state.created(label, options)
+      state.created(label, options as { decorations?: boolean })
     }
-    async once(event: string, handler: (event: { payload: string }) => void) {
-      if (event === "tauri://created" && !state.failure) {
-        state.exists = true
-        queueMicrotask(() => handler({ payload: "" }))
-      }
-      if (event === "tauri://error" && state.failure) queueMicrotask(() => handler({ payload: "creation failed" }))
-      return () => {}
+    once(event: string, handler: (event: { payload: string }) => void) {
+      return Promise.try(() => {
+        if (event === "tauri://created" && !state.failure) {
+          state.exists = true
+          queueMicrotask(() => handler({ payload: "" }))
+        }
+        if (event === "tauri://error" && state.failure) queueMicrotask(() => handler({ payload: "creation failed" }))
+        return () => {}
+      })
     }
   }
 }))

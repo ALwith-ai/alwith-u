@@ -15,16 +15,19 @@ test("handoffs lock synchronously, reject overlap and unlock on failure", async 
   expect(operation.busy).toBe(true)
   let called = false
   await expect(
-    operation.run(async () => {
+    operation.run(() => {
       called = true
+      return Promise.resolve()
     })
   ).rejects.toThrow("already in progress")
   expect(called).toBe(false)
   finish()
   await pending
   await expect(
-    operation.run(async () => {
-      throw new Error("delivery failed")
+    operation.run(() => {
+      return Promise.try(() => {
+        throw new Error("delivery failed")
+      })
     })
   ).rejects.toThrow("delivery failed")
   expect(operation.busy).toBe(false)

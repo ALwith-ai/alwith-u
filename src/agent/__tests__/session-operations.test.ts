@@ -21,18 +21,24 @@ describe("one ordered operation lane per session", () => {
       runs.push("A")
       return first.promise
     })
-    const a2 = operations.open("s", "A", async () => {
-      runs.push("A-again")
-      return "unused"
+    const a2 = operations.open("s", "A", () => {
+      return Promise.try(() => {
+        runs.push("A-again")
+        return "unused"
+      })
     })
     expect(a2).toBe(a1)
-    const b = operations.open("s", "B", async () => {
-      runs.push("B")
-      return "b"
+    const b = operations.open("s", "B", () => {
+      return Promise.try(() => {
+        runs.push("B")
+        return "b"
+      })
     })
-    const a3 = operations.open("s", "A", async () => {
-      runs.push("A-last")
-      return "a-last"
+    const a3 = operations.open("s", "A", () => {
+      return Promise.try(() => {
+        runs.push("A-last")
+        return "a-last"
+      })
     })
     expect(operations.pending("s")).toBe(2)
     first.resolve("a")
@@ -50,9 +56,11 @@ describe("one ordered operation lane per session", () => {
       runs.push("open A")
       return opening.promise
     })
-    const b = operations.open("s", "B", async () => {
-      runs.push("open B")
-      return "b"
+    const b = operations.open("s", "B", () => {
+      return Promise.try(() => {
+        runs.push("open B")
+        return "b"
+      })
     })
     const closing = gate<void>()
     const close = operations.close("s", () => {
@@ -60,9 +68,11 @@ describe("one ordered operation lane per session", () => {
       return closing.promise
     })
     await expect(b).rejects.toMatchObject({ name: "AbortError" })
-    const reopened = operations.open("s", "A", async () => {
-      runs.push("open after close")
-      return "again"
+    const reopened = operations.open("s", "A", () => {
+      return Promise.try(() => {
+        runs.push("open after close")
+        return "again"
+      })
     })
     expect(runs).toEqual(["open A"])
     opening.resolve("a")
@@ -77,10 +87,12 @@ describe("one ordered operation lane per session", () => {
 
   it("a failed operation does not block the lane", async () => {
     const operations = new SessionOperations()
-    const failed = operations.open("s", "A", async () => {
-      throw new Error("boom")
+    const failed = operations.open("s", "A", () => {
+      return Promise.try(() => {
+        throw new Error("boom")
+      })
     })
-    const next = operations.open("s", "B", async () => "ok")
+    const next = operations.open("s", "B", () => Promise.resolve("ok"))
     await expect(failed).rejects.toThrow("boom")
     expect(await next).toBe("ok")
   })

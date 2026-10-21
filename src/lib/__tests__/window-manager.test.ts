@@ -5,7 +5,7 @@ const host = vi.hoisted(() => ({
   mac: false,
   existing: false,
   creationError: null as string | null,
-  create: vi.fn(),
+  create: vi.fn<(label: string, options: ConstructorParameters<typeof WebviewWindow>[1]) => void>(),
   show: vi.fn(),
   focus: vi.fn(),
   attach: vi.fn(),
@@ -21,15 +21,17 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
     constructor(label: string, options: ConstructorParameters<typeof WebviewWindow>[1]) {
       host.create(label, options)
     }
-    static async getByLabel() {
-      return host.existing ? { show: host.show, setFocus: host.focus } : null
+    static getByLabel() {
+      return Promise.resolve(host.existing ? { show: host.show, setFocus: host.focus } : null)
     }
     show = host.show
     setFocus = host.focus
-    async once(event: string, handler: (event: { payload: string }) => void) {
-      if (event === (host.creationError === null ? "tauri://created" : "tauri://error"))
-        handler({ payload: host.creationError ?? "" })
-      return () => {}
+    once(event: string, handler: (event: { payload: string }) => void) {
+      return Promise.try(() => {
+        if (event === (host.creationError === null ? "tauri://created" : "tauri://error"))
+          handler({ payload: host.creationError ?? "" })
+        return () => {}
+      })
     }
   }
 }))
@@ -63,7 +65,7 @@ test("Windows settings retains native window decorations", async () => {
       minimizable: false
     })
   )
-  expect(host.create.mock.calls[0]?.[1].decorations).not.toBe(false)
+  expect(host.create.mock.calls[0]?.[1]?.decorations).not.toBe(false)
 })
 
 test("macOS settings retains its overlay title bar and starts hidden for native attachment", async () => {

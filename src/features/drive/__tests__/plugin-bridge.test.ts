@@ -17,48 +17,54 @@ function fixture() {
     revision: 3,
     value: { webBase: "https://custom.example.test", custom: 42, token: "old" }
   }
-  const write = vi.fn(async (value: Json, expected: number | null, schemaVersion: number): Promise<DataSnapshot> => {
-    expect(expected).toBe(stored.revision)
-    stored = { generation: 1, schemaVersion, revision: stored.revision + 1, value }
-    return stored
+  const write = vi.fn((value: Json, expected: number | null, schemaVersion: number): Promise<DataSnapshot> => {
+    return Promise.try(() => {
+      expect(expected).toBe(stored.revision)
+      stored = { generation: 1, schemaVersion, revision: stored.revision + 1, value }
+      return stored
+    })
   })
-  const data: ExtensionData = { read: async () => stored, write, subscribe: () => () => {} }
+  const data: ExtensionData = { read: () => Promise.resolve(stored), write, subscribe: () => () => {} }
   const selected = { data, schemaVersion: 1 }
-  const request = vi.fn(async (request: DriveRequest): Promise<DriveResponse> => {
-    if (request.type === "snapshot")
-      return {
-        type: "snapshot",
-        data: {
-          version: 1,
-          generation: state.generation,
-          sequence: 0,
-          configured: state.configured,
-          running: true,
-          baseUrl: "https://drive.example.test",
-          localRoot: "/drive",
-          webBaseUrl: null,
-          status: null,
-          roots: [],
-          pendingDeletes: [],
-          files: [],
-          projects: [],
-          error: null
+  const request = vi.fn((request: DriveRequest): Promise<DriveResponse> => {
+    return Promise.try(() => {
+      if (request.type === "snapshot")
+        return {
+          type: "snapshot",
+          data: {
+            version: 1,
+            generation: state.generation,
+            sequence: 0,
+            configured: state.configured,
+            running: true,
+            baseUrl: "https://drive.example.test",
+            localRoot: "/drive",
+            webBaseUrl: null,
+            status: null,
+            roots: [],
+            pendingDeletes: [],
+            files: [],
+            projects: [],
+            error: null
+          }
         }
-      }
-    if (request.type === "preferences")
-      return { type: "preferences", data: { sessionArchive: state.archive, knowledgeInject: false } }
-    if (request.type === "mcpSessionConfig")
-      return {
-        type: "mcpSessionConfig",
-        data: {
-          url: "https://drive.example.test/mcp/drive",
-          headers: [{ name: "Authorization", value: `Bearer ${state.token}` }]
+      if (request.type === "preferences")
+        return { type: "preferences", data: { sessionArchive: state.archive, knowledgeInject: false } }
+      if (request.type === "mcpSessionConfig")
+        return {
+          type: "mcpSessionConfig",
+          data: {
+            url: "https://drive.example.test/mcp/drive",
+            headers: [{ name: "Authorization", value: `Bearer ${state.token}` }]
+          }
         }
-      }
-    throw new Error("Unexpected bridge request")
+      throw new Error("Unexpected bridge request")
+    })
   })
-  const decline = vi.fn(async (check: () => void) => {
-    check()
+  const decline = vi.fn((check: () => void) => {
+    return Promise.try(() => {
+      check()
+    })
   })
   const archive = vi.fn()
   const host: PluginBridgeHost = {

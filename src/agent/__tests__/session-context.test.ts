@@ -16,11 +16,13 @@ test("host session context is resolved for each explicit session operation witho
     url: "https://example.test/mcp/drive",
     headers: [{ name: "Authorization", value: "Bearer test" }]
   }
-  const context = vi.fn<NonNullable<ClientOptions["sessionContext"]>>(async (cwd) => ({
-    mcpServers: [server],
-    appendSystemPrompt: `Knowledge for ${cwd}`
-  }))
-  const client = new CodexClient(async () => port, {
+  const context = vi.fn<NonNullable<ClientOptions["sessionContext"]>>((cwd) =>
+    Promise.resolve({
+      mcpServers: [server],
+      appendSystemPrompt: `Knowledge for ${cwd}`
+    })
+  )
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
     sessionContext: context
@@ -64,10 +66,12 @@ test.each(["cancel", "close", "stopSession"] as const)(
     const port = new FakeHubPort(() => fake.app)
     const request = vi.spyOn(port, "acpRequest")
     const notify = vi.spyOn(port, "acpNotify")
-    const revoke = vi.fn(async () => {
-      throw new Error("Native cleanup failed")
+    const revoke = vi.fn(() => {
+      return Promise.try(() => {
+        throw new Error("Native cleanup failed")
+      })
     })
-    const client = new CodexClient(async () => port, {
+    const client = new CodexClient(() => Promise.resolve(port), {
       agentId: "codex",
       launch: { engine: "codex" },
       revokeSessionAccess: revoke
@@ -96,10 +100,12 @@ test.each(["archive", "delete"] as const)("%s revokes the source before changing
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
   const request = vi.spyOn(port, "acpRequest")
-  const revoke = vi.fn(async () => {
-    throw new Error("revocation blocked")
+  const revoke = vi.fn(() => {
+    return Promise.try(() => {
+      throw new Error("revocation blocked")
+    })
   })
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
     revokeSessionAccess: revoke
@@ -123,15 +129,18 @@ test("global tool changes refresh existing sessions before prompting without rep
   const port = new FakeHubPort(() => fake.app)
   const request = vi.spyOn(port, "acpRequest")
   let revision = "disabled"
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
-    sessionContext: async () => ({
-      revision,
-      mcpServers:
-        revision === "disabled" ? [] : [{ type: "stdio", name: "computer", command: "/driver", args: ["mcp"], env: [] }]
-    }),
-    sessionContextRevision: async () => revision
+    sessionContext: () =>
+      Promise.resolve({
+        revision,
+        mcpServers:
+          revision === "disabled"
+            ? []
+            : [{ type: "stdio", name: "computer", command: "/driver", args: ["mcp"], env: [] }]
+      }),
+    sessionContextRevision: () => Promise.resolve(revision)
   })
   try {
     await client.connect()
@@ -168,10 +177,10 @@ test("native ownership binds returned identities and forking never revokes the s
   const request = vi.spyOn(port, "acpRequest")
   const bind = vi.fn(async (_id: string) => {})
   const revoke = vi.fn(async (_id: string) => {})
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
-    sessionContext: async () => ({ mcpServers: [], bind }),
+    sessionContext: () => Promise.resolve({ mcpServers: [], bind }),
     revokeSessionAccess: revoke
   })
   try {
@@ -196,10 +205,12 @@ test.each([false, true])(
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const request = vi.spyOn(port, "acpRequest")
-    const prepare = vi.fn(async (_id: string) => {
-      if (persistent || prepare.mock.calls.length === 1) throw new Error("MCP unavailable")
+    const prepare = vi.fn((_id: string) => {
+      return Promise.try(() => {
+        if (persistent || prepare.mock.calls.length === 1) throw new Error("MCP unavailable")
+      })
     })
-    const client = new CodexClient(async () => port, {
+    const client = new CodexClient(() => Promise.resolve(port), {
       agentId: "codex",
       launch: { engine: "codex" },
       prepareSessionTools: prepare

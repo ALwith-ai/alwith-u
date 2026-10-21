@@ -2,9 +2,9 @@ import type { Dispose, Json } from "@alwith/module-extension"
 import type { LegacyStorage } from "@alwith/module-extension/legacy"
 
 export interface BusinessSharing {
-  flush(): Promise<void>
-  current(value: Json | null): Promise<void>
-  dispose(): Promise<void>
+  flush: () => Promise<void>
+  current: (value: Json | null) => Promise<void>
+  dispose: () => Promise<void>
 }
 
 export function createBusinessSharing(

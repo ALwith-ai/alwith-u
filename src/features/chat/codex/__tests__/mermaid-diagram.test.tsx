@@ -15,7 +15,9 @@ vi.mock("../mermaid-export", async (importOriginal) => ({
 vi.mock("mermaid", () => ({
   default: {
     initialize: vi.fn(),
-    render: vi.fn(async () => ({ svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320"></svg>' }))
+    render: vi.fn(() =>
+      Promise.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320"></svg>' })
+    )
   }
 }))
 
@@ -70,7 +72,7 @@ test("exports PNG from the preview and disables saving until it finishes", async
   fireEvent.click(download)
   await waitFor(() => expect(downloadChatFile).toHaveBeenCalledWith("mermaid.png", "cG5n"))
   expect(download).toBeDisabled()
-  await act(async () => finish(false))
+  await act(() => Promise.try(() => finish(false)))
   expect(download).toBeEnabled()
 })
 

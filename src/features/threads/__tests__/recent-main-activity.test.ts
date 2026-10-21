@@ -26,8 +26,10 @@ function record(sessionId: string, lastActivityAt: number): SessionRunState {
 
 function state(): AppState {
   return new CodexClient(
-    async () => {
-      throw new Error("No connection needed")
+    () => {
+      return Promise.try(() => {
+        throw new Error("No connection needed")
+      })
     },
     {
       agentId: "codex",

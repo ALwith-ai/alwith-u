@@ -29,7 +29,7 @@ await initI18n("en")
 
 test("queued forms advance on accept, decline and cancel without answering another session", async () => {
   const fake = createFakeAgent()
-  const client = new CodexClient(async () => new FakeHubPort(() => fake.app), {
+  const client = new CodexClient(() => Promise.try(() => new FakeHubPort(() => fake.app)), {
     agentId: "codex",
     launch: { engine: "codex" }
   })
@@ -79,15 +79,15 @@ test("queued forms advance on accept, decline and cancel without answering anoth
     expect(view.getByText("Include installed extensions")).toBeVisible()
     expect(view.getByText("1 / 3")).toBeInTheDocument()
     fireEvent.click(view.getByRole("radio", { name: /^Beta/ }))
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Submit" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Submit" }))))
     expect(await replies[0]).toMatchObject({ action: "accept", content: { choice: "Beta" } })
     await waitFor(() => expect(view.getByRole("heading", { name: "Question two" })).toBeInTheDocument())
     expect(view.getByRole("radio", { name: /^Alpha/ })).toBeChecked()
     expect(view.getByText("1 / 2")).toBeInTheDocument()
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Decline" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Decline" }))))
     expect(await replies[1]).toMatchObject({ action: "decline" })
     await waitFor(() => expect(view.getByRole("heading", { name: "Question three" })).toBeInTheDocument())
-    await act(async () => fireEvent.keyDown(view.getByRole("dialog"), { key: "Escape" }))
+    await act(() => Promise.try(() => fireEvent.keyDown(view.getByRole("dialog"), { key: "Escape" })))
     expect(await replies[2]).toMatchObject({ action: "cancel" })
     await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
     expect(client.state.actions).toHaveLength(1)

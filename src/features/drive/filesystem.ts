@@ -10,7 +10,7 @@ export async function driveFileSystem(path: string): Promise<FileSystem> {
   const snapshot = drive.getSnapshot().snapshot
   const root = snapshot?.roots
     .filter((root) => root.drivePath && containsPath(root.localPath, path))
-    .sort((a, b) => b.localPath.length - a.localPath.length)[0]
+    .toSorted((a, b) => b.localPath.length - a.localPath.length)[0]
   if (!root) throw new Error("This path does not belong to an indexed Drive project")
   const authorized = await invoke<string>("workspace_open", { path: root.localPath })
   return createFileSystem({

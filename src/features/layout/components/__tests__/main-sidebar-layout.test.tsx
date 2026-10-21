@@ -121,7 +121,7 @@ test("hovering the switch previews and entering the panel cancels pending close"
 
 test("click pins and persists; leaving a pinned sidebar neither hides it nor steals focus", async () => {
   const view = setup()
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("pinned")
   expect(view.presentation()).toBe("docked")
   expect(view.toggle.getAttribute("aria-checked")).toBe("true")
@@ -133,7 +133,7 @@ test("click pins and persists; leaving a pinned sidebar neither hides it nor ste
   await afterCloseDelay()
   expect(view.mode()).toBe("pinned")
   expect(document.activeElement).toBe(count)
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("hidden")
   expect(view.presentation()).toBe("docked")
   expect(view.panel.hasAttribute("inert")).toBe(true)
@@ -156,10 +156,10 @@ test("solid and dashed sidebar icons follow the pin preference, not the temporar
   expect(view.toggle.querySelector(".lucide-panel-left-dashed")).toBeTruthy()
   expect(view.toggle.querySelector(".lucide-panel-left")).toBeNull()
   expect(save).not.toHaveBeenCalled()
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.toggle.querySelector(".lucide-panel-left")).toBeTruthy()
   expect(view.toggle.querySelector(".lucide-panel-left-dashed")).toBeNull()
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("hidden")
   expect(view.toggle.querySelector(".lucide-panel-left-dashed")).toBeTruthy()
 })
@@ -169,7 +169,7 @@ test("collapsing preserves the sidebar instance, local state and scroll position
   const list = view.getByTestId("list")
   list.scrollTop = 180
   fireEvent.click(view.getByRole("button", { name: "Count 0" }))
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   fireEvent.pointerOver(view.toggle)
   expect(view.getByTestId("list")).toBe(list)
   expect(list.scrollTop).toBe(180)
@@ -216,10 +216,10 @@ test("switching between floating and docked animations retains the viewport and 
   fireEvent.pointerOver(view.toggle)
   fireEvent.click(view.getByRole("button", { name: "Count 0" }))
   expect(view.presentation()).toBe("floating")
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("pinned")
   expect(view.presentation()).toBe("docked")
-  await act(async () => fireEvent.click(view.toggle))
+  await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("hidden")
   expect(view.presentation()).toBe("docked")
   fireEvent.pointerOver(view.toggle)
@@ -248,7 +248,7 @@ test("reopening during fade-out cancels pending close and does not persist a hov
 test("rapid pin reversals keep the last choice and serialize preference writes", async () => {
   const view = setup()
   // Separate input events commit separately, still well inside the 200ms animation.
-  for (let index = 0; index < 3; index += 1) await act(async () => fireEvent.click(view.toggle))
+  for (let index = 0; index < 3; index += 1) await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("pinned")
   expect(view.presentation()).toBe("docked")
   expect(save.mock.calls).toEqual([
@@ -350,7 +350,7 @@ test("returning to a collapsed main sidebar moves focus from its now hidden cont
 
 test("the Windows titlebar hosts the same working sidebar switch", () => {
   const target = document.createElement("div")
-  document.body.appendChild(target)
+  document.body.append(target)
   try {
     const view = render(
       <WindowsTitleBarContext.Provider value={target}>
@@ -408,7 +408,7 @@ test("window chrome stays outside the sliding screens across navigation and side
 
 test("Windows hosts workspace actions in the title bar instead of the body", () => {
   const target = document.createElement("div")
-  document.body.appendChild(target)
+  document.body.append(target)
   try {
     const view = render(
       <WindowsWorkspaceControlsContext.Provider value={target}>

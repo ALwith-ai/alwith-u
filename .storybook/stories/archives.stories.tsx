@@ -39,18 +39,24 @@ const meta = {
   beforeEach: () => {
     const previous = client.state
     client.store.setState({ connection: "ready", archivedThreads: [], archivedLoaded: false, archivedCursor: null })
-    const list = spyOn(client, "listThreads").mockImplementation(async () => {
-      client.store.setState({ archivedThreads: chats, archivedLoaded: true, archivedCursor: null })
+    const list = spyOn(client, "listThreads").mockImplementation(() => {
+      return Promise.try(() => {
+        client.store.setState({ archivedThreads: chats, archivedLoaded: true, archivedCursor: null })
+      })
     })
-    const restore = spyOn(client, "unarchive").mockImplementation(async (id) => {
-      client.store.setState((state) => ({
-        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
-      }))
+    const restore = spyOn(client, "unarchive").mockImplementation((id) => {
+      return Promise.try(() => {
+        client.store.setState((state) => ({
+          archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
+        }))
+      })
     })
-    const remove = spyOn(client, "delete").mockImplementation(async (id) => {
-      client.store.setState((state) => ({
-        archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
-      }))
+    const remove = spyOn(client, "delete").mockImplementation((id) => {
+      return Promise.try(() => {
+        client.store.setState((state) => ({
+          archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
+        }))
+      })
     })
     return () => {
       list.mockRestore()

@@ -26,10 +26,10 @@ export function DriveTreeActions({
 }: {
   path: string
   isDirectory: boolean
-  onSharing(path: string): void
-  onCondense(scope: CondenseScope): void
-  onMove(path: string, kind: "file" | "directory"): void
-  saveDocument(path: string): Promise<void>
+  onSharing: (path: string) => void
+  onCondense: (scope: CondenseScope) => void
+  onMove: (path: string, kind: "file" | "directory") => void
+  saveDocument: (path: string) => Promise<void>
 }): ReactNode {
   const { snapshot } = useDrive(drive)
   const { i18n } = useTranslation()

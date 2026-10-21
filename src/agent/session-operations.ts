@@ -31,8 +31,8 @@ export class SessionOperations {
   /** Merges with an adjacent open of the same fingerprint, otherwise queues. */
   open<T>(sessionId: string, fingerprint: string, run: () => Promise<T>): Promise<T> {
     const lane = this.lane(sessionId)
-    const last = lane.queued.length > 0 ? lane.queued[lane.queued.length - 1] : lane.running
-    if (last && last.kind === "open" && last.fingerprint === fingerprint && !last.cancelled) {
+    const last = lane.queued.at(-1) ?? lane.running
+    if (last?.kind === "open" && last.fingerprint === fingerprint && !last.cancelled) {
       return last.promise as Promise<T>
     }
     return this.enqueue(lane, "open", fingerprint, run)

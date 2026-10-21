@@ -40,7 +40,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
     <Avatar className="size-5 after:border-0">
       <AvatarImage src={user.avatar} alt="" />
       <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-        {Array.from(displayName).slice(0, 2).join("").toLocaleUpperCase()}
+        {[...displayName].slice(0, 2).join("").toLocaleUpperCase()}
       </AvatarFallback>
     </Avatar>
   )
@@ -81,9 +81,10 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
               <DropdownMenuRadioGroup
                 value={i18n.language}
                 onValueChange={(value) => {
+                  const language = value as string
                   void (async () => {
-                    await i18n.changeLanguage(value)
-                    await savePreference("language", value)
+                    await i18n.changeLanguage(language)
+                    await savePreference("language", language)
                   })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
                 }}
               >

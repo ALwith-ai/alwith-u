@@ -10,8 +10,7 @@ import {
   NAVIGATION_INSTRUMENT_GROUPS,
   NAVIGATION_SOUND_MODES,
   type NavigationInstrument,
-  navigationInstrumentLabel,
-  type NavigationSoundMode
+  navigationInstrumentLabel
 } from "@/features/chat/codex/navigation-instruments"
 import {
   navigationSoundStore,
@@ -83,7 +82,7 @@ export function AppearanceSection() {
           value={navigationSoundMode}
           onValueChange={(value) => {
             if (value === null) throw new Error("导航旋律不能为空")
-            void setNavigationSoundMode(value as NavigationSoundMode)
+            void setNavigationSoundMode(value)
           }}
         >
           <SelectTrigger className="w-32">
@@ -130,7 +129,7 @@ export function AppearanceSection() {
             value={navigationInstrument}
             onValueChange={(value) => {
               if (value === null) throw new Error("导航音色不能为空")
-              void setNavigationInstrument(value as NavigationInstrument)
+              void setNavigationInstrument(value)
             }}
           >
             <SelectTrigger className="w-48">

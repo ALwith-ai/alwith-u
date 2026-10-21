@@ -36,24 +36,28 @@ function setup(
       cancellation: scope.cancellation,
       own: (dispose) => scope.own(dispose)
     },
-    native: async <T>(command: string, args: Record<string, unknown>): Promise<T> => {
-      calls.push({ command, args })
-      if (command === "legacy_pick_directory") return picked as T
-      if (command === "legacy_directories") return grants as T
-      if (command === "legacy_http" || command === "extension_http")
-        return { status: 200, url: "https://bi-api.finture.id/test", headers: {}, body: [0, 255, 42] } as T
-      if (command === "legacy_file" || command === "extension_file") {
-        const request = args.request as { operation: string; path: string }
-        if (request.path.startsWith(".alwith/projects")) throw new Error("会话归档暂不支持，其他知识库功能可用")
-        if (request.operation === "list") return { type: "list", entries: [] } as T
-        if (request.operation === "read") return { type: "read", body: [] } as T
-        return { type: "ok" } as T
-      }
-      throw new Error(`Unexpected ${command}`)
+    native: <T>(command: string, args: Record<string, unknown>): Promise<T> => {
+      return Promise.try(() => {
+        calls.push({ command, args })
+        if (command === "legacy_pick_directory") return picked as T
+        if (command === "legacy_directories") return grants as T
+        if (command === "legacy_http" || command === "extension_http")
+          return { status: 200, url: "https://bi-api.finture.id/test", headers: {}, body: [0, 255, 42] } as T
+        if (command === "legacy_file" || command === "extension_file") {
+          const request = args.request as { operation: string; path: string }
+          if (request.path.startsWith(".alwith/projects")) throw new Error("会话归档暂不支持，其他知识库功能可用")
+          if (request.operation === "list") return { type: "list", entries: [] } as T
+          if (request.operation === "read") return { type: "read", body: [] } as T
+          return { type: "ok" } as T
+        }
+        throw new Error(`Unexpected ${command}`)
+      })
     },
     session: () => selected,
-    send: async (id, text) => {
-      sent.push({ id, text })
+    send: (id, text) => {
+      return Promise.try(() => {
+        sent.push({ id, text })
+      })
     },
     check: () => {},
     openView: () => {},
@@ -84,8 +88,10 @@ function setup(
 
 test("shares the current reader document and clears it before removing the local pointer", async () => {
   const shared: unknown[] = []
-  const { bridge } = setup("yup-kb", [], null, true, undefined, async (value) => {
-    shared.push(value)
+  const { bridge } = setup("yup-kb", [], null, true, undefined, (value) => {
+    return Promise.try(() => {
+      shared.push(value)
+    })
   })
   const path = "/__alwith_legacy/yup-kb/.alwith/extensions/yup-kb/current.json"
   await bridge.invoke("plugin:fs|write_text_file", new TextEncoder().encode(JSON.stringify({ fileId: 42 })), {
@@ -94,8 +100,10 @@ test("shares the current reader document and clears it before removing the local
   expect(shared).toEqual([{ fileId: 42 }])
   await bridge.invoke("plugin:fs|remove", { path })
   expect(shared).toEqual([{ fileId: 42 }, null])
-  const failing = setup("yup-kb", [], null, true, undefined, async () => {
-    throw new Error("sharing unavailable")
+  const failing = setup("yup-kb", [], null, true, undefined, () => {
+    return Promise.try(() => {
+      throw new Error("sharing unavailable")
+    })
   })
   await expect(failing.bridge.invoke("plugin:fs|remove", { path })).rejects.toThrow("sharing unavailable")
   expect(failing.calls).toEqual([])
@@ -103,8 +111,8 @@ test("shares the current reader document and clears it before removing the local
 
 test("routes legacy session discovery and JSONL reads through the read-only history source", async () => {
   const history = {
-    list: async () => [{ sessionId: "s", cwd: "/work", title: "Session", updatedAt: null, archived: false }],
-    read: async () => '{"type":"user","message":{"content":"Hello"}}\n',
+    list: () => Promise.resolve([{ sessionId: "s", cwd: "/work", title: "Session", updatedAt: null, archived: false }]),
+    read: () => Promise.resolve('{"type":"user","message":{"content":"Hello"}}\n'),
     check: () => {}
   }
   const { bridge, calls } = setup("yup-kb", [], null, true, history)
@@ -161,7 +169,7 @@ describe("legacy host boundary", () => {
     const request = calls[0].args.request as { headers: Record<string, string>; body: number[] }
     expect(request.headers["content-type"]).toContain("multipart/form-data; boundary=")
     expect(new TextDecoder().decode(new Uint8Array(request.body))).toContain('filename="report.bin"')
-    expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([0, 255, 42])
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([0, 255, 42])
   })
 
   test("rejects ungranted paths and traversal before a file operation", async () => {
@@ -180,7 +188,7 @@ describe("legacy host boundary", () => {
       operation: "write",
       scope: "grant",
       path: "report.txt",
-      body: Array.from(new TextEncoder().encode("你好"))
+      body: [...new TextEncoder().encode("你好")]
     })
   })
 
@@ -207,10 +215,11 @@ test("direct data.json IO shares SDK storage and never creates a second file", a
   const { bridge, calls } = setup("generic-reader")
   let value: unknown = { theme: "light" }
   const release = bridge.bindStorage({
-    exists: async () => true,
-    read: async () => value as { theme: string },
-    write: async (next) => {
+    exists: () => Promise.resolve(true),
+    read: () => Promise.resolve(value as { theme: string }),
+    write: (next) => {
       value = next
+      return Promise.resolve()
     },
     resource: (path) => `extension://test/${path}`
   })

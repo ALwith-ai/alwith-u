@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn()
 }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }))
-vi.mock("@tauri-apps/api/event", () => ({ emitTo: async () => {}, listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({ emitTo: async () => {}, listen: () => Promise.resolve(() => {}) }))
 vi.mock("sonner", () => ({ toast: { success: mocks.success } }))
 
 import { drive } from "../controller"
@@ -29,11 +29,14 @@ const snapshot: Snapshot = {
 }
 beforeEach(async () => {
   mocks.success.mockClear()
-  mocks.invoke.mockImplementation(async (_command, { request }) => {
-    if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
+  mocks.invoke.mockImplementation((_command, { request }) => {
+    if (request.type === "snapshot") return Promise.resolve({ type: "snapshot", data: snapshot })
     if (request.type === "configuration")
-      return { type: "configuration", data: { userId: "1", deviceId: "device", userName: "Test", clientConfig: null } }
-    return { type: "done" }
+      return Promise.resolve({
+        type: "configuration",
+        data: { userId: "1", deviceId: "device", userName: "Test", clientConfig: null }
+      })
+    return Promise.resolve({ type: "done" })
   })
   await drive.attach()
 })
@@ -61,11 +64,16 @@ test("configuration success toast waits for the confirmed save response", async 
 })
 
 test("failed configuration saves propagate the error without a success toast", async () => {
-  mocks.invoke.mockImplementation(async (_command, { request }) => {
-    if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
-    if (request.type === "configuration")
-      return { type: "configuration", data: { userId: "1", deviceId: "device", userName: "Test", clientConfig: null } }
-    throw new Error("Cannot save settings")
+  mocks.invoke.mockImplementation((_command, { request }) => {
+    return Promise.try(() => {
+      if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
+      if (request.type === "configuration")
+        return {
+          type: "configuration",
+          data: { userId: "1", deviceId: "device", userName: "Test", clientConfig: null }
+        }
+      throw new Error("Cannot save settings")
+    })
   })
   await expect(drive.request({ type: "setPreferences", sessionArchive: true, knowledgeInject: false })).rejects.toThrow(
     "Cannot save settings"

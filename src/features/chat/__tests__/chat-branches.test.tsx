@@ -15,10 +15,12 @@ const initial = client.state
 const mounted: Array<ReturnType<typeof render>> = []
 const restores: Array<() => void> = []
 afterEach(async () => {
-  await act(async () => {
-    for (const view of mounted.splice(0)) view.unmount()
-    for (const restore of restores.splice(0)) restore()
-    client.store.setState(initial, true)
+  await act(() => {
+    return Promise.try(() => {
+      for (const view of mounted.splice(0)) view.unmount()
+      for (const restore of restores.splice(0)) restore()
+      client.store.setState(initial, true)
+    })
   })
 })
 const source = { ...createSession("source", "/project"), attached: true }
@@ -62,18 +64,24 @@ test("a completed reply forks its explicit turn once and navigates to the return
   const button = view.getByRole("button", { name: "Create chat branch" })
   expect(button.classList.contains("codex-message-action")).toBe(true)
   expect(view.queryByRole("button", { name: "Chat branches" })).toBeNull()
-  await act(async () => {
-    fireEvent.click(button)
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(button)
+    })
   })
-  await act(async () => {
-    fireEvent.click(button)
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(button)
+    })
   })
   expect(call).toHaveBeenCalledTimes(1)
   expect(call).toHaveBeenCalledWith("source", "/project", "real-turn")
   expect(selected).toEqual([])
   client.store.setState({ threads: [forked] })
-  await act(async () => {
-    finish("child")
+  await act(() => {
+    return Promise.try(() => {
+      finish("child")
+    })
   })
   await waitFor(() => expect(selected).toEqual([forked]))
 })
@@ -87,8 +95,10 @@ test("a fork failure keeps the current chat and allows retry", async () => {
   )
   const selected: ThreadSummary[] = []
   const view = setup((thread) => selected.push(thread))
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
+    })
   })
   await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot fork this turn"))
   expect(selected).toEqual([])
@@ -108,13 +118,17 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
   restores.push(() => call.mockRestore())
   const selected: ThreadSummary[] = []
   const view = setup((thread) => selected.push(thread))
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
+    })
   })
   view.unmount()
   client.store.setState({ threads: [forked] })
-  await act(async () => {
-    finish("child")
+  await act(() => {
+    return Promise.try(() => {
+      finish("child")
+    })
   })
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(selected).toEqual([])
@@ -130,8 +144,10 @@ test("the inherited-history divider returns to the exact parent and stays before
   client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: "boundary" } } })
   const selected: ThreadSummary[] = []
   let view!: ReturnType<typeof setup>
-  await act(async () => {
-    view = setup((thread) => selected.push(thread))
+  await act(() => {
+    return Promise.try(() => {
+      view = setup((thread) => selected.push(thread))
+    })
   })
   const { groupTurns } = await import("../turns")
   const session = {
@@ -149,40 +165,48 @@ test("the inherited-history divider returns to the exact parent and stays before
     ]
   }
   const turn = groupTurns(session)[0]
-  await act(async () => {
-    view.rerender(
-      <ChatBranchProvider session={session} onSelect={(thread) => selected.push(thread)}>
-        <ForkOriginDivider turn={turn} />
-        <ForkOriginDivider turn={{ ...turn, items: [] }} />
-      </ChatBranchProvider>
-    )
+  await act(() => {
+    return Promise.try(() => {
+      view.rerender(
+        <ChatBranchProvider session={session} onSelect={(thread) => selected.push(thread)}>
+          <ForkOriginDivider turn={turn} />
+          <ForkOriginDivider turn={{ ...turn, items: [] }} />
+        </ChatBranchProvider>
+      )
+    })
   })
   expect(read).not.toHaveBeenCalled()
   const button = view.getByRole("button", { name: "Continue from original chat" })
   expect(view.queryByText("Original")).toBeNull()
   expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
-  await act(async () => {
-    fireEvent.click(button)
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(button)
+    })
   })
   expect(read).toHaveBeenCalledWith("parent")
   expect(selected[0]?.sessionId).toBe("parent")
-  await act(async () => {
-    client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: null } } })
-    view.rerender(
-      <ChatBranchProvider session={source} onSelect={() => {}}>
-        <ForkOriginDivider />
-        <ForkOriginDivider turn={{ ...turn, items: [{ ...turn.items[0], _meta: null }] }} />
-      </ChatBranchProvider>
-    )
+  await act(() => {
+    return Promise.try(() => {
+      client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: null } } })
+      view.rerender(
+        <ChatBranchProvider session={source} onSelect={() => {}}>
+          <ForkOriginDivider />
+          <ForkOriginDivider turn={{ ...turn, items: [{ ...turn.items[0], _meta: null }] }} />
+        </ChatBranchProvider>
+      )
+    })
   })
   expect(view.container.querySelectorAll("[data-fork-origin]").length).toBe(1)
 })
 
 test("turn forks stay hidden when the adapter has no turn boundary support", async () => {
   const view = setup(() => {})
-  await act(async () => {
-    client.store.setState({
-      agent: { info: { name: "test", version: "1" }, protocolVersion: 2, capabilities: { session: { fork: {} } } }
+  await act(() => {
+    return Promise.try(() => {
+      client.store.setState({
+        agent: { info: { name: "test", version: "1" }, protocolVersion: 2, capabilities: { session: { fork: {} } } }
+      })
     })
   })
   view.rerender(

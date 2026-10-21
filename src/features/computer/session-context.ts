@@ -15,7 +15,7 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   const drive = await driveSessionContext(cwd)
   if (!isTauri()) return { ...drive, revision: "disabled" }
   const descriptor = await commands.computerContext()
-  const computer = await computerContext(async () => descriptor?.connection ?? null)
+  const computer = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
   const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt].filter(Boolean).join("\n\n")
   return {
     revision: computer.revision,

@@ -5,7 +5,7 @@ import { createWindowController } from "@/lib/window-controller"
 const controller = createWindowController<void>({
   exists: async () => (await WebviewWindow.getByLabel("guide")) !== null,
   create: async () => {
-    const windows = /Win/.test(navigator.platform)
+    const windows = navigator.platform.includes("Win")
     const window = new WebviewWindow("guide", {
       url: "/guide.html",
       title: "ALwith U Guide",

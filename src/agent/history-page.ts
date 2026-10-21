@@ -66,8 +66,8 @@ export async function readHistoryPage(
   )
     throw new Error("Invalid history pagination")
   return {
-    session: projectHistoryTurns(sessionId, cwd, page.title, [...page.turns].reverse()),
-    cursor: page.nextCursor as string | null,
+    session: projectHistoryTurns(sessionId, cwd, page.title, (page.turns as unknown[]).toReversed()),
+    cursor: page.nextCursor,
     turnIds: page.turns.map((rawTurn) => object(rawTurn).turnId as string)
   }
 }
@@ -150,10 +150,7 @@ export function prependHistory(current: Session, page: Session, baseline?: Sessi
   const prefixIds = new Set(prefix.map(identity))
   return {
     ...current,
-    title:
-      baseline !== undefined && current.title === baseline.title
-        ? (page.title ?? current.title)
-        : (current.title ?? page.title),
+    title: current.title === baseline?.title ? (page.title ?? current.title) : (current.title ?? page.title),
     items: [
       ...prefix,
       ...merged,

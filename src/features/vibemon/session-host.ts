@@ -14,14 +14,14 @@ import type { AppState } from "@/agent/client"
 import { petAnswer, petPrompt } from "./pet-prompt"
 
 export interface PetSessionOwner {
-  state(): AppState
+  state: () => AppState
   agentId: string
-  source(): "snapshot" | "event"
-  agentForSession(id: string): Promise<string | null>
-  claim(requestId: string, binding: PetBinding, owner: string): Promise<boolean>
-  prompt(id: string, content: acp.ContentBlock[]): Promise<void>
-  respond(token: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse): void
-  openChat(id: string | null, windowLabel: "main" | "chat"): Promise<void>
+  source: () => "snapshot" | "event"
+  agentForSession: (id: string) => Promise<string | null>
+  claim: (requestId: string, binding: PetBinding, owner: string) => Promise<boolean>
+  prompt: (id: string, content: acp.ContentBlock[]) => Promise<void>
+  respond: (token: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse) => void
+  openChat: (id: string | null, windowLabel: "main" | "chat") => Promise<void>
 }
 export type { PetSurface } from "@alwith/module-auth/pets/core"
 

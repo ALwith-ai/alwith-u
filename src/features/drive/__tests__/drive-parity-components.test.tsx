@@ -11,6 +11,8 @@ import {
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
+import { mockOf } from "@/test/mock-of"
+
 import { driveControls } from "../controls"
 
 const controls: DriveControls = {
@@ -30,7 +32,7 @@ const controls: DriveControls = {
     <>
       {children}
       {items.map((item) => (
-        <button type="button" key={item.label} onClick={item.onSelect}>
+        <button type="button" key={item.label} onClick={mockOf(item, "onSelect")}>
           {item.label}
         </button>
       ))}
@@ -108,7 +110,7 @@ test("sync status exposes its settings action", () => {
       mode="status"
       onOpenSettings={open}
       onOpenProject={async () => {}}
-      confirm={async () => true}
+      confirm={() => Promise.resolve(true)}
     />
   )
   fireEvent.click(screen.getByRole("button", { name: "Open settings" }))
@@ -118,8 +120,8 @@ test("missing pins retain their identity and expose context-menu unpin", async (
   const f = fixture()
   const update = vi.fn(async () => {})
   const host: DriveHost = {
-    readDirectory: async () => [],
-    pathExists: async () => false,
+    readDirectory: () => Promise.resolve([]),
+    pathExists: () => Promise.resolve(false),
     onOpenEntry: async () => {},
     onRevealPath: async () => {},
     onOpenExternal: async () => {},
@@ -133,7 +135,7 @@ test("missing pins retain their identity and expose context-menu unpin", async (
       controls={controls}
       mode="launcher"
       onOpenProject={async () => {}}
-      confirm={async () => true}
+      confirm={() => Promise.resolve(true)}
     />
   )
   const pin = await screen.findByRole("button", { name: "Missing" })
@@ -176,21 +178,32 @@ test("mass-delete dismiss restores only the head batch and confirmation sends on
 })
 
 test("settings use the injected shadcn switch and propagate its checked value", async () => {
-  const f = fixture({}, async (request) => {
-    if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 20 }
-    if (request.type === "ownershipGuard")
-      return {
-        type: "ownershipGuard",
-        data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
-      }
-    if (request.type === "configuration")
-      return { type: "configuration", data: { deviceId: "device", userName: "Test", userId: "1", clientConfig: null } }
-    if (request.type === "skillMirrors") return { type: "skillMirrors", data: [] }
-    if (request.type === "pause") return { type: "done" }
-    throw new Error(`Unexpected request ${request.type}`)
+  const f = fixture({}, (request) => {
+    return Promise.try(() => {
+      if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 20 }
+      if (request.type === "ownershipGuard")
+        return {
+          type: "ownershipGuard",
+          data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
+        }
+      if (request.type === "configuration")
+        return {
+          type: "configuration",
+          data: { deviceId: "device", userName: "Test", userId: "1", clientConfig: null }
+        }
+      if (request.type === "skillMirrors") return { type: "skillMirrors", data: [] }
+      if (request.type === "pause") return { type: "done" }
+      throw new Error(`Unexpected request ${request.type}`)
+    })
   })
   render(
-    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="settings"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   const toggle = screen.getByRole("switch", { name: "Pause sync" })
   expect(toggle.tagName).toBe("BUTTON")
@@ -205,8 +218,10 @@ test("failed mass deletion retains the dialog and never advances to another batc
         { projectId: 2, drivePath: "Second", count: 24 }
       ]
     },
-    async () => {
-      throw new Error("Server rejected deletion")
+    () => {
+      return Promise.try(() => {
+        throw new Error("Server rejected deletion")
+      })
     }
   )
   render(<DriveMassDeleteDialog {...f} controls={controls} />)
@@ -233,7 +248,13 @@ test("status panel uses a state row and disables the sync icon while paused", as
     }
   })
   render(
-    <DrivePanel {...f} controls={controls} mode="status" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="status"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   expect(screen.getByText("State").tagName).toBe("DT")
   expect(screen.getByRole("button", { name: "Sync now" })).toBeDisabled()
@@ -268,8 +289,8 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
     }
   })
   const host: DriveHost = {
-    readDirectory: async () => [],
-    pathExists: async () => true,
+    readDirectory: () => Promise.resolve([]),
+    pathExists: () => Promise.resolve(true),
     onOpenEntry: async () => {},
     onRevealPath: reveal,
     onOpenExternal: async () => {},
@@ -283,7 +304,7 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
       controls={controls}
       mode="status"
       onOpenProject={async () => {}}
-      confirm={async () => true}
+      confirm={() => Promise.resolve(true)}
     />
   )
   expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
@@ -295,9 +316,11 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
 })
 
 test("condense dialog separates its scope from the title and groups actions in the footer", async () => {
-  const f = fixture({}, async (request) => {
-    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
-    throw new Error(`Unexpected request ${request.type}`)
+  const f = fixture({}, (request) => {
+    return Promise.try(() => {
+      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+      throw new Error(`Unexpected request ${request.type}`)
+    })
   })
   const onClose = vi.fn()
   render(
@@ -327,11 +350,13 @@ test("condense dialog separates its scope from the title and groups actions in t
 })
 
 test("condense preflight keeps the safe exit before proceeding with missing uploads", async () => {
-  const f = fixture({ running: true }, async (request) => {
-    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
-    if (request.type === "condensePreflight")
-      return { type: "unsynced", data: { pending: 1, failed: 1, paths: ["report.md"] } }
-    throw new Error(`Unexpected request ${request.type}`)
+  const f = fixture({ running: true }, (request) => {
+    return Promise.try(() => {
+      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+      if (request.type === "condensePreflight")
+        return { type: "unsynced", data: { pending: 1, failed: 1, paths: ["report.md"] } }
+      throw new Error(`Unexpected request ${request.type}`)
+    })
   })
   const onClose = vi.fn()
   render(
@@ -368,7 +393,7 @@ test("move dialog groups the secondary cancel action before the primary move act
       controller={f.controller}
       controls={driveControls}
       locale="zh-CN"
-      host={{ confirm: async () => true, prepareMove: async () => true, onMoved: async () => {} }}
+      host={{ confirm: () => Promise.resolve(true), prepareMove: () => Promise.resolve(true), onMoved: async () => {} }}
       onClose={onClose}
     />
   )
@@ -384,22 +409,27 @@ test("move dialog groups the secondary cancel action before the primary move act
   expect(f.requests).toEqual([])
 })
 
-async function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
-  switch (request.type) {
-    case "maxAutoDownloadMb":
-      return { type: "maxAutoDownloadMb", data: 20 }
-    case "configuration":
-      return { type: "configuration", data: { deviceId: "device", userName: "Test", userId: "1", clientConfig: null } }
-    case "ownershipGuard":
-      return {
-        type: "ownershipGuard",
-        data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
-      }
-    case "skillMirrors":
-      return { type: "skillMirrors", data: [] }
-    default:
-      throw new Error(`Unexpected request ${request.type}`)
-  }
+function settingsResponse(request: DriveRequest): Promise<DriveResponse> {
+  return Promise.try(() => {
+    switch (request.type) {
+      case "maxAutoDownloadMb":
+        return { type: "maxAutoDownloadMb", data: 20 }
+      case "configuration":
+        return {
+          type: "configuration",
+          data: { deviceId: "device", userName: "Test", userId: "1", clientConfig: null }
+        }
+      case "ownershipGuard":
+        return {
+          type: "ownershipGuard",
+          data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
+        }
+      case "skillMirrors":
+        return { type: "skillMirrors", data: [] }
+      default:
+        throw new Error(`Unexpected request ${request.type}`)
+    }
+  })
 }
 
 test.each(["device", null])(
@@ -419,16 +449,18 @@ test.each(["device", null])(
         controls={controls}
         mode="settings"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
-    await act(async () => f.update({ configured: true, generation: 2 }))
+    await act(() => Promise.try(() => f.update({ configured: true, generation: 2 })))
     expect(screen.getByText("已登录 · 正在读取设备信息…")).toBeInTheDocument()
     expect(screen.queryByText("已登录 · 设备未注册")).not.toBeInTheDocument()
-    await act(async () => {
-      resolveConfiguration({
-        type: "configuration",
-        data: { deviceId, userName: "Test", userId: "1", clientConfig: null }
+    await act(() => {
+      return Promise.try(() => {
+        resolveConfiguration({
+          type: "configuration",
+          data: { deviceId, userName: "Test", userId: "1", clientConfig: null }
+        })
       })
     })
     expect(screen.getByText(deviceId ? "已登录 · 设备 device" : "已登录 · 设备未注册")).toBeInTheDocument()
@@ -448,7 +480,7 @@ test("failed device information loading never claims the device is unregistered"
       controls={controls}
       mode="settings"
       onOpenProject={async () => {}}
-      confirm={async () => true}
+      confirm={() => Promise.resolve(true)}
     />
   )
   expect(await screen.findByRole("alert")).toHaveTextContent("Cannot read configuration")
@@ -460,14 +492,20 @@ test("failed device information loading never claims the device is unregistered"
 test("settings load login preferences before runtime and fetch runtime data when it starts", async () => {
   const f = fixture({ running: false }, settingsResponse)
   render(
-    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="settings"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   await screen.findByText(/device/)
   expect(f.requests).toContainEqual({ type: "maxAutoDownloadMb" })
   expect(f.requests).not.toContainEqual({ type: "ownershipGuard" })
   expect(f.requests).not.toContainEqual({ type: "skillMirrors" })
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-  await act(async () => f.update({ running: true }))
+  await act(() => Promise.try(() => f.update({ running: true })))
   await waitFor(() => expect(f.requests).toContainEqual({ type: "skillMirrors" }))
   expect(f.requests).toContainEqual({ type: "ownershipGuard" })
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
@@ -480,11 +518,17 @@ test("settings clear a runtime load error after a successful restart", async () 
     return settingsResponse(request)
   })
   render(
-    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="settings"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   expect(await screen.findByRole("alert")).toHaveTextContent("Drive is not running")
   failed = false
-  await act(async () => f.update({ generation: 2 }))
+  await act(() => Promise.try(() => f.update({ generation: 2 })))
   await screen.findByText(/device/)
   await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument())
 })
@@ -495,10 +539,16 @@ test("successful runtime loading does not clear a configuration failure", async 
     return settingsResponse(request)
   })
   render(
-    <DrivePanel {...f} controls={controls} mode="settings" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="settings"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   expect(await screen.findByRole("alert")).toHaveTextContent("Cannot read configuration")
-  await act(async () => f.update({ running: true }))
+  await act(() => Promise.try(() => f.update({ running: true })))
   await waitFor(() => expect(f.requests).toContainEqual({ type: "skillMirrors" }))
   expect(screen.getByRole("alert")).toHaveTextContent("Cannot read configuration")
 })
@@ -509,11 +559,11 @@ test.each([
   [false, "ssoLogin"],
   [true, "ssoLogin"]
 ] as const)("directory adoption requires explicit confirmation (%s, %s)", async (accept, method) => {
-  const f = fixture({ configured: false, running: false }, async (request) => {
-    if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
+  const f = fixture({ configured: false, running: false }, (request) => {
+    if (request.type === "ssoConfig") return Promise.resolve({ type: "ssoConfig", data: { enabled: true } })
     if (request.type === method)
-      return { type: "rootOwnershipConfirmation", data: { generation: 2, localRoot: "/drive" } }
-    return { type: "done" }
+      return Promise.resolve({ type: "rootOwnershipConfirmation", data: { generation: 2, localRoot: "/drive" } })
+    return Promise.resolve({ type: "done" })
   })
   render(
     <DrivePanel
@@ -522,7 +572,7 @@ test.each([
       controls={controls}
       mode="settings"
       onOpenProject={async () => {}}
-      confirm={async () => true}
+      confirm={() => Promise.resolve(true)}
     />
   )
   if (method === "login") {
@@ -576,7 +626,7 @@ test("condense shows only the current project upload and resumes after closing",
   expect(screen.getByRole("button", { name: "取消任务" })).toBeEnabled()
   fireEvent.click(screen.getByRole("button", { name: "关闭" }))
   view.unmount()
-  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  await act(() => Promise.try(() => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } })))
   render(<DriveCondense {...props} />)
   expect(screen.getByRole("button", { name: "取消任务" })).toBeEnabled()
   expect(screen.queryByRole("button", { name: "沉淀为知识" })).not.toBeInTheDocument()
@@ -608,7 +658,7 @@ test("cancelling during upload prevents job creation after the upload finishes",
   fireEvent.click(screen.getByRole("button", { name: "沉淀为知识" }))
   fireEvent.click(screen.getByRole("button", { name: "取消任务" }))
   expect(screen.queryByText("已取消")).not.toBeInTheDocument()
-  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  await act(() => Promise.try(() => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } })))
   expect(screen.getByText("已取消")).toBeInTheDocument()
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   expect(f.requests.some((request) => request.type === "condenseStart")).toBe(false)
@@ -618,11 +668,13 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
   vi.useFakeTimers()
   try {
     let status: "RUNNING" | "CANCELLED" = "RUNNING"
-    const f = fixture({}, async (request) => {
-      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
-      if (request.type === "cancelJob") return { type: "done" }
-      if (request.type === "job") return { type: "job", data: { id: 7, status } }
-      throw new Error(`Unexpected request ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+        if (request.type === "cancelJob") return { type: "done" }
+        if (request.type === "job") return { type: "job", data: { id: 7, status } }
+        throw new Error(`Unexpected request ${request.type}`)
+      })
     })
     render(
       <DriveCondense
@@ -651,7 +703,12 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
 
 test("launcher keeps synchronization errors out of navigation while status retains them", async () => {
   const f = fixture({ error: "Conflict: /drive/report.md" })
-  const props = { controller: f.controller, controls, onOpenProject: async () => {}, confirm: async () => true }
+  const props = {
+    controller: f.controller,
+    controls,
+    onOpenProject: async () => {},
+    confirm: () => Promise.resolve(true)
+  }
   const notify = { error: vi.fn(), success: vi.fn() }
   const view = render(
     <DriveNotificationProvider notify={notify}>
@@ -698,7 +755,7 @@ test("a conflict during preflight stays in the dialog and does not include anoth
   )
   expect(screen.getByRole("alert")).toHaveTextContent("conflicted.md")
   expect(screen.queryByText("unrelated.md")).not.toBeInTheDocument()
-  await act(async () => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }))
+  await act(() => Promise.try(() => settle({ type: "unsynced", data: { pending: 0, failed: 0, paths: [] } })))
   expect(screen.getByRole("alert")).toHaveTextContent("conflicted.md")
   act(() => f.update({ generation: 2 }))
 })
@@ -706,19 +763,21 @@ test("a conflict during preflight stays in the dialog and does not include anoth
 test("a closed condense task finishes once and reopening preserves its result", async () => {
   vi.useFakeTimers()
   try {
-    const f = fixture({}, async (request) => {
-      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
-      if (request.type === "job")
-        return {
-          type: "job",
-          data: {
-            id: 7,
-            status: "SUCCEEDED",
-            result: { knowledgeFileId: 9, knowledgeTitle: "Draft", humanUrl: "https://drive.test/draft" }
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+        if (request.type === "job")
+          return {
+            type: "job",
+            data: {
+              id: 7,
+              status: "SUCCEEDED",
+              result: { knowledgeFileId: 9, knowledgeTitle: "Draft", humanUrl: "https://drive.test/draft" }
+            }
           }
-        }
-      if (request.type === "localPath") return { type: "path", data: "/drive/draft.md" }
-      throw new Error(`Unexpected request ${request.type}`)
+        if (request.type === "localPath") return { type: "path", data: "/drive/draft.md" }
+        throw new Error(`Unexpected request ${request.type}`)
+      })
     })
     const notify = { error: vi.fn(), success: vi.fn() }
     const open = vi.fn(async () => {})
@@ -759,11 +818,14 @@ test("a closed condense task finishes once and reopening preserves its result", 
 })
 
 test("a rejected knowledge source remains actionable inside the dialog", async () => {
-  const f = fixture({}, async (request) => {
-    if (request.type === "proposedCondense") return { type: "jobs", data: [] }
-    if (request.type === "condensePreflight") return { type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }
-    if (request.type === "condenseStart") throw new Error("HTTP 400: SOURCE_IS_KNOWLEDGE_PROJECT: source is knowledge")
-    throw new Error(`Unexpected request ${request.type}`)
+  const f = fixture({}, (request) => {
+    return Promise.try(() => {
+      if (request.type === "proposedCondense") return { type: "jobs", data: [] }
+      if (request.type === "condensePreflight") return { type: "unsynced", data: { pending: 0, failed: 0, paths: [] } }
+      if (request.type === "condenseStart")
+        throw new Error("HTTP 400: SOURCE_IS_KNOWLEDGE_PROJECT: source is knowledge")
+      throw new Error(`Unexpected request ${request.type}`)
+    })
   })
   render(
     <DriveCondense
@@ -792,7 +854,7 @@ test("repeated background synchronization errors produce one toast", async () =>
         controls={controls}
         mode="launcher"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     </DriveNotificationProvider>
   )

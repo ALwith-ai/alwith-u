@@ -13,8 +13,8 @@ export function ExtensionSkills({
 }: {
   required: readonly string[]
   catalog: SkillCatalog
-  onManage(): void
-  onRefresh(): void
+  onManage: () => void
+  onRefresh: () => void
 }) {
   const { t } = useTranslation()
   return (

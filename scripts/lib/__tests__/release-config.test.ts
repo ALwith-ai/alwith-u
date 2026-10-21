@@ -76,11 +76,11 @@ test("manual runs build unsigned macOS and Windows workflow artifacts without cr
   const job = releaseWorkflow()["test-bundles"]
 
   expect(job).toBeDefined()
-  expect(job!.if).toBe("github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''")
-  expect(job!.permissions).toEqual({ contents: "read" })
-  expect(job!.strategy?.matrix?.include).toEqual(releaseTargets)
+  expect(job.if).toBe("github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''")
+  expect(job.permissions).toEqual({ contents: "read" })
+  expect(job.strategy?.matrix?.include).toEqual(releaseTargets)
 
-  const step = tauriStep(job!)
+  const step = tauriStep(job)
   expect(step.uses).toBe("tauri-apps/tauri-action@v1")
   expect(step.with?.args).toContain("src-tauri/tauri.ci-test.conf.json")
   expect(step.with?.uploadWorkflowArtifacts).toBe(true)
@@ -94,14 +94,14 @@ test("tag runs validate release inputs and publish signed updater artifacts to a
   const release = jobs.release
 
   expect(preflight).toBeDefined()
-  expect(preflight!.if).toBe("startsWith(github.ref, 'refs/tags/v')")
+  expect(preflight.if).toBe("startsWith(github.ref, 'refs/tags/v')")
   expect(release).toBeDefined()
-  expect(release!.if).toBe("startsWith(github.ref, 'refs/tags/v')")
-  expect(release!.needs).toBe("release-preflight")
-  expect(release!.permissions).toEqual({ contents: "write" })
-  expect(release!.strategy?.matrix?.include).toEqual(releaseTargets)
+  expect(release.if).toBe("startsWith(github.ref, 'refs/tags/v')")
+  expect(release.needs).toBe("release-preflight")
+  expect(release.permissions).toEqual({ contents: "write" })
+  expect(release.strategy?.matrix?.include).toEqual(releaseTargets)
 
-  const step = tauriStep(release!)
+  const step = tauriStep(release)
   expect(step.uses).toBe("tauri-apps/tauri-action@v1")
   expect(step.with?.tagName).toBe("${{ github.ref_name }}")
   expect(step.with?.tauriScript).toBe("bun run tauri")
@@ -137,26 +137,26 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   const job = releaseWorkflow()["upload-to-tos"]
   const testBundles = releaseWorkflow()["test-bundles"]
   expect(job).toBeDefined()
-  expect(job!.needs).toBe("release")
-  expect(job!.if).toContain("needs.release.result == 'success'")
-  expect(job!.if).toContain("inputs.tos_release_tag != ''")
+  expect(job.needs).toBe("release")
+  expect(job.if).toContain("needs.release.result == 'success'")
+  expect(job.if).toContain("inputs.tos_release_tag != ''")
   expect(testBundles.if).toContain("inputs.tos_release_tag == ''")
-  expect(job!.permissions).toEqual({ contents: "write" })
-  const download = job!.steps!.findIndex((step) => step.name === "Download release assets")
-  const upload = job!.steps!.findIndex(
+  expect(job.permissions).toEqual({ contents: "write" })
+  const download = job.steps!.findIndex((step) => step.name === "Download release assets")
+  const upload = job.steps!.findIndex(
     (step) =>
       step.run ===
       '"$RUNNER_TEMP/tos-venv/bin/python" scripts/upload-to-tos.py "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"'
   )
   expect(download).toBeGreaterThan(-1)
-  expect(job!.steps![download]?.run).toContain("releases/$release_id/assets")
+  expect(job.steps![download]?.run).toContain("releases/$release_id/assets")
   expect(upload).toBeGreaterThan(download)
-  const register = job!.steps!.findIndex((step) => step.name === "Register release artifacts")
+  const register = job.steps!.findIndex((step) => step.name === "Register release artifacts")
   expect(register).toBeGreaterThan(upload)
-  expect(job!.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
-  expect(job!.steps![register]?.env).toMatchObject({
+  expect(job.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
+  expect(job.steps![register]?.env).toMatchObject({
     API_BASE: "${{ vars.API_BASE || secrets.API_BASE }}",
     CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"
   })
-  expect(job!.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
+  expect(job.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })

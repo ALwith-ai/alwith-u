@@ -37,7 +37,7 @@ function PreviewExample(): ReactNode {
       }),
       reportError
     })
-    const editor = createEditorController({ fs, reportError, confirmClose: async () => "cancel" })
+    const editor = createEditorController({ fs, reportError, confirmClose: () => Promise.resolve("cancel") })
     const tabs = createEditorWorkspace(editor)
     const tree = createFileTreeController({
       fs,
@@ -45,7 +45,7 @@ function PreviewExample(): ReactNode {
       expanded: ["/ALwith", "/ALwith/.alwith"],
       reportError
     })
-    const opener = createTreeOpener(editor, async (path) => path, tabs)
+    const opener = createTreeOpener(editor, (path) => Promise.resolve(path), tabs)
     return { tree, editor, tabs, opener, reportError }
   })
   useEffect(() => {
@@ -69,8 +69,8 @@ function PreviewExample(): ReactNode {
             onClose={() => setClosed(true)}
             tree={
               <FileTree
-                requestName={async () => null}
-                confirmDelete={async () => false}
+                requestName={() => Promise.resolve(null)}
+                confirmDelete={() => Promise.resolve(false)}
                 controller={state.tree}
                 isDark={resolvedTheme === "dark"}
                 onError={state.reportError}

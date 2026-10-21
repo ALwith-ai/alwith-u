@@ -87,7 +87,7 @@ export function WorkspacePanels({
     previousMaximized.current = maximized
     embla.reInit()
     const snap = embla.internalEngine().slideRegistry.findIndex((group) => group.includes(region))
-    if (snap >= 0) embla.scrollTo(snap, true)
+    if (snap !== -1) embla.scrollTo(snap, true)
   }, [embla, chatWidth, fileWidth, visible, maximized, draggingPreview])
 
   // Desktop forwards middle-button panning to Embla; ordinary dragging belongs to content.

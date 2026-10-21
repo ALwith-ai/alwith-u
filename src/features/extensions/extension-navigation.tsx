@@ -20,8 +20,8 @@ export function ExtensionNavigation({
   host: HostSnapshot
   manifests: ExtensionManifest[]
   activeView?: string | null
-  onOpenSurface(id: string): void
-  onError(error: unknown): void
+  onOpenSurface: (id: string) => void
+  onError: (error: unknown) => void
 }): ReactElement | null {
   const { t, i18n } = useTranslation()
   const apps = extensionApps(host, manifests, i18n.language)

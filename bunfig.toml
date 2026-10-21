@@ -51,27 +51,73 @@ ignorePatterns = [
 ]
 
 [lint.rules]
-# Import cycles were a hard gate before; the rule is off by default
-"import/no-cycle" = ["error", { allowUnsafeDynamicCyclicDependency = true }]
-# Rules on by default that conflict with this repo's conventions are turned off whole; inline suppressions are never allowed (check gate)
-# any only appears at boundaries (Monaco, the legacy extension API, Bun fetch options); accesses flowing out of it are not reported one by one
-"@typescript-eslint/no-explicit-any" = "off"
-"@typescript-eslint/no-unsafe-assignment" = "off"
-"@typescript-eslint/no-unsafe-member-access" = "off"
-"@typescript-eslint/no-unsafe-call" = "off"
-"@typescript-eslint/no-unsafe-return" = "off"
-"@typescript-eslint/no-unsafe-argument" = "off"
-# async is the interface contract; async functions without await (fakes, adapters) are legitimate
-"@typescript-eslint/require-await" = "off"
-# vi.spyOn / zustand getState / destructured methods do not depend on this
-"@typescript-eslint/unbound-method" = "off"
-# Its inference disagrees with tsc: removing the 48 reported assertions breaks 41 compilations; off until it matches tsc
-"@typescript-eslint/no-unnecessary-type-assertion" = "off"
-# A let declared first and assigned inside a callback cannot become const (the callback may run before the assignment)
-"prefer-const" = ["warn", { ignoreReadBeforeAssign = true }]
+# ts7-lint:begin
+# Modern syntax only: tsc 7 targets esnext, so every current language and runtime feature is used directly, no compatibility forms
+"logical-assignment-operators" = "error"
+"prefer-object-has-own" = "error"
+"prefer-exponentiation-operator" = "error"
+"prefer-object-spread" = "error"
+"object-shorthand" = "error"
+"prefer-template" = "error"
+"no-var" = "error"
+# Named function expressions stay: a mock passed to `new` or a handler reading `this` cannot be an arrow
+"prefer-arrow-callback" = ["error", { allowNamedFunctions = true }]
+"prefer-rest-params" = "error"
+"prefer-spread" = "error"
+"@typescript-eslint/prefer-optional-chain" = "error"
+"@typescript-eslint/prefer-nullish-coalescing" = ["error", { ignorePrimitives = { string = true, number = true, boolean = true, bigint = true } }]
+# `typeof import("x")` annotations stay: they type a value by module path without importing it
+"@typescript-eslint/consistent-type-imports" = ["error", { disallowTypeAnnotations = false }]
+"@typescript-eslint/prefer-for-of" = "error"
+"@typescript-eslint/prefer-includes" = "error"
+"@typescript-eslint/prefer-string-starts-ends-with" = "error"
+"@typescript-eslint/prefer-as-const" = "error"
+"@typescript-eslint/prefer-ts-expect-error" = "error"
+"@typescript-eslint/no-namespace" = "error"
+"@typescript-eslint/prefer-find" = "error"
+"@typescript-eslint/no-unnecessary-template-expression" = "error"
+"@typescript-eslint/no-unnecessary-boolean-literal-compare" = "error"
+"unicorn/prefer-at" = "error"
+"unicorn/prefer-negative-index" = "error"
+"unicorn/prefer-structured-clone" = "error"
+"unicorn/prefer-string-replace-all" = "error"
+"unicorn/prefer-string-slice" = "error"
+"unicorn/prefer-string-starts-ends-with" = "error"
+"unicorn/prefer-string-trim-start-end" = "error"
+"unicorn/prefer-string-raw" = "error"
+"unicorn/prefer-array-flat" = "error"
+"unicorn/prefer-array-flat-map" = "error"
+"unicorn/prefer-array-some" = "error"
+"unicorn/prefer-array-find" = "error"
+"unicorn/prefer-array-index-of" = "error"
+"unicorn/prefer-includes" = "error"
+"unicorn/no-array-sort" = "error"
+"unicorn/no-array-reverse" = "error"
+"unicorn/no-length-as-slice-end" = "error"
+"unicorn/consistent-existence-index-check" = "error"
+"unicorn/prefer-spread" = "error"
+"unicorn/prefer-set-size" = "error"
+"unicorn/prefer-object-from-entries" = "error"
+"unicorn/prefer-number-properties" = "error"
+"unicorn/prefer-bigint-literals" = "error"
+"unicorn/prefer-math-trunc" = "error"
+"unicorn/prefer-math-min-max" = "error"
+"unicorn/prefer-modern-math-apis" = "error"
+"unicorn/prefer-regexp-test" = "error"
+"unicorn/prefer-optional-catch-binding" = "error"
+"unicorn/prefer-date-now" = "error"
+"unicorn/prefer-node-protocol" = "error"
+"unicorn/prefer-import-meta-properties" = "error"
+"unicorn/prefer-class-fields" = "error"
+"unicorn/prefer-response-static-json" = "error"
+"unicorn/prefer-blob-reading-methods" = "error"
+"unicorn/prefer-modern-dom-apis" = "error"
+"unicorn/prefer-dom-node-append" = "error"
+"unicorn/prefer-keyboard-event-key" = "error"
+"unicorn/prefer-logical-operator-over-ternary" = "error"
+"unicorn/no-typeof-undefined" = "error"
 
-# Tests verify that non-Error throwables also land on the failure path
-[[lint.overrides]]
-files = ["**/__tests__/**"]
-[lint.overrides.rules]
-"@typescript-eslint/only-throw-error" = "off"
+# Import cycles are a hard gate; the rule is off by default
+"import/no-cycle" = ["error", { allowUnsafeDynamicCyclicDependency = true }]
+# ts7-lint:end
+

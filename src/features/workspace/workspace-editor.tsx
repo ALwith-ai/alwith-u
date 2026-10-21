@@ -34,7 +34,7 @@ export function WorkspaceEditor({
   const snapshot = useSyncExternalStore(tabs.subscribe, tabs.getSnapshot)
   const selected = snapshot.tabs.find((tab) => tab.id === snapshot.activeId)
   const readyTheme = useFileIconTheme(iconTheme, props.onError)
-  const modifierKey = /Mac/.test(navigator.platform) ? "⌘" : "Ctrl"
+  const modifierKey = navigator.platform.includes("Mac") ? "⌘" : "Ctrl"
   return (
     <EditorWorkbench
       {...props}

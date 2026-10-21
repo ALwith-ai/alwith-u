@@ -47,7 +47,7 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
     const messages = exported
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line))
+      .map((line) => JSON.parse(line) as { type: string; message: { content: unknown } })
     const exportedText = messages
       .filter((message) => message.type === "assistant")
       .flatMap((message) => message.message.content as { type: string; text: string }[])
@@ -90,7 +90,7 @@ async function check(transport: "stdio" | "ws") {
         journalRoot: join(directory, "journal")
       })
   console.log(`runtime: ${runtime?.url ?? "stdio"}`)
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
   })
@@ -143,7 +143,7 @@ async function check(transport: "stdio" | "ws") {
 
     // A second client on the same Runtime attaches to the running agent instead of restarting it,
     // and replays the initialize response without a second handshake.
-    second = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+    second = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
     client.disconnect()
     await until(() => client.state.connection === "disconnected", 10_000, "disconnect")
     await second.connect()
@@ -159,7 +159,7 @@ async function check(transport: "stdio" | "ws") {
     await port.stop("codex")
     // The raw stop command acknowledges the request; registry removal confirms actual exit.
     await until(async () => !(await port.agents()).some((agent) => agent.agentId === "codex"), 10_000, "agent exit")
-    second = new CodexClient(async () => port, {
+    second = new CodexClient(() => Promise.resolve(port), {
       agentId: "codex",
       launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
     })
@@ -218,7 +218,7 @@ async function check(transport: "stdio" | "ws") {
         10_000,
         "new fork agent exit"
       )
-      second = new CodexClient(async () => port, {
+      second = new CodexClient(() => Promise.resolve(port), {
         agentId: "codex",
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
@@ -248,7 +248,7 @@ async function check(transport: "stdio" | "ws") {
         10_000,
         "fork agent exit"
       )
-      second = new CodexClient(async () => port, {
+      second = new CodexClient(() => Promise.resolve(port), {
         agentId: "codex",
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
@@ -359,7 +359,7 @@ async function verifyUserInput(client: CodexClient, directory: string): Promise<
       "Default-mode structured question"
     )
     const action = client.state.actions.find((action) => action.sessionId === id)
-    if (!action || action.kind !== "elicitation" || !isFormElicitation(action.params))
+    if (action?.kind !== "elicitation" || !isFormElicitation(action.params))
       throw new Error(`Expected a structured question in Default mode, received: ${assistantText(client.session(id))}`)
     const choice = action.params.requestedSchema.properties?.choice
     if (!choice || !isStringProperty(choice) || !choice.oneOf?.some((option) => option.const === "Beta"))

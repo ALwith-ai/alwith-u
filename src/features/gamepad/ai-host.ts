@@ -25,7 +25,7 @@ async function openContext(): Promise<GamepadAiContext> {
   const [preferences, providers, port] = await Promise.all([loadPreferences(), loadProviders(), runtimeClient()])
   const cwd = await commands.draftDirectory({ cwd: preferences.lastProjectDirectory })
   const agentId = `gamepad-config-${crypto.randomUUID()}`
-  const client = new CodexClient(async () => port, { agentId, launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId, launch: { engine: "codex" } })
   const os = platform()
   if (os !== "macos" && os !== "windows" && os !== "linux") throw new Error(`Unsupported platform: ${os}`)
   const stop = await port.onRunStates((states) => client.applyRunStates(states))

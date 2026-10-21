@@ -2,8 +2,8 @@ import type { Dispose } from "@alwith/module-extension"
 import type { CapabilityBinding } from "@alwith/module-extension/host"
 
 interface EventTransport {
-  listen(event: string, callback: (payload: unknown) => void): Promise<Dispose>
-  emit(event: string, payload: unknown): Promise<void>
+  listen: (event: string, callback: (payload: unknown) => void) => Promise<Dispose>
+  emit: (event: string, payload: unknown) => Promise<void>
 }
 
 /** Use one namespace across windows, with an independent lifetime for each activation. */

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, within } from "@testing-library/react"
+import { act, type BoundFunctions, fireEvent, type queries, render, within } from "@testing-library/react"
 import { beforeAll, beforeEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
@@ -30,44 +30,50 @@ beforeEach(() => {
   vi.mocked(useProviders).mockImplementation(() => snapshot)
   vi.mocked(saveCustomProvider)
     .mockReset()
-    .mockImplementation(async (revision, input) => {
-      expect(revision).toBe(snapshot.revision)
-      if (!input.id) throw new Error("Missing provider ID")
-      const provider = { id: input.id, name: input.name, baseUrl: input.baseUrl, models: input.models }
-      snapshot = {
-        ...snapshot,
-        revision: revision + 1,
-        customProviders: [...snapshot.customProviders.filter((item) => item.id !== input.id), provider]
-      }
-      return snapshot
+    .mockImplementation((revision, input) => {
+      return Promise.try(() => {
+        expect(revision).toBe(snapshot.revision)
+        if (!input.id) throw new Error("Missing provider ID")
+        const provider = { id: input.id, name: input.name, baseUrl: input.baseUrl, models: input.models }
+        snapshot = {
+          ...snapshot,
+          revision: revision + 1,
+          customProviders: [...snapshot.customProviders.filter((item) => item.id !== input.id), provider]
+        }
+        return snapshot
+      })
     })
 })
 
-function visibleEditor(view: ReturnType<typeof render>): ReturnType<typeof within> {
+type Scope = BoundFunctions<typeof queries>
+
+function visibleEditor(view: ReturnType<typeof render>): Scope {
   const input = view.getAllByLabelText("Provider name").find((element) => !element.closest("[hidden]"))
   const editor = input?.closest(".space-y-5")
   if (!(editor instanceof HTMLElement)) throw new Error("Provider editor missing")
   return within(editor)
 }
 
-function providerTabs(view: ReturnType<typeof render>): ReturnType<typeof within> {
+function providerTabs(view: ReturnType<typeof render>): Scope {
   const tabs = view.getByRole("heading", { name: "Model providers" }).parentElement
   if (!tabs) throw new Error("Provider tabs missing")
   return within(tabs)
 }
 
-async function fillProvider(editor: ReturnType<typeof within>, name: string): Promise<void> {
-  await act(async () => {
-    for (const [label, value] of [
-      ["Provider name", name],
-      ["API base URL", `https://${name.toLowerCase()}.example.test/v1`],
-      ["API key", `key-${name}`]
-    ]) {
-      const input = editor.getByLabelText(label)
-      input.focus()
-      fireEvent.input(input, { target: { value } })
-      fireEvent.keyUp(input, { key: "a" })
-    }
+async function fillProvider(editor: Scope, name: string): Promise<void> {
+  await act(() => {
+    return Promise.try(() => {
+      for (const [label, value] of [
+        ["Provider name", name],
+        ["API base URL", `https://${name.toLowerCase()}.example.test/v1`],
+        ["API key", `key-${name}`]
+      ]) {
+        const input = editor.getByLabelText(label)
+        input.focus()
+        fireEvent.input(input, { target: { value } })
+        fireEvent.keyUp(input, { key: "a" })
+      }
+    })
   })
 }
 
@@ -75,40 +81,40 @@ test("successive custom providers get independent IDs and existing providers rem
   const view = render(<ProviderSection />)
   const tabs = providerTabs(view)
   for (const name of ["First", "Second", "Third"]) {
-    await act(async () => fireEvent.click(tabs.getByText("Custom", { selector: "span" })))
+    await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
     const editor = visibleEditor(view)
     await fillProvider(editor, name)
-    await act(async () => fireEvent.click(editor.getByText("Save", { selector: "button" })))
+    await act(() => Promise.try(() => fireEvent.click(editor.getByText("Save", { selector: "button" }))))
   }
   const inputs: CustomProviderInput[] = vi.mocked(saveCustomProvider).mock.calls.map(([, input]) => input)
   expect(new Set(inputs.map((input) => input.id)).size).toBe(3)
   for (const name of ["First", "Second", "Third"]) {
-    await act(async () => fireEvent.click(tabs.getByText(name, { selector: "span" })))
+    await act(() => Promise.try(() => fireEvent.click(tabs.getByText(name, { selector: "span" }))))
     expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue(name)
   }
   await fillProvider(visibleEditor(view), "Updated")
-  await act(async () => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" })))
+  await act(() => Promise.try(() => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" }))))
   expect(vi.mocked(saveCustomProvider).mock.calls[3]?.[1].id).toBe(inputs[2]?.id)
-  expect(tabs.getByRole("button", { name: "First", exact: true })).toBeVisible()
-  expect(tabs.getByRole("button", { name: "Second", exact: true })).toBeVisible()
-  expect(tabs.getByRole("button", { name: "Updated", exact: true })).toBeVisible()
+  expect(tabs.getByRole("button", { name: "First" })).toBeVisible()
+  expect(tabs.getByRole("button", { name: "Second" })).toBeVisible()
+  expect(tabs.getByRole("button", { name: "Updated" })).toBeVisible()
 })
 
 test("a failed save and switching tabs preserve the new provider draft", async () => {
   vi.mocked(saveCustomProvider).mockRejectedValueOnce(new Error("Save failed"))
   const view = render(<ProviderSection />)
   const tabs = providerTabs(view)
-  await act(async () => fireEvent.click(tabs.getByText("Custom", { selector: "span" })))
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   await fillProvider(visibleEditor(view), "Draft")
-  await act(async () => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" })))
-  await act(async () => fireEvent.click(tabs.getByText("DeepSeek", { selector: "span" })))
-  await act(async () => fireEvent.click(tabs.getByText("Custom", { selector: "span" })))
+  await act(() => Promise.try(() => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" }))))
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByText("DeepSeek", { selector: "span" }))))
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue("Draft")
   expect(visibleEditor(view).getByLabelText("API key")).toHaveValue("key-Draft")
-  await act(async () => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" })))
+  await act(() => Promise.try(() => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" }))))
   const calls = vi.mocked(saveCustomProvider).mock.calls
   expect(calls[1]?.[1]).toEqual(calls[0]?.[1])
-  await act(async () => fireEvent.click(tabs.getByText("Custom", { selector: "span" })))
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue("")
   expect(visibleEditor(view).getByLabelText("API key")).toHaveValue("")
 })

@@ -15,11 +15,15 @@ export const ChatOpenSessionContext = createContext<((sessionId: string, title: 
 
 export function resolveChatLink(target: string, cwd: string | null): string {
   const relativeLocation = /^[^/\\:]+:\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?$/.test(target)
-  if ((/^[a-z][a-z\d+.-]*:/i.test(target) && !relativeLocation) || target.startsWith("/") || target.startsWith("\\\\"))
+  if (
+    (/^[a-z][a-z\d+.-]*:/i.test(target) && !relativeLocation) ||
+    target.startsWith("/") ||
+    target.startsWith(String.raw`\\`)
+  )
     return target
   if (target.startsWith("www.")) return `https://${target}`
   if (cwd === null) throw new Error("Chat directory is unavailable")
-  const directory = encodeURI(cwd.replace(/[\\/]$/, "")).replace(/[?#]/g, encodeURIComponent)
+  const directory = encodeURI(cwd.replace(/[\\/]$/, "")).replaceAll(/[?#]/g, encodeURIComponent)
   return `${directory}/${target}`
 }
 
@@ -30,7 +34,12 @@ export function useOpenChatLink(): (target: string) => void {
     (target: string): void => {
       void (async () => {
         const url = resolveChatLink(target, cwd)
-        if (url.startsWith("/") || url.startsWith("file:") || /^[A-Za-z]:[\\/]/.test(url) || url.startsWith("\\\\")) {
+        if (
+          url.startsWith("/") ||
+          url.startsWith("file:") ||
+          /^[A-Za-z]:[\\/]/.test(url) ||
+          url.startsWith(String.raw`\\`)
+        ) {
           let value = url
           if (url.startsWith("file:")) {
             const file = new URL(url)

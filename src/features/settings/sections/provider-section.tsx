@@ -557,8 +557,7 @@ export function CustomProviderEditor({
   const keyInputId = `${id}-api-key`
   const modelsInputId = `${id}-models`
   const dirty =
-    provider === null ||
-    name.trim() !== provider.name ||
+    name.trim() !== provider?.name ||
     baseUrl.trim() !== provider.baseUrl ||
     apiKey.trim() !== "" ||
     modelsJson !== JSON.stringify(provider.models, null, 2)

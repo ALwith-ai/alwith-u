@@ -55,8 +55,7 @@ export async function updateAndReloadExtension(runtime: ExtensionRuntime, id: st
     install: async (pkg) => {
       check()
       const selected = runtime.snapshot().native?.installations.find((item) => item.id === id)
-      if (!selected || selected.source !== pkg.source)
-        throw new Error("Extension belongs to a different installation source")
+      if (selected?.source !== pkg.source) throw new Error("Extension belongs to a different installation source")
       if (selected.packageRevision === pkg.digest) return "unchanged"
       const result = await executeStagedInstall(
         runtime,
@@ -77,7 +76,7 @@ export async function updateAndReloadExtension(runtime: ExtensionRuntime, id: st
 
 function inboxPort(
   extensionId?: string
-): Pick<StartupImportPort, "scan" | "prepare" | "complete" | "failed"> & { finish(): Promise<void> } {
+): Pick<StartupImportPort, "scan" | "prepare" | "complete" | "failed"> & { finish: () => Promise<void> } {
   let operationId: string | undefined
   const operation = (): string => {
     if (!operationId) throw new Error("Extension inbox operation has not started")

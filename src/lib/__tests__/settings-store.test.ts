@@ -17,8 +17,10 @@ test("a late read cannot overwrite a newer native change event", async () => {
   expect(client.get("appearance.theme")).toBe("dark")
 })
 test("failed native writes do not change the visible settings or notify subscribers", async () => {
-  const client = new SettingsClient(async () => {
-    throw new Error("Disk full")
+  const client = new SettingsClient(() => {
+    return Promise.try(() => {
+      throw new Error("Disk full")
+    })
   })
   client.accept({ revision: 1, values: { "voice.enabled": true }, browserMigrated: true })
   let changed = false
@@ -30,8 +32,10 @@ test("failed native writes do not change the visible settings or notify subscrib
   expect(changed).toBe(false)
 })
 test("native deletions and committed updates notify once, without duplicate reply notifications", () => {
-  const client = new SettingsClient(async () => {
-    throw new Error("Unexpected request")
+  const client = new SettingsClient(() => {
+    return Promise.try(() => {
+      throw new Error("Unexpected request")
+    })
   })
   client.accept({ revision: 1, values: { "editor.fontSize": 18 }, browserMigrated: true })
   const keys: string[][] = []

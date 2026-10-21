@@ -56,7 +56,7 @@ function snapshot(configured = true): Snapshot {
 async function fixture(state: Snapshot, handle: (request: DriveRequest) => Promise<DriveResponse>) {
   const requests: DriveRequest[] = []
   const controller = createDriveController({
-    subscribe: async () => () => {},
+    subscribe: () => Promise.resolve(() => {}),
     request: async (request) => {
       requests.push(request)
       if (request.type === "snapshot") return { type: "snapshot", data: { ...state } }
@@ -82,21 +82,28 @@ async function fixture(state: Snapshot, handle: (request: DriveRequest) => Promi
 
 test("sign-in registers the supplied token and starts only after registration", async () => {
   const state = snapshot(false)
-  const { controller, requests } = await fixture(state, async (request) => {
-    if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
-    if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
-    if (request.type === "login") {
-      state.configured = true
-      return { type: "snapshot", data: { ...state } }
-    }
-    if (request.type === "start") {
-      state.running = true
-      return { type: "snapshot", data: { ...state } }
-    }
-    throw new Error("Unexpected request")
+  const { controller, requests } = await fixture(state, (request) => {
+    return Promise.try(() => {
+      if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
+      if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
+      if (request.type === "login") {
+        state.configured = true
+        return { type: "snapshot", data: { ...state } }
+      }
+      if (request.type === "start") {
+        state.running = true
+        return { type: "snapshot", data: { ...state } }
+      }
+      throw new Error("Unexpected request")
+    })
   })
   render(
-    <DrivePanel controller={controller} controls={driveControls} onOpenProject={vi.fn()} confirm={async () => false} />
+    <DrivePanel
+      controller={controller}
+      controls={driveControls}
+      onOpenProject={vi.fn()}
+      confirm={() => Promise.resolve(false)}
+    />
   )
   fireEvent.change(screen.getByLabelText("Server address"), { target: { value: "https://drive.example.com" } })
   fireEvent.change(screen.getByLabelText("Personal access token"), { target: { value: "private-token" } })
@@ -141,12 +148,12 @@ test("project navigation waits for a native landing result", async () => {
       controls={driveControls}
       mode="launcher"
       onOpenProject={open}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
     />
   )
   fireEvent.click(screen.getByRole("button", { name: "Project One" }))
   expect(open).not.toHaveBeenCalled()
-  await act(async () => land({ type: "root", data: root }))
+  await act(() => Promise.try(() => land({ type: "root", data: root })))
   expect(open).toHaveBeenCalledWith(root)
   controller.dispose()
 })
@@ -154,10 +161,12 @@ test("project navigation waits for a native landing result", async () => {
 test("declining a cloud deletion never submits the decision", async () => {
   const state = snapshot()
   state.pendingDeletes = [{ projectId: "one", drivePath: "One", count: 12 }]
-  const { controller, requests } = await fixture(state, async () => {
-    throw new Error("Must not mutate")
+  const { controller, requests } = await fixture(state, () => {
+    return Promise.try(() => {
+      throw new Error("Must not mutate")
+    })
   })
-  const confirm = vi.fn(async () => false)
+  const confirm = vi.fn(() => Promise.resolve(false))
   render(
     <DrivePanel
       controller={controller}
@@ -175,18 +184,20 @@ test("declining a cloud deletion never submits the decision", async () => {
 })
 
 test("read-only sharing exposes access requests without administrative controls", async () => {
-  const { controller, requests } = await fixture(snapshot(), async (request) => {
-    if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: "file-1" } }
-    if (request.type === "grants") return { type: "grants", data: { callerLevel: "VIEW", grants: [], implicit: [] } }
-    if (request.type === "requestAccess") return { type: "accessRequest", data: "submitted" }
-    throw new Error("Unexpected request")
+  const { controller, requests } = await fixture(snapshot(), (request) => {
+    return Promise.try(() => {
+      if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: "file-1" } }
+      if (request.type === "grants") return { type: "grants", data: { callerLevel: "VIEW", grants: [], implicit: [] } }
+      if (request.type === "requestAccess") return { type: "accessRequest", data: "submitted" }
+      throw new Error("Unexpected request")
+    })
   })
   render(
     <DriveSharing
       controller={controller}
       controls={driveControls}
       path="/drive/One/note.md"
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
     />
   )
   await waitFor(() => expect(screen.getByRole("button", { name: "Request access" })).not.toBeDisabled())
@@ -204,14 +215,14 @@ test("read-only sharing exposes access requests without administrative controls"
 })
 
 test("launcher sends unconfigured users to settings without showing credentials", async () => {
-  const { controller } = await fixture(snapshot(false), async () => ({ type: "done" }))
+  const { controller } = await fixture(snapshot(false), () => Promise.resolve({ type: "done" }))
   const onOpenSettings = vi.fn()
   render(
     <DrivePanel
       controller={controller}
       controls={driveControls}
       onOpenProject={vi.fn()}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
       mode="launcher"
       onOpenSettings={onOpenSettings}
     />
@@ -223,13 +234,13 @@ test("launcher sends unconfigured users to settings without showing credentials"
 })
 
 test("launcher exposes project navigation without inline sync-selection controls", async () => {
-  const { controller } = await fixture(snapshot(), async () => ({ type: "root", data: root }))
+  const { controller } = await fixture(snapshot(), () => Promise.resolve({ type: "root", data: root }))
   render(
     <DrivePanel
       controller={controller}
       controls={driveControls}
       onOpenProject={vi.fn()}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
       mode="launcher"
     />
   )
@@ -242,15 +253,17 @@ test("launcher exposes project navigation without inline sync-selection controls
 
 test("settings use the host default server and hide SSO when disabled", async () => {
   const state = { ...snapshot(false), baseUrl: "" }
-  const { controller, requests } = await fixture(state, async (request) => {
-    if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
-    if (request.type === "login") {
-      state.configured = true
-      return { type: "snapshot", data: { ...state } }
-    }
-    if (request.type === "start") return { type: "snapshot", data: { ...state, running: true } }
-    if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
-    throw new Error(`Unexpected request: ${request.type}`)
+  const { controller, requests } = await fixture(state, (request) => {
+    return Promise.try(() => {
+      if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
+      if (request.type === "login") {
+        state.configured = true
+        return { type: "snapshot", data: { ...state } }
+      }
+      if (request.type === "start") return { type: "snapshot", data: { ...state, running: true } }
+      if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
+      throw new Error(`Unexpected request: ${request.type}`)
+    })
   })
   render(
     <DrivePanel
@@ -259,7 +272,7 @@ test("settings use the host default server and hide SSO when disabled", async ()
       mode="settings"
       defaultBaseUrl="https://drive.example.com"
       onOpenProject={vi.fn()}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
     />
   )
   await waitFor(() => expect(requests).toContainEqual({ type: "ssoConfig", baseUrl: "https://drive.example.com" }))
@@ -280,10 +293,12 @@ test("settings use the host default server and hide SSO when disabled", async ()
 })
 
 test("download settings reject fractional limits and preserve zero as unlimited", async () => {
-  const { controller, requests } = await fixture(snapshot(), async (request) => {
-    if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
-    if (request.type === "setMaxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: request.megabytes }
-    throw new Error(`Unexpected request: ${request.type}`)
+  const { controller, requests } = await fixture(snapshot(), (request) => {
+    return Promise.try(() => {
+      if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
+      if (request.type === "setMaxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: request.megabytes }
+      throw new Error(`Unexpected request: ${request.type}`)
+    })
   })
   render(
     <DrivePanel
@@ -291,7 +306,7 @@ test("download settings reject fractional limits and preserve zero as unlimited"
       controls={driveControls}
       mode="settings"
       onOpenProject={vi.fn()}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
     />
   )
   const limit = await screen.findByDisplayValue("100")

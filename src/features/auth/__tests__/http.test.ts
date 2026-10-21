@@ -3,6 +3,9 @@ import { describe, expect, test } from "vitest"
 
 import { createAuthTransport } from "../http"
 
+/** Native and transport layers reject with plain values; tests reproduce that exactly. */
+const nonError = (value: unknown): unknown => value
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((done) => {
@@ -16,12 +19,16 @@ async function setup(
 ) {
   const values = new Map<string, unknown>()
   const storage = createTokenStorage({
-    get: async <T>(key: string) => values.get(key) as T | undefined,
-    set: async (key, value) => {
-      values.set(key, value)
+    get: <T>(key: string) => Promise.try(() => values.get(key) as T | undefined),
+    set: (key, value) => {
+      return Promise.try(() => {
+        values.set(key, value)
+      })
     },
-    delete: async (key) => {
-      values.delete(key)
+    delete: (key) => {
+      return Promise.try(() => {
+        values.delete(key)
+      })
     }
   })
   await storage.tokenStorage.save("old-access", "old-refresh")
@@ -29,7 +36,7 @@ async function setup(
   const transport = createAuthTransport({
     baseUrl: "https://api.example.test/service",
     storage,
-    fetch: ((url, init) => fetcher(url as string, init ?? {})) as typeof fetch,
+    fetch: (url, init) => fetcher(url as string, init ?? {}),
     refresh,
     expired: async () => {
       expirations++
@@ -42,12 +49,14 @@ const fresh = { access_token: "new-access", refresh_token: "new-refresh" }
 describe("ALwith account HTTP adapter", () => {
   test("login rejection exposes the API's error detail through Error.message", async () => {
     const { transport } = await setup(
-      async () => Response.json({ detail: "验证码错误或已过期。", status: 400 }, { status: 400 }),
-      async () => {
-        throw new Error("must not refresh")
+      () => Promise.try(() => Response.json({ detail: "验证码错误或已过期。", status: 400 }, { status: 400 })),
+      () => {
+        return Promise.try(() => {
+          throw new Error("must not refresh")
+        })
       }
     )
-    const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error) => error)
+    const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
     expect(error).toMatchObject({ message: "验证码错误或已过期。" })
   })
@@ -60,10 +69,10 @@ describe("ALwith account HTTP adapter", () => {
       '{"access_token":"secret"}'
     ]) {
       const { transport } = await setup(
-        async () => new Response(body, { status: 400 }),
-        async () => fresh
+        () => Promise.try(() => new Response(body, { status: 400 })),
+        () => Promise.resolve(fresh)
       )
-      const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error) => error)
+      const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error: unknown) => error)
       expect(error).toBeInstanceOf(Error)
       expect(error).toMatchObject({ message: "ALwith HTTP 400" })
     }
@@ -75,9 +84,11 @@ describe("ALwith account HTTP adapter", () => {
       new Response(null, { status: 204 })
     ]) {
       const { transport } = await setup(
-        async () => response,
-        async () => {
-          throw new Error("must not refresh")
+        () => Promise.resolve(response),
+        () => {
+          return Promise.try(() => {
+            throw new Error("must not refresh")
+          })
         }
       )
       await expect(
@@ -87,19 +98,23 @@ describe("ALwith account HTTP adapter", () => {
   })
   test("nonempty malformed success responses still fail JSON parsing", async () => {
     const { transport } = await setup(
-      async () => new Response("<html>upstream error</html>", { status: 200 }),
-      async () => fresh
+      () => Promise.try(() => new Response("<html>upstream error</html>", { status: 200 })),
+      () => Promise.resolve(fresh)
     )
     await expect(transport.request("/api/v1/auth/send-code", "POST", {}, false)).rejects.toBeInstanceOf(SyntaxError)
   })
   test("public login never sends saved credentials or refreshes on rejection", async () => {
     const { transport } = await setup(
-      async (_url, init) => {
-        expect(new Headers(init.headers).has("Authorization")).toBe(false)
-        return new Response(null, { status: 401 })
+      (_url, init) => {
+        return Promise.try(() => {
+          expect(new Headers(init.headers).has("Authorization")).toBe(false)
+          return new Response(null, { status: 401 })
+        })
       },
-      async () => {
-        throw new Error("must not refresh")
+      () => {
+        return Promise.try(() => {
+          throw new Error("must not refresh")
+        })
       }
     )
     await expect(transport.request("/api/v1/auth/login", "POST", {}, false)).rejects.toThrow("401")
@@ -109,10 +124,12 @@ describe("ALwith account HTTP adapter", () => {
     const released = deferred<void>()
     const started = deferred<void>()
     const { transport, storage } = await setup(
-      async (_url, init) =>
-        new Headers(init.headers).get("Authorization") === "Bearer old-access"
-          ? new Response(null, { status: 401 })
-          : Response.json({ ok: true }),
+      (_url, init) =>
+        Promise.try(() =>
+          new Headers(init.headers).get("Authorization") === "Bearer old-access"
+            ? new Response(null, { status: 401 })
+            : Response.json({ ok: true })
+        ),
       async (token) => {
         calls++
         expect(token).toBe("old-refresh")
@@ -132,9 +149,11 @@ describe("ALwith account HTTP adapter", () => {
   })
   test("refresh rejection expires only this app's credentials", async () => {
     const { transport, storage, expirations } = await setup(
-      async () => new Response(null, { status: 401 }),
-      async () => {
-        throw { kind: "unauthorized", status: 401 }
+      () => Promise.try(() => new Response(null, { status: 401 })),
+      () => {
+        return Promise.try(() => {
+          throw nonError({ kind: "unauthorized", status: 401 })
+        })
       }
     )
     await expect(transport.request("/api/v1/me/profile", "GET")).rejects.toEqual({ kind: "unauthorized", status: 401 })
@@ -144,9 +163,11 @@ describe("ALwith account HTTP adapter", () => {
   test("temporary refresh failures preserve login", async () => {
     for (const kind of ["network", "timeout", "server", "parse"]) {
       const { transport, storage, expirations } = await setup(
-        async () => new Response(null, { status: 401 }),
-        async () => {
-          throw { kind }
+        () => Promise.try(() => new Response(null, { status: 401 })),
+        () => {
+          return Promise.try(() => {
+            throw nonError({ kind })
+          })
         }
       )
       await expect(transport.request("/api/v1/me/profile", "GET")).rejects.toEqual({ kind })
@@ -158,13 +179,13 @@ describe("ALwith account HTTP adapter", () => {
     const result = deferred<typeof fresh>()
     const started = deferred<void>()
     const { transport, storage } = await setup(
-      async () => new Response(null, { status: 401 }),
+      () => Promise.try(() => new Response(null, { status: 401 })),
       async () => {
         started.resolve()
         return result.promise
       }
     )
-    const request = transport.request("/api/v1/me/profile", "GET").catch((error) => error)
+    const request = transport.request("/api/v1/me/profile", "GET").catch((error: unknown) => error)
     await started.promise
     const settled = transport.invalidate()
     result.resolve(fresh)
@@ -175,10 +196,12 @@ describe("ALwith account HTTP adapter", () => {
   })
   test("requests outside the API namespace are rejected", async () => {
     const { transport } = await setup(
-      async () => {
-        throw new Error("must not fetch")
+      () => {
+        return Promise.try(() => {
+          throw new Error("must not fetch")
+        })
       },
-      async () => fresh
+      () => Promise.resolve(fresh)
     )
     await expect(transport.request("https://other.test", "GET")).rejects.toThrow("Invalid ALwith API path")
   })

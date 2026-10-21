@@ -212,9 +212,7 @@ function modelHint(model: string | null): { _meta?: { alwith: { model: string } 
 /** The current value of the session's `model` option, if the agent exposes one. */
 function selectedModel(options: acp.SessionConfigOption[]): string | null {
   const option = options.find((entry) => entry.category === "model" && entry.type === "select")
-  return option !== undefined && option.type === "select" && typeof option.currentValue === "string"
-    ? option.currentValue
-    : null
+  return option?.type === "select" && typeof option.currentValue === "string" ? option.currentValue : null
 }
 
 /** `session/resume` answered from the read path because another Codex client holds the writer. */
@@ -389,7 +387,7 @@ export class CodexClient {
       this.store.setState({
         connection: "ready",
         connectionError: null,
-        agent: agent.initialized as acp.InitializeResponse
+        agent: agent.initialized
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -1027,7 +1025,7 @@ export class CodexClient {
     const pending = this.historyRequests.get(id)
     if (pending) return pending
     const page = this.state.historyPages[id]
-    if (!page || page.cursor === null) return Promise.resolve()
+    if (page?.cursor == null) return Promise.resolve()
     const agent = this.live()
     const session = this.sessions.get(id)
     this.store.setState((state) => ({
@@ -1323,7 +1321,7 @@ export class CodexClient {
     // revocation first, attempt both operations, and report every failure.
     const revoke = Promise.resolve().then(() => this.options.revokeSessionAccess?.(id))
     const results = await Promise.allSettled([revoke, Promise.resolve().then(stop)])
-    const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []))
+    const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason as unknown] : []))
     if (errors.length === 1) throw errors[0]
     if (errors.length > 1) throw new AggregateError(errors, "Session stop failed")
   }

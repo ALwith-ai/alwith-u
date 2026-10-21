@@ -78,7 +78,7 @@ test("blocks submission while writing and routes completion to the original draf
   expect(screen.getByRole("button", { name: "Send" })).toBeDisabled()
   view.rerender(<Composer key="b" session={session("b")} />)
   expect(screen.queryByText("Adding pasted text…")).not.toBeInTheDocument()
-  await act(async () => finish("/tmp/a.txt"))
+  await act(() => Promise.try(() => finish("/tmp/a.txt")))
   expect(drafts.get("b")?.attachments).toHaveLength(0)
   view.rerender(<Composer key="a" session={session("a")} />)
   await screen.findByText("5000 characters")
@@ -98,7 +98,7 @@ test("waits for native writes when transferring a prepared draft to another wind
   if (!originalDraft) throw new Error("Missing source draft")
   importDraft("prepared", originalDraft)
   const transferred = exportDraft("prepared")
-  await act(async () => finish("/tmp/transferred.txt"))
+  await act(() => Promise.try(() => finish("/tmp/transferred.txt")))
   const draft = await transferred
   if (!draft) throw new Error("Missing transferred draft")
   const file = draft.attachments[0]
@@ -135,7 +135,7 @@ test("does not resurrect an attachment removed before the native write finishes"
   render(<Composer session={session()} />)
   paste(longText)
   fireEvent.click(screen.getByRole("button", { name: "Remove pasted text attachment" }))
-  await act(async () => finish("/tmp/removed.txt"))
+  await act(() => Promise.try(() => finish("/tmp/removed.txt")))
   expect(drafts.get("paste-session")?.attachments).toHaveLength(0)
   expect(screen.queryByText("5000 characters")).not.toBeInTheDocument()
 })

@@ -30,8 +30,10 @@ function fixture(text: string): PreviewProps {
     context: { readOnly: false, onChange: vi.fn(), onSave: vi.fn(), onError: vi.fn() },
     host: {
       pdfWorkerSrc: "worker.js",
-      resolveResource: vi.fn(async () => {
-        throw new Error("Unexpected resource")
+      resolveResource: vi.fn(() => {
+        return Promise.try(() => {
+          throw new Error("Unexpected resource")
+        })
       })
     }
   }
@@ -89,7 +91,7 @@ test("large UTF-8 Markdown is read-only until the pencil explicitly mounts Milkd
 
 test("Markdown math renders through KaTeX and real edits still publish and save", async () => {
   let editor: Editor | undefined
-  const make = Editor.make
+  const make = Editor.make.bind(Editor)
   vi.spyOn(Editor, "make").mockImplementation(() => {
     editor = make()
     return editor
@@ -159,7 +161,7 @@ test("Drive integration keeps configuration, read-only state, serialization and 
 
 test("Markdown image resolution never writes object URLs into the Markdown and links use the host", async () => {
   let editor: Editor | undefined
-  const make = Editor.make
+  const make = Editor.make.bind(Editor)
   vi.spyOn(Editor, "make").mockImplementation(() => {
     editor = make()
     return editor
@@ -167,11 +169,13 @@ test("Markdown image resolution never writes object URLs into the Markdown and l
   const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:resolved-image")
   const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
   const props = fixture("# Images\n\n![Local](assets/pic.png)\n\n[Website](https://example.com)\n")
-  props.host.resolveResource = vi.fn(async () => ({
-    bytes: new Uint8Array([1]),
-    mimeType: "image/png",
-    path: "/repo/assets/pic.png"
-  }))
+  props.host.resolveResource = vi.fn(() =>
+    Promise.try(() => ({
+      bytes: new Uint8Array([1]),
+      mimeType: "image/png",
+      path: "/repo/assets/pic.png"
+    }))
+  )
   props.host.openLink = vi.fn(async () => {})
   const view = render(<Workbench props={props} />)
   await waitFor(() => expect(screen.getByAltText("Local")).toHaveAttribute("src", "blob:resolved-image"))
@@ -204,7 +208,7 @@ test("large preview sanitizes HTML, renders formulas and leaves persisted text u
   expect(view.container.querySelector('img[src^="https:"]')).toBeNull()
   expect(props.context.onChange).not.toHaveBeenCalled()
   expect(props.context.onError).toHaveBeenCalledWith(
-    expect.objectContaining({ message: expect.stringContaining("blocked") })
+    expect.objectContaining({ message: expect.stringContaining("blocked") as string }) as Error
   )
 })
 

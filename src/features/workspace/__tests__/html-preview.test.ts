@@ -18,8 +18,8 @@ function filesystem(): FileSystem {
 }
 
 test("opens an isolated native URL and revokes its capability on disposal", async () => {
-  const invoke = vi.fn(async (command: string): Promise<unknown> =>
-    command === "html_preview_open" ? { token: "token-1", path: "report/index.html" } : undefined
+  const invoke = vi.fn((command: string): Promise<unknown> =>
+    Promise.resolve(command === "html_preview_open" ? { token: "token-1", path: "report/index.html" } : undefined)
   )
   const host = createHtmlPreviewHost("/repo", filesystem(), invoke, false)
   const preview = await host.open("/repo/report/index.html", "<p>Transformed</p>")
@@ -34,7 +34,7 @@ test("opens an isolated native URL and revokes its capability on disposal", asyn
 })
 
 test("encodes URL segments on Windows without flattening relative resolution", async () => {
-  const invoke = async (): Promise<unknown> => ({ token: "token-2", path: "reports/a #1.html" })
+  const invoke = (): Promise<unknown> => Promise.resolve({ token: "token-2", path: "reports/a #1.html" })
   const preview = await createHtmlPreviewHost("/repo", filesystem(), invoke, true).open("/repo/reports/a #1.html", "x")
   expect(preview.url).toBe("http://preview-html.localhost/token-2/reports/a%20%231.html")
   expect(new URL("../data.json", preview.url).pathname).toBe("/token-2/data.json")
@@ -43,7 +43,7 @@ test("encodes URL segments on Windows without flattening relative resolution", a
 test("refreshes on sibling and nested saves and unsubscribes on close", async () => {
   const fs = filesystem()
   const refresh = vi.fn()
-  const host = createHtmlPreviewHost("/repo", fs, async () => undefined, false)
+  const host = createHtmlPreviewHost("/repo", fs, () => Promise.resolve(undefined), false)
   const off = await host.subscribe("/repo/report/index.html", refresh, (error) => {
     throw error
   })

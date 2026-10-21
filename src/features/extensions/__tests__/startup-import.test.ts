@@ -4,12 +4,14 @@ import { runStartupImports, type StartupImportPort } from "../startup-import"
 
 function fixture(): StartupImportPort {
   return {
-    scan: vi.fn(async () => ({ tasks: ["a", "b"], errors: [] })),
-    prepare: vi.fn(async (id: string) => ({
-      id,
-      phase: "prepared" as const,
-      package: { path: id, id, version: "1.0.0", digest: id, source: "local" }
-    })),
+    scan: vi.fn(() => Promise.resolve({ tasks: ["a", "b"], errors: [] })),
+    prepare: vi.fn((id: string) =>
+      Promise.resolve({
+        id,
+        phase: "prepared" as const,
+        package: { path: id, id, version: "1.0.0", digest: id, source: "local" }
+      })
+    ),
     install: vi.fn(async () => {}),
     complete: vi.fn(async () => {}),
     failed: vi.fn(async () => {}),
@@ -21,19 +23,25 @@ describe("startup imports", () => {
   it("installs serially and cleans only after success", async () => {
     const port = fixture()
     const calls: string[] = []
-    port.install = async (pkg) => {
-      calls.push(`install:${pkg.id}`)
+    port.install = (pkg) => {
+      return Promise.try(() => {
+        calls.push(`install:${pkg.id}`)
+      })
     }
-    port.complete = async (id) => {
-      calls.push(`clean:${id}`)
+    port.complete = (id) => {
+      return Promise.try(() => {
+        calls.push(`clean:${id}`)
+      })
     }
     await runStartupImports(port)
     expect(calls).toEqual(["install:a", "clean:a", "install:b", "clean:b"])
   })
   it("keeps failed inputs and continues with other tasks", async () => {
     const port = fixture()
-    port.install = vi.fn(async (pkg) => {
-      if (pkg.id === "a") throw new Error("activation failed")
+    port.install = vi.fn((pkg: Parameters<StartupImportPort["install"]>[0]) => {
+      return Promise.try(() => {
+        if (pkg.id === "a") throw new Error("activation failed")
+      })
     })
     await runStartupImports(port)
     expect(port.complete).toHaveBeenCalledExactlyOnceWith("b")
@@ -42,18 +50,22 @@ describe("startup imports", () => {
   })
   it("does not reinstall committed tasks when retrying cleanup", async () => {
     const port = fixture()
-    port.prepare = vi.fn(async (id: string) => ({ id, phase: "committed" as const, package: null }))
+    port.prepare = vi.fn((id: string) => Promise.resolve({ id, phase: "committed" as const, package: null }))
     await runStartupImports(port)
     expect(port.install).not.toHaveBeenCalled()
     expect(port.complete).toHaveBeenCalledTimes(2)
   })
   it("reports failure to persist errors and continues", async () => {
     const port = fixture()
-    port.install = async () => {
-      throw new Error("install failed")
+    port.install = () => {
+      return Promise.try(() => {
+        throw new Error("install failed")
+      })
     }
-    port.failed = async () => {
-      throw new Error("disk full")
+    port.failed = () => {
+      return Promise.try(() => {
+        throw new Error("disk full")
+      })
     }
     await runStartupImports(port)
     expect(port.complete).not.toHaveBeenCalled()
@@ -63,8 +75,10 @@ describe("startup imports", () => {
 
 it("releases scan ownership after processing failures", async () => {
   const port = fixture()
-  port.install = async () => {
-    throw new Error("Invalid package")
+  port.install = () => {
+    return Promise.try(() => {
+      throw new Error("Invalid package")
+    })
   }
   port.finish = vi.fn(async () => {})
   await runStartupImports(port)

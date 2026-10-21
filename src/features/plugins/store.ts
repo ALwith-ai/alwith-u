@@ -31,17 +31,17 @@ import i18n from "@/lib/i18n"
 
 /** The client methods the store needs; tests pass a fake. */
 export type PluginsApi = {
-  listSkills(cwds?: string[], forceReload?: boolean): Promise<SkillsListResponse>
-  setSkillEnabled(params: SkillsConfigWriteParams): Promise<SkillsConfigWriteResponse>
-  listPlugins(params?: PluginListParams): Promise<PluginListResponse>
-  installedPlugins(cwds?: string[]): Promise<PluginInstalledResponse>
-  installPlugin(params: PluginInstallParams): Promise<PluginInstallResponse>
-  setPluginEnabled(pluginId: string, enabled: boolean, remotePluginId?: string): Promise<{ enabled: boolean }>
-  uninstallPlugin(pluginId: string): Promise<void>
-  readPlugin(params: PluginReadParams): Promise<PluginReadResponse>
-  addMarketplace(params: MarketplaceAddParams): Promise<MarketplaceAddResponse>
-  removeMarketplace(marketplaceName: string): Promise<void>
-  upgradeMarketplaces(marketplaceName?: string): Promise<MarketplaceUpgradeResponse>
+  listSkills: (cwds?: string[], forceReload?: boolean) => Promise<SkillsListResponse>
+  setSkillEnabled: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>
+  listPlugins: (params?: PluginListParams) => Promise<PluginListResponse>
+  installedPlugins: (cwds?: string[]) => Promise<PluginInstalledResponse>
+  installPlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>
+  setPluginEnabled: (pluginId: string, enabled: boolean, remotePluginId?: string) => Promise<{ enabled: boolean }>
+  uninstallPlugin: (pluginId: string) => Promise<void>
+  readPlugin: (params: PluginReadParams) => Promise<PluginReadResponse>
+  addMarketplace: (params: MarketplaceAddParams) => Promise<MarketplaceAddResponse>
+  removeMarketplace: (marketplaceName: string) => Promise<void>
+  upgradeMarketplaces: (marketplaceName?: string) => Promise<MarketplaceUpgradeResponse>
 }
 
 /** A plugin together with the marketplace it was listed under (needed to install and read). */
@@ -66,17 +66,17 @@ type PluginsState = {
   busyIds: Record<string, "installing" | "uninstalling" | "toggling">
   /** Marketplace names with an upgrade or removal in flight. */
   busyMarketplaces: Record<string, true>
-  refresh(cwds?: string[], options?: { forceRefetch?: boolean; background?: boolean }): Promise<void>
+  refresh: (cwds?: string[], options?: { forceRefetch?: boolean; background?: boolean }) => Promise<void>
   /** Installs and returns Codex's answer (apps that still need auth); throws on failure. */
-  install(entry: PluginEntry): Promise<PluginInstallResponse>
-  setPluginEnabled(plugin: PluginSummary, enabled: boolean): Promise<void>
-  uninstall(plugin: PluginSummary): Promise<void>
-  readPlugin(entry: PluginEntry): Promise<PluginDetail>
-  setSkillEnabled(skill: SkillMetadata, enabled: boolean): Promise<void>
-  addMarketplace(params: MarketplaceAddParams): Promise<MarketplaceAddResponse>
-  removeMarketplace(marketplaceName: string): Promise<void>
-  upgradeMarketplace(marketplaceName: string): Promise<void>
-  upgradeAll(): Promise<void>
+  install: (entry: PluginEntry) => Promise<PluginInstallResponse>
+  setPluginEnabled: (plugin: PluginSummary, enabled: boolean) => Promise<void>
+  uninstall: (plugin: PluginSummary) => Promise<void>
+  readPlugin: (entry: PluginEntry) => Promise<PluginDetail>
+  setSkillEnabled: (skill: SkillMetadata, enabled: boolean) => Promise<void>
+  addMarketplace: (params: MarketplaceAddParams) => Promise<MarketplaceAddResponse>
+  removeMarketplace: (marketplaceName: string) => Promise<void>
+  upgradeMarketplace: (marketplaceName: string) => Promise<void>
+  upgradeAll: () => Promise<void>
 }
 
 export type PluginsStore = StoreApi<PluginsState>
@@ -106,7 +106,7 @@ function installedEntries(response: PluginInstalledResponse): PluginEntry[] {
   for (const marketplace of response.marketplaces) {
     for (const plugin of marketplace.plugins) if (plugin.installed) entries.push({ plugin, marketplace })
   }
-  return entries.sort((a, b) => (b.plugin.installedAt ?? 0) - (a.plugin.installedAt ?? 0))
+  return entries.toSorted((a, b) => (b.plugin.installedAt ?? 0) - (a.plugin.installedAt ?? 0))
 }
 
 /** Where Codex should install from: the local marketplace file, else the remote catalog by name. */

@@ -46,7 +46,7 @@ function findTurnObserver(): ControlledResizeObserver {
 const nativeResizeObserver = globalThis.ResizeObserver
 function stubResizeObserver(): void {
   ControlledResizeObserver.instances.length = 0
-  globalThis.ResizeObserver = ControlledResizeObserver as unknown as typeof ResizeObserver
+  globalThis.ResizeObserver = ControlledResizeObserver
 }
 
 function countByTestId(root: Element, testId: string): number {
@@ -91,7 +91,7 @@ function threadHeight(scrollElement: HTMLElement): number {
   return Number.parseFloat(thread.style.height)
 }
 
-const nativeBounds = HTMLElement.prototype.getBoundingClientRect
+const nativeBounds = Reflect.get(HTMLElement.prototype, "getBoundingClientRect")
 
 describe("VirtualizedTurnList", () => {
   beforeEach(() => {
@@ -332,7 +332,7 @@ describe("VirtualizedTurnList", () => {
       (top) => scrollTargets.push(top)
     )
     const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")
-    const bounds = HTMLElement.prototype.getBoundingClientRect
+    const bounds = Reflect.get(HTMLElement.prototype, "getBoundingClientRect")
     Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
       configurable: true,
       get(this: HTMLElement) {

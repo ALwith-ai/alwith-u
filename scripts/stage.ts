@@ -61,7 +61,7 @@ async function hostTriple(): Promise<string> {
   const output = await $`rustc -vV`.text()
   const match = output.match(/^host: (.+)$/m)
   if (!match) throw new Error(`rustc -vV did not report a host triple:\n${output}`)
-  return match[1]!.trim()
+  return match[1].trim()
 }
 
 const nativeTriple = await hostTriple()
@@ -88,7 +88,7 @@ const bunPackageName = BUN_PACKAGES[triple]
 if (!bunPackageName) throw new Error(`No Bun artifact configured for ${triple}`)
 const bunPackageDir = join(root, "node_modules", bunPackageName)
 if (!existsSync(bunPackageDir)) throw new Error(`Missing ${bunPackageName}; run bun install for ${triple}`)
-const bunPackage = JSON.parse(readFileSync(join(bunPackageDir, "package.json"), "utf8"))
+const bunPackage = JSON.parse(readFileSync(join(bunPackageDir, "package.json"), "utf8")) as { version: string }
 assertVersion("installed Bun package", bunPackage.version, versions.bun)
 const bunDestination = join(binaries, `bun-${triple}${target.exe}`)
 copyFileSync(join(bunPackageDir, "bin", `bun${target.exe}`), bunDestination)
@@ -122,8 +122,10 @@ if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
 }
 console.log(`alwith-native -> ${nativeLibrary}`)
 
-const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8"))
-const codexVersion: string = codexPackage.version
+const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8")) as {
+  version: string
+}
+const codexVersion = codexPackage.version
 assertVersion("installed Codex package", codexVersion, versions.codex)
 const platformPackage = join(root, `node_modules/@openai/codex-${target.npm}`)
 if (!existsSync(platformPackage)) {
@@ -131,7 +133,9 @@ if (!existsSync(platformPackage)) {
     `Missing ${platformPackage}. Install the platform package for ${triple}: bun add -d @openai/codex-${target.npm}@npm:@openai/codex@${codexVersion}-${target.npm}`
   )
 }
-const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "package.json"), "utf8"))
+const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "package.json"), "utf8")) as {
+  version: string
+}
 assertVersion("installed Codex platform package", codexPlatformPackage.version, `${codexVersion}-${target.npm}`)
 const vendorTriple = NPM_VENDOR_TRIPLE[triple] ?? triple
 // Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar
@@ -149,7 +153,11 @@ if (triple === nativeTriple) {
   assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }
 
-const adapterPackage = JSON.parse(readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8"))
+const adapterPackage = JSON.parse(
+  readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8")
+) as {
+  version: string
+}
 const adapterEntry = join(root, "node_modules/@nyssance/codex-acp-v2/dist/index.js")
 const adapterDirectory = join(root, "src-tauri/resources/adapter")
 mkdirSync(adapterDirectory, { recursive: true })
@@ -162,7 +170,7 @@ const bootstrapBuild = await Bun.build({
   format: "esm"
 })
 if (!bootstrapBuild.success) throw new AggregateError(bootstrapBuild.logs, "Codex bootstrap bundling failed")
-await Bun.write(join(adapterDirectory, "codex-bootstrap.mjs"), bootstrapBuild.outputs[0]!)
+await Bun.write(join(adapterDirectory, "codex-bootstrap.mjs"), bootstrapBuild.outputs[0])
 
 // A small std-only proxy avoids bundling another copy of the Bun runtime.
 const launcherDestination = join(binaries, `alwith-codex-launcher-${triple}${target.exe}`)

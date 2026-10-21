@@ -7,7 +7,7 @@ import { zoomStore } from "@/lib/zoom"
 
 const { native, fullscreen, stop, resized } = vi.hoisted(() => ({
   native: vi.fn(() => true),
-  fullscreen: vi.fn(async () => false),
+  fullscreen: vi.fn(() => Promise.resolve(false)),
   stop: vi.fn(),
   resized: { callback: () => {} }
 }))
@@ -18,9 +18,9 @@ vi.mock("@tauri-apps/api/core", async (importOriginal) => ({
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({
     isFullscreen: fullscreen,
-    onResized: async (callback: () => void) => {
+    onResized: (callback: () => void) => {
       resized.callback = callback
-      return stop
+      return Promise.resolve(stop)
     }
   })
 }))
@@ -47,16 +47,20 @@ test("macOS chrome moves left in fullscreen on both screens and restores its zoo
   const root = view.container.querySelector<HTMLElement>("[data-main-screen]")
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("calc(80px * var(--window-zoom-correction))")
   fullscreen.mockResolvedValue(true)
-  await act(async () => {
-    resized.callback()
+  await act(() => {
+    return Promise.try(() => {
+      resized.callback()
+    })
   })
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("8px")
   view.rerender(layout("leading"))
   act(() => zoomStore.setState({ level: 2 }))
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("8px")
   fullscreen.mockResolvedValue(false)
-  await act(async () => {
-    resized.callback()
+  await act(() => {
+    return Promise.try(() => {
+      resized.callback()
+    })
   })
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("calc(80px * var(--window-zoom-correction))")
   view.unmount()
@@ -75,11 +79,15 @@ test("an older fullscreen response cannot overwrite a later transition", async (
   const view = render(<MainSidebarLayout initialPinned screen="main" sidebar={null} leading={null} main={null} />)
   await act(async () => {})
   fullscreen.mockResolvedValue(true)
-  await act(async () => {
-    resized.callback()
+  await act(() => {
+    return Promise.try(() => {
+      resized.callback()
+    })
   })
-  await act(async () => {
-    finish?.(false)
+  await act(() => {
+    return Promise.try(() => {
+      finish?.(false)
+    })
   })
   expect(
     view.container.querySelector<HTMLElement>("[data-main-screen]")?.style.getPropertyValue("--sidebar-toggle-left")

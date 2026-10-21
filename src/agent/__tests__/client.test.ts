@@ -60,7 +60,7 @@ async function make(
   const fake = createFakeAgent()
   configure?.(fake)
   const port = new FakeHubPort(() => fake.app)
-  const client = new CodexClient(async () => port, {
+  const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
     projectPaths,
@@ -229,11 +229,8 @@ test("stream bursts preserve every chunk across sessions with bounded UI notific
     })
   }
   const expected = (parity: number) => Array.from({ length: 200 }, (_, i) => `${i * 2 + parity},`).join("")
-  await until(
-    () =>
-      client.state.sessions[b]?.items.some(
-        (item) => item.kind === "thought" && textOf(item.content) === expected(1)
-      ) === true
+  await until(() =>
+    client.state.sessions[b]?.items.some((item) => item.kind === "thought" && textOf(item.content) === expected(1))
   )
   stop()
   for (const [id, parity] of [
@@ -385,7 +382,7 @@ test("older history exposes retry errors and a late page cannot resurrect a clos
   expect(client.state.historyPages.h1).toMatchObject({
     cursor: "next",
     loading: false,
-    error: expect.stringContaining("Read failed")
+    error: expect.stringContaining("Read failed") as string
   })
   fail = false
   const pending = client.loadOlderHistory("h1")
@@ -862,8 +859,10 @@ test("restore waits for the host's applied provider selection", async () => {
 })
 
 test("provider application failures stop restoration without probing or replacing the conversation", async () => {
-  const { client, fake } = await make(undefined, undefined, async () => {
-    throw new Error("Provider unavailable")
+  const { client, fake } = await make(undefined, undefined, () => {
+    return Promise.try(() => {
+      throw new Error("Provider unavailable")
+    })
   })
   await expect(client.open("h1", "/tmp/one")).rejects.toThrow("Provider unavailable")
   expect(fake.modelHints.size).toBe(0)
@@ -1059,8 +1058,10 @@ test("changing an empty draft's model creates it on that model without resuming 
 test("failed draft model creation preserves the original draft for retry", async () => {
   const { client, fake } = await make()
   const first = await client.prepareDraft("main", "/tmp/model-failure")
-  fake.newSessionDelay.current = async () => {
-    throw new Error("Gateway unavailable")
+  fake.newSessionDelay.current = () => {
+    return Promise.try(() => {
+      throw new Error("Gateway unavailable")
+    })
   }
   await expect(client.prepareDraft("main", "/tmp/model-failure", "deepseek-flash")).rejects.toThrow()
   expect(client.state.draftSessions[first]).toBe("main")

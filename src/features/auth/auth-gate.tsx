@@ -90,8 +90,9 @@ function PlatformLogin() {
         <Tabs
           value={mode}
           onValueChange={(value) => {
-            if (value !== "code" && value !== "password" && value !== "register") throw new Error("Invalid login mode")
-            setMode(value)
+            const mode: unknown = value
+            if (mode !== "code" && mode !== "password" && mode !== "register") throw new Error("Invalid login mode")
+            setMode(mode)
             setCode("")
             setPassword("")
             setError("")

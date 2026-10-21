@@ -13,7 +13,7 @@ export function isQuickChatDirectory(cwd: string): boolean {
 
 function normalizeWindowsPath(path: string): string {
   return path
-    .replace(/\\/g, "/")
+    .replaceAll("\\", "/")
     .replace(/^\/\/\?\/UNC\//i, "//")
     .replace(/^\/\/\?\//, "")
     .replace(/\/+$/, "")
@@ -22,7 +22,7 @@ function normalizeWindowsPath(path: string): string {
 
 export function groupThreads(threads: ThreadSummary[]): Array<[string, ThreadSummary[]]> {
   const groups = new Map<string, ThreadSummary[]>([[QUICK_CHATS_GROUP, []]])
-  for (const thread of [...threads].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))) {
+  for (const thread of [...threads].toSorted((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))) {
     const key = isQuickChatDirectory(thread.cwd) ? QUICK_CHATS_GROUP : thread.cwd
     const group = groups.get(key)
     if (group) group.push(thread)

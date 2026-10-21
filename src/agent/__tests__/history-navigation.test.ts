@@ -25,7 +25,7 @@ const answer = (id: string) => ({
 
 test("indexes every turn using summary-only pages without fetching transcript bodies", async () => {
   const request = vi
-    .fn()
+    .fn<(method: string, params: Record<string, unknown>) => Promise<unknown>>()
     .mockResolvedValueOnce(response({ turns: [summary("new")] }, "older"))
     .mockResolvedValueOnce(response({ turns: [summary("old")] }))
   expect((await readHistoryIndex("s", request, () => {})).map((turn) => turn.turnId)).toEqual(["old", "new"])
@@ -43,24 +43,28 @@ test("rejects cross-session indexes, repeated cursors and duplicate turns", asyn
     [response({ turns: [summary("one")] }, "cursor"), response({ turns: [summary("two")] }, "cursor")],
     [response({ turns: [summary("one"), summary("one")] })]
   ]) {
-    const request = vi.fn()
+    const request = vi.fn<(method: string, params: Record<string, unknown>) => Promise<unknown>>()
     for (const page of pages) request.mockResolvedValueOnce(page)
     await expect(readHistoryIndex("s", request, () => {})).rejects.toThrow()
   }
 })
 
 test("hover is bounded while direct navigation reads all item pages of only the requested turn", async () => {
-  const request = vi.fn().mockImplementation(async (_method, params) =>
-    response(
-      {
-        items:
-          params.cursor || params.sortDirection === "desc"
-            ? [{ turnId: "old", itemId: "answer", updates: [answer("old")] }]
-            : [{ turnId: "old", itemId: "user", updates: [user("old")] }]
-      },
-      params.cursor ? null : "next"
+  const request = vi
+    .fn<(method: string, params: Record<string, unknown>) => Promise<unknown>>()
+    .mockImplementation((_method, params) =>
+      Promise.try(() =>
+        response(
+          {
+            items:
+              params.cursor || params.sortDirection === "desc"
+                ? [{ turnId: "old", itemId: "answer", updates: [answer("old")] }]
+                : [{ turnId: "old", itemId: "user", updates: [user("old")] }]
+          },
+          params.cursor ? null : "next"
+        )
+      )
     )
-  )
   const preview = await readHistoryTurn("s", "/work", summary("old"), request, () => {}, true)
   expect(request).toHaveBeenCalledTimes(2)
   expect(preview.items).toHaveLength(2)
@@ -80,10 +84,12 @@ test("hover is bounded while direct navigation reads all item pages of only the 
 test("sparse hydration, later pagination and live upserts retain native chronological order", async () => {
   const page = async (id: string) =>
     (
-      await readHistoryPage("s", "/work", null, async () =>
-        response({
-          turns: [{ ...summary(id), itemsView: "full", updates: [user(id), answer(id)] }]
-        })
+      await readHistoryPage("s", "/work", null, () =>
+        Promise.try(() =>
+          response({
+            turns: [{ ...summary(id), itemsView: "full", updates: [user(id), answer(id)] }]
+          })
+        )
       )
     ).session
   const index = [summary("old"), summary("middle"), summary("new")]
@@ -103,9 +109,13 @@ test("a cancelled read cannot publish a late index or target", async () => {
   const check = () => {
     if (!active) throw new Error("cancelled")
   }
-  const request = vi.fn().mockImplementation(async () => {
-    active = false
-    return response({ turns: [summary("old")] })
-  })
+  const request = vi
+    .fn<(method: string, params: Record<string, unknown>) => Promise<unknown>>()
+    .mockImplementation(() => {
+      return Promise.try(() => {
+        active = false
+        return response({ turns: [summary("old")] })
+      })
+    })
   await expect(readHistoryIndex("s", request, check)).rejects.toThrow("cancelled")
 })

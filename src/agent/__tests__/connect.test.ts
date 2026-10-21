@@ -19,7 +19,7 @@ async function until(predicate: () => boolean) {
 
 test("a fresh Runtime starts the agent and the client talks ACP through it", async () => {
   const port = new FakeHubPort(() => createFakeAgent().app)
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
   expect(port.started).toEqual(["codex"])
@@ -51,7 +51,7 @@ test("a Runtime that already runs the agent is attached, not restarted, and pend
   // afterwards would leave it ownerless).
   port.seedRunningSession("s-theirs", "desktop-chat1", [])
 
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
   // Attached, not restarted: one start ever, and the initialize response came from the Runtime.
@@ -69,7 +69,7 @@ test("a reload reuses a running agent that has no sessions", async () => {
   const port = new FakeHubPort(() => createFakeAgent().app)
   await port.start("codex", { engine: "codex" })
 
-  const client = new CodexClient(async () => port, { agentId: "codex", launch: { engine: "codex" } })
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
   await client.connect()
 

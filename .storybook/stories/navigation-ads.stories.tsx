@@ -26,7 +26,7 @@ export const EqualGutters: Story = {
     const check = async (index: number) => {
       await waitFor(() => {
         const bounds = viewport.getBoundingClientRect()
-        const slide = buttons[index]!.getBoundingClientRect()
+        const slide = buttons[index].getBoundingClientRect()
         void expect(slide.left).toBeCloseTo(bounds.left + 4, 0)
         void expect(slide.right).toBeCloseTo(bounds.right - 4, 0)
         void expect(slide.height).toBeCloseTo(bounds.height, 0)
@@ -34,7 +34,7 @@ export const EqualGutters: Story = {
       })
     }
     await check(0)
-    buttons[0]!.focus()
+    buttons[0].focus()
     await userEvent.keyboard("{ArrowRight}")
     await check(1)
     await userEvent.keyboard("{ArrowRight}")

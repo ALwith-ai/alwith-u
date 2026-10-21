@@ -7,9 +7,9 @@ const threads = [
   { sessionId: "two", cwd: "/other", title: "Second", updatedAt: null, archived: true }
 ]
 const source = () => ({
-  list: vi.fn(async () => threads),
-  read: vi.fn(
-    async (id: string) => `${JSON.stringify({ type: "user", sessionId: id, message: { content: "Hello" } })}\n`
+  list: vi.fn(() => Promise.resolve(threads)),
+  read: vi.fn((id: string) =>
+    Promise.try(() => `${JSON.stringify({ type: "user", sessionId: id, message: { content: "Hello" } })}\n`)
   ),
   check: vi.fn()
 })

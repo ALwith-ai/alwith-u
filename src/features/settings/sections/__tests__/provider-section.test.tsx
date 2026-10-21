@@ -26,7 +26,7 @@ function snapshot(revision: number, region = "intl"): ProviderSnapshot {
 }
 
 test("an untouched row follows loaded regions and submits the revision it displayed", async () => {
-  const save = vi.fn(async () => snapshot(3))
+  const save = vi.fn(() => Promise.try(() => snapshot(3)))
   const view = render(
     <ProviderRow
       provider={provider}
@@ -45,29 +45,37 @@ test("an untouched row follows loaded regions and submits the revision it displa
       onSave={save}
     />
   )
-  await act(async () => {
-    view.getByLabelText("API key").focus()
-    fireEvent.input(view.getByLabelText("API key"), { target: { value: "new-key" } })
-    fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      view.getByLabelText("API key").focus()
+      fireEvent.input(view.getByLabelText("API key"), { target: { value: "new-key" } })
+      fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+    })
   })
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
   expect(save.mock.calls[0]).toEqual([2, { apiKey: "new-key", region: "intl" }])
   expect((view.getByLabelText("API key") as HTMLInputElement).value).toBe("")
-  await act(async () => {
-    view.getByLabelText("API key").focus()
-    fireEvent.input(view.getByLabelText("API key"), { target: { value: "after-ack" } })
-    fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      view.getByLabelText("API key").focus()
+      fireEvent.input(view.getByLabelText("API key"), { target: { value: "after-ack" } })
+      fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+    })
   })
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
   expect(save.mock.calls[1]).toEqual([3, { apiKey: "after-ack", region: "intl" }])
 })
 
 test("a dirty row keeps its loaded revision across another window's save and retains a rejected draft", async () => {
-  const save = vi.fn(async () => null)
+  const save = vi.fn(() => Promise.resolve(null))
   const view = render(
     <ProviderRow
       provider={provider}
@@ -77,10 +85,12 @@ test("a dirty row keeps its loaded revision across another window's save and ret
       onSave={save}
     />
   )
-  await act(async () => {
-    view.getByLabelText("API key").focus()
-    fireEvent.input(view.getByLabelText("API key"), { target: { value: "draft-key" } })
-    fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      view.getByLabelText("API key").focus()
+      fireEvent.input(view.getByLabelText("API key"), { target: { value: "draft-key" } })
+      fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+    })
   })
   view.rerender(
     <ProviderRow
@@ -91,13 +101,17 @@ test("a dirty row keeps its loaded revision across another window's save and ret
       onSave={save}
     />
   )
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
   expect(save.mock.calls[0]).toEqual([1, { apiKey: "draft-key", region: "cn" }])
   expect((view.getByLabelText("API key") as HTMLInputElement).value).toBe("draft-key")
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Remove" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Remove" }))
+    })
   })
   expect(save.mock.calls[1]).toEqual([1, null])
 })
@@ -111,21 +125,29 @@ test("a successful save advances the base without erasing text typed while it wa
       })
   )
   const view = render(<ProviderRow provider={provider} saved={null} revision={1} busy={false} onSave={save} />)
-  await act(async () => {
-    view.getByLabelText("API key").focus()
-    fireEvent.input(view.getByLabelText("API key"), { target: { value: "submitted-key" } })
-    fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      view.getByLabelText("API key").focus()
+      fireEvent.input(view.getByLabelText("API key"), { target: { value: "submitted-key" } })
+      fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+    })
   })
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
-  await act(async () => {
-    view.getByLabelText("API key").focus()
-    fireEvent.input(view.getByLabelText("API key"), { target: { value: "next-draft" } })
-    fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      view.getByLabelText("API key").focus()
+      fireEvent.input(view.getByLabelText("API key"), { target: { value: "next-draft" } })
+      fireEvent.keyUp(view.getByLabelText("API key"), { key: "a" })
+    })
   })
-  await act(async () => {
-    finish(snapshot(2, "cn"))
+  await act(() => {
+    return Promise.try(() => {
+      finish(snapshot(2, "cn"))
+    })
   })
   expect((view.getByLabelText("API key") as HTMLInputElement).value).toBe("next-draft")
   view.rerender(
@@ -137,17 +159,21 @@ test("a successful save advances the base without erasing text typed while it wa
       onSave={save}
     />
   )
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
   expect(save.mock.calls[1]).toEqual([2, { apiKey: "next-draft", region: "cn" }])
-  await act(async () => {
-    finish(snapshot(3, "cn"))
+  await act(() => {
+    return Promise.try(() => {
+      finish(snapshot(3, "cn"))
+    })
   })
 })
 
 test("a built-in provider saves a page-configured API base URL", async () => {
-  const save = vi.fn(async () => snapshot(2))
+  const save = vi.fn(() => Promise.try(() => snapshot(2)))
   const view = render(
     <ProviderRow
       provider={provider}
@@ -157,16 +183,20 @@ test("a built-in provider saves a page-configured API base URL", async () => {
       onSave={save}
     />
   )
-  await act(async () => {
-    const input = view.getByLabelText("API base URL")
-    input.focus()
-    fireEvent.input(input, {
-      target: { value: "https://gateway.example.test/v1" }
+  await act(() => {
+    return Promise.try(() => {
+      const input = view.getByLabelText("API base URL")
+      input.focus()
+      fireEvent.input(input, {
+        target: { value: "https://gateway.example.test/v1" }
+      })
+      fireEvent.keyUp(input, { key: "a" })
     })
-    fireEvent.keyUp(input, { key: "a" })
   })
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Save" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }))
+    })
   })
   expect(save.mock.calls[0]).toEqual([1, { region: "intl", baseUrl: "https://gateway.example.test/v1" }])
 })
@@ -198,14 +228,18 @@ test("provider tabs show configuration state and switch the single active panel"
   expect(view.getByTestId("deepseek-status").getAttribute("data-configured")).toBe("true")
   expect(view.getByTestId("qwen-status").getAttribute("data-configured")).toBe("false")
 
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Qwen" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Qwen" }))
+    })
   })
   expect(view.getByRole("button", { name: "Qwen" }).getAttribute("aria-pressed")).toBe("true")
   expect(view.getByText("qwen")).toBeTruthy()
 
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Private gateway" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "Private gateway" }))
+    })
   })
   expect(view.getByText("custom_private")).toBeTruthy()
 })
@@ -218,58 +252,66 @@ const customProvider = {
 }
 
 async function enterText(input: HTMLElement, value: string): Promise<void> {
-  await act(async () => {
-    input.focus()
-    fireEvent.input(input, { target: { value } })
-    fireEvent.keyUp(input, { key: "a" })
+  await act(() => {
+    return Promise.try(() => {
+      input.focus()
+      fireEvent.input(input, { target: { value } })
+      fireEvent.keyUp(input, { key: "a" })
+    })
   })
 }
 
 test("custom model previews reflect edits and keep the JSON draft when reopened", async () => {
-  const save = vi.fn(async () => true)
+  const save = vi.fn(() => Promise.resolve(true))
   const saved = vi.fn(() => {})
   const view = render(
     <CustomProviderEditor provider={customProvider} revision={7} busy={false} onSave={save} onSaved={saved} />
   )
   expect(view.getByText("Model A")).toBeTruthy()
   expect(view.queryByLabelText("Models (JSON)")).toBeNull()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Edit JSON" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Edit JSON" }))))
   const draft = '[{"label":"Model B","api_id":"model-b","contextWindow":32000}]'
   await enterText(view.getByLabelText("Models (JSON)"), draft)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Preview models" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Preview models" }))))
   expect(view.getByText("Model B")).toBeTruthy()
   expect(view.getByText("model-b")).toBeTruthy()
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Edit JSON" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Edit JSON" }))))
   expect((view.getByLabelText("Models (JSON)") as HTMLTextAreaElement).value).toBe(draft)
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Save" })))
-  expect(save.mock.calls).toEqual([[7, { ...customProvider, models: JSON.parse(draft) }]])
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Save" }))))
+  expect(save.mock.calls).toEqual([[7, { ...customProvider, models: JSON.parse(draft) as unknown }]])
   expect(saved.mock.calls).toEqual([[customProvider.id]])
 })
 
 test("invalid model JSON stays editable and cannot be saved or hidden by preview", async () => {
-  const save = vi.fn(async () => true)
+  const save = vi.fn(() => Promise.resolve(true))
   const view = render(
     <CustomProviderEditor provider={customProvider} revision={1} busy={false} onSave={save} onSaved={() => {}} />
   )
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Edit JSON" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Edit JSON" }))))
   await enterText(view.getByLabelText("Models (JSON)"), "[]")
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Preview models" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Preview models" }))))
   expect(view.getByLabelText("Models (JSON)").getAttribute("aria-invalid")).toBe("true")
   expect(view.getByRole("alert").textContent).toBe("Add at least one model")
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Save" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Save" }))))
   expect(save).not.toHaveBeenCalled()
   expect((view.getByLabelText("Models (JSON)") as HTMLTextAreaElement).value).toBe("[]")
 })
 
 test("a new custom provider starts with the model editor open and masks its API key", async () => {
   const view = render(
-    <CustomProviderEditor provider={null} revision={1} busy={false} onSave={async () => true} onSaved={() => {}} />
+    <CustomProviderEditor
+      provider={null}
+      revision={1}
+      busy={false}
+      onSave={() => Promise.resolve(true)}
+      onSaved={() => {}}
+    />
   )
   expect(view.getByLabelText("Models (JSON)")).toBeTruthy()
   expect(view.getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true)
   await enterText(view.getByLabelText("API key"), "draft-key")
   expect(view.getByLabelText("API key").getAttribute("type")).toBe("password")
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Show key" })))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Show key" }))))
   expect(view.getByLabelText("API key").getAttribute("type")).toBe("text")
   expect((view.getByLabelText("API key") as HTMLInputElement).value).toBe("draft-key")
 })
@@ -296,7 +338,7 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.getByText("test@example.test · Pro")).toBeTruthy()
   expect(view.getAllByRole("progressbar")).toHaveLength(1)
   expect(view.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("27")
-  await act(async () => fireEvent.click(view.getByRole("button")))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
   expect(signOut).toHaveBeenCalledTimes(1)
   view.rerender(<CodexAccountSummary account={null} disabled={false} onSignOut={signOut} />)
   expect(view.queryByRole("progressbar")).toBeNull()

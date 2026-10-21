@@ -15,7 +15,7 @@ export class WallpaperController {
     this.current = value
     for (const listener of this.listeners) listener()
   }
-  bind(): { show(value: WallpaperPresentation | null): void; dispose(): void } {
+  bind(): { show: (value: WallpaperPresentation | null) => void; dispose: () => void } {
     let active = true
     const owner = {}
     const dispose = (): void => {

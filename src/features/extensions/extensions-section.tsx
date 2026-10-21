@@ -14,7 +14,7 @@ import { waitForLegacyUninstall } from "./legacy/uninstall"
 import { reportExtensionError, useExtensions } from "./runtime"
 import { updateAndReloadExtension } from "./startup-import-control"
 
-export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?(id: string): void }) {
+export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: string) => void }) {
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)

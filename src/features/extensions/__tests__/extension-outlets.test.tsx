@@ -58,7 +58,7 @@ test("navigation opens its own page, reflects selection and blocks missing targe
   }
   const ui = render(<ExtensionActions {...props} />)
   expect(ui.getByRole("button", { name: "Open page" }).getAttribute("aria-current")).toBe("page")
-  await act(async () => fireEvent.click(ui.getByRole("button", { name: "Open page" })))
+  await act(() => Promise.try(() => fireEvent.click(ui.getByRole("button", { name: "Open page" }))))
   expect(opened).toEqual(["demo/page"])
   ui.rerender(<ExtensionActions {...props} host={{ ...host, views: [] }} />)
   expect((ui.getByRole("button", { name: "Open page" }) as HTMLButtonElement).disabled).toBe(true)
@@ -73,8 +73,10 @@ test("top bar executes commands and reports rejected operations", async () => {
     {
       id: "demo/run",
       title: "Run",
-      run: async (): Promise<void> => {
-        throw new Error("Command failed")
+      run: (): Promise<void> => {
+        return Promise.try(() => {
+          throw new Error("Command failed")
+        })
       }
     }
   ]
@@ -90,7 +92,7 @@ test("top bar executes commands and reports rejected operations", async () => {
       }}
     />
   )
-  await act(async () => fireEvent.click(ui.getByRole("button", { name: "Run command" })))
+  await act(() => Promise.try(() => fireEvent.click(ui.getByRole("button", { name: "Run command" }))))
   expect(errors).toHaveLength(1)
   expect((errors[0] as Error).message).toBe("Command failed")
 })
@@ -121,7 +123,7 @@ test("settings columns select full pages and show unavailable after withdrawal",
       <ExtensionSettingsContent id={page.id} views={[page]} renderView={(item) => <div>Content of {item.id}</div>} />
     </>
   )
-  await act(async () => fireEvent.click(ui.getByRole("button", { name: page.title })))
+  await act(() => Promise.try(() => fireEvent.click(ui.getByRole("button", { name: page.title }))))
   expect(selected).toEqual([page.id])
   expect(ui.queryByRole("button", { name: "demo/inline" })).toBeNull()
   expect(ui.getByText(`Content of ${page.id}`)).toBeTruthy()

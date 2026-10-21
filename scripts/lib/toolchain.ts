@@ -23,8 +23,8 @@ type Manifest = {
 export function toolchainVersions(manifest: Manifest): { buildBun: string; bun: string; codex: string } {
   const match = /^bun@(\d+\.\d+\.\d+)$/.exec(manifest.packageManager)
   if (!match) throw new Error("packageManager must pin an exact Bun version (bun@X.Y.Z)")
-  const buildBun = match[1]!
-  const bun = manifest.optionalDependencies[BUN_PACKAGES["aarch64-apple-darwin"]!]
+  const buildBun = match[1]
+  const bun = manifest.optionalDependencies[BUN_PACKAGES["aarch64-apple-darwin"]]
   if (!bun || !/^\d+\.\d+\.\d+$/.test(bun))
     throw new Error("the bundled Bun platform packages must pin an exact version")
   const codex = manifest.devDependencies["@openai/codex"]

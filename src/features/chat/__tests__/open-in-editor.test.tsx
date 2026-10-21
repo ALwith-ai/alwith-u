@@ -41,8 +41,10 @@ test("main header preloads apps before opening its menu and remounts use the res
     )
     expect(view.queryByRole("menu")).toBeNull()
     await waitFor(() => expect(readAppsInfo).toHaveBeenCalledTimes(1))
-    await act(async () => {
-      finish(apps)
+    await act(() => {
+      return Promise.try(() => {
+        finish(apps)
+      })
     })
     act(() => {
       fireEvent.click(view.getByRole("button", { name: "More actions" }))
@@ -88,17 +90,23 @@ test("main chat menu uses installed app shortcuts, remembers the choice and open
     const view = render(
       <ChatActionsMenu surface="main" cwd="/tmp/project" onNewChat={() => {}} onOpenWindow={() => {}} />
     )
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "More actions" }))
+      })
     })
     expect(view.queryByRole("menuitem", { name: "Open project folder" })).toBeNull()
     const open = await view.findByRole("menuitem", { name: "Open" })
-    await act(async () => {
-      fireEvent.click(open)
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(open)
+      })
     })
     const app = await view.findByRole("menuitemradio", { name: "Visual Studio Code" })
-    await act(async () => {
-      fireEvent.click(app)
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(app)
+      })
     })
     expect(openPathInApp).toHaveBeenCalledWith("com.microsoft.VSCode", "/tmp/project")
     expect(savePreference).toHaveBeenCalledWith("externalEditor", "com.microsoft.VSCode")
@@ -138,16 +146,20 @@ test("project and session shortcuts follow preference changes, display the app i
     await waitFor(() => expect(view.container.querySelectorAll("img")).toHaveLength(2))
     const buttons = view.getAllByRole("button", { name: "Open project folder" })
     expect(buttons[0]?.title).toContain("Visual Studio Code")
-    await act(async () => {
-      fireEvent.click(must(buttons[0], "project shortcut"))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(must(buttons[0], "project shortcut"))
+      })
     })
     expect(open).toHaveBeenLastCalledWith("com.microsoft.VSCode", "/projects/one")
     load.mockResolvedValue(savedEditor("com.apple.finder"))
     act(() => setProjectAppPreference("com.apple.finder"))
     expect(buttons[1]?.title).toContain("Finder")
     expect(view.container.querySelectorAll("img")).toHaveLength(0)
-    await act(async () => {
-      fireEvent.click(must(buttons[1], "session shortcut"))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(must(buttons[1], "session shortcut"))
+      })
     })
     expect(open).toHaveBeenLastCalledWith("com.apple.finder", "/projects/two")
     expect(closed).toHaveBeenCalledTimes(2)
@@ -165,13 +177,17 @@ test("floating shortcut uses the saved application and shows its icon", async ()
   try {
     const { ChatActionsMenu } = await import("../chat-actions-menu")
     const view = render(<ChatActionsMenu surface="floating" cwd="/projects/floating" onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "More actions" }))
+      })
     })
     const shortcut = view.getByRole("menuitem", { name: "Open project folder" })
     expect(shortcut.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aA==")
-    await act(async () => {
-      fireEvent.click(shortcut)
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(shortcut)
+      })
     })
     expect(open).toHaveBeenCalledWith("com.microsoft.VSCode", "/projects/floating")
   } finally {

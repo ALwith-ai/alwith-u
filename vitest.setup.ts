@@ -13,7 +13,7 @@ if (typeof document !== "undefined") {
   const { ChatWorkerStub } = await import("@/features/chat/codex/__tests__/chat-worker-stub")
   // jsdom has no matchMedia or Web Animations; components only need the API surface.
   if (typeof window.matchMedia !== "function") {
-    window.matchMedia = ((query: string) => ({
+    window.matchMedia = (query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -24,7 +24,7 @@ if (typeof document !== "undefined") {
       dispatchEvent() {
         return false
       }
-    })) as unknown as typeof window.matchMedia
+    })
   }
   if (typeof Element.prototype.getAnimations !== "function") Element.prototype.getAnimations = () => []
   if (typeof Element.prototype.scrollIntoView !== "function") Element.prototype.scrollIntoView = () => {}
@@ -42,7 +42,9 @@ if (typeof document !== "undefined") {
   // The jsdom window brings its own typed arrays, so `encode() instanceof Uint8Array` is false for
   // Node's TextEncoder. Product code checks bytes with instanceof; keep Node's constructors global.
   const { Buffer } = await import("node:buffer")
-  globalThis.Uint8Array = Object.getPrototypeOf(Buffer.prototype).constructor as Uint8ArrayConstructor
+  globalThis.Uint8Array = (
+    Object.getPrototypeOf(Buffer.prototype) as { constructor: Uint8ArrayConstructor }
+  ).constructor
   globalThis.ArrayBuffer = Buffer.alloc(0).buffer.constructor as ArrayBufferConstructor
   // jsdom's FileReader rejects the Node Blobs that fetch responses produce; read any blob-like
   // value through its own methods instead.
@@ -121,14 +123,17 @@ if (typeof document !== "undefined") {
     } as unknown as typeof IntersectionObserver
   }
   if (typeof globalThis.CSS?.escape !== "function") {
-    globalThis.CSS = { ...globalThis.CSS, escape: (value: string) => value.replace(/["\\]/g, "\\$&") } as typeof CSS
+    globalThis.CSS = {
+      ...globalThis.CSS,
+      escape: (value: string) => value.replaceAll(/["\\]/g, String.raw`\$&`)
+    }
   }
   // Markdown and highlight workers run in-process: real parsing, no native worker.
   globalThis.Worker = ChatWorkerStub as unknown as typeof Worker
 }
 
 vi.mock("@tauri-apps/plugin-log", () => ({
-  attachConsole: vi.fn(async () => () => {}),
+  attachConsole: vi.fn(() => Promise.resolve(() => {})),
   info: vi.fn(async () => {}),
   warn: vi.fn(async () => {}),
   error: vi.fn(async () => {}),

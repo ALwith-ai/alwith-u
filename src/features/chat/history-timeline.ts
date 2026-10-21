@@ -34,8 +34,8 @@ export function historyTimeline(turns: Turn[], navigation?: HistoryNavigationSta
   }
   const indexed = new Set(navigation.turns.map((turn) => turn.turnId))
   const loaded = new Set(navigation.loadedTurnIds)
-  return navigation.turns
-    .flatMap<HistoryTimelineEntry>((summary) => {
+  return [
+    ...navigation.turns.flatMap<HistoryTimelineEntry>((summary) => {
       const current = byTurn.get(summary.turnId)
       if (current) return current.map(loadedEntry)
       return loaded.has(summary.turnId)
@@ -48,6 +48,7 @@ export function historyTimeline(turns: Turn[], navigation?: HistoryNavigationSta
               placeholder: true
             }
           ]
-    })
-    .concat(turns.filter((turn) => !turn.items.some((item) => indexed.has(nativeTurnId(item) ?? ""))).map(loadedEntry))
+    }),
+    ...turns.filter((turn) => !turn.items.some((item) => indexed.has(nativeTurnId(item) ?? ""))).map(loadedEntry)
+  ]
 }

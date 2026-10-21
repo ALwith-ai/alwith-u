@@ -156,7 +156,7 @@ export function Composer({
       }
     }
   }, [session.id])
-  const receiptObserver = useRef<{ accept(id: string): void; signal: AbortSignal } | null>(null)
+  const receiptObserver = useRef<{ accept: (id: string) => void; signal: AbortSignal } | null>(null)
   const waitForVoiceTurn = useCallback(
     (signal: AbortSignal): Promise<void> => {
       const observation = observeVoiceTurn(

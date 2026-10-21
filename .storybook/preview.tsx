@@ -37,8 +37,9 @@ const preview: Preview = {
   initialGlobals: { locale: "en" },
   loaders: [
     async ({ globals }) => {
-      if (!i18n.isInitialized) await initI18n(globals.locale)
-      else await i18n.changeLanguage(globals.locale)
+      const locale = globals.locale as string
+      if (!i18n.isInitialized) await initI18n(locale)
+      else await i18n.changeLanguage(locale)
     }
   ],
   decorators: [

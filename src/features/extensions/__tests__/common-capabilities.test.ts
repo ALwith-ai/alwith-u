@@ -19,21 +19,25 @@ test("the installed package exposes common capabilities to a modern extension an
   const copied: string[] = []
   const messages: string[] = []
   const providers = createCommonCapabilities({
-    async native<T>(command: string, args: Record<string, unknown>): Promise<T> {
-      calls.push({ command, args })
-      if (command === "extension_pick_directory") return { scope: "grant", path: "/private/selected" } as T
-      if (command === "extension_http")
-        return { status: 200, url: "https://api.github.com/data", headers: {}, body: [0, 128, 255] } as T
-      if (command === "extension_file") {
-        const request = args.request as NativeFileRequest
-        if (request.operation === "read") return { type: "read", body: [0, 128, 255] } as T
-        if (request.operation === "write") return { type: "ok" } as T
-      }
-      throw new Error(`Unexpected native command: ${command}`)
+    native<T>(command: string, args: Record<string, unknown>): Promise<T> {
+      return Promise.try(() => {
+        calls.push({ command, args })
+        if (command === "extension_pick_directory") return { scope: "grant", path: "/private/selected" } as T
+        if (command === "extension_http")
+          return { status: 200, url: "https://api.github.com/data", headers: {}, body: [0, 128, 255] } as T
+        if (command === "extension_file") {
+          const request = args.request as NativeFileRequest
+          if (request.operation === "read") return { type: "read", body: [0, 128, 255] } as T
+          if (request.operation === "write") return { type: "ok" } as T
+        }
+        throw new Error(`Unexpected native command: ${command}`)
+      })
     },
     clipboard: {
-      async writeText(text): Promise<void> {
-        copied.push(text)
+      writeText(text): Promise<void> {
+        return Promise.try(() => {
+          copied.push(text)
+        })
       }
     },
     notices: {
@@ -91,12 +95,12 @@ test("the installed package exposes common capabilities to a modern extension an
     )
     expect(directory.id).toBe("grant")
     expect(directory.name).toBe("selected")
-    expect(Object.keys(directory).sort()).toEqual(["files", "id", "name"])
+    expect(Object.keys(directory).toSorted()).toEqual(["files", "id", "name"])
     expect(calls.find((call) => call.command === "extension_file")?.args).toEqual({
       extensionId: manifest.id,
       request: { operation: "write", scope: "grant", path: "result.bin", body: [0, 128, 255] }
     })
-    expect(Array.from(await files.read("result.bin"))).toEqual([0, 128, 255])
+    expect([...(await files.read("result.bin"))]).toEqual([0, 128, 255])
     await expect(files.write("./DATA.JSON", new Uint8Array())).rejects.toThrow("context.data")
     expect(copied).toEqual(["result.bin"])
     expect(messages).toEqual(["Saved"])

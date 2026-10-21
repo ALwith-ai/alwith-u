@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from "vitest"
 import { commands } from "@/bindings"
 import { VoiceSection } from "@/features/settings/sections/voice-section"
 import { settingsFixture } from "@/lib/__tests__/settings-fixture"
+import { mockOf } from "@/test/mock-of"
 const notice = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }))
 vi.mock("sonner", () => ({ toast: notice }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -41,17 +42,18 @@ afterEach(() => {
 function fixture() {
   const media = new EventTarget()
   let devices: MediaDeviceInfo[] = []
-  const enumerateDevices = vi.fn(async () => devices)
+  const enumerateDevices = vi.fn(() => Promise.resolve(devices))
   vi.stubGlobal("navigator", { mediaDevices: Object.assign(media, { enumerateDevices }) })
   const preferences = defaultPreferences()
   const available = { vui: false, doubao: true }
   const host: VoiceSettingsHost = {
-    load: vi.fn(async () => preferences),
+    load: vi.fn(() => Promise.resolve(preferences)),
     save: vi.fn(async () => {}),
-    profiles: vi.fn(async () => ({ ...available })),
+    profiles: vi.fn(() => Promise.resolve({ ...available })),
     saveCredential: vi.fn(async () => {}),
-    deleteCredential: vi.fn(async (provider: Provider) => {
+    deleteCredential: vi.fn((provider: Provider) => {
       available[provider] = false
+      return Promise.resolve()
     })
   }
   const onError = vi.fn(),
@@ -72,7 +74,7 @@ function fixture() {
 test("saving without a key commits settings and shows a reminder, while a configured key shows success", async () => {
   const native = settingsFixture()
   const profiles = { doubao: false, vui: false }
-  vi.spyOn(commands, "voiceProfiles").mockImplementation(async () => profiles)
+  vi.spyOn(commands, "voiceProfiles").mockImplementation(() => Promise.resolve(profiles))
   fixture()
   render(<VoiceSection />)
   fireEvent.click(await screen.findByRole("button", { name: "voice.save" }))
@@ -92,7 +94,7 @@ test("shared settings revoke a key and refresh input devices without reopening",
   f.view()
   const remove = await screen.findByRole("button", { name: "removeKey" })
   fireEvent.click(remove)
-  await waitFor(() => expect(f.host.deleteCredential).toHaveBeenCalledWith("doubao"))
+  await waitFor(() => expect(mockOf(f.host, "deleteCredential")).toHaveBeenCalledWith("doubao"))
   await waitFor(() => expect(f.onSaved).toHaveBeenCalledTimes(1))
   expect(screen.queryByRole("button", { name: "removeKey" })).toBeNull()
   f.setDevices([{ deviceId: "usb", label: "USB microphone", kind: "audioinput", groupId: "g", toJSON: () => ({}) }])
@@ -104,11 +106,11 @@ test("shared settings revoke a key and refresh input devices without reopening",
 })
 test("failed initial load offers a working retry rather than an endless loading indicator", async () => {
   const f = fixture()
-  vi.mocked(f.host.load).mockRejectedValueOnce(new Error("locked"))
+  vi.mocked(mockOf(f.host, "load")).mockRejectedValueOnce(new Error("locked"))
   f.view()
   fireEvent.click(await screen.findByRole("button", { name: "retry" }))
   await waitFor(() => expect(document.body).toContainOneByRole("button", { name: "save" }))
-  expect(f.host.load).toHaveBeenCalledTimes(2)
+  expect(mockOf(f.host, "load")).toHaveBeenCalledTimes(2)
 })
 test("invalid silence parameters prevent saving", async () => {
   const f = fixture()
@@ -117,7 +119,7 @@ test("invalid silence parameters prevent saving", async () => {
   fireEvent.change(screen.getByLabelText("threshold"), { target: { value: "2" } })
   fireEvent.click(screen.getByRole("button", { name: "save" }))
   await waitFor(() => expect(f.onError).toHaveBeenCalledTimes(1))
-  expect(f.host.save).not.toHaveBeenCalled()
+  expect(mockOf(f.host, "save")).not.toHaveBeenCalled()
 })
 
 test("device retry preserves edited provider and its credential", async () => {
@@ -131,9 +133,9 @@ test("device retry preserves edited provider and its credential", async () => {
   })
   fireEvent.click(await screen.findByRole("button", { name: "retry" }))
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull())
-  expect(f.host.load).toHaveBeenCalledTimes(1)
+  expect(mockOf(f.host, "load")).toHaveBeenCalledTimes(1)
   fireEvent.click(screen.getByRole("button", { name: "save" }))
-  await waitFor(() => expect(f.host.saveCredential).toHaveBeenCalledWith("vui", "test-vui-key"))
+  await waitFor(() => expect(mockOf(f.host, "saveCredential")).toHaveBeenCalledWith("vui", "test-vui-key"))
 })
 
 test("Doubao resource ID is editable and persisted, but hidden for VUI", async () => {
@@ -144,7 +146,7 @@ test("Doubao resource ID is editable and persisted, but hidden for VUI", async (
   fireEvent.change(input, { target: { value: "volc.seedasr.sauc.concurrent" } })
   fireEvent.click(screen.getByRole("button", { name: "save" }))
   await waitFor(() =>
-    expect(f.host.save).toHaveBeenCalledWith(
+    expect(mockOf(f.host, "save")).toHaveBeenCalledWith(
       expect.objectContaining({ doubaoResourceId: "volc.seedasr.sauc.concurrent" })
     )
   )
@@ -177,7 +179,7 @@ test("clearing the resource ID restores and saves the default", async () => {
   fireEvent.change(input, { target: { value: "   " } })
   fireEvent.click(screen.getByRole("button", { name: "save" }))
   await waitFor(() =>
-    expect(f.host.save).toHaveBeenCalledWith(
+    expect(mockOf(f.host, "save")).toHaveBeenCalledWith(
       expect.objectContaining({ doubaoResourceId: "volc.seedasr.sauc.duration" })
     )
   )

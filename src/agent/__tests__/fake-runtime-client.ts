@@ -75,55 +75,57 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     this.pending[sessionId] = { agentId, engine: "fake", provider: "", providerRevision: null, pendingAgentRequests }
   }
 
-  async start(agentId: string, _launch: { engine: string }): Promise<void> {
-    this.started.push(agentId)
-    const decoder = new TextDecoder()
-    const toAgent = new TransformStream<Uint8Array, Uint8Array>()
-    let buffered = ""
-    const fromAgent = new WritableStream<Uint8Array>({
-      write: (chunk) => {
-        buffered += decoder.decode(chunk, { stream: true })
-        const lines = buffered.split("\n")
-        buffered = lines.pop() ?? ""
-        const inbound: string[] = []
-        for (const line of lines.filter((line) => line.length > 0)) {
-          const value = JSON.parse(line) as {
-            id?: unknown
-            result?: unknown
-            error?: unknown
-            method?: string
-            params?: unknown
-          }
-          if (value.method === undefined && value.id === this.initializeRequestId && value.result !== undefined) {
-            this.initializeSnapshot = value.result
-          }
-          // Like the real Runtime: answers to its own requests never reach `inbound`; notifications and
-          // agent requests are split out as events alongside the raw line.
-          const waiter =
-            value.method === undefined && typeof value.id === "string" ? this.pendingAcp.get(value.id) : undefined
-          if (waiter !== undefined) {
-            this.pendingAcp.delete(value.id as string)
-            if (value.error !== undefined && value.error !== null)
-              waiter.reject(new RuntimeRequestError("acpRequest", value.error as RuntimeResponseError))
-            else waiter.resolve(value.result ?? null)
-            continue
-          }
-          if (value.method !== undefined) {
-            if (value.id !== undefined && value.id !== null) {
-              for (const handler of this.acpAgentRequestHandlers)
-                handler({ agentId, id: value.id, method: value.method, params: value.params })
-            } else {
-              for (const handler of this.acpNotificationHandlers)
-                handler({ agentId, method: value.method, params: value.params })
+  start(agentId: string, _launch: { engine: string }): Promise<void> {
+    return Promise.try(() => {
+      this.started.push(agentId)
+      const decoder = new TextDecoder()
+      const toAgent = new TransformStream<Uint8Array, Uint8Array>()
+      let buffered = ""
+      const fromAgent = new WritableStream<Uint8Array>({
+        write: (chunk) => {
+          buffered += decoder.decode(chunk, { stream: true })
+          const lines = buffered.split("\n")
+          buffered = lines.pop() ?? ""
+          const inbound: string[] = []
+          for (const line of lines.filter((line) => line.length > 0)) {
+            const value = JSON.parse(line) as {
+              id?: unknown
+              result?: unknown
+              error?: unknown
+              method?: string
+              params?: unknown
             }
+            if (value.method === undefined && value.id === this.initializeRequestId && value.result !== undefined) {
+              this.initializeSnapshot = value.result
+            }
+            // Like the real Runtime: answers to its own requests never reach `inbound`; notifications and
+            // agent requests are split out as events alongside the raw line.
+            const waiter =
+              value.method === undefined && typeof value.id === "string" ? this.pendingAcp.get(value.id) : undefined
+            if (waiter !== undefined) {
+              this.pendingAcp.delete(value.id as string)
+              if (value.error !== undefined && value.error !== null)
+                waiter.reject(new RuntimeRequestError("acpRequest", value.error as RuntimeResponseError))
+              else waiter.resolve(value.result ?? null)
+              continue
+            }
+            if (value.method !== undefined) {
+              if (value.id !== undefined && value.id !== null) {
+                for (const handler of this.acpAgentRequestHandlers)
+                  handler({ agentId, id: value.id, method: value.method, params: value.params })
+              } else {
+                for (const handler of this.acpNotificationHandlers)
+                  handler({ agentId, method: value.method, params: value.params })
+              }
+            }
+            inbound.push(line)
           }
-          inbound.push(line)
+          if (inbound.length > 0) for (const handler of this.lineHandlers) handler({ agentId, lines: inbound })
         }
-        if (inbound.length > 0) for (const handler of this.lineHandlers) handler({ agentId, lines: inbound })
-      }
+      })
+      const connection = this.agentFactory().connect(acp.ndJsonStream(fromAgent, toAgent.readable))
+      this.processes.set(agentId, { writer: toAgent.writable.getWriter(), connection })
     })
-    const connection = this.agentFactory().connect(acp.ndJsonStream(fromAgent, toAgent.readable))
-    this.processes.set(agentId, { writer: toAgent.writable.getWriter(), connection })
   }
 
   async send(agentId: string, line: string): Promise<void> {
@@ -142,41 +144,47 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     await agent.writer.write(new TextEncoder().encode(`${line}\n`))
   }
 
-  async stop(agentId: string): Promise<void> {
-    const agent = this.processes.get(agentId)
-    if (!agent) return
-    this.processes.delete(agentId)
-    agent.connection.close()
-    for (const handler of this.exitHandlers) handler({ agentId })
+  stop(agentId: string): Promise<void> {
+    return Promise.try(() => {
+      const agent = this.processes.get(agentId)
+      if (!agent) return
+      this.processes.delete(agentId)
+      agent.connection.close()
+      for (const handler of this.exitHandlers) handler({ agentId })
+    })
   }
 
-  async attachSession(sessionId: string): Promise<RuntimeAttachInfo | null> {
-    this.attached.push(sessionId)
-    return this.pending[sessionId] ?? null
+  attachSession(sessionId: string): Promise<RuntimeAttachInfo | null> {
+    return Promise.try(() => {
+      this.attached.push(sessionId)
+      return this.pending[sessionId] ?? null
+    })
   }
 
-  async agentForSession(sessionId: string): Promise<string | null> {
-    return this.pending[sessionId]?.agentId ?? null
+  agentForSession(sessionId: string): Promise<string | null> {
+    return Promise.resolve(this.pending[sessionId]?.agentId ?? null)
   }
 
   async releaseSession(): Promise<void> {}
   async stopSession(): Promise<void> {}
-  async markRead(sessionId: string, version: number | null): Promise<void> {
-    this.marked.push(sessionId)
-    this.markedVersions.push(version)
+  markRead(sessionId: string, version: number | null): Promise<void> {
+    return Promise.try(() => {
+      this.marked.push(sessionId)
+      this.markedVersions.push(version)
+    })
   }
   async setSessionTitle(): Promise<void> {}
-  async sessionLifecycle() {
-    return []
+  sessionLifecycle() {
+    return Promise.resolve([])
   }
-  async sessionEvents() {
-    return []
+  sessionEvents() {
+    return Promise.resolve([])
   }
-  async runStates(): Promise<SessionRunState[]> {
-    return this.states
+  runStates(): Promise<SessionRunState[]> {
+    return Promise.resolve(this.states)
   }
-  async version(): Promise<string> {
-    return "fake"
+  version(): Promise<string> {
+    return Promise.resolve("fake")
   }
 
   // ---- the ACP layer, mirroring the real Runtime ----
@@ -278,46 +286,58 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
     return this.acpNotify(agentId, "session/cancel", { sessionId })
   }
 
-  async onAcpNotification(handler: (notification: RuntimeAcpNotification) => void): Promise<() => void> {
-    this.acpNotificationHandlers.add(handler)
-    return () => this.acpNotificationHandlers.delete(handler)
+  onAcpNotification(handler: (notification: RuntimeAcpNotification) => void): Promise<() => void> {
+    return Promise.try(() => {
+      this.acpNotificationHandlers.add(handler)
+      return () => this.acpNotificationHandlers.delete(handler)
+    })
   }
 
-  async onAcpAgentRequest(handler: (request: RuntimeAcpAgentRequest) => void): Promise<() => void> {
-    this.acpAgentRequestHandlers.add(handler)
-    return () => this.acpAgentRequestHandlers.delete(handler)
+  onAcpAgentRequest(handler: (request: RuntimeAcpAgentRequest) => void): Promise<() => void> {
+    return Promise.try(() => {
+      this.acpAgentRequestHandlers.add(handler)
+      return () => this.acpAgentRequestHandlers.delete(handler)
+    })
   }
-  async agents() {
-    return [...this.processes.keys()].map((agentId) => ({
-      agentId,
-      pid: null,
-      provider: "",
-      model: "",
-      connection: "",
-      cpu: 0,
-      memMb: 0,
-      uptimeSecs: 0
-    }))
+  agents() {
+    return Promise.try(() => {
+      return [...this.processes.keys()].map((agentId) => ({
+        agentId,
+        pid: null,
+        provider: "",
+        model: "",
+        connection: "",
+        cpu: 0,
+        memMb: 0,
+        uptimeSecs: 0
+      }))
+    })
   }
   async ping(): Promise<void> {}
-  async onInbound(handler: (payload: RuntimeInboundPayload) => void): Promise<() => void> {
-    this.lineHandlers.add(handler)
-    return () => this.lineHandlers.delete(handler)
+  onInbound(handler: (payload: RuntimeInboundPayload) => void): Promise<() => void> {
+    return Promise.try(() => {
+      this.lineHandlers.add(handler)
+      return () => this.lineHandlers.delete(handler)
+    })
   }
-  async onExit(handler: (payload: RuntimeExitPayload) => void): Promise<() => void> {
-    this.exitHandlers.add(handler)
-    return () => this.exitHandlers.delete(handler)
+  onExit(handler: (payload: RuntimeExitPayload) => void): Promise<() => void> {
+    return Promise.try(() => {
+      this.exitHandlers.add(handler)
+      return () => this.exitHandlers.delete(handler)
+    })
   }
-  async onStderr(): Promise<() => void> {
-    return () => {}
+  onStderr(): Promise<() => void> {
+    return Promise.resolve(() => {})
   }
-  async onRunStates(handler: (sessions: SessionRunState[]) => void): Promise<() => void> {
-    this.runStateHandlers.add(handler)
-    return () => this.runStateHandlers.delete(handler)
+  onRunStates(handler: (sessions: SessionRunState[]) => void): Promise<() => void> {
+    return Promise.try(() => {
+      this.runStateHandlers.add(handler)
+      return () => this.runStateHandlers.delete(handler)
+    })
   }
 
-  async onOutbound(): Promise<() => void> {
-    return () => undefined
+  onOutbound(): Promise<() => void> {
+    return Promise.resolve(() => undefined)
   }
 
   readonly gapHandlers = new Set<(gap: RuntimeGap) => void>()

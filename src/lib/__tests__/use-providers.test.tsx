@@ -34,9 +34,9 @@ for (const [eventRevision, readRevision, expectedRevision] of [
   test(`provider read ${readRevision} and event ${eventRevision} preserve the newest configuration`, async () => {
     let receive!: (event: events.Event<ProviderSnapshot>) => void
     let finish!: (value: ProviderSnapshot) => void
-    eventListen = vi.spyOn(events, "listen").mockImplementation(async (_event, callback) => {
-      receive = callback as typeof receive
-      return () => {}
+    eventListen = vi.spyOn(events, "listen").mockImplementation((_event, callback) => {
+      receive = callback
+      return Promise.resolve(() => {})
     })
     providersRead = vi.spyOn(providers, "loadProviders").mockImplementation(
       () =>
@@ -46,16 +46,22 @@ for (const [eventRevision, readRevision, expectedRevision] of [
     )
     const view = renderHook(useProviders)
     await act(async () => {})
-    await act(async () => {
-      receive({ event: providers.PROVIDERS_CHANGED, id: 1, payload: snapshot(eventRevision, "pending") })
+    await act(() => {
+      return Promise.try(() => {
+        receive({ event: providers.PROVIDERS_CHANGED, id: 1, payload: snapshot(eventRevision, "pending") })
+      })
     })
-    await act(async () => {
-      finish(snapshot(readRevision))
+    await act(() => {
+      return Promise.try(() => {
+        finish(snapshot(readRevision))
+      })
     })
     expect(view.result.current?.revision).toBe(expectedRevision)
     if (eventRevision === readRevision) expect(view.result.current?.status).toBe("pending")
-    await act(async () => {
-      receive({ event: providers.PROVIDERS_CHANGED, id: 2, payload: snapshot(0) })
+    await act(() => {
+      return Promise.try(() => {
+        receive({ event: providers.PROVIDERS_CHANGED, id: 2, payload: snapshot(0) })
+      })
     })
     expect(view.result.current?.revision).toBe(expectedRevision)
     view.unmount()

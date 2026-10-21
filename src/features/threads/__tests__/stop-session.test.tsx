@@ -13,10 +13,12 @@ await initI18n("en")
 const originalState = client.state
 const originalUi = useThreadsUiStore.getState()
 afterEach(async () => {
-  await act(async () => {
-    cleanup()
-    client.store.setState(originalState, true)
-    useThreadsUiStore.setState(originalUi, true)
+  await act(() => {
+    return Promise.try(() => {
+      cleanup()
+      client.store.setState(originalState, true)
+      useThreadsUiStore.setState(originalUi, true)
+    })
   })
   vi.restoreAllMocks()
 })
@@ -84,20 +86,22 @@ test.each(
   const row = screen.getByText("background").closest('[role="button"]')
   if (!(row instanceof HTMLElement)) throw new Error("Missing background session row")
   const button = within(row).getByTitle("Stop")
-  await act(async () => fireEvent.click(button))
+  await act(() => Promise.try(() => fireEvent.click(button)))
   expect(button).toBeDisabled()
   expect(button).toHaveAttribute("aria-busy", "true")
   expect(within(button).getByRole("status")).toBeInTheDocument()
-  await act(async () => fireEvent.click(button))
+  await act(() => Promise.try(() => fireEvent.click(button)))
   expect(close).toHaveBeenCalledExactlyOnceWith("background")
   expect(cancel).not.toHaveBeenCalled()
   expect(onSelect).not.toHaveBeenCalled()
   // The Runtime's next state update remains authoritative; clicking cannot clear other sessions.
   expect(client.state.runStates.foreground?.state).toBe("running")
   expect(client.state.runStates.background?.state).toBe(state)
-  await act(async () => {
-    complete()
-    client.applyRunStates(records.filter((record) => record.sessionId !== "background"))
+  await act(() => {
+    return Promise.try(() => {
+      complete()
+      client.applyRunStates(records.filter((record) => record.sessionId !== "background"))
+    })
   })
   if (view === "activity") expect(screen.queryByText("background")).not.toBeInTheDocument()
   else expect(within(row).queryByTitle("Stop")).not.toBeInTheDocument()

@@ -11,19 +11,23 @@ export function settingsFixture(initial: Record<string, unknown> = {}) {
     browserMigrated: true
   })
   settingsStore.accept(snapshot())
-  const read = vi.spyOn(settingsStore, "read").mockImplementation(async () => {
-    const next = snapshot()
-    settingsStore.accept(next)
-    return next
+  const read = vi.spyOn(settingsStore, "read").mockImplementation(() => {
+    return Promise.try(() => {
+      const next = snapshot()
+      settingsStore.accept(next)
+      return next
+    })
   })
-  const write = vi.spyOn(settingsStore, "write").mockImplementation(async (input) => {
-    for (const [key, value] of Object.entries(input.changes ?? {})) {
-      if (value === null) values.delete(key)
-      else values.set(key, value)
-    }
-    const next = snapshot()
-    settingsStore.accept(next)
-    return next
+  const write = vi.spyOn(settingsStore, "write").mockImplementation((input) => {
+    return Promise.try(() => {
+      for (const [key, value] of Object.entries(input.changes ?? {})) {
+        if (value === null) values.delete(key)
+        else values.set(key, value)
+      }
+      const next = snapshot()
+      settingsStore.accept(next)
+      return next
+    })
   })
   return {
     values,

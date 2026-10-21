@@ -34,14 +34,18 @@ test("draft menu hides session actions and opens the project directory itself", 
   const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   try {
     const view = render(<ChatActionsMenu surface="floating" cwd="/tmp/project" onNewChat={() => {}} />)
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "More actions" }))
+      })
     })
     for (const name of ["Rename", "Find in chat", "Delete"]) {
       expect(view.queryByRole("menuitem", { name })).toBeNull()
     }
-    await act(async () => {
-      fireEvent.click(view.getByRole("menuitem", { name: "Open project folder" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("menuitem", { name: "Open project folder" }))
+      })
     })
     expect(open).toHaveBeenCalledWith("/tmp/project")
   } finally {
@@ -64,20 +68,28 @@ test("delete requires confirmation, keeps the dialog on failure and reports the 
         onDeleted={(id) => deleted.push(id)}
       />
     )
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "More actions" }))
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("menuitem", { name: "Delete" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("menuitem", { name: "Delete" }))
+      })
     })
     expect(remove).not.toHaveBeenCalled()
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Delete" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Delete" }))
+      })
     })
     expect(deleted).toEqual([])
     expect(view.getByRole("dialog")).toBeDefined()
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Delete" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "Delete" }))
+      })
     })
     await waitFor(() => expect(deleted).toEqual(["floating-id"]))
     expect(remove).toHaveBeenCalledWith("floating-id")
@@ -110,19 +122,25 @@ test("menu search opens the current chat search and keeps focus in its input", a
     </div>
   )
   try {
-    await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("button", { name: "More actions" }))
+      })
     })
-    await act(async () => {
-      fireEvent.click(view.getByRole("menuitem", { name: "Find in chat" }))
+    await act(() => {
+      return Promise.try(() => {
+        fireEvent.click(view.getByRole("menuitem", { name: "Find in chat" }))
+      })
     })
     await waitFor(() => expect(document.activeElement).toBe(view.getByRole("textbox")))
     // Base UI unmounts the menu after its exit transition, which can land after the search input took focus.
     await waitFor(() => expect(view.queryByRole("menu")).toBeNull())
   } finally {
     view.unmount()
-    await act(async () => {
-      threadRegistry.setState(registry, true)
+    await act(() => {
+      return Promise.try(() => {
+        threadRegistry.setState(registry, true)
+      })
     })
     clearMocks()
   }
@@ -140,13 +158,17 @@ test("main draft menu keeps window transfer inside the menu and hides inapplicab
       }}
     />
   )
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    })
   })
   expect(view.queryAllByRole("menuitem")).toHaveLength(1)
   expect(view.queryByRole("separator")).toBeNull()
-  await act(async () => {
-    fireEvent.click(view.getByRole("menuitem"))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("menuitem"))
+    })
   })
   expect(transferred).toBe(1)
 })
@@ -175,8 +197,10 @@ test("floating menu opens a new project after New chat and keeps the action avai
       {...actions}
     />
   )
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    })
   })
   expect(
     view
@@ -184,18 +208,24 @@ test("floating menu opens a new project after New chat and keeps the action avai
       .slice(0, 2)
       .map((item) => item.textContent)
   ).toEqual(["New chat", "New project"])
-  await act(async () => {
-    fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+    })
   })
   expect(newProjects).toBe(1)
   expect(newChats).toBe(0)
   view.rerender(<ChatActionsMenu surface="floating" cwd={null} {...actions} />)
-  await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    })
   })
   expect(view.queryByRole("menuitem", { name: "New chat" })).toBeNull()
-  await act(async () => {
-    fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(view.getByRole("menuitem", { name: "New project" }))
+    })
   })
   expect(newProjects).toBe(2)
 })
@@ -221,15 +251,15 @@ test("floating chat returns to main immediately before Rename and the main menu 
   }
   const view = render(<ChatActionsMenu surface="floating" {...props} />)
   try {
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
     const names = view.getAllByRole("menuitem").map((item) => item.textContent)
     const index = names.indexOf("Return to main window")
     expect(index).toBeGreaterThanOrEqual(0)
     expect(names[index + 1]).toBe("Rename")
-    await act(async () => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Return to main window" }))))
     expect(returned).toBe(true)
     view.rerender(<ChatActionsMenu surface="main" {...props} />)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
     expect(view.queryByRole("menuitem", { name: "Return to main window" })).toBeNull()
   } finally {
     view.unmount()
@@ -248,7 +278,7 @@ test.each(["main", "floating"] as const)("MCP startup diagnostics stay hidden in
   } as never)
   const view = render(<ChatActionsMenu surface={surface} session={session} cwd="/tmp" onNewChat={() => {}} />)
   try {
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "More actions" })))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "More actions" }))))
     expect(view.getByRole("menu")).toBeInTheDocument()
     expect(view.queryByText(/MCP startup diagnostics/)).toBeNull()
     view.rerender(

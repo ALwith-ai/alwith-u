@@ -46,8 +46,7 @@ export function writePastedTextAttachment(sessionId: string, attachment: PastedT
 export function pasteLongText(event: ClipboardEvent<HTMLTextAreaElement>, sessionId: string, filename: string): void {
   if (event.defaultPrevented || event.currentTarget.disabled) return
   // Image pastes retain the shared composer's precedence over accompanying clipboard text.
-  if (Array.from(event.clipboardData.items).some((item) => item.kind === "file" && item.type.startsWith("image/")))
-    return
+  if ([...event.clipboardData.items].some((item) => item.kind === "file" && item.type.startsWith("image/"))) return
   const text = event.clipboardData.getData("text/plain")
   if (text.length < 5000) return
   event.preventDefault()

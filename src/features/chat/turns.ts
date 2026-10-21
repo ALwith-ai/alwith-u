@@ -129,12 +129,16 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
   const visible = { ...session, items: session.items.filter((item) => !isMcpStartup(item)) }
   // Sparse navigation must not attach an assistant-only turn to a distant, unrelated prompt.
   const order = new Map(historyOrder.map((turn, index) => [turn.turnId, index]))
-  const runs: Item[][] = [[]]
+  let run: Item[] = []
+  const runs: Item[][] = [run]
   let beforeIndex: number | undefined
   for (const item of visible.items) {
     const index = order.get(nativeTurnId(item) ?? "")
-    if (index !== undefined && beforeIndex !== undefined && index > beforeIndex + 1) runs.push([])
-    runs[runs.length - 1].push(item)
+    if (index !== undefined && beforeIndex !== undefined && index > beforeIndex + 1) {
+      run = []
+      runs.push(run)
+    }
+    run.push(item)
     if (index !== undefined) beforeIndex = index
   }
   return runs

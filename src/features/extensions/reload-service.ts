@@ -3,11 +3,11 @@ import type { StartupImportPort } from "./startup-import"
 export type ReloadOutcome = "updated" | "reloaded"
 
 export interface ReloadPort extends Pick<StartupImportPort, "scan" | "prepare" | "complete" | "failed"> {
-  install(
+  install: (
     pkg: NonNullable<Awaited<ReturnType<StartupImportPort["prepare"]>>["package"]>
-  ): Promise<"updated" | "unchanged">
-  reload(): Promise<void>
-  finish(): Promise<void>
+  ) => Promise<"updated" | "unchanged">
+  reload: () => Promise<void>
+  finish: () => Promise<void>
 }
 
 /** Preparation must succeed before any running instance is stopped. */
@@ -31,7 +31,7 @@ async function runPass(id: string, port: ReloadPort): Promise<ReloadOutcome> {
       const task = await port.prepare(taskId)
       let outcome: ReloadOutcome = "reloaded"
       if (task.phase === "prepared") {
-        if (!task.package || task.package.id !== id) throw new Error("Prepared package does not match the extension")
+        if (task.package?.id !== id) throw new Error("Prepared package does not match the extension")
         if ((await port.install(task.package)) === "updated") outcome = "updated"
         else await port.reload()
       } else {

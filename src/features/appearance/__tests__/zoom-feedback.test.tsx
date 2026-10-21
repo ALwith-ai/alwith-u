@@ -17,9 +17,11 @@ const { listeners, stop, setZoom, save } = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({
     setZoom,
-    listen: async (event: string, callback: () => void) => {
-      listeners.set(event, callback)
-      return stop
+    listen: (event: string, callback: () => void) => {
+      return Promise.try(() => {
+        listeners.set(event, callback)
+        return stop
+      })
     }
   })
 }))
@@ -72,10 +74,12 @@ test("hover pauses dismissal, clicking changes zoom, and leaving starts a fresh 
   fireEvent.pointerEnter(panel)
   advance(3000)
   const plus = screen.getByRole("button", { name: "Zoom in" })
-  await act(async () => {
-    fireEvent.pointerDown(plus)
-    plus.focus()
-    fireEvent.click(plus)
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.pointerDown(plus)
+      plus.focus()
+      fireEvent.click(plus)
+    })
   })
   expect(screen.getByRole("status")).toHaveTextContent("100%")
   expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled()
@@ -115,8 +119,10 @@ test("limits disable the corresponding controls and reset restores 100%", async 
     await setZoomLevel(2)
   })
   expect(screen.getByRole("button", { name: "Zoom in" })).toBeDisabled()
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }))
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Reset" }))
+    })
   })
   expect(screen.getByRole("status")).toHaveTextContent("100%")
   expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled()
@@ -124,8 +130,10 @@ test("limits disable the corresponding controls and reset restores 100%", async 
 
 test("native menu actions are handled once and listeners are released on unmount", async () => {
   const view = render(<ZoomFeedback />)
-  await act(async () => {
-    listeners.get("menu:zoom-out")?.()
+  await act(() => {
+    return Promise.try(() => {
+      listeners.get("menu:zoom-out")?.()
+    })
   })
   expect(screen.getByRole("status")).toHaveTextContent("90%")
   expect(setZoom).toHaveBeenCalledTimes(1)
@@ -137,8 +145,10 @@ test("native menu actions are handled once and listeners are released on unmount
 test("Windows Ctrl zoom shortcuts use the same controls", async () => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32")
   render(<ZoomFeedback />)
-  await act(async () => {
-    fireEvent.keyDown(document, { key: "-", ctrlKey: true })
+  await act(() => {
+    return Promise.try(() => {
+      fireEvent.keyDown(document, { key: "-", ctrlKey: true })
+    })
   })
   expect(screen.getByRole("status")).toHaveTextContent("90%")
 })
@@ -153,10 +163,12 @@ test("settings applies zoom and follows changes without feedback, including menu
   const select = screen.getByRole("combobox", { name: "Interface zoom" })
   expect(select).toHaveTextContent("100%")
   fireEvent.click(select)
-  await act(async () => {
-    const option = screen.getByRole("option", { name: "125%" })
-    fireEvent.pointerDown(option, { pointerType: "mouse" })
-    fireEvent.click(option)
+  await act(() => {
+    return Promise.try(() => {
+      const option = screen.getByRole("option", { name: "125%" })
+      fireEvent.pointerDown(option, { pointerType: "mouse" })
+      fireEvent.click(option)
+    })
   })
   expect(select).toHaveTextContent("125%")
   expect(screen.queryByRole("group", { name: "Interface zoom" })).not.toBeInTheDocument()
@@ -165,8 +177,10 @@ test("settings applies zoom and follows changes without feedback, including menu
     await syncZoomLevel(0.9)
   })
   expect(select).toHaveTextContent("90%")
-  await act(async () => {
-    listeners.get("menu:zoom-in")?.()
+  await act(() => {
+    return Promise.try(() => {
+      listeners.get("menu:zoom-in")?.()
+    })
   })
   expect(select).toHaveTextContent("100%")
   expect(screen.queryByRole("group", { name: "Interface zoom" })).not.toBeInTheDocument()

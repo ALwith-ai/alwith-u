@@ -5,13 +5,15 @@ import { collapseToPet, type PetCollapseHost } from "../collapse"
 function fixture(overrides: Partial<PetCollapseHost> = {}) {
   const calls: string[] = []
   const step = (name: string) =>
-    vi.fn(async () => {
-      calls.push(name)
+    vi.fn(() => {
+      return Promise.try(() => {
+        calls.push(name)
+      })
     })
   const host: PetCollapseHost = {
     validate: vi.fn(),
-    equippedPet: vi.fn(async () => "pet"),
-    hasPets: vi.fn(async () => true),
+    equippedPet: vi.fn(() => Promise.resolve("pet")),
+    hasPets: vi.fn(() => Promise.resolve(true)),
     showPet: step("show"),
     bindSession: step("bind"),
     openBubble: step("bubble"),
@@ -32,7 +34,7 @@ test("collapse only hides chat after the pet, binding and bubble are ready", asy
 test.each([true, false])(
   "an unequipped account with pets=%s receives guidance without hiding or binding",
   async (hasPets) => {
-    const { host, calls } = fixture({ equippedPet: async () => "", hasPets: async () => hasPets })
+    const { host, calls } = fixture({ equippedPet: () => Promise.resolve(""), hasPets: () => Promise.resolve(hasPets) })
     expect(await collapseToPet(host)).toEqual({ type: "setup", view: hasPets ? "equip" : "pull" })
     expect(calls).toEqual([])
   }
@@ -40,9 +42,11 @@ test.each([true, false])(
 
 test("inventory errors remain errors and do not become an empty collection", async () => {
   const { host, calls } = fixture({
-    equippedPet: async () => "",
-    hasPets: async () => {
-      throw new Error("network")
+    equippedPet: () => Promise.resolve(""),
+    hasPets: () => {
+      return Promise.try(() => {
+        throw new Error("network")
+      })
     }
   })
   await expect(collapseToPet(host)).rejects.toThrow("network")
@@ -51,8 +55,10 @@ test("inventory errors remain errors and do not become an empty collection", asy
 
 test.each(["showPet", "bindSession", "openBubble"] as const)("a %s failure keeps chat visible", async (key) => {
   const { host } = fixture({
-    [key]: async () => {
-      throw new Error("presentation failed")
+    [key]: () => {
+      return Promise.try(() => {
+        throw new Error("presentation failed")
+      })
     }
   })
   await expect(collapseToPet(host)).rejects.toThrow("presentation failed")
@@ -61,8 +67,10 @@ test.each(["showPet", "bindSession", "openBubble"] as const)("a %s failure keeps
 
 test("a partial hide failure restores the existing chat", async () => {
   const { host } = fixture({
-    hideChat: async () => {
-      throw new Error("surface sync")
+    hideChat: () => {
+      return Promise.try(() => {
+        throw new Error("surface sync")
+      })
     }
   })
   await expect(collapseToPet(host)).rejects.toThrow("surface sync")
@@ -72,8 +80,9 @@ test("a partial hide failure restores the existing chat", async () => {
 test("a session/account change while preparing the pet cannot hide or rebind another chat", async () => {
   let current = true
   const { host } = fixture({
-    showPet: async () => {
+    showPet: () => {
       current = false
+      return Promise.resolve()
     },
     validate: () => {
       if (!current) throw new Error("stale request")

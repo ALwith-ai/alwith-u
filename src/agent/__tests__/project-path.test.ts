@@ -10,7 +10,7 @@ test.each(["var", "tmp", "etc"])("macOS %s aliases keep one identity without acc
   expect(macProjectPaths(`/${root}`)).toEqual([`/private/${root}`, `/${root}`])
 })
 
-test.each(["/variable/project", "/private/variant/project", "/Users/me/project", "/", "C:\\work\\project"])(
+test.each(["/variable/project", "/private/variant/project", "/Users/me/project", "/", String.raw`C:\work\project`])(
   "unrelated path %s keeps its own identity",
   (cwd) => {
     expect(macProjectPaths(cwd)).toEqual([cwd])

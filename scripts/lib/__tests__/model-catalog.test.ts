@@ -32,14 +32,14 @@ function fixture(): { env: NodeJS.ProcessEnv; warnings: string[]; runner: Catalo
     runner: {
       bundled: () => bundled,
       configured: () => bundled,
-      refresh: async () => refreshed,
+      refresh: () => Promise.resolve(refreshed),
       warn: (message) => warnings.push(message)
     }
   }
 }
 function models(path: string | null): Array<Record<string, unknown>> {
   if (path === null) throw new Error("Expected a merged catalog")
-  return JSON.parse(readFileSync(path, "utf8")).models
+  return (JSON.parse(readFileSync(path, "utf8")) as { models: Array<Record<string, unknown>> }).models
 }
 
 test("startup does not wait for refresh and never changes the active catalog", async () => {
@@ -56,8 +56,10 @@ test("startup does not wait for refresh and never changes the active catalog", a
     bundled: () => {
       throw new Error("Fresh cache should avoid a subprocess")
     },
-    refresh: async () => {
-      throw new Error("Fresh cache should avoid refresh")
+    refresh: () => {
+      return Promise.try(() => {
+        throw new Error("Fresh cache should avoid refresh")
+      })
     }
   })
   expect(models(next.path)[0]?.slug).toBe("new-model")
@@ -66,8 +68,10 @@ test("startup does not wait for refresh and never changes the active catalog", a
 
 test("a failed background refresh leaves startup usable and reports the failure", async () => {
   const { env, runner, warnings } = fixture()
-  runner.refresh = async () => {
-    throw new Error("offline")
+  runner.refresh = () => {
+    return Promise.try(() => {
+      throw new Error("offline")
+    })
   }
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
   await catalog.refresh
@@ -84,10 +88,12 @@ test("an expired cache remains usable when refresh fails", async () => {
     directory,
     readdirSync(directory).find((name) => name.endsWith(".json"))!
   )
-  const cached = JSON.parse(readFileSync(file, "utf8"))
+  const cached = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>
   writeFileSync(file, JSON.stringify({ ...cached, fetchedAt: 0 }))
-  runner.refresh = async () => {
-    throw new Error("offline")
+  runner.refresh = () => {
+    return Promise.try(() => {
+      throw new Error("offline")
+    })
   }
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
   expect(models(catalog.path)[0]?.slug).toBe("new-model")
@@ -124,7 +130,7 @@ test("corrupt cache is reported and replaced without delaying startup", async ()
 
 test("invalid refresh data cannot replace a previously valid cache", async () => {
   const { env, runner, warnings } = fixture()
-  runner.refresh = async () => '{"models":[{"slug":42}]}'
+  runner.refresh = () => Promise.resolve('{"models":[{"slug":42}]}')
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
   await catalog.refresh
   expect(warnings).toHaveLength(1)
@@ -187,8 +193,10 @@ test("explicit native catalogs retain Codex configuration and bypass bundled/cac
   runner.bundled = () => {
     throw new Error("Custom configuration must remain authoritative")
   }
-  runner.refresh = async () => {
-    throw new Error("Custom catalogs must not be cached")
+  runner.refresh = () => {
+    return Promise.try(() => {
+      throw new Error("Custom catalogs must not be cached")
+    })
   }
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
   expect(models(catalog.path)[0]?.slug).toBe("custom-model")
@@ -212,8 +220,10 @@ test("keyring credentials retain native lookup instead of reusing a file-account
   await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
   writeFileSync(join(env.CODEX_HOME!, "config.toml"), 'cli_auth_credentials_store = "keyring"')
   runner.configured = () => JSON.stringify({ models: [{ slug: "keyring-account-model" }] })
-  runner.refresh = async () => {
-    throw new Error("Cannot persist an unidentified account's catalog")
+  runner.refresh = () => {
+    return Promise.try(() => {
+      throw new Error("Cannot persist an unidentified account's catalog")
+    })
   }
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
   expect(models(catalog.path)[0]?.slug).toBe("keyring-account-model")

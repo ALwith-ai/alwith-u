@@ -22,11 +22,13 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
   const scope = new ResourceScope()
   const bridge = createLegacyBridge(manifest.id, {
     binding: { manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) },
-    native: async <T>(command: string): Promise<T> => {
-      calls.push(command)
-      if (command === "legacy_take_initial_data") return { title: "Imported" } as T
-      if (command === "legacy_ack_initial_data") return null as T
-      throw new Error(`Unexpected native IO: ${command}`)
+    native: <T>(command: string): Promise<T> => {
+      return Promise.try(() => {
+        calls.push(command)
+        if (command === "legacy_take_initial_data") return { title: "Imported" } as T
+        if (command === "legacy_ack_initial_data") return null as T
+        throw new Error(`Unexpected native IO: ${command}`)
+      })
     },
     session: () => null,
     send: async () => {},
@@ -70,7 +72,7 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
   const data = createMemoryData()
   const evaluate = createCommonJsEvaluator({ "@alwith/module-extension/legacy": legacy })
   try {
-    await host.activate(manifest, "fixture", evaluate(prepared.main), {
+    await host.activate(manifest, "fixture", await evaluate(prepared.main), {
       data,
       resource: (path) => `https://assets.invalid/${path}`
     })

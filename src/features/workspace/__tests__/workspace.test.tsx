@@ -18,14 +18,15 @@ vi.mock("@/features/guide/guide-window", () => ({ openGuideWindow: vi.fn() }))
 
 const native = vi.hoisted(() => ({
   invoke: vi.fn(),
-  listen: vi.fn(async (_event: string, _handler: () => void) => (): void => {}),
+  listen: vi.fn((_event: string, _handler: () => void) => Promise.resolve((): void => {})),
   nativeMode: false,
   close: null as ((event: { preventDefault(): void }) => void) | null
 }))
 let clipboardText: string
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeText: async (text: string): Promise<void> => {
+  writeText: (text: string): Promise<void> => {
     clipboardText = text
+    return Promise.resolve()
   }
 }))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
@@ -33,12 +34,12 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: native.invoke, isTauri: () => n
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     listen: native.listen,
-    onDragDropEvent: async () => (): void => {},
-    onCloseRequested: async (callback: (event: { preventDefault(): void }) => void) => {
+    onDragDropEvent: () => Promise.resolve((): void => {}),
+    onCloseRequested: (callback: (event: { preventDefault(): void }) => void) => {
       native.close = callback
-      return (): void => {
+      return Promise.resolve((): void => {
         native.close = null
-      }
+      })
     }
   })
 }))
@@ -169,8 +170,10 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
 
 test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async (surface) => {
   clipboardText = ""
-  const browserWrite = vi.fn(async (): Promise<void> => {
-    throw new DOMException("Clipboard access denied", "NotAllowedError")
+  const browserWrite = vi.fn((): Promise<void> => {
+    return Promise.try(() => {
+      throw new DOMException("Clipboard access denied", "NotAllowedError")
+    })
   })
   const previousClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard")
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: browserWrite } })
@@ -198,7 +201,7 @@ test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share
     vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32")
     const normalizedRoot = normalizePath(root)
     adapter = createMemoryAdapter({ [`${normalizedRoot}/folder/bunfig.toml`]: "content" })
-    authorize = async () => root
+    authorize = () => Promise.resolve(root)
     render(<Surface cwd={root} />)
     fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
     const project = await screen.findByRole("treeitem", { name: /alwith-u/ })
@@ -220,7 +223,7 @@ test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share
     fireEvent.click(within(breadcrumbs).getByRole("button", { name: "folder" }))
     await waitFor(() =>
       expect(native.invoke).toHaveBeenCalledWith("workspace_file", {
-        request: expect.objectContaining({ operation: "readDirectory", root, path: normalizedRoot })
+        request: expect.objectContaining({ operation: "readDirectory", root, path: normalizedRoot }) as unknown
       })
     )
     await waitFor(() =>
@@ -265,8 +268,10 @@ test("an old authorization response cannot open another chat's workspace", async
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_open", { path: "/a" }))
   view.rerender(<Surface cwd="/b" />)
-  await act(async () => {
-    finish("/a")
+  await act(() => {
+    return Promise.try(() => {
+      finish("/a")
+    })
   })
   expect(screen.queryByRole("tree")).toBeNull()
   authorize = null
@@ -339,7 +344,7 @@ test("discarding on explicit quit takes the approved native exit path", async ()
   fireEvent.click(await screen.findByRole("treeitem", { name: /one.txt/ }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "draft" } })
   expect(native.close).toBeNull()
-  await act(async () => requestExit())
+  await act(() => Promise.try(() => requestExit()))
   fireEvent.click(await screen.findByRole("button", { name: "Discard" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
   expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("first")
@@ -442,8 +447,10 @@ test("rapid preview clicks share one pending authorization", async () => {
   await waitFor(() =>
     expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_open")).toHaveLength(1)
   )
-  await act(async () => {
-    finish("/a")
+  await act(() => {
+    return Promise.try(() => {
+      finish("/a")
+    })
   })
   await screen.findByRole("treeitem", { name: /one.txt/ })
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_open")).toHaveLength(1)
@@ -612,7 +619,7 @@ test("unmount releases a watch that finishes after workspace creation is cancell
       await pendingWatch
       return null
     }
-    return originalInvoke(command, args)
+    return originalInvoke(command, args) as unknown
   })
   const view = render(
     <StrictMode>
@@ -646,13 +653,13 @@ test("cancelling application exit keeps the dirty document editable and allows a
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "one.txt" }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "unsaved" } })
-  await act(async () => requestExit())
+  await act(() => Promise.try(() => requestExit()))
   fireEvent.click(await screen.findByRole("button", { name: "Cancel" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_exit")).toHaveLength(0)
   expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("unsaved")
   fireEvent.change(screen.getByRole("textbox", { name: "Code" }), { target: { value: "continued editing" } })
-  await act(async () => requestExit())
+  await act(() => Promise.try(() => requestExit()))
   fireEvent.click(await screen.findByRole("button", { name: "Save" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
   expect(new TextDecoder().decode(await adapter.readFile("/a/one.txt"))).toBe("continued editing")
@@ -671,8 +678,10 @@ test("saving on exit succeeds when the saved background document is deferred", a
     fireEvent.doubleClick(screen.getByRole("treeitem", { name: `file${index}.txt` }))
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue(`body ${index}`))
   }
-  await act(async () => {
-    requestExit()
+  await act(() => {
+    return Promise.try(() => {
+      requestExit()
+    })
   })
   fireEvent.click(await screen.findByRole("button", { name: "Save" }))
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_exit"))
@@ -688,8 +697,10 @@ test("edits to an approved project while another exit prompt is open prevent exi
   view.rerender(<Surface cwd="/b" />)
   fireEvent.doubleClick(await screen.findByRole("treeitem", { name: "two.txt" }))
   fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "second draft" } })
-  await act(async () => {
-    requestExit()
+  await act(() => {
+    return Promise.try(() => {
+      requestExit()
+    })
   })
   fireEvent.click(await screen.findByRole("button", { name: "Discard" }))
   await waitFor(() => expect(screen.getByRole("dialog")).toHaveTextContent("/b/two.txt"))
@@ -744,7 +755,7 @@ test("project tree shortcut ignores a response belonging to a previous project",
   fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
   await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_open", { path: "/a" }))
   view.rerender(<Surface cwd="/b" />)
-  await act(async () => finish("/a"))
+  await act(() => Promise.try(() => finish("/a")))
   expect(screen.queryByRole("tree")).toBeNull()
   authorize = null
   fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
@@ -766,7 +777,12 @@ test("new tabs keep the existing preview, support middle close and restore their
   expect(screen.getByRole("tab", { name: "one.txt" })).toBeVisible()
   expect(screen.queryByRole("tab", { name: "New tab" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "New tab" }))
-  await waitFor(() => expect(JSON.parse(required(localStorage.getItem("workspace:/a"))).tabLayout.activeIndex).toBe(2))
+  await waitFor(() =>
+    expect(
+      (JSON.parse(required(localStorage.getItem("workspace:/a"))) as { tabLayout: { activeIndex: number } }).tabLayout
+        .activeIndex
+    ).toBe(2)
+  )
   view.unmount()
   render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
@@ -804,12 +820,10 @@ test("workspace keyboard shortcuts open, close and reopen a file without losing 
 test("native new-tab menu opens the workspace and close-tab preserves the chat", async () => {
   native.nativeMode = true
   render(<Surface cwd="/a" />)
-  const handler = (): (() => void) =>
-    required(native.listen.mock.calls.find(([name]) => name === "menu:new-tab")?.[1] as (() => void) | undefined)
+  const handler = (): (() => void) => required(native.listen.mock.calls.find(([name]) => name === "menu:new-tab")?.[1])
   act(() => handler()())
   await screen.findByRole("tab", { name: "New tab" })
-  const close = native.listen.mock.calls.filter(([name]) => name === "menu:close-tab").at(-1)?.[1] as
-    (() => void) | undefined
+  const close = native.listen.mock.calls.findLast(([name]) => name === "menu:close-tab")?.[1]
   act(() => required(close)())
   await waitFor(() => expect(screen.queryByRole("tab")).toBeNull())
   expect(screen.getByText("Chat /a")).toBeInTheDocument()

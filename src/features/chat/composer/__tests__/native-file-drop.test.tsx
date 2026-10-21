@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest"
 import type { ChatDroppedFile } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
 import { basename } from "@/lib/path"
+import { mockOf } from "@/test/mock-of"
 
 import { nativeAttachmentPolicy, NativeFileDrop } from "../native-file-drop"
 import { PromptInput, PromptInputProvider, usePromptInputAttachments } from "../prompt-input"
@@ -68,14 +69,16 @@ beforeEach(() => {
   host.read.mockReset()
   host.stop.mockReset()
   host.error.mockReset()
-  host.listen.mockReset().mockImplementation(async (listener: (event: Drop) => void) => {
-    host.listeners.push(listener)
-    return host.stop
+  host.listen.mockReset().mockImplementation((listener: (event: Drop) => void) => {
+    return Promise.try(() => {
+      host.listeners.push(listener)
+      return host.stop
+    })
   })
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 })
   Object.defineProperty(document, "elementFromPoint", {
     configurable: true,
-    value: vi.fn(() => document.querySelector("[data-chat-drop-zone]"))
+    value: vi.fn(() => document.querySelector<HTMLElement>("[data-chat-drop-zone]"))
   })
 })
 afterEach(() => cleanup())
@@ -91,7 +94,7 @@ test.each(["main-session", "floating-session"])(
     await waitFor(() => expect(view.getByRole("button", { name: "qa.png" })).toBeVisible())
     await waitFor(() => expect(view.getByTestId("busy").textContent).toBe("false"))
     expect(view.getByTestId("mentions").textContent).toBe("/tmp/中文 space #1.txt")
-    expect(document.elementFromPoint).toHaveBeenCalledWith(10, 20)
+    expect(mockOf(document, "elementFromPoint")).toHaveBeenCalledWith(10, 20)
     expect(host.read).toHaveBeenCalledWith("chat_read_dropped_file", { path: "/tmp/qa.png" })
     expect(host.listen).toHaveBeenCalledTimes(1)
     expect(view.getByTestId("busy").textContent).toBe("false")
@@ -111,18 +114,20 @@ test("rapid duplicate drops are serialized and removing an image allows another 
   expect(host.listen).toHaveBeenCalledTimes(1)
 })
 
-test("workspace drops are left to its importer and unavailable composers reject with feedback", async () => {
-  const view = render(<Harness enabled={false} />)
-  const tree = document.createElement("div")
-  tree.className = "file-workspace-tree"
-  vi.mocked(document.elementFromPoint).mockReturnValueOnce(tree)
-  drop(["/tmp/qa.png"])
-  expect(host.read).not.toHaveBeenCalled()
-  expect(host.error).not.toHaveBeenCalled()
-  drop(["/tmp/qa.png"])
-  expect(host.error).toHaveBeenCalledWith("This chat cannot accept files right now.")
-  expect(host.read).not.toHaveBeenCalled()
-  expect(view.getByTestId("busy").textContent).toBe("false")
+test("workspace drops are left to its importer and unavailable composers reject with feedback", () => {
+  return Promise.try(() => {
+    const view = render(<Harness enabled={false} />)
+    const tree = document.createElement("div")
+    tree.className = "file-workspace-tree"
+    mockOf(document, "elementFromPoint").mockReturnValueOnce(tree)
+    drop(["/tmp/qa.png"])
+    expect(host.read).not.toHaveBeenCalled()
+    expect(host.error).not.toHaveBeenCalled()
+    drop(["/tmp/qa.png"])
+    expect(host.error).toHaveBeenCalledWith("This chat cannot accept files right now.")
+    expect(host.read).not.toHaveBeenCalled()
+    expect(view.getByTestId("busy").textContent).toBe("false")
+  })
 })
 
 test("a delayed file read never lands in a different session", async () => {
@@ -137,7 +142,7 @@ test("a delayed file read never lands in a different session", async () => {
   drop(["/tmp/qa.png"])
   await waitFor(() => expect(host.read).toHaveBeenCalledTimes(1))
   view.rerender(<Harness sessionId="new" />)
-  await act(async () => finish(image()))
+  await act(() => Promise.try(() => finish(image())))
   expect(view.queryByRole("button", { name: "qa.png" })).toBeNull()
   expect(view.getByTestId("busy").textContent).toBe("false")
   expect(host.stop).toHaveBeenCalledTimes(1)
@@ -173,6 +178,6 @@ test("late native listener registration is cleaned up after unmount", async () =
   )
   const view = render(<Harness />)
   view.unmount()
-  await act(async () => finish(host.stop))
+  await act(() => Promise.try(() => finish(host.stop)))
   expect(host.stop).toHaveBeenCalledTimes(1)
 })

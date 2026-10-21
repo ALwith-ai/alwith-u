@@ -20,9 +20,11 @@ afterEach(() => {
 test("native window moves reach the shared drag controller without pointer events", async () => {
   const stop = vi.fn()
   const position = new PhysicalPosition(120, 240)
-  native.onMoved.mockImplementationOnce(async (listener: Parameters<WebviewWindow["onMoved"]>[0]) => {
-    listener({ event: "tauri://move", id: 1, payload: position })
-    return stop
+  native.onMoved.mockImplementationOnce((listener: Parameters<WebviewWindow["onMoved"]>[0]) => {
+    return Promise.try(() => {
+      listener({ event: "tauri://move", id: 1, payload: position })
+      return stop
+    })
   })
   const listener = vi.fn()
   const unsubscribe = await createPetWindowClient().moved(listener)

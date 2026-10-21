@@ -26,8 +26,14 @@ function decodeState(root: string, raw: string): WorkspaceState {
   const validPath = (path: unknown): path is string => typeof path === "string" && containsPath(root, path)
   if (
     !Array.isArray(state.tabs) ||
-    !state.tabs.every(
-      (tab) => typeof tab === "object" && tab !== null && validPath(tab.path) && typeof tab.pinned === "boolean"
+    !(state.tabs as unknown[]).every(
+      (tab) =>
+        typeof tab === "object" &&
+        tab !== null &&
+        "path" in tab &&
+        validPath(tab.path) &&
+        "pinned" in tab &&
+        typeof tab.pinned === "boolean"
     ) ||
     !Array.isArray(state.expanded) ||
     !state.expanded.every(validPath) ||
@@ -37,8 +43,8 @@ function decodeState(root: string, raw: string): WorkspaceState {
     !iconThemes.includes(state.iconTheme as IconTheme)
   )
     throw new Error("Invalid workspace preferences")
-  if (state.tabLayout !== undefined) {
-    const layout = state.tabLayout as Partial<SavedEditorWorkspace> | null
+  const layout = state.tabLayout as Partial<SavedEditorWorkspace> | null | undefined
+  if (layout !== undefined) {
     if (
       !layout ||
       !Array.isArray(layout.tabs) ||
@@ -63,18 +69,22 @@ function decodeState(root: string, raw: string): WorkspaceState {
 
 /** Persist only file UI preferences; document bodies and Codex conversations never enter this store. */
 export function createWorkspaceStateStore(storage: Storage = localStorage): {
-  load(root: string): Promise<WorkspaceState | null>
-  save(root: string, state: WorkspaceState): Promise<void>
+  load: (root: string) => Promise<WorkspaceState | null>
+  save: (root: string, state: WorkspaceState) => Promise<void>
 } {
   return {
-    async load(root) {
-      const value = storage.getItem(`workspace:${root}`)
-      return value === null ? null : decodeState(root, value)
+    load(root) {
+      return Promise.try(() => {
+        const value = storage.getItem(`workspace:${root}`)
+        return value === null ? null : decodeState(root, value)
+      })
     },
-    async save(root, state) {
-      const value = JSON.stringify(state)
-      decodeState(root, value)
-      storage.setItem(`workspace:${root}`, value)
+    save(root, state) {
+      return Promise.try(() => {
+        const value = JSON.stringify(state)
+        decodeState(root, value)
+        storage.setItem(`workspace:${root}`, value)
+      })
     }
   }
 }

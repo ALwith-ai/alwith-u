@@ -6,6 +6,8 @@ import { createInstance } from "i18next"
 import { I18nextProvider } from "react-i18next"
 import { afterEach, expect, test, vi } from "vitest"
 
+import { mockOf } from "@/test/mock-of"
+
 const snapshot: GamepadSnapshot = {
   version: 1,
   generation: 1,
@@ -30,48 +32,52 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
   const listeners = new Set<(event: GamepadEvent) => void>()
   const host: GamepadHost = {
     platform: "macos",
-    request: vi.fn(async (request) => {
-      if (request.type === "selectDevice") {
-        state = { ...state, sequence: state.sequence + 1, activeDevice: request.id }
-        for (const listener of listeners) listener({ type: "snapshot", snapshot: state })
-      }
-      if (request.type === "loadProfile")
-        return {
-          type: "profile" as const,
-          profile: {
-            id: request.id,
-            revision: 1,
-            config: {
-              deadzone: 0.2,
-              poll_interval_ms: 8,
-              mouse_move_scale: 1,
-              buttons: {},
-              left_stick: {},
-              right_stick: {}
-            },
-            color: null
-          }
+    request: vi.fn((request: Parameters<GamepadHost["request"]>[0]) => {
+      return Promise.try(() => {
+        if (request.type === "selectDevice") {
+          state = { ...state, sequence: state.sequence + 1, activeDevice: request.id }
+          for (const listener of listeners) listener({ type: "snapshot", snapshot: state })
         }
-      return { type: "snapshot" as const, snapshot: state }
+        if (request.type === "loadProfile")
+          return {
+            type: "profile" as const,
+            profile: {
+              id: request.id,
+              revision: 1,
+              config: {
+                deadzone: 0.2,
+                poll_interval_ms: 8,
+                mouse_move_scale: 1,
+                buttons: {},
+                left_stick: {},
+                right_stick: {}
+              },
+              color: null
+            }
+          }
+        return { type: "snapshot" as const, snapshot: state }
+      })
     }),
-    listen: async (handler) => {
-      listeners.add(handler)
-      return () => {
-        listeners.delete(handler)
-      }
+    listen: (handler) => {
+      return Promise.try(() => {
+        listeners.add(handler)
+        return () => {
+          listeners.delete(handler)
+        }
+      })
     },
     permissions: {
-      status: async () => ({ authorized: false, mayPrompt: true, known: null }),
-      request: async () => ({ authorized: false, mayPrompt: true, known: null }),
+      status: () => Promise.resolve({ authorized: false, mayPrompt: true, known: null }),
+      request: () => Promise.resolve({ authorized: false, mayPrompt: true, known: null }),
       openSettings: async () => {}
     },
-    capture: { start: async () => {}, stop: async () => {}, listen: async () => () => {} },
+    capture: { start: async () => {}, stop: async () => {}, listen: () => Promise.resolve(() => {}) },
     openBluetoothSettings: async () => {},
     onError: vi.fn()
   }
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg>'))
+    vi.fn(() => Promise.try(() => new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg>')))
   )
   render(
     <I18nextProvider i18n={i18n}>
@@ -80,7 +86,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
       </GamepadProvider>
     </I18nextProvider>
   )
-  await waitFor(() => expect(host.request).toHaveBeenCalledWith({ type: "snapshot" }))
+  await waitFor(() => expect(mockOf(host, "request")).toHaveBeenCalledWith({ type: "snapshot" }))
   return {
     host,
     emit: (event) => {
@@ -92,7 +98,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
 test("the installed package hydrates service errors and does not start without permission", async () => {
   const { host } = await mount({ ...snapshot, state: "failed", error: "Native engine unavailable" })
   expect(await screen.findByText("Native engine unavailable")).toBeTruthy()
-  expect(host.request).not.toHaveBeenCalledWith({ type: "start" })
+  expect(mockOf(host, "request")).not.toHaveBeenCalledWith({ type: "start" })
   expect(screen.queryByText(gamepadResources.en.aiConfig.title)).toBeNull()
 })
 

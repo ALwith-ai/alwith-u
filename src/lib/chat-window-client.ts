@@ -79,12 +79,12 @@ export async function serveChatClient(
         if (disposed || identity !== connectionId) return
         const patch: Partial<AppState> = {}
         for (const key of Object.keys(state) as (keyof AppState)[]) {
-          if (key !== "sessions" && (previous === null || state[key] !== previous[key]))
+          if (key !== "sessions" && (previous === null ? true : state[key] !== previous[key]))
             Object.assign(patch, { [key]: state[key] })
         }
         const sessions = Object.fromEntries(
-          Object.entries(state.sessions).filter(
-            ([id, session]) => previous === null || previous.sessions[id] !== session
+          Object.entries(state.sessions).filter(([id, session]) =>
+            previous === null ? true : previous.sessions[id] !== session
           )
         )
         if (Object.keys(sessions).length > 0) patch.sessions = sessions
@@ -125,7 +125,7 @@ export async function serveChatClient(
             connectionId = request.connectionId
             previous = null
           } else if (request.connectionId !== connectionId) throw new Error("Chat window connection expired")
-          const action = owner[request.method] as (...args: unknown[]) => unknown
+          const action = Reflect.get(owner, request.method) as (...args: unknown[]) => unknown
           const result = await action.apply(owner, request.args)
           if (disposed || connectionId !== request.connectionId) return
           await publish()
@@ -176,8 +176,10 @@ export class RemoteChatClient extends CodexClient {
 
   constructor(transport: ChatEvents = events) {
     super(
-      async () => {
-        throw new Error("Chat window cannot own an agent connection")
+      () => {
+        return Promise.try(() => {
+          throw new Error("Chat window cannot own an agent connection")
+        })
       },
       { agentId: "codex", launch: { engine: "codex" }, projectPaths: isMac() ? macProjectPaths : undefined }
     )

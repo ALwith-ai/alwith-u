@@ -3,6 +3,8 @@ import { type DriveControls, type DriveHost, DrivePanel, DriveSharing } from "@a
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
+import { mockOf } from "@/test/mock-of"
+
 const root: RootInfo = {
   projectId: 1,
   projectKey: "docs",
@@ -100,8 +102,8 @@ function fixture(
     }
   }
   const host: DriveHost = {
-    readDirectory: async () => [],
-    pathExists: async () => true,
+    readDirectory: () => Promise.resolve([]),
+    pathExists: () => Promise.resolve(true),
     onOpenEntry: vi.fn(async () => {}),
     onRevealPath: vi.fn(async () => {}),
     onOpenExternal: vi.fn(async () => {}),
@@ -113,24 +115,26 @@ function fixture(
 }
 describe("shared Desktop Drive UI", () => {
   it("opens a shared file by its refreshed exact path, never its project as a file", async () => {
-    const f = fixture({}, async (request) => {
-      if (request.type === "shared")
-        return {
-          type: "shared",
-          data: [
-            {
-              resourceType: "FILE",
-              resourceId: 42,
-              name: "Quarterly report",
-              projectId: 1,
-              level: "VIEW",
-              localPath: null
-            }
-          ]
-        }
-      if (request.type === "land") return { type: "root", data: root }
-      if (request.type === "localPath") return { type: "path", data: "/drive/library/reports/q1.md" }
-      throw new Error(`Unexpected request: ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "shared")
+          return {
+            type: "shared",
+            data: [
+              {
+                resourceType: "FILE",
+                resourceId: 42,
+                name: "Quarterly report",
+                projectId: 1,
+                level: "VIEW",
+                localPath: null
+              }
+            ]
+          }
+        if (request.type === "land") return { type: "root", data: root }
+        if (request.type === "localPath") return { type: "path", data: "/drive/library/reports/q1.md" }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
     render(
       <DrivePanel
@@ -138,23 +142,30 @@ describe("shared Desktop Drive UI", () => {
         controls={controls}
         mode="launcher"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
     fireEvent.click(await screen.findByRole("button", { name: /Quarterly report/ }))
     await waitFor(() =>
-      expect(f.host.onOpenEntry).toHaveBeenCalledWith({ path: "/drive/library/reports/q1.md", isDirectory: false })
+      expect(mockOf(f.host, "onOpenEntry")).toHaveBeenCalledWith({
+        path: "/drive/library/reports/q1.md",
+        isDirectory: false
+      })
     )
-    expect(f.host.onOpenEntry).not.toHaveBeenCalledWith({ path: root.localPath, isDirectory: false })
+    expect(mockOf(f.host, "onOpenEntry")).not.toHaveBeenCalledWith({ path: root.localPath, isDirectory: false })
   })
   it("opens an unlisted shared file on its exact web route", async () => {
-    const f = fixture({}, async (request) => {
-      if (request.type === "shared")
-        return {
-          type: "shared",
-          data: [{ resourceType: "FILE", resourceId: "file/42", name: "Remote report", projectId: 999, level: "VIEW" }]
-        }
-      throw new Error(`Unexpected request: ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "shared")
+          return {
+            type: "shared",
+            data: [
+              { resourceType: "FILE", resourceId: "file/42", name: "Remote report", projectId: 999, level: "VIEW" }
+            ]
+          }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
     render(
       <DrivePanel
@@ -162,33 +173,39 @@ describe("shared Desktop Drive UI", () => {
         controls={controls}
         mode="launcher"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
     fireEvent.click(await screen.findByRole("button", { name: /Remote report/ }))
-    await waitFor(() => expect(f.host.onOpenExternal).toHaveBeenCalledWith("https://web.example.test/file/file%2F42"))
+    await waitFor(() =>
+      expect(mockOf(f.host, "onOpenExternal")).toHaveBeenCalledWith("https://web.example.test/file/file%2F42")
+    )
     expect(f.requests.some((request) => request.type === "land")).toBe(false)
   })
   it("creates a departmental knowledge project using labels and original opaque ids", async () => {
-    const f = fixture({}, async (request) => {
-      if (request.type === "shared") return { type: "shared", data: [] }
-      if (request.type === "templates")
-        return { type: "templates", data: [{ id: "90071992547409999", name: "Research", kind: "KNOWLEDGE" }] }
-      if (request.type === "departments")
-        return { type: "departments", data: [{ id: "department-a", name: "研发/基础架构" }] }
-      if (request.type === "createProject") return { type: "root", data: root }
-      throw new Error(`Unexpected request: ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "shared") return { type: "shared", data: [] }
+        if (request.type === "templates")
+          return { type: "templates", data: [{ id: "90071992547409999", name: "Research", kind: "KNOWLEDGE" }] }
+        if (request.type === "departments")
+          return { type: "departments", data: [{ id: "department-a", name: "研发/基础架构" }] }
+        if (request.type === "createProject") return { type: "root", data: root }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
-    await act(async () =>
-      render(
-        <DrivePanel
-          {...f}
-          controls={controls}
-          locale="zh-CN"
-          mode="launcher"
-          onOpenProject={async () => {}}
-          confirm={async () => true}
-        />
+    await act(() =>
+      Promise.try(() =>
+        render(
+          <DrivePanel
+            {...f}
+            controls={controls}
+            locale="zh-CN"
+            mode="launcher"
+            onOpenProject={async () => {}}
+            confirm={() => Promise.resolve(true)}
+          />
+        )
       )
     )
     fireEvent.click(screen.getByRole("button", { name: "新建项目" }))
@@ -217,38 +234,40 @@ describe("shared Desktop Drive UI", () => {
 
 describe("shared permission navigation", () => {
   it("navigates inherited permission sources and returns to the original target", async () => {
-    const f = fixture({}, async (request) => {
-      if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: 42 } }
-      if (request.type === "grants")
-        return request.target.kind === "FILE"
-          ? {
-              type: "grants",
-              data: {
-                callerLevel: "VIEW",
-                grants: [
-                  {
-                    subjectType: "USER",
-                    subjectId: 7,
-                    subjectDisplay: "Alice",
-                    level: "VIEW",
-                    inherited: true,
-                    source: "FOLDER",
-                    sourceResourceId: 8,
-                    sourceDisplay: "Reports",
-                    editable: false
-                  }
-                ]
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FILE", id: 42 } }
+        if (request.type === "grants")
+          return request.target.kind === "FILE"
+            ? {
+                type: "grants",
+                data: {
+                  callerLevel: "VIEW",
+                  grants: [
+                    {
+                      subjectType: "USER",
+                      subjectId: 7,
+                      subjectDisplay: "Alice",
+                      level: "VIEW",
+                      inherited: true,
+                      source: "FOLDER",
+                      sourceResourceId: 8,
+                      sourceDisplay: "Reports",
+                      editable: false
+                    }
+                  ]
+                }
               }
-            }
-          : { type: "grants", data: { callerLevel: "MANAGE", grants: [] } }
-      throw new Error(`Unexpected request: ${request.type}`)
+            : { type: "grants", data: { callerLevel: "MANAGE", grants: [] } }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
     render(
       <DriveSharing
         controller={f.controller}
         controls={controls}
         path="/drive/library/report.md"
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
     fireEvent.click(await screen.findByRole("button", { name: "From Reports" }))
@@ -262,14 +281,24 @@ describe("shared permission navigation", () => {
 describe("project readiness", () => {
   it("lands an empty existing directory before opening a project", async () => {
     const opened = vi.fn(async () => {})
-    const f = fixture({}, async (request) => {
-      if (request.type === "shared") return { type: "shared", data: [] }
-      if (request.type === "land") return { type: "root", data: root }
-      throw new Error(`Unexpected request: ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "shared") return { type: "shared", data: [] }
+        if (request.type === "land") return { type: "root", data: root }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
-    await act(async () =>
-      render(
-        <DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />
+    await act(() =>
+      Promise.try(() =>
+        render(
+          <DrivePanel
+            {...f}
+            controls={controls}
+            mode="launcher"
+            onOpenProject={opened}
+            confirm={() => Promise.resolve(true)}
+          />
+        )
       )
     )
     fireEvent.click(screen.getByRole("button", { name: /^Library/ }))
@@ -280,32 +309,34 @@ describe("project readiness", () => {
 
 describe("Drive settings native configuration", () => {
   it("reconfigures a signed-in folder with the stored user name and displays actual skill installation", async () => {
-    const f = fixture({}, async (request) => {
-      if (request.type === "configuration")
-        return {
-          type: "configuration",
-          data: { deviceId: "device-1", userName: "Alice", userId: "7", clientConfig: null }
-        }
-      if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 20 }
-      if (request.type === "skillMirrors")
-        return {
-          type: "skillMirrors",
-          data: [
-            {
-              projectId: 9,
-              projectKey: "skill",
-              name: "Research Skill",
-              autoInstalled: true,
-              pinned: false,
-              deptName: "Research",
-              localPath: "/drive/skill",
-              skillsPath: "/skills/research",
-              installed: true
-            }
-          ]
-        }
-      if (request.type === "reconfigure") return { type: "done" }
-      throw new Error(`Unexpected request: ${request.type}`)
+    const f = fixture({}, (request) => {
+      return Promise.try(() => {
+        if (request.type === "configuration")
+          return {
+            type: "configuration",
+            data: { deviceId: "device-1", userName: "Alice", userId: "7", clientConfig: null }
+          }
+        if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 20 }
+        if (request.type === "skillMirrors")
+          return {
+            type: "skillMirrors",
+            data: [
+              {
+                projectId: 9,
+                projectKey: "skill",
+                name: "Research Skill",
+                autoInstalled: true,
+                pinned: false,
+                deptName: "Research",
+                localPath: "/drive/skill",
+                skillsPath: "/skills/research",
+                installed: true
+              }
+            ]
+          }
+        if (request.type === "reconfigure") return { type: "done" }
+        throw new Error(`Unexpected request: ${request.type}`)
+      })
     })
     render(
       <DrivePanel
@@ -313,8 +344,8 @@ describe("Drive settings native configuration", () => {
         controls={controls}
         mode="settings"
         onOpenProject={async () => {}}
-        chooseDirectory={async () => "/new-drive"}
-        confirm={async () => true}
+        chooseDirectory={() => Promise.resolve("/new-drive")}
+        confirm={() => Promise.resolve(true)}
       />
     )
     await screen.findByText("Research Skill")
@@ -347,7 +378,7 @@ describe("search profile isolation", () => {
       controls,
       mode: "launcher" as const,
       onOpenProject: async () => {},
-      confirm: async () => true
+      confirm: () => Promise.resolve(true)
     }
     const view = render(<DrivePanel {...props} />)
     fireEvent.focus(screen.getByRole("textbox", { name: "Search all projects" }))
@@ -359,14 +390,16 @@ describe("search profile isolation", () => {
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: "current" } })
     await screen.findByRole("button", { name: /current.md/ })
-    await act(async () => finishOld([{ name: "secret.md", isDirectory: false }]))
+    await act(() => Promise.try(() => finishOld([{ name: "secret.md", isDirectory: false }])))
     fireEvent.change(input, { target: { value: "secret" } })
     expect(screen.queryByRole("button", { name: /secret.md/ })).not.toBeInTheDocument()
   })
   it("marks SSO as a non-submit button inside the token form", async () => {
-    const f = fixture({ configured: false }, async (request) => {
-      if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
-      throw new Error(`Unexpected request ${request.type}`)
+    const f = fixture({ configured: false }, (request) => {
+      return Promise.try(() => {
+        if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
+        throw new Error(`Unexpected request ${request.type}`)
+      })
     })
     render(
       <DrivePanel
@@ -374,7 +407,7 @@ describe("search profile isolation", () => {
         controls={controls}
         mode="settings"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
     expect(await screen.findByRole("button", { name: "SSO sign in" })).toHaveAttribute("type", "button")
@@ -385,12 +418,20 @@ it("shows directory failures alongside readable search results", async () => {
   const f = fixture({
     roots: [{ ...root, projectId: 2, projectKey: "private", name: "Private", localPath: "/private" }, root]
   })
-  f.host.readDirectory = async (path) => {
-    if (path === "/private") throw new Error("Permission denied")
-    return [{ name: "readable.md", isDirectory: false }]
+  f.host.readDirectory = (path) => {
+    return Promise.try(() => {
+      if (path === "/private") throw new Error("Permission denied")
+      return [{ name: "readable.md", isDirectory: false }]
+    })
   }
   render(
-    <DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={async () => {}} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="launcher"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   const input = screen.getByRole("textbox", { name: "Search all projects" })
   fireEvent.focus(input)
@@ -400,46 +441,74 @@ it("shows directory failures alongside readable search results", async () => {
 })
 
 it("opens a pinned cloud project by landing it before workspace navigation", async () => {
-  const f = fixture({}, async (request) => {
-    if (request.type === "shared") return { type: "shared", data: [] }
-    if (request.type === "land") return { type: "root", data: root }
-    throw new Error(`Unexpected request: ${request.type}`)
+  const f = fixture({}, (request) => {
+    return Promise.try(() => {
+      if (request.type === "shared") return { type: "shared", data: [] }
+      if (request.type === "land") return { type: "root", data: root }
+      throw new Error(`Unexpected request: ${request.type}`)
+    })
   })
-  f.host.pathExists = async () => false
+  f.host.pathExists = () => Promise.resolve(false)
   f.host.pinnedDocs = [{ path: root.localPath, name: "Pinned cloud library", kind: "dir" }]
   const opened = vi.fn(async (_root: RootInfo) => {})
-  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  render(
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="launcher"
+      onOpenProject={opened}
+      confirm={() => Promise.resolve(true)}
+    />
+  )
   const pin = await screen.findByRole("button", { name: "Pinned cloud library" })
   fireEvent.click(pin)
   await waitFor(() => expect(opened).toHaveBeenCalledWith(root))
   expect(f.requests).toContainEqual({ type: "land", projectId: root.projectId })
-  expect(f.host.onOpenEntry).not.toHaveBeenCalled()
+  expect(mockOf(f.host, "onOpenEntry")).not.toHaveBeenCalled()
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 })
 
 it("retains a missing pinned file and never lands a project as a replacement", async () => {
   const f = fixture()
-  f.host.pathExists = async () => false
+  f.host.pathExists = () => Promise.resolve(false)
   f.host.pinnedDocs = [{ path: `${root.localPath}/gone.md`, name: "Missing note", kind: "file" }]
   const opened = vi.fn(async () => {})
-  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  render(
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="launcher"
+      onOpenProject={opened}
+      confirm={() => Promise.resolve(true)}
+    />
+  )
   const pin = await screen.findByRole("button", { name: "Missing note" })
   await waitFor(() => expect(pin).toHaveAttribute("data-missing", "true"))
   fireEvent.click(pin)
   await screen.findByRole("alert")
   expect(opened).not.toHaveBeenCalled()
   expect(f.requests.some((request) => request.type === "land")).toBe(false)
-  expect(f.host.onPinnedDocsChange).not.toHaveBeenCalled()
+  expect(mockOf(f.host, "onPinnedDocsChange")).not.toHaveBeenCalled()
 })
 
 it("does not disguise a pinned project's permission failure as an absent local root", async () => {
   const f = fixture()
-  f.host.pathExists = async () => {
-    throw new Error("Permission denied")
+  f.host.pathExists = () => {
+    return Promise.try(() => {
+      throw new Error("Permission denied")
+    })
   }
   f.host.pinnedDocs = [{ path: root.localPath, name: "Protected library", kind: "dir" }]
   const opened = vi.fn(async () => {})
-  render(<DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={opened} confirm={async () => true} />)
+  render(
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="launcher"
+      onOpenProject={opened}
+      confirm={() => Promise.resolve(true)}
+    />
+  )
   fireEvent.click(await screen.findByRole("button", { name: "Protected library" }))
   expect(await screen.findByRole("alert")).toHaveTextContent("Permission denied")
   expect(opened).not.toHaveBeenCalled()
@@ -461,26 +530,30 @@ describe("Drive group deferred rendering", () => {
           controls={controls}
           mode="launcher"
           onOpenProject={async () => {}}
-          confirm={async () => true}
+          confirm={() => Promise.resolve(true)}
         />
       )
       await waitFor(() => expect(f.requests.some((request) => request.type === "shared")).toBe(true))
       const group = view.container.querySelector<HTMLDetailsElement>("details.alwith-drive-group:not([open])")
       if (!group) throw new Error("Expected a collapsed Drive group")
       expect(group.querySelectorAll(".alwith-drive-nav-row")).toHaveLength(0)
-      await act(async () => {
-        group.open = true
-        fireEvent(group, new Event("toggle"))
+      await act(() => {
+        return Promise.try(() => {
+          group.open = true
+          fireEvent(group, new Event("toggle"))
+        })
       })
       expect(group.querySelectorAll(".alwith-drive-nav-row")).toHaveLength(roots.length)
       const input = group.querySelector("input")
       if (!input) throw new Error("Expected the expanded group filter")
       fireEvent.change(input, { target: { value: "Library" } })
-      await act(async () => {
-        group.open = false
-        fireEvent(group, new Event("toggle"))
-        group.open = true
-        fireEvent(group, new Event("toggle"))
+      await act(() => {
+        return Promise.try(() => {
+          group.open = false
+          fireEvent(group, new Event("toggle"))
+          group.open = true
+          fireEvent(group, new Event("toggle"))
+        })
       })
       expect(group.querySelector("input")).toBe(input)
       expect(input).toHaveValue("Library")

@@ -34,8 +34,10 @@ function boundary(current?: Installation) {
   return {
     requests,
     snapshot: (): RuntimeSnapshot => state,
-    request: async (request: Request): Promise<void> => {
-      requests.push(request)
+    request: (request: Request): Promise<void> => {
+      return Promise.try(() => {
+        requests.push(request)
+      })
     }
   }
 }

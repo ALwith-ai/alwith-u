@@ -65,8 +65,8 @@ export function toNavigationRailItems(
   }
   const indexed = new Set(navigation.turns.map((turn) => turn.turnId))
   const loaded = new Set(navigation.loadedTurnIds)
-  return navigation.turns
-    .flatMap((turn) => {
+  return [
+    ...navigation.turns.flatMap((turn) => {
       const current = byTurn.get(turn.turnId)
       if (current) return current
       if (loaded.has(turn.turnId)) return []
@@ -85,8 +85,9 @@ export function toNavigationRailItems(
           outputTokens: 0
         })
       )
-    })
-    .concat(items.filter((item) => item.nativeTurnId === undefined || !indexed.has(item.nativeTurnId)))
+    }),
+    ...items.filter((item) => item.nativeTurnId === undefined || !indexed.has(item.nativeTurnId))
+  ]
 }
 
 function NavigationPreview({ item }: { item: NavigationRailItem }) {

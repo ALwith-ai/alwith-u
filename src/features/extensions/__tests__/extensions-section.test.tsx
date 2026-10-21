@@ -59,10 +59,10 @@ test("shows preparation and installation until completion, then reports success"
   fireEvent.click(screen.getByRole("button", { name: "Install from folder" }))
   expect(screen.getByRole("status")).toHaveTextContent("Preparing extension installation…")
   expect(screen.getByRole("button", { name: "Install from folder" })).toBeDisabled()
-  await act(async () => preparation.resolve(selected))
+  await act(() => Promise.try(() => preparation.resolve(selected)))
   expect(screen.getByRole("status")).toHaveTextContent("Installing extension…")
   expect(ports.install).toHaveBeenCalledOnce()
-  await act(async () => installation.resolve(installed))
+  await act(() => Promise.try(() => installation.resolve(installed)))
   expect(screen.queryByRole("status")).toBeNull()
   expect(screen.getByRole("button", { name: "Install from folder" })).toBeEnabled()
   expect(ports.success).toHaveBeenCalledWith("notes installed")
@@ -73,7 +73,7 @@ test("cancelling the folder picker clears progress without installing or reporti
   ports.prepare.mockReturnValue(preparation.promise)
   render(<ExtensionsSection />)
   fireEvent.click(screen.getByRole("button", { name: "Install from folder" }))
-  await act(async () => preparation.resolve(null))
+  await act(() => Promise.try(() => preparation.resolve(null)))
   expect(screen.queryByRole("status")).toBeNull()
   expect(screen.getByRole("button", { name: "Install from folder" })).toBeEnabled()
   expect(ports.install).not.toHaveBeenCalled()
@@ -84,16 +84,20 @@ test.each(["preparation", "installation", "activation"])(
   "%s failure clears progress and reports the error",
   async (phase): Promise<void> => {
     const error = new Error("Installation failed")
-    ports.prepare.mockImplementation(async (): Promise<PreparedInstall> => {
-      if (phase === "preparation") throw error
-      return selected
+    ports.prepare.mockImplementation((): Promise<PreparedInstall> => {
+      return Promise.try(() => {
+        if (phase === "preparation") throw error
+        return selected
+      })
     })
-    ports.install.mockImplementation(async (): Promise<InstallResult> => {
-      if (phase === "installation") throw error
-      return { ...installed, error: { code: "activationFailed", message: error.message } }
+    ports.install.mockImplementation((): Promise<InstallResult> => {
+      return Promise.try(() => {
+        if (phase === "installation") throw error
+        return { ...installed, error: { code: "activationFailed", message: error.message } }
+      })
     })
     render(<ExtensionsSection />)
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Install from folder" })))
+    await act(() => Promise.try(() => fireEvent.click(screen.getByRole("button", { name: "Install from folder" }))))
     expect(screen.queryByRole("status")).toBeNull()
     expect(screen.getByRole("button", { name: "Install from folder" })).toBeEnabled()
     expect(ports.report).toHaveBeenCalledWith(expect.objectContaining({ message: error.message }))

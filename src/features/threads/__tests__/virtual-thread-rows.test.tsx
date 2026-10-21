@@ -117,12 +117,12 @@ test("recomputes the window when the viewport resizes or an earlier group moves 
 test("retains keyboard focus and its next and previous rows outside the visible window", async () => {
   const view = show()
   const button = view.getByText("Chat 10")
-  await act(async () => button.focus())
+  await act(() => Promise.try(() => button.focus()))
   await scroll(500 * 32)
   expect(button).toHaveFocus()
   expect(view.getByText("Chat 9")).toBeInTheDocument()
   expect(view.getByText("Chat 11")).toBeInTheDocument()
-  await act(async () => button.blur())
+  await act(() => Promise.try(() => button.blur()))
   expect(view.queryByText("Chat 10")).toBeNull()
 })
 

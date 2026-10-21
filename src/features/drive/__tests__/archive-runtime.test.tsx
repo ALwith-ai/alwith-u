@@ -11,9 +11,11 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: async (name: string, callback: () => void) => {
-    mocks.callbacks.set(name, callback)
-    return () => mocks.callbacks.delete(name)
+  listen: (name: string, callback: () => void) => {
+    return Promise.try(() => {
+      mocks.callbacks.set(name, callback)
+      return () => mocks.callbacks.delete(name)
+    })
   }
 }))
 vi.mock("sonner", () => ({ toast: { error: mocks.error } }))
@@ -32,7 +34,7 @@ vi.mock("@/lib/client", () => ({
 }))
 vi.mock("../controller", async () => {
   const { createDriveController } = await import("@alwith/module-drive")
-  return { drive: createDriveController({ request: mocks.request, subscribe: async () => () => {} }) }
+  return { drive: createDriveController({ request: mocks.request, subscribe: () => Promise.resolve(() => {}) }) }
 })
 
 import { DRIVE_ARCHIVE_SYNC, useDriveArchive } from "../archive-runtime"
@@ -64,10 +66,12 @@ afterEach(() => {
 })
 
 test("startup archive waits for attachment, then checks consent without reporting a connection error", async () => {
-  mocks.request.mockImplementation(async (request) =>
-    request.type === "snapshot"
-      ? { type: "snapshot", data: snapshot }
-      : { type: "preferences", data: { sessionArchive: false, knowledgeInject: false } }
+  mocks.request.mockImplementation((request) =>
+    Promise.resolve(
+      request.type === "snapshot"
+        ? { type: "snapshot", data: snapshot }
+        : { type: "preferences", data: { sessionArchive: false, knowledgeInject: false } }
+    )
   )
   const view = renderHook(() => useDriveArchive())
   await act(() => drive.attach())
@@ -91,9 +95,11 @@ test("timer and manual archive triggers do not request a disconnected service", 
 })
 
 test("a real archive preference failure after attachment remains visible", async () => {
-  mocks.request.mockImplementation(async (request) => {
-    if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
-    throw new Error("Preference storage unavailable")
+  mocks.request.mockImplementation((request) => {
+    return Promise.try(() => {
+      if (request.type === "snapshot") return { type: "snapshot", data: snapshot }
+      throw new Error("Preference storage unavailable")
+    })
   })
   const view = renderHook(() => useDriveArchive())
   await act(() => drive.attach())

@@ -44,7 +44,7 @@ test("late reads cannot replace a newly selected file; errors remain visible", a
   const view = render(<FilePreviewModal />)
   act(() => openFilePreview("/outside/second.png"))
   await waitFor(() => expect(view.getByRole("dialog").querySelector("img")).not.toBeNull())
-  await act(async () => complete({ kind: "text", text: "stale" }))
+  await act(() => Promise.try(() => complete({ kind: "text", text: "stale" })))
   expect(view.queryByText("stale")).toBeNull()
   act(() => openFilePreview("/outside/missing.txt"))
   await view.findByRole("alert")

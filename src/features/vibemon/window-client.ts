@@ -54,7 +54,7 @@ async function chooseSession(payload: {
         icon: icons[index],
         text: fitSessionMenuLabel(
           [
-            candidate.cwd.split(/[\\/]/).filter(Boolean).at(-1),
+            candidate.cwd.split(/[\\/]/).findLast(Boolean),
             candidate.title || i18n.t("collection.defaultChatTitle", { ns: "common" })
           ]
             .filter(Boolean)

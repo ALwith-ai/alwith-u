@@ -30,7 +30,7 @@ test("the packaged pet plays successive drag frames until native release and rev
     }
   )
   vi.stubGlobal("PointerEvent", MouseEvent)
-  const drawImage = vi.fn()
+  const drawImage = vi.fn<(image: CanvasImageSource, ...coordinates: number[]) => void>()
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
     clearRect: vi.fn(),
     drawImage,
@@ -40,12 +40,12 @@ test("the packaged pet plays successive drag frames until native release and rev
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
   const account = { apiHost: "api.test", userId: "account", revision: 1 }
   const storage = {
-    async get<T>(key: string): Promise<T | undefined> {
-      return (
-        key === "vibemon.accounts"
+    get<T>(key: string): Promise<T | undefined> {
+      return Promise.resolve(
+        (key === "vibemon.accounts"
           ? { "api.test/account": { pet: "pet", enabled: true, position: { x: 100, y: 100 } } }
-          : undefined
-      ) as T | undefined
+          : undefined) as T | undefined
+      )
     },
     set: vi.fn(async () => {})
   }
@@ -73,15 +73,19 @@ test("the packaged pet plays successive drag frames until native release and rev
   const assetsHost: PetAssetsHost = {
     account: () => account,
     storage,
-    request: async () => {
-      throw new Error("Cached pet must not request the server")
+    request: () => {
+      return Promise.try(() => {
+        throw new Error("Cached pet must not request the server")
+      })
     },
-    download: async () => {
-      throw new Error("Cached pet must not download")
+    download: () => {
+      return Promise.try(() => {
+        throw new Error("Cached pet must not download")
+      })
     },
     resources: {
-      exists: async (path) => files.has(path),
-      read: async (path) => files.get(path) ?? null,
+      exists: (path) => Promise.try(() => files.has(path)),
+      read: (path) => Promise.try(() => files.get(path) ?? null),
       write: vi.fn(),
       replace: vi.fn(),
       remove: vi.fn()
@@ -120,13 +124,13 @@ test("the packaged pet plays successive drag frames until native release and rev
         }
         return responses[action] as T
       },
-      moved: async (listener) => {
+      moved: (listener) => {
         moved.listener = listener
-        return stop
+        return Promise.resolve(stop)
       },
       commands: () => () => {},
-      geometry: async () => () => {},
-      openPet: async () => "shown",
+      geometry: () => Promise.resolve(() => {}),
+      openPet: () => Promise.resolve("shown"),
       closePet: vi.fn(),
       openRecharge: vi.fn()
     },
@@ -137,7 +141,7 @@ test("the packaged pet plays successive drag frames until native release and rev
   const view = render(<PetWindow />)
   await act(async () => {})
   expect(images).toHaveLength(1)
-  await act(async () => images[0].onload?.())
+  await act(() => Promise.try(() => images[0].onload?.()))
   const canvas = view.container.querySelector("canvas")
   if (canvas === null) throw new Error("The pet canvas did not render")
   drawImage.mockClear()
@@ -147,18 +151,18 @@ test("the packaged pet plays successive drag frames until native release and rev
     await started.promise
   })
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 192])
-  await act(async () => vi.advanceTimersByTime(300))
+  await act(() => Promise.try(() => vi.advanceTimersByTime(300)))
   expect(drawImage.mock.calls.map((call) => call.slice(1, 3))).toEqual([
     [0, 192],
     [64, 192],
     [128, 192]
   ])
-  await act(async () => moved.listener?.({ x: 80, y: 100 }))
+  await act(() => Promise.try(() => moved.listener?.({ x: 80, y: 100 })))
   expect(canvas.style.transform).toBe("scaleX(-1)")
-  await act(async () => vi.advanceTimersByTime(150))
+  await act(() => Promise.try(() => vi.advanceTimersByTime(150)))
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([192, 192])
   expect(stop).not.toHaveBeenCalled()
-  await act(async () => release.resolve())
+  await act(() => Promise.try(() => release.resolve()))
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 0])
   expect(stop).toHaveBeenCalledOnce()
   expect(errors).not.toHaveBeenCalled()

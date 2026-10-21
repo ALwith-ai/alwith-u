@@ -28,8 +28,8 @@ export function LinkedImage({ uri, name }: { uri: string; name: string }): React
           path = file.pathname
           if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1)
           if (file.hostname && file.hostname !== "localhost") path = `//${file.hostname}${path}`
-        } else if (!uri.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(uri) && !uri.startsWith("\\\\")) {
-          const directory = encodeURI(cwd.replace(/[\\/]$/, "")).replace(/[?#]/g, encodeURIComponent)
+        } else if (!uri.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(uri) && !uri.startsWith(String.raw`\\`)) {
+          const directory = encodeURI(cwd.replace(/[\\/]$/, "")).replaceAll(/[?#]/g, encodeURIComponent)
           path = `${directory}/${uri}`
         }
         const resolved = fileLocationPath(path)

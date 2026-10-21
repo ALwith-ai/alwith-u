@@ -45,8 +45,8 @@ export function ExtensionActions({
   host: HostSnapshot
   placement: ActionPlacement
   activeView?: string | null
-  onOpenSurface(id: string): void
-  onError(error: unknown): void
+  onOpenSurface: (id: string) => void
+  onError: (error: unknown) => void
 }): ReactElement | null {
   const { t } = useTranslation()
   const actions = sortContributions(host.actions.filter((action) => action.placement === placement))
@@ -118,7 +118,7 @@ export function ExtensionStatusBar({
   renderView
 }: {
   views: ViewContribution[]
-  renderView(view: ViewContribution): ReactNode
+  renderView: (view: ViewContribution) => ReactNode
 }): ReactElement | null {
   const { t } = useTranslation()
   const items = sortContributions(views.filter((view) => view.kind === "statusBar"))
@@ -155,7 +155,7 @@ export function ExtensionSettingsNavigation({
 }: {
   views: ViewContribution[]
   activeId: string | null
-  onSelect(id: string): void
+  onSelect: (id: string) => void
 }): ReactElement | null {
   const { t } = useTranslation()
   const pages = sortContributions(views.filter((view) => view.kind === "settingsPages"))
@@ -190,7 +190,7 @@ export function ExtensionSettingsContent({
 }: {
   id: string
   views: ViewContribution[]
-  renderView(view: ViewContribution): ReactNode
+  renderView: (view: ViewContribution) => ReactNode
 }): ReactElement {
   const { t } = useTranslation()
   const view = views.find((item) => item.id === id && item.kind === "settingsPages")

@@ -3,9 +3,9 @@ import type { NativeFileResponse } from "@alwith/module-extension/host"
 import type { ThreadSummary } from "@/agent/client"
 
 export interface SessionFileSource {
-  list(): Promise<ThreadSummary[]>
-  read(id: string): Promise<string>
-  check(): void
+  list: () => Promise<ThreadSummary[]>
+  read: (id: string) => Promise<string>
+  check: () => void
 }
 
 interface LegacySessionEntry {
@@ -18,8 +18,8 @@ interface LegacySessionEntry {
 }
 
 interface SessionFiles {
-  listSessions(baseDir: string): Promise<LegacySessionEntry[]>
-  file(operation: string, relative: string): Promise<NativeFileResponse>
+  listSessions: (baseDir: string) => Promise<LegacySessionEntry[]>
+  file: (operation: string, relative: string) => Promise<NativeFileResponse>
 }
 
 /** A virtual, read-only Desktop view of Codex history; no transcript is written or cached. */
@@ -102,7 +102,7 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
       // A null mtime prevents the legacy extension's size/mtime shortcut hiding same-second edits.
       return operation === "stat"
         ? { type: "stat", exists: true, size: body.length, mtime: null, isFile: true, isDirectory: false }
-        : { type: "read", body: Array.from(body) }
+        : { type: "read", body: [...body] }
     }
   }
 }
