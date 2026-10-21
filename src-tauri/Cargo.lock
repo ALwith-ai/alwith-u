@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-computer"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.23.1",
  "core-foundation 0.10.1",
