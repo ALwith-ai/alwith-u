@@ -163,8 +163,8 @@ export const Arabic: Story = {
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
       void expect(getComputedStyle(main).direction).toBe("rtl")
       void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(main.getBoundingClientRect().right, 0)
-      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right, 0)
-      void expect(main.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left, 0)
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 4, 0)
+      void expect(main.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 4, 0)
     })
   }
 }
@@ -224,7 +224,7 @@ export const ContinuousResize: Story = {
       const panel = main.getBoundingClientRect()
       const content = chat.getBoundingClientRect()
       void expect(panel.left).toBeCloseTo(sidebar.getBoundingClientRect().right, 0)
-      void expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right, 0)
+      void expect(panel.right).toBeCloseTo(host.getBoundingClientRect().right - 4, 0)
       void expect((content.left + content.right) / 2).toBeCloseTo((panel.left + panel.right) / 2, 0)
     }
   }

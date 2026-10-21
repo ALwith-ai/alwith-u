@@ -15,6 +15,6 @@ test("the docked navigation leaves native vibrancy visible", () => {
 
 test("the floating navigation paints a separate surface over the chat", () => {
   expect(styles).toMatch(
-    /\[data-sidebar-presentation="floating"\] \[data-slot="sidebar"\]\s*\{\s*background-color:\s*var\(--background\);\s*\}/
+    /\[data-sidebar-mode="floating"\] \[data-slot="sidebar"\]\s*\{\s*background-color:\s*var\(--background\);\s*\}/
   )
 })

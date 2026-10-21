@@ -2,12 +2,12 @@
 
 import { type Channel as __t3Channel, invoke as __t3Invoke } from "@tauri-apps/api/core"
 import {
+  type EventCallback as __t3Callback,
   emit as __t3Emit,
   emitTo as __t3EmitTo,
-  type EventCallback as __t3Callback,
-  type EventTarget as __t3Target,
   listen as __t3Listen,
-  once as __t3Once
+  once as __t3Once,
+  type EventTarget as __t3Target
 } from "@tauri-apps/api/event"
 
 export const commands = {
@@ -343,6 +343,13 @@ export type CommandErrors = {
 }
 
 export const events = {
+  "trackpad-gesture": {
+    name: "trackpad-gesture",
+    listen: (handler: __t3Callback<TrackpadGesture>) => __t3Listen<TrackpadGesture>("trackpad-gesture", handler),
+    once: (handler: __t3Callback<TrackpadGesture>) => __t3Once<TrackpadGesture>("trackpad-gesture", handler),
+    emit: (payload: TrackpadGesture) => __t3Emit("trackpad-gesture", payload),
+    emitTo: (target: string | __t3Target, payload: TrackpadGesture) => __t3EmitTo(target, "trackpad-gesture", payload)
+  },
   "runtime:lines": {
     name: "runtime:lines",
     listen: (handler: __t3Callback<RuntimeLines>) => __t3Listen<RuntimeLines>("runtime:lines", handler),
@@ -871,6 +878,23 @@ export type TestResult = {
   status: number | null
   latencyMs: number | null
 }
+
+/**  Normalized touchpad deltas, with right/down positive axes. */
+export type TrackpadGesture = {
+  fingers: number
+  phase: TrackpadGesturePhase
+  dx: number
+  dy: number
+  totalDx: number
+  totalDy: number
+  dSpread: number
+  totalDSpread: number
+  ts: number
+  deviceW: number | null
+  deviceH: number | null
+}
+
+export type TrackpadGesturePhase = "began" | "changed" | "ended" | "cancelled"
 
 export type UpdateInfo = {
   version: string

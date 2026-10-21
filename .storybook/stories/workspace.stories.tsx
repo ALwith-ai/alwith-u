@@ -118,9 +118,9 @@ export const NarrowPanels: Story = {
     const viewport = canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!
     const slides = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
     await waitFor(() => {
-      void expect(slides[0].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
-      void expect(slides[1].getBoundingClientRect().width).toBe(viewport.clientWidth / 2)
-      void expect(canvas.queryByRole("button", { name: "Next pane" })).toBeNull()
+      void expect(slides[0].getBoundingClientRect().width).toBe(viewport.clientWidth)
+      void expect(slides[1].getBoundingClientRect().width).toBe(viewport.clientWidth)
+      void expect(canvas.getByRole("button", { name: "Next pane" })).toBeInTheDocument()
       void expect(canvas.queryByRole("button", { name: "Previous pane" })).toBeNull()
     })
   }
@@ -134,10 +134,13 @@ export const ResizeBoundaries: Story = {
     await userEvent.click(divider)
     await userEvent.keyboard("{ArrowLeft}")
     await waitFor(() => expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth / 2 + 20))
-    for (let index = 0; index < 28; index++) await userEvent.keyboard("{ArrowRight}")
-    await waitFor(() => expect(preview.getBoundingClientRect().width).toBe(0))
-    await userEvent.click(canvas.getByRole("button", { name: "Open preview" }))
-    await waitFor(() => expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth / 2))
+    for (let index = 0; index < 11; index++) await userEvent.keyboard("{ArrowRight}")
+    await waitFor(() => {
+      expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth)
+      expect(layout).toHaveAttribute("data-open", "true")
+    })
+    await userEvent.keyboard("{ArrowLeft}")
+    await waitFor(() => expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth / 2 - 180))
     await userEvent.click(canvas.getByRole("separator", { name: "Resize workspace" }))
     for (let index = 0; index < 28; index++) await userEvent.keyboard("{ArrowLeft}")
     await waitFor(() => {

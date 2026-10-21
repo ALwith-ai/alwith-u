@@ -165,7 +165,13 @@
     "provider": "Fornitore di modelli",
     "externalEditor": "Apri i progetti con",
     "licensesTitle": "Licenze",
-    "version": "Versione {{version}}"
+    "version": "Versione {{version}}",
+    "threeFingerSwipe": "Scorrimento orizzontale con tre dita",
+    "threeFingerSwipeGuidance": {
+      "mac": "Cambia pagina con tre dita. I gesti Mission Control o App Exposé di macOS possono interrompere lo scorrimento; modificali in Impostazioni di Sistema.",
+      "windows": "Cambia pagina con tre dita su un touchpad di precisione. Anche i gesti di sistema possono attivarsi; seleziona Nessuna operazione per gli scorrimenti con tre dita in Impostazioni di Windows > Bluetooth e dispositivi > Touchpad.",
+      "unsupported": "Non supportato su Linux. Usa i pulsanti di navigazione o trascina con il pulsante centrale del mouse."
+    }
   },
   "usage": {
     "usage": "Utilizzo",
@@ -351,5 +357,9 @@
   "notify": {
     "needsInput": "È richiesto il tuo intervento",
     "finished": "Attività completata"
+  },
+  "canvas": {
+    "navigation": "Navigazione delle pagine",
+    "page": "Pagina {{number}}"
   }
 }

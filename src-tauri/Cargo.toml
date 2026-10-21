@@ -78,7 +78,7 @@ objc2-core-graphics = { version = "0.3", default-features = false, features = ["
 
 [target.'cfg(target_os = "windows")'.dependencies]
 tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
 

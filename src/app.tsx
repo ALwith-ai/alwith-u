@@ -144,6 +144,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setLeadingPage("vibemon")
     setView("vibemon")
   }, [])
+  const openLeading = useCallback((): void => {
+    if (leadingPage === "extensions") openExtensions()
+    else if (leadingPage === "vibemon") openVibemon()
+    else if (leadingPage === "archives") openArchives()
+    else openPlugins()
+  }, [leadingPage, openExtensions, openVibemon, openArchives, openPlugins])
   const session = useSession(selectedId)
   const draftSessions = useApp((state) => state.draftSessions)
   const { busy, operation } = useSurfaceOperation()
@@ -572,6 +578,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         <MainSidebarLayout
           initialPinned={initialPreferences.sidebarPinned}
           screen={leading ? "leading" : "main"}
+          onScreenChange={(screen) => {
+            if (screen === "main") setView("chat")
+            else openLeading()
+          }}
           sidebar={
             <ThreadSidebar
               screen={leading ? "leading" : "main"}
@@ -599,10 +609,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               onSwitchScreen={() => {
                 if (leading) setView("chat")
-                else if (leadingPage === "extensions") openExtensions()
-                else if (leadingPage === "vibemon") openVibemon()
-                else if (leadingPage === "archives") openArchives()
-                else openPlugins()
+                else openLeading()
               }}
             />
           }

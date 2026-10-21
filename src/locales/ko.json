@@ -171,7 +171,13 @@
     "provider": "모델 제공업체",
     "externalEditor": "프로젝트를 열 앱",
     "licensesTitle": "라이선스",
-    "version": "버전 {{version}}"
+    "version": "버전 {{version}}",
+    "threeFingerSwipe": "세 손가락 가로 스와이프",
+    "threeFingerSwipeGuidance": {
+      "mac": "세 손가락으로 페이지를 전환합니다. macOS Mission Control 또는 앱 Exposé 제스처가 방해하면 시스템 설정에서 변경하세요.",
+      "windows": "정밀 터치패드에서 세 손가락으로 페이지를 전환합니다. 시스템 제스처도 실행될 수 있으므로 Windows 설정 > Bluetooth 및 장치 > 터치패드에서 세 손가락 살짝 밀기를 아무 작업 안 함으로 설정하세요.",
+      "unsupported": "Linux에서는 지원하지 않습니다. 탐색 버튼이나 마우스 가운데 버튼 드래그를 사용하세요."
+    }
   },
   "usage": {
     "usage": "사용량",
@@ -358,5 +364,9 @@
   "notify": {
     "needsInput": "입력이 필요합니다",
     "finished": "작업 완료"
+  },
+  "canvas": {
+    "navigation": "페이지 탐색",
+    "page": "{{number}} 페이지"
   }
 }
