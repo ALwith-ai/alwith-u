@@ -190,6 +190,7 @@
     "usage": "Nutzung",
     "resetsAt": "Zurücksetzung {{time}}",
     "notSignedIn": "Nicht angemeldet",
+    "accountUnavailable": "Kontostatus konnte nicht gelesen werden",
     "apiKey": "API-Schlüssel"
   },
   "provider": {

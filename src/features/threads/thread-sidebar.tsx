@@ -39,6 +39,7 @@ import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
 import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
+import { ShortcutHint } from "@/components/alwith-ui/shortcut-hint"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
@@ -68,7 +69,7 @@ import { UpdateStatusButton } from "@/features/updater/components/update-status-
 import { client, stopSession, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import type { RunState } from "@/lib/run-state"
-import { displayShortcut } from "@/lib/shortcut-formatter"
+import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
 
 import { ActivityPanel } from "./activity-panel"
@@ -308,6 +309,7 @@ export function ThreadSidebar({
   useSidebarOverlay(pendingDelete !== null)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
 
+  const chatWindowShortcut = useChatWindowShortcut()
   const [allProjectsShown, setAllProjectsShown] = useState(false)
   const groups = useMemo(() => (threadsLoaded ? groupThreads(threads) : []), [threadsLoaded, threads])
 
@@ -348,7 +350,7 @@ export function ThreadSidebar({
               }
             />
             <TooltipContent>
-              {t("sidebar.search")} {displayShortcut("CmdOrCtrl+K")}
+              <ShortcutHint label={t("sidebar.search")} shortcut="CmdOrCtrl+K" />
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -359,7 +361,9 @@ export function ThreadSidebar({
                 </Button>
               }
             />
-            <TooltipContent>{t("chatWindow.open")}</TooltipContent>
+            <TooltipContent>
+              <ShortcutHint label={t("chatWindow.open")} shortcut={chatWindowShortcut} />
+            </TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
@@ -370,7 +374,7 @@ export function ThreadSidebar({
               }
             />
             <TooltipContent>
-              {t("sidebar.newChat")} {displayShortcut("CmdOrCtrl+N")}
+              <ShortcutHint label={t("sidebar.newChat")} shortcut="CmdOrCtrl+N" />
             </TooltipContent>
           </Tooltip>
         </div>
@@ -406,7 +410,7 @@ export function ThreadSidebar({
         </div>
         {extensionNavigation}
       </SidebarHeader>
-      <SidebarContent className="gap-0 overflow-hidden px-0 py-1">
+      <SidebarContent className="thread-sidebar-content gap-0 overflow-hidden px-0 py-1">
         <div className="relative mx-2 mb-2 flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
           <div
             role="tablist"
@@ -435,7 +439,7 @@ export function ThreadSidebar({
                         : undefined
                     }
                     className={cn(
-                      "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4",
+                      "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-2 text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4 [&_svg]:shrink-0",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
                     )}
                   >
@@ -459,7 +463,7 @@ export function ThreadSidebar({
                       className={cn(
                         "relative z-10 grid",
                         active
-                          ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
+                          ? "ms-2 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
                           : "ms-0 grid-cols-[0fr] duration-0"
                       )}
                     >
@@ -481,7 +485,7 @@ export function ThreadSidebar({
         {view === "drive" ? null : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <Pane viewportRef={setViewport} viewportClassName="ps-2 pe-0.5 pb-1">
+          <Pane className="thread-sidebar-scroll" viewportRef={setViewport} viewportClassName="ps-2 pe-0 pb-1">
             {/* Observe content height as groups expand, collapse or reveal more rows. */}
             <ScrollArea.Content render={<NavigationStack />} style={{ minWidth: 0 }}>
               {!threadsLoaded &&

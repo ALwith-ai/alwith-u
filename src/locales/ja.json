@@ -197,7 +197,8 @@
   "usage": {
     "usage": "使用量",
     "resetsAt": "{{time}}にリセット",
-    "notSignedIn": "ログインしていません"
+    "notSignedIn": "ログインしていません",
+    "accountUnavailable": "アカウントの状態を取得できません"
   },
   "provider": {
     "testButton": "接続テスト",

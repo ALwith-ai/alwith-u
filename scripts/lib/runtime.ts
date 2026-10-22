@@ -55,6 +55,7 @@ export async function startRuntime(journalRoot: string): Promise<RunningRuntime>
       ALWITH_RUNTIME_TOKEN: token,
       ALWITH_RUNTIME_ENGINES: JSON.stringify(engines),
       ALWITH_RUNTIME_JOURNAL: journalRoot,
+      ALWITH_RUNTIME_ATTENTION: resolve(journalRoot, "attention"),
       ALWITH_RUNTIME_PARENT_PID: String(process.pid)
     }
   })

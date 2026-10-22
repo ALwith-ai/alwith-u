@@ -10,7 +10,7 @@
 /* Keep the fade in viewport coordinates so compositor scrolling cannot outrun it. */
 .codex-thread-bottom-fade {
   position: absolute;
-  inset-inline: 0 6px;
+  inset-inline: 0 calc(var(--app-scrollbar-size) + var(--app-scrollbar-edge-gap));
   bottom: 0;
   height: 24px;
   pointer-events: none;

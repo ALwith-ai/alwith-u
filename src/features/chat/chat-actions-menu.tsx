@@ -16,6 +16,7 @@ import { toast } from "sonner"
 
 import { hasRename } from "@/agent/codex-extensions"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -140,6 +141,7 @@ export function ChatActionsMenu({
                 >
                   <PlusIcon />
                   {t("sidebar.newChat")}
+                  <ShortcutKey shortcut="CmdOrCtrl+N" className="ml-auto shrink-0" />
                 </DropdownMenuItem>
               )}
               {showNewProject && (
@@ -198,6 +200,7 @@ export function ChatActionsMenu({
                   >
                     <SearchIcon />
                     {t("chat.search.label")}
+                    <ShortcutKey shortcut="CmdOrCtrl+F" className="ml-auto shrink-0" />
                   </DropdownMenuItem>
                 )}
               </DropdownMenuGroup>

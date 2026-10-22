@@ -64,9 +64,9 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { Button } from "@/components/alwith-ui/button"
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
@@ -879,6 +879,7 @@ export function FileWorkspace({
                       className="workspace-explorer-toggle"
                       aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
                       title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
+                      shortcut="CmdOrCtrl+Shift+E"
                       aria-expanded={treeVisible}
                       onClick={() => setTreeVisible((value) => !value)}
                     >

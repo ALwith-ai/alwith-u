@@ -2,6 +2,8 @@
 import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+
+import { cursorArtwork as art } from "../src/features/computer/cursor-artwork"
 const root = join(import.meta.dir, "../src-tauri/assets/computer")
 await mkdir(root, { recursive: true })
 const source = await mkdtemp(join(tmpdir(), "alwith-cursor-"))
@@ -22,12 +24,12 @@ const actions = [
   "system"
 ]
 const value = (k: unknown) => ({ a: 0, k })
-const path = (points: number[][], closed = true) => ({
+const path = (points: readonly (readonly number[])[], closed = true) => ({
   ty: "sh",
   ks: value({ v: points, i: points.map(() => [0, 0]), o: points.map(() => [0, 0]), c: closed })
 })
-const paint = (color: number[]) => ({ ty: "fl", c: value(color), o: value(100), r: 1 })
-const stroke = (color: number[], width: number) => ({
+const paint = (color: readonly number[]) => ({ ty: "fl", c: value(color), o: value(100), r: 1 })
+const stroke = (color: readonly number[], width: number) => ({
   ty: "st",
   c: value(color),
   o: value(100),
@@ -36,17 +38,6 @@ const stroke = (color: number[], width: number) => ({
   lj: 2,
   ml: 4
 })
-const white = [1, 1, 1, 1],
-  blue = [0.31, 0.36, 1, 1]
-const outline = [
-  [24, 16],
-  [37, 94],
-  [54, 76],
-  [68, 104],
-  [81, 98],
-  [67, 70],
-  [94, 65]
-]
 function layer(ind: number, shapes: unknown[], opacity = value(100)) {
   return {
     ddd: 0,
@@ -81,7 +72,16 @@ for (const action of actions) {
     nm: `ALwith U ${action}`,
     ddd: 0,
     assets: [],
-    layers: [layer(1, [path(outline), paint(blue), stroke(white, 3)])]
+    layers: [
+      layer(1, [path(art.outline), paint(art.fill), stroke(art.stroke, art.strokeWidth)]),
+      ...art.haloRadii.map((radius, index) =>
+        layer(
+          index + 2,
+          [{ ty: "el", p: value([64, 64]), s: value([radius * 2, radius * 2]), d: 1 }, paint(art.fill)],
+          value(art.haloOpacity * 100)
+        )
+      )
+    ]
   })
 }
 await save("manifest.json", { version: "2", animations: actions.map((id) => ({ id })) })
@@ -89,12 +89,12 @@ await save("cua/theme.json", {
   schema: "cua.cursor-theme/2",
   id: "ai.alwith.u",
   name: "ALwith U",
-  version: "1.0.0",
+  version: "1.0.1",
   author: "ALwith",
   license: "Apache-2.0",
   compatibility: { profile: "cua-driver-actions-v2", semantics: 2 },
   canvas: { width: 128, height: 128, fps: 30 },
-  hotspot: { x: 24, y: 16 },
+  hotspot: { x: art.hotspot[0], y: art.hotspot[1] },
   actions: Object.fromEntries(actions.map((id) => [id, { animation: id, still_frame: 15 }]))
 })
 const archive = join(root, "alwith-u.lottie")

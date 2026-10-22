@@ -191,6 +191,7 @@
     "usage": "Utilisation",
     "resetsAt": "Réinitialisation {{time}}",
     "notSignedIn": "Non connecté",
+    "accountUnavailable": "Impossible de lire l’état du compte",
     "apiKey": "Clé API"
   },
   "provider": {

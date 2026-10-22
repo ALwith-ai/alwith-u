@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { chmod, copyFile, mkdir, readdir } from "node:fs/promises"
 import { join } from "node:path"
+import { fileURLToPath } from "node:url"
 
 import manifest from "@alwith/module-computer/artifacts"
 
@@ -13,12 +14,16 @@ export async function stageComputer(root: string, target: string): Promise<strin
   if (!artifact) throw new Error(`Cua Driver has no pinned artifact for ${target}`)
   const cache = join(root, "node_modules/.cache/alwith-computer", manifest.version)
   await mkdir(cache, { recursive: true })
-  const archive = join(cache, artifact.archive)
+  const archive =
+    "bundled" in artifact
+      ? fileURLToPath(new URL(artifact.bundled, import.meta.resolve("@alwith/module-computer/artifacts")))
+      : join(cache, artifact.archive)
   const file = Bun.file(archive)
   let bytes: Uint8Array
   if (await file.exists()) {
     bytes = new Uint8Array(await file.arrayBuffer())
   } else {
+    if ("bundled" in artifact) throw new Error(`Bundled Cua Driver artifact is missing: ${artifact.archive}`)
     const response = await fetch(artifact.url, { signal: AbortSignal.timeout(120_000) })
     if (!response.ok) throw new Error(`Cua Driver download failed: HTTP ${response.status}`)
     bytes = new Uint8Array(await response.arrayBuffer())

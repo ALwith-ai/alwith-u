@@ -38,6 +38,7 @@ import { useActivityOrder } from "./activity-order"
 import { activityGroupOf } from "./lib/activity-group"
 import { useThreadsUiStore } from "./store"
 import { ThreadInfoCard } from "./thread-info-card"
+import { useActivityPreview } from "./use-activity-preview"
 
 function report(promise: Promise<unknown>): Promise<void> {
   return promise.then(
@@ -157,13 +158,14 @@ export function ActivityPanel({
         onOpen={() => openRow(row.thread)}
         windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
         onReturnToMain={() => onSelect(row.thread)}
+        shortcut={index < 9 ? `CommandOrControl+${index + 1}` : undefined}
         hint={index < 9 && cmdHeld ? <Kbd>{displayShortcut(`CommandOrControl+${index + 1}`)}</Kbd> : undefined}
       />
     )
   }
 
   return (
-    <Pane viewportClassName="ps-2 pe-0.5 pb-1">
+    <Pane className="thread-sidebar-scroll" viewportClassName="ps-2 pe-0 pb-1">
       <NavigationStack>
         {groups.map((group) =>
           group.key === "foreground" ? (
@@ -201,7 +203,8 @@ function ActivityRow({
   windowLabel,
   onReturnToMain,
   onOpen,
-  hint
+  hint,
+  shortcut
 }: {
   thread: ThreadSummary
   state: RunState
@@ -214,9 +217,11 @@ function ActivityRow({
   onReturnToMain: () => void
   onOpen: () => void
   hint?: React.ReactNode
+  shortcut?: string
 }) {
   const { t } = useTranslation()
   const title = thread.title ?? t("sidebar.untitled")
+  const preview = useActivityPreview(thread.sessionId, state)
   return (
     <>
       <NavigationSessionItem
@@ -227,6 +232,7 @@ function ActivityRow({
         hoverCard={
           <ThreadInfoCard
             thread={thread}
+            shortcut={shortcut}
             actions={
               windowLabel === "chat" ? (
                 <HoverInfoAction
@@ -248,8 +254,9 @@ function ActivityRow({
         }}
         state={state}
         interruption={interruption}
-        listeningPorts={listeningPorts}
         title={title}
+        preview={preview}
+        listeningPorts={listeningPorts}
         accessory={
           windowLabel === null ? undefined : (
             <span
@@ -273,15 +280,14 @@ function ActivityRow({
           <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(thread.sessionId))} />
         }
       />
-      {/* Subagent rows align with the title column (11px row inset + 16px icon + 8px gap = 35px).
-          They always pulse yellow because Runtime only retains nonterminal tasks, showing what the main agent is doing. */}
+      {/* Branch lines connect running tasks to their session; Runtime removes terminal tasks. */}
       {tasks.map((task) => (
         <div
           key={task.id}
-          className="flex h-[var(--navigation-row-height)] items-center gap-2 rounded-[10px] ps-10 pe-2 text-xs [corner-shape:superellipse(1.5)]"
+          className="relative ms-4 flex min-h-7 items-center gap-2 border-s border-border/60 py-1 ps-4 pe-2 text-xs before:absolute before:start-0 before:top-3.5 before:w-2 before:border-t before:border-border/60"
         >
           <SessionStateDot state="running" />
-          <span className="min-w-0 flex-1 truncate text-muted-foreground" title={task.title}>
+          <span className="min-w-0 flex-1 truncate leading-5 text-muted-foreground" title={task.title}>
             {task.title}
           </span>
         </div>

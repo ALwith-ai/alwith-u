@@ -314,6 +314,7 @@ export function ThreadView({ session }: { session: Session }) {
           {turn.user !== null && <UserMessage item={turn.user} messageTime={formatTurnTime(turn)} />}
           {hasAssistant && (
             <AssistantTurn
+              sessionId={session.id}
               turn={turn}
               terminals={session.terminals}
               active={active}
@@ -343,7 +344,7 @@ export function ThreadView({ session }: { session: Session }) {
       <Pane
         nativeScroll
         viewportRef={setScrollRoot}
-        viewportClassName="overflow-x-hidden overscroll-none"
+        viewportClassName="me-[var(--app-scrollbar-edge-gap)] overflow-x-hidden overscroll-none"
         viewportProps={{
           "data-chat-scroll": "",
           style: { overflowAnchor: "none" },

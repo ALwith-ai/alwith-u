@@ -14,7 +14,8 @@ function createClient() {
   const port = new ProcessRuntimeClient({
     binary: staged("alwith-runtime"),
     engines: { codex: stagedCodexEngine() },
-    journalRoot: join(cwd, "journal")
+    journalRoot: join(cwd, "journal"),
+    env: { ALWITH_RUNTIME_ATTENTION: join(cwd, "attention") }
   })
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",

@@ -14,6 +14,12 @@ import {
   WebSocketRuntimeClient
 } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
+import {
+  asyncQuestionId,
+  asyncQuestions,
+  questionReplies,
+  questionReplyEnvelope
+} from "@alwith/module-chat/async-question-card"
 
 import { CodexClient } from "../src/agent/client"
 import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
@@ -94,7 +100,8 @@ async function check(transport: "stdio" | "ws") {
     : new ProcessRuntimeClient({
         binary: staged("alwith-runtime"),
         engines: { codex: stagedCodexEngine() },
-        journalRoot: join(directory, "journal")
+        journalRoot: join(directory, "journal"),
+        env: { ALWITH_RUNTIME_ATTENTION: join(directory, "attention") }
       })
   console.log(`runtime: ${runtime?.url ?? "stdio"}`)
   const client = new CodexClient(() => Promise.resolve(port), {
@@ -350,6 +357,7 @@ async function check(transport: "stdio" | "ws") {
     await second.close(survivor)
     console.log("close: idle and running sessions retire independently; sibling completes and closed history reopens")
     await verifyUserInput(second, directory)
+    await verifyAsyncUserInput(second, directory)
   } finally {
     client.disconnect()
     second?.disconnect()
@@ -395,6 +403,69 @@ async function verifyUserInput(client: CodexClient, directory: string): Promise<
       "structured answer completion"
     )
     console.log("question: Default mode emits an ACP form and receives the selected answer")
+  } finally {
+    await client.delete(id)
+  }
+}
+
+async function verifyAsyncUserInput(client: CodexClient, directory: string): Promise<void> {
+  const id = await client.newSession(directory)
+  try {
+    await client.prompt(id, [
+      {
+        type: "text",
+        text: 'UI integration test: call request_user_input_async now with one question titled "Which async implementation?" and options ["Alpha", "Beta"]. Do not ask in prose and do not use request_user_input. After asking, run the read-only shell command sleep 10 to leave time for the answer. Continue the same turn; when the asynchronous answer is Beta, reply with exactly ASYNC_BETA. Do not modify files.'
+      }
+    ])
+    await until(
+      () => client.session(id).items.some((item) => item.kind === "assistant" && asyncQuestions(item._meta).length > 0),
+      120_000,
+      "asynchronous question metadata"
+    )
+    const item = client
+      .session(id)
+      .items.find((entry) => entry.kind === "assistant" && asyncQuestions(entry._meta).length > 0)
+    if (!item) throw new Error("Missing asynchronous question")
+    if (item.replayed || codexTurnId(item._meta) === null)
+      throw new Error("Live asynchronous question is missing its active turn identity")
+    const question = asyncQuestions(item._meta)[0]
+    if (client.session(id).state === "idle" || client.state.actions.some((action) => action.sessionId === id))
+      throw new Error("Asynchronous question blocked or ended the turn")
+    const reply = { questionItemId: asyncQuestionId(item.id, 0), question: question.title, answer: "Beta" }
+    await client.prompt(id, [
+      { type: "text", text: questionReplyEnvelope(reply), _meta: { codex: { questionReply: reply } } }
+    ])
+    await until(
+      () => client.session(id).state === "idle" && assistantText(client.session(id)).includes("ASYNC_BETA"),
+      120_000,
+      "asynchronous answer completion"
+    )
+    await client.close(id)
+    await client.open(id, directory)
+    await until(
+      () =>
+        client.session(id).items.some((entry) => entry.kind === "assistant" && asyncQuestions(entry._meta).length > 0),
+      10_000,
+      "asynchronous question replay"
+    )
+    await until(
+      () =>
+        client
+          .session(id)
+          .items.some(
+            (entry) =>
+              entry.kind === "user" &&
+              [
+                ...questionReplies(entry._meta),
+                ...entry.content.filter(isText).flatMap((block) => questionReplies(block._meta))
+              ].some((answer) => answer.questionItemId === reply.questionItemId && answer.answer === "Beta")
+          ),
+      10_000,
+      "asynchronous answer replay"
+    )
+    if (client.state.actions.some((action) => action.sessionId === id))
+      throw new Error("History replay reopened a question")
+    console.log("async question: non-blocking metadata, correlated steering answer and history replay")
   } finally {
     await client.delete(id)
   }

@@ -46,7 +46,7 @@ export function ComputerSection() {
               onCheckedChange={(value) => void toggle(value)}
             />
           </SettingRow>
-          <p className="pb-3 text-xs text-muted-foreground">{t("computer.scope")}</p>
+          <p className="py-3 text-xs leading-5 text-muted-foreground">{t("computer.scope")}</p>
           {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
           {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
           {status?.permissions.supported && !permitted && (

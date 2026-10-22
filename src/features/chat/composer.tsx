@@ -366,6 +366,7 @@ export function Composer({
               onKeyDownCapture={(event) => {
                 if (
                   !prediction.text ||
+                  textareaRef.current?.isComposing() ||
                   event.nativeEvent.isComposing ||
                   event.nativeEvent.keyCode === 229 ||
                   event.shiftKey ||

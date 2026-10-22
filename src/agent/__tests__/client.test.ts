@@ -117,6 +117,61 @@ test("a failed Fast default update does not expose a ready draft", async () => {
   expect(fake.deleted.has("s0")).toBe(true)
 })
 
+test("activity reply reads an unopened session without resume, selection, or transcript writes", async () => {
+  const received: unknown[] = []
+  const { client, fake } = await make((fake) => {
+    fake.app.onRequest(
+      "_codex/session_history_items",
+      (value) => value as { sessionId: string },
+      ({ params }) => {
+        received.push(params)
+        return {
+          sessionId: params.sessionId,
+          consistency: "live",
+          revision: null,
+          nextCursor: null,
+          complete: true,
+          items: [
+            {
+              updates: [
+                {
+                  sessionUpdate: "agent_message",
+                  messageId: "reply",
+                  content: [{ type: "text", text: "Latest reply" }]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    )
+  })
+  client.applyRunStates([
+    {
+      sessionId: "unopened",
+      state: "done",
+      reusableDraft: false,
+      owner: "stdio",
+      cwd: "/tmp",
+      title: "Unopened",
+      since: 0,
+      lastActivityAt: 0,
+      version: 1,
+      interruption: null,
+      tasks: [],
+      listeningPorts: [],
+      executionId: null,
+      executionRole: null
+    }
+  ])
+  expect(await client.activityReply("unopened")).toBe("Latest reply")
+  expect(received).toEqual([expect.objectContaining({ sessionId: "unopened", sortDirection: "desc", mode: "browse" })])
+  expect(client.state.sessions).toEqual({})
+  expect(client.state.sessionWindows).toEqual({})
+  expect(client.state.runStates.unopened?.state).toBe("done")
+  expect(fake.modelHints.size).toBe(0)
+})
+
 test("retry is routed by session and failed turn, deduplicated, and never inserts a user prompt", async () => {
   const received: unknown[] = []
   let finish!: () => void
@@ -183,6 +238,17 @@ test("history enumeration and export leave sidebar, selection and attachments un
   if (!agent) throw new Error("Missing initialized agent")
   client.store.setState({ agent: { ...agent, capabilities: {} } })
   await expect(client.exportHistory("h2", () => {})).rejects.toThrow("0.7.7")
+})
+
+test("history checks do not misreport a startup failure as an unsupported adapter", async () => {
+  const client = new CodexClient(() => Promise.reject(new Error("Runtime startup failed")), {
+    agentId: "codex",
+    launch: { engine: "codex" }
+  })
+  clients.push(client)
+  await expect(client.connect()).rejects.toThrow("Runtime startup failed")
+  await expect(client.exportHistory("history", () => {})).rejects.toThrow("Codex is not connected")
+  await expect(client.listHistorySessions(() => {})).rejects.toThrow("Codex is not connected")
 })
 
 async function until(predicate: () => boolean) {

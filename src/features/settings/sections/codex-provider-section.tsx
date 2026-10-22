@@ -88,15 +88,17 @@ export function CodexAccountSummary({
   const loading = account === undefined
   const signedIn = account?.account.account ?? null
   const identity =
-    signedIn === null
-      ? t("usage.notSignedIn")
-      : signedIn.type === "chatgpt"
-        ? [signedIn.email, signedIn.planType !== "unknown" ? t(`usage.plan.${signedIn.planType}`) : null]
-            .filter(Boolean)
-            .join(" · ")
-        : signedIn.type === "apiKey"
-          ? t("usage.apiKey")
-          : t("usage.bedrock")
+    account === null
+      ? t("usage.accountUnavailable")
+      : signedIn === null
+        ? t("usage.notSignedIn")
+        : signedIn.type === "chatgpt"
+          ? [signedIn.email, signedIn.planType !== "unknown" ? t(`usage.plan.${signedIn.planType}`) : null]
+              .filter(Boolean)
+              .join(" · ")
+          : signedIn.type === "apiKey"
+            ? t("usage.apiKey")
+            : t("usage.bedrock")
   const limits = account?.rateLimits ?? null
   return (
     <section aria-busy={loading} aria-label="Codex" className="space-y-4">
@@ -161,7 +163,7 @@ export function CodexProviderSection() {
               .finally(() => setSigningOut(false))
           }}
         />
-        {account !== undefined && !account?.account.account && agent && (
+        {account != null && !account.account.account && agent && (
           <LoginCard methods={agent.authMethods} signIn={requestSignIn} />
         )}
         {agent?.actions.map((action) => (

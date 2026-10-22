@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod codex_launcher;
 
+#[cfg(all(test, target_os = "macos"))]
+#[path = "__tests__/dropped_file_url.rs"]
+mod dropped_file_url_tests;
+
 mod appearance;
 mod auth;
 mod autostart;

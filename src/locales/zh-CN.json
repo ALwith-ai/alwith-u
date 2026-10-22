@@ -462,6 +462,7 @@
     "windowHours": "{{count}} 小时",
     "windowDays": "{{count}} 天",
     "notSignedIn": "未登录",
+    "accountUnavailable": "暂时无法读取账号状态",
     "apiKey": "API 密钥",
     "bedrock": "Amazon Bedrock",
     "unavailable": "暂无用量数据",

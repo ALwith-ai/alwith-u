@@ -151,6 +151,7 @@ pre,
   /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
      the card does not rely on borders or shadows to stand out from the background. */
   --main-surface-gutter: 8px;
+  --main-surface-border-width: 1px;
   --main-surface-radius: 14px;
 }
 
@@ -380,6 +381,7 @@ html[data-window-backdrop="acrylic"]
 
 /* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */
 .main-sidebar-shell {
+  --sidebar-scrollbar-extension: 0px;
   position: relative;
   z-index: 30;
   flex-shrink: 0;
@@ -387,12 +389,16 @@ html[data-window-backdrop="acrylic"]
   height: 100%;
   transition: width var(--sidebar-resize-duration) ease-in-out;
 }
+/* Measure from the chat surface's visible edge, including its gutter and border. */
+[data-sidebar-mode="pinned"] .main-sidebar-shell {
+  --sidebar-scrollbar-extension: calc(var(--main-surface-gutter) / 2 + var(--main-surface-border-width));
+}
 /* Clip a full-width sidebar instead of squeezing its contents during resize. */
 .main-sidebar-viewport {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  width: var(--sidebar-width);
+  width: calc(var(--sidebar-width) + var(--sidebar-scrollbar-extension));
   overflow: clip;
   opacity: 1;
   visibility: visible;
@@ -522,6 +528,8 @@ body,
 
 /* Keep native scrollers compact, including containers supplied by shared modules. */
 :root {
+  --app-scrollbar-size: 6px;
+  --app-scrollbar-edge-gap: 2px;
   --app-scrollbar-track-size: 10px;
   --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
   --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
@@ -538,8 +546,8 @@ body,
   }
 }
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
 }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
@@ -554,6 +562,20 @@ body,
 }
 ::-webkit-scrollbar-button {
   display: none;
+}
+
+/* Extend only the scroll track into the adjacent gutter; keep tabs and rows aligned. */
+.thread-sidebar-content {
+  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
+  padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
+}
+.thread-sidebar-scroll {
+  --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
+  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
+  padding-inline-end: calc(8px + var(--sidebar-scrollbar-extension, 0px));
+}
+.thread-sidebar-scroll > [data-slot="scroll-area-scrollbar"] {
+  padding-inline: var(--app-scrollbar-edge-gap);
 }
 
 /* Pane keeps its track outside the viewport, with stable content clearance even when hidden. */
@@ -614,9 +636,8 @@ body,
 
 /* ALwith U agent identity, shared with the compiled native cursor artwork. */
 :root {
-  --computer-brand: rgb(79 92 255);
-  --computer-brand-soft: rgb(161 143 255);
-  --computer-brand-foreground: white;
+  --computer-cursor-body: rgb(97 92 89);
+  --computer-cursor-outline: rgb(230 230 230);
 }
 .computer-agent-cursor {
   filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--foreground) 25%, transparent));

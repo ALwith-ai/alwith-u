@@ -33,7 +33,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { client, useApp } from "@/lib/client"
 
 import { pluginsStore } from "./instance"
+import { PluginDetailPage } from "./plugin-detail-page"
 import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
+import type { PluginEntry } from "./store"
 
 /**
  * Codex skills ship their icon as a file under ~/.codex (`interface.iconSmall`); the remote
@@ -106,31 +108,39 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
 function PluginRow({
   plugin,
   marketplace,
-  actions
+  actions,
+  onOpen
 }: {
   plugin: PluginSummary
   marketplace: PluginMarketplaceEntry
   actions: React.ReactNode
+  onOpen: (entry: PluginEntry) => void
 }) {
   const description = pluginDescription(plugin)
   const developer = plugin.interface?.developerName
   const version = plugin.localVersion ?? plugin.version
   const meta = [developer, version ? `v${version}` : null].filter(Boolean).join(" · ")
   return (
-    <PanelItem className="rounded-md">
-      <ItemMedia>
+    <PanelItem className="relative rounded-md">
+      <Button
+        variant="ghost"
+        className="absolute inset-0 z-0 size-full"
+        aria-label={pluginTitle(plugin)}
+        onClick={() => onOpen({ plugin, marketplace })}
+      />
+      <ItemMedia className="pointer-events-none relative">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
           <PluginIcon name={plugin.name} />
         </div>
       </ItemMedia>
-      <ItemContent className="min-w-0">
+      <ItemContent className="pointer-events-none relative min-w-0">
         <PanelItemTitle className="mb-0.5">{pluginTitle(plugin)}</PanelItemTitle>
         <ItemDescription className="line-clamp-1" title={description}>
           {description || marketplace.interface?.displayName || marketplace.name}
         </ItemDescription>
         {meta && <ItemDescription className="-mt-0.5 opacity-60">{meta}</ItemDescription>}
       </ItemContent>
-      <ItemActions>{actions}</ItemActions>
+      <ItemActions className="relative">{actions}</ItemActions>
     </PanelItem>
   )
 }
@@ -144,10 +154,12 @@ const PAGE_SIZE = 48
 
 function MarketplaceSection({
   marketplace,
-  plugins
+  plugins,
+  onOpen
 }: {
   marketplace: PluginMarketplaceEntry
   plugins: PluginSummary[]
+  onOpen: (entry: PluginEntry) => void
 }) {
   const { t } = useTranslation()
   const removeMarketplace = useStore(pluginsStore, (state) => state.removeMarketplace)
@@ -188,6 +200,7 @@ function MarketplaceSection({
       <PanelList className="grid grid-cols-2 gap-2">
         {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
           <PluginRow
+            onOpen={onOpen}
             key={plugin.remotePluginId ?? plugin.id}
             plugin={plugin}
             marketplace={marketplace}
@@ -217,7 +230,13 @@ function MarketplaceSection({
   )
 }
 
-const MarketplaceResults = memo(function MarketplaceResults({ query }: { query: string }) {
+const MarketplaceResults = memo(function MarketplaceResults({
+  query,
+  onOpen
+}: {
+  query: string
+  onOpen: (entry: PluginEntry) => void
+}) {
   const { t } = useTranslation()
   const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
   const featuredIds = useStore(pluginsStore, (state) => state.featuredPluginIds)
@@ -258,6 +277,7 @@ const MarketplaceResults = memo(function MarketplaceResults({ query }: { query: 
           key={JSON.stringify([marketplace.name, marketplace.path, query])}
           marketplace={marketplace}
           plugins={plugins}
+          onOpen={onOpen}
         />
       ))}
       {query && sections.every((section) => section.plugins.length === 0) && (
@@ -293,7 +313,7 @@ function MarketplaceSkeleton() {
   )
 }
 
-function MarketplaceTab() {
+function MarketplaceTab({ onOpen }: { onOpen: (entry: PluginEntry) => void }) {
   const { t } = useTranslation()
   const ready = usePluginsReady()
   const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
@@ -361,7 +381,7 @@ function MarketplaceTab() {
               {error.marketplacePath}: {error.message}
             </p>
           ))}
-          {loading ? <MarketplaceSkeleton /> : <MarketplaceResults query={q} />}
+          {loading ? <MarketplaceSkeleton /> : <MarketplaceResults query={q} onOpen={onOpen} />}
           {!loading && marketplaces.every((marketplace) => marketplace.plugins.length === 0) && (
             <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
           )}
@@ -404,7 +424,7 @@ function SkillRow({ skill }: { skill: SkillMetadata }) {
   )
 }
 
-function InstalledTab() {
+function InstalledTab({ onOpen }: { onOpen: (entry: PluginEntry) => void }) {
   const { t } = useTranslation()
   const ready = usePluginsReady()
   const installed = useStore(pluginsStore, (state) => state.installed)
@@ -426,6 +446,7 @@ function InstalledTab() {
             <PanelList className="grid grid-cols-2 gap-2">
               {installed.map(({ plugin, marketplace }) => (
                 <PluginRow
+                  onOpen={onOpen}
                   key={plugin.id}
                   plugin={plugin}
                   marketplace={marketplace}
@@ -499,6 +520,7 @@ function InstalledTab() {
 export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, (state) => state.refresh)
+  const [selected, setSelected] = useState<PluginEntry | null>(null)
   const ready = usePluginsReady()
 
   useEffect(() => {
@@ -511,25 +533,34 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <PluginIconDefinitions />
-      <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>
-          <Badge className="bg-primary/10 text-[10px] text-primary">{t("plugins.beta")}</Badge>
+      {selected && (
+        <PluginDetailPage
+          key={JSON.stringify([selected.marketplace.name, selected.marketplace.path, selected.plugin.id, cwd])}
+          entry={selected}
+          onBack={() => setSelected(null)}
+        />
+      )}
+      <div className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
+        <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>
+            <Badge className="bg-primary/10 text-[10px] text-primary">{t("plugins.beta")}</Badge>
+          </div>
         </div>
-      </div>
-      <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
-        <Tabs defaultValue="marketplace" className="flex min-h-0 flex-1 flex-col gap-4">
-          <TabsList>
-            <TabsTrigger value="marketplace">{t("plugins.headings.marketplace")}</TabsTrigger>
-            <TabsTrigger value="installed">{t("plugins.sections.installed")}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
-            <MarketplaceTab />
-          </TabsContent>
-          <TabsContent value="installed" className="flex min-h-0 flex-1 flex-col">
-            <InstalledTab />
-          </TabsContent>
-        </Tabs>
+        <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
+          <Tabs defaultValue="marketplace" className="flex min-h-0 flex-1 flex-col gap-4">
+            <TabsList>
+              <TabsTrigger value="marketplace">{t("plugins.headings.marketplace")}</TabsTrigger>
+              <TabsTrigger value="installed">{t("plugins.sections.installed")}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
+              <MarketplaceTab onOpen={setSelected} />
+            </TabsContent>
+            <TabsContent value="installed" className="flex min-h-0 flex-1 flex-col">
+              <InstalledTab onOpen={setSelected} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   )

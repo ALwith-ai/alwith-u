@@ -237,3 +237,78 @@ test("installed plugins have functional switches disabled while the plugin is bu
   await act(() => Promise.try(() => pluginsStore.setState({ busyIds: { Example: "toggling" } })))
   expect(control).toHaveAttribute("aria-disabled", "true")
 })
+
+test("details read the selected source, retry failures, and preserve the catalog search on return", async () => {
+  const target = plugin("Source plugin")
+  const marketplace: PluginMarketplaceEntry = { name: "source", path: "/source", interface: null, plugins: [target] }
+  const read = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Source unavailable"))
+    .mockResolvedValue({
+      summary: target,
+      marketplaceName: "source",
+      marketplacePath: "/source",
+      shareUrl: null,
+      description: "Long description from source",
+      skills: [
+        {
+          name: "Source skill",
+          description: "Complete skill description",
+          shortDescription: "Short skill description",
+          interface: null,
+          path: null,
+          enabled: true
+        }
+      ],
+      mcpServers: ["source-mcp"],
+      hooks: [],
+      apps: [],
+      scheduledTasks: null
+    })
+  pluginsStore.setState({ marketplaces: [marketplace], readPlugin: read })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Source" } })
+  fireEvent.click(view.getByRole("button", { name: "Source plugin" }))
+  expect(await view.findByRole("alert")).toHaveTextContent("Source unavailable")
+  expect(read).toHaveBeenCalledWith({ plugin: target, marketplace })
+  fireEvent.click(view.getByRole("button", { name: "Retry" }))
+  expect(await view.findByText("Long description from source")).toBeVisible()
+  expect(view.getByText("source-mcp")).toBeVisible()
+  fireEvent.click(view.getByRole("button", { name: /Source skill/ }))
+  expect(await view.findByRole("dialog")).toHaveTextContent("Complete skill description")
+  fireEvent.keyDown(view.getByRole("dialog"), { key: "Escape" })
+  fireEvent.click(view.getByRole("button", { name: "Plugins" }))
+  expect(view.getByPlaceholderText("Search plugins")).toHaveValue("Source")
+})
+
+test("install controls do not open details, and detail actions follow refreshed installation state", async () => {
+  const target = plugin("Installable")
+  const marketplace: PluginMarketplaceEntry = { name: "source", path: "/source", interface: null, plugins: [target] }
+  const read = vi.fn().mockResolvedValue({
+    summary: target,
+    description: null,
+    skills: [],
+    mcpServers: [],
+    hooks: [],
+    apps: [],
+    scheduledTasks: null
+  })
+  const install = vi.fn().mockResolvedValue({ authPolicy: "ON_USE", appsNeedingAuth: [] })
+  const uninstall = vi.fn().mockResolvedValue(undefined)
+  const toggle = vi.fn().mockResolvedValue(undefined)
+  pluginsStore.setState({ marketplaces: [marketplace], readPlugin: read, install, uninstall, setPluginEnabled: toggle })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(view.getByRole("button", { name: "Install" }))
+  expect(install).toHaveBeenCalledWith({ plugin: target, marketplace })
+  expect(read).not.toHaveBeenCalled()
+  fireEvent.click(view.getByRole("button", { name: "Installable" }))
+  await view.findByRole("heading", { name: "Installable" })
+  const installed = { ...target, installed: true, enabled: true }
+  await act(() => Promise.try(() => pluginsStore.setState({ installed: [{ plugin: installed, marketplace }] })))
+  fireEvent.click(view.getByRole("switch", { name: "Disable Installable" }))
+  expect(toggle).toHaveBeenCalledWith(installed, false)
+  fireEvent.click(view.getByRole("button", { name: "Uninstall" }))
+  expect(uninstall).toHaveBeenCalledWith(installed)
+  await act(() => Promise.try(() => pluginsStore.setState({ installed: [] })))
+  expect(view.getByRole("button", { name: "Install plugin" })).toBeEnabled()
+})

@@ -197,7 +197,8 @@
   "usage": {
     "usage": "उपयोग",
     "resetsAt": "{{time}} रीसेट होगा",
-    "notSignedIn": "साइन इन नहीं किया गया"
+    "notSignedIn": "साइन इन नहीं किया गया",
+    "accountUnavailable": "खाते की स्थिति पढ़ने में असमर्थ"
   },
   "provider": {
     "testButton": "कनेक्शन परीक्षण",

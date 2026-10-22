@@ -197,7 +197,8 @@
   "usage": {
     "usage": "사용량",
     "resetsAt": "{{time}}에 초기화",
-    "notSignedIn": "로그인되지 않음"
+    "notSignedIn": "로그인되지 않음",
+    "accountUnavailable": "계정 상태를 읽을 수 없습니다"
   },
   "provider": {
     "testButton": "연결 테스트",

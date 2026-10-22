@@ -18,6 +18,7 @@ import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
+import { restoreComputer } from "@/features/computer/operations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
 import { useUpdaterStore } from "@/features/updater/store"
@@ -76,6 +77,7 @@ async function bootstrap(): Promise<void> {
   predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
   await initI18n(preferences.language)
   if (isTauri()) {
+    await restoreComputer().catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
     void useUpdaterStore
       .getState()

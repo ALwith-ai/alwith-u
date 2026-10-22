@@ -53,6 +53,7 @@ function ReasoningPreview() {
         </Button>
       </div>
       <AssistantTurn
+        sessionId={session.id}
         turn={groupTurns(session)[0]}
         terminals={session.terminals}
         active

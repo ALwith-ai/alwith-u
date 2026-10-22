@@ -48,13 +48,13 @@ test("history failures surface once without a compatibility notice on opening or
       const host = create({ manifest, cancellation: scope.cancellation, own: (dispose) => scope.own(dispose) })
       await expect(
         host.invoke("list_sessions", { baseDir: "/__alwith_legacy/yup-kb/.alwith/projects" })
-      ).rejects.toThrow("会话归档需要 codex-acp-v2")
+      ).rejects.toThrow("Codex is not connected")
       await expect(
         host.invoke("list_sessions", { baseDir: "/__alwith_legacy/yup-kb/.alwith/projects" })
-      ).rejects.toThrow("会话归档需要 codex-acp-v2")
+      ).rejects.toThrow("Codex is not connected")
       await expect(
         host.invoke("plugin:fs|read_dir", { path: "/__alwith_legacy/yup-kb/.alwith/projects" })
-      ).rejects.toThrow("会话归档需要 codex-acp-v2")
+      ).rejects.toThrow("Codex is not connected")
       await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
     const archivalNotices = [...view.container.querySelectorAll("[data-sonner-toast]")].filter((notice) =>

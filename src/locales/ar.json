@@ -260,6 +260,7 @@
     "used": "{{percent}}٪ مستخدم",
     "resetsAt": "يعيد{{time}}",
     "notSignedIn": "لم يتم تسجيل الدخول",
+    "accountUnavailable": "تعذّر قراءة حالة الحساب",
     "apiKey": "مفتاح واجهة برمجة التطبيقات",
     "plan": {
       "free": "حر",

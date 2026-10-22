@@ -1,7 +1,6 @@
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 // The one ACP v2 client. Owns the connection, routes every update by session id,
 // and publishes state through a framework-agnostic zustand store.
-
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
   type Agent,
@@ -32,6 +31,7 @@ import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
 import { asError } from "../lib/text"
+import { readActivityReply } from "./activity-preview"
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -267,6 +267,7 @@ export class CodexClient {
   private readonly navigationEpochs = new Map<string, object>()
   private readonly turnHistoryRequests = new Map<string, Map<string, Promise<void>>>()
   private readonly previewHistoryRequests = new Map<string, Map<string, Promise<void>>>()
+  private readonly activityReplyRequests = new Map<string, Promise<string | null>>()
   private readonly loadedHistoryTurns = new Map<string, Set<string>>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>((snapshots) => {
@@ -436,6 +437,7 @@ export class CodexClient {
     this.listRequests.archived++
     this.updates.cancel()
     this.historyRequests.clear()
+    this.activityReplyRequests.clear()
     // The process is gone (or we let go of it): nothing pending can be answered any more.
     this.requests.release()
     const sessions: Record<string, Session> = {}
@@ -634,7 +636,27 @@ export class CodexClient {
     )
   }
 
+  /** Read-only sidebar projection; never attaches or changes the selected chat. */
+  activityReply(sessionId: string): Promise<string | null> {
+    const pending = this.activityReplyRequests.get(sessionId)
+    if (pending) return pending
+    const agent = this.live()
+    if (!this.historyCapability("browse")) throw new Error("Activity preview requires history browsing")
+    const request = readActivityReply(
+      sessionId,
+      (params) => agent.request("_codex/session_history_items", params),
+      () => {
+        if (this.agent !== agent || !this.state.runStates[sessionId]) throw new Error("Activity preview was cancelled")
+      }
+    ).finally(() => {
+      if (this.activityReplyRequests.get(sessionId) === request) this.activityReplyRequests.delete(sessionId)
+    })
+    this.activityReplyRequests.set(sessionId, request)
+    return request
+  }
+
   private requireHistory(): void {
+    this.live()
     if (!this.historyCapability("export"))
       throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
   }

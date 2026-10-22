@@ -192,6 +192,7 @@
     "usage": "Uso",
     "resetsAt": "Se reinicia {{time}}",
     "notSignedIn": "No conectado",
+    "accountUnavailable": "No se puede leer el estado de la cuenta",
     "apiKey": "Clave de API"
   },
   "provider": {

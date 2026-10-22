@@ -10,6 +10,7 @@ import {
 } from "@alwith/api"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/assistant-message"
+import { asyncQuestions } from "@alwith/module-chat/async-question-card"
 import { SparklesIcon } from "lucide-react"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,6 +18,7 @@ import { useTranslation } from "react-i18next"
 import { codexMessageError, codexTurnError, codexTurnId } from "@/agent/codex-extensions"
 import { nativeTurnId } from "@/agent/history-navigation"
 
+import { AsyncQuestions } from "../async-questions"
 import { ForkTurnButton } from "../chat-branches"
 import { isHistoryInterrupted, isSessionStatus, messageText, type Turn, turnTiming, type WorkEntry } from "../turns"
 import { ActivityGroup } from "./activity-group"
@@ -76,6 +78,7 @@ function WorkEntryView({
 }
 
 function AssistantTurnImpl({
+  sessionId,
   turn,
   terminals,
   active,
@@ -85,6 +88,7 @@ function AssistantTurnImpl({
   retry,
   retrying
 }: {
+  sessionId: string
   turn: Turn
   terminals: Record<string, Terminal>
   active: boolean
@@ -144,7 +148,10 @@ function AssistantTurnImpl({
   // Use item order, not arrival timestamps: patches to earlier items do not resume them.
   const latestItem = turn.items.findLast((item) => item.kind !== "user")
   const streamingThoughtId = active && latestItem?.kind === "thought" ? latestItem.id : null
-  const finalText = turn.final.map(messageText).join("\n")
+  const finalText = turn.final
+    .filter((message) => asyncQuestions(message._meta).length === 0)
+    .map(messageText)
+    .join("\n")
   const time = active ? null : formatTurnTime(turn, "assistant")
   // Generated artifacts are tool results in both live updates and history replay.
   // Project them into the reply without moving items out of the runtime-owned session.
@@ -171,7 +178,11 @@ function AssistantTurnImpl({
   })
   const hasFinal =
     artifacts.length > 0 ||
-    turn.final.some((message) => message.content.some((block) => !isText(block) || block.text.trim().length > 0))
+    turn.final.some(
+      (message) =>
+        asyncQuestions(message._meta).length > 0 ||
+        message.content.some((block) => !isText(block) || block.text.trim().length > 0)
+    )
   return (
     <ActivityHostProvider host={host}>
       <CodexAssistantTurn
@@ -203,14 +214,18 @@ function AssistantTurnImpl({
                   ))}
                 </div>
               )}
-              {turn.final.map((message) => (
-                <AssistantContent
-                  key={message.id}
-                  content={message.content}
-                  messageId={message.id}
-                  streaming={active}
-                />
-              ))}
+              {turn.final.map((message) =>
+                asyncQuestions(message._meta).length > 0 ? (
+                  <AsyncQuestions key={message.id} sessionId={sessionId} item={message} />
+                ) : (
+                  <AssistantContent
+                    key={message.id}
+                    content={message.content}
+                    messageId={message.id}
+                    streaming={active}
+                  />
+                )
+              )}
               {!active &&
                 (finalText.trim().length > 0 ? (
                   <CodexMessageActions

@@ -9,6 +9,7 @@
 
 import type { CompactionItem, MessageItem, PlanItem, ToolItem } from "@alwith/api"
 import { type Item, type Session, textOf, type TurnEntry, turns as groupSession } from "@alwith/api"
+import { asyncQuestions } from "@alwith/module-chat/async-question-card"
 
 import { codexMessageError } from "@/agent/codex-extensions"
 import { type HistoryTurnSummary, nativeTurnId } from "@/agent/history-navigation"
@@ -100,7 +101,7 @@ function place(turn: Turn, item: Item): void {
         break
       }
       const itemPhase = phase(item)
-      if (itemPhase === "final_answer") turn.final.push(item)
+      if (asyncQuestions(item._meta).length > 0 || itemPhase === "final_answer") turn.final.push(item)
       else if (itemPhase === "commentary" || isNotice(item))
         turn.work.push({ kind: "text", key: `text:${item.id}`, item })
       else turn.final.push(item)

@@ -198,6 +198,7 @@
     "usage": "Использование",
     "resetsAt": "Сброс {{time}}",
     "notSignedIn": "Не выполнен вход",
+    "accountUnavailable": "Не удалось получить статус аккаунта",
     "apiKey": "API-ключ"
   },
   "provider": {

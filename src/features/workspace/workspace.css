@@ -31,7 +31,7 @@
 .file-workspace-slab {
   width: 100%;
   height: 100%;
-  padding-inline: 4px;
+  padding-inline: calc(var(--main-surface-gutter) / 2);
   overflow: clip;
 }
 .file-workspace-slide[aria-hidden="true"],
@@ -46,7 +46,7 @@
   height: 100%;
   min-height: 0;
   overflow: clip;
-  border: 1px solid var(--border);
+  border: var(--main-surface-border-width) solid var(--border);
   border-radius: var(--main-surface-radius);
   background: var(--background);
 }
@@ -216,22 +216,6 @@
   color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 400;
-}
-.workspace-empty-shortcut {
-  display: flex;
-  gap: 6px;
-}
-.workspace-empty-shortcut kbd {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding-inline: 4px;
-  border-radius: 5px;
-  background: var(--muted);
-  font-family: inherit;
-  font-size: 13px;
 }
 .file-workspace-panel,
 .file-workspace-panel .alwith-editor {

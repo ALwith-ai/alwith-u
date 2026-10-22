@@ -85,3 +85,12 @@ or runtime-tested in this maintenance session.
 
 File drops read individual `NSPasteboardTypeFileURL` items and decode file URLs
 without the deprecated filename pasteboard type. Drag locations use safe bindings.
+
+Finder file-reference URLs (`file:///.file/id=...`) must be resolved with
+Foundation's `NSURL.filePathURL` before extracting a filesystem path. Generic URL
+decoding leaves the reference ID as a nonexistent POSIX path and causes dropped
+files to fail with `Not a directory`. The shared drag entry/drop collector now
+resolves both path and reference URLs before emitting events. Regression tests in
+`src/__tests__/dropped_file_url.rs` compile the same resolver and exercise real
+Foundation references, renames, Unicode paths, and rejected URLs via
+`cargo test --lib dropped_file_url_tests` from `src-tauri`.

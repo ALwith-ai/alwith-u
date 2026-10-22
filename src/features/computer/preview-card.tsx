@@ -12,9 +12,11 @@ import { useTranslation } from "react-i18next"
 import type { ComputerPreview_Serialize } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 import { computerActionKey } from "./action-label"
 import { AgentCursor } from "./agent-cursor"
+import { cursorArtwork } from "./cursor-artwork"
 
 function WindowFrame({ preview }: { preview: ComputerPreview_Serialize }) {
   const { t } = useTranslation()
@@ -42,7 +44,7 @@ function WindowFrame({ preview }: { preview: ComputerPreview_Serialize }) {
           style={{
             left: `${frame.cursor.x * 100}%`,
             top: `${frame.cursor.y * 100}%`,
-            transform: "translate(-7.5px, -5px)"
+            transform: `translate(${(-cursorArtwork.hotspot[0] * cursorArtwork.size) / cursorArtwork.canvas}px, ${(-cursorArtwork.hotspot[1] * cursorArtwork.size) / cursorArtwork.canvas}px)`
           }}
         >
           <AgentCursor />
@@ -73,8 +75,16 @@ export function ComputerPreviewCard({
       aria-label={t("computer.preview.title")}
       className="computer-preview ml-auto w-full max-w-72 shrink-0 px-3 py-2"
     >
-      <div className="ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+      <div className="group/preview relative ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div
+          className={cn(
+            "z-20 flex items-center gap-1 bg-card/65 px-2 py-1.5 backdrop-blur-xl transition-opacity motion-reduce:transition-none",
+            !queued &&
+              !collapsed &&
+              preview.frame &&
+              "absolute inset-x-0 top-0 opacity-0 group-focus-within/preview:opacity-100 group-hover/preview:opacity-100 hover:opacity-100 [@media(hover:none)]:opacity-100"
+          )}
+        >
           <MonitorIcon className="size-3.5 shrink-0 text-muted-foreground" />
           <span role="status" className="min-w-0 flex-1 truncate text-xs">
             {queued ? t("computer.preview.queued", { position: preview.activity.queuePosition }) : title}
@@ -113,7 +123,7 @@ export function ComputerPreviewCard({
         {!queued && !collapsed && (
           <Button
             variant="ghost"
-            className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 [&_img]:max-h-44"
+            className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 hover:bg-muted/40 [&_img]:max-h-44"
             disabled={!preview.frame || !preview.activity.target}
             aria-label={t("computer.preview.focus", { app: title })}
             title={t("computer.preview.focus", { app: title })}

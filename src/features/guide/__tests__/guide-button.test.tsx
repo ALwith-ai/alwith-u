@@ -18,7 +18,9 @@ test("help opens an ordered menu and keyboard shortcuts open the existing refere
   await initI18n("zh-CN")
   const view = render(<GuideButton />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "帮助" }))))
-  expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["键盘快捷键", "用户指南"])
+  expect(view.getAllByRole("menuitem")).toEqual(
+    ["键盘快捷键", "用户指南"].map((name) => view.getByRole("menuitem", { name }))
+  )
   expect(openGuideWindow).not.toHaveBeenCalled()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "键盘快捷键" }))))
   expect(view.getByRole("dialog", { name: "键盘快捷键" })).toBeVisible()

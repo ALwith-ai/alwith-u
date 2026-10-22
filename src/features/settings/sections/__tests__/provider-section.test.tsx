@@ -346,6 +346,17 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
   expect(signOut).toHaveBeenCalledTimes(1)
   view.rerender(<CodexAccountSummary account={null} disabled={false} onSignOut={signOut} />)
+  expect(view.getByText("Unable to read account status")).toBeTruthy()
+  expect(view.queryByText("Not signed in")).toBeNull()
   expect(view.queryByRole("progressbar")).toBeNull()
   expect(view.queryByRole("button")).toBeNull()
+  view.rerender(
+    <CodexAccountSummary
+      account={{ account: { account: null, requiresOpenaiAuth: true }, rateLimits: null }}
+      disabled={false}
+      onSignOut={signOut}
+    />
+  )
+  expect(view.getByText("Not signed in")).toBeTruthy()
+  expect(view.queryByText("Unable to read account status")).toBeNull()
 })

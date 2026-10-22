@@ -184,7 +184,8 @@
   "usage": {
     "usage": "Penggunaan",
     "resetsAt": "Atur ulang {{time}}",
-    "notSignedIn": "Belum masuk"
+    "notSignedIn": "Belum masuk",
+    "accountUnavailable": "Tidak dapat membaca status akun"
   },
   "provider": {
     "testButton": "Uji koneksi",

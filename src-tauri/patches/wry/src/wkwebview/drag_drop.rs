@@ -15,6 +15,8 @@ use crate::DragDropEvent;
 
 use super::WryWebView;
 
+mod file_url;
+
 pub(crate) fn collect_paths(drag_info: &ProtocolObject<dyn NSDraggingInfo>) -> Vec<PathBuf> {
   let pb = drag_info.draggingPasteboard();
   let mut paths = Vec::new();
@@ -23,11 +25,8 @@ pub(crate) fn collect_paths(drag_info: &ProtocolObject<dyn NSDraggingInfo>) -> V
       let Some(value) = item.stringForType(unsafe { NSPasteboardTypeFileURL }) else {
         continue;
       };
-      // Pasteboard contents are external input; ignore non-file or malformed URLs.
-      if let Ok(url) = url::Url::parse(&value.to_string()) {
-        if let Ok(path) = url.to_file_path() {
-          paths.push(path);
-        }
+      if let Some(path) = file_url::resolve_file_url(&value) {
+        paths.push(path);
       }
     }
   }

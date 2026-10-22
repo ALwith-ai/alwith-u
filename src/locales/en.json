@@ -462,6 +462,7 @@
     "windowHours": "{{count}}-hour",
     "windowDays": "{{count}}-day",
     "notSignedIn": "Not signed in",
+    "accountUnavailable": "Unable to read account status",
     "apiKey": "API key",
     "bedrock": "Amazon Bedrock",
     "unavailable": "No usage data",

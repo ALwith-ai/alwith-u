@@ -3,6 +3,7 @@ import { type ReactNode, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -48,6 +49,7 @@ export function GuideButton(): ReactNode {
           <DropdownMenuItem className="h-8 py-0" onClick={() => setHotkeysOpen(true)}>
             <KeyboardIcon className="text-muted-foreground" />
             {t("shortcuts.title")}
+            <ShortcutKey shortcut="CmdOrCtrl+/" className="ml-auto shrink-0" />
           </DropdownMenuItem>
           <DropdownMenuItem
             className="h-8 py-0"
