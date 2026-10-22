@@ -623,9 +623,9 @@ test("opening an attached read-only session retries resume until the writer is r
   pending = ready.promise
   const retry = client.open("locked", "/tmp/locked")
   expect(client.session("locked").restoring).toBe(true)
-  await client.open("locked", "/tmp/locked")
+  const joined = client.open("locked", "/tmp/locked")
   ready.resolve()
-  await retry
+  await Promise.all([retry, joined])
   expect(attempts).toBe(3)
   expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
   expect(client.session("locked").items).toHaveLength(2)
@@ -1510,4 +1510,38 @@ test("prediction errors propagate without disabling future requests", async () =
   await expect(client.requestPrediction("s", "turn")).rejects.toThrow()
   await expect(client.requestPrediction("s", "turn-2")).rejects.toThrow("Prediction unavailable")
   expect(calls).toBe(2)
+})
+
+
+test("concurrent opens await the same replay and close cancels its request before applying a late response", async () => {
+  let finish!: () => void
+  const gate = new Promise<void>((resolve) => { finish = resolve })
+  let signal!: AbortSignal
+  let calls = 0
+  const { client } = await make((fake) => {
+    fake.resumeResponse.current = async (current) => {
+      calls++
+      signal = current
+      await gate
+      return { configOptions: [] }
+    }
+  })
+  const first = client.open("h1", "/projects/one")
+  const firstResult = first.catch((error: unknown) => error)
+  await until(() => calls === 1)
+  let secondSettled = false
+  const second = client.open("h1", "/projects/one").then(
+    () => { secondSettled = true },
+    (error: unknown) => { secondSettled = true; return error }
+  )
+  await Promise.resolve()
+  expect(secondSettled).toBe(false)
+  const closing = client.close("h1")
+  await until(() => signal.aborted)
+  expect(calls).toBe(1)
+  finish()
+  expect(await firstResult).toMatchObject({ name: "AbortError" })
+  expect(await second).toMatchObject({ name: "AbortError" })
+  await closing
+  expect(client.state.sessions.h1).toBeUndefined()
 })

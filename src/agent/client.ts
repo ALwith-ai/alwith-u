@@ -935,8 +935,7 @@ export class CodexClient {
     const existing = this.sessions.sessions.get(id)
     // A replay in flight already carries this open. A read-only attach (another client holds the
     // writer) is resumed again: the writer may have let go since.
-    if (existing?.restoring) return
-    if (existing?.attached && !existing.readOnly) {
+    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.operations.busy(id)) {
       this.followModel(owner, existing)
       return
     }
@@ -955,10 +954,10 @@ export class CodexClient {
   }
 
   private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
-    return this.operations.open(id, cwd, () => this.runReplay(id, cwd, owner))
+    return this.operations.open(id, cwd, (signal) => this.runReplay(id, cwd, signal, owner))
   }
 
-  private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
+  private async runReplay(id: string, cwd: string, signal: AbortSignal, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     const agent = this.live()
     const history = this.historyCapability("browse")
@@ -983,16 +982,27 @@ export class CodexClient {
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
       const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
-      const response = await agent.request("session/resume", {
-        sessionId: id,
-        cwd,
-        ...(history ? {} : { replayFrom: cursor }),
-        ...context
-      })
+      signal.throwIfAborted()
+      const response = await agent.request(
+        "session/resume",
+        {
+          sessionId: id,
+          cwd,
+          ...(history ? {} : { replayFrom: cursor }),
+          ...context
+        },
+        { cancellationSignal: signal }
+      )
+      signal.throwIfAborted()
+      if (this.agent !== agent) throw new Error("Codex disconnected during session resume")
       await bind?.(id)
+      signal.throwIfAborted()
       this.contextRevisions.set(id, revision)
       if (history) {
-        const page = await readHistoryPage(id, cwd, null, (params) => agent.request("_codex/session_history", params))
+        const page = await readHistoryPage(id, cwd, null, (params) =>
+          agent.request("_codex/session_history", params, { cancellationSignal: signal })
+        )
+        signal.throwIfAborted()
         if (this.agent !== agent) throw new Error("Codex disconnected during history load")
         this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
         this.noteLoadedHistory(id, page.turnIds)
@@ -1012,6 +1022,7 @@ export class CodexClient {
       this.noteModel(this.sessions.get(id))
       this.recordForkOrigin(id, response._meta)
     } catch (error) {
+      if (this.agent !== agent || !this.sessions.sessions.has(id)) throw error
       this.publishSession({
         ...this.sessions.get(id),
         restoring: false,
