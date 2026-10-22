@@ -85,20 +85,17 @@
   background: var(--codex-bg-tertiary, rgb(0 0 0 / 4%));
 }
 
-/* ── Codex desktop composer (ALwith Desktop theme.css) ──
- * Light: 90% input ground + 16px blur; dark: opaque. The edge is a 0.5px stroke plus two
- * low-alpha shadows, not a 1px border. */
-
+/* Chat input geometry and colours are shared by draft and conversation surfaces. */
 :root {
   --chat-input-line-height: calc(var(--chat-font-size) + 6px);
   --chat-input-max-height: 18rem;
-  --chat-input-bg-color: oklch(1 0 0);
-  --chat-input-placeholder-color: oklch(0.53 0.011 100);
+  --chat-input-bg-color: var(--background);
+  --chat-input-placeholder-color: color-mix(in oklab, var(--foreground) 30%, var(--background));
 }
 
 .dark {
-  --chat-input-bg-color: oklch(0.27 0.005 75);
-  --chat-input-placeholder-color: oklch(0.68 0.009 85);
+  --chat-input-bg-color: var(--muted);
+  --chat-input-placeholder-color: var(--muted-foreground);
 }
 
 @theme inline {
@@ -107,21 +104,46 @@
 }
 
 .codex-composer-surface {
+  overflow: clip;
   border-width: 0;
-  border-radius: 25px;
-  background: color-mix(in oklab, var(--chat-input-bg-color) 90%, transparent);
+  border-radius: 24px;
+  background: var(--chat-input-bg-color);
   box-shadow:
-    0 0 0 0.5px color-mix(in oklab, var(--foreground) 12%, transparent),
-    0 3px 7.5px rgb(0 0 0 / 4%),
-    0 0 20px rgb(0 0 0 / 5%);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+    0 0 0 0.5px color-mix(in oklab, var(--foreground) 10%, transparent),
+    0 2px 8px color-mix(in oklab, var(--foreground) 4%, transparent);
 }
 
-.dark .codex-composer-surface {
-  background: var(--chat-input-bg-color);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+/* Long drafts scroll within the textarea without exposing native scrollbar chrome. */
+.codex-composer-surface textarea {
+  scrollbar-width: none;
+}
+
+.codex-composer-surface textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-composer-toolbar button {
+  height: 28px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Composer controls share a single subtle fill in both themes. */
+@media (hover: hover) {
+  :is(.chat-composer-toolbar button:not([type="submit"]), .chat-project-picker):not(:disabled):not([aria-disabled="true"]):not([data-disabled]):hover {
+    background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+    background-image: none;
+  }
+}
+
+.chat-composer-toolbar [data-testid="model-trigger"] {
+  color: var(--foreground);
+}
+
+.chat-composer-toolbar .lucide-chevron-up {
+  rotate: 180deg;
+  color: var(--muted-foreground);
 }
 
 /* Keep table scrolling within the same horizontal inset as prose and code. */

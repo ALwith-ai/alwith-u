@@ -107,7 +107,22 @@
     },
     "working": "En cours",
     "thought": "Réflexion terminée",
-    "steerPlaceholder": "Ajouter une instruction au tour en cours"
+    "steerPlaceholder": "Ajouter une instruction au tour en cours",
+    "permissionModes": {
+      "readOnly": {
+        "name": "Demander une autorisation",
+        "description": "Toujours demander avant de modifier des fichiers externes ou d’utiliser Internet"
+      },
+      "agent": {
+        "name": "Approuver pour moi",
+        "description": "Demander uniquement pour les actions détectées comme potentiellement dangereuses"
+      },
+      "fullAccess": {
+        "name": "Accès complet",
+        "description": "Accès illimité à Internet et à tous les fichiers de votre ordinateur"
+      },
+      "heading": "Comment approuver les actions de ALwith U ?"
+    }
   },
   "composer": {
     "model": "Modèle",

@@ -67,6 +67,35 @@ test("outside-project selection resolves to the host default and hides it from r
   expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
 })
 
+test("the project icon exits directly without opening the project menu", async () => {
+  const onChange = vi.fn()
+  const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
+  const clear = view.getByRole("button", { name: "Work outside a project" })
+  await waitFor(() => expect(clear).toBeEnabled())
+  fireEvent.click(clear)
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+  expect(view.queryByRole("menu")).toBeNull()
+  expect(view.container.querySelector("button button")).toBeNull()
+  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={[]} onChange={onChange} />)
+  expect(view.queryByRole("button", { name: "Work outside a project" })).toBeNull()
+  expect(view.getByRole("button", { name: "Select project" })).toBeVisible()
+})
+
+test("the project icon waits for the host default before allowing an exit", async () => {
+  const directory = Promise.withResolvers<string>()
+  vi.mocked(invoke).mockReturnValue(directory.promise)
+  const onChange = vi.fn()
+  const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
+  const clear = view.getByRole("button", { name: "Work outside a project" })
+  expect(clear).toBeDisabled()
+  fireEvent.click(clear)
+  expect(onChange).not.toHaveBeenCalled()
+  await act(async () => directory.resolve("/tmp/ALwith U"))
+  expect(clear).toBeEnabled()
+  fireEvent.click(clear)
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+})
+
 test("project choices exclude quick-chat directories but retain temporary workspaces", async () => {
   const onChange = vi.fn()
   const view = render(

@@ -24,7 +24,7 @@ export function ChatHeader({
         <OverflowMarquee
           className={cn(
             "block min-w-0 text-sm font-medium select-none [&>span]:pointer-events-none",
-            floating ? "max-w-[50vw]" : "max-w-[50cqw]"
+            floating ? "max-w-[50vw]" : "flex-1"
           )}
           data-tauri-drag-region
         >
@@ -37,7 +37,7 @@ export function ChatHeader({
   if (floating) return target === null ? null : createPortal(content, target)
   return (
     <header
-      className="@container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border px-1"
+      className="@container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border ps-1 pe-6"
       data-main-chat-header
       data-tauri-drag-region
     >

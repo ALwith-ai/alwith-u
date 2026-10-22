@@ -6,16 +6,27 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isGroupedSelect, isSelectOption, type SelectOption } from "@alwith/api"
 import { PermissionModeSelect as SharedPermissionModeSelect } from "@alwith/module-chat/permission-mode-select"
-import { CodeXmlIcon, EyeIcon, type LucideIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react"
+import { createLucideIcon, HandIcon, type LucideIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { client } from "@/lib/client"
 
+const ApprovalShieldIcon = createLucideIcon("ApprovalShield", [
+  ["path", { d: "M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11", key: "shield" }],
+  ["path", { d: "m8 8 3 3-3 3M13 15h3", key: "terminal" }]
+])
+
 const MODE_ICONS: Record<string, LucideIcon> = {
-  "read-only": EyeIcon,
-  agent: CodeXmlIcon,
-  "agent-full-access": TriangleAlertIcon
+  "read-only": HandIcon,
+  agent: ApprovalShieldIcon,
+  "agent-full-access": ShieldAlertIcon
+}
+
+const MODE_TRANSLATION_KEYS: Record<string, string> = {
+  "read-only": "readOnly",
+  agent: "agent",
+  "agent-full-access": "fullAccess"
 }
 
 function modeConfigOption(options: acp.SessionConfigOption[]): SelectOption | undefined {
@@ -39,7 +50,16 @@ export function PermissionModeSelect({
   const modeOption = modeConfigOption(options)
   if (!modeOption) return null
   const currentModeId = modeOption.currentValue
-  const availableModes = flattenSelectOptions(modeOption)
+  const availableModes = flattenSelectOptions(modeOption).map((mode) => {
+    const key = MODE_TRANSLATION_KEYS[mode.value]
+    return key
+      ? {
+          ...mode,
+          name: t(`chat.permissionModes.${key}.name`),
+          description: t(`chat.permissionModes.${key}.description`)
+        }
+      : mode
+  })
   const current = availableModes.find((option) => option.value === currentModeId)
   const currentModeName = current?.name ?? currentModeId
   const CurrentIcon = MODE_ICONS[currentModeId] ?? ShieldCheckIcon
@@ -53,17 +73,19 @@ export function PermissionModeSelect({
     <SharedPermissionModeSelect
       value={currentModeId}
       currentName={currentModeName}
-      icon={<CurrentIcon className="size-4 shrink-0" />}
+      icon={<CurrentIcon className="size-3.5 shrink-0" />}
+      header={t("chat.permissionModes.heading")}
       disabled={disabled}
       label={t("chat.model.switchPermissionMode")}
       onValueChange={change}
       options={availableModes.map((mode) => {
         const Icon = MODE_ICONS[mode.value] ?? ShieldCheckIcon
+        const warning = mode.value === "agent-full-access"
         return {
           value: mode.value,
-          label: mode.name,
-          description: mode.description ?? undefined,
-          icon: <Icon className="size-4 shrink-0" />
+          label: <span data-permission-warning={warning ? "" : undefined}>{mode.name}</span>,
+          description: mode.description ? <span className="whitespace-normal">{mode.description}</span> : undefined,
+          icon: <Icon className="size-3.5 shrink-0" />
         }
       })}
     />

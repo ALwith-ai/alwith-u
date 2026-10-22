@@ -71,6 +71,52 @@ async function make(
   return { client, fake, port }
 }
 
+test.each([true, false])(
+  "new sessions start with Fast disabled when the agent default is %s",
+  async (inheritedFast) => {
+    const option: BooleanOption = {
+      configId: "fast_mode",
+      category: "model_config",
+      name: "Fast",
+      type: "boolean",
+      currentValue: inheritedFast
+    }
+    const writes: unknown[] = []
+    const { client } = await make((fake) => {
+      fake.sessionOptions.current = () => [{ ...option }]
+      fake.configResponse.current = (request) => {
+        writes.push(request)
+        expect(request.configId).toBe("fast_mode")
+        expect(request.type).toBe("boolean")
+        option.currentValue = request.value as boolean
+        return { configOptions: [{ ...option }] }
+      }
+    })
+    const id = await client.prepareDraft("main", "/tmp/default-fast")
+    expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: false }])
+    expect(writes).toHaveLength(inheritedFast ? 1 : 0)
+    await client.setConfig(id, "fast_mode", true)
+    expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: true }])
+    expect(await client.prepareDraft("main", "/tmp/default-fast")).toBe(id)
+    expect(client.session(id).configOptions[0]?.currentValue).toBe(true)
+  }
+)
+
+test("a failed Fast default update does not expose a ready draft", async () => {
+  const { client, fake } = await make((fake) => {
+    fake.sessionOptions.current = () => [
+      { configId: "fast_mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+    ]
+    fake.configResponse.current = () => {
+      throw RequestError.invalidRequest({}, "Cannot disable Fast")
+    }
+  })
+  await expect(client.prepareDraft("main", "/tmp/default-fast-failure")).rejects.toThrow("Cannot disable Fast")
+  expect(client.state.draftSessions).toEqual({})
+  expect(client.state.sessions).toEqual({})
+  expect(fake.deleted.has("s0")).toBe(true)
+})
+
 test("retry is routed by session and failed turn, deduplicated, and never inserts a user prompt", async () => {
   const received: unknown[] = []
   let finish!: () => void
@@ -1512,10 +1558,11 @@ test("prediction errors propagate without disabling future requests", async () =
   expect(calls).toBe(2)
 })
 
-
 test("concurrent opens await the same replay and close cancels its request before applying a late response", async () => {
   let finish!: () => void
-  const gate = new Promise<void>((resolve) => { finish = resolve })
+  const gate = new Promise<void>((resolve) => {
+    finish = resolve
+  })
   let signal!: AbortSignal
   let calls = 0
   const { client } = await make((fake) => {
@@ -1531,8 +1578,13 @@ test("concurrent opens await the same replay and close cancels its request befor
   await until(() => calls === 1)
   let secondSettled = false
   const second = client.open("h1", "/projects/one").then(
-    () => { secondSettled = true },
-    (error: unknown) => { secondSettled = true; return error }
+    () => {
+      secondSettled = true
+    },
+    (error: unknown) => {
+      secondSettled = true
+      return error
+    }
   )
   await Promise.resolve()
   expect(secondSettled).toBe(false)
