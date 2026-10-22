@@ -1,16 +1,8 @@
-import { parseManifestIcon, resolveManifestText } from "@alwith/module-extension"
+import { resolveManifestText } from "@alwith/module-extension"
 import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
-import {
-  BlocksIcon,
-  CircleArrowUpIcon,
-  MoreVerticalIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  Trash2Icon,
-  XIcon
-} from "lucide-react"
+import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -20,7 +12,6 @@ import {
   ItemContent,
   ItemDescription,
   ItemMedia,
-  PanelItem,
   PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
@@ -29,12 +20,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Item } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { openExternal } from "@/lib/open"
 
 import { EXTENSION_ICONS } from "./extension-icons"
+import { ExtensionIcon } from "./extension-icon"
 import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
@@ -51,26 +44,6 @@ interface ExtensionsManagerProps {
   onUninstall: (id: string, name: string) => void
   onOpenSurface?: (id: string) => void
   renderSettings: (view: ViewContribution) => ReactNode
-}
-
-function ExtensionIcon({ src }: { src?: string }): ReactNode {
-  const [failed, setFailed] = useState(false)
-  const icon = src ? parseManifestIcon(src) : undefined
-  if (icon?.type === "lucide") {
-    const Icon = EXTENSION_ICONS[icon.name]
-    return <Icon className="size-8 text-muted-foreground" />
-  }
-  return src && !failed ? (
-    <img
-      src={src}
-      alt=""
-      className="size-10 rounded-sm object-contain"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-    />
-  ) : (
-    <BlocksIcon className="size-5 text-muted-foreground" />
-  )
 }
 
 /** Desktop's extension page layout, backed exclusively by the independent extension runtime. */
@@ -154,7 +127,7 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <PanelItem className="group/extension rounded-md py-3">
+                <Item size="xs" className="group/extension py-3">
                   <ItemMedia>
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} />
@@ -303,7 +276,7 @@ export function ExtensionsManager({
                       </DropdownMenu>
                     )}
                   </ItemActions>
-                </PanelItem>
+                </Item>
                 {item.source === LEGACY_SOURCE &&
                   findLegacyProfile(item.id)?.limitations.map((message) => {
                     const key = JSON.stringify([item.installationId, item.packageRevision, message])

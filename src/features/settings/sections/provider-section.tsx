@@ -39,7 +39,7 @@ import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
 
 import { CodexProviderSection } from "./codex-provider-section"
-import { SettingGroup } from "./shared"
+import { SettingGroup, SettingLabel } from "./shared"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -146,7 +146,7 @@ export function ProviderSection() {
   }, [snapshot, activeId, activeBuiltIn, activeCustom])
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <CodexProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
@@ -223,7 +223,7 @@ export function ProviderTabs({
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="ms-1 text-sm text-muted-foreground">{t("provider.label")}</h2>
+      <SettingLabel>{t("provider.label")}</SettingLabel>
       <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
         {PROVIDERS.map((provider) => {
           const Logo = provider.logo

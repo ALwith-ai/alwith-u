@@ -56,7 +56,7 @@ const slots: VoiceSettingsSlots = {
         if (next !== null) onChange(next)
       }}
     >
-      <SelectTrigger aria-label={label}>
+      <SelectTrigger className="w-full min-w-0" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent className="w-max max-w-(--available-width) min-w-(--anchor-width)">

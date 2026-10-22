@@ -8,7 +8,7 @@ import { useComputerStatus } from "@/features/computer/computer-control"
 import { enableComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
 
-import { SettingGroup, SettingLabel, SettingRow } from "./shared"
+import { SettingGroup, SettingRow } from "./shared"
 
 export function ComputerSection() {
   const { t } = useTranslation()
@@ -35,7 +35,6 @@ export function ComputerSection() {
   return (
     <div className="space-y-6">
       <div>
-        <SettingLabel>{t("computer.title")}</SettingLabel>
         <SettingGroup>
           <SettingRow title={t("computer.title")} desc={t("computer.description")}>
             <Switch

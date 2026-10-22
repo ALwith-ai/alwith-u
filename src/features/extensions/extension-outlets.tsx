@@ -1,4 +1,4 @@
-import type { ActionPlacement, ContributionAlignment } from "@alwith/module-extension"
+import type { ActionPlacement, ContributionAlignment, ExtensionManifest } from "@alwith/module-extension"
 import type { ActionContribution, HostSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { resolveActionTarget, sortContributions } from "@alwith/module-extension/host"
 import type { ReactElement, ReactNode } from "react"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 
 import { EXTENSION_ICONS } from "./extension-icons"
+import { ExtensionIcon } from "./extension-icon"
 
 const ALIGNMENTS = ["left", "center", "right"] as const
 const ALIGNMENT_CLASSES: Record<ContributionAlignment, string> = {
@@ -150,10 +151,12 @@ export function ExtensionStatusBar({
 
 export function ExtensionSettingsNavigation({
   views,
+  manifests = [],
   activeId,
   onSelect
 }: {
   views: ViewContribution[]
+  manifests?: ExtensionManifest[]
   activeId: string | null
   onSelect: (id: string) => void
 }): ReactElement | null {
@@ -163,7 +166,7 @@ export function ExtensionSettingsNavigation({
   return (
     <nav aria-label={t("extensions.outlets.settingsPages")} className="mt-3 space-y-0.5 border-t border-border pt-3">
       {pages.map((view) => {
-        const Icon = EXTENSION_ICONS[view.icon ?? "settings"]
+        const icon = manifests.find((manifest) => manifest.id === view.extensionId)?.icon
         return (
           <NavigationItemButton
             key={view.id}
@@ -172,7 +175,7 @@ export function ExtensionSettingsNavigation({
             aria-current={activeId === view.id ? "page" : undefined}
             onClick={() => onSelect(view.id)}
           >
-            <Icon />
+            <ExtensionIcon key={icon} src={icon} size="navigation" />
             <span className="truncate" title={view.title}>
               {view.title}
             </span>

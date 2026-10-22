@@ -514,9 +514,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
       <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>
-          <Badge variant="secondary" className="text-[10px] normal-case">
-            {t("plugins.beta")}
-          </Badge>
+          <Badge className="bg-primary/10 text-[10px] text-primary">{t("plugins.beta")}</Badge>
         </div>
       </div>
       <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">

@@ -1,15 +1,15 @@
 // Settings primitives reduced from ALwith Desktop's settings sections: a group of rows,
 // a muted group label, and a row with a title, optional description and a control.
-import type { ReactNode } from "react"
+import { type ReactNode, useId } from "react"
 
 import { cn } from "@/lib/utils"
 
 export function SettingLabel({ children }: { children: ReactNode }) {
-  return <div className="ms-1 mb-2 cursor-default text-sm text-muted-foreground">{children}</div>
+  return <h2 className="mb-3 cursor-default text-sm font-medium">{children}</h2>
 }
 
 export function SettingGroup({ children }: { children: ReactNode }) {
-  return <div className="flex w-full flex-col px-4">{children}</div>
+  return <div className="settings-group flex w-full min-w-0 flex-col">{children}</div>
 }
 
 export function SettingRow({
@@ -23,19 +23,28 @@ export function SettingRow({
   children?: ReactNode
   aligned?: boolean
 }) {
+  const id = useId()
   return (
     <div
-      className={cn(
-        "gap-4 py-3",
-        desc ? "items-start" : "items-center",
-        aligned ? "grid grid-cols-[minmax(0,1fr)_16rem]" : "flex justify-between"
-      )}
+      role="group"
+      aria-labelledby={`${id}-title`}
+      aria-describedby={desc ? `${id}-description` : undefined}
+      className={cn("settings-row", aligned && "settings-row-aligned")}
     >
       <div className="min-w-0">
-        <div className="text-sm">{title}</div>
-        {desc && <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>}
+        <div id={`${id}-title`} className="text-sm font-medium leading-5">
+          {title}
+        </div>
+        {desc && (
+          <div
+            id={`${id}-description`}
+            className="settings-row-description mt-1 text-xs leading-5 text-muted-foreground"
+          >
+            {desc}
+          </div>
+        )}
       </div>
-      {children && <div className={cn(desc && "pt-0.5", aligned ? "min-w-0" : "shrink-0")}>{children}</div>}
+      {children && <div className="settings-row-control">{children}</div>}
     </div>
   )
 }

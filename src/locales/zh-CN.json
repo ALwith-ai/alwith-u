@@ -533,7 +533,7 @@
   },
   "plugins": {
     "title": "插件",
-    "beta": "测试版",
+    "beta": "BETA",
     "subtitle": "在你常用的工具中使用 Codex",
     "search": "搜索插件",
     "manage": "管理",
