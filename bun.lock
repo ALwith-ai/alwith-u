@@ -29,7 +29,7 @@
         "@milkdown/preset-gfm": "^7.22.3",
         "@milkdown/prose": "^7.22.3",
         "@milkdown/utils": "^7.22.3",
-        "@nyssance/atlas": "github:nyssance/atlas#e58a89af72ef9e45ac958abc31d933edb97abfa2",
+        "@nyssance/atlas": "github:nyssance/atlas#v0.1.0",
         "@shadcn/react": "^0.3.1",
         "@tailwindcss/vite": "^4.3.3",
         "@tauri-apps/api": "^3.0.0-alpha.3",
@@ -139,7 +139,7 @@
   },
   "overrides": {
     "@alwith/module-auth": "^0.1.6",
-    "@alwith/module-chat": "^0.1.21",
+    "@alwith/module-chat": "^0.1.22",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "https://registry.npmmirror.com/@adobe/css-tools/-/css-tools-4.5.0.tgz", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
@@ -540,7 +540,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/atlas": ["@nyssance/atlas@github:nyssance/atlas#e58a89a", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.5.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "nyssance-atlas-e58a89a", "sha512-z2/3XAsamxGa1VJoqR9eXPzR9S0TBXguS0uYmhqPM1XFweZ60lB//hERTJB0WPyOfgfdoHNWe6OhYalvBj60pA=="],
+    "@nyssance/atlas": ["@nyssance/atlas@github:nyssance/atlas#b629e3b", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.5.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "nyssance-atlas-b629e3b", "sha512-DfaffrcGGvdHywtAtS3XvQCTIRuzVigqo/ASZC7wwz1tpnOQgxQ7jKiMlTRltej7qsfmHPB3/Arf7S7ApqBkRA=="],
 
     "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.27", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2", "ws": "^8.22.0" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-x+yj2NkNVtpx5OsXaV6Ye/DG6+S7zbJe3jOFg+ta6q/SZVEkY/KFQ+YCsmySoZTM4WAbT2bk2yaQMV21BDR5eQ=="],
 
