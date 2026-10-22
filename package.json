@@ -37,7 +37,7 @@
     "@alwith/module-auth": "^0.1.6",
     "@alwith/module-chat": "^0.1.21",
     "@alwith/module-computer": "^0.1.4",
-    "@alwith/module-drive": "^0.1.0-rc.22",
+    "@alwith/module-drive": "^0.1.0-rc.23",
     "@alwith/module-editor": "^0.1.0-rc.12",
     "@alwith/module-extension": "^0.1.0-rc.12",
     "@alwith/module-file-tree": "^0.1.0-rc.20",
