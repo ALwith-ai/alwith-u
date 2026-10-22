@@ -11,18 +11,18 @@
   },
   {
     "name": "@alwith/module-drive",
-    "file": "vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
-    "sha256": "8fb0bfa0b033d58f67c189d731b2545feaee12da6328e4c08bf3fd9e2ce1d030",
+    "file": "vendor/alwith-module-drive-0.1.0-rc.20-37866ef246ee.tgz",
+    "sha256": "37866ef246ee7af4a79c5a1a8281dc0e38f13cef722d9b43ed635cdf46acb675",
     "source": "alwith-modules/packages/drive",
-    "baseCommit": "20f6e20a2cbf2b59e4b0c621fa7c4e9b172f06f8",
-    "sourceState": "committed; alwith-modules 20f6e20; built with the package build script and bun pm pack"
+    "baseCommit": "a7a6b27cdb3d5c0b83e31e05f904708ef4b7b968",
+    "sourceState": "Base distribution retains history image preservation; core, react and locales rebuilt from the local Drive connection-state fixes."
   },
   {
     "name": "@alwith/module-extension",
-    "file": "vendor/alwith-module-extension-0.1.0-rc.11-d7587e3aec22.tgz",
-    "sha256": "d7587e3aec227e30d1ea8f40893d38a0f0749602da49dde5cb7b66ba8258e788",
+    "file": "vendor/alwith-module-extension-0.1.0-rc.11-fca3d367fd3d.tgz",
+    "sha256": "fca3d367fd3d5c527ff5fdbbb27ef0bfe990df2ea4e14b5c84249165fa6dad6e",
     "source": "alwith-modules/packages/extension",
-    "baseCommit": "20f6e20a2cbf2b59e4b0c621fa7c4e9b172f06f8",
-    "sourceState": "committed; alwith-modules 20f6e20; built with the package build script and bun pm pack"
+    "baseCommit": "af8777b14a3cc5a5fcec74d5b913a1b4c84e2dfd",
+    "sourceState": "Base distribution with the committed browser extension loader fix."
   }
 ]
