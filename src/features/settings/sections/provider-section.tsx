@@ -452,20 +452,6 @@ export function ProviderRow({
           {t("provider.connectionSettings")}
         </h4>
         <Field className="gap-2">
-          <FieldLabel htmlFor={`${provider.id}-base-url`}>{t("provider.baseUrl")}</FieldLabel>
-          <InputGroup>
-            <InputGroupInput
-              id={`${provider.id}-base-url`}
-              type="url"
-              spellCheck={false}
-              placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
-              value={baseUrl}
-              onChange={(event) => setBaseUrl(event.target.value)}
-            />
-          </InputGroup>
-          <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
-        </Field>
-        <Field className="gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
             {keyUrl !== null && (
@@ -504,6 +490,33 @@ export function ProviderRow({
             </InputGroupAddon>
           </InputGroup>
         </Field>
+        <Collapsible className="space-y-2">
+          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group -ms-2" />}>
+            {t("provider.baseUrl")}
+            <ChevronDownIcon
+              className="size-4 transition-transform group-aria-expanded:rotate-180"
+              aria-hidden="true"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Field className="gap-2">
+              <FieldLabel htmlFor={`${provider.id}-base-url`} className="sr-only">
+                {t("provider.baseUrl")}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id={`${provider.id}-base-url`}
+                  type="url"
+                  spellCheck={false}
+                  placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
+                  value={baseUrl}
+                  onChange={(event) => setBaseUrl(event.target.value)}
+                />
+              </InputGroup>
+              <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
+            </Field>
+          </CollapsibleContent>
+        </Collapsible>
       </section>
       <ProviderActions
         busy={busy}
