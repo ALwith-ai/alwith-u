@@ -653,7 +653,7 @@ export class CodexClient {
     this.requireHistory()
     return exportConversation(
       sessionId,
-      (params) => this.live().request("_codex/session_history_items", params, { signal }),
+      (params) => this.live().request("_codex/session_history_items", params, { cancellationSignal: signal }),
       check
     )
   }
