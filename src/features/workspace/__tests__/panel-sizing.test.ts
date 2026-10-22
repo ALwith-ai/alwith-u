@@ -1,6 +1,5 @@
+import { resolveSplitWidths as resolvePanelWidths } from "@nyssance/atlas/layout"
 import { expect, test } from "vitest"
-
-import { resolvePanelWidths } from "../panel-sizing"
 
 test("visible panels share the viewport equally by default", () => {
   expect(resolvePanelWidths(1200, true, 0)).toEqual({ chat: 600, preview: 600 })

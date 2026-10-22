@@ -17,6 +17,7 @@ export default mergeConfig(
         // Shared UI packages import CSS; Vite must transform these imports for Node tests.
         deps: {
           inline: [
+            "@nyssance/atlas",
             "@alwith/module-gamepad",
             "@alwith/module-auth",
             "@alwith/module-chat",

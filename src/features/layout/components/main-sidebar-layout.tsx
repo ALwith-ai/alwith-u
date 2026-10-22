@@ -1,15 +1,7 @@
+import "@nyssance/atlas/styles.css"
+import { desktopDefaults } from "@nyssance/atlas/layout"
 import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
-import {
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useId,
-  useRef,
-  useState
-} from "react"
+import { type CSSProperties, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -60,8 +52,6 @@ export function MainSidebarLayout({
   const workspaceControls = useContext(WindowsWorkspaceControlsContext)
   const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
-  const [preview, setPreview] = useState(false)
-  // Remember the exit style after the logical state has already become hidden.
   const [presentation, setPresentation] = useState<"docked" | "floating">(initialPinned ? "docked" : "floating")
   const canvas = useMainCanvas(screen, pinned, onScreenChange)
   const navigate = canvas.context.navigate
@@ -69,51 +59,29 @@ export function MainSidebarLayout({
   const showMainControls = mainActive && canvas.selected === 1
   const pinnedOnScreen = pinned && canvas.selected !== 2
   const docked = !mainActive || pinnedOnScreen
-  const visible = docked || (mainActive && preview && !canvas.moving)
+  const visible = docked || canvas.navigationPeeking
   const panelId = useId()
   const panel = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
-  const pointerInside = useRef(false)
   const overlays = useRef(0)
-  const insidePresses = useRef(new WeakSet<Event>())
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saving = useRef(Promise.resolve())
 
-  const cancelClose = useCallback(() => {
-    if (timer.current !== null) clearTimeout(timer.current)
-    timer.current = null
-  }, [])
-
-  const closePreview = useCallback(() => {
-    cancelClose()
-    if (!mainActive || pinnedOnScreen) return
-    setPreview(false)
-    if (panel.current?.contains(document.activeElement)) toggle.current?.focus({ preventScroll: true })
-  }, [cancelClose, mainActive, pinnedOnScreen])
-
-  const scheduleClose = useCallback(() => {
-    cancelClose()
-    if (!panel.current || !mainActive || pinnedOnScreen || pointerInside.current || overlays.current > 0) return
-    timer.current = setTimeout(closePreview, 200)
-  }, [cancelClose, closePreview, mainActive, pinnedOnScreen])
-
+  // Portaled menus retain the same Atlas-owned navigation surface.
   const retainOverlay = useCallback(() => {
     overlays.current += 1
-    cancelClose()
+    panel.current?.parentElement?.setAttribute("data-popup-open", "")
     return () => {
       overlays.current -= 1
-      scheduleClose()
+      if (overlays.current === 0) panel.current?.parentElement?.removeAttribute("data-popup-open")
     }
-  }, [cancelClose, scheduleClose])
+  }, [])
 
   const changePinned = useCallback(
     (next: boolean) => {
-      cancelClose()
       if (!mainActive) return
-      setPresentation("docked")
       if (next && canvas.selected === 2) navigate("chat")
+      setPresentation("docked")
       setPinned(next)
-      setPreview(false)
       // Serialize writes so rapid toggles cannot restore an older choice on restart.
       saving.current = saving.current
         .then(() => savePreference("sidebarPinned", next))
@@ -121,67 +89,23 @@ export function MainSidebarLayout({
           toast.error(error instanceof Error ? error.message : String(error))
         })
     },
-    [cancelClose, mainActive, canvas.selected, navigate]
+    [mainActive, canvas.selected, navigate]
   )
 
-  useEffect(() => cancelClose, [cancelClose])
-
   useEffect(() => {
-    if (!docked && !canvas.moving) return
-    cancelClose()
-    pointerInside.current = false
-    setPreview(false)
-  }, [docked, canvas.moving, cancelClose])
+    if (canvas.navigationPeeking) setPresentation("floating")
+  }, [canvas.navigationPeeking])
 
   useEffect(() => {
     if (!visible && panel.current?.contains(document.activeElement)) toggle.current?.focus({ preventScroll: true })
   }, [visible, showMainControls])
 
-  useEffect(() => {
-    if (!mainActive || pinnedOnScreen || !preview) return
-    const onPointerDown = (event: PointerEvent) => {
-      // React capture also sees events in this sidebar's portals, unlike DOM.contains().
-      if (!insidePresses.current.has(event)) closePreview()
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !event.defaultPrevented && overlays.current === 0) {
-        event.preventDefault()
-        closePreview()
-      }
-    }
-    window.addEventListener("pointerdown", onPointerDown)
-    window.addEventListener("keydown", onKeyDown)
-    window.addEventListener("blur", closePreview)
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown)
-      window.removeEventListener("keydown", onKeyDown)
-      window.removeEventListener("blur", closePreview)
-    }
-  }, [mainActive, pinnedOnScreen, preview, closePreview])
-
-  const enterSidebar = (event: ReactPointerEvent) => {
-    if (!mainActive || event.pointerType === "touch") return
-    pointerInside.current = true
-    cancelClose()
-    if (!pinnedOnScreen) {
-      setPresentation("floating")
-      setPreview(true)
-    }
-  }
-  const leaveSidebar = (event: ReactPointerEvent) => {
-    if (!mainActive || event.pointerType === "touch") return
-    pointerInside.current = false
-    scheduleClose()
-  }
   const ToggleIcon = pinned ? PanelLeftIcon : PanelLeftDashedIcon
 
   const sidebarToggle = (
     <div
       className={titlebar ? "windows-sidebar-toggle" : "main-sidebar-toggle"}
       style={titlebar ? { width: 32 / zoom, height: 32 / zoom } : undefined}
-      onPointerEnter={enterSidebar}
-      onPointerLeave={leaveSidebar}
-      onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
     >
       <Button
         ref={toggle}
@@ -192,6 +116,7 @@ export function MainSidebarLayout({
         aria-checked={docked}
         aria-expanded={visible}
         aria-controls={panelId}
+        data-atlas-navigation-trigger
         title={t(pinned ? "sidebar.unpin" : "sidebar.pin")}
         className="text-sidebar-foreground"
         onClick={() => changePinned(!docked)}
@@ -213,6 +138,7 @@ export function MainSidebarLayout({
       data-sidebar-presentation={docked || canvas.moving ? "docked" : presentation}
       style={
         {
+          "--sidebar-width": `${desktopDefaults.navigationWidth}px`,
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--canvas-sidebar-offset": `${Math.max(0, (canvas.geometry.stops[canvas.selected] ?? 0) - canvas.geometry.leading)}px`,
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
@@ -232,6 +158,7 @@ export function MainSidebarLayout({
           <div ref={canvas.ref} className="main-canvas-viewport">
             <div
               className="main-screen-track"
+              data-atlas-track
               style={
                 {
                   "--canvas-leading-width": `${canvas.geometry.leading}px`,
@@ -246,6 +173,8 @@ export function MainSidebarLayout({
                 <div
                   key={index}
                   className="canvas-snap"
+                  data-atlas-region={index === 0 ? "leading" : index === 1 ? "chat" : "preview"}
+                  data-atlas-leading={index === 0 ? "" : undefined}
                   aria-hidden="true"
                   style={{ insetInlineStart: offset, width: canvas.width }}
                 />
@@ -259,23 +188,10 @@ export function MainSidebarLayout({
                 {leading}
               </div>
               <SidebarOverlayContext.Provider value={retainOverlay}>
-                <div
-                  className="main-sidebar-shell"
-                  onPointerEnter={enterSidebar}
-                  onPointerLeave={leaveSidebar}
-                  onPointerDownCapture={(event) => insidePresses.current.add(event.nativeEvent)}
-                  onFocusCapture={cancelClose}
-                  onBlurCapture={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose()
-                  }}
-                >
-                  <div className="main-sidebar-viewport">
+                <div className="main-sidebar-shell" data-atlas-navigation ref={canvas.navigationRef}>
+                  <div className="main-sidebar-viewport" data-atlas-navigation-surface id={panelId}>
                     <div
-                      ref={(node) => {
-                        panel.current = node
-                        canvas.navigationRef(node)
-                      }}
-                      id={panelId}
+                      ref={panel}
                       className="main-sidebar-panel"
                       inert={!visible && !canvas.moving}
                       aria-hidden={!visible && !canvas.moving}
@@ -283,7 +199,6 @@ export function MainSidebarLayout({
                       {sidebar}
                     </div>
                   </div>
-                  {mainActive && !pinnedOnScreen && <div className="main-sidebar-edge" aria-hidden="true" />}
                 </div>
               </SidebarOverlayContext.Provider>
               <div

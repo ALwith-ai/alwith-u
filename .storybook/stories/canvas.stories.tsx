@@ -25,6 +25,19 @@ function ReturnToChat({ restore }: { restore: () => void }) {
   )
 }
 
+function hoverNavigationEdge(canvas: HTMLElement): void {
+  const root = canvas.querySelector<HTMLElement>("[data-atlas-viewport]")!
+  const bounds = root.getBoundingClientRect()
+  root.dispatchEvent(
+    new PointerEvent("pointermove", {
+      bubbles: true,
+      pointerType: "mouse",
+      clientX: i18n.dir() === "rtl" ? bounds.right - 2 : bounds.left + 2,
+      clientY: bounds.top + 100
+    })
+  )
+}
+
 const meta = {
   title: "Layout/Canvas",
   component: MainSidebarLayout,
@@ -153,11 +166,11 @@ export const Unified: Story = {
     await userEvent.click(dots.getAllByRole("button")[1])
     await waitFor(() => expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft"))
     await waitFor(
-      () => {
+      async () => {
         const root = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
         const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
-        expect(chat.left).toBeGreaterThanOrEqual(root.left)
-        expect(chat.right).toBeLessThanOrEqual(root.right + 1)
+        await expect(chat.left).toBeGreaterThanOrEqual(root.left)
+        await expect(chat.right).toBeLessThanOrEqual(root.right + 1)
       },
       { timeout: 3000 }
     )
@@ -191,12 +204,12 @@ export const DirectionChange: Story = {
     await userEvent.click(dots.getAllByRole("button")[2])
     await i18n.changeLanguage("ar")
     await waitFor(
-      () => {
-        expect(dots.getAllByRole("button")[2]).toHaveAttribute("aria-current", "page")
+      async () => {
+        await expect(dots.getAllByRole("button")[2]).toHaveAttribute("aria-current", "page")
         const root = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
         const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-        expect(preview.left).toBeGreaterThanOrEqual(root.left - 1)
-        expect(preview.right).toBeLessThanOrEqual(root.right + 1)
+        await expect(preview.left).toBeGreaterThanOrEqual(root.left - 1)
+        await expect(preview.right).toBeLessThanOrEqual(root.right + 1)
       },
       { timeout: 3000 }
     )
@@ -217,18 +230,18 @@ export const ReturnFromPreview: Story = {
       await userEvent.click(dots.getAllByRole("button")[2])
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "hidden"))
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      await userEvent.hover(canvasElement.querySelector<HTMLElement>(".main-sidebar-edge")!)
+      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
+      hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(dots.getAllByRole("button")[1])
-      await waitFor(() => {
-        expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
-        expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
+      await waitFor(async () => {
+        await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
+        await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
         const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
-        if (i18n.dir() === "rtl") expect(sidebar.getBoundingClientRect().left).toBeGreaterThanOrEqual(chat.right)
-        else expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(chat.left)
+        if (i18n.dir() === "rtl") await expect(sidebar.getBoundingClientRect().left).toBeGreaterThanOrEqual(chat.right)
+        else await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(chat.left)
       })
-      expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+      await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
     }
   }
 }
@@ -249,21 +262,21 @@ export const ReflowWithFloatingSidebar: Story = {
       await waitFor(() => expect(dots.getAllByRole("button")).toHaveLength(3))
       await userEvent.click(dots.getAllByRole("button")[2])
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      await userEvent.hover(canvasElement.querySelector<HTMLElement>(".main-sidebar-edge")!)
+      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
+      hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(canvas.getByRole("button", { name: action }))
       await waitFor(
-        () => {
-          expect(dots.getAllByRole("button")).toHaveLength(2)
-          expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
-          expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
-          expect(getComputedStyle(sidebar).borderRadius).toBe("0px")
+        async () => {
+          await expect(dots.getAllByRole("button")).toHaveLength(2)
+          await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
+          await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
+          await expect(getComputedStyle(sidebar).borderRadius).toBe("0px")
           const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
-          expect(sidebar.getBoundingClientRect().left).toBeCloseTo(body.left + 4, 0)
+          await expect(sidebar.getBoundingClientRect().left).toBeCloseTo(body.left + 4, 0)
           const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-          expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(preview.left)
-          expect(preview.right).toBeLessThanOrEqual(body.right + 1)
+          await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(preview.left)
+          await expect(preview.right).toBeLessThanOrEqual(body.right + 1)
         },
         { timeout: 3000 }
       )
@@ -283,12 +296,12 @@ export const HidePinnedNavigation: Story = {
     await waitFor(() => expect(canvasElement.querySelector(".main-window-body")!.clientWidth).toBe(1200))
     await userEvent.click(canvas.getByRole("switch"))
     await waitFor(
-      () => {
-        expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
+      async () => {
+        await expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
         const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
-        expect(chat.getBoundingClientRect().left).toBeGreaterThanOrEqual(body.left)
-        expect(preview.getBoundingClientRect().right).toBeCloseTo(body.right - 8, 0)
-        expect(chat.getBoundingClientRect().width).toBeCloseTo(preview.getBoundingClientRect().width, 0)
+        await expect(chat.getBoundingClientRect().left).toBeGreaterThanOrEqual(body.left)
+        await expect(preview.getBoundingClientRect().right).toBeCloseTo(body.right - 8, 0)
+        await expect(chat.getBoundingClientRect().width).toBeCloseTo(preview.getBoundingClientRect().width, 0)
       },
       { timeout: 3000 }
     )
@@ -306,12 +319,12 @@ export const HideNavigationAfterManualSplit: Story = {
     for (let index = 0; index < 4; index++) await userEvent.keyboard("{ArrowRight}")
     await waitFor(() => expect(dots.getAllByRole("button")).toHaveLength(3))
     await userEvent.click(canvas.getByRole("switch"))
-    await waitFor(() => {
-      expect(dots.getAllByRole("button")).toHaveLength(3)
+    await waitFor(async () => {
+      await expect(dots.getAllByRole("button")).toHaveLength(3)
       const body = canvasElement.querySelector(".main-window-body")!
       const slides = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
-      expect(slides[0].getBoundingClientRect().width).toBe(body.clientWidth - 8)
-      expect(slides[1].getBoundingClientRect().width).toBe(body.clientWidth - 8)
+      await expect(slides[0].getBoundingClientRect().width).toBe(body.clientWidth - 8)
+      await expect(slides[1].getBoundingClientRect().width).toBe(body.clientWidth - 8)
     })
     await userEvent.click(dots.getAllByRole("button")[2])
     await userEvent.click(canvas.getByRole("separator"))
@@ -332,18 +345,18 @@ export const OperationChain: Story = {
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
     const assertScreen = async (index: number): Promise<void> => {
       await waitFor(
-        () => {
-          expect(dots()[index]).toHaveAttribute("aria-current", "page")
+        async () => {
+          await expect(dots()[index]).toHaveAttribute("aria-current", "page")
           const bounds = body.getBoundingClientRect()
           const panel = (index === 2 ? preview : chat).getBoundingClientRect()
-          expect(panel.width).toBeGreaterThan(300)
-          expect(panel.left).toBeGreaterThanOrEqual(bounds.left - 1)
-          expect(panel.right).toBeLessThanOrEqual(bounds.right + 1)
+          await expect(panel.width).toBeGreaterThan(300)
+          await expect(panel.left).toBeGreaterThanOrEqual(bounds.left - 1)
+          await expect(panel.right).toBeLessThanOrEqual(bounds.right + 1)
           if (host.dataset.sidebarMode === "pinned") {
-            expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
+            await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
             const nav = sidebar.getBoundingClientRect()
-            if (i18n.dir() === "rtl") expect(panel.right).toBeLessThanOrEqual(nav.left)
-            else expect(panel.left).toBeGreaterThanOrEqual(nav.right)
+            if (i18n.dir() === "rtl") await expect(panel.right).toBeLessThanOrEqual(nav.left)
+            else await expect(panel.left).toBeGreaterThanOrEqual(nav.right)
           }
         },
         { timeout: 3000 }
@@ -365,8 +378,8 @@ export const OperationChain: Story = {
       await userEvent.click(dots()[2])
       await assertScreen(2)
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      await userEvent.hover(canvasElement.querySelector<HTMLElement>(".main-sidebar-edge")!)
+      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
+      hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(canvas.getByRole("button", { name: "Return to chat" }))
       await assertScreen(1)
@@ -390,7 +403,7 @@ export const OperationChain: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
     await waitFor(() => expect(dots()).toHaveLength(2))
     await assertScreen(1)
-    expect(draft).toHaveValue("Preserved draft / chain")
+    await expect(draft).toHaveValue("Preserved draft / chain")
     await userEvent.click(canvas.getByRole("button", { name: "Toggle preview" }))
     await assertScreen(2)
   }
@@ -433,8 +446,8 @@ export const PointerSplitAndReverse: Story = {
     await waitFor(() => expect(dots.getAllByRole("button")).toHaveLength(2))
     await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
     const panels = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
-    expect(panels[0].getBoundingClientRect().width).toBeCloseTo(panels[1].getBoundingClientRect().width, 0)
-    expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+    await expect(panels[0].getBoundingClientRect().width).toBeCloseTo(panels[1].getBoundingClientRect().width, 0)
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
 }
 
@@ -447,11 +460,11 @@ export const StableOuterGutters: Story = {
     const dots = (): HTMLButtonElement[] => within(canvas.getByRole("navigation")).getAllByRole("button")
     const assertGutters = async (selector: string): Promise<void> => {
       await waitFor(
-        () => {
+        async () => {
           const bounds = body.getBoundingClientRect()
           const panel = canvasElement.querySelector(selector)!.getBoundingClientRect()
-          expect(panel.left - bounds.left).toBeCloseTo(8, 0)
-          expect(bounds.right - panel.right).toBeCloseTo(8, 0)
+          await expect(panel.left - bounds.left).toBeCloseTo(8, 0)
+          await expect(bounds.right - panel.right).toBeCloseTo(8, 0)
         },
         { timeout: 3000 }
       )
@@ -498,22 +511,22 @@ export const NavigationDuringMotion: Story = {
     await userEvent.click(dots.getAllByRole("button")[0])
     for (let frame = 0; frame < 50; frame++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-      expect(getComputedStyle(viewport).visibility).toBe("visible")
-      canvasElement
-        .querySelectorAll<HTMLElement>("[data-screen-panel]")
-        .forEach((panel) => expect(getComputedStyle(panel).visibility).toBe("visible"))
-      panels.forEach((panel, index) => expect(panel.getBoundingClientRect().width).toBeCloseTo(widths[index], 3))
-      expect(nav.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(original, 0)
+      await expect(getComputedStyle(viewport).visibility).toBe("visible")
+      for (const panel of canvasElement.querySelectorAll<HTMLElement>("[data-screen-panel]"))
+        await expect(getComputedStyle(panel).visibility).toBe("visible")
+      for (const [index, panel] of panels.entries())
+        await expect(panel.getBoundingClientRect().width).toBeCloseTo(widths[index], 3)
+      await expect(nav.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(original, 0)
     }
     await userEvent.click(dots.getAllByRole("button")[1])
     for (let frame = 0; frame < 50; frame++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-      expect(getComputedStyle(viewport).visibility).toBe("visible")
-      canvasElement
-        .querySelectorAll<HTMLElement>("[data-screen-panel]")
-        .forEach((panel) => expect(getComputedStyle(panel).visibility).toBe("visible"))
-      panels.forEach((panel, index) => expect(panel.getBoundingClientRect().width).toBeCloseTo(widths[index], 3))
-      expect(nav.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(original, 0)
+      await expect(getComputedStyle(viewport).visibility).toBe("visible")
+      for (const panel of canvasElement.querySelectorAll<HTMLElement>("[data-screen-panel]"))
+        await expect(getComputedStyle(panel).visibility).toBe("visible")
+      for (const [index, panel] of panels.entries())
+        await expect(panel.getBoundingClientRect().width).toBeCloseTo(widths[index], 3)
+      await expect(nav.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(original, 0)
     }
   }
 }
@@ -531,25 +544,25 @@ export const StablePanelGap: Story = {
   ...Unified,
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    const assertGap = (): void => {
+    const assertGap = async (): Promise<void> => {
       const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
       const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
       const gap = i18n.dir() === "rtl" ? chat.left - preview.right : preview.left - chat.right
-      expect(gap).toBeCloseTo(8, 2)
+      await expect(gap).toBeCloseTo(8, 2)
     }
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => within(canvas.getByRole("navigation")).getAllByRole("button")
     await waitFor(() => expect(dots()).toHaveLength(2))
-    assertGap()
+    await assertGap()
     await userEvent.click(canvas.getByRole("separator"))
     for (let i = 0; i < 11; i++) await userEvent.keyboard(i18n.dir() === "rtl" ? "{ArrowLeft}" : "{ArrowRight}")
     await waitFor(() => expect(dots()).toHaveLength(3))
-    assertGap()
+    await assertGap()
     for (const index of [2, 1]) {
       await userEvent.click(dots()[index])
       for (let frame = 0; frame < 50; frame++) {
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-        assertGap()
+        await assertGap()
       }
     }
   }
@@ -567,13 +580,13 @@ export const MainControlsOnly: Story = {
     await waitFor(() => expect(dots()).toHaveLength(3))
     for (const index of [0, 1, 2, 1]) {
       await userEvent.click(dots()[index])
-      await waitFor(() => {
+      await waitFor(async () => {
         if (index === 1) {
-          expect(canvas.getByRole("switch")).toBeVisible()
-          expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
+          await expect(canvas.getByRole("switch")).toBeVisible()
+          await expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
         } else {
-          expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-          expect(canvas.queryByRole("button", { name: "Open workspace" })).not.toBeInTheDocument()
+          await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
+          await expect(canvas.queryByRole("button", { name: "Open workspace" })).not.toBeInTheDocument()
         }
       })
     }
@@ -594,10 +607,10 @@ export const DragLeftHidesChat: Story = {
     const dx = i18n.dir() === "rtl" ? 220 : -220
     await userEvent.pointer({ target: divider, keys: "[MouseLeft>]", coords: { clientX: x, clientY: y } })
     await userEvent.pointer({ target: divider, coords: { clientX: x + dx, clientY: y } })
-    await waitFor(() => {
-      expect(canvas.queryByRole("textbox", { name: "Draft" })).not.toBeInTheDocument()
-      expect(canvasElement.querySelector(".file-workspace-slide")!.getBoundingClientRect().width).toBe(0)
-      expect(dots.getAllByRole("button")).toHaveLength(2)
+    await waitFor(async () => {
+      await expect(canvas.queryByRole("textbox", { name: "Draft" })).not.toBeInTheDocument()
+      await expect(canvasElement.querySelector(".file-workspace-slide")!.getBoundingClientRect().width).toBe(0)
+      await expect(dots.getAllByRole("button")).toHaveLength(2)
     })
     await userEvent.pointer({ target: divider, coords: { clientX: x, clientY: y } })
     await waitFor(() => expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft"))
@@ -632,24 +645,24 @@ export const RestoreAfterDragging: Story = {
       }
       const restore = await canvas.findByRole("button", { name: "Restore" })
       await waitFor(() => expect(restore).toBeVisible())
-      expect(restore).toHaveAttribute("aria-pressed", "true")
+      await expect(restore).toHaveAttribute("aria-pressed", "true")
       await userEvent.click(restore)
       await waitFor(
-        () => {
-          expect(dots()).toHaveLength(2)
-          expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
-          expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+        async () => {
+          await expect(dots()).toHaveLength(2)
+          await expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
+          await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
           const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
           const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-          expect(chat.width).toBeGreaterThan(320)
-          expect(preview.left - chat.right).toBeCloseTo(8, 1)
-          expect(preview.right).toBeLessThanOrEqual(
+          await expect(chat.width).toBeGreaterThan(320)
+          await expect(preview.left - chat.right).toBeCloseTo(8, 1)
+          await expect(preview.right).toBeLessThanOrEqual(
             canvasElement.querySelector(".main-window-body")!.getBoundingClientRect().right
           )
         },
         { timeout: 3000 }
       )
-      expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
+      await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
     }
   }
 }
@@ -671,24 +684,24 @@ export const TitlebarRestoreThenClose: Story = {
     await userEvent.click(dots()[1])
     await userEvent.click(await canvas.findByRole("button", { name: "Close workspace" }))
     await waitFor(
-      () => {
-        expect(dots()).toHaveLength(2)
-        expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
-        expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+      async () => {
+        await expect(dots()).toHaveLength(2)
+        await expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
+        await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
         const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
         const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-        expect(chat.width).toBeGreaterThan(320)
-        expect(preview.left - chat.right).toBeCloseTo(8, 1)
+        await expect(chat.width).toBeGreaterThan(320)
+        await expect(preview.left - chat.right).toBeCloseTo(8, 1)
       },
       { timeout: 3000 }
     )
-    expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
+    await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
     await userEvent.click(canvas.getByRole("button", { name: "Close workspace" }))
     await waitFor(() =>
       expect(canvasElement.querySelector(".file-workspace-layout")).toHaveAttribute("data-open", "false")
     )
-    expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
-    expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+    await expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
 }
 
@@ -701,11 +714,11 @@ export const ThreeScreenTransitions: Story = {
     const host = canvasElement.querySelector<HTMLElement>("[data-main-screen]")!
     const settled = async (index: number, count: number): Promise<void> => {
       await waitFor(
-        () => {
-          expect(dots()).toHaveLength(count)
-          expect(dots()[index]).toHaveAttribute("aria-current", "page")
-          expect(host).toHaveAttribute("data-canvas-moving", "false")
-          expect(canvas.queryByRole("switch") !== null).toBe(index === 1)
+        async () => {
+          await expect(dots()).toHaveLength(count)
+          await expect(dots()[index]).toHaveAttribute("aria-current", "page")
+          await expect(host).toHaveAttribute("data-canvas-moving", "false")
+          await expect(canvas.queryByRole("switch") !== null).toBe(index === 1)
         },
         { timeout: 3000 }
       )
@@ -725,7 +738,7 @@ export const ThreeScreenTransitions: Story = {
     await settled(0, 2)
     await userEvent.click(dots()[1])
     await settled(1, 2)
-    expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft / retained")
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft / retained")
     await userEvent.click(canvas.getByRole("button", { name: "Open workspace" }))
     await settled(2, 3)
     // Removing the current preview screen must land on main, with a valid dot and toolbar.
@@ -740,8 +753,8 @@ export const ThreeScreenTransitions: Story = {
     await settled(0, 3)
     await userEvent.click(dots()[1])
     await settled(1, 3)
-    expect(host).toHaveAttribute("data-canvas-pinned", "false")
-    expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
+    await expect(host).toHaveAttribute("data-canvas-pinned", "false")
+    await expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     await settled(1, 2)
     const draft = canvas.getByRole("textbox", { name: "Draft" })
@@ -752,12 +765,12 @@ export const ThreeScreenTransitions: Story = {
     await settled(2, 3)
     await userEvent.click(canvas.getByRole("button", { name: i18n.t("workspace.exitViewMode") }))
     await settled(1, 2)
-    expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft)
-    expect(draft).toHaveValue("Preserved draft / retained")
-    expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft)
+    await expect(draft).toHaveValue("Preserved draft / retained")
+    await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
     await userEvent.click(canvas.getByRole("button", { name: "Close workspace" }))
     await settled(1, 2)
-    expect(canvasElement.querySelector(".file-workspace-layout")).toHaveAttribute("data-open", "false")
+    await expect(canvasElement.querySelector(".file-workspace-layout")).toHaveAttribute("data-open", "false")
   }
 }
 export const ThreeScreenTransitionsRtl: Story = { ...ThreeScreenTransitions, globals: { locale: "ar" } }
@@ -773,9 +786,9 @@ export const SplitFromMainStaysOnMain: Story = {
     await userEvent.click(dots()[2])
     await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
-    await waitFor(() => {
-      expect(dots()).toHaveLength(2)
-      expect(dots()[1]).toHaveAttribute("aria-current", "page")
+    await waitFor(async () => {
+      await expect(dots()).toHaveLength(2)
+      await expect(dots()[1]).toHaveAttribute("aria-current", "page")
     })
     const divider = canvas.getByRole("separator")
     const bounds = divider.getBoundingClientRect()
@@ -786,25 +799,25 @@ export const SplitFromMainStaysOnMain: Story = {
     await userEvent.pointer({ target: divider, coords: { clientX: x + dx, clientY: y } })
     await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
     await waitFor(
-      () => {
-        expect(dots()).toHaveLength(3)
-        expect(dots()[1]).toHaveAttribute("aria-current", "page")
-        expect(host).toHaveAttribute("data-canvas-moving", "false")
+      async () => {
+        await expect(dots()).toHaveLength(3)
+        await expect(dots()[1]).toHaveAttribute("aria-current", "page")
+        await expect(host).toHaveAttribute("data-canvas-moving", "false")
       },
       { timeout: 3000 }
     )
     for (let frame = 0; frame < 30; frame++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-      expect(dots()[1]).toHaveAttribute("aria-current", "page")
+      await expect(dots()[1]).toHaveAttribute("aria-current", "page")
       const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
       const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
-      expect(chat.left).toBeGreaterThanOrEqual(body.left)
-      expect(chat.right).toBeLessThanOrEqual(body.right)
+      await expect(chat.left).toBeGreaterThanOrEqual(body.left)
+      await expect(chat.right).toBeLessThanOrEqual(body.right)
     }
-    expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
     await userEvent.click(dots()[2])
     await waitFor(() => expect(dots()[2]).toHaveAttribute("aria-current", "page"))
-    expect(canvas.getByRole("heading", { name: "Preview pane" })).toBeInTheDocument()
+    await expect(canvas.getByRole("heading", { name: "Preview pane" })).toBeInTheDocument()
   }
 }
 export const SplitFromMainStaysOnMainRtl: Story = { ...SplitFromMainStaysOnMain, globals: { locale: "ar" } }

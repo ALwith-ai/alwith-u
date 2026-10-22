@@ -29,7 +29,7 @@ mod runtime;
 mod secret_store;
 mod settings;
 mod settings_store;
-mod trackpad;
+use atlas_tauri as trackpad;
 mod tray;
 mod updater;
 mod vibemon;
@@ -136,9 +136,6 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             fullscreen_controls::on_window_event(window, event);
-            if window.label() == "main" && matches!(event, tauri::WindowEvent::Focused(false)) {
-                trackpad::reset();
-            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 voice::detach(window.app_handle(), window.label());
             }

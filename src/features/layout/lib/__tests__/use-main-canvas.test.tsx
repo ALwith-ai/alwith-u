@@ -30,9 +30,9 @@ function Canvas(): ReactNode {
   return (
     <div ref={canvas.ref}>
       <div ref={canvas.navigationRef} />
-      <div className="main-screen-track">
-        <div className="canvas-snap" />
-        <div className="canvas-snap" />
+      <div className="main-screen-track" data-atlas-track>
+        <div className="canvas-snap" data-atlas-region="leading" data-atlas-leading />
+        <div className="canvas-snap" data-atlas-region="chat" />
       </div>
     </div>
   )
