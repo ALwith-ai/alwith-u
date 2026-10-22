@@ -5,7 +5,7 @@
   "description": "An independent desktop client for the OpenAI Codex CLI",
   "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "dev": "vite",
     "storybook": "bun --bun ./node_modules/storybook/dist/bin/dispatcher.js dev -p 6007 --host 127.0.0.1 --no-open --disable-telemetry",
@@ -150,11 +150,11 @@
     "@alwith/native-kit": "^0.1.0"
   },
   "optionalDependencies": {
-    "@oven/bun-darwin-aarch64": "1.4.3",
-    "@oven/bun-linux-aarch64": "1.4.3",
-    "@oven/bun-linux-x64-baseline": "1.4.3",
-    "@oven/bun-windows-x64-baseline": "1.4.3",
-    "@oven/bun-windows-aarch64": "1.4.3",
+    "@oven/bun-darwin-aarch64": "1.4.4",
+    "@oven/bun-linux-aarch64": "1.4.4",
+    "@oven/bun-linux-x64-baseline": "1.4.4",
+    "@oven/bun-windows-x64-baseline": "1.4.4",
+    "@oven/bun-windows-aarch64": "1.4.4",
     "@openai/codex-darwin-arm64": "npm:@openai/codex@0.163.0-darwin-arm64",
     "@openai/codex-linux-x64": "npm:@openai/codex@0.163.0-linux-x64",
     "@openai/codex-linux-arm64": "npm:@openai/codex@0.163.0-linux-arm64",
