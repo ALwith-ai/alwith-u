@@ -24,5 +24,15 @@
     "source": "alwith-modules/packages/extension",
     "baseCommit": "20f6e20a2cbf2b59e4b0c621fa7c4e9b172f06f8",
     "sourceState": "committed; alwith-modules 20f6e20; built with the package build script and bun pm pack"
+  },
+  {
+    "name": "@alwith/module-auth",
+    "file": "vendor/alwith-module-auth-0.1.6-b1c08dabd4b0.tgz",
+    "sha256": "b1c08dabd4b0608b026caa737939dcbb39c230df6c4fa28730ffcfa6f6e79c1f",
+    "source": "alwith-modules/crates/auth/guest-js",
+    "baseCommit": "76ac153a3445a0522bde1f997531f28c9962afbd",
+    "sourceSnapshotSha256": "35d0993a8b6a1c2359b7d557574775df0ea95ada9fc9263a21c6631a46b6bfa7",
+    "sourceSnapshotFormat": "SHA256 of compact JSON [path, SHA256] entries, sorted: crates/auth/guest-js/{package.json,README.md,THIRD_PARTY_NOTICES.md,LICENSE,src/**/*,licenses/**/*}",
+    "sourceState": "Committed source at 76ac153a3445a0522bde1f997531f28c9962afbd; built with package build script and bun pm pack"
   }
 ]

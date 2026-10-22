@@ -118,7 +118,10 @@ async function start() {
       toast.dismiss("pet-startup")
       return "shown" as const
     }
+    // Refresh the descriptor before presenting; unchanged packages stay on disk.
+    await assets.assets.ensureResource(state.pet)
     if (await WebviewWindow.getByLabel("vibemon")) {
+      await command("reload", state.pet)
       await command("present", state.pet)
       return completeOpen()
     }
@@ -126,7 +129,6 @@ async function start() {
     if (!options.trusted || !owned?.some((item) => item.vibemon_uuid === state.pet)) await assets.assets.getMyVibemons()
     if (!assets.assets.snapshot().owned?.some((item) => item.vibemon_uuid === state.pet))
       throw new Error("This account does not own the selected Vibemon")
-    if (!(await assets.assets.resources.inspect(state.pet))) await assets.assets.ensureResource(state.pet)
     if (scope !== petScope()) throw new Error("The pet account changed")
     let ready!: () => void
     let fail!: (error: Error) => void

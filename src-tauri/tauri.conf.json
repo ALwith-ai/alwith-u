@@ -28,7 +28,7 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$HOME/.codex/**"]
+        "scope": ["$HOME/.codex/**", "$APPDATA/vibemon/**"]
       }
     }
   },

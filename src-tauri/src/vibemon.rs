@@ -117,12 +117,18 @@ pub async fn vibemon_resource(
     window: WebviewWindow, action: String, path: String, bytes: Option<String>, destination: Option<String>,
 ) -> Result<Value, String> {
     allowed(&window)?;
-    if action != "read" && action != "exists" && window.label() != "main" {
+    if !matches!(action.as_str(), "read" | "exists" | "url") && window.label() != "main" {
         return Err("Only an asset host can write Vibemon resources".into());
     }
     let file = resource_path(&window, &path)?;
     let target = destination.map(|p| resource_path(&window, &p)).transpose()?;
     tauri::async_runtime::spawn_blocking(move || match action.as_str() {
+        "url" => {
+            if !resource_exists(&file)? {
+                return Err("Vibemon resource is missing".into());
+            }
+            Ok(json!(file.to_str().ok_or("Invalid resource filename")?))
+        }
         "exists" => resource_exists(&file).map(|exists| json!(exists)),
         "read" => match std::fs::read(file) {
             Ok(bytes) => Ok(json!(STANDARD.encode(bytes))),
