@@ -93,6 +93,7 @@ pre,
 }
 
 :root {
+  --canvas-page-indicator: oklch(0.985 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -496,7 +497,7 @@ html[data-window-backdrop="acrylic"]
 .main-extension-toolbar button:hover,
 .windows-extension-controls button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
-.main-window-statusbar button:is(:hover, [aria-expanded="true"]) {
+.main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
 @media (prefers-reduced-motion: reduce) {
