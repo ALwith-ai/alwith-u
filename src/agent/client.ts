@@ -570,7 +570,7 @@ export class CodexClient {
     }
     try {
       const response = archived
-        ? await this.live().request<acp.ListSessionsResponse>("session/list", request)
+        ? await this.live().request("session/list", request)
         : await this.live().request<acp.ListSessionsResponse>("_codex/session_list")
       if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
       if (requestId !== this.listRequests[bucket]) return
@@ -667,7 +667,7 @@ export class CodexClient {
       const cursors = new Set<string>()
       let cursor: string | undefined
       do {
-        const response = await agent.request<acp.ListSessionsResponse>("session/list", {
+        const response = await agent.request("session/list", {
           ...(queryCwd === undefined ? {} : { cwd: queryCwd }),
           ...(archived ? { _meta: { codex: { archived: true } } } : {}),
           ...(cursor === undefined ? {} : { cursor })
@@ -748,7 +748,7 @@ export class CodexClient {
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
     const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" }, owner !== null)
     const response = await this.born(
-      () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
+      () => this.live().request("session/new", { cwd, mcpServers: [], ...context }),
       (response) => {
         const session: Session = {
           ...createSession(response.sessionId, cwd),
@@ -983,7 +983,7 @@ export class CodexClient {
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
       const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
-      const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
+      const response = await agent.request("session/resume", {
         sessionId: id,
         cwd,
         ...(history ? {} : { replayFrom: cursor }),
@@ -1310,7 +1310,7 @@ export class CodexClient {
     const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
     let response: acp.PromptResponse
     try {
-      response = await agent.request<acp.PromptResponse>("session/prompt", {
+      response = await agent.request("session/prompt", {
         sessionId: id,
         prompt,
         _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
@@ -1351,7 +1351,7 @@ export class CodexClient {
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
-      const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
+      const response = await this.live().request(
         "session/set_config_option",
         configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
       )
@@ -1545,7 +1545,7 @@ export class CodexClient {
     })
     const response = await this.born(
       () =>
-        this.live().request<acp.ForkSessionResponse>("session/fork", {
+        this.live().request("session/fork", {
           sessionId: id,
           cwd,
           ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),

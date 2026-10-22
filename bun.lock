@@ -5,8 +5,8 @@
     "": {
       "name": "alwith-u",
       "dependencies": {
-        "@agentclientprotocol/sdk": "^2.0.0",
-        "@alwith/api": "^0.4.14",
+        "@agentclientprotocol/sdk": "^2.0.1",
+        "@alwith/api": "^0.4.15",
         "@alwith/module-auth": "^0.1.6",
         "@alwith/module-chat": "^0.1.21",
         "@alwith/module-computer": "^0.1.4",
@@ -143,9 +143,9 @@
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "https://registry.npmmirror.com/@adobe/css-tools/-/css-tools-4.5.0.tgz", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
 
-    "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.0.0", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-2.0.0.tgz", { "peerDependencies": { "zod": "^3.25.76 || ^4.0.0" } }, "sha512-Za5gWOPQ44aBOdegDJZ+OjCAPn7POc0cw8BlFJQ1mmUY1OoUWxRi3+QZT4gdZnyEWgKXyfeGRb0Oo1ag9YkQ1w=="],
+    "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.0.1", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-2.0.1.tgz", { "peerDependencies": { "zod": "^3.25.76 || ^4.0.0" } }, "sha512-v4E/NcBTGFEKmorGso8ysAjJTkNh5UMJPP4aDznyMNmnP9t10g/aCCo/Djy7RYaYZy5ZROFK3G5cEj9tDgGOTQ=="],
 
-    "@alwith/api": ["@alwith/api@0.4.14", "", { "peerDependencies": { "@agentclientprotocol/sdk": ">=2.0.0", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-SDm7AZo8jOF20jkelvxuPgp05HiL3N1gXXj3gWZqSBR2rzlw+6VMk1SyOTTOAgcWxWM+s4oZrBMU/YQWPYTkqw=="],
+    "@alwith/api": ["@alwith/api@0.4.15", "", { "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-3GKJJMD3J1vcaDDIZliMxLPJBpRbLWbcpnMrrliK0R2oW15hNiVr/51jHrs6Xby2rEbEeVaZCTlslDgC0zOIHQ=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.6", "", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "zustand": "^5.0.15" }, "peerDependencies": { "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-oXBt8Lpu+YD8z9QtT95/MHlj5IqSl82Plti3iHtDAiA3O2L4uDjvgKuLtzUmjBPIkS3Mky4113GcXqNrAXCBUA=="],
 
