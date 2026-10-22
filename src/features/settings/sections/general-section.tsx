@@ -7,7 +7,6 @@ import { useStore } from "zustand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { ProjectAppIcon, useExternalApps } from "@/features/chat/open-in-editor"
@@ -40,10 +39,9 @@ export function GeneralSection() {
   const activeEditor = apps.find((app) => app.bundle_id === externalEditor) ?? apps[0]
   return (
     <SettingGroup>
-      <SettingRow title={t("settings.versionLabel")} aligned>
+      <SettingRow title={t("settings.versionLabel")}>
         <span className="block text-end text-sm text-muted-foreground">v{version}</span>
       </SettingRow>
-      <Separator />
       <SettingRow title={t("chatWindow.shortcut")} aligned>
         <div className="flex w-full items-center gap-2">
           <Input
@@ -69,9 +67,9 @@ export function GeneralSection() {
           </Button>
         </div>
       </SettingRow>
-      <Separator />
       <SettingRow title={t("settings.language")} aligned>
         <Select
+          items={LANGUAGES.map((language) => ({ value: language.code, label: language.label }))}
           value={i18n.language}
           onValueChange={(value) => {
             if (!value || !isLanguageCode(value)) return
@@ -95,7 +93,6 @@ export function GeneralSection() {
       </SettingRow>
       {apps.length > 0 && (
         <>
-          <Separator />
           <SettingRow title={t("settings.externalEditor")} desc={t("settings.externalEditorDesc")} aligned>
             <Select
               value={activeEditor?.bundle_id ?? ""}
@@ -127,8 +124,7 @@ export function GeneralSection() {
           </SettingRow>
         </>
       )}
-      <Separator />
-      <SettingRow title={t("settings.composerPredictions")} desc={t("settings.composerPredictionsDesc")} aligned>
+      <SettingRow title={t("settings.composerPredictions")} desc={t("settings.composerPredictionsDesc")}>
         <div className="flex justify-end">
           <Switch
             aria-label={t("settings.composerPredictions")}
@@ -143,9 +139,7 @@ export function GeneralSection() {
           />
         </div>
       </SettingRow>
-      <Separator />
       <TrackpadRow />
-      <Separator />
       <AutostartRow />
     </SettingGroup>
   )

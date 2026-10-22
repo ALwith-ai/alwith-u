@@ -41,6 +41,7 @@ import { ComputerSection } from "./sections/computer-section"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
 import { VoiceSection } from "./sections/voice-section"
+import "./settings.css"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   account: UserIcon,
@@ -61,7 +62,7 @@ function isSection(value: string | null): value is SettingsSection {
 
 export function SettingsPage() {
   const driveVisible = useDriveVisible()
-  const { host } = useExtensions()
+  const { host, state } = useExtensions()
   const [extensionSection, setExtensionSection] = useState<string | null>(null)
   const { t } = useTranslation()
   const [section, setSection] = useState<SettingsSection>(() => {
@@ -129,8 +130,11 @@ export function SettingsPage() {
 
   const sidebar = (
     <>
-      <div className="px-4 pt-8 pb-8 text-base font-semibold">{t("settings.title")}</div>
-      <NavigationStack className="min-h-0 overflow-y-auto px-3 pb-4">
+      <NavigationStack
+        role="navigation"
+        aria-label={t("settings.title")}
+        className="min-h-0 overflow-y-auto px-3 pt-5 pb-4 [&>*]:shrink-0"
+      >
         {SETTINGS_SECTIONS.filter((id) => id !== "drive" || driveVisible).map((id) => {
           const Icon = ICONS[id]
           return (
@@ -138,6 +142,7 @@ export function SettingsPage() {
               key={id}
               className={MENU_HIGHLIGHT}
               active={extensionSection === null && id === section}
+              aria-current={extensionSection === null && id === section ? "page" : undefined}
               onClick={() => {
                 setSection(id)
                 setExtensionSection(null)
@@ -148,23 +153,35 @@ export function SettingsPage() {
             </NavigationItemButton>
           )
         })}
-        <ExtensionSettingsNavigation views={host.views} activeId={extensionSection} onSelect={setExtensionSection} />
+        <ExtensionSettingsNavigation
+          views={host.views}
+          manifests={state.native?.installations.map((item) => item.manifest) ?? []}
+          activeId={extensionSection}
+          onSelect={setExtensionSection}
+        />
       </NavigationStack>
     </>
   )
 
   return (
     <AuxWindowShell
-      title={
-        extensionSection === null
-          ? t(`settings.${section}`)
-          : (host.views.find((view) => view.id === extensionSection && view.kind === "settingsPages")?.title ??
-            t("extensions.unavailable"))
-      }
       sidebar={sidebar}
-      sidebarClassName="bg-muted w-60 [--navigation-row-height:36px]"
+      sidebarClassName="w-60 [--navigation-row-height:36px]"
+      className="settings-window"
     >
-      <Pane viewportClassName="px-6 pt-3 pb-6">{content}</Pane>
+      <Pane viewportClassName="px-6 pt-5 pb-10">
+        <section
+          className="settings-content mx-auto w-full max-w-3xl"
+          aria-label={
+            extensionSection === null
+              ? t(`settings.${section}`)
+              : (host.views.find((view) => view.id === extensionSection && view.kind === "settingsPages")?.title ??
+                t("extensions.unavailable"))
+          }
+        >
+          {content}
+        </section>
+      </Pane>
     </AuxWindowShell>
   )
 }

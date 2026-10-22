@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { useUpdaterStore } from "@/features/updater/store"
 
 import { SettingGroup, SettingRow } from "./shared"
@@ -83,13 +82,11 @@ export function AboutSection() {
           </Button>
         )}
       </SettingRow>
-      <Separator />
       <SettingRow title={t("settings.engine")}>
         <span className="text-sm text-muted-foreground">
           {t("settings.codexVersion", { version: cliVersion ?? "—" })}
         </span>
       </SettingRow>
-      <Separator />
       <SettingRow title={t("settings.licensesTitle")} desc={t("settings.licenses")} />
     </SettingGroup>
   )

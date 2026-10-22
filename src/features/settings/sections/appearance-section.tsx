@@ -4,7 +4,6 @@ import { useStore } from "zustand"
 
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   NAVIGATION_INSTRUMENT_GROUPS,
@@ -37,8 +36,9 @@ export function AppearanceSection() {
   ]
   return (
     <SettingGroup>
-      <SettingRow title={t("settings.theme")}>
+      <SettingRow title={t("settings.theme")} aligned>
         <ToggleGroup
+          className="grid w-full grid-cols-3"
           value={[theme]}
           onValueChange={(values) => values[0] && setTheme(values[0] as Theme)}
           variant="outline"
@@ -51,8 +51,7 @@ export function AppearanceSection() {
           ))}
         </ToggleGroup>
       </SettingRow>
-      <Separator />
-      <SettingRow title={t("zoom.label")}>
+      <SettingRow title={t("zoom.label")} aligned>
         <Select
           value={String(zoom)}
           onValueChange={(value) => {
@@ -62,7 +61,7 @@ export function AppearanceSection() {
             )
           }}
         >
-          <SelectTrigger className="w-32" aria-label={t("zoom.label")}>
+          <SelectTrigger className="w-full" aria-label={t("zoom.label")}>
             <SelectValue>{Math.round(zoom * 100)}%</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -76,8 +75,7 @@ export function AppearanceSection() {
           </SelectContent>
         </Select>
       </SettingRow>
-      <Separator />
-      <SettingRow title={t("settings.navigationSoundMode")}>
+      <SettingRow title={t("settings.navigationSoundMode")} aligned>
         <Select
           value={navigationSoundMode}
           onValueChange={(value) => {
@@ -85,7 +83,7 @@ export function AppearanceSection() {
             void setNavigationSoundMode(value)
           }}
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full" aria-label={t("settings.navigationSoundMode")}>
             <SelectValue>{t(`settings.navigationSoundModes.${navigationSoundMode}`)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -99,9 +97,8 @@ export function AppearanceSection() {
           </SelectContent>
         </Select>
       </SettingRow>
-      <Separator />
-      <SettingRow title={t("settings.navigationInstrument")}>
-        <div className="flex items-center gap-2">
+      <SettingRow title={t("settings.navigationInstrument")} aligned>
+        <div className="grid grid-cols-2 items-center gap-2">
           <Select
             value={navigationInstrumentGroup.id}
             onValueChange={(value) => {
@@ -112,7 +109,10 @@ export function AppearanceSection() {
               void setNavigationInstrument(group.instruments[0])
             }}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger
+              className="w-full"
+              aria-label={t(`settings.navigationInstrumentGroups.${navigationInstrumentGroup.id}`)}
+            >
               <SelectValue>{t(`settings.navigationInstrumentGroups.${navigationInstrumentGroup.id}`)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +132,7 @@ export function AppearanceSection() {
               void setNavigationInstrument(value)
             }}
           >
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full" aria-label={t("settings.navigationInstrument")}>
               <SelectValue>{navigationInstrumentLabel(navigationInstrument)}</SelectValue>
             </SelectTrigger>
             <SelectContent>

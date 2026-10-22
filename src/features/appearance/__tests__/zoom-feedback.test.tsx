@@ -171,7 +171,7 @@ test("settings applies zoom and follows changes without feedback, including menu
     })
   })
   expect(select).toHaveTextContent("125%")
-  expect(screen.queryByRole("group", { name: "Interface zoom" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("status")).not.toBeInTheDocument()
   expect(setZoom).toHaveBeenLastCalledWith(1.25)
   await act(async () => {
     await syncZoomLevel(0.9)
@@ -183,5 +183,5 @@ test("settings applies zoom and follows changes without feedback, including menu
     })
   })
   expect(select).toHaveTextContent("100%")
-  expect(screen.queryByRole("group", { name: "Interface zoom" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("status")).not.toBeInTheDocument()
 })

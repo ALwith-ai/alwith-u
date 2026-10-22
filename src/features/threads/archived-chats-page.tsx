@@ -164,7 +164,7 @@ export function ArchivedChatsPage(): ReactElement {
               placeholder={t("archives.search")}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="rounded-full ps-9"
+              className="rounded-xl ps-9"
             />
           </div>
           <Select

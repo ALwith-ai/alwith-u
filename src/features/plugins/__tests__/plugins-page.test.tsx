@@ -102,7 +102,7 @@ test("plugin controls and skill scopes follow a language change without remounti
     await i18n.changeLanguage("zh-CN")
   })
   expect(view.getByRole("heading", { name: "插件" })).toBeDefined()
-  expect(view.getByText("测试版")).toBeDefined()
+  expect(view.getByText("BETA")).toBeDefined()
   expect(view.getByRole("tab", { name: "市场" })).toBeDefined()
   expect(view.getByPlaceholderText("搜索插件")).toBeDefined()
   expect(view.getByPlaceholderText("openai/plugins 或 git@github.com:org/repo.git")).toBeDefined()
