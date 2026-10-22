@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { pathToFileURL } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 
 const temporary: string[] = []
 afterEach(() => {
@@ -13,26 +13,36 @@ afterEach(() => {
 async function fixture() {
   const root = mkdtempSync(join(tmpdir(), "alwith-native-contract-"))
   temporary.push(root)
-  const bridge = join(root, "bridge")
-  const platform = join(root, "node_modules/@alwith/native-darwin-arm64")
+  const bridge = join(root, "node_modules/@alwith/native-auth")
+  const platform = join(root, "node_modules/@alwith/native-auth-darwin-arm64")
   mkdirSync(bridge, { recursive: true })
   mkdirSync(join(platform, "licenses"), { recursive: true })
   cpSync(
-    join(dirname(import.meta.resolve("@alwith/native/stage").replace("file://", "")), "stage.js"),
+    join(dirname(import.meta.resolve("@alwith/native-auth/stage").replace("file://", "")), "stage.js"),
     join(bridge, "stage.mjs")
   )
-  writeFileSync(join(bridge, "package.json"), JSON.stringify({ version: "0.1.0" }))
+  const kit = join(root, "node_modules/@alwith/native-kit")
+  cpSync(dirname(fileURLToPath(import.meta.resolve("@alwith/native-kit/stage"))), kit, { recursive: true })
+  writeFileSync(
+    join(bridge, "package.json"),
+    JSON.stringify({
+      name: "@alwith/native-auth",
+      version: "0.1.0",
+      optionalDependencies: { "@alwith/native-auth-darwin-arm64": "0.1.0" }
+    })
+  )
   writeFileSync(
     join(platform, "package.json"),
-    JSON.stringify({ name: "@alwith/native-darwin-arm64", version: "0.1.0" })
+    JSON.stringify({ name: "@alwith/native-auth-darwin-arm64", version: "0.1.0" })
   )
   const bytes = "fixture bytes, never loaded or executed"
-  writeFileSync(join(platform, "libalwith_native.dylib"), bytes)
+  writeFileSync(join(platform, "libalwith_native_auth.dylib"), bytes)
   const pin = {
+    module: "auth",
     version: "0.1.0",
     target: "aarch64-apple-darwin",
     abi: 1,
-    binary: "libalwith_native.dylib",
+    binary: "libalwith_native_auth.dylib",
     sha256: createHash("sha256").update(bytes).digest("hex")
   }
   writeFileSync(join(platform, "artifact.json"), JSON.stringify(pin))
@@ -51,18 +61,19 @@ async function fixture() {
 test("native npm staging validates the binary and carries its licences", async () => {
   const f = await fixture()
   expect(readFileSync(f.stage(), "utf8")).toBe("fixture bytes, never loaded or executed")
-  expect(readFileSync(join(f.root, "legal/alwith-native/LICENSE"), "utf8")).toBe("fixture licence")
+  expect(readFileSync(join(f.root, "legal/alwith-native-auth/LICENSE"), "utf8")).toBe("fixture licence")
 })
 
 test("a corrupted native binary is rejected before staging", async () => {
   const f = await fixture()
-  writeFileSync(join(f.platform, "libalwith_native.dylib"), "corrupt")
+  writeFileSync(join(f.platform, "libalwith_native_auth.dylib"), "corrupt")
   expect(f.stage).toThrow("checksum mismatch")
 })
 
 test("native version, target and ABI mismatches are rejected", async () => {
   const f = await fixture()
   for (const change of [
+    { module: "installed-apps" },
     { version: "9.0.0" },
     { target: "x86_64-apple-darwin" },
     { abi: 2 },

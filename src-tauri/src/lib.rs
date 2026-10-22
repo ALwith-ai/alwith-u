@@ -97,7 +97,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(alwith_extension::plugin::init())
+        .plugin(alwith_extension::plugin::init_with_paths(None, native::development_directory()))
         .plugin(appearance::wallpaper::plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())

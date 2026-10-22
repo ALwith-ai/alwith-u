@@ -11,6 +11,7 @@ pub async fn refresh_tokens(
     state: tauri::State<'_, crate::native::Native>, api_base_url: String, refresh_token: String,
 ) -> Result<RefreshedTokens, serde_json::Value> {
     let value = state
+        .auth
         .call(
             "auth.refresh_tokens",
             serde_json::json!({

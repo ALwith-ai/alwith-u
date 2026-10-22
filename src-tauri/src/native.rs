@@ -1,85 +1,72 @@
-//! Public transport only. Private implementations arrive as a verified binary.
-use libloading::Library;
+//! Host resource selection and async dispatch through the shared public native transport.
 use serde_json::{Value, json};
-use std::{
-    ffi::{CStr, CString, c_char},
-    path::Path,
-    sync::Arc,
-};
+#[cfg(test)]
+use std::path::Path;
+use std::path::PathBuf;
 #[cfg(not(debug_assertions))]
 use tauri::Manager;
-
-type Call = unsafe extern "C" fn(*const c_char) -> *mut c_char;
-type Free = unsafe extern "C" fn(*mut c_char);
-struct Functions {
-    call: Call,
-    free: Free,
-}
 #[derive(Clone)]
-pub struct Native(Arc<Functions>);
-
-fn error(message: impl ToString) -> Value {
-    json!({"kind": "network", "message": message.to_string()})
+pub struct NativeLibrary(alwith_native_client::Library);
+pub struct Native {
+    pub auth: NativeLibrary,
+    pub installed_apps: NativeLibrary,
 }
-
+pub fn development_directory() -> Option<PathBuf> {
+    #[cfg(debug_assertions)]
+    {
+        Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native"))
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        None
+    }
+}
 impl Native {
     pub fn load(app: &tauri::AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
-        let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native");
+        let directory = development_directory().expect("development native directory");
         #[cfg(not(debug_assertions))]
         let directory = app.path().resource_dir()?.join("native");
         let _ = app;
-        Self::from_path(&directory.join(libloading::library_filename("alwith_native")))
-    }
-
-    fn from_path(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
-        // SAFETY: load only the exact staged/bundled library, never PATH or cwd.
-        // Release downloads are checksum verified. No Rust layouts cross the ABI.
-        unsafe {
-            let library = Library::new(path)?;
-            let version = library.get::<unsafe extern "C" fn() -> u32>(b"alwith_native_abi_version\0")?;
-            if version() != 1 {
-                return Err("unsupported ALwith native ABI (expected 1)".into());
-            }
-            let call = *library.get::<Call>(b"alwith_native_call_v1\0")?;
-            let free = *library.get::<Free>(b"alwith_native_free_v1\0")?;
-            // Process lifetime: background executor threads must never outlive
-            // their code. Intentionally don't unload this one library at exit.
-            Box::leak(Box::new(library));
-            Ok(Self(Arc::new(Functions { call, free })))
+        alwith_native_client::configure(&directory)?;
+        for module in ["auth", "installed-apps", "voice", "fs", "gamepad", "computer", "drive", "extension"] {
+            alwith_native_client::Library::module(module)?;
         }
-    }
-
-    pub async fn call(&self, method: &str, params: Value) -> Result<Value, Value> {
-        let functions = Arc::clone(&self.0);
-        let request = CString::new(json!({"method": method, "params": params}).to_string()).map_err(error)?;
-        tauri::async_runtime::spawn_blocking(move || {
-            // SAFETY: request is alive throughout the call; copy response bytes
-            // before returning allocation ownership to the library's allocator.
-            unsafe {
-                let pointer = (functions.call)(request.as_ptr());
-                if pointer.is_null() {
-                    return Err(error("native library returned a null response"));
-                }
-                let response = serde_json::from_slice::<Result<Value, Value>>(CStr::from_ptr(pointer).to_bytes());
-                (functions.free)(pointer);
-                response.map_err(|_| error("invalid native ABI response"))?
-            }
+        Ok(Self {
+            auth: NativeLibrary(alwith_native_client::Library::module("auth")?),
+            installed_apps: NativeLibrary(alwith_native_client::Library::module("installed-apps")?),
         })
-        .await
-        .map_err(|_| error("native worker failed"))?
     }
 }
-
+impl NativeLibrary {
+    #[cfg(test)]
+    fn from_path(path: &Path, module: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self(alwith_native_client::Library::from_path(path, module)?))
+    }
+    pub async fn call(&self, method: &str, params: Value) -> Result<Value, Value> {
+        let library = self.0.clone();
+        let method = method.to_owned();
+        tauri::async_runtime::spawn_blocking(move || library.call_value(&method, params))
+            .await
+            .map_err(|error| json!({"kind":"network","message":format!("Native worker failed: {error}")}))?
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
+    fn rejects_a_different_modules_binary() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources/native")
+            .join(libloading::library_filename("alwith_native_auth"));
+        assert!(NativeLibrary::from_path(&path, "installed-apps").is_err());
+    }
+    #[test]
     fn staged_binary_obeys_public_contract() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("resources/native")
-            .join(libloading::library_filename("alwith_native"));
-        let native = Native::from_path(&path).expect("run bun run stage before Rust tests");
+            .join(libloading::library_filename("alwith_native_auth"));
+        let native = NativeLibrary::from_path(&path, "auth").expect("run bun run stage before Rust tests");
         tauri::async_runtime::block_on(async {
             let response = native
                 .call(
@@ -92,16 +79,22 @@ mod tests {
                 .unwrap_err();
             assert_eq!(response["kind"], "network");
             assert!(!response.to_string().contains("secret"));
+            let apps = NativeLibrary::from_path(
+                &Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("resources/native")
+                    .join(libloading::library_filename("alwith_native_installed_apps")),
+                "installed-apps",
+            )
+            .expect("stage the installed-apps module before Rust tests");
             assert_eq!(
-                native
-                    .call(
-                        "installed_apps.read",
-                        json!({
-                            "names": ["ALwithNonexistentApp829571"], "with_icons": false
-                        })
-                    )
-                    .await
-                    .unwrap(),
+                apps.call(
+                    "installed_apps.read",
+                    json!({
+                        "names": ["ALwithNonexistentApp829571"], "with_icons": false
+                    })
+                )
+                .await
+                .unwrap(),
                 json!([])
             );
         });
