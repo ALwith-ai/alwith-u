@@ -183,6 +183,11 @@ test("a built-in provider saves a page-configured API base URL", async () => {
       onSave={save}
     />
   )
+  const toggle = view.getByRole("button", { name: "API base URL" })
+  expect(toggle).toHaveAttribute("aria-expanded", "false")
+  expect(view.queryByRole("textbox", { name: "API base URL" })).toBeNull()
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute("aria-expanded", "true")
   await act(() => {
     return Promise.try(() => {
       const input = view.getByLabelText("API base URL")

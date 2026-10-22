@@ -163,7 +163,13 @@
     "provider": "Modellanbieter",
     "externalEditor": "Projekte öffnen mit",
     "licensesTitle": "Lizenzen",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "threeFingerSwipe": "Horizontales Wischen mit drei Fingern",
+    "threeFingerSwipeGuidance": {
+      "mac": "Wechseln Sie Seiten mit drei Fingern. Mission Control oder App Exposé unter macOS können das Wischen unterbrechen; passen Sie die Gesten in den Systemeinstellungen an.",
+      "windows": "Wechseln Sie Seiten mit drei Fingern auf einem Präzisionstouchpad. Systemgesten können ebenfalls ausgelöst werden; wählen Sie unter Windows-Einstellungen > Bluetooth und Geräte > Touchpad für Drei-Finger-Wischgesten „Nichts“.",
+      "unsupported": "Unter Linux nicht unterstützt. Verwenden Sie die Navigationstasten oder ziehen Sie mit der mittleren Maustaste."
+    }
   },
   "usage": {
     "usage": "Nutzung",
@@ -326,5 +332,9 @@
   "notify": {
     "needsInput": "Deine Eingabe wird benötigt",
     "finished": "Aufgabe abgeschlossen"
+  },
+  "canvas": {
+    "navigation": "Seitennavigation",
+    "page": "Seite {{number}}"
   }
 }

@@ -71,6 +71,45 @@ async function make(
   return { client, fake, port }
 }
 
+test("retry is routed by session and failed turn, deduplicated, and never inserts a user prompt", async () => {
+  const received: unknown[] = []
+  let finish!: () => void
+  const gate = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  const { client, fake } = await make((fake) => {
+    fake.app.onRequest(
+      "_codex/session_retry",
+      (value) => value as { sessionId: string; turnId: string; trigger: string },
+      async ({ params, client: agentClient }) => {
+        received.push(params)
+        await gate
+        await agentClient.notify("session/update", {
+          sessionId: params.sessionId,
+          update: { sessionUpdate: "state_update", state: "running" }
+        })
+        return {}
+      }
+    )
+  })
+  const id = await client.newSession("/tmp/retry")
+  const before = client.session(id).items
+  const first = client.retrySession(id, "failed-native", "manual")
+  const second = client.retrySession(id, "failed-native", "automatic")
+  expect(second).toBe(first)
+  await vi.waitFor(() => expect(received).toHaveLength(1))
+  expect(received).toEqual([{ sessionId: id, turnId: "failed-native", trigger: "manual" }])
+  finish()
+  await first
+  await vi.waitFor(() => expect(client.session(id).state).toBe("running"))
+  expect(client.session(id).items).toBe(before)
+  await fake.pushUpdate(id, { sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" })
+  await vi.waitFor(() => expect(client.session(id).state).toBe("idle"))
+  await client.close(id)
+  await expect(client.retrySession(id, "failed-native", "manual")).rejects.toThrow()
+  expect(received).toHaveLength(1)
+})
+
 test("history enumeration and export leave sidebar, selection and attachments untouched", async () => {
   const { client, fake, port } = await make((fake) =>
     fake.app.onRequest(

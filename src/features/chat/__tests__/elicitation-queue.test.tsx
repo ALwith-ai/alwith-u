@@ -23,7 +23,11 @@ vi.mock("../chat-actions-menu", () => ({ ChatActionsMenu: () => null }))
 vi.mock("../composer", () => ({ Composer: () => null }))
 vi.mock("../dialogs/chat-search", () => ({ ChatSearch: () => null }))
 vi.mock("../dialogs/diff-modal", () => ({ DiffModal: () => null }))
-vi.mock("../dialogs/image-lightbox", () => ({ ImageLightbox: () => null, openImageLightbox: vi.fn() }))
+vi.mock("../dialogs/image-lightbox", () => ({
+  ImageLightbox: () => null,
+  openImageLightbox: vi.fn(),
+  openImageGallery: vi.fn()
+}))
 const { ChatView } = await import("../chat-view")
 await initI18n("en")
 

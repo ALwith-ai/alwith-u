@@ -10,6 +10,7 @@
 import type { CompactionItem, MessageItem, PlanItem, ToolItem } from "@alwith/api"
 import { type Item, type Session, textOf, type TurnEntry, turns as groupSession } from "@alwith/api"
 
+import { codexMessageError } from "@/agent/codex-extensions"
 import { type HistoryTurnSummary, nativeTurnId } from "@/agent/history-navigation"
 
 export type WorkEntry =
@@ -23,6 +24,7 @@ export type Turn = {
   user: MessageItem | null
   work: WorkEntry[]
   final: MessageItem[]
+  errors: MessageItem[]
   edits: ToolItem[]
   startedAt: number
   /** When the turn ended (the idle frame); while it is still running, the latest arrival. */
@@ -90,6 +92,13 @@ function place(turn: Turn, item: Item): void {
     case "user":
       break
     case "assistant": {
+      if (codexMessageError(item) !== null) {
+        const turnId = nativeTurnId(item)
+        const previous = turn.errors.findIndex((error) => turnId !== null && nativeTurnId(error) === turnId)
+        if (previous === -1) turn.errors.push(item)
+        else turn.errors[previous] = item
+        break
+      }
       const itemPhase = phase(item)
       if (itemPhase === "final_answer") turn.final.push(item)
       else if (itemPhase === "commentary" || isNotice(item))
@@ -132,13 +141,19 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
   let run: Item[] = []
   const runs: Item[][] = [run]
   let beforeIndex: number | undefined
+  let beforeTurnId: string | null = null
   for (const item of visible.items) {
-    const index = order.get(nativeTurnId(item) ?? "")
-    if (index !== undefined && beforeIndex !== undefined && index > beforeIndex + 1) {
+    const turnId = nativeTurnId(item)
+    const index = order.get(turnId ?? "")
+    if (
+      (turnId !== null && beforeTurnId !== null && turnId !== beforeTurnId) ||
+      (index !== undefined && beforeIndex !== undefined && index > beforeIndex + 1)
+    ) {
       run = []
       runs.push(run)
     }
     run.push(item)
+    if (turnId !== null || item.kind === "user") beforeTurnId = turnId
     if (index !== undefined) beforeIndex = index
   }
   return runs
@@ -157,6 +172,7 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
         user: grouped.prompt,
         work: [],
         final: [],
+        errors: [],
         edits: [],
         startedAt: grouped.startedAt ?? first.at,
         endedAt,

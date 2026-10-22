@@ -107,21 +107,37 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   expect(view.getAllByRole("button").find((button) => button.hasAttribute("aria-expanded"))).toBe(quick)
 })
 
-test("double clicking Chats collapses quick chats and project groups", () => {
+test("double clicking Chats collapses groups and restores quick chats plus five projects", () => {
   const originalUi = useThreadsUiStore.getState()
   try {
-    client.store.setState({ threadsLoaded: true, threads: [] })
+    client.store.setState({
+      threadsLoaded: true,
+      threads: Array.from({ length: 8 }, (_, index) => ({
+        sessionId: `project-chat-${index}`,
+        cwd: `/tmp/project-${index}`,
+        title: `Chat ${index}`,
+        updatedAt: null,
+        archived: false
+      }))
+    })
     useThreadsUiStore.setState({
       view: "sessions",
       projectOpen: new Map([
         ["quick-chats", true],
-        ["/tmp/project", true]
+        ["/tmp/project-0", true]
       ])
     })
     const view = showSidebar()
     expect(view.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "true")
+    expect(view.getAllByRole("button", { name: /^project-\d$/ })).toHaveLength(5)
+    fireEvent.click(view.getByRole("button", { name: "Show all" }))
+    expect(view.getAllByRole("button", { name: /^project-\d$/ })).toHaveLength(8)
     fireEvent.doubleClick(view.getByRole("tab", { name: "Chats" }))
     expect(view.getByRole("button", { name: "Quick chats" })).toHaveAttribute("aria-expanded", "false")
+    expect(view.getAllByRole("button", { name: /^project-\d$/ })).toHaveLength(5)
+    expect(view.getByRole("button", { name: "project-0" })).toHaveAttribute("aria-expanded", "false")
+    expect(view.queryByRole("button", { name: "project-5" })).toBeNull()
+    expect(view.getByRole("button", { name: "Show all" })).toBeDefined()
     expect(useThreadsUiStore.getState().projectOpen.size).toBe(0)
     expect(useThreadsUiStore.getState().view).toBe("sessions")
   } finally {

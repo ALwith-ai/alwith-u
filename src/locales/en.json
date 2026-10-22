@@ -193,6 +193,7 @@
     "interrupted": "Stopped",
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",
+    "compactionFailed": "Context compaction failed",
     "attachImage": "Attach image",
     "pastedText": {
       "filename": "Pasted text.txt",
@@ -234,6 +235,8 @@
     },
     "image": {
       "view": "View image",
+      "previous": "Previous image",
+      "next": "Next image",
       "unavailable": "Image unavailable"
     },
     "content": {
@@ -254,7 +257,10 @@
     },
     "error": {
       "title": "Chat encountered an error",
-      "retryable": "You can retry this turn."
+      "retry": "Retry",
+      "retryCountdown": "Retry in {{seconds}}s",
+      "capacityReconnecting": "Server overloaded, reconnecting",
+      "capacityReconnectingProgress": "Server overloaded, reconnecting {{progress}}"
     },
     "tool": {
       "running": "Running",
@@ -421,7 +427,13 @@
     "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI.",
     "editor": "Editor",
     "voice": "Voice",
-    "computer": "Computer use"
+    "computer": "Computer use",
+    "threeFingerSwipe": "Three-finger horizontal swipe",
+    "threeFingerSwipeGuidance": {
+      "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
+      "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",
+      "unsupported": "Not supported on Linux. Use navigation buttons or middle-mouse dragging."
+    }
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1071,5 +1083,9 @@
       "unavailable": "Window preview is temporarily unavailable",
       "waiting": "Waiting for target window"
     }
+  },
+  "canvas": {
+    "navigation": "Page navigation",
+    "page": "Page {{number}}"
   }
 }

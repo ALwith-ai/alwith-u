@@ -93,6 +93,7 @@ pre,
 }
 
 :root {
+  --canvas-page-indicator: oklch(0.985 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -227,7 +228,7 @@ html[data-window-backdrop="acrylic"]
   background-color: transparent;
 }
 /* Give floating navigation its own surface when it overlays chat, keeping content readable. */
-[data-sidebar-presentation="floating"] [data-slot="sidebar"] {
+[data-sidebar-mode="floating"] [data-slot="sidebar"] {
   background-color: var(--background);
 }
 [data-slot="sidebar-inner"],
@@ -250,6 +251,13 @@ html[data-window-backdrop="acrylic"]
   flex: 1;
   min-height: 0;
   min-width: 0;
+  overflow: clip;
+}
+/* Keep outer gutters outside the measured canvas; adjacent slabs each contribute 4px. */
+.main-canvas-viewport {
+  position: relative;
+  height: 100%;
+  margin-inline: 4px;
   overflow: clip;
 }
 .main-window-statusbar {
@@ -299,14 +307,7 @@ html[data-window-backdrop="acrylic"]
   width: 100%;
   height: 100%;
   min-height: 0;
-  transform: translateX(0);
-  transition: transform var(--screen-slide-duration) ease-in-out;
-}
-[data-main-screen="leading"] .main-screen-track {
-  transform: translateX(calc(100% - var(--leading-sidebar-width)));
-}
-[data-main-screen="leading"] .main-screen-track:dir(rtl) {
-  transform: translateX(calc(-100% + var(--leading-sidebar-width)));
+  touch-action: pan-y pinch-zoom;
 }
 .main-screen-leading,
 .main-screen-content {
@@ -315,8 +316,6 @@ html[data-window-backdrop="acrylic"]
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  /* Window resizing must reflow synchronously; animating width makes the chat lag behind the track. */
-  transition: visibility 0s linear var(--screen-slide-duration);
 }
 /* Anchor the main screen at zero; only entering the leading screen translates the track. */
 .main-screen-leading {
@@ -342,13 +341,6 @@ html[data-window-backdrop="acrylic"]
 }
 .main-screen-content {
   flex: 1;
-}
-[data-screen-panel][aria-hidden="true"] {
-  visibility: hidden;
-}
-[data-screen-panel][aria-hidden="false"] {
-  visibility: visible;
-  transition-delay: 0s;
 }
 /* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
 .main-extension-toolbar {
@@ -377,17 +369,12 @@ html[data-window-backdrop="acrylic"]
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  width: var(--active-sidebar-width);
+  width: var(--sidebar-width);
   overflow: clip;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-8px);
-  transition:
-    width var(--sidebar-resize-duration) ease-in-out,
-    opacity 0s linear var(--sidebar-resize-duration),
-    transform 0s linear var(--sidebar-resize-duration),
-    visibility 0s linear var(--sidebar-resize-duration);
+  opacity: 1;
+  visibility: visible;
 }
+
 .main-sidebar-panel {
   position: absolute;
   inset-block: 0;
@@ -397,9 +384,9 @@ html[data-window-backdrop="acrylic"]
 [data-sidebar-mode="hidden"] .main-sidebar-viewport {
   pointer-events: none;
 }
-[data-sidebar-presentation="floating"] .main-sidebar-viewport {
+[data-sidebar-mode="floating"] .main-sidebar-viewport {
   inset-block: 0;
-  inset-inline-start: var(--main-surface-gutter);
+  inset-inline-start: 4px;
   overflow: visible;
   border-radius: var(--main-surface-radius);
   /* Reset the invisible clip only after fade-out so the next pin can grow from zero. */
@@ -409,12 +396,12 @@ html[data-window-backdrop="acrylic"]
     transform var(--sidebar-fade-duration) ease-out,
     visibility 0s linear var(--sidebar-fade-duration);
 }
-[data-sidebar-presentation="floating"] .main-sidebar-panel {
+[data-sidebar-mode="floating"] .main-sidebar-panel {
   overflow: clip;
   border-radius: inherit;
 }
 /* Paint only beyond the content-facing edge; keep the top/bottom gutters clear. */
-[data-sidebar-presentation="floating"] .main-sidebar-viewport::after {
+[data-sidebar-mode="floating"] .main-sidebar-viewport::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -423,17 +410,15 @@ html[data-window-backdrop="acrylic"]
   clip-path: inset(0 -32px 0 100%);
   pointer-events: none;
 }
-.main-sidebar-viewport:dir(rtl) {
-  transform: translateX(8px);
-}
-[data-sidebar-presentation="floating"] .main-sidebar-viewport:dir(rtl)::after {
+
+[data-sidebar-mode="floating"] .main-sidebar-viewport:dir(rtl)::after {
   box-shadow: -8px 0 24px -8px var(--sidebar-floating-shadow);
   clip-path: inset(0 100% 0 -32px);
 }
-[data-sidebar-presentation="floating"] [data-slot="sidebar-header"] {
+[data-sidebar-mode="floating"] [data-slot="sidebar-header"] {
   padding-top: 8px;
 }
-[data-sidebar-presentation="floating"] [data-slot="sidebar-footer"] {
+[data-sidebar-mode="floating"] [data-slot="sidebar-footer"] {
   padding-bottom: 8px;
 }
 [data-sidebar-mode="floating"] .main-sidebar-viewport {
@@ -492,6 +477,11 @@ html[data-window-backdrop="acrylic"]
 .windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
+/* Keep application buttons stationary while pressed, including composed triggers. */
+[class~="group/button"]:active {
+  translate: none;
+}
+
 /* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
 :root {
   --native-viewport-width: 100vw;
@@ -507,7 +497,7 @@ html[data-window-backdrop="acrylic"]
 .main-extension-toolbar button:hover,
 .windows-extension-controls button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
-.main-window-statusbar button:is(:hover, [aria-expanded="true"]) {
+.main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -536,8 +526,14 @@ body,
   user-select: none;
 }
 
+[data-vibemon-window] img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* Keep native scrollers compact, including containers supplied by shared modules. */
 :root {
+  --app-scrollbar-track-size: 10px;
   --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
   --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
 }
@@ -571,8 +567,7 @@ body,
   display: none;
 }
 
-/* From ALwith Desktop `styles/global-utilities.css`: Pane (Base UI ScrollArea) hides the native
-   scrollbar and shows its own overlay one only while hovering or scrolling (macOS style). */
+/* Pane keeps its track outside the viewport, with stable content clearance even when hidden. */
 [data-slot="scroll-area-viewport"] {
   scrollbar-width: none;
 }
@@ -581,18 +576,26 @@ body,
 }
 [data-slot="scroll-area-scrollbar"] {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 150ms ease;
 }
 [data-slot="scroll-area-thumb"] {
   background: var(--app-scrollbar-thumb);
 }
-[data-slot="scroll-area-thumb"]:hover {
+[data-slot="scroll-area-thumb"]:hover,
+[data-slot="scroll-area-scrollbar"][data-dragging] [data-slot="scroll-area-thumb"] {
   background: var(--app-scrollbar-thumb-hover);
 }
 [data-slot="scroll-area-scrollbar"][data-hovering],
-[data-slot="scroll-area-scrollbar"][data-scrolling] {
+[data-slot="scroll-area-scrollbar"][data-scrolling],
+[data-slot="scroll-area-scrollbar"][data-dragging],
+[data-slot="scroll-area"]:focus-within > [data-slot="scroll-area-scrollbar"] {
   opacity: 1;
   transition-duration: 0.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="scroll-area-scrollbar"] {
+    transition: none;
+  }
 }
 
 /* Only the main application shell consumes extension wallpaper requests. */
@@ -634,4 +637,51 @@ body,
   height: 32px;
   align-items: center;
   padding-inline: 4px;
+}
+
+/* One canvas owns all screen translation; anchors describe legal stops without duplicating content. */
+.canvas-snap {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+.main-screen-leading {
+  overflow: hidden;
+  width: var(--canvas-leading-width);
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+}
+.main-screen-content {
+  flex: none;
+  width: var(--canvas-content-width);
+}
+.main-screen-track > .main-sidebar-shell {
+  width: var(--sidebar-width);
+  transition: none;
+}
+[data-sidebar-mode="floating"] .main-sidebar-viewport,
+[data-main-screen="main"] .main-sidebar-edge {
+  margin-inline-start: var(--canvas-sidebar-offset);
+}
+.main-screen-content > .main-workspace-surface {
+  margin-inline: 0;
+  overflow: visible;
+}
+.main-window-statusbar {
+  position: relative;
+}
+.canvas-dots {
+  position: absolute;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.canvas-dots:dir(rtl) {
+  transform: translateX(50%);
+}
+
+.main-screen-track {
+  will-change: transform;
+  padding-inline-start: var(--canvas-leading-width);
 }

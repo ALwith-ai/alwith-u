@@ -83,3 +83,40 @@ test("unsent draft provider changes go through replacement instead of changing t
   expect(onModelChange).toHaveBeenCalledWith(providerModel)
   expect(controls.setConfig).not.toHaveBeenCalled()
 })
+
+test("the model menu omits collaboration mode while retaining other model settings", async () => {
+  controls.setConfig.mockResolvedValue(undefined)
+  const config: acp.SessionConfigOption[] = [
+    ...options(nativeModel),
+    {
+      configId: "collaboration_mode",
+      category: "model_config",
+      name: "Collaboration mode",
+      type: "select",
+      currentValue: "plan",
+      options: [
+        { value: "default", name: "Default" },
+        { value: "plan", name: "Plan" }
+      ]
+    },
+    {
+      configId: "response_style",
+      category: "model_config",
+      name: "Response style",
+      type: "select",
+      currentValue: "concise",
+      options: [
+        { value: "concise", name: "Concise" },
+        { value: "detailed", name: "Detailed" }
+      ]
+    }
+  ]
+  const view = render(<ModelSelectGroup sessionId="main-session" options={config} disabled={false} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button"))))
+  expect(view.queryByText("Collaboration mode")).not.toBeInTheDocument()
+  expect(view.queryByText("Default")).not.toBeInTheDocument()
+  expect(view.queryByText("Plan")).not.toBeInTheDocument()
+  expect(view.getByText("Response style")).toBeVisible()
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("Detailed"))))
+  expect(controls.setConfig).toHaveBeenCalledWith("main-session", "response_style", "detailed")
+})

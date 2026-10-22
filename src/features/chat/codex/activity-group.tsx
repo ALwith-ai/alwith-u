@@ -12,6 +12,7 @@ import { projectActivity } from "./activity-projection"
 import { ResourceContent } from "./resource-content"
 
 function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
+  if (item.name === "view_image" && item.status === "completed") return null
   const resources = item.content
     .filter(isContentEntry)
     .filter((part) => isEmbeddedResource(part.content) || isResourceLink(part.content))

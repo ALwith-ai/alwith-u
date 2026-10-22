@@ -1,42 +1,94 @@
-// Ported from ALwith Desktop's image-lightbox.tsx: a full-screen view of one image.
+// Ported from ALwith Desktop's image-lightbox.tsx.
 // Any image in the thread opens it through `openImageLightbox`.
 
-import { XIcon } from "lucide-react"
+import type { ActivityImage } from "@alwith/module-chat/activity-host"
+import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
-type LightboxState = { image: { src: string; alt: string } | null }
+type LightboxState = { images: ActivityImage[]; index: number }
 
-const useLightbox = create<LightboxState>(() => ({ image: null }))
+const useLightbox = create<LightboxState>(() => ({ images: [], index: 0 }))
 
 export function openImageLightbox(src: string, alt = ""): void {
-  useLightbox.setState({ image: { src, alt } })
+  openImageGallery([{ src, alt }], 0)
+}
+
+export function openImageGallery(images: ActivityImage[], index: number): void {
+  if (images[index] === undefined) throw new Error("Image gallery index is out of range")
+  useLightbox.setState({ images, index })
+}
+
+function moveImage(direction: number): void {
+  useLightbox.setState((state) => ({
+    index: Math.max(0, Math.min(state.images.length - 1, state.index + direction))
+  }))
 }
 
 export function ImageLightbox() {
   const { t } = useTranslation()
-  const image = useLightbox((state) => state.image)
+  const { images, index } = useLightbox()
+  const image = images[index]
   return (
-    <Dialog open={image !== null} onOpenChange={(open) => !open && useLightbox.setState({ image: null })}>
+    <Dialog open={image !== undefined} onOpenChange={(open) => !open && useLightbox.setState({ images: [], index: 0 })}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-w-[calc(100%-2rem)] items-center justify-center bg-transparent p-0 ring-0 sm:max-w-[90vw]"
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.preventDefault()
+            moveImage(event.key === "ArrowLeft" ? -1 : 1)
+          }
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) useLightbox.setState({ images: [], index: 0 })
+        }}
+        className="fixed inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none bg-transparent p-0 ring-0 sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
       >
         <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
-        {image !== null && (
+        {image !== undefined && (
           <img src={image.src} alt={image.alt} className="max-h-[90vh] max-w-[90vw] rounded-md object-contain" />
+        )}
+        {images.length > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="absolute start-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
+              aria-label={t("chat.image.previous")}
+              disabled={index === 0}
+              onClick={() => moveImage(-1)}
+            >
+              <ChevronLeftIcon aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="absolute end-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
+              aria-label={t("chat.image.next")}
+              disabled={index === images.length - 1}
+              onClick={() => moveImage(1)}
+            >
+              <ChevronRightIcon aria-hidden="true" />
+            </Button>
+            <span
+              className="absolute bottom-3 rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground"
+              aria-live="polite"
+            >
+              {index + 1} / {images.length}
+            </span>
+          </>
         )}
         <DialogClose
           aria-label={t("actions.close")}
           title={t("actions.close")}
           render={
             <Button
-              variant="outline"
-              size="icon"
-              className="absolute top-3 right-3 z-10 rounded-full bg-popover text-popover-foreground shadow-sm"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-4 right-4 z-10 cursor-pointer rounded-[8px] border-0 bg-transparent text-foreground active:bg-muted"
             />
           }
         >

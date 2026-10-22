@@ -1,10 +1,11 @@
 import { Allotment, LayoutPriority } from "allotment"
 import { FolderTree, Maximize2, Minimize2, X } from "lucide-react"
-import type { ReactNode } from "react"
+import { type ReactNode, useContext } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import "allotment/dist/style.css"
+import { PanelControlsContext } from "./panel-controls-context"
 
 // Desktop's PreviewSurface preserves the tree's pixel width and gives the editor spare space.
 export function PreviewSurface({
@@ -25,6 +26,8 @@ export function PreviewSurface({
   onClose: () => void
 }): ReactNode {
   const { t } = useTranslation()
+  const controls = useContext(PanelControlsContext)
+  const expanded = controls?.expanded ?? maximized
   return (
     <Allotment
       proportionalLayout={false}
@@ -52,12 +55,12 @@ export function PreviewSurface({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-pressed={maximized}
-                  aria-label={t(maximized ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                  title={t(maximized ? "workspace.exitViewMode" : "workspace.enterViewMode")}
-                  onClick={onMaximize}
+                  aria-pressed={expanded}
+                  aria-label={t(expanded ? "workspace.exitViewMode" : "workspace.enterViewMode")}
+                  title={t(expanded ? "workspace.exitViewMode" : "workspace.enterViewMode")}
+                  onClick={controls?.toggleExpanded ?? onMaximize}
                 >
-                  {maximized ? <Minimize2 /> : <Maximize2 />}
+                  {expanded ? <Minimize2 /> : <Maximize2 />}
                 </Button>
                 <Button
                   variant="ghost"

@@ -158,7 +158,13 @@
     "provider": "Penyedia model",
     "externalEditor": "Buka proyek dengan",
     "licensesTitle": "Lisensi",
-    "version": "Versi {{version}}"
+    "version": "Versi {{version}}",
+    "threeFingerSwipe": "Usapan horizontal tiga jari",
+    "threeFingerSwipeGuidance": {
+      "mac": "Beralih halaman dengan tiga jari. Gestur Mission Control atau App Exposé macOS dapat mengganggu usapan; sesuaikan di Pengaturan Sistem.",
+      "windows": "Beralih halaman dengan tiga jari pada touchpad presisi. Gestur sistem juga dapat berjalan; pilih Tidak ada untuk usapan tiga jari di Pengaturan Windows > Bluetooth & perangkat > Touchpad.",
+      "unsupported": "Tidak didukung di Linux. Gunakan tombol navigasi atau seret dengan tombol tengah mouse."
+    }
   },
   "usage": {
     "usage": "Penggunaan",
@@ -342,5 +348,9 @@
   "notify": {
     "needsInput": "Masukan Anda diperlukan",
     "finished": "Tugas selesai"
+  },
+  "canvas": {
+    "navigation": "Navigasi halaman",
+    "page": "Halaman {{number}}"
   }
 }

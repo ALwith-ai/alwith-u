@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { openGuideWindow } from "@/features/guide/guide-window"
+import { CanvasContext } from "@/features/layout/lib/canvas-context"
 import { initI18n } from "@/lib/i18n"
 
 import { WorkspaceHeaderContext } from "../context"
@@ -66,7 +67,9 @@ beforeEach(async () => {
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(280)
   // @tanstack/react-virtual 3.14.21 measures the scroll element with clientHeight / clientWidth.
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600)
-  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(280)
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains("file-workspace-layout") ? 1000 : 280
+  })
   native.nativeMode = false
   native.close = null
   await initI18n("en")
@@ -828,4 +831,106 @@ test("native new-tab menu opens the workspace and close-tab preserves the chat",
   await waitFor(() => expect(screen.queryByRole("tab")).toBeNull())
   expect(screen.getByText("Chat /a")).toBeInTheDocument()
   expect(native.invoke.mock.calls.some(([command]) => command === "workspace_exit")).toBe(false)
+})
+
+test("chat reveal navigates the unified canvas back from a split preview", async () => {
+  const navigate = vi.fn()
+  const context = {
+    viewportWidth: 1000,
+    budget: 744,
+    selected: 1,
+    split: true,
+    moving: false,
+    setWorkspace: vi.fn(),
+    navigate,
+    setDividerDragging: vi.fn()
+  }
+  const surface = (request: number) => (
+    <CanvasContext.Provider value={context}>
+      <Surface cwd="/a" chatRevealRequest={request} />
+    </CanvasContext.Provider>
+  )
+  const view = render(surface(0))
+  expect(navigate).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("preview"))
+  context.selected = 2
+  view.rerender(surface(0))
+  fireEvent.click(await screen.findByRole("button", { name: "Maximize" }))
+  view.rerender(surface(1))
+  await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("chat"))
+})
+
+test("the titlebar restores a third-screen workspace before closing it on the next click", async () => {
+  const setWorkspace = vi.fn()
+  const navigate = vi.fn()
+  render(
+    <CanvasContext.Provider
+      value={{
+        viewportWidth: 1256,
+        budget: 1000,
+        selected: 1,
+        split: false,
+        moving: false,
+        setWorkspace,
+        navigate,
+        setDividerDragging: vi.fn()
+      }}
+    >
+      <Surface cwd="/a" />
+    </CanvasContext.Provider>
+  )
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "retained edit" } })
+  const divider = screen.getByRole("separator", { name: "Resize workspace" })
+  for (let i = 0; i < 6; i++) fireEvent.keyDown(divider, { key: "ArrowRight" })
+  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 1000, preview: 1256, visible: true, maximized: false })
+  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
+  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 500, preview: 500, visible: true, maximized: false })
+  expect(navigate).toHaveBeenLastCalledWith("chat")
+  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained edit")
+  expect(screen.getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
+  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 1000, preview: 0, visible: false, maximized: false })
+  expect(screen.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+})
+
+test("Windows workspace controls follow the actual canvas screen without resetting workspace state", async () => {
+  const target = document.createElement("div")
+  document.body.append(target)
+  const context = {
+    viewportWidth: 1256,
+    budget: 1000,
+    split: true,
+    moving: false,
+    setWorkspace: vi.fn(),
+    navigate: vi.fn(),
+    setDividerDragging: vi.fn()
+  }
+  const layout = (selected: number) => (
+    <CanvasContext.Provider value={{ ...context, selected }}>
+      <WindowsWorkspaceControlsContext.Provider value={target}>
+        <Surface cwd="/a" />
+      </WindowsWorkspaceControlsContext.Provider>
+    </CanvasContext.Provider>
+  )
+  try {
+    const view = render(layout(1))
+    fireEvent.click(within(target).getByRole("button", { name: "Open preview area" }))
+    fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
+    fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), {
+      target: { value: "retained across screens" }
+    })
+    for (const selected of [0, 2, 1, 0, 1]) {
+      view.rerender(layout(selected))
+      if (selected === 1)
+        expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+      else expect(target).toBeEmptyDOMElement()
+    }
+    expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained across screens")
+    view.unmount()
+  } finally {
+    target.remove()
+  }
 })

@@ -262,6 +262,7 @@ export class CodexClient {
   /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
   private readonly activeReplays = new Map<string, string>()
   private readonly historyRequests = new Map<string, Promise<void>>()
+  private readonly retryRequests = new Map<string, Promise<void>>()
   private readonly navigationRequests = new Map<string, Promise<void>>()
   private readonly navigationEpochs = new Map<string, object>()
   private readonly turnHistoryRequests = new Map<string, Map<string, Promise<void>>>()
@@ -1225,6 +1226,28 @@ export class CodexClient {
       },
       false
     )
+  }
+
+  retrySession(id: string, turnId: string, trigger: "manual" | "automatic"): Promise<void> {
+    const pending = this.retryRequests.get(id)
+    if (pending !== undefined) return pending
+    const request = this.enqueueSession(
+      id,
+      async () => {
+        const session = this.sessions.get(id)
+        if (!session.attached || session.readOnly || session.restoring || session.state !== "idle")
+          throw new Error("Open the idle conversation before retrying")
+        if (!codexExtensionCapabilities(this.state.agent).sessionRetry)
+          throw new Error("The Codex adapter does not support retrying turns")
+        if (this.options.prepareSessionTools) await this.options.prepareSessionTools(id)
+        await this.live().request("_codex/session_retry", { sessionId: id, turnId, trigger })
+      },
+      false
+    ).finally(() => {
+      if (this.retryRequests.get(id) === request) this.retryRequests.delete(id)
+    })
+    this.retryRequests.set(id, request)
+    return request
   }
 
   async promptReceipt(id: string, prompt: acp.ContentBlock[]): Promise<string> {

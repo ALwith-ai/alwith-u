@@ -29,6 +29,7 @@ mod runtime;
 mod secret_store;
 mod settings;
 mod settings_store;
+mod trackpad;
 mod tray;
 mod updater;
 mod vibemon;
@@ -135,6 +136,9 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             fullscreen_controls::on_window_event(window, event);
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Focused(false)) {
+                trackpad::reset();
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 voice::detach(window.app_handle(), window.label());
             }
@@ -169,6 +173,7 @@ pub fn run() {
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
+            trackpad::install(app.handle())?;
             computer::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             // Native materials paint behind the transparent page. Panels that must stay
@@ -390,6 +395,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 installed_apps::read_apps_info,
                 installed_apps::open_path_in_app
             ]
+            .event::<trackpad::TrackpadGesture>()
             .event::<runtime::RuntimeLines>()
             .event::<computer::ComputerPreview>()
             .event::<runtime::RuntimeExit>()

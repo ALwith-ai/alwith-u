@@ -10,6 +10,23 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
 
 afterEach(cleanup)
 
+test("status bar hover styling excludes canvas pagination buttons", () => {
+  const view = render(
+    <footer className="main-window-statusbar">
+      <nav className="canvas-dots">
+        <Button variant="ghost">Page 1</Button>
+      </nav>
+      <Button variant="ghost">Status</Button>
+    </footer>
+  )
+  const stylesheet = readFileSync("src/index.css", "utf8")
+  const rule = stylesheet.match(/([^{}]+)\{\s*background-color: var\(--chrome-hover-background\);\s*\}/)
+  if (!rule) throw new Error("Missing shared chrome hover rule")
+  const selector = rule[1].replaceAll(":hover", ":is(*)")
+  expect(view.getByRole("button", { name: "Page 1" }).matches(selector)).toBe(false)
+  expect(view.getByRole("button", { name: "Status" }).matches(selector)).toBe(true)
+})
+
 test("sidebar hover styling reaches buttons composed with tooltip and menu triggers", () => {
   const view = render(
     <div className="main-sidebar-panel">

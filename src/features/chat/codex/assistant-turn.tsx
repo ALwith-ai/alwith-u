@@ -10,11 +10,12 @@ import {
 } from "@alwith/api"
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/assistant-message"
-import { AlertCircleIcon, SparklesIcon } from "lucide-react"
+import { SparklesIcon } from "lucide-react"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 
-import { codexTurnError, codexTurnId } from "@/agent/codex-extensions"
+import { codexMessageError, codexTurnError, codexTurnId } from "@/agent/codex-extensions"
+import { nativeTurnId } from "@/agent/history-navigation"
 
 import { ForkTurnButton } from "../chat-branches"
 import { isHistoryInterrupted, isSessionStatus, messageText, type Turn, turnTiming, type WorkEntry } from "../turns"
@@ -23,6 +24,7 @@ import { useChatActivityHost } from "./activity-host"
 import { AssistantContent } from "./assistant-content"
 import { EditedFilesCard } from "./edited-files-card"
 import { CodexPlan } from "./plan"
+import { ErrorCard, TurnErrorView, type TurnRetry } from "./turn-error"
 import { formatTurnTime } from "./turn-time"
 
 function imageIdentity(block: ContentBlock): string | null {
@@ -56,6 +58,14 @@ function WorkEntryView({
     case "plan":
       return <CodexPlan plan={entry.item.plan} />
     case "compaction":
+      if (entry.item.status === "failed") {
+        return (
+          <ErrorCard>
+            <div>{t("chat.compactionFailed")}</div>
+            {entry.item.error !== null && <div>{entry.item.error}</div>}
+          </ErrorCard>
+        )
+      }
       return (
         <div className="codex-context-compaction">
           <SparklesIcon aria-hidden="true" />
@@ -65,27 +75,15 @@ function WorkEntryView({
   }
 }
 
-function TurnErrorView({ error }: { error: TurnError }) {
-  const detail = codexTurnError(error)
-  const { t } = useTranslation()
-  return (
-    <div className="codex-error-message" role="alert">
-      <AlertCircleIcon aria-hidden="true" />
-      <div className="min-w-0">
-        <div>{detail.message}</div>
-        {detail.retryable && <div className="text-(--codex-conversation-body)">{t("chat.error.retryable")}</div>}
-      </div>
-    </div>
-  )
-}
-
 function AssistantTurnImpl({
   turn,
   terminals,
   active,
   isLast,
   error,
-  interrupted
+  interrupted,
+  retry,
+  retrying
 }: {
   turn: Turn
   terminals: Record<string, Terminal>
@@ -93,10 +91,37 @@ function AssistantTurnImpl({
   isLast: boolean
   error: TurnError | null
   interrupted: boolean
+  retry?: TurnRetry
+  retrying?: { message: string; capacity: boolean }
 }) {
   const { t } = useTranslation()
   const host = useChatActivityHost()
-  if (isSessionStatus(turn)) {
+  const errors = turn.errors.map((item) => {
+    const failure = codexMessageError(item)
+    if (failure === null) throw new Error("Turn error item is missing its diagnostics")
+    const action = retry?.turnId === nativeTurnId(item) ? retry : undefined
+    return <TurnErrorView key={`${item.id}:${action?.delaySeconds ?? "manual"}`} error={failure} retry={action} />
+  })
+  if (
+    isLast &&
+    error !== null &&
+    !turn.errors.some((item) => {
+      const failure = codexMessageError(item)
+      return (
+        failure !== null &&
+        failure.stopReason === error.stopReason &&
+        codexTurnError(failure).message === codexTurnError(error).message
+      )
+    })
+  )
+    errors.push(<TurnErrorView key="current-run-error" error={error} />)
+  const errorCards = errors.length > 0 ? <div className="codex-turn-errors">{errors}</div> : null
+  const completedCompactions = turn.work.filter(
+    (entry) => entry.kind === "compaction" && entry.item.status === "completed"
+  )
+  const work = turn.work.filter((entry) => !completedCompactions.includes(entry))
+  const compactionOnly = completedCompactions.length > 0 && work.length === 0 && turn.final.length === 0
+  if (isSessionStatus(turn) || compactionOnly) {
     return (
       <ActivityHostProvider host={host}>
         <div role="status" className="flex min-w-0 flex-col gap-2 py-2 text-sm text-muted-foreground">
@@ -110,7 +135,7 @@ function AssistantTurnImpl({
             />
           ))}
         </div>
-        {isLast && error !== null && <TurnErrorView error={error} />}
+        {errorCards}
       </ActivityHostProvider>
     )
   }
@@ -153,8 +178,8 @@ function AssistantTurnImpl({
         stateKey={turn.key}
         active={active}
         {...turnTiming(turn)}
-        loading={active && turn.work.length === 0 && !hasFinal}
-        work={turn.work.map((entry) => (
+        loading={active && turn.work.length === 0 && !hasFinal && retrying === undefined}
+        work={work.map((entry) => (
           <WorkEntryView
             key={entry.key}
             entry={entry}
@@ -209,16 +234,38 @@ function AssistantTurnImpl({
         }
         footer={
           <>
+            {completedCompactions.map((entry) => (
+              <WorkEntryView
+                key={entry.key}
+                entry={entry}
+                terminals={terminals}
+                streaming={false}
+                streamingThoughtId={null}
+              />
+            ))}
             {turn.edits.length > 0 && !active && <EditedFilesCard items={turn.edits} />}
             {(interrupted || historyInterrupted) && (
               <div className="codex-interrupted-turn" role="status">
                 {t(historyInterrupted ? "chat.historyInterrupted" : "chat.interrupted")}
               </div>
             )}
-            {error !== null && isLast && <TurnErrorView error={error} />}
+            {!active && errorCards}
           </>
         }
       />
+      {active && retrying !== undefined && (
+        <div className="py-2 text-sm text-muted-foreground" role="status">
+          {retrying.capacity
+            ? (() => {
+                const progress = /Reconnecting(?:\.\.\.)?\s+(\d+\/\d+)/.exec(retrying.message)?.[1]
+                return progress === undefined
+                  ? t("chat.error.capacityReconnecting")
+                  : t("chat.error.capacityReconnectingProgress", { progress })
+              })()
+            : retrying.message}
+        </div>
+      )}
+      {active && errorCards}
     </ActivityHostProvider>
   )
 }

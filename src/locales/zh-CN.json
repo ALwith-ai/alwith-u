@@ -193,6 +193,7 @@
     "interrupted": "已停止",
     "contextCompacted": "上下文已压缩",
     "compacting": "正在压缩上下文",
+    "compactionFailed": "上下文压缩失败",
     "attachImage": "添加图片",
     "pastedText": {
       "filename": "粘贴的文本.txt",
@@ -234,6 +235,8 @@
     },
     "image": {
       "view": "查看图片",
+      "previous": "上一张图像",
+      "next": "下一张图像",
       "unavailable": "图片已不可用"
     },
     "content": {
@@ -254,7 +257,10 @@
     },
     "error": {
       "title": "对话遇到错误",
-      "retryable": "可以重试这一回合。"
+      "retry": "重试",
+      "retryCountdown": "{{seconds}} 秒后重试",
+      "capacityReconnecting": "服务器繁忙，正在重新连接",
+      "capacityReconnectingProgress": "服务器繁忙，正在重新连接 {{progress}}"
     },
     "tool": {
       "running": "正在运行",
@@ -421,7 +427,13 @@
     "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。",
     "editor": "编辑器",
     "voice": "语音",
-    "computer": "操作电脑"
+    "computer": "操作电脑",
+    "threeFingerSwipe": "三指横向滑动",
+    "threeFingerSwipeGuidance": {
+      "mac": "系统三指横滑手势会优先响应,请先在系统设置→触控板中改掉。",
+      "windows": "使用精确式触控板三指横滑切换页面。系统手势可能同时触发，请在 Windows 设置 > 蓝牙和设备 > 触摸板中将三指轻扫设为“无”。",
+      "unsupported": "Linux 暂不支持。可使用导航按钮或鼠标中键拖动。"
+    }
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1071,5 +1083,9 @@
       "unavailable": "暂时无法预览此窗口",
       "waiting": "正在等待目标窗口"
     }
+  },
+  "canvas": {
+    "navigation": "页面导航",
+    "page": "第 {{number}} 页"
   }
 }

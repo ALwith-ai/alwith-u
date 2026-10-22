@@ -5,9 +5,9 @@ const STREAMING_ENGAGE_DISTANCE_PX = 160
 // Exponential following keeps its velocity when chunks arrive; it does not restart
 // an animation from an obsolete scroll position for every update.
 const FOLLOW_RESPONSE_MS = 45
-type ScrollMode = "following" | "reading" | "locating"
+type ScrollMode = "following" | "reading"
 
-export function useThreadScroll(root: HTMLElement | null, running: boolean, releaseTurnAnchor: () => void) {
+export function useThreadScroll(root: HTMLElement | null, running: boolean) {
   const mode = useRef<ScrollMode>("following")
   const [isFollowing, setIsFollowing] = useState(true)
   const streaming = useRef(running)
@@ -18,8 +18,6 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
   const fractionalOffset = useRef(0)
   const previousTop = useRef(0)
   const inputDirection = useRef(0)
-  const locationId = useRef(0)
-  const followAfterLocation = useRef(false)
   const disclosureHeight = useRef<number | null>(null)
 
   const cancelFrame = useCallback(() => {
@@ -28,17 +26,16 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
   }, [])
 
   const stopFollowing = useCallback(() => {
-    releaseTurnAnchor()
     cancelFrame()
-    locationId.current++
     disclosureHeight.current = null
     inputDirection.current = 0
     mode.current = "reading"
     setIsFollowing(false)
-  }, [cancelFrame, releaseTurnAnchor])
+  }, [cancelFrame])
 
   const schedulePin = useCallback(() => {
     if (root === null || mode.current !== "following" || frame.current !== null) return
+    if (root.scrollTop >= Math.max(0, root.scrollHeight - root.clientHeight)) return
     previousFrameTime.current = performance.now()
     lastWrittenTop.current = root.scrollTop
     fractionalOffset.current = 0
@@ -47,8 +44,11 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
       if (mode.current !== "following") return
       const target = Math.max(0, root.scrollHeight - root.clientHeight)
       const distance = target - root.scrollTop
+      // Native momentum can reach or overshoot the bottom before this frame.
+      // Following must not pull it back or interrupt it with a redundant write.
+      if (distance <= 0) return
       const immediate = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      if (immediate || Math.abs(distance) <= 1) {
+      if (immediate || distance <= 1) {
         root.scrollTop = target
       } else {
         // A frame timestamp can precede the event that requested this frame.
@@ -69,70 +69,29 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
   }, [root])
 
   const scrollToBottom = useCallback(() => {
-    releaseTurnAnchor()
-    locationId.current++
     disclosureHeight.current = null
     inputDirection.current = 0
     mode.current = "following"
     setIsFollowing(true)
     schedulePin()
-  }, [releaseTurnAnchor, schedulePin])
+  }, [schedulePin])
 
-  // Package navigation mounts the target first. Until U's precise positioning
-  // finishes, content updates may measure the list but must not queue a second pin.
-  const beginLocate = useCallback(
-    (followAfter: boolean) => {
-      releaseTurnAnchor()
-      cancelFrame()
-      const request = ++locationId.current
-      mode.current = "locating"
-      followAfterLocation.current = followAfter
+  const contentResized = useCallback(() => {
+    if (root === null) return
+    const heightBeforeDisclosure = disclosureHeight.current
+    if (heightBeforeDisclosure !== null && root.scrollHeight !== heightBeforeDisclosure) {
       disclosureHeight.current = null
-      inputDirection.current = 0
-      setIsFollowing(followAfter)
-      return {
-        isCurrent: () => locationId.current === request,
-        finish: (top: number) => {
-          if (locationId.current !== request || root === null) return
-          root.scrollTo({ top, behavior: "instant" })
-          previousTop.current = root.scrollTop
-          mode.current = followAfter ? "following" : "reading"
-        }
+      // Preserve collapse-to-bottom reattachment, without allowing unrelated
+      // virtual-list compensation to resume following while browsing history.
+      if (
+        root.scrollHeight < heightBeforeDisclosure &&
+        root.scrollHeight - root.clientHeight - root.scrollTop <= BOTTOM_DISTANCE_PX
+      ) {
+        scrollToBottom()
       }
-    },
-    [cancelFrame, releaseTurnAnchor, root]
-  )
-
-  const cancelLocation = useCallback(() => {
-    locationId.current++
-    if (mode.current === "locating") mode.current = followAfterLocation.current ? "following" : "reading"
-  }, [])
-
-  const contentResized = useCallback(
-    (anchorTop: number | null = null) => {
-      if (root === null) return
-      const heightBeforeDisclosure = disclosureHeight.current
-      if (heightBeforeDisclosure !== null && root.scrollHeight !== heightBeforeDisclosure) {
-        disclosureHeight.current = null
-        // Preserve collapse-to-bottom reattachment, without allowing unrelated
-        // virtual-list compensation to resume following while browsing history.
-        if (
-          root.scrollHeight < heightBeforeDisclosure &&
-          root.scrollHeight - root.clientHeight - root.scrollTop <= BOTTOM_DISTANCE_PX
-        ) {
-          scrollToBottom()
-        }
-      }
-      if (mode.current === "following" && anchorTop !== null) {
-        cancelFrame()
-        root.scrollTo({ top: anchorTop, behavior: "instant" })
-        previousTop.current = root.scrollTop
-      } else {
-        schedulePin()
-      }
-    },
-    [cancelFrame, root, schedulePin, scrollToBottom]
-  )
+    }
+    schedulePin()
+  }, [root, schedulePin, scrollToBottom])
 
   useEffect(() => {
     if (root === null) return
@@ -149,10 +108,10 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
     const pointerRoot = scrollArea ?? root
     const input = (direction: number) => {
       disclosureHeight.current = null
-      if ((direction < 0 || mode.current === "locating") && root.scrollHeight > root.clientHeight) stopFollowing()
-      else releaseTurnAnchor()
+      if (direction < 0 && root.scrollHeight > root.clientHeight) stopFollowing()
       inputDirection.current = direction
-      if (direction > 0 && root.scrollHeight - root.clientHeight - root.scrollTop <= 1) scrollToBottom()
+      if (mode.current === "reading" && direction > 0 && root.scrollHeight - root.clientHeight - root.scrollTop <= 1)
+        scrollToBottom()
     }
     const onScroll = () => {
       const movedDown = root.scrollTop > previousTop.current
@@ -235,7 +194,6 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
     root.addEventListener("click", onDisclosure, { capture: true })
     return () => {
       cancelFrame()
-      cancelLocation()
       root.removeEventListener("scroll", onScroll)
       root.removeEventListener("wheel", onWheel)
       root.removeEventListener("touchstart", onTouchStart)
@@ -246,7 +204,7 @@ export function useThreadScroll(root: HTMLElement | null, running: boolean, rele
       window.removeEventListener("pointercancel", onPointerCancel)
       root.removeEventListener("click", onDisclosure, { capture: true })
     }
-  }, [root, cancelFrame, cancelLocation, releaseTurnAnchor, scrollToBottom, stopFollowing])
+  }, [root, cancelFrame, scrollToBottom, stopFollowing])
 
-  return { isFollowing, scrollToBottom, stopFollowing, schedulePin, contentResized, beginLocate, cancelLocation }
+  return { isFollowing, scrollToBottom, stopFollowing, schedulePin, contentResized }
 }

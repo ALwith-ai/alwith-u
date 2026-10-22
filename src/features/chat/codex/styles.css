@@ -1,5 +1,22 @@
 @import "@alwith/module-chat/styles.css";
 
+.codex-turn-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-block: 16px;
+}
+
+/* Keep the fade in viewport coordinates so compositor scrolling cannot outrun it. */
+.codex-thread-bottom-fade {
+  position: absolute;
+  inset-inline: 0 6px;
+  bottom: 0;
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--background));
+}
+
 /* Match Desktop's native scrollbar auto-hide within chat; the main viewport uses Pane. */
 .codex-assistant-turn :is(
   .codex-markdown-table-scroller,

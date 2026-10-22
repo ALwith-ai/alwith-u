@@ -121,3 +121,118 @@ test("retries oversized pages at the same cursor and retains attachment referenc
   expect(await exportConversation("s", request, () => {})).toContain("file:///tmp/image.png")
   expect(request.mock.calls[1]?.[0]).toMatchObject({ limit: 25, cursor: undefined })
 })
+
+const png = {
+  type: "image",
+  mimeType: "image/png",
+  data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aTWQAAAAASUVORK5CYII=",
+  _meta: { codex: { detail: "original" } }
+}
+
+test.each(["user_message", "agent_message"])("exports ordered text and image blocks for %s", async (sessionUpdate) => {
+  const content = [{ type: "text", text: "Before" }, png, { type: "text", text: "After" }, png]
+  const body = await exportConversation(
+    "s",
+    async () => ({
+      ...page,
+      items: [{ ...page.items[0], updates: [{ sessionUpdate, content }] }]
+    }),
+    () => {}
+  )
+  const record = JSON.parse(body) as { message: { content: unknown[] } }
+  expect(record.message.content).toEqual(content)
+})
+
+test("exports image-only messages and keeps unavailable image placeholders", async () => {
+  const body = await exportConversation(
+    "s",
+    async () => ({
+      ...page,
+      items: [
+        {
+          ...page.items[0],
+          updates: [
+            { sessionUpdate: "user_message", content: [png] },
+            {
+              sessionUpdate: "user_message",
+              content: [
+                {
+                  type: "resource_link",
+                  name: "Image unavailable",
+                  uri: "codex-image:unavailable",
+                  _meta: { codex: { imageUnavailable: true } }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }),
+    () => {}
+  )
+  const records = body
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as { message: { content: unknown[] } })
+  expect(records[0]?.message.content).toEqual([png])
+  expect(records[1]?.message.content).toEqual([{ type: "text", text: "[Image unavailable] codex-image:unavailable" }])
+})
+
+test.each([
+  { ...png, data: null },
+  { ...png, data: "" },
+  { ...png, mimeType: "text/plain" },
+  { type: "audio", mimeType: "audio/wav", data: "AAAA" }
+])("rejects unsupported or malformed media instead of partially archiving it: %j", async (block) => {
+  await expect(
+    exportConversation(
+      "s",
+      async () => ({
+        ...page,
+        items: [
+          {
+            ...page.items[0],
+            updates: [{ sessionUpdate: "user_message", content: [{ type: "text", text: "Keep me" }, block] }]
+          }
+        ]
+      }),
+      () => {}
+    )
+  ).rejects.toThrow(/session s.*item u.*type/)
+})
+
+test("counts inline image bytes toward the complete archive size limit", async () => {
+  await expect(
+    exportConversation(
+      "s",
+      async () => ({
+        ...page,
+        items: [
+          {
+            ...page.items[0],
+            updates: [
+              { sessionUpdate: "user_message", content: [{ ...png, data: "AAAA".repeat((25 * 1024 * 1024) / 4) }] }
+            ]
+          }
+        ]
+      }),
+      () => {}
+    )
+  ).rejects.toThrow("25 MiB")
+})
+
+test("reports a single item exceeding the history protocol budget without invalid larger requests", async () => {
+  const calls: Array<{ limit: number; maxBytes: number }> = []
+  await expect(
+    exportConversation(
+      "s",
+      async (params) => {
+        calls.push({ limit: params.limit, maxBytes: params.maxBytes })
+        throw { data: { reason: "history_page_too_large" } }
+      },
+      () => {}
+    )
+  ).rejects.toThrow("16 MiB")
+  expect(calls.map((call) => call.limit)).toEqual([50, 25, 12, 6, 3, 1])
+  expect(calls.every((call) => call.maxBytes === 16 * 1024 * 1024)).toBe(true)
+})

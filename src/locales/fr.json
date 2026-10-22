@@ -164,7 +164,13 @@
     "provider": "Fournisseur de modèles",
     "externalEditor": "Ouvrir les projets avec",
     "licensesTitle": "Licences",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "threeFingerSwipe": "Balayage horizontal à trois doigts",
+    "threeFingerSwipeGuidance": {
+      "mac": "Changez de page avec trois doigts. Les gestes Mission Control ou App Exposé de macOS peuvent interrompre le balayage ; ajustez-les dans Réglages Système.",
+      "windows": "Changez de page avec trois doigts sur un pavé tactile de précision. Les gestes système peuvent aussi se déclencher ; choisissez Rien pour les balayages à trois doigts dans Paramètres Windows > Bluetooth et appareils > Pavé tactile.",
+      "unsupported": "Non pris en charge sous Linux. Utilisez les boutons de navigation ou faites glisser avec le bouton central de la souris."
+    }
   },
   "usage": {
     "usage": "Utilisation",
@@ -335,5 +341,9 @@
   "notify": {
     "needsInput": "Votre intervention est nécessaire",
     "finished": "Tâche terminée"
+  },
+  "canvas": {
+    "navigation": "Navigation entre les pages",
+    "page": "Page {{number}}"
   }
 }

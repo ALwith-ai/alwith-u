@@ -46,12 +46,12 @@ const thought = (messageId: string, content: string) => ({
   content: { type: "text", text: content }
 })
 
-test.each(["commentary", "final_answer"])("%s completes and collapses the preceding thought", (phase) => {
+test.each(["commentary", "final_answer"])("%s completes the preceding thought without expanding it", (phase) => {
   const id = crypto.randomUUID()
   let session = feed(createSession(id, "/tmp"), thought(id, "Inspecting the code"))
   const view = render(viewOf(session, true))
   mounted.push(view)
-  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
   session = feed(session, text(`${id}-message`, "Next step", phase))
   view.rerender(viewOf(session, true))
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
@@ -92,7 +92,7 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
     thought(`${id}-second`, "Checking results")
   )
   view.rerender(viewOf(session, true))
-  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
   session = feed(
     session,
@@ -102,7 +102,7 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
   view.rerender(viewOf(session, true))
   const previousGroup = must(view.container.querySelector(".codex-activity-group-trigger"), "the previous group")
   expect(previousGroup).toHaveAttribute("aria-expanded", "false")
-  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
   fireEvent.click(previousGroup)
   expect(view.getByRole("button", { name: "Ran bun run test" })).toBeDefined()
   expect(view.getByRole("button", { name: "Ran bun run build" })).toBeDefined()
@@ -114,7 +114,7 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
   expect(
     view.getAllByRole("button", { name: "Thought" }).every((button) => button.getAttribute("aria-expanded") === "false")
   ).toBe(true)
-  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
   expect(previousGroup).toHaveAttribute("aria-expanded", "true")
 
   view.rerender(viewOf(session, false))
@@ -189,7 +189,24 @@ test("streaming final-only responses stay outside work and expose actions only a
   expect(view.getByRole("button", { name: "Copy" })).toBeDefined()
 })
 
-test("compaction stays in work and a current-turn error is not repeated on earlier turns", () => {
+test("a transcript error stays on its original turn, has no answer actions, and deduplicates the current error", () => {
+  const failure = { message: "At capacity", category: "overloaded", retryable: true }
+  const session = feed(addPrompt(createSession("retained-failure", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {
+    sessionUpdate: "agent_message",
+    messageId: "codex-error:failed",
+    content: [{ type: "text", text: failure.message }],
+    _meta: { codex: { turnId: "failed", error: failure } }
+  })
+  const error = { stopReason: "error", error: { code: -32603, message: failure.message }, meta: null }
+  const view = render(viewOf(session, false, error))
+  mounted.push(view)
+  expect(view.getAllByRole("alert")).toHaveLength(1)
+  expect(view.queryByRole("button", { name: "Copy" })).toBeNull()
+  view.rerender(viewOf(session, false, null, false))
+  expect(view.getByRole("alert").textContent).toContain("At capacity")
+})
+
+test("completed compaction stays visible without a work disclosure and errors stay on their turn", () => {
   const session = feed(
     addPrompt(createSession("compaction-layout", "/tmp"), [{ type: "text", text: "go" }], "prompt"),
     { sessionUpdate: "compaction_update", compactionId: "compact", status: "completed" },
@@ -202,13 +219,51 @@ test("compaction stays in work and a current-turn error is not repeated on earli
   }
   const view = render(viewOf(session, false, error))
   mounted.push(view)
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
-  expect(view.container.querySelector(".codex-work-body")?.textContent).toContain("Context compacted")
+  expect(view.queryByRole("button", { name: /^Worked/ })).toBeNull()
+  expect(view.getByText("Context compacted")).toBeVisible()
   expect(view.getByRole("alert").textContent).toContain("Gateway unavailable")
   view.rerender(viewOf(session, false, error, false))
   expect(view.queryByRole("alert")).toBeNull()
   expect(view.getByText("Preserved answer")).toBeDefined()
 })
+
+test("standalone completed compactions render only their notices without timing or answer actions", () => {
+  const session = feed(
+    createSession("compaction-notices", "/tmp"),
+    { sessionUpdate: "compaction_update", compactionId: "first", status: "completed" },
+    { sessionUpdate: "compaction_update", compactionId: "second", status: "completed" }
+  )
+  const view = render(viewOf(session))
+  mounted.push(view)
+  expect(view.getAllByText("Context compacted")).toHaveLength(2)
+  expect(view.queryByRole("button")).toBeNull()
+  expect(view.container.querySelector(".codex-work-section")).toBeNull()
+  expect(view.container.querySelector(".codex-user-time")).toBeNull()
+})
+
+test.each(["Compaction service unavailable", null])(
+  "failed compaction replaces progress and retains its error: %s",
+  (error) => {
+    let session = feed(
+      addPrompt(createSession("compaction-failure", "/tmp"), [{ type: "text", text: "go" }], "prompt"),
+      { sessionUpdate: "compaction_update", compactionId: "compact", status: "in_progress" }
+    )
+    const view = render(viewOf(session, true))
+    mounted.push(view)
+    expect(view.getByText("Compacting context")).toBeDefined()
+    session = feed(session, { sessionUpdate: "compaction_update", compactionId: "compact", status: "failed", error })
+    view.rerender(viewOf(session, true))
+    expect(view.getByRole("alert").textContent).toContain("Context compaction failed")
+    if (error !== null) expect(view.getByRole("alert").textContent).toContain(error)
+    expect(view.queryByText("Compacting context")).toBeNull()
+    expect(view.queryByText("Context compacted")).toBeNull()
+
+    view.rerender(viewOf(session, false, null, false))
+    fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+    expect(view.getByRole("alert").textContent).toContain("Context compaction failed")
+    if (error !== null) expect(view.getByRole("alert").textContent).toContain(error)
+  }
+)
 
 test("final answer keeps text and image blocks in their original order", () => {
   const session = feed(addPrompt(createSession("mixed-answer", "/tmp"), [{ type: "text", text: "go" }], "prompt"), {

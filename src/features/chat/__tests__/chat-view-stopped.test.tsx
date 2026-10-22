@@ -13,7 +13,11 @@ vi.mock("../chat-actions-menu", () => ({ ChatActionsMenu: () => null }))
 vi.mock("../composer", () => ({ Composer: () => null }))
 vi.mock("../dialogs/chat-search", () => ({ ChatSearch: () => null }))
 vi.mock("../dialogs/diff-modal", () => ({ DiffModal: () => null }))
-vi.mock("../dialogs/image-lightbox", () => ({ ImageLightbox: () => null, openImageLightbox: vi.fn() }))
+vi.mock("../dialogs/image-lightbox", () => ({
+  ImageLightbox: () => null,
+  openImageLightbox: vi.fn(),
+  openImageGallery: vi.fn()
+}))
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
 
 await initI18n("en")
