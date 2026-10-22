@@ -342,6 +342,16 @@ export type CommandErrors = {
 }
 
 export const events = {
+  "trackpad-gesture": {
+    name: "trackpad-gesture",
+    listen: (handler: __t3Callback<TrackpadGesture_Serialize>) =>
+      __t3Listen<TrackpadGesture_Serialize>("trackpad-gesture", handler),
+    once: (handler: __t3Callback<TrackpadGesture_Serialize>) =>
+      __t3Once<TrackpadGesture_Serialize>("trackpad-gesture", handler),
+    emit: (payload: TrackpadGesture_Deserialize) => __t3Emit("trackpad-gesture", payload),
+    emitTo: (target: string | __t3Target, payload: TrackpadGesture_Deserialize) =>
+      __t3EmitTo(target, "trackpad-gesture", payload)
+  },
   "runtime:lines": {
     name: "runtime:lines",
     listen: (handler: __t3Callback<RuntimeLines>) => __t3Listen<RuntimeLines>("runtime:lines", handler),
@@ -1022,6 +1032,41 @@ export type TestResult_Serialize = {
   message: string
   status: number | null
   latencyMs: number | null
+}
+
+/**  Normalized touchpad deltas, with right/down positive axes. */
+export type TrackpadGesture = TrackpadGesture_Serialize | TrackpadGesture_Deserialize
+
+export type TrackpadGesturePhase = "began" | "changed" | "ended" | "cancelled"
+
+/**  Normalized touchpad deltas, with right/down positive axes. */
+export type TrackpadGesture_Deserialize = {
+  fingers: number
+  phase: TrackpadGesturePhase
+  dx: number
+  dy: number
+  totalDx: number
+  totalDy: number
+  dSpread: number
+  totalDSpread: number
+  ts: number
+  deviceW?: number | null
+  deviceH?: number | null
+}
+
+/**  Normalized touchpad deltas, with right/down positive axes. */
+export type TrackpadGesture_Serialize = {
+  fingers: number
+  phase: TrackpadGesturePhase
+  dx: number
+  dy: number
+  totalDx: number
+  totalDy: number
+  dSpread: number
+  totalDSpread: number
+  ts: number
+  deviceW: number | null
+  deviceH: number | null
 }
 
 export type UpdateInfo = UpdateInfo_Serialize | UpdateInfo_Deserialize
