@@ -9,14 +9,14 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { ComputerPreview } from "@/bindings"
+import type { ComputerPreview_Serialize } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 import { computerActionKey } from "./action-label"
 import { AgentCursor } from "./agent-cursor"
 
-function WindowFrame({ preview }: { preview: ComputerPreview }) {
+function WindowFrame({ preview }: { preview: ComputerPreview_Serialize }) {
   const { t } = useTranslation()
   const frame = preview.frame
   if (!frame)
@@ -58,7 +58,7 @@ export function ComputerPreviewCard({
   onStop,
   onFocus
 }: {
-  preview: ComputerPreview
+  preview: ComputerPreview_Serialize
   stopping: boolean
   onStop: () => void
   onFocus: () => void

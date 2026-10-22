@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { ComputerPreview } from "@/bindings"
+import type { ComputerPreview_Serialize } from "@/bindings"
 const native = vi.hoisted(() => ({
   subscribe: vi.fn<(request: { subscriptionId: string }) => Promise<unknown>>(),
   unsubscribe: vi.fn(),
@@ -34,7 +34,7 @@ async function emit(sessionId: string, phase: string, subscriptionId?: string) {
   await waitFor(() => expect(native.subscribe).toHaveBeenCalled())
   const subscription = native.subscribe.mock.lastCall
   if (subscription === undefined) throw new Error("The preview never subscribed")
-  const payload: ComputerPreview = {
+  const payload: ComputerPreview_Serialize = {
     subscriptionId: subscriptionId ?? subscription[0].subscriptionId,
     activity: {
       sessionId,

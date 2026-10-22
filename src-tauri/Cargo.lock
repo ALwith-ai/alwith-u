@@ -62,7 +62,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-api"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "log",
  "serde",
@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-computer"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "base64 0.23.1",
  "core-foundation 0.10.1",
@@ -145,7 +145,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-gamepad"
-version = "0.1.0-rc.1"
+version = "0.1.0-rc.2"
 dependencies = [
  "alwith-installed-apps",
  "cpal",
@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-voice"
-version = "0.1.0-rc.5"
+version = "0.1.0-rc.6"
 dependencies = [
  "flate2",
  "futures-util",
@@ -5675,9 +5675,9 @@ dependencies = [
 
 [[package]]
 name = "specta"
-version = "2.0.0-rc.25"
+version = "2.0.0-rc.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f9a30cbcbb7011f1da7d73483983bf838af123883e45f2b36ed76328df9c50"
+checksum = "81633014710ece1c7e8ac99e1bc9ad8d4339a2ccbae89ca2aa1095d4262c86b8"
 dependencies = [
  "paste",
  "rustc_version",
@@ -5687,9 +5687,9 @@ dependencies = [
 
 [[package]]
 name = "specta-macros"
-version = "2.0.0-rc.25"
+version = "2.0.0-rc.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ce14957ecc2897f1f848b8255b6531d13ddf49cbcf506b7c2c9fb1d005593bb"
+checksum = "1fe882a75f48f76ac091ca2c5aaad7abd4dfdedf649c08e865bb0d62b5a2cb92"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -5699,9 +5699,9 @@ dependencies = [
 
 [[package]]
 name = "specta-serde"
-version = "0.0.12"
+version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee8a72b755ddb8949fd8f17c5db43f0e8a806ea587d9bc602ee3f73240c00029"
+checksum = "6a75ee5142f81ca1e0046b16c09d0f5a36c75884802da3f0281f78bfe221e559"
 dependencies = [
  "specta",
  "specta-macros",
@@ -5709,18 +5709,18 @@ dependencies = [
 
 [[package]]
 name = "specta-typescript"
-version = "0.0.12"
+version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "639404ee95557f2f8b7e4cb773ffefd45304c7ab8ba21ac83b69051595e083c0"
+checksum = "7a113bb506b00463cfb54c5819e55ec081bc7d52ef463d7726181e9073cd473a"
 dependencies = [
  "specta",
 ]
 
 [[package]]
 name = "specta-util"
-version = "0.0.12"
+version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29b1fc02b446f7244a92924fe68c0555921209f1d342990cd1539e9138e69502"
+checksum = "6df073177e00bb59cf7e8147ac147c451f51a21a4858100d6d74baf0e6fe3bc2"
 dependencies = [
  "specta",
 ]
@@ -6622,9 +6622,9 @@ dependencies = [
 
 [[package]]
 name = "tauri3-specta"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879d17c272189f784f8c8fb389cd4cd963be8e86a326c78a68c8c0dacaf67e4d"
+checksum = "cc1614f0e15187871a6339e2241fb0e7f6d665cf84f7b34c06969ac3496b4d2d"
 dependencies = [
  "heck 0.5.0",
  "serde",
