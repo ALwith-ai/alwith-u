@@ -202,7 +202,7 @@ export function DraftChat({
       </ChatHeader>
       <Empty className="flex-1">
         <EmptyHeader>
-          <EmptyTitle>{t("welcome.title")}</EmptyTitle>
+          <EmptyTitle className="text-[28px] font-normal">{t("welcome.title")}</EmptyTitle>
           <EmptyDescription>{t("welcome.description")}</EmptyDescription>
         </EmptyHeader>
       </Empty>

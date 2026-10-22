@@ -49,6 +49,25 @@ pre,
 
 @custom-variant dark (&:is(.dark *));
 
+.permission-mode-menu [role="menuitemradio"] > svg {
+  color: var(--muted-foreground);
+}
+
+.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] svg {
+  width: 14px;
+  height: 14px;
+}
+
+.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] {
+  inset-block-end: 0.25rem;
+  height: 1rem;
+}
+
+.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]),
+.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]) * {
+  color: var(--permission-warning);
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Inter Variable", sans-serif;
@@ -110,6 +129,7 @@ pre,
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --permission-warning: #e25508;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -151,6 +171,7 @@ pre,
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --permission-warning: #ff9248;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -479,6 +500,18 @@ html[data-window-backdrop="acrylic"]
 .windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
+/* Application controls use a hover overlay; conversation content keeps its own presentation. */
+@media (hover: hover) {
+  :is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
+      [data-disabled]
+    ):not(:where(.codex-thread-content *, .codex-assistant-turn *, .chat-project-picker *)):hover {
+    background-image: linear-gradient(
+      color-mix(in oklab, currentColor 8%, transparent),
+      color-mix(in oklab, currentColor 8%, transparent)
+    );
+  }
+}
+
 /* Keep application buttons stationary while pressed, including composed triggers. */
 [class~="group/button"]:active {
   translate: none;

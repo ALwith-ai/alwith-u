@@ -2,24 +2,21 @@
  * The model menu: model list, reasoning effort slider, other model settings (selects as
  * radio sections, booleans as switches). Everything is data-driven from the agent's
  * `config_option_update` by category: `model`, `thought_level`, `model_config`. From ALwith
- * Desktop's select-model / model-select-group, without providers.
+ * Desktop's shared model-select, with host-owned catalog policy.
  */
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { type BooleanOption, isBooleanOption, isGroupedSelect, isSelectOption, type SelectOption } from "@alwith/api"
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
+import { Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import { client, useApp } from "@/lib/client"
 
+import { modelTriggerLabel, presentModelCatalog } from "./model-catalog"
+import { ModelSettingsAction } from "./model-settings-action"
 import { flattenSelectOptions } from "./permission-mode-select"
-
-/**
- * ChatGPT models shown in the main list; every other ChatGPT model goes into More. The same main list as
- * Desktop's OpenAI catalog, so both apps offer the current generation up front and older ones one level down.
- */
-const PRIMARY_CHATGPT_MODELS = new Set(["gpt-6-astra", "gpt-6.1-sol", "gpt-5.6-terra", "gpt-6-luna"])
 
 function currentName(option: SelectOption): string {
   return flattenSelectOptions(option).find((item) => item.value === option.currentValue)?.name ?? option.currentValue
@@ -62,40 +59,55 @@ export function ModelSelectGroup({
   const effortSizer = effortLevels.reduce((a, b) => (b.name.length >= a.length ? b.name : a), "")
   const label = model ? currentName(model) : t("chat.model.model")
 
-  const toModel = (item: acp.SessionConfigSelectOption, groupId: string = NATIVE_MODEL_GROUP.id): ChatModelOption => ({
+  const toModel = (item: acp.SessionConfigSelectOption): ChatModelOption => ({
     api_id: item.value,
-    label: item.name,
-    more: groupId === NATIVE_MODEL_GROUP.id && !PRIMARY_CHATGPT_MODELS.has(item.value)
+    label: item.name
   })
-  const models = model ? flattenSelectOptions(model).map((item) => toModel(item)) : []
+  const groups = presentModelCatalog(
+    model && isGroupedSelect(model.options)
+      ? model.options.map((group) => ({
+          id: group.groupId,
+          name: group.name,
+          models: group.options.map(toModel)
+        }))
+      : [
+          {
+            ...NATIVE_MODEL_GROUP,
+            models: model ? flattenSelectOptions(model).map(toModel) : []
+          }
+        ],
+    model?.currentValue ?? ""
+  )
+  const models = groups.flatMap((group) => group.models)
+  const selected = models.find((item) => item.api_id === model?.currentValue) ?? {
+    api_id: model?.currentValue ?? "",
+    label
+  }
+  const fast = booleans.find((option) => option.configId === "fast_mode")
   return (
     <ModelSelect
       disabled={disabled || switching}
       switching={switching}
-      value={{ api_id: model?.currentValue ?? "", label }}
+      value={{ ...selected, label: modelTriggerLabel(selected.label) }}
+      compactCatalog
+      unavailableEffort={{
+        name: "Effort",
+        label: t("chat.model.unsupported")
+      }}
       models={models}
       showModelList={Boolean(model)}
-      showDescription
       onChange={(item) => {
         if (item.api_id === model?.currentValue) return
         if (onModelChange) onModelChange(item.api_id)
         else if (model) set(model, item.api_id)
       }}
-      header={model ? { name: model.name } : undefined}
-      modelGroups={
-        model && isGroupedSelect(model.options)
-          ? model.options.map((group) => ({
-              id: group.groupId,
-              name: group.name,
-              models: group.options.map((item) => toModel(item, group.groupId))
-            }))
-          : undefined
-      }
+      header={{ name: model?.name ?? t("chat.model.model"), action: <ModelSettingsAction /> }}
+      modelGroups={groups}
       t={(key) => t(key, { ns: "alwithChat" })}
       effortConfig={
         effort && effortLevels.length > 0
           ? {
-              name: effort.name,
+              name: "Effort",
               value: effort.currentValue,
               levels: effortLevels,
               sizer: effortSizer,
@@ -113,11 +125,23 @@ export function ModelSelectGroup({
         })),
         onChange: (value) => set(option, value)
       }))}
-      booleanOptions={booleans.map((option) => ({
-        id: option.configId,
-        name: option.name,
-        currentValue: option.currentValue
-      }))}
+      booleanOptions={[
+        {
+          id: "fast_mode",
+          name: t("chat.model.fastMode"),
+          currentValue: fast?.currentValue ?? false,
+          disabled: !fast,
+          title: !fast ? t("chat.model.unsupportedHint") : undefined,
+          icon: <Zap className="size-4" aria-hidden="true" />
+        },
+        ...booleans
+          .filter((option) => option !== fast)
+          .map((option) => ({
+            id: option.configId,
+            name: option.name,
+            currentValue: option.currentValue
+          }))
+      ]}
       onBooleanChange={(id, value) => {
         const option = booleans.find((option) => option.configId === id)
         if (!option) throw new Error(`Unknown boolean config: ${id}`)

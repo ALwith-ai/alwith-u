@@ -40,7 +40,7 @@ export function ChatBody({ session }: { session: Session }) {
     return (
       <Empty className="flex-1">
         <EmptyHeader>
-          <EmptyTitle>{t("welcome.title")}</EmptyTitle>
+          <EmptyTitle className="text-[28px] font-normal">{t("welcome.title")}</EmptyTitle>
           <EmptyDescription className="truncate font-mono">{session.cwd}</EmptyDescription>
         </EmptyHeader>
       </Empty>

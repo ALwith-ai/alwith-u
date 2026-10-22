@@ -5,7 +5,14 @@ import { mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { isFormElicitation, isStringProperty, isText, type Session, WebSocketRuntimeClient } from "@alwith/api"
+import {
+  isBooleanOption,
+  isFormElicitation,
+  isStringProperty,
+  isText,
+  type Session,
+  WebSocketRuntimeClient
+} from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 
 import { CodexClient } from "../src/agent/client"
@@ -109,6 +116,13 @@ async function check(transport: "stdio" | "ws") {
     console.log("draft: real model options before sending; empty session cleaned up")
 
     const [a, b] = await Promise.all([client.prepareDraft("main", directory), client.prepareDraft("chat", directory)])
+    const fast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    if (!fast || !isBooleanOption(fast)) throw new Error("Native model did not expose fast mode")
+    if (fast.currentValue) throw new Error("New native session enabled fast mode by default")
+    await client.setConfig(a, "fast_mode", true)
+    const enabledFast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    if (!enabledFast || !isBooleanOption(enabledFast) || !enabledFast.currentValue)
+      throw new Error("Fast mode did not become enabled")
     await Promise.all([
       client.prompt(a, [
         {
@@ -165,7 +179,15 @@ async function check(transport: "stdio" | "ws") {
     })
     await second.connect()
     await verifyHistory(second, directory, replies)
-    console.log("fresh agent: native history matches live transcripts")
+    const restoredFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    if (!restoredFast || !isBooleanOption(restoredFast))
+      throw new Error("Resumed native model did not expose fast mode")
+    await second.setConfig(a, "fast_mode", true)
+    await second.setConfig(a, "fast_mode", false)
+    const disabledFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    if (!disabledFast || !isBooleanOption(disabledFast) || disabledFast.currentValue)
+      throw new Error("Fast mode did not become disabled")
+    console.log("fresh agent: native history matches live transcripts; fast mode remains available and can be disabled")
     const boundary = second.session(a).items.find((item) => item.kind === "assistant" && !isNotice(item))
     const turnId = codexTurnId(boundary?._meta)
     if (turnId === null) throw new Error("Restored answer is missing its Codex turn id")

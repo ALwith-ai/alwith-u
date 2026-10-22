@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { basename } from "@/lib/path"
+import { cn } from "@/lib/utils"
 
 export async function chooseFolder(defaultPath: string | null): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false, defaultPath: defaultPath ?? undefined })
@@ -56,16 +57,48 @@ export function DraftProjectPicker({
   const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
     (path) => path !== defaultCwd && !isQuickChatDirectory(path)
   )
+  const hasProject = cwd !== null && cwd !== defaultCwd
+  const workOutsideProject = (): void => {
+    if (defaultCwd === null) throw new Error("The default draft directory is not ready")
+    onChange(defaultCwd)
+  }
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="h-7 max-w-full gap-1.5 px-2 text-sm font-normal" />}
+      <div
+        className={cn(
+          "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full px-2",
+          hasProject ? "text-foreground" : "text-foreground/65"
+        )}
       >
-        <FolderClosedIcon data-icon="inline-start" />
-        <span className="truncate">
-          {cwd === null || cwd === defaultCwd ? t("chat.draft.selectProject") : basename(cwd)}
-        </span>
-      </DropdownMenuTrigger>
+        {hasProject && (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="relative size-4 rounded-full p-0 hover:bg-transparent dark:hover:bg-transparent"
+            aria-label={t("chat.draft.workOutsideProject")}
+            title={t("chat.draft.workOutsideProject")}
+            disabled={defaultCwd === null}
+            onClick={workOutsideProject}
+          >
+            <FolderClosedIcon className="size-4 group-focus-within/project:opacity-0 group-hover/project:opacity-0" />
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-focus-within/project:opacity-100 group-hover/project:opacity-100">
+              <XIcon className="size-3" />
+            </span>
+          </Button>
+        )}
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 min-w-0 shrink gap-1.5 rounded-full p-0 text-sm font-normal text-inherit hover:bg-transparent dark:hover:bg-transparent"
+            />
+          }
+        >
+          {!hasProject && <FolderClosedIcon className="size-4" />}
+          <span className="truncate">{hasProject ? basename(cwd) : t("chat.draft.selectProject")}</span>
+        </DropdownMenuTrigger>
+      </div>
       <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
@@ -94,7 +127,7 @@ export function DraftProjectPicker({
             {t("chat.draft.newProject")}
           </DropdownMenuItem>
           {defaultCwd !== null && cwd !== null && cwd !== defaultCwd && (
-            <DropdownMenuItem onClick={() => onChange(defaultCwd)}>
+            <DropdownMenuItem onClick={workOutsideProject}>
               <XIcon />
               {t("chat.draft.workOutsideProject")}
             </DropdownMenuItem>

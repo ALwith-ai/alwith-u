@@ -762,6 +762,20 @@ export class CodexClient {
       }
     )
     await bind?.(response.sessionId)
+    // New chats use standard speed even when Codex's global default is priority.
+    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast_mode")
+    if (fast && isBooleanOption(fast) && fast.currentValue) {
+      try {
+        await this.setConfig(response.sessionId, fast.configId, false)
+      } catch (error) {
+        try {
+          await this.delete(response.sessionId)
+        } catch (cleanupError) {
+          throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the new session")
+        }
+        throw error
+      }
+    }
     this.contextRevisions.set(response.sessionId, revision)
     this.noteModel(this.sessions.get(response.sessionId))
     return response.sessionId

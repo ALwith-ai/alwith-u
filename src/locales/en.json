@@ -223,6 +223,10 @@
       "remove": "Remove {{name}}"
     },
     "model": {
+      "configureModels": "Configure models",
+      "fastMode": "Fast mode",
+      "unsupported": "Not supported",
+      "unsupportedHint": "This model does not support fast mode",
       "model": "Model",
       "switchModel": "Switch model",
       "switchPermissionMode": "Switch permission mode"
@@ -348,7 +352,22 @@
     "navigationLoading": "Loading preview",
     "navigationUnavailable": "Preview unavailable",
     "navigationEmpty": "(No content)",
-    "navigationRetry": "Retry"
+    "navigationRetry": "Retry",
+    "permissionModes": {
+      "readOnly": {
+        "name": "Ask for approval",
+        "description": "Always ask to edit external files and use the internet"
+      },
+      "agent": {
+        "name": "Approve for me",
+        "description": "Only ask for actions detected as potentially unsafe"
+      },
+      "fullAccess": {
+        "name": "Full access",
+        "description": "Unrestricted access to the internet and any file on your computer"
+      },
+      "heading": "How should ALwith U actions be approved?"
+    }
   },
   "composer": {
     "mode": "Permissions",
