@@ -37,7 +37,7 @@
     "@alwith/module-auth": "^0.1.6",
     "@alwith/module-chat": "^0.1.21",
     "@alwith/module-computer": "^0.1.2",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-d8fcd025b190.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-bd744b5fc35b.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-fca3d367fd3d.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19-12ea25bf6079.tgz",
@@ -158,7 +158,7 @@
     "@alwith/module-fs": "file:vendor/alwith-module-fs-0.1.0-rc.5-5f43be16d6bc.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19-12ea25bf6079.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-bd744b5fc35b.tgz",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-d8fcd025b190.tgz",
     "@alwith/module-auth": "^0.1.6",
     "@alwith/module-chat": "^0.1.21"
   }

@@ -10,7 +10,7 @@
         "@alwith/module-auth": "^0.1.6",
         "@alwith/module-chat": "^0.1.21",
         "@alwith/module-computer": "^0.1.2",
-        "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
+        "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-d8fcd025b190.tgz",
         "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-bd744b5fc35b.tgz",
         "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-fca3d367fd3d.tgz",
         "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19-12ea25bf6079.tgz",
@@ -131,7 +131,7 @@
   "overrides": {
     "@alwith/module-auth": "^0.1.6",
     "@alwith/module-chat": "^0.1.21",
-    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz",
+    "@alwith/module-drive": "file:vendor/alwith-module-drive-0.1.0-rc.20-d8fcd025b190.tgz",
     "@alwith/module-editor": "file:vendor/alwith-module-editor-0.1.0-rc.11-bd744b5fc35b.tgz",
     "@alwith/module-extension": "file:vendor/alwith-module-extension-0.1.0-rc.11-fca3d367fd3d.tgz",
     "@alwith/module-file-tree": "file:vendor/alwith-module-file-tree-0.1.0-rc.19-12ea25bf6079.tgz",
@@ -150,7 +150,7 @@
 
     "@alwith/module-computer": ["@alwith/module-computer@0.1.2", "", {}, "sha512-bDc4mWBUOPOu0XBpm60DaJE9rPE/PdP8CXe2ra5StF1HNC9HYmfY/9ccmK0zJVxbADgnUefO6dfEJ4+yrtt7dQ=="],
 
-    "@alwith/module-drive": ["@alwith/module-drive@vendor/alwith-module-drive-0.1.0-rc.20-8fb0bfa0b033.tgz", { "peerDependencies": { "@alwith/module-editor": "^0.1.0-rc.8", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "lucide-react": "^1.54.0", "react": "^19.0.0", "react-dom": "^19.0.0", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-jCiwM+N10oPz6KWFamA991ISew/1OEu3rgSkU6g29psid1148bWR18gn715HGZQl1qiHs9Li0r0I5La5boYQVg=="],
+    "@alwith/module-drive": ["@alwith/module-drive@vendor/alwith-module-drive-0.1.0-rc.20-d8fcd025b190.tgz", { "peerDependencies": { "@alwith/module-editor": "^0.1.0-rc.8", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "lucide-react": "^1.54.0", "react": "^19.0.0", "react-dom": "^19.0.0", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-5zS75m+BNFw+m+ZI9F1416ivVKG+DL73RZ2LZ30Awy2vqEpzTnn98y4aF2Mdz47TVVMABJFRS+pSqXIVA4fQ4w=="],
 
     "@alwith/module-editor": ["@alwith/module-editor@vendor/alwith-module-editor-0.1.0-rc.11-bd744b5fc35b.tgz", { "dependencies": { "@alwith/module-fs": "0.1.0-rc.5", "@base-ui/react": "^1.8.0" }, "peerDependencies": { "@alwith/module-chat": "^0.1.10", "@milkdown/core": "^7.22.2", "@milkdown/plugin-history": "^7.22.2", "@milkdown/plugin-math": "^7.5.9", "@milkdown/preset-commonmark": "^7.22.2", "@milkdown/preset-gfm": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "audiomotion-analyzer": "^4.5.4", "docx-preview": "^0.4.1", "dompurify": "^3.4.16", "katex": "^0.19.0", "lucide-react": "^1.54.0", "marked": "^18.1.0", "monaco-editor": "^0.57.0", "pdfjs-dist": "^6.4.299", "react": "^19.0.0", "react-dom": "^19.0.0", "react-player": "^3.4.0", "shiki": "^4.5.0", "utif": "^3.1.0", "x-data-spreadsheet": "^1.1.9", "xlsx": "^0.18.5" }, "optionalPeers": ["@alwith/module-chat", "@milkdown/core", "@milkdown/plugin-history", "@milkdown/plugin-math", "@milkdown/preset-commonmark", "@milkdown/preset-gfm", "@milkdown/prose", "@milkdown/utils", "audiomotion-analyzer", "docx-preview", "dompurify", "katex", "marked", "monaco-editor", "pdfjs-dist", "react-player", "shiki", "utif", "x-data-spreadsheet", "xlsx"] }, "sha512-q//XLSMruwQENA/Awdn/WxriSuuKWQLkbekdmiqEpkc4z2SvF1rGyetkgAgOeLgHrLmiGb6n78MCVRwfr6V4rg=="],
 

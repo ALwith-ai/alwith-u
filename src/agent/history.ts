@@ -8,6 +8,11 @@ export interface HistoryRequest {
   maxBytes: number
 }
 
+type ArchiveContent =
+  { type: "text"; text: string } | ({ type: "image"; mimeType: string; data: string } & Record<string, unknown>)
+
+const MAX_ARCHIVE_BYTES = 25 * 1024 * 1024
+
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid history response")
   return value as Record<string, unknown>
@@ -41,14 +46,9 @@ export async function exportConversation(
       })
     } catch (error) {
       const data = error && typeof error === "object" && "data" in error ? error.data : null
-      if (
-        data &&
-        typeof data === "object" &&
-        "reason" in data &&
-        data.reason === "history_page_too_large" &&
-        limit > 1
-      ) {
-        limit = Math.max(1, Math.floor(limit / 2))
+      if (data && typeof data === "object" && "reason" in data && data.reason === "history_page_too_large") {
+        if (limit > 1) limit = Math.max(1, Math.floor(limit / 2))
+        else throw new Error(`单条历史内容超过 16 MiB 接口上限，无法完整归档（会话 ${sessionId}）`)
         continue
       }
       throw error
@@ -85,16 +85,27 @@ export async function exportConversation(
         const update = object(rawUpdate)
         if (update.sessionUpdate !== "user_message" && update.sessionUpdate !== "agent_message") continue
         if (!Array.isArray(update.content)) throw new Error("Invalid history message")
-        const content: { type: "text"; text: string }[] = []
+        const content: ArchiveContent[] = []
         for (const rawBlock of update.content) {
           const block = object(rawBlock)
           if (block.type === "text" && typeof block.text === "string") content.push({ type: "text", text: block.text })
+          else if (
+            block.type === "image" &&
+            typeof block.mimeType === "string" &&
+            /^image\/[a-zA-Z0-9.+-]+$/.test(block.mimeType) &&
+            typeof block.data === "string" &&
+            block.data.length > 0
+          )
+            content.push({ ...block, type: "image", mimeType: block.mimeType, data: block.data })
           else if (block.type === "resource_link" && typeof block.uri === "string")
             content.push({
               type: "text",
               text: `[${typeof block.name === "string" ? block.name : "Resource"}] ${block.uri}`
             })
-          else throw new Error("Unsupported history message content; refusing a partial archive")
+          else
+            throw new Error(
+              `Unsupported history message content (session ${sessionId}, item ${item.itemId}, type ${String(block.type)}); refusing a partial archive`
+            )
         }
         if (!content.length) continue
         const type = update.sessionUpdate === "user_message" ? "user" : "assistant"
@@ -107,7 +118,7 @@ export async function exportConversation(
           message: { role: type, content }
         })}\n`
         bytes += encoder.encode(line).length
-        if (bytes > 25 * 1024 * 1024) throw new Error("会话归档超过 25 MiB，请缩小会话后重试")
+        if (bytes > MAX_ARCHIVE_BYTES) throw new Error("会话归档超过 25 MiB，请缩小会话后重试")
         lines.push(line)
       }
     }
