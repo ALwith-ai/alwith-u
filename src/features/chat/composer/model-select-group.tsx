@@ -45,7 +45,8 @@ export function ModelSelectGroup({
     SelectOption | undefined
   const others = options.filter(
     (option) =>
-      option.category === "model_config" || (option.category !== "mode" && option !== model && option !== effort)
+      option.configId !== "collaboration_mode" &&
+      (option.category === "model_config" || (option.category !== "mode" && option !== model && option !== effort))
   )
   const selects = others.filter(isSelectOption)
   const booleans: BooleanOption[] = others.filter(isBooleanOption)
