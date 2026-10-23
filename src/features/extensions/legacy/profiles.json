@@ -2,6 +2,7 @@
   {
     "id": "bi-metrics",
     "icon": "lucide:chart",
+    "entryIcon": "bar-chart-3",
     "url": "https://bi-api.finture.id/api/ext/bi-metrics/main.js",
     "dataFiles": [],
     "requiredSkills": ["bi-add-metric", "bi-monthly-report"],
@@ -12,6 +13,7 @@
   {
     "id": "yup-kb",
     "icon": "lucide:globe",
+    "entryIcon": "book-open",
     "url": "https://bi-api.finture.id/api/ext/yup-kb/main.js",
     "dataFiles": ["workspaces.json"],
     "requiredSkills": ["yup-kb"],
@@ -22,6 +24,7 @@
   {
     "id": "etms-strategy-review",
     "icon": "lucide:settings",
+    "entryIcon": "shield-check",
     "url": "https://bi-api.finture.id/api/ext/etms-strategy-review/main.js",
     "dataFiles": [],
     "requiredSkills": ["etms-strategy-review"],
