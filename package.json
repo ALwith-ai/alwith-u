@@ -34,10 +34,10 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.0.1",
     "@alwith/api": "^0.4.16",
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.7-6cb6dace71bd.tgz",
-    "@alwith/module-chat": "^0.1.24",
-    "@alwith/module-collection": "./vendor/alwith-module-collection-0.0.1.tgz",
-    "@alwith/module-computer": "file:vendor/alwith-module-computer-0.1.6-84b5f996adbd.tgz",
+    "@alwith/module-auth": "^0.1.8",
+    "@alwith/module-chat": "^0.1.25",
+    "@alwith/module-collection": "^0.0.2",
+    "@alwith/module-computer": "^0.1.6",
     "@alwith/module-drive": "^0.1.1",
     "@alwith/module-editor": "^0.1.0-rc.13",
     "@alwith/module-extension": "^0.1.0-rc.13",
@@ -119,12 +119,12 @@
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.1.0",
-    "@alwith/native-computer": "file:vendor/alwith-native-computer-0.1.1.tgz",
+    "@alwith/native-computer": "^0.1.1",
     "@alwith/native-drive": "^0.1.1",
     "@alwith/native-extension": "^0.1.0",
     "@alwith/native-fs": "^0.1.0",
     "@alwith/native-gamepad": "^0.1.0",
-    "@alwith/native-installed-apps": "^0.1.0",
+    "@alwith/native-installed-apps": "^0.1.1",
     "@alwith/native-kit": "^0.1.0",
     "@alwith/native-voice": "^0.1.0",
     "@nyssance/codex-acp-v2": "^0.7.30",
@@ -169,13 +169,10 @@
     "@openai/codex-win32-arm64": "npm:@openai/codex@0.164.0-win32-arm64"
   },
   "overrides": {
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.7-6cb6dace71bd.tgz",
-    "@alwith/module-chat": "^0.1.24",
-    "@alwith/native-computer-darwin-arm64": "file:vendor/alwith-native-computer-darwin-arm64-0.1.1-95d59aaa90b3.tgz",
-    "@alwith/native-installed-apps-darwin-arm64": "file:vendor/alwith-native-installed-apps-darwin-arm64-0.1.0-54ea1b21ba06.tgz"
+    "@alwith/module-auth": "^0.1.8",
+    "@alwith/module-chat": "^0.1.25"
   },
   "patchedDependencies": {
-    "@alwith/module-chat@0.1.24": "patches/@alwith%2Fmodule-chat@0.1.24.patch",
     "@nyssance/codex-acp-v2@0.7.30": "patches/@nyssance%2Fcodex-acp-v2@0.7.30.patch",
     "@nyssance/atlas@github:nyssance/atlas#b629e3b": "patches/@nyssance%2Fatlas@github%3Anyssance%2Fatlas#b629e3b.patch"
   }
