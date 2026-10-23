@@ -45,7 +45,7 @@ test("native context menus read the current language each time they open", async
   await i18n.changeLanguage("en")
   await petWindowCall("menu")
   expect(requests).toEqual([
-    { action: "menu", payload: { closeLabel: "隐藏 Vibémon" } },
-    { action: "menu", payload: { closeLabel: "Hide Vibémon" } }
+    { action: "menu", payload: { closeLabel: "叫回休息室" } },
+    { action: "menu", payload: { closeLabel: "Return to lounge" } }
   ])
 })

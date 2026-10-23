@@ -44,6 +44,7 @@
     "completed": "Started"
   },
   "actions": {
+    "confirm": "Confirm",
     "more": "More actions",
     "openFolder": "Open project folder",
     "openProjectWith": "Open project with {{app}}",
@@ -452,7 +453,10 @@
       "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
       "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",
       "unsupported": "Not supported on Linux. Use navigation buttons or middle-mouse dragging."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Enable trackpad gestures",
+    "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1017,7 +1021,9 @@
     "show": "Show Vibémon",
     "hide": "Hide Vibémon",
     "selectFirst": "Select a pet from the equip page first",
-    "unavailable": "Desktop pets are supported on macOS and Windows"
+    "unavailable": "Desktop pets are supported on macOS and Windows",
+    "lounge": "Vibémon lounge",
+    "recall": "Return to lounge"
   },
   "voice": {
     "configureKey": "Please configure an API Key",

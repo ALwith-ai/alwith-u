@@ -395,6 +395,9 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 updater::commands::updater_install_and_relaunch,
                 window::attach_window_to_main,
                 installed_apps::read_apps_info,
+                installed_apps::default_browser,
+                installed_apps::is_app_running,
+                installed_apps::open_app_by_id,
                 installed_apps::open_path_in_app
             ]
             .event::<trackpad::TrackpadGesture>()

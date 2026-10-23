@@ -121,6 +121,7 @@ function harness() {
   disposals.push(() => input.destroy())
   return {
     root,
+    api,
     input,
     synthetic,
     location: () => location,
@@ -292,4 +293,31 @@ test("a repeated native begin restores before establishing the new drag origin",
   h.input.gesture(gesture("ended"))
   flush()
   expect(h.selected()).toBe(1)
+})
+
+test("idle cancellation does not jump a programmatic animation to its target", () => {
+  const h = harness()
+  const scroll = vi.spyOn(h.api, "scrollTo")
+  h.input.cancelInput()
+  expect(scroll).not.toHaveBeenCalled()
+  h.input.goToSnap(2, { instant: false })
+  h.input.goToSnap(0, { instant: false })
+  expect(scroll.mock.calls).toEqual([
+    [2, false],
+    [0, false]
+  ])
+})
+
+test.each([1, -1])("three-finger overflow is bounded and reversible at edge %s", (direction) => {
+  const h = harness()
+  h.input.gesture(gesture("began"))
+  h.input.gesture(gesture("changed", direction * 20))
+  const edge = direction > 0 ? 0 : -2000
+  expect(Math.abs(h.location() - edge)).toBeGreaterThan(0)
+  expect(Math.abs(h.location() - edge)).toBeLessThanOrEqual(60)
+  h.input.gesture(gesture("changed", -direction * 20))
+  expect(h.location()).toBeCloseTo(-1000)
+  h.input.gesture(gesture("ended"))
+  flush()
+  expect(h.location()).toBe(-1000)
 })

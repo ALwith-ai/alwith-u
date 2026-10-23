@@ -1,0 +1,68 @@
+diff --git a/dist/chunk-fqnpp7ta.js b/dist/chunk-fqnpp7ta.js
+index d88e68bbd22f5380bb7f7948881867b01486d660..a0368800e2a372539e09ec7ed93ae1173c22114d 100644
+--- a/dist/chunk-fqnpp7ta.js
++++ b/dist/chunk-fqnpp7ta.js
+@@ -295,6 +295,7 @@ function attachInput(api, blocked, flickMinIndex = 0, panButton = "middle") {
+   };
+   const cancel = () => {
+     const interrupted = owner !== null || releaseFrame !== 0;
++    if (!interrupted) return;
+     if (owner)
+       end(true);
+     clearRelease();
+@@ -395,7 +396,21 @@ function attachInput(api, blocked, flickMinIndex = 0, panButton = "middle") {
+       } else if (owner === "trackpad") {
+         if (event.phase === "changed") {
+           x += event.dx * width;
++          // Compress overflow in physical coordinates; reversing unwinds the same curve.
++          const direction = root.dir === "rtl" ? -1 : 1;
++          const snaps = api.internalEngine().scrollSnaps;
++          const minimum = Math.min(...snaps);
++          const maximum = Math.max(...snaps);
++          const projected = startLocation + x * direction;
++          const edge = Math.max(minimum, Math.min(maximum, projected));
++          const overflow = projected - edge;
++          const limit = Math.min(64, width * 0.06);
++          const resisted = edge + Math.sign(overflow) * limit *
++            (1 - Math.exp(-Math.abs(overflow) * 0.18 / limit));
++          const rawX = x;
++          x = (resisted - startLocation) * direction;
+           forward("mousemove");
++          x = rawX;
+         } else if (event.phase === "ended" || event.phase === "cancelled")
+           end(false);
+         else
+diff --git a/src/input.ts b/src/input.ts
+index 53da3855e24441f9f63f348a467177af12147b0d..d99326113d6833a5a5542d23c2e24de4c4eb50c8 100644
+--- a/src/input.ts
++++ b/src/input.ts
+@@ -73,6 +73,7 @@ export function attachInput(
+   };
+   const cancel = (): void => {
+     const interrupted = owner !== null || releaseFrame !== 0;
++    if (!interrupted) return;
+     if (owner) end(true);
+     clearRelease();
+     if (!disposed)
+@@ -179,7 +180,21 @@ export function attachInput(
+       } else if (owner === "trackpad") {
+         if (event.phase === "changed") {
+           x += event.dx * width;
++          // Compress overflow in physical coordinates; reversing unwinds the same curve.
++          const direction = root.dir === "rtl" ? -1 : 1;
++          const snaps = api.internalEngine().scrollSnaps;
++          const minimum = Math.min(...snaps);
++          const maximum = Math.max(...snaps);
++          const projected = startLocation + x * direction;
++          const edge = Math.max(minimum, Math.min(maximum, projected));
++          const overflow = projected - edge;
++          const limit = Math.min(64, width * 0.06);
++          const resisted = edge + Math.sign(overflow) * limit *
++            (1 - Math.exp(-Math.abs(overflow) * 0.18 / limit));
++          const rawX = x;
++          x = (resisted - startLocation) * direction;
+           forward("mousemove");
++          x = rawX;
+         } else if (event.phase === "ended" || event.phase === "cancelled")
+           // Native cancellation settles the measured position; explicit
+           // cancelInput restores the start (Desktop/U behavior).

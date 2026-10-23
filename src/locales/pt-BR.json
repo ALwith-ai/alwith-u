@@ -15,6 +15,7 @@
     "pending": "Pendente"
   },
   "actions": {
+    "confirm": "Confirmar",
     "copy": "Copiar",
     "copied": "Copiado",
     "cancel": "Cancelar",
@@ -186,7 +187,10 @@
       "mac": "Alterne entre páginas com três dedos. Os gestos do Mission Control ou App Exposé do macOS podem interromper o movimento; ajuste-os nos Ajustes do Sistema.",
       "windows": "Alterne entre páginas com três dedos em um touchpad de precisão. Gestos do sistema também podem ser acionados; selecione Nada para gestos de três dedos em Configurações do Windows > Bluetooth e dispositivos > Touchpad.",
       "unsupported": "Não disponível no Linux. Use os botões de navegação ou arraste com o botão do meio do mouse."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Ativar gestos do trackpad",
+    "threeFingerSwipeDesc": "Deslize horizontalmente com três dedos para mover a tela"
   },
   "usage": {
     "usage": "Uso",
@@ -349,7 +353,9 @@
     "more": "Mais ações"
   },
   "pet": {
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "lounge": "Sala de descanso Vibémon",
+    "recall": "Voltar à sala de descanso"
   },
   "app": {
     "name": "ALwith U"

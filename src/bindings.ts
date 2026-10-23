@@ -247,6 +247,9 @@ export const commands = {
   attachWindowToMain: (args: { label: string }): Promise<boolean> => __t3Invoke<boolean>("attach_window_to_main", args),
   readAppsInfo: (args: { names: string[]; withIcons: boolean }): Promise<AppInfo_Serialize[]> =>
     __t3Invoke<AppInfo_Serialize[]>("read_apps_info", args),
+  defaultBrowser: (): Promise<string> => __t3Invoke<string>("default_browser"),
+  isAppRunning: (args: { bundleId: string }): Promise<boolean> => __t3Invoke<boolean>("is_app_running", args),
+  openAppById: (args: { bundleId: string }): Promise<null> => __t3Invoke<null>("open_app_by_id", args),
   openPathInApp: (args: { bundleId: string; path: string }): Promise<null> => __t3Invoke<null>("open_path_in_app", args)
 } as const
 
@@ -344,6 +347,9 @@ export type CommandErrors = {
   updaterInstallAndRelaunch: string
   attachWindowToMain: string
   readAppsInfo: Value
+  defaultBrowser: Value
+  isAppRunning: Value
+  openAppById: Value
   openPathInApp: Value
 }
 

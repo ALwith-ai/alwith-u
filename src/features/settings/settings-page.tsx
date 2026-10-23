@@ -14,6 +14,7 @@ import {
   MicIcon,
   MonitorIcon,
   SlidersHorizontalIcon,
+  TouchpadIcon,
   UserIcon
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -40,6 +41,7 @@ import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
 import { GeneralSection } from "./sections/general-section"
 import { ProviderSection } from "./sections/provider-section"
+import { TrackpadRow } from "./sections/trackpad-row"
 import { VoiceSection } from "./sections/voice-section"
 import "./settings.css"
 
@@ -48,6 +50,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   computer: MonitorIcon,
   drive: CloudIcon,
   general: SlidersHorizontalIcon,
+  trackpad: TouchpadIcon,
   editor: Code2Icon,
   appearance: ContrastIcon,
   provider: CpuIcon,
@@ -112,6 +115,8 @@ export function SettingsPage() {
             return <EditorSettingsSection />
           case "computer":
             return <ComputerSection />
+          case "trackpad":
+            return <TrackpadRow />
           case "general":
             return <GeneralSection />
           case "appearance":

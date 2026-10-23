@@ -38,6 +38,7 @@ import { reportExtensionError, useExtensions } from "@/features/extensions/runti
 import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
+import { TrailingBoard } from "@/features/layout/components/trailing-board"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { PluginsPage } from "@/features/plugins/plugins-page"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
@@ -676,6 +677,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               </SidebarInset>
             </>
           }
+          trailing={<TrailingBoard onOpenVibemon={openVibemon} />}
           toolbar={<div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />}
           statusBar={
             <>

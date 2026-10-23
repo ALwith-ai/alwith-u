@@ -15,6 +15,7 @@
     "pending": "Pendiente"
   },
   "actions": {
+    "confirm": "Confirmar",
     "copy": "Copiar",
     "copied": "Copiado",
     "cancel": "Cancelar",
@@ -186,7 +187,10 @@
       "mac": "Cambia de página con tres dedos. Los gestos de Mission Control o App Exposé de macOS pueden interrumpirlo; ajústalos en Ajustes del Sistema.",
       "windows": "Cambia de página con tres dedos en un panel táctil de precisión. También pueden activarse gestos del sistema; selecciona Nada para los deslizamientos con tres dedos en Configuración de Windows > Bluetooth y dispositivos > Panel táctil.",
       "unsupported": "No compatible con Linux. Usa los botones de navegación o arrastra con el botón central del ratón."
-    }
+    },
+    "trackpad": "Panel táctil",
+    "trackpadEnabled": "Activar gestos del panel táctil",
+    "threeFingerSwipeDesc": "Desliza tres dedos horizontalmente para desplazar el lienzo"
   },
   "usage": {
     "usage": "Uso",
@@ -354,7 +358,9 @@
     "more": "Más acciones"
   },
   "pet": {
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "lounge": "Sala de Vibémon",
+    "recall": "Volver a la sala de descanso"
   },
   "app": {
     "name": "ALwith U"

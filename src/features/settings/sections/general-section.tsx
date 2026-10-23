@@ -16,7 +16,6 @@ import { loadPreferences, savePreference } from "@/lib/preferences"
 
 import { AutostartRow } from "./autostart-row"
 import { SettingGroup, SettingRow } from "./shared"
-import { TrackpadRow } from "./trackpad-row"
 
 export function GeneralSection() {
   const { t } = useTranslation()
@@ -139,7 +138,6 @@ export function GeneralSection() {
           />
         </div>
       </SettingRow>
-      <TrackpadRow />
       <AutostartRow />
     </SettingGroup>
   )

@@ -53,7 +53,7 @@ test("Linux cannot enable gestures even when a synced preference is enabled", ()
     </>
   )
   expect(view.getByText(/Not supported on Linux/)).toBeInTheDocument()
-  const toggle = view.getByRole("switch")
+  const toggle = view.getByRole("switch", { name: "Three-finger horizontal swipe" })
   expect(toggle).toHaveAttribute("aria-disabled", "true")
   expect(toggle).not.toBeChecked()
   fireEvent.click(toggle)
@@ -66,7 +66,7 @@ test.each([
   ["Win32", /Windows Settings/]
 ])("shows conflict guidance for %s", (platform, guidance) => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue(platform as string)
-  settingsFixture()
+  settingsFixture({ "appearance.threeFingerSwipe": true })
   const view = render(<TrackpadRow />)
   expect(view.getByText(guidance)).toBeInTheDocument()
 })
@@ -76,7 +76,30 @@ test("failed persistence reports the error and keeps the saved state", async () 
   fixture.write.mockRejectedValue(new Error("Cannot save settings"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   const view = render(<TrackpadRow />)
-  fireEvent.click(view.getByRole("switch"))
+  fireEvent.click(view.getByRole("switch", { name: "Three-finger horizontal swipe" }))
   await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot save settings"))
-  expect(view.getByRole("switch")).not.toBeChecked()
+  expect(view.getByRole("switch", { name: "Three-finger horizontal swipe" })).not.toBeChecked()
+})
+
+test("the master switch suspends input without losing the gesture selection", async () => {
+  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true })
+  const view = render(
+    <>
+      <TrackpadRow />
+      <Consumer />
+    </>
+  )
+  const master = view.getByRole("switch", { name: "Enable trackpad gestures" })
+  const gesture = view.getByRole("switch", { name: "Three-finger horizontal swipe" })
+  fireEvent.click(master)
+  await waitFor(() => expect(master).not.toBeChecked())
+  expect(gesture).toBeChecked()
+  expect(gesture).toHaveAttribute("aria-disabled", "true")
+  expect(view.getByRole("status")).toHaveTextContent("false")
+  expect(fixture.values.get("appearance.threeFingerSwipe")).toBe(true)
+  expect(fixture.values.get("appearance.trackpadEnabled")).toBe(false)
+  fireEvent.click(master)
+  await waitFor(() => expect(master).toBeChecked())
+  expect(gesture).toBeChecked()
+  expect(view.getByRole("status")).toHaveTextContent("true")
 })

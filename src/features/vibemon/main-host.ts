@@ -13,6 +13,7 @@ import {
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { LogicalPosition, PhysicalPosition } from "@tauri-apps/api/window"
 import { info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
@@ -130,7 +131,7 @@ async function start() {
       stop()
     }
   }
-  async function ensurePet(options: { trusted?: boolean } = {}) {
+  async function ensurePet(options: { trusted?: boolean; dropCenter?: { x: number; y: number } } = {}) {
     if (platform() !== "macos" && platform() !== "windows") return "unavailable" as const
     const started = performance.now()
     const measure = (stage: string) => {
@@ -155,6 +156,31 @@ async function start() {
     }
     if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
       throw new Error("The selected pet changed during presentation")
+    const placePet = async () => {
+      if (!options.dropCenter) return
+      const pet = await WebviewWindow.getByLabel("vibemon")
+      if (!pet) throw new Error("Pet window unavailable")
+      const size = await pet.outerSize()
+      if (platform() === "macos") {
+        const main = await WebviewWindow.getByLabel("main")
+        if (!main) throw new Error("Main window unavailable")
+        const [mainScale, petScale] = await Promise.all([main.scaleFactor(), pet.scaleFactor()])
+        // AppKit uses desktop points across displays, even when their backing scales differ.
+        await pet.setPosition(
+          new LogicalPosition(
+            options.dropCenter.x / mainScale - size.width / petScale / 2,
+            options.dropCenter.y / mainScale - size.height / petScale / 2
+          )
+        )
+        return
+      }
+      await pet.setPosition(
+        new PhysicalPosition(
+          Math.round(options.dropCenter.x - size.width / 2),
+          Math.round(options.dropCenter.y - size.height / 2)
+        )
+      )
+    }
     const completeOpen = async () => {
       if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
         throw new Error("The selected pet changed during presentation")
@@ -172,6 +198,7 @@ async function start() {
         presentedResource.identity !== identity
       )
         await command("reload", state.pet)
+      await placePet()
       await command("present", state.pet)
       return completeOpen()
     }
@@ -201,6 +228,7 @@ async function start() {
       ])
       measure("window-ready")
       if (scope !== petScope()) throw new Error("The pet account changed")
+      await placePet()
       await command("present", state.pet)
       return await completeOpen()
     } catch (error) {
@@ -257,6 +285,8 @@ async function start() {
       label: "main" | "chat"
       sessionId: string | null
       visible: boolean
+      petId: string
+      dropCenter?: { x: number; y: number }
       trusted?: boolean
     }
     switch (request.action) {
@@ -299,6 +329,15 @@ async function start() {
           throw new Error("Invalid conversation surface")
         return owner.surface(payload.label, { sessionId: payload.sessionId, visible: payload.visible })
       }
+      case "open-from-lounge":
+        if (request.from !== "main") throw new Error("Only main owns the lounge")
+        return serialize(async () => {
+          if ((await getVibemonState()).pet !== payload.petId) throw new Error("The selected pet changed")
+          const center = payload.dropCenter
+          if (center !== undefined && (!Number.isFinite(center.x) || !Number.isFinite(center.y)))
+            throw new Error("Invalid pet drop position")
+          return ensurePet({ trusted: true, dropCenter: center })
+        })
       case "open-pet":
         return windows.openPet({ trusted: payload.trusted === true })
       case "close-pet":

@@ -14,6 +14,7 @@
     "pending": "In sospeso"
   },
   "actions": {
+    "confirm": "Conferma",
     "copy": "Copia",
     "copied": "Copiato",
     "cancel": "Annulla",
@@ -186,7 +187,10 @@
       "mac": "Cambia pagina con tre dita. I gesti Mission Control o App Exposé di macOS possono interrompere lo scorrimento; modificali in Impostazioni di Sistema.",
       "windows": "Cambia pagina con tre dita su un touchpad di precisione. Anche i gesti di sistema possono attivarsi; seleziona Nessuna operazione per gli scorrimenti con tre dita in Impostazioni di Windows > Bluetooth e dispositivi > Touchpad.",
       "unsupported": "Non supportato su Linux. Usa i pulsanti di navigazione o trascina con il pulsante centrale del mouse."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Abilita gesti del trackpad",
+    "threeFingerSwipeDesc": "Scorri orizzontalmente con tre dita per spostare l’area di lavoro"
   },
   "usage": {
     "usage": "Utilizzo",
@@ -359,7 +363,9 @@
     "more": "Altre azioni"
   },
   "pet": {
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "lounge": "Sala Vibémon",
+    "recall": "Torna nella sala relax"
   },
   "app": {
     "name": "ALwith U"

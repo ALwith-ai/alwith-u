@@ -15,6 +15,7 @@
     "pending": "En attente"
   },
   "actions": {
+    "confirm": "Confirmer",
     "copy": "Copier",
     "copied": "Copié",
     "cancel": "Annuler",
@@ -185,7 +186,10 @@
       "mac": "Changez de page avec trois doigts. Les gestes Mission Control ou App Exposé de macOS peuvent interrompre le balayage ; ajustez-les dans Réglages Système.",
       "windows": "Changez de page avec trois doigts sur un pavé tactile de précision. Les gestes système peuvent aussi se déclencher ; choisissez Rien pour les balayages à trois doigts dans Paramètres Windows > Bluetooth et appareils > Pavé tactile.",
       "unsupported": "Non pris en charge sous Linux. Utilisez les boutons de navigation ou faites glisser avec le bouton central de la souris."
-    }
+    },
+    "trackpad": "Pavé tactile",
+    "trackpadEnabled": "Activer les gestes du pavé tactile",
+    "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas"
   },
   "usage": {
     "usage": "Utilisation",
@@ -349,7 +353,9 @@
     "more": "Plus d’actions"
   },
   "pet": {
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "lounge": "Salon Vibémon",
+    "recall": "Retourner au salon"
   },
   "app": {
     "name": "ALwith U"

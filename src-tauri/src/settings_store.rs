@@ -279,7 +279,8 @@ fn validate_secret(key: &str, value: &str) -> Result<(), String> {
 fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
     for (key, value) in values {
         let valid = match key.as_str() {
-            "computer.enabled"
+            "appearance.trackpadEnabled"
+            | "computer.enabled"
             | "voice.enabled"
             | "voice.smooth"
             | "appearance.sidebarPinned"

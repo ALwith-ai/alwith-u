@@ -470,6 +470,8 @@ html[data-window-backdrop="acrylic"]
         .codex-assistant-turn *,
         .chat-project-picker *,
         .vibemon-content *,
+        .vibemon-lounge-pet,
+        .window-card-hit,
         .canvas-dots *
       )
     ):hover {
@@ -478,6 +480,32 @@ html[data-window-backdrop="acrylic"]
       color-mix(in oklab, currentColor 8%, transparent)
     );
   }
+}
+
+.window-card {
+  /* Native window-control roles match the Desktop miniature window chrome. */
+  --window-control-close: #ff5f57;
+  --window-control-minimize: #febc2e;
+  --window-control-maximize: #28c840;
+}
+.window-card-close-dot {
+  background-color: var(--window-control-close);
+}
+.window-card-minimize-dot {
+  background-color: var(--window-control-minimize);
+}
+.window-card-maximize-dot {
+  background-color: var(--window-control-maximize);
+}
+.window-card:has(:focus-visible) {
+  outline: 2px solid var(--pane-feedback-color, var(--ring));
+  outline-offset: -2px;
+}
+.window-card:has(.window-card-hit:active) {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--foreground) 12%, transparent),
+    color-mix(in oklab, var(--foreground) 12%, transparent)
+  );
 }
 
 /* Keep application buttons stationary while pressed, including composed triggers. */
@@ -704,4 +732,12 @@ body,
 .main-screen-track {
   will-change: transform;
   padding-inline-start: var(--canvas-leading-width);
+}
+
+.main-screen-trailing {
+  position: relative;
+  flex: none;
+  width: var(--sidebar-width);
+  height: 100%;
+  padding-inline: 4px;
 }

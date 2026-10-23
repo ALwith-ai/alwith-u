@@ -15,6 +15,7 @@
     "pending": "대기 중"
   },
   "actions": {
+    "confirm": "확인",
     "copy": "복사",
     "copied": "복사됨",
     "cancel": "취소",
@@ -192,7 +193,10 @@
       "mac": "세 손가락으로 페이지를 전환합니다. macOS Mission Control 또는 앱 Exposé 제스처가 방해하면 시스템 설정에서 변경하세요.",
       "windows": "정밀 터치패드에서 세 손가락으로 페이지를 전환합니다. 시스템 제스처도 실행될 수 있으므로 Windows 설정 > Bluetooth 및 장치 > 터치패드에서 세 손가락 살짝 밀기를 아무 작업 안 함으로 설정하세요.",
       "unsupported": "Linux에서는 지원하지 않습니다. 탐색 버튼이나 마우스 가운데 버튼 드래그를 사용하세요."
-    }
+    },
+    "trackpad": "트랙패드",
+    "trackpadEnabled": "트랙패드 제스처 활성화",
+    "threeFingerSwipeDesc": "세 손가락으로 가로로 쓸어 캔버스 이동"
   },
   "usage": {
     "usage": "사용량",
@@ -372,7 +376,9 @@
     "more": "추가 작업"
   },
   "pet": {
-    "retry": "다시 시도"
+    "retry": "다시 시도",
+    "lounge": "Vibémon 휴게실",
+    "recall": "휴게실로 돌아오기"
   },
   "app": {
     "name": "ALwith U"

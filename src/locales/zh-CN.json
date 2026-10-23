@@ -44,6 +44,7 @@
     "completed": "已启动"
   },
   "actions": {
+    "confirm": "确认",
     "more": "更多操作",
     "openFolder": "打开项目文件夹",
     "openProjectWith": "用 {{app}} 打开项目",
@@ -452,7 +453,10 @@
       "mac": "系统三指横滑手势会优先响应,请先在系统设置→触控板中改掉。",
       "windows": "使用精确式触控板三指横滑切换页面。系统手势可能同时触发，请在 Windows 设置 > 蓝牙和设备 > 触摸板中将三指轻扫设为“无”。",
       "unsupported": "Linux 暂不支持。可使用导航按钮或鼠标中键拖动。"
-    }
+    },
+    "trackpad": "触控板",
+    "trackpadEnabled": "启用触控板手势",
+    "threeFingerSwipeDesc": "三指横滑平移画布"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1017,7 +1021,9 @@
     "show": "显示 Vibémon",
     "hide": "隐藏 Vibémon",
     "selectFirst": "请先在装配页选择桌宠",
-    "unavailable": "桌宠窗口支持 macOS 和 Windows"
+    "unavailable": "桌宠窗口支持 macOS 和 Windows",
+    "lounge": "桌宠休息室",
+    "recall": "叫回休息室"
   },
   "voice": {
     "configureKey": "请配置 API Key",

@@ -213,3 +213,16 @@ fn collections_persist_references_and_reject_invalid_memberships() {
     assert!(store.update(changes(json!({"collections.data":order})), None).is_err());
     assert_eq!(store.values["collections.data"], data);
 }
+
+#[test]
+fn trackpad_master_survives_restart_independently_of_legacy_gesture_migration() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    store
+        .update(changes(json!({"appearance.trackpadEnabled": false, "appearance.threeFingerSwipe": true})), None)
+        .unwrap();
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.values["appearance.trackpadEnabled"], false);
+    assert_eq!(restarted.values["appearance.threeFingerSwipe"], true);
+    assert!(store.update(changes(json!({"appearance.trackpadEnabled": "false"})), None).is_err());
+}

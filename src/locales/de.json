@@ -15,6 +15,7 @@
     "pending": "Ausstehend"
   },
   "actions": {
+    "confirm": "Bestätigen",
     "copy": "Kopieren",
     "copied": "Kopiert",
     "cancel": "Abbrechen",
@@ -184,7 +185,10 @@
       "mac": "Wechseln Sie Seiten mit drei Fingern. Mission Control oder App Exposé unter macOS können das Wischen unterbrechen; passen Sie die Gesten in den Systemeinstellungen an.",
       "windows": "Wechseln Sie Seiten mit drei Fingern auf einem Präzisionstouchpad. Systemgesten können ebenfalls ausgelöst werden; wählen Sie unter Windows-Einstellungen > Bluetooth und Geräte > Touchpad für Drei-Finger-Wischgesten „Nichts“.",
       "unsupported": "Unter Linux nicht unterstützt. Verwenden Sie die Navigationstasten oder ziehen Sie mit der mittleren Maustaste."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Trackpad-Gesten aktivieren",
+    "threeFingerSwipeDesc": "Mit drei Fingern horizontal über die Arbeitsfläche wischen"
   },
   "usage": {
     "usage": "Nutzung",
@@ -340,7 +344,9 @@
     "more": "Weitere Aktionen"
   },
   "pet": {
-    "retry": "Wiederholen"
+    "retry": "Wiederholen",
+    "lounge": "Vibémon-Lounge",
+    "recall": "Zurück in den Aufenthaltsraum"
   },
   "app": {
     "name": "ALwith U"
