@@ -573,7 +573,7 @@ export class CodexClient {
     try {
       const response = archived
         ? await this.live().request("session/list", request)
-        : await this.live().request<acp.ListSessionsResponse>("_codex/session_list")
+        : await this.live().request<acp.ListSessionsResponse>("_codex/session_list", {})
       if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
       if (requestId !== this.listRequests[bucket]) return
       const page = response.sessions

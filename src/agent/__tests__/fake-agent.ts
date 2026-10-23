@@ -257,7 +257,11 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/list", ({ params }) => list(params))
   app.onRequest(
     "_codex/session_list",
-    (value) => value,
+    (value) => {
+      if (typeof value !== "object" || value === null || Array.isArray(value))
+        throw acp.RequestError.invalidParams(undefined, "Expected an object")
+      return value
+    },
     ({ params }) => {
       fullListRequests.push(params)
       return list({})
