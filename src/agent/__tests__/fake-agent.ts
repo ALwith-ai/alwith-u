@@ -15,7 +15,7 @@ export type FakeAgent = {
   forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
   newSessionDelay: { current: ((cwd: string) => Promise<void>) | null }
-  sessionOptions: { current: ((model: string | null) => acp.SessionConfigOption[]) | null }
+  sessionOptions: { current: ((model: string | null, meta?: acp.NewSessionRequest["_meta"]) => acp.SessionConfigOption[]) | null }
   configResponse: {
     current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
   }
@@ -119,8 +119,8 @@ export function createFakeAgent(): FakeAgent {
         { codex?: { name?: string }; alwith?: { models?: Array<{ id: string }> } } | undefined
       return { id, name: meta?.codex?.name ?? id, models: (meta?.alwith?.models ?? []).map((model) => model.id) }
     })
-  const optionsFor = (hint: string | null) =>
-    sessionOptions.current?.(hint) ?? [modelOption(hint ?? "gpt-6.1-sol", gatewayGroups())]
+  const optionsFor = (hint: string | null, meta?: acp.NewSessionRequest["_meta"]) =>
+    sessionOptions.current?.(hint, meta) ?? [modelOption(hint ?? "gpt-6.1-sol", gatewayGroups())]
   let next = 0
   const sessionId = () => `s${next++}`
   app.onRequest("initialize", ({ client }) => {
@@ -216,7 +216,7 @@ export function createFakeAgent(): FakeAgent {
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
     const id = sessionId()
     modelHints.set(id, hint)
-    return { sessionId: id, configOptions: optionsFor(hint) }
+    return { sessionId: id, configOptions: optionsFor(hint, params._meta) }
   })
   app.onRequest("session/fork", async ({ params, client }) => {
     forks.push(params)
@@ -230,7 +230,7 @@ export function createFakeAgent(): FakeAgent {
     }
     origins.set(id, codex)
     for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
-    return { sessionId: id, configOptions: optionsFor(hint), _meta: { codex } }
+    return { sessionId: id, configOptions: optionsFor(hint, params._meta), _meta: { codex } }
   })
   const fullListRequests: unknown[] = []
   const list = (params: acp.ListSessionsRequest) => {
@@ -292,7 +292,7 @@ export function createFakeAgent(): FakeAgent {
     }
     if (resumeResponse.current) return resumeResponse.current(signal)
     const origin = origins.get(params.sessionId)
-    return { configOptions: optionsFor(hint), ...(origin ? { _meta: { codex: origin } } : {}) }
+    return { configOptions: optionsFor(hint, params._meta), ...(origin ? { _meta: { codex: origin } } : {}) }
   })
   app.onRequest(
     "_codex/session_history",

@@ -737,18 +737,32 @@ export class CodexClient {
     bind?: (sessionId: string) => Promise<void>
     mcpServers?: acp.McpServer[]
     systemPrompt?: acp.SystemPrompt
-    _meta?: { alwith: { model?: string; draft?: boolean } }
+    _meta?: { alwith?: { model?: string; draft?: boolean }; codex?: { mode: string } }
   }> {
     const hint = modelHint(model)
     const alwith = { ...hint._meta?.alwith, ...(draft ? { draft: true } : {}) }
-    if (!this.options.sessionContext) return Object.keys(alwith).length > 0 ? { _meta: { alwith } } : {}
+    const sourceId =
+      operation.kind === "resume" ? operation.sessionId : operation.kind === "fork" ? operation.sourceSessionId : null
+    const mode =
+      sourceId === null
+        ? undefined
+        : this.sessions.sessions.get(sourceId)?.configOptions.find(
+            (option) => option.category === "mode" && isSelectOption(option)
+          )
+    // Reopening tools or history must not reset the session's approval destination.
+    const meta = {
+      ...(Object.keys(alwith).length > 0 ? { alwith } : {}),
+      ...(mode && isSelectOption(mode) ? { codex: { mode: mode.currentValue } } : {})
+    }
+    const metadata = Object.keys(meta).length > 0 ? { _meta: meta } : {}
+    if (!this.options.sessionContext) return metadata
     const context = await this.options.sessionContext(cwd, operation)
     return {
       revision: context.revision,
       bind: context.bind,
       mcpServers: context.mcpServers,
       ...(context.appendSystemPrompt ? { systemPrompt: this.systemPrompt(context.appendSystemPrompt) } : {}),
-      ...(Object.keys(alwith).length > 0 ? { _meta: { alwith } } : {})
+      ...metadata
     }
   }
 
@@ -1598,7 +1612,7 @@ export class CodexClient {
           cwd,
           ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
           ...(hint.systemPrompt ? { systemPrompt: hint.systemPrompt } : {}),
-          _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { lastTurnId } }) }
+          _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { ...hint._meta?.codex, lastTurnId } }) }
         }),
       // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
       (response) => this.sessions.set(createSession(response.sessionId, cwd))

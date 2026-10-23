@@ -1,6 +1,22 @@
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -17426,12 +17426,8 @@
+@@ -17361,6 +17361,15 @@
+   const requested = env["INITIAL_AGENT_MODE"];
+   return requested && findAgentMode(requested) || DEFAULT_AGENT_MODE;
+ }
++function restoredAgentMode(thread) {
++  if (thread.approvalPolicy === "never" && thread.sandbox.type === "dangerFullAccess")
++    return findAgentMode("agent-full-access");
++  switch (thread.approvalsReviewer) {
++    case "user": return findAgentMode("read-only");
++    case "auto_review": return findAgentMode("agent");
++    default: throw new Error("Unknown Codex approval reviewer");
++  }
++}
+ function modeConfigOption(current) {
+   return {
+     configId: MODE_CONFIG_ID,
+@@ -17426,12 +17435,8 @@
  
  // src/codex/responsesProxy.ts
  import { randomBytes } from "crypto";
@@ -15,7 +31,7 @@
  import { zstdDecompressSync } from "zlib";
  import WebSocket, { WebSocketServer } from "ws";
  
-@@ -17499,10 +17495,11 @@
+@@ -17499,10 +17504,11 @@
    closed = false;
    constructor() {
      this.server = createServer((request, response) => {
@@ -29,7 +45,7 @@
        });
      });
      this.server.on("connection", (socket) => {
-@@ -17597,15 +17594,24 @@
+@@ -17597,15 +17603,24 @@
      this.aborts.add(abort);
      response.once("close", () => abort.abort());
      try {
@@ -62,3 +78,34 @@
      } finally {
        this.aborts.delete(abort);
      }
+@@ -19880,6 +19895,12 @@
+       const mode = findAgentMode(stringValue(request));
+       if (!mode)
+         throw RequestError.invalidParams({ configId: request.configId }, `Unknown mode "${String(request.value)}"`);
++      await codex.threadSettingsUpdate({
++        threadId: session.id,
++        approvalPolicy: mode.approvalPolicy,
++        approvalsReviewer: mode.approvalsReviewer,
++        sandboxPolicy: withWritableRoots(mode.sandboxPolicy, session.additionalDirectories)
++      });
+       session.mode = mode;
+       return;
+     }
+@@ -20951,7 +20972,7 @@
+     const mode = host.mode ?? initialAgentMode(this.env);
+     const hostThreadOptions = {
+       ...host.instructions === undefined ? {} : { developerInstructions: host.instructions },
+-      ...host.mode ? { approvalPolicy: mode.approvalPolicy, approvalsReviewer: mode.approvalsReviewer, sandbox: mode.sandboxMode } : {}
++      ...host.mode || open.kind === "new" ? { approvalPolicy: mode.approvalPolicy, approvalsReviewer: mode.approvalsReviewer, sandbox: mode.sandboxMode } : {}
+     };
+     const requestedModel = requestedModelOf(request._meta);
+     let gatewayId = this.providers.defaultGatewayId();
+@@ -21060,7 +21081,7 @@
+         catalog,
+         gatewayGroups: this.providers.gatewayGroups(),
+         model,
+-        mode,
++        mode: host.mode ?? (open.kind === "new" ? mode : restoredAgentMode(thread)),
+         collaborationMode: DEFAULT_COLLABORATION_MODE,
+         fastMode: thread.serviceTier === FAST_SERVICE_TIER,
+         account: openedAccount,
