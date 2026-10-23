@@ -225,13 +225,11 @@ export function MainSidebarLayout({
         </div>
       </CanvasContext.Provider>
       <footer className="main-window-statusbar">
-        {canvas.selected > 0 && (
-          <CanvasDots
-            count={canvas.geometry.stops.length - 1}
-            selected={canvas.selected - 1}
-            onSelect={(index) => canvas.select(index + 1)}
-          />
-        )}
+        <CanvasDots
+          count={canvas.geometry.stops.length - 1}
+          selected={canvas.selected - 1}
+          onSelect={(index) => canvas.select(index + 1)}
+        />
         {statusBar}
       </footer>
       {children}
