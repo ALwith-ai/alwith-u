@@ -383,23 +383,23 @@ def build(context: Context) -> None:
 
 @task(aliases=["u"])
 def upgrade(context: Context) -> None:
-    """Update dependencies within declared ranges and report newer releases."""
-    with context.cd(str(ROOT)):
-        # Cargo path dependencies live in node_modules, including their Rust manifests.
-        # Restore the locked packages first so a fresh checkout can run this task.
-        context.run("bun install --frozen-lockfile")
-        context.run("bun outdated")
-        context.run("bun update")
-        # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
-        with context.cd("src-tauri"):
-            context.run("cargo update")
-        # Report releases outside Cargo's declared ranges without upgrading them.
-        report_outdated_crates(ROOT)
-        # Compare the final installed JavaScript packages with the updated Cargo lockfile.
-        try:
-            check_tauri_versions(ROOT)
-        except (KeyError, OSError, ValueError) as error:
-            raise Exit(f"Tauri version check failed: {error}", code=1) from None
+    """Pull the current branch, update dependencies, and report newer releases."""
+    context.run("git pull --ff-only")
+    # Cargo path dependencies live in node_modules, including their Rust manifests.
+    # Restore the locked packages first so a fresh checkout can run this task.
+    context.run("bun install --frozen-lockfile")
+    context.run("bun outdated")
+    context.run("bun update")
+    # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
+    with context.cd("src-tauri"):
+        context.run("cargo update")
+    # Report releases outside Cargo's declared ranges without upgrading them.
+    report_outdated_crates(ROOT)
+    # Compare the final installed JavaScript packages with the updated Cargo lockfile.
+    try:
+        check_tauri_versions(ROOT)
+    except (KeyError, OSError, ValueError) as error:
+        raise Exit(f"Tauri version check failed: {error}", code=1) from None
 
 
 @task
