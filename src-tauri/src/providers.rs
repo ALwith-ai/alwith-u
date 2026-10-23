@@ -482,9 +482,9 @@ pub fn schedule_apply(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let runtime = app.state::<crate::runtime::RuntimeState>();
-        let Ok(_admission) = runtime.admission.try_lock() else {
-            return;
-        };
+        // The last idle notification may arrive while another admission still owns
+        // the lock. Queue the retry so a saved revision cannot remain pending forever.
+        let _admission = runtime.admission.lock().await;
         if let Ok(client) = runtime.current() {
             let _ = apply_locked(&app, &client).await;
         }
