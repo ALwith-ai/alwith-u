@@ -73,6 +73,8 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
     if (!client.state.threads.some((thread) => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
+    if (!client.session(id).commands.some((command) => command.name === "status"))
+      throw new Error("Resumed session has no status command")
     // WebSocket history notifications can arrive after open resolves, in separate batches.
     await until(
       () =>
@@ -116,6 +118,8 @@ async function check(transport: "stdio" | "ws") {
     const draft = await client.prepareDraft("main", directory)
     if (!client.session(draft).configOptions.some((option) => option.category === "model"))
       throw new Error("Precreated draft has no model selector")
+    if (!client.session(draft).commands.some((command) => command.name === "status"))
+      throw new Error("Precreated draft has no status command")
     if ((await client.listProjectThreads(directory)).some((thread) => thread.sessionId === draft))
       throw new Error("Precreated draft leaked into the project index")
     await client.discardDraft("main")
@@ -123,11 +127,11 @@ async function check(transport: "stdio" | "ws") {
     console.log("draft: real model options before sending; empty session cleaned up")
 
     const [a, b] = await Promise.all([client.prepareDraft("main", directory), client.prepareDraft("chat", directory)])
-    const fast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    const fast = client.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!fast || !isBooleanOption(fast)) throw new Error("Native model did not expose fast mode")
     if (fast.currentValue) throw new Error("New native session enabled fast mode by default")
-    await client.setConfig(a, "fast_mode", true)
-    const enabledFast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    await client.setConfig(a, "fast-mode", true)
+    const enabledFast = client.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!enabledFast || !isBooleanOption(enabledFast) || !enabledFast.currentValue)
       throw new Error("Fast mode did not become enabled")
     await Promise.all([
@@ -186,12 +190,12 @@ async function check(transport: "stdio" | "ws") {
     })
     await second.connect()
     await verifyHistory(second, directory, replies)
-    const restoredFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    const restoredFast = second.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!restoredFast || !isBooleanOption(restoredFast))
       throw new Error("Resumed native model did not expose fast mode")
-    await second.setConfig(a, "fast_mode", true)
-    await second.setConfig(a, "fast_mode", false)
-    const disabledFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    await second.setConfig(a, "fast-mode", true)
+    await second.setConfig(a, "fast-mode", false)
+    const disabledFast = second.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!disabledFast || !isBooleanOption(disabledFast) || disabledFast.currentValue)
       throw new Error("Fast mode did not become disabled")
     console.log("fresh agent: native history matches live transcripts; fast mode remains available and can be disabled")
@@ -210,6 +214,8 @@ async function check(transport: "stdio" | "ws") {
     await second.renameSession(a, sourceTitle)
     const forked = await second.fork(a, directory, turnId)
     try {
+      if (!second.session(forked).commands.some((command) => command.name === "status"))
+        throw new Error("Forked session has no status command")
       await until(
         () =>
           second!.session(forked).items.some((item) => item.kind === "user") &&

@@ -78,16 +78,18 @@ export function PermissionModeSelect({
       disabled={disabled}
       label={t("chat.model.switchPermissionMode")}
       onValueChange={change}
-      options={availableModes.map((mode) => {
-        const Icon = MODE_ICONS[mode.value] ?? ShieldCheckIcon
-        const warning = mode.value === "agent-full-access"
-        return {
-          value: mode.value,
-          label: <span data-permission-warning={warning ? "" : undefined}>{mode.name}</span>,
-          description: mode.description ? <span className="whitespace-normal">{mode.description}</span> : undefined,
-          icon: <Icon className="size-3.5 shrink-0" />
-        }
-      })}
+      options={availableModes
+        .filter((mode) => mode.value !== "workspace-write")
+        .map((mode) => {
+          const Icon = MODE_ICONS[mode.value] ?? ShieldCheckIcon
+          const warning = mode.value === "agent-full-access"
+          return {
+            value: mode.value,
+            label: <span data-permission-warning={warning ? "" : undefined}>{mode.name}</span>,
+            description: mode.description ? <span className="whitespace-normal">{mode.description}</span> : undefined,
+            icon: <Icon className="size-3.5 shrink-0" />
+          }
+        })}
     />
   )
 }

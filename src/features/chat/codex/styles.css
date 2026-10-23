@@ -146,6 +146,23 @@
   height: 300px;
 }
 
+/* Fast mode uses its filled icon for state; only pointer hover paints its background. */
+[data-model-menu-header] [role="menuitemcheckbox"] {
+  background-color: transparent;
+  background-image: none;
+}
+
+@media (hover: hover) {
+  [data-model-menu-header] [role="menuitemcheckbox"]:not([aria-disabled="true"]):hover {
+    background-color: var(--chrome-hover-background);
+  }
+}
+
+[data-model-menu-header] [role="menuitemcheckbox"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .chat-composer-toolbar .lucide-chevron-up {
   rotate: 180deg;
   color: var(--muted-foreground);

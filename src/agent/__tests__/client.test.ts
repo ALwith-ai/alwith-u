@@ -71,11 +71,62 @@ async function make(
   return { client, fake, port }
 }
 
+test.each(["new", "resume", "fork"] as const)(
+  "%s sessions initialize commands from the response",
+  async (operation) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands-source")
+    const initial = [{ name: "status", description: "Show session status" }]
+    fake.sessionCommands.current = initial
+    const id =
+      operation === "new"
+        ? await client.newSession("/tmp/commands")
+        : operation === "fork"
+          ? await client.fork(source, "/tmp/commands-source")
+          : await client.open("h1", "/tmp/one").then(() => "h1")
+    expect(client.session(id).commands).toEqual(initial)
+    expect(client.session(source).commands).toEqual([])
+
+    const updated = [{ name: "compact", description: "Compact conversation" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: updated })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(updated))
+    expect(client.session(source).commands).toEqual([])
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "resume command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const id = await client.newSession("/tmp/commands")
+    const previous = [{ name: "status", description: "Show session status" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: previous })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(previous))
+    await client.stopSession(id)
+    fake.sessionCommands.current = snapshot
+    await client.open(id, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "fork command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands")
+    const previous = [{ name: "status", description: "Show session status" }]
+    fake.replayUpdates.push({ sessionUpdate: "available_commands_update", availableCommands: previous })
+    fake.sessionCommands.current = snapshot
+    const id = await client.fork(source, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
 test.each([true, false])(
   "new sessions start with Fast disabled when the agent default is %s",
   async (inheritedFast) => {
     const option: BooleanOption = {
-      configId: "fast_mode",
+      configId: "fast-mode",
       category: "model_config",
       name: "Fast",
       type: "boolean",
@@ -86,7 +137,7 @@ test.each([true, false])(
       fake.sessionOptions.current = () => [{ ...option }]
       fake.configResponse.current = (request) => {
         writes.push(request)
-        expect(request.configId).toBe("fast_mode")
+        expect(request.configId).toBe("fast-mode")
         expect(request.type).toBe("boolean")
         option.currentValue = request.value as boolean
         return { configOptions: [{ ...option }] }
@@ -95,7 +146,7 @@ test.each([true, false])(
     const id = await client.prepareDraft("main", "/tmp/default-fast")
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: false }])
     expect(writes).toHaveLength(inheritedFast ? 1 : 0)
-    await client.setConfig(id, "fast_mode", true)
+    await client.setConfig(id, "fast-mode", true)
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: true }])
     expect(await client.prepareDraft("main", "/tmp/default-fast")).toBe(id)
     expect(client.session(id).configOptions[0]?.currentValue).toBe(true)
@@ -105,7 +156,7 @@ test.each([true, false])(
 test("a failed Fast default update does not expose a ready draft", async () => {
   const { client, fake } = await make((fake) => {
     fake.sessionOptions.current = () => [
-      { configId: "fast_mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+      { configId: "fast-mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
     ]
     fake.configResponse.current = () => {
       throw RequestError.invalidRequest({}, "Cannot disable Fast")

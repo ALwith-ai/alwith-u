@@ -3,7 +3,7 @@
 // dialog. The host prepares the default workspace when no previous project was selected.
 import { invoke } from "@tauri-apps/api/core"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
-import { FolderClosedIcon, FolderPlusIcon, LoaderCircleIcon, XIcon } from "lucide-react"
+import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -83,16 +83,10 @@ export function DraftProjectPicker({
             disabled={defaultCwd === null}
             onClick={workOutsideProject}
           >
-            {preparing ? (
-              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <>
-                <FolderClosedIcon className="size-4 group-hover/project:opacity-0" />
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-hover/project:opacity-100">
-                  <XIcon className="size-3" />
-                </span>
-              </>
-            )}
+            <FolderClosedIcon className="size-4 group-hover/project:opacity-0" />
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-hover/project:opacity-100">
+              <XIcon className="size-3" />
+            </span>
           </Button>
         )}
         <DropdownMenuTrigger
@@ -100,16 +94,11 @@ export function DraftProjectPicker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 min-w-0 shrink gap-1.5 rounded-full p-0 text-sm font-normal text-inherit hover:bg-transparent dark:hover:bg-transparent"
+              className="h-7 min-w-0 shrink gap-1.5 rounded-full p-0 text-sm font-normal text-inherit hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent"
             />
           }
         >
-          {!hasProject &&
-            (preparing ? (
-              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <FolderClosedIcon className="size-4" />
-            ))}
+          {!hasProject && <FolderClosedIcon className="size-4" />}
           <span className="truncate">{hasProject ? basename(cwd) : t("chat.draft.selectProject")}</span>
         </DropdownMenuTrigger>
       </div>

@@ -776,6 +776,7 @@ export class CodexClient {
           ...createSession(response.sessionId, cwd),
           attached: true,
           configOptions: response.configOptions ?? [],
+          commands: response.availableCommands ?? [],
           configRevision: configRevisionOf(response)
         }
         this.publishSession(session)
@@ -785,7 +786,7 @@ export class CodexClient {
     )
     await bind?.(response.sessionId)
     // New chats use standard speed even when Codex's global default is priority.
-    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast_mode")
+    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast-mode")
     if (fast && isBooleanOption(fast) && fast.currentValue) {
       try {
         await this.setConfig(response.sessionId, fast.configId, false)
@@ -1052,6 +1053,7 @@ export class CodexClient {
         cwd,
         readOnly: isReadOnlyResume(response),
         configOptions: response.configOptions ?? [],
+        commands: response.availableCommands ?? this.sessions.get(id).commands,
         configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision,
         error: null
       })
@@ -1611,7 +1613,8 @@ export class CodexClient {
       cwd,
       attached: true,
       restoring: false,
-      configOptions: response.configOptions ?? []
+      configOptions: response.configOptions ?? [],
+      commands: response.availableCommands ?? forked.commands
     })
     this.noteModel(this.sessions.get(response.sessionId))
     this.store.setState((state) => ({

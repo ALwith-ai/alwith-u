@@ -257,40 +257,48 @@ test("unsupported fast mode stays visible and disabled", async () => {
   expect(view.getByRole("menuitemradio", { name: "3.8 Flash" })).toBeVisible()
 })
 
-test("supported fast mode and explicit effort levels target the owning session", async () => {
-  controls.setConfig.mockResolvedValue(undefined)
-  const config: acp.SessionConfigOption[] = [
-    ...catalogOptions("First"),
-    {
-      configId: "fast_mode",
-      category: "model_config",
-      name: "Fast mode",
-      type: "boolean",
-      currentValue: true
-    },
-    {
-      configId: "effort",
-      category: "thought_level",
-      name: "Reasoning effort",
-      type: "select",
-      currentValue: "medium",
-      options: [
-        { value: "low", name: "Low" },
-        { value: "medium", name: "Medium" },
-        { value: "high", name: "High" }
-      ]
-    }
-  ]
-  const view = render(<ModelSelectGroup sessionId="owner" options={config} disabled={false} />)
-  await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
-  expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).toBeChecked()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))))
-  expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "fast_mode", false)
-  const slider = view.getByRole("slider", { name: "Effort" })
-  expect(slider).toHaveAttribute("aria-valuetext", "Medium")
-  await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
-  expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "effort", "high")
-})
+test.each([true, false])(
+  "supported fast mode (%s) and explicit effort levels target the owning session",
+  async (enabled) => {
+    controls.setConfig.mockResolvedValue(undefined)
+    const config: acp.SessionConfigOption[] = [
+      ...catalogOptions("First"),
+      {
+        configId: "fast-mode",
+        category: "model_config",
+        name: "Fast mode",
+        type: "boolean",
+        currentValue: enabled
+      },
+      {
+        configId: "effort",
+        category: "thought_level",
+        name: "Reasoning effort",
+        type: "select",
+        currentValue: "medium",
+        options: [
+          { value: "low", name: "Low" },
+          { value: "medium", name: "Medium" },
+          { value: "high", name: "High" }
+        ]
+      }
+    ]
+    const view = render(<ModelSelectGroup sessionId="owner" options={config} disabled={false} />)
+    await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+    expect(view.getAllByRole("menuitemcheckbox", { name: "Fast mode" })).toHaveLength(1)
+    const fastToggle = view.getByRole("menuitemcheckbox", { name: "Fast mode" })
+    expect(fastToggle.closest("[data-model-menu-header]")).not.toBeNull()
+    expect(fastToggle.textContent).toBe("")
+    expect(fastToggle.querySelector(".lucide-zap")).not.toBeNull()
+    expect(fastToggle).toHaveAttribute("aria-checked", String(enabled))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))))
+    expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "fast-mode", !enabled)
+    const slider = view.getByRole("slider", { name: "Effort" })
+    expect(slider).toHaveAttribute("aria-valuetext", "Medium")
+    await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
+    expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "effort", "high")
+  }
+)
 
 test("the more models footer opens provider configuration and reports opening failures", async () => {
   controls.openSettings.mockRejectedValue(new Error("Settings unavailable"))
