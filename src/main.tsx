@@ -21,6 +21,7 @@ import { predictionPreference } from "@/features/chat/composer/prediction-prefer
 import { restoreComputer } from "@/features/computer/operations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
+import { initializeMobile } from "@/features/mobile/bridge"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
@@ -71,6 +72,7 @@ async function bootstrap(): Promise<void> {
     document.documentElement.dataset.windowBackdrop = "acrylic"
   }
   await bootstrapSettings()
+  await initializeMobile()
   await attachConsole()
   await info("frontend booting")
   const preferences = await loadPreferences()

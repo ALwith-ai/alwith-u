@@ -14,6 +14,7 @@ import {
   MicIcon,
   MonitorIcon,
   SlidersHorizontalIcon,
+  SmartphoneIcon,
   UserIcon
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -31,6 +32,7 @@ import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { useExtensions } from "@/features/extensions/runtime"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import { MobileSection } from "@/features/mobile/mobile-section"
 import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"
 
@@ -44,6 +46,7 @@ import { VoiceSection } from "./sections/voice-section"
 import "./settings.css"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
+  mobile: SmartphoneIcon,
   account: UserIcon,
   computer: MonitorIcon,
   drive: CloudIcon,
@@ -110,6 +113,8 @@ export function SettingsPage() {
             return <AccountSection />
           case "editor":
             return <EditorSettingsSection />
+          case "mobile":
+            return <MobileSection />
           case "computer":
             return <ComputerSection />
           case "general":

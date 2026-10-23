@@ -21,6 +21,7 @@ import { stageNative as stageNativeExtension } from "@alwith/native-extension/st
 import { stageNative as stageNativeFs } from "@alwith/native-fs/stage"
 import { stageNative as stageNativeGamepad } from "@alwith/native-gamepad/stage"
 import { stageNative as stageNativeInstalledApps } from "@alwith/native-installed-apps/stage"
+import { stageNative as stageNativeMobile } from "@alwith/native-mobile/stage"
 import { stageNative as stageNativeVoice } from "@alwith/native-voice/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
@@ -128,6 +129,7 @@ for (const entry of readdirSync(licenses)) {
     rmSync(join(licenses, entry), { recursive: true, force: true })
 }
 const nativeLibraries = [
+  stageNativeMobile,
   stageNativeAuth,
   stageNativeInstalledApps,
   stageNativeVoice,

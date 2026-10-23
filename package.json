@@ -43,6 +43,7 @@
     "@alwith/module-file-tree": "^0.1.0-rc.20",
     "@alwith/module-fs": "^0.1.0-rc.7",
     "@alwith/module-gamepad": "^0.1.0-rc.3",
+    "@alwith/module-mobile": "file:../modules/packages/mobile",
     "@alwith/module-voice": "^0.1.0-rc.7",
     "@alwith/runtime": "^0.1.18",
     "@base-ui/react": "^1.9.0",
@@ -92,6 +93,7 @@
     "motion": "^14.6.0",
     "next-themes": "^0.4.6",
     "pdfjs-dist": "^6.4.299",
+    "qrcode.react": "^4.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^17.1.2",
@@ -148,7 +150,8 @@
     "@alwith/native-computer": "^0.1.0",
     "@alwith/native-drive": "^0.1.0",
     "@alwith/native-extension": "^0.1.0",
-    "@alwith/native-kit": "^0.1.0"
+    "@alwith/native-kit": "^0.1.0",
+    "@alwith/native-mobile": "file:../modules/packages/native-mobile"
   },
   "optionalDependencies": {
     "@oven/bun-darwin-aarch64": "1.4.4",

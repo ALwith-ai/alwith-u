@@ -452,7 +452,8 @@
       "mac": "系统三指横滑手势会优先响应,请先在系统设置→触控板中改掉。",
       "windows": "使用精确式触控板三指横滑切换页面。系统手势可能同时触发，请在 Windows 设置 > 蓝牙和设备 > 触摸板中将三指轻扫设为“无”。",
       "unsupported": "Linux 暂不支持。可使用导航按钮或鼠标中键拖动。"
-    }
+    },
+    "mobile": "移动端连接"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1107,5 +1108,15 @@
   "canvas": {
     "navigation": "页面导航",
     "page": "第 {{number}} 页"
+  },
+  "mobile": {
+    "enable": "允许移动端连接",
+    "description": "将 ALwith Mobile 连接到 ALwith U。",
+    "pair": "配对手机",
+    "connected": "可以配对",
+    "connecting": "连接中…",
+    "generate": "显示配对码",
+    "expires": "{{count}} 秒后过期",
+    "unpair": "解除配对"
   }
 }

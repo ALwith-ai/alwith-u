@@ -96,6 +96,9 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
             if let Err(error) = app.state::<alwith_computer::ComputerHost>().shutdown().await {
                 log::error!("Computer shutdown failed: {error}");
             }
+            if let Err(error) = crate::mobile::shutdown().await {
+                log::error!("Mobile shutdown failed: {error}");
+            }
             app.state::<RuntimeState>().shutdown().await;
             app.exit(code.unwrap_or(0));
         });
@@ -268,6 +271,7 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
+                        crate::mobile::publish(&event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
                             && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
                         {

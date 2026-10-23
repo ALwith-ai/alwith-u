@@ -452,7 +452,8 @@
       "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
       "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",
       "unsupported": "Not supported on Linux. Use navigation buttons or middle-mouse dragging."
-    }
+    },
+    "mobile": "Mobile connection"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1107,5 +1108,15 @@
   "canvas": {
     "navigation": "Page navigation",
     "page": "Page {{number}}"
+  },
+  "mobile": {
+    "enable": "Allow mobile connections",
+    "description": "Connect ALwith Mobile to ALwith U.",
+    "pair": "Pair a phone",
+    "connected": "Ready to pair",
+    "connecting": "Connecting…",
+    "generate": "Show pairing code",
+    "expires": "Expires in {{count}} seconds",
+    "unpair": "Unpair"
   }
 }
