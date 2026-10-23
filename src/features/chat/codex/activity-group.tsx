@@ -28,10 +28,12 @@ function ToolResources({ item }: { item: ToolItem }): ReactElement | null {
 }
 
 export const ActivityGroup = memo(function ActivityGroup({
+  sessionId,
   items,
   terminals,
   streamingThoughtId
 }: {
+  sessionId: string
   items: Array<MessageItem | ToolItem>
   terminals: Record<string, Terminal>
   streamingThoughtId: string | null
@@ -41,12 +43,14 @@ export const ActivityGroup = memo(function ActivityGroup({
   const blocks = useMemo(
     () =>
       items.map((item) => {
-        const block = projectActivity(item, terminals, item.kind === "thought" && item.id === streamingThoughtId)
+        const projected = projectActivity(item, terminals, item.kind === "thought" && item.id === streamingThoughtId)
+        // Forks share native item IDs, but their disclosure choices are independent.
+        const block = { ...projected, id: JSON.stringify([sessionId, item.id]) }
         if (block.type !== "tool_use") return block
         const action = privateComputerAction(block.name) ?? privateComputerAction(block.title)
         return action ? { ...block, kind: "other" as const, title: t(computerActionKey(action)) } : block
       }),
-    [items, terminals, streamingThoughtId, t]
+    [sessionId, items, terminals, streamingThoughtId, t]
   )
   return (
     <ActivityHostProvider host={host}>

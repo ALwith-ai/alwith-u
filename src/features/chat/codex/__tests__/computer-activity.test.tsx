@@ -33,7 +33,7 @@ test("private computer actions have a readable summary even when ACP classifies 
     rawInput: { x: 20, y: 30 },
     rawOutput: null
   }
-  render(<ActivityGroup items={[item]} terminals={{}} streamingThoughtId={null} />)
+  render(<ActivityGroup sessionId="computer-activity" items={[item]} terminals={{}} streamingThoughtId={null} />)
   expect(screen.getByText("computer.actions.click")).toBeInTheDocument()
   expect(screen.queryByText(/alwith_computer/)).not.toBeInTheDocument()
   expect(item.rawInput).toEqual({ x: 20, y: 30 })

@@ -41,11 +41,13 @@ function imageIdentity(block: ContentBlock): string | null {
 }
 
 function WorkEntryView({
+  sessionId,
   entry,
   terminals,
   streaming,
   streamingThoughtId
 }: {
+  sessionId: string
   entry: WorkEntry
   terminals: Record<string, Terminal>
   streaming: boolean
@@ -54,7 +56,14 @@ function WorkEntryView({
   const { t } = useTranslation()
   switch (entry.kind) {
     case "activity":
-      return <ActivityGroup items={entry.items} terminals={terminals} streamingThoughtId={streamingThoughtId} />
+      return (
+        <ActivityGroup
+          sessionId={sessionId}
+          items={entry.items}
+          terminals={terminals}
+          streamingThoughtId={streamingThoughtId}
+        />
+      )
     case "text":
       return <AssistantContent content={entry.item.content} messageId={entry.item.id} streaming={streaming} />
     case "plan":
@@ -131,6 +140,7 @@ function AssistantTurnImpl({
         <div role="status" className="flex min-w-0 flex-col gap-2 py-2 text-sm text-muted-foreground">
           {turn.work.map((entry) => (
             <WorkEntryView
+              sessionId={sessionId}
               key={entry.key}
               entry={entry}
               terminals={terminals}
@@ -186,12 +196,13 @@ function AssistantTurnImpl({
   return (
     <ActivityHostProvider host={host}>
       <CodexAssistantTurn
-        stateKey={turn.key}
+        stateKey={JSON.stringify([sessionId, turn.key])}
         active={active}
         {...turnTiming(turn)}
         loading={active && turn.work.length === 0 && !hasFinal && retrying === undefined}
         work={work.map((entry) => (
           <WorkEntryView
+            sessionId={sessionId}
             key={entry.key}
             entry={entry}
             terminals={terminals}
@@ -251,6 +262,7 @@ function AssistantTurnImpl({
           <>
             {completedCompactions.map((entry) => (
               <WorkEntryView
+                sessionId={sessionId}
                 key={entry.key}
                 entry={entry}
                 terminals={terminals}

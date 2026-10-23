@@ -119,7 +119,7 @@ test("long turns finish older thoughts, retain every command and preserve explic
   expect(previousGroup).toHaveAttribute("aria-expanded", "true")
 
   view.rerender(viewOf(session, false))
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
 })
 
@@ -132,7 +132,8 @@ test("U keeps commentary after the last tool inside work, using the shared Deskt
   )
   const view = render(viewOf(session))
   mounted.push(view)
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   expect(view.container.querySelector(".codex-work-body")?.textContent).toContain("Still checking the result")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).toContain("Here is the final answer")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).not.toContain("Still checking the result")
@@ -245,7 +246,7 @@ test.each(["Compaction service unavailable", null])(
   "failed compaction replaces progress and retains its error: %s",
   (error) => {
     let session = feed(
-      addPrompt(createSession("compaction-failure", "/tmp"), [{ type: "text", text: "go" }], "prompt"),
+      addPrompt(createSession(crypto.randomUUID(), "/tmp"), [{ type: "text", text: "go" }], "prompt"),
       { sessionUpdate: "compaction_update", compactionId: "compact", status: "in_progress" }
     )
     const view = render(viewOf(session, true))
@@ -259,7 +260,8 @@ test.each(["Compaction service unavailable", null])(
     expect(view.queryByText("Context compacted")).toBeNull()
 
     view.rerender(viewOf(session, false, null, false))
-    expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+    expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
     expect(view.getByRole("alert").textContent).toContain("Context compaction failed")
     if (error !== null) expect(view.getByRole("alert").textContent).toContain(error)
   }
@@ -421,7 +423,8 @@ test("commentary keeps non-text content and unknown blocks are visible", () => {
   })
   const view = render(viewOf(session))
   mounted.push(view)
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   const work = view.container.querySelector(".codex-work-body")
   expect(work?.textContent).toContain("See")
   expect(work?.textContent).toContain("result.txt")
@@ -499,4 +502,25 @@ test("history without native timing shows Worked without a fabricated one-second
   mounted.push(view)
   expect(view.getByRole("button", { name: "Worked" })).toBeDefined()
   expect(view.queryByRole("button", { name: /^Worked for/ })).toBeNull()
+})
+
+test("forked sessions keep independent work and thinking disclosure choices", () => {
+  const id = crypto.randomUUID()
+  const original = feed(createSession(id, "/tmp"), thought("shared-thought", "Shared history"))
+  const fork = { ...original, id: `${id}-fork` }
+  const view = render(viewOf(original, true))
+  mounted.push(view)
+  fireEvent.click(view.getByRole("button", { name: "Thinking" }))
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  view.rerender(viewOf(fork, true))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
+  view.rerender(viewOf(original, true))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+  view.rerender(viewOf(original, false))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
 })

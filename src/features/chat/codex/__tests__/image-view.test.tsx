@@ -38,6 +38,7 @@ test("native image views replace file cards, load outside cwd on demand, and nav
   const view = render(
     <ChatDirectoryContext value="/work/my project">
       <ActivityGroup
+        sessionId="image-view"
         items={[image("native-a", "/tmp/one.png"), image("native-b", "two%20#.png")]}
         terminals={{}}
         streamingThoughtId={null}

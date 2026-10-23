@@ -144,7 +144,7 @@ test("tool resources expose Blob previews, file links and downloads", async () =
   }
   const view = render(
     <ThemeProvider>
-      <ActivityGroup items={[item]} terminals={{}} streamingThoughtId={null} />
+      <ActivityGroup sessionId="resource-content" items={[item]} terminals={{}} streamingThoughtId={null} />
     </ThemeProvider>
   )
   expect(view.getByRole("button", { name: "Download photo.png" })).toBeDefined()
