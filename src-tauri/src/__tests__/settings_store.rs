@@ -190,3 +190,26 @@ fn computer_preference_survives_restart_and_rejects_non_boolean_values() {
     }
     assert!(store.update(changes(json!({"computer.enabled": "true"})), None).is_err());
 }
+
+#[test]
+fn collections_persist_references_and_reject_invalid_memberships() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    let data = json!({"collections": {
+        "collection-default": {"id":"collection-default","name":"","collapsed":false,"sessionIds":["one"]},
+        "work": {"id":"work","name":"Work","collapsed":true,"emoji":"📦","sessionIds":["two"]}
+    }, "order":["collection-default","work"]});
+    store.update(changes(json!({"collections.data":data})), None).unwrap();
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.values["collections.data"], data);
+    let mut duplicate = data.clone();
+    duplicate["collections"]["work"]["sessionIds"] = json!(["one"]);
+    assert!(store.update(changes(json!({"collections.data":duplicate})), None).is_err());
+    let mut metadata = data.clone();
+    metadata["sessionMeta"] = json!({"one":{"title":"Second store"}});
+    assert!(store.update(changes(json!({"collections.data":metadata})), None).is_err());
+    let mut order = data.clone();
+    order["order"] = json!(["work", "collection-default"]);
+    assert!(store.update(changes(json!({"collections.data":order})), None).is_err());
+    assert_eq!(store.values["collections.data"], data);
+}

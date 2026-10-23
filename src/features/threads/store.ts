@@ -4,11 +4,11 @@
 // cleared on restart), exactly as Desktop's `projectOpen` / `activityCollapsedGroups`.
 import { create } from "zustand"
 
-/** Desktop's `NavigationItemId`, reduced to the two panels this client has. */
-export type SidebarView = "sessions" | "activity" | "drive"
+/** Sidebar panels supported by this client. */
+export type SidebarView = "sessions" | "activity" | "drive" | "collections"
 
 interface ThreadsUiState {
-  /** Current sidebar panel: session list or activity. */
+  /** Current sidebar panel. */
   view: SidebarView
   setView: (view: SidebarView) => void
   /** Acknowledged Activity notifications, independent of Runtime conversation read state. */

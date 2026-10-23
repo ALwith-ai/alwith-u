@@ -242,13 +242,17 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
 
+  const [draftCollection, setDraftCollection] = useState<{ id: string; generation: number } | null>(null)
   const newChatInDirectory = useCallback(
-    (cwd?: string | null) => {
+    (cwd?: string | null, collectionId?: string) => {
       if (operation.busy) return
       void operation
         .run(async () => {
           const directory = newChatDirectory(cwd === undefined ? (extensionSession.current?.cwd ?? lastDirectory) : cwd)
           await client.discardDraft("main")
+          setDraftCollection(
+            collectionId === undefined ? null : { id: collectionId, generation: surfaceGeneration + 1 }
+          )
           chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
           setSurfaceGeneration((value) => value + 1)
@@ -258,7 +262,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch((error: unknown) => toast.error(describe(error)))
     },
-    [chooseDraftFolder, lastDirectory, operation]
+    [chooseDraftFolder, lastDirectory, operation, surfaceGeneration]
   )
 
   const newChat = useCallback(() => newChatInDirectory(), [newChatInDirectory])
@@ -550,6 +554,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <>
         {connectionNotice}
         <DraftChat
+          collectionId={draftCollection?.generation === surfaceGeneration ? draftCollection.id : undefined}
           owner="main"
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}

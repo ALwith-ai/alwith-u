@@ -25,6 +25,7 @@ import {
   PlusIcon,
   PuzzleIcon,
   SearchIcon,
+  StarIcon,
   Trash2Icon
 } from "lucide-react"
 import { motion } from "motion/react"
@@ -55,6 +56,8 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/compone
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
+import { AddToCollectionAction } from "@/features/collection/collection-menu"
+import { CollectionPanel } from "@/features/collection/collection-panel"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
@@ -173,6 +176,7 @@ function ThreadHoverBody({
           {canRename && (
             <HoverInfoAction icon={<PencilIcon />} label={t("sidebar.rename")} onClick={() => setRenaming(true)} />
           )}
+          <AddToCollectionAction sessionId={thread.sessionId} />
           <DriveArchiveAction sessionId={thread.sessionId} />
           {thread.archived ? (
             <HoverInfoAction
@@ -242,7 +246,7 @@ export function ThreadSidebar({
   selectedId: string | null
   onSelect: (thread: ThreadSummary) => void
   onNewChat: () => void
-  onNewProjectChat: (cwd: string | null) => void
+  onNewProjectChat: (cwd: string | null, collectionId?: string) => void
   onSearch: () => void
   onOpenWindow: () => void
   onOpenVibemon?: () => void
@@ -301,6 +305,7 @@ export function ThreadSidebar({
     else if (view === "drive") setDriveVisited(true)
   }, [driveVisible, view, setView])
   const tabs: { key: SidebarView; title: string; icon: React.ReactNode }[] = [
+    { key: "collections", title: t("collection.title"), icon: <StarIcon /> },
     { key: "sessions", title: t("sidebar.chats"), icon: <FolderIcon /> },
     { key: "activity", title: t("sidebar.activity"), icon: <ActivityIcon /> },
     { key: "drive", title: t("settings.drive"), icon: <CloudIcon /> }
@@ -482,7 +487,9 @@ export function ThreadSidebar({
             {drivePanel}
           </div>
         )}
-        {view === "drive" ? null : view === "activity" ? (
+        {view === "drive" ? null : view === "collections" ? (
+          <CollectionPanel renderRow={renderRow} onSelect={onSelect} onNewChat={(id) => onNewProjectChat(null, id)} />
+        ) : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
           <Pane className="thread-sidebar-scroll" viewportRef={setViewport} viewportClassName="ps-2 pe-0 pb-1">
