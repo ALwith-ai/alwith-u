@@ -13,6 +13,7 @@ import {
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 
@@ -29,6 +30,7 @@ import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 import { collapseToPet } from "./collapse"
 import { reportPetError } from "./display-error"
+import { petResourceIdentity, preparePetResource } from "./presentation-resource"
 import { createPetSessionOwner, type PetSurface } from "./session-host"
 import { sessionIcons } from "./session-icons"
 import { restorePetOnStartup, runPetRestoration } from "./startup"
@@ -83,6 +85,29 @@ async function start() {
     queue = result.catch(() => {})
     return result
   }
+  let presentedResource: { scope: string; petId: string; identity: string } | null = null
+  const resourceRefreshes = new Map<string, Promise<void>>()
+  function refreshPresentedResource(scope: string, petId: string) {
+    const key = JSON.stringify([scope, petId])
+    if (resourceRefreshes.has(key)) return
+    const work = assets.assets
+      .ensureResource(petId)
+      .then((resource) =>
+        serialize(async () => {
+          if (scope !== petScope() || (await getVibemonState()).pet !== petId) return
+          if (!presentedResource || presentedResource.scope !== scope || presentedResource.petId !== petId) return
+          const identity = petResourceIdentity(resource)
+          if (presentedResource.identity === identity || !(await WebviewWindow.getByLabel("vibemon"))) return
+          await command("reload", petId)
+          presentedResource = { scope, petId, identity }
+        })
+      )
+      .catch((error) => logBackgroundError(`pet-refresh/${petId}`, error))
+      .finally(() => {
+        resourceRefreshes.delete(key)
+      })
+    resourceRefreshes.set(key, work)
+  }
   async function command(type: string, petId: string) {
     if (type === "suspend" || type === "close") await emitTo("bubble-menu-vibemon", "vibemon:dismiss")
     const requestId = crypto.randomUUID()
@@ -107,21 +132,46 @@ async function start() {
   }
   async function ensurePet(options: { trusted?: boolean } = {}) {
     if (platform() !== "macos" && platform() !== "windows") return "unavailable" as const
+    const started = performance.now()
+    const measure = (stage: string) => {
+      if (import.meta.env.DEV)
+        void info(`[pet-presentation] ${stage} ${Math.round(performance.now() - started)}ms`).catch(console.error)
+    }
     const scope = petScope()
     await refreshSettings()
     const state = await getVibemonState()
     if (!state.pet) throw new Error("Select a Vibemon in the pet center first")
+    const existing = await WebviewWindow.getByLabel("vibemon")
+    let identity: string
+    let needsRefresh = true
+    if (existing !== null && presentedResource?.scope === scope && presentedResource.petId === state.pet) {
+      identity = presentedResource.identity
+      measure("renderer-reused")
+    } else {
+      const prepared = await preparePetResource(assets.assets, state.pet)
+      identity = petResourceIdentity(prepared.resource)
+      needsRefresh = prepared.needsRefresh
+      measure("cache-ready")
+    }
+    if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
+      throw new Error("The selected pet changed during presentation")
     const completeOpen = async () => {
       if (scope !== petScope() || (await getVibemonState()).pet !== state.pet)
         throw new Error("The selected pet changed during presentation")
       await updateVibemonState({ enabled: true })
+      presentedResource = { scope, petId: state.pet, identity }
+      if (needsRefresh) refreshPresentedResource(scope, state.pet)
+      measure("presented")
       toast.dismiss("pet-startup")
       return "shown" as const
     }
-    // Refresh the descriptor before presenting; unchanged packages stay on disk.
-    await assets.assets.ensureResource(state.pet)
-    if (await WebviewWindow.getByLabel("vibemon")) {
-      await command("reload", state.pet)
+    if (existing !== null) {
+      if (
+        presentedResource?.scope !== scope ||
+        presentedResource.petId !== state.pet ||
+        presentedResource.identity !== identity
+      )
+        await command("reload", state.pet)
       await command("present", state.pet)
       return completeOpen()
     }
@@ -130,6 +180,7 @@ async function start() {
     if (!assets.assets.snapshot().owned?.some((item) => item.vibemon_uuid === state.pet))
       throw new Error("This account does not own the selected Vibemon")
     if (scope !== petScope()) throw new Error("The pet account changed")
+    measure("ownership-ready")
     let ready!: () => void
     let fail!: (error: Error) => void
     const prepared = new Promise<void>((res, rej) => {
@@ -148,6 +199,7 @@ async function start() {
           if (!(await petWindowCall<boolean>("create-pet"))) ready()
         })()
       ])
+      measure("window-ready")
       if (scope !== petScope()) throw new Error("The pet account changed")
       await command("present", state.pet)
       return await completeOpen()
@@ -161,8 +213,8 @@ async function start() {
   }
   async function closePet() {
     if (await WebviewWindow.getByLabel("vibemon")) await command("close", (await getVibemonState()).pet)
+    // Keep the suspended renderer for the next explicit presentation.
     await updateVibemonState({ enabled: false, position: null })
-    await petWindowCall("destroy-pet")
   }
   const windows: PetWindowHost = {
     ...createPetWindowClient(),
@@ -279,7 +331,8 @@ async function start() {
             },
             hasPets: async () => (await assets.assets.getMyVibemons()).length > 0,
             async showPet() {
-              if ((await ensurePet()) !== "shown") throw new Error("Desktop pets are unavailable on this platform")
+              if ((await ensurePet({ trusted: true })) !== "shown")
+                throw new Error("Desktop pets are unavailable on this platform")
             },
             bindSession: () => owner.collapse(payload.sessionId),
             openBubble: async () => command("bubble-open", (await getVibemonState()).pet),

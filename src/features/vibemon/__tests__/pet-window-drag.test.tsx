@@ -15,7 +15,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-test("the packaged pet plays successive drag frames until native release and reverses without restarting", async () => {
+test("the packaged pet preserves drag animation and resumes its renderer after closing", async () => {
   vi.useFakeTimers()
   const images: { onload: (() => void) | null }[] = []
   vi.stubGlobal(
@@ -96,6 +96,8 @@ test("the packaged pet plays successive drag frames until native release and rev
   const moved: { listener: ((position: { x: number; y: number }) => void) | null } = { listener: null }
   const stop = vi.fn()
   const errors = vi.fn()
+  let onCommand: Parameters<VibemonHost["windows"]["commands"]>[0] | undefined
+  const nativeActions: string[] = []
   const host: VibemonHost = {
     account: () => account,
     assets: createPetAssets(assetsHost),
@@ -112,6 +114,7 @@ test("the packaged pet plays successive drag frames until native release and rev
     },
     windows: {
       async call<T>(action: string): Promise<T> {
+        nativeActions.push(action)
         if (action === "drag") {
           started.resolve()
           await release.promise
@@ -128,7 +131,12 @@ test("the packaged pet plays successive drag frames until native release and rev
         moved.listener = listener
         return Promise.resolve(stop)
       },
-      commands: () => () => {},
+      commands: (listener) => {
+        onCommand = listener
+        return () => {
+          onCommand = undefined
+        }
+      },
       geometry: () => Promise.resolve(() => {}),
       openPet: () => Promise.resolve("shown"),
       closePet: vi.fn(),
@@ -165,5 +173,30 @@ test("the packaged pet plays successive drag frames until native release and rev
   await act(() => Promise.try(() => release.resolve()))
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 0])
   expect(stop).toHaveBeenCalledOnce()
+  expect(errors).not.toHaveBeenCalled()
+  if (onCommand === undefined) throw new Error("Pet command listener missing")
+  const command = onCommand
+  let closed!: Promise<void>
+  await act(async () => {
+    closed = command({ type: "close", petId: "pet", requestId: "close" })
+    await vi.advanceTimersByTimeAsync(500)
+    await closed
+  })
+  expect(nativeActions).toContain("hide")
+  const framesWhileHidden = drawImage.mock.calls.length
+  await act(() => Promise.try(() => vi.advanceTimersByTime(500)))
+  expect(drawImage).toHaveBeenCalledTimes(framesWhileHidden)
+  let presented!: Promise<void>
+  await act(async () => {
+    presented = command({ type: "present", petId: "pet", requestId: "present" })
+    await Promise.resolve()
+  })
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(100)
+    await presented
+  })
+  expect(nativeActions).toContain("present")
+  expect(images).toHaveLength(1)
+  expect(drawImage.mock.calls.length).toBeGreaterThan(framesWhileHidden)
   expect(errors).not.toHaveBeenCalled()
 })

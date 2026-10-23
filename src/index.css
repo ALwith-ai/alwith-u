@@ -460,11 +460,11 @@ html[data-window-backdrop="acrylic"]
 .windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
-/* Application controls use a hover overlay; conversation content keeps its own presentation. */
+/* Application controls use a hover overlay; conversations and Vibemon keep their own presentation. */
 @media (hover: hover) {
   :is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
       [data-disabled]
-    ):not(:where(.codex-thread-content *, .codex-assistant-turn *, .chat-project-picker *)):hover {
+    ):not(:where(.codex-thread-content *, .codex-assistant-turn *, .chat-project-picker *, .vibemon-content *)):hover {
     background-image: linear-gradient(
       color-mix(in oklab, currentColor 8%, transparent),
       color-mix(in oklab, currentColor 8%, transparent)

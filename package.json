@@ -34,7 +34,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.0.1",
     "@alwith/api": "^0.4.16",
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5441d1b6ece7.tgz",
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
     "@alwith/module-chat": "^0.1.23",
     "@alwith/module-computer": "^0.1.5",
     "@alwith/module-drive": "^0.1.0-rc.24",
@@ -163,7 +163,7 @@
     "@openai/codex-win32-arm64": "npm:@openai/codex@0.163.0-win32-arm64"
   },
   "overrides": {
-    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5441d1b6ece7.tgz",
+    "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
     "@alwith/module-chat": "^0.1.23"
   }
 }

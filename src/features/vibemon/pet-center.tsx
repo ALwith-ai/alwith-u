@@ -23,7 +23,7 @@ export function VibemonCenter() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
+      <div className="vibemon-content relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
         <PetCenter key={user?.user_uuid} />
       </div>
     </main>
