@@ -12,7 +12,7 @@ import { showExtensionLimitations } from "./legacy/limitations"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
 import { reportExtensionError, useExtensions } from "./runtime"
-import { updateAndReloadExtension } from "./startup-import-control"
+import { refreshExtensions, updateAndReloadExtension } from "./startup-import-control"
 
 export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: string) => void }) {
   const { t } = useTranslation()
@@ -54,6 +54,7 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: stri
       installPhase={installPhase}
       onOpenSurface={onOpenSurface}
       onInstall={(id) => run(() => install(id))}
+      onRetry={() => run(refreshExtensions)}
       onRequest={(request) =>
         run(async () => {
           await runtime.request(request)

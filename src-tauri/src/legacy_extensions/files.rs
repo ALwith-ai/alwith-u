@@ -93,7 +93,8 @@ fn perform_private_file(
 ) -> Result<FileResponse, String> {
     let directory = open_scope(root)?;
     let path = scoped_path(&directory, &request.path)?;
-    let name = path.to_str().ok_or("Invalid legacy path")?;
+    // Package resource identities use portable separators, even when scoped_path returns a Windows path.
+    let name = path.to_str().ok_or("Invalid legacy path")?.replace(std::path::MAIN_SEPARATOR, "/");
     let exists = directory.try_exists(&path).map_err(|e| e.to_string())?;
     let prefix = if name == "." { String::new() } else { format!("{name}/") };
     let mut package_entries = BTreeMap::new();
@@ -115,12 +116,12 @@ fn perform_private_file(
     if !exists {
         match request.operation {
             FileOperation::Read => {
-                if let Some(body) = files.get(name) {
+                if let Some(body) = files.get(&name) {
                     return Ok(FileResponse::Read { body: body.clone() });
                 }
             }
             FileOperation::Stat => {
-                if let Some(body) = files.get(name) {
+                if let Some(body) = files.get(&name) {
                     return Ok(FileResponse::Stat {
                         exists: true,
                         size: body.len() as u64,

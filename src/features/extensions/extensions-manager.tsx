@@ -26,8 +26,8 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { openExternal } from "@/lib/open"
 
-import { EXTENSION_ICONS } from "./extension-icons"
 import { ExtensionIcon } from "./extension-icon"
+import { EXTENSION_ICONS } from "./extension-icons"
 import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
@@ -41,6 +41,7 @@ interface ExtensionsManagerProps {
   onInstall: (id?: string) => void
   onRequest: (request: Request) => void
   onReload?: (id: string) => void
+  onRetry?: () => void
   onUninstall: (id: string, name: string) => void
   onOpenSurface?: (id: string) => void
   renderSettings: (view: ViewContribution) => ReactNode
@@ -56,6 +57,7 @@ export function ExtensionsManager({
   onRequest,
   onUninstall,
   onReload,
+  onRetry,
   onOpenSurface,
   renderSettings
 }: ExtensionsManagerProps) {
@@ -94,7 +96,14 @@ export function ExtensionsManager({
       )}
       {state.errors.service && (
         <Alert variant="destructive">
-          <AlertDescription>{state.errors.service}</AlertDescription>
+          <AlertDescription>
+            {state.errors.service}
+            {onRetry && (
+              <Button variant="outline" size="sm" disabled={busy} onClick={onRetry}>
+                {t("actions.retry")}
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       <div className="space-y-4">

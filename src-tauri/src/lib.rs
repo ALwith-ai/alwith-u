@@ -70,7 +70,6 @@ pub fn run() {
         .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
-        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -85,6 +84,7 @@ pub fn run() {
                 log::error!("Cannot reopen main window: {error}");
             }
         }))
+        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());

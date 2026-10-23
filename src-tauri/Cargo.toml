@@ -87,11 +87,12 @@ raw-window-handle = "0.6"
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration"]
+exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
 
 [patch.crates-io]
 # Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.
 wry = { path = "patches/wry" }
+tauri-plugin-single-instance = { path = "patches/tauri-plugin-single-instance" }
 
 [profile.dev]
 debug = "line-tables-only"

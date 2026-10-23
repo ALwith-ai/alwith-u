@@ -39,7 +39,7 @@
     "@alwith/module-computer": "^0.1.5",
     "@alwith/module-drive": "^0.1.0-rc.24",
     "@alwith/module-editor": "^0.1.0-rc.13",
-    "@alwith/module-extension": "^0.1.0-rc.13",
+    "@alwith/module-extension": "./vendor/alwith-module-extension-0.1.0-rc.14.tgz",
     "@alwith/module-file-tree": "^0.1.0-rc.20",
     "@alwith/module-fs": "^0.1.0-rc.7",
     "@alwith/module-gamepad": "^0.1.0-rc.3",

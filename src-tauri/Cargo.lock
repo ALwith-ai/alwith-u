@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-extension"
-version = "0.1.0-rc.12"
+version = "0.1.0-rc.14"
 dependencies = [
  "alwith-native-client",
  "percent-encoding",
@@ -5310,8 +5310,6 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "3.0.0-alpha.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3407ebbd1dccc8cffbec98156563497505f24cc6ebd5be2d0b14e4bea4df22e6"
 dependencies = [
  "serde",
  "serde_json",

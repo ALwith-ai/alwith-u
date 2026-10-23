@@ -28,6 +28,7 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
+import { refreshExtensions } from "./startup-import-control"
 import * as extensionUi from "./ui"
 
 let startup: Promise<ExtensionRuntime> | undefined
@@ -120,7 +121,10 @@ export function startExtensionRuntime(): Promise<ExtensionRuntime> {
     await current.start()
     if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
     return current
-  })()
+  })().catch((error: unknown) => {
+    startup = undefined
+    throw error
+  })
   return startup
 }
 
@@ -131,7 +135,7 @@ export function useExtensions() {
   useEffect(() => {
     void startExtensionRuntime().catch(reportExtensionError)
     const refresh = (): void => {
-      void current.refresh().catch(reportExtensionError)
+      void refreshExtensions().catch(reportExtensionError)
     }
     window.addEventListener("focus", refresh)
     return (): void => {

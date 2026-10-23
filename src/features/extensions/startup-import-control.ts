@@ -14,11 +14,18 @@ import { runStartupImports, type StartupImportPort } from "./startup-import"
 let startup: Promise<void> | undefined
 let stopReload: (() => void) | undefined
 
+/** Recover the full startup chain before treating a fresh snapshot as healthy. */
+export async function refreshExtensions(): Promise<void> {
+  const runtime = await startExtensionRuntime()
+  await startStartupImports()
+  await runtime.refresh()
+}
+
 /** Runs outside the auth gate, once in the main WebView; native scan also guards the process. */
 export function startStartupImports(): Promise<void> {
   if (getCurrentWindow().label !== "main") return Promise.resolve()
   startup ??= (async () => {
-    stopReload = await serveMainReload(async (id) => {
+    stopReload ??= await serveMainReload(async (id) => {
       return updateAndReloadExtension(await startExtensionRuntime(), id)
     })
     const runtime = await startExtensionRuntime()
@@ -33,7 +40,10 @@ export function startStartupImports(): Promise<void> {
           message: i18n.t("extensions.startupImportFailed", { message })
         })
     })
-  })()
+  })().catch((error: unknown) => {
+    startup = undefined
+    throw error
+  })
   return startup
 }
 

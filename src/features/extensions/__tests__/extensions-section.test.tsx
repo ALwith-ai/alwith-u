@@ -6,15 +6,27 @@ import { initI18n } from "@/lib/i18n"
 import { ExtensionsSection } from "../extensions-section"
 import type { InstallResult, PreparedInstall } from "../install-service"
 
-const ports = vi.hoisted(() => ({ prepare: vi.fn(), install: vi.fn(), report: vi.fn(), success: vi.fn() }))
+const ports = vi.hoisted(() => ({
+  prepare: vi.fn(),
+  install: vi.fn(),
+  report: vi.fn(),
+  success: vi.fn(),
+  refresh: vi.fn(),
+  serviceError: null as string | null
+}))
 vi.mock("@/bindings", () => ({ commands: { extensionPrepareInstall: ports.prepare } }))
 vi.mock("../install-service", () => ({ executePreparedInstall: ports.install }))
+vi.mock("../startup-import-control", () => ({ refreshExtensions: ports.refresh, updateAndReloadExtension: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { success: ports.success } }))
 vi.mock("../runtime", () => ({
   reportExtensionError: ports.report,
   useExtensions: () => ({
-    runtime: {},
-    state: { busy: false, errors: {}, native: { installations: [], pending: [] } },
+    runtime: { refresh: ports.refresh },
+    state: {
+      busy: false,
+      errors: ports.serviceError ? { service: ports.serviceError } : {},
+      native: { installations: [], pending: [] }
+    },
     host: { views: [], instances: [] }
   })
 }))
@@ -46,9 +58,26 @@ const installed: InstallResult = {
 }
 beforeEach(async (): Promise<void> => {
   vi.clearAllMocks()
+  ports.serviceError = null
   await initI18n("en")
 })
 afterEach(cleanup)
+
+test("service retry stays disabled until full recovery completes", async (): Promise<void> => {
+  ports.serviceError = "Storage unavailable"
+  const pending = deferred<void>()
+  ports.refresh.mockReturnValue(pending.promise)
+  render(<ExtensionsSection />)
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+  expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled()
+  expect(ports.refresh).toHaveBeenCalledOnce()
+  await act(async () => {
+    pending.resolve()
+    await pending.promise
+  })
+  expect(ports.report).not.toHaveBeenCalled()
+  expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+})
 
 test("shows preparation and installation until completion, then reports success", async (): Promise<void> => {
   const preparation = deferred<PreparedInstall | null>()
