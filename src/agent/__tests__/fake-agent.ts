@@ -15,7 +15,9 @@ export type FakeAgent = {
   forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
   newSessionDelay: { current: ((cwd: string) => Promise<void>) | null }
-  sessionOptions: { current: ((model: string | null, meta?: acp.NewSessionRequest["_meta"]) => acp.SessionConfigOption[]) | null }
+  sessionOptions: {
+    current: ((model: string | null, meta?: acp.NewSessionRequest["_meta"]) => acp.SessionConfigOption[]) | null
+  }
   configResponse: {
     current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
   }

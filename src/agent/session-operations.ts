@@ -82,7 +82,12 @@ export class SessionOperations {
       reject = rej
     })
     const operation: Operation = {
-      kind, fingerprint, run, promise, resolve, reject,
+      kind,
+      fingerprint,
+      run,
+      promise,
+      resolve,
+      reject,
       cancelled: false,
       controller: new AbortController()
     }

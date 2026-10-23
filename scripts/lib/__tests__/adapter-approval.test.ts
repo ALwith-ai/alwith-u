@@ -47,25 +47,62 @@ const adapter = new Function(
 
 test.each([
   ["read-only", "user", { type: "readOnly", networkAccess: false }],
-  ["workspace-write", "user", { type: "workspaceWrite", writableRoots: ["/extra"], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false }],
-  ["agent", "auto_review", { type: "workspaceWrite", writableRoots: ["/extra"], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false }]
+  [
+    "workspace-write",
+    "user",
+    {
+      type: "workspaceWrite",
+      writableRoots: ["/extra"],
+      networkAccess: false,
+      excludeTmpdirEnvVar: false,
+      excludeSlashTmp: false
+    }
+  ],
+  [
+    "agent",
+    "auto_review",
+    {
+      type: "workspaceWrite",
+      writableRoots: ["/extra"],
+      networkAccess: false,
+      excludeTmpdirEnvVar: false,
+      excludeSlashTmp: false
+    }
+  ]
 ])("choosing %s persists the reviewer and sandbox before confirming the UI mode", async (mode, reviewer, sandbox) => {
   const session: Session = {
-    sessionId: "deepseek-session", agentMode: adapter.AgentMode.find("agent-full-access"), additionalDirectories: ["/extra"]
+    sessionId: "deepseek-session",
+    agentMode: adapter.AgentMode.find("agent-full-access"),
+    additionalDirectories: ["/extra"]
   }
   let sent: unknown
-  const server = new adapter.Server(new adapter.Client({ threadSettingsUpdate: async (params) => {
-    expect(session.agentMode.id).toBe("agent-full-access")
-    sent = params
-  } }))
+  const server = new adapter.Server(
+    new adapter.Client({
+      threadSettingsUpdate: async (params) => {
+        expect(session.agentMode.id).toBe("agent-full-access")
+        sent = params
+      }
+    })
+  )
   await server.applyModeChange(session, mode)
-  expect(sent).toEqual({ threadId: session.sessionId, approvalPolicy: "on-request", approvalsReviewer: reviewer, sandboxPolicy: sandbox })
+  expect(sent).toEqual({
+    threadId: session.sessionId,
+    approvalPolicy: "on-request",
+    approvalsReviewer: reviewer,
+    sandboxPolicy: sandbox
+  })
   expect(session.agentMode.id).toBe(mode)
 })
 
 test("rejected permission settings leave the confirmed mode unchanged", async () => {
   const session: Session = { sessionId: "s", agentMode: adapter.AgentMode.find("agent"), additionalDirectories: [] }
-  const server = new adapter.Server(new adapter.Client({ threadSettingsUpdate: async () => { throw new Error("Settings rejected") } }))
+  const server = new adapter.Server(
+    new adapter.Client({
+      threadSettingsUpdate: async () => {
+        throw new Error("Settings rejected")
+      }
+    })
+  )
   await expect(server.applyModeChange(session, "read-only")).rejects.toThrow("Settings rejected")
   expect(session.agentMode.id).toBe("agent")
 })
@@ -76,5 +113,7 @@ test.each([
   ["auto_review", "on-request", "workspaceWrite", "agent"],
   ["user", "never", "dangerFullAccess", "agent-full-access"]
 ])("restoring %s / %s / %s retains the persisted mode", (approvalsReviewer, approvalPolicy, sandbox, expected) => {
-  expect(adapter.AgentMode.fromThread({ approvalsReviewer, approvalPolicy, sandbox: { type: sandbox } }).id).toBe(expected)
+  expect(adapter.AgentMode.fromThread({ approvalsReviewer, approvalPolicy, sandbox: { type: sandbox } }).id).toBe(
+    expected
+  )
 })

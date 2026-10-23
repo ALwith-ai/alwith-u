@@ -59,7 +59,7 @@ export function DraftModelSelect({
       unavailableEffort={{ name: "Effort", label: t("chat.model.unsupported") }}
       booleanOptions={[
         {
-          id: "fast_mode",
+          id: "fast-mode",
           name: t("chat.model.fastMode"),
           currentValue: false,
           disabled: true,

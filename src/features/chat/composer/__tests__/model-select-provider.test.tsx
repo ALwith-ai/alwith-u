@@ -296,7 +296,7 @@ test("supported fast mode and explicit effort levels target the owning session",
   const config: acp.SessionConfigOption[] = [
     ...catalogOptions("First"),
     {
-      configId: "fast_mode",
+      configId: "fast-mode",
       category: "model_config",
       name: "Fast mode",
       type: "boolean",
@@ -319,7 +319,7 @@ test("supported fast mode and explicit effort levels target the owning session",
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).toBeChecked()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))))
-  expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "fast_mode", false)
+  expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "fast-mode", false)
   const slider = view.getByRole("slider", { name: "Effort" })
   expect(slider).toHaveAttribute("aria-valuetext", "Medium")
   await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))

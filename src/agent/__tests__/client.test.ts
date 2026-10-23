@@ -75,7 +75,7 @@ test.each([true, false])(
   "new sessions start with Fast disabled when the agent default is %s",
   async (inheritedFast) => {
     const option: BooleanOption = {
-      configId: "fast_mode",
+      configId: "fast-mode",
       category: "model_config",
       name: "Fast",
       type: "boolean",
@@ -86,7 +86,7 @@ test.each([true, false])(
       fake.sessionOptions.current = () => [{ ...option }]
       fake.configResponse.current = (request) => {
         writes.push(request)
-        expect(request.configId).toBe("fast_mode")
+        expect(request.configId).toBe("fast-mode")
         expect(request.type).toBe("boolean")
         option.currentValue = request.value as boolean
         return { configOptions: [{ ...option }] }
@@ -95,7 +95,7 @@ test.each([true, false])(
     const id = await client.prepareDraft("main", "/tmp/default-fast")
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: false }])
     expect(writes).toHaveLength(inheritedFast ? 1 : 0)
-    await client.setConfig(id, "fast_mode", true)
+    await client.setConfig(id, "fast-mode", true)
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: true }])
     expect(await client.prepareDraft("main", "/tmp/default-fast")).toBe(id)
     expect(client.session(id).configOptions[0]?.currentValue).toBe(true)
@@ -105,7 +105,7 @@ test.each([true, false])(
 test("a failed Fast default update does not expose a ready draft", async () => {
   const { client, fake } = await make((fake) => {
     fake.sessionOptions.current = () => [
-      { configId: "fast_mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+      { configId: "fast-mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
     ]
     fake.configResponse.current = () => {
       throw RequestError.invalidRequest({}, "Cannot disable Fast")

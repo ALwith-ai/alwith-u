@@ -30,16 +30,11 @@ function proxy(forward: (url: Parameters<typeof fetch>[0], init?: RequestInit) =
     "import_websocket_server",
     `${source}; return new ResponsesProxy()`
   )
-  return create(
-    forward,
-    createServer,
-    randomBytes,
-    pipeline,
-    Readable,
-    zstdDecompressSync,
-    (body: string) => body,
-    { default: class { close() {} } }
-  ) as ProxyInstance
+  return create(forward, createServer, randomBytes, pipeline, Readable, zstdDecompressSync, (body: string) => body, {
+    default: class {
+      close() {}
+    }
+  }) as ProxyInstance
 }
 
 test("Responses transport preserves streaming bytes, status and request cancellation options", async () => {

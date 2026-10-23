@@ -87,7 +87,7 @@ export function ModelSelectGroup({
     api_id: model?.currentValue ?? "",
     label
   }
-  const fast = booleans.find((option) => option.configId === "fast_mode")
+  const fast = booleans.find((option) => option.configId === "fast-mode")
   return (
     <ModelSelect
       disabled={disabled || switching}
@@ -131,7 +131,7 @@ export function ModelSelectGroup({
       }))}
       booleanOptions={[
         {
-          id: "fast_mode",
+          id: "fast-mode",
           name: t("chat.model.fastMode"),
           currentValue: fast?.currentValue ?? false,
           disabled: !fast,

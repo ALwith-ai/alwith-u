@@ -746,9 +746,9 @@ export class CodexClient {
     const mode =
       sourceId === null
         ? undefined
-        : this.sessions.sessions.get(sourceId)?.configOptions.find(
-            (option) => option.category === "mode" && isSelectOption(option)
-          )
+        : this.sessions.sessions
+            .get(sourceId)
+            ?.configOptions.find((option) => option.category === "mode" && isSelectOption(option))
     // Reopening tools or history must not reset the session's approval destination.
     const meta = {
       ...(Object.keys(alwith).length > 0 ? { alwith } : {}),
@@ -799,7 +799,7 @@ export class CodexClient {
     )
     await bind?.(response.sessionId)
     // New chats use standard speed even when Codex's global default is priority.
-    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast_mode")
+    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast-mode")
     if (fast && isBooleanOption(fast) && fast.currentValue) {
       try {
         await this.setConfig(response.sessionId, fast.configId, false)
