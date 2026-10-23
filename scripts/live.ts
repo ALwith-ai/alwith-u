@@ -309,6 +309,7 @@ async function check(transport: "stdio" | "ws") {
     } finally {
       await second.delete(forked)
     }
+    if (process.env.ALWITH_LIVE_FOCUS === "fork") return
     const events = await port.sessionEvents(a)
     if (events.length === 0) throw new Error("the Runtime journal has no frames for session A")
     console.log(`journal: ${events.length} frames for A, last sequence ${events.at(-1)!.sequence}`)
