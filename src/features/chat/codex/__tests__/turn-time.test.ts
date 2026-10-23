@@ -68,3 +68,11 @@ test("native work duration wins over total; total and unknown are explicitly dif
   })
   expect(turnTiming(timedTurn({ historyReplay: true })).durationMs).toBeUndefined()
 })
+
+test("live replies display Runtime completion time when native metadata is absent", () => {
+  const turn = timedTurn({}, false)
+  turn.endedAt = new Date(2024, 0, 2, 20, 21).getTime()
+  expect(formatTurnTime(turn, "assistant")?.full).toBe("2024-01-02 20:21")
+  turn.replayed = true
+  expect(formatTurnTime(turn, "assistant")).toBeNull()
+})

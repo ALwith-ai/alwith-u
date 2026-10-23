@@ -2,7 +2,7 @@ import { format, isToday } from "date-fns"
 
 import type { Turn } from "../turns"
 
-/** Only native timestamps or the locally recorded send time belong on message actions. */
+/** History uses native timestamps; live turns can use Runtime-recorded send and completion times. */
 export function formatTurnTime(
   turn: Turn,
   role: "user" | "assistant" = "user"
@@ -21,7 +21,7 @@ export function formatTurnTime(
       ? (nativeTime(turn.user?._meta, "messageSentAt") ?? (!historical ? (turn.user?.at ?? null) : null))
       : (nativeTime(turn.final.at(-1)?._meta, "messageCompletedAt") ??
         turn.items.map((item) => nativeTime(item._meta, "turnCompletedAt")).find((value) => value !== null) ??
-        null)
+        (!historical && turn.final.length > 0 ? turn.endedAt : null))
   if (timestamp === null) return null
   const date = new Date(timestamp)
   return {
