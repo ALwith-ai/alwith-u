@@ -3,7 +3,7 @@
 // dialog. The host prepares the default workspace when no previous project was selected.
 import { invoke } from "@tauri-apps/api/core"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
-import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
+import { FolderClosedIcon, FolderPlusIcon, LoaderCircleIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -32,11 +32,13 @@ export async function chooseFolder(defaultPath: string | null): Promise<string |
 export function DraftProjectPicker({
   cwd,
   recentProjects,
-  onChange
+  onChange,
+  preparing = false
 }: {
   cwd: string | null
   recentProjects: string[]
   onChange: (cwd: string) => void
+  preparing?: boolean
 }) {
   const { t } = useTranslation()
   const [defaultCwd, setDefaultCwd] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export function DraftProjectPicker({
   return (
     <DropdownMenu>
       <div
+        aria-busy={preparing}
         className={cn(
           "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full px-2",
           hasProject ? "text-foreground" : "text-foreground/65"
@@ -80,10 +83,16 @@ export function DraftProjectPicker({
             disabled={defaultCwd === null}
             onClick={workOutsideProject}
           >
-            <FolderClosedIcon className="size-4 group-focus-within/project:opacity-0 group-hover/project:opacity-0" />
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-focus-within/project:opacity-100 group-hover/project:opacity-100">
-              <XIcon className="size-3" />
-            </span>
+            {preparing ? (
+              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <>
+                <FolderClosedIcon className="size-4 group-hover/project:opacity-0" />
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-hover/project:opacity-100">
+                  <XIcon className="size-3" />
+                </span>
+              </>
+            )}
           </Button>
         )}
         <DropdownMenuTrigger
@@ -95,7 +104,12 @@ export function DraftProjectPicker({
             />
           }
         >
-          {!hasProject && <FolderClosedIcon className="size-4" />}
+          {!hasProject &&
+            (preparing ? (
+              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <FolderClosedIcon className="size-4" />
+            ))}
           <span className="truncate">{hasProject ? basename(cwd) : t("chat.draft.selectProject")}</span>
         </DropdownMenuTrigger>
       </div>

@@ -15,6 +15,22 @@ await initI18n("en")
 beforeEach(() => vi.mocked(invoke).mockResolvedValue("/tmp/ALwith U"))
 afterEach(() => vi.clearAllMocks())
 
+test("project preparation replaces the folder and hover-clear icon with a spinner until it settles", async () => {
+  const onChange = vi.fn()
+  const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} preparing />)
+  const picker = view.container.querySelector(".chat-project-picker")
+  expect(picker).toHaveAttribute("aria-busy", "true")
+  expect(picker?.querySelector(".lucide-loader-circle")).toBeVisible()
+  expect(picker?.querySelector(".lucide-x")).toBeNull()
+  await waitFor(() => expect(view.getByRole("button", { name: "Work outside a project" })).toBeEnabled())
+  expect(view.getByRole("button", { name: "current" })).toBeEnabled()
+  view.rerender(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
+  expect(picker).toHaveAttribute("aria-busy", "false")
+  expect(picker?.querySelector(".lucide-loader-circle")).toBeNull()
+  expect(picker?.querySelector(".lucide-folder-closed")).toBeVisible()
+  expect(onChange).not.toHaveBeenCalled()
+})
+
 test("project picker pins the current directory once, marks it selected and reports a new choice", async () => {
   const chosen: string[] = []
   const view = render(
