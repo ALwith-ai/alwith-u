@@ -299,6 +299,7 @@ fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
             "voice.doubao.resourceId" => value
                 .as_str()
                 .is_some_and(|v| v.trim().bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))),
+            "collections.data" => valid_collections(value),
             "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
             "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),
             "editor.fontSize" => value.as_f64().is_some_and(|n| (8.0..=40.0).contains(&n)),
@@ -341,6 +342,56 @@ fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
     }
     Ok(())
 }
+
+// Collection preferences contain references only, never conversation content.
+fn valid_collections(value: &Value) -> bool {
+    let Some(data) = value.as_object() else { return false };
+    if data.len() != 2 {
+        return false;
+    }
+    let (Some(collections), Some(order)) =
+        (data.get("collections").and_then(Value::as_object), data.get("order").and_then(Value::as_array))
+    else {
+        return false;
+    };
+    if order.first().and_then(Value::as_str) != Some("collection-default") || order.len() != collections.len() {
+        return false;
+    }
+    let mut ids = std::collections::BTreeSet::new();
+    let mut sessions = std::collections::BTreeSet::new();
+    for id in order {
+        let Some(id) = id.as_str() else { return false };
+        if id.is_empty() || !ids.insert(id) {
+            return false;
+        }
+        let Some(group) = collections.get(id).and_then(Value::as_object) else { return false };
+        if group
+            .keys()
+            .any(|key| !matches!(key.as_str(), "id" | "name" | "nameIsCustom" | "collapsed" | "emoji" | "sessionIds"))
+        {
+            return false;
+        }
+        if group.get("id").and_then(Value::as_str) != Some(id)
+            || !group
+                .get("name")
+                .is_some_and(|v| v.as_str().is_some_and(|name| id == "collection-default" || !name.trim().is_empty()))
+            || !group.get("collapsed").is_some_and(Value::is_boolean)
+            || group.get("nameIsCustom").is_some_and(|v| !v.is_boolean())
+            || group.get("emoji").is_some_and(|v| !v.is_string())
+        {
+            return false;
+        }
+        let Some(members) = group.get("sessionIds").and_then(Value::as_array) else { return false };
+        for member in members {
+            let Some(member) = member.as_str() else { return false };
+            if member.is_empty() || !sessions.insert(member) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 #[path = "__tests__/settings_store.rs"]
 mod tests;

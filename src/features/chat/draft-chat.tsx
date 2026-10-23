@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next"
 import type { DraftOwner } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { applyProvidersWhenIdle } from "@/lib/providers"
@@ -34,6 +35,7 @@ export function DraftChat({
   cwd,
   onCwdChange,
   onCreated,
+  collectionId,
   onSendingChange,
   onVoiceHandoff,
   onAuthRequired,
@@ -51,6 +53,7 @@ export function DraftChat({
   onCwdChange: (cwd: string) => void
   /** Bind the precreated session to this surface without materializing a history entry. */
   onCreated: (sessionId: string) => void
+  collectionId?: string
   /** Hold this composer only while its own first send is waiting for acceptance. */
   onSendingChange: (sessionId: string, sending: boolean) => void
   onVoiceHandoff?: (sessionId: string, receipt: string) => void
@@ -179,6 +182,8 @@ export function DraftChat({
     try {
       if (accept === undefined) await client.prompt(target, prompt)
       else accept(await client.promptReceipt(target, prompt))
+      if (collectionId !== undefined)
+        reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
       // Clear persisted input before the parent mounts the conversation's composer.
       importDraft(target, null)
     } finally {

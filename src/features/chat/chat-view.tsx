@@ -8,6 +8,7 @@ import type { ThreadSummary } from "@/agent/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { CollectionPicker } from "@/features/collection/collection-menu"
 import { SessionPreview } from "@/features/computer/session-preview"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client, useApp } from "@/lib/client"
@@ -70,6 +71,7 @@ export function ChatView({
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
             project={projectMenu}
           >
+            <CollectionPicker sessionId={session.id} favorite />
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}

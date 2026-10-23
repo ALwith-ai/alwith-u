@@ -1107,5 +1107,33 @@
   "canvas": {
     "navigation": "Page navigation",
     "page": "Page {{number}}"
+  },
+  "collection": {
+    "defaultFavorites": "Favorites",
+    "addTo": "Favorite",
+    "addToNamedCollection": "Save to {{name}}",
+    "collectionName": "Collection name",
+    "clearCollection": "Clear collection",
+    "deleteCollection": "Delete collection",
+    "confirmCollectionChange": "Remove the records in “{{name}}”? Conversation content and records in other collections will be kept.",
+    "favorite": "Add to default collection",
+    "removeFromAll": "Remove from all collections",
+    "newCollection": "Create Collection",
+    "defaultName": "New collection",
+    "closeChat": "Close chat",
+    "remove": "Remove",
+    "addToCollection": "Favorite",
+    "moveTo": "Move to",
+    "removeFromGroup": "Remove from group",
+    "openSideBySide": "Open side by side",
+    "newChat": "New chat",
+    "defaultChatTitle": "New chat",
+    "title": "Collections",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "emoji": "Emoji",
+    "more": "More actions for {{name}}",
+    "unavailable": "Chat unavailable",
+    "retry": "Retry"
   }
 }

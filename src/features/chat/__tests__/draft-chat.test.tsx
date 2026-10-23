@@ -1229,3 +1229,37 @@ test.each(["main", "chat"] as const)(
     }
   }
 )
+
+test("a collection draft is saved only after its first send is accepted", async () => {
+  const env = await environment()
+  const collections = await import("@/features/collection/store")
+  const saved = vi.spyOn(collections, "dispatchCollection").mockResolvedValue()
+  importDraft(DRAFT_SESSION_ID, { text: "Save this conversation", mentions: [], attachments: [], modelId: null })
+  let sessionId: string | null = null
+  const view = render(
+    <DraftChat
+      owner="main"
+      collectionId="work"
+      cwd="/tmp/collection"
+      onCwdChange={() => {}}
+      onCreated={(id) => {
+        sessionId = id
+      }}
+      onSendingChange={() => {}}
+      onAuthRequired={() => {}}
+      onNewChat={() => {}}
+      providerSnapshot={providers}
+    />
+  )
+  try {
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
+    expect(sessionId).not.toBeNull()
+    expect(saved).not.toHaveBeenCalled()
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await waitFor(() => expect(saved).toHaveBeenCalledExactlyOnceWith({ type: "add", collectionId: "work", sessionId }))
+  } finally {
+    await act(async () => view.unmount())
+    saved.mockRestore()
+    env.restore()
+  }
+})

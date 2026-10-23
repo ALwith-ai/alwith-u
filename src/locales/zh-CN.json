@@ -1107,5 +1107,33 @@
   "canvas": {
     "navigation": "页面导航",
     "page": "第 {{number}} 页"
+  },
+  "collection": {
+    "defaultFavorites": "收藏夹",
+    "addTo": "收藏",
+    "addToNamedCollection": "收藏到{{name}}",
+    "collectionName": "集合名称",
+    "clearCollection": "清空集合",
+    "deleteCollection": "删除集合",
+    "confirmCollectionChange": "移除“{{name}}”中的记录？对话内容和其他集合中的记录将保留。",
+    "favorite": "添加到默认集合",
+    "removeFromAll": "从所有集合移除",
+    "newCollection": "创建集合",
+    "defaultName": "新集合",
+    "closeChat": "关闭对话",
+    "remove": "移除",
+    "addToCollection": "收藏",
+    "moveTo": "移动到",
+    "removeFromGroup": "移出分组",
+    "openSideBySide": "并排打开",
+    "newChat": "新对话",
+    "defaultChatTitle": "新对话",
+    "title": "收藏",
+    "confirm": "确认",
+    "cancel": "取消",
+    "emoji": "表情",
+    "more": "{{name}}的更多操作",
+    "unavailable": "会话不可用",
+    "retry": "重试"
   }
 }
