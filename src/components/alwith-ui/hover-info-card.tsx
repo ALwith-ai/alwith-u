@@ -8,7 +8,7 @@
  * not a row of icon buttons: action counts vary (3 in session columns, 5 in Collection session rows), making icon rows crowded.
  * Icons alone cannot distinguish actions such as "Move to group" and "Remove from group". The trailing slot is reserved for ✕ (stop session).
  */
-import type { ReactNode } from "react"
+import type { ComponentProps, ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -87,7 +87,7 @@ function HoverInfoRows({ rows }: { rows?: HoverInfoRow[] }) {
 
 /**
  * An action at the bottom of the card, matching DropdownMenuItem layout (h-8 / gap-2 / svg size-4).
- * Use a regular button: the card is already a floating layer, and nesting a menu would create conflicting dismissal behavior.
+ * Button props and refs pass through so floating-menu triggers retain their shared action layout.
  */
 export function HoverInfoAction({
   icon,
@@ -95,8 +95,10 @@ export function HoverInfoAction({
   trailing,
   disabled,
   onClick,
-  variant = "default"
-}: {
+  variant = "default",
+  className,
+  ...props
+}: Omit<ComponentProps<"button">, "children"> & {
   icon: ReactNode
   label: ReactNode
   /** Optional trailing content, such as the ▾ for "Move to group". */
@@ -107,15 +109,17 @@ export function HoverInfoAction({
 }) {
   return (
     <button
+      {...props}
       data-slot="hover-info-card-action"
       data-variant={variant}
       type="button"
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm text-foreground hover:bg-foreground/5 active:bg-foreground/10 disabled:pointer-events-none disabled:opacity-50",
+        "flex h-8 w-full items-center gap-2 rounded-sm px-2 text-start text-sm font-normal text-foreground hover:bg-foreground/5 active:bg-foreground/10 disabled:pointer-events-none disabled:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
-        variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground"
+        variant === "destructive" ? "text-destructive [&_svg]:text-destructive" : "[&_svg]:text-muted-foreground",
+        className
       )}
     >
       {icon}

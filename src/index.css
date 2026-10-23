@@ -467,6 +467,7 @@ html[data-window-backdrop="acrylic"]
     ):not(
       :where(
         .codex-thread-content *,
+        .thread-user-message-navigation *,
         .codex-assistant-turn *,
         .chat-project-picker *,
         .vibemon-content *,
@@ -530,6 +531,12 @@ html[data-window-backdrop="acrylic"]
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
 .main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
+}
+
+/* Nested shortcut controls share their parent row's hover surface. */
+[data-hover-background="none"]:is(:hover, [aria-expanded="true"]) {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 .main-sidebar-panel [role="tablist"] [role="tab"]:enabled:hover {

@@ -21,10 +21,11 @@ settingsStore.subscribe((keys) => {
 })
 
 let pending: Promise<unknown> = Promise.resolve()
-export function dispatchCollection(action: CollectionAction): Promise<void> {
+export function dispatchCollection(action: CollectionAction | CollectionAction[]): Promise<void> {
   const operation = pending.then(async () => {
     const snapshot = await settingsStore.read()
-    const next = applyCollectionAction(readCollections(), action)
+    const actions = Array.isArray(action) ? action : [action]
+    const next = actions.reduce(applyCollectionAction, readCollections())
     await settingsStore.write({
       action: "update",
       expectedRevision: snapshot.revision,

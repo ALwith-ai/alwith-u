@@ -16,6 +16,7 @@ import {
   CloudIcon,
   FolderClosedIcon,
   FolderIcon,
+  FolderMinusIcon,
   FolderOpenIcon,
   GitForkIcon,
   MessagesSquareIcon,
@@ -58,6 +59,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { AddToCollectionAction } from "@/features/collection/collection-menu"
 import { CollectionPanel } from "@/features/collection/collection-panel"
+import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
@@ -100,7 +102,8 @@ function ThreadRow({
   onSelect,
   onForked,
   onDelete,
-  onHoverCardOpenChange
+  onHoverCardOpenChange,
+  collectionId
 }: {
   thread: ThreadSummary
   active: boolean
@@ -110,6 +113,7 @@ function ThreadRow({
   onForked: (thread: ThreadSummary) => void
   onDelete: () => void
   onHoverCardOpenChange: (open: boolean) => void
+  collectionId?: string
 }) {
   const { t, i18n } = useTranslation()
   const title = thread.title ?? t("sidebar.untitled")
@@ -130,7 +134,9 @@ function ThreadRow({
       interruption={interruption}
       title={title}
       onHoverCardOpenChange={onHoverCardOpenChange}
-      hoverCard={<ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} />}
+      hoverCard={
+        <ThreadHoverBody thread={thread} onDelete={onDelete} onForked={onForked} collectionId={collectionId} />
+      }
       meta={
         thread.updatedAt !== null ? (
           <span className="shrink-0 text-xs text-muted-foreground">
@@ -149,10 +155,12 @@ function ThreadRow({
 
 /** Desktop's `SessionHoverBody`: info card plus the row actions (rename / fork / archive / delete). */
 function ThreadHoverBody({
+  collectionId,
   thread,
   onDelete,
   onForked
 }: {
+  collectionId?: string
   thread: ThreadSummary
   onDelete: () => void
   onForked: (thread: ThreadSummary) => void
@@ -176,7 +184,16 @@ function ThreadHoverBody({
           {canRename && (
             <HoverInfoAction icon={<PencilIcon />} label={t("sidebar.rename")} onClick={() => setRenaming(true)} />
           )}
-          <AddToCollectionAction sessionId={thread.sessionId} />
+          <AddToCollectionAction sessionId={thread.sessionId} allowRemove={collectionId === undefined} />
+          {collectionId !== undefined && (
+            <HoverInfoAction
+              icon={<FolderMinusIcon />}
+              label={t("collection.removeFromGroup")}
+              onClick={() =>
+                reportCollection(dispatchCollection({ type: "remove", collectionId, sessionId: thread.sessionId }))
+              }
+            />
+          )}
           <DriveArchiveAction sessionId={thread.sessionId} />
           {thread.archived ? (
             <HoverInfoAction
@@ -321,10 +338,11 @@ export function ThreadSidebar({
   const stateOf = (thread: ThreadSummary): RunState | undefined => runStates[thread.sessionId]?.state
   const interruptionOf = (thread: ThreadSummary): string | null => runStates[thread.sessionId]?.interruption ?? null
 
-  const renderRow = (thread: ThreadSummary, onHoverCardOpenChange: (open: boolean) => void) => (
+  const renderRow = (thread: ThreadSummary, onHoverCardOpenChange: (open: boolean) => void, collectionId?: string) => (
     <ThreadRow
       key={thread.sessionId}
       onHoverCardOpenChange={onHoverCardOpenChange}
+      collectionId={collectionId}
       thread={thread}
       active={thread.sessionId === selectedId}
       state={stateOf(thread)}
@@ -568,7 +586,7 @@ export function ThreadSidebar({
               })}
               {!allProjectsShown && groups.length > 6 && (
                 <NavigationItemButton
-                  className={`${MENU_HIGHLIGHT} text-muted-foreground`}
+                  className={`${MENU_HIGHLIGHT} ps-[9px] text-muted-foreground`}
                   onClick={() => setAllProjectsShown(true)}
                 >
                   {t("sidebar.showAll")}

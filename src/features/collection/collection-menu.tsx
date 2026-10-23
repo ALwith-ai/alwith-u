@@ -3,6 +3,7 @@ import { BoxIcon, ChevronRightIcon, PlusIcon, StarIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -23,11 +24,19 @@ import { dispatchCollection, reportCollection, useCollectionStore } from "./stor
 export function CollectionPicker({
   sessionId,
   trigger,
-  favorite = false
+  favorite = false,
+  allowRemove = true,
+  submenu = false,
+  className,
+  onOpenChange
 }: {
   sessionId: string
   trigger?: ReactElement
   favorite?: boolean
+  allowRemove?: boolean
+  submenu?: boolean
+  className?: string
+  onOpenChange?: (open: boolean) => void
 }) {
   const { t } = useTranslation()
   const pin = useNavigationHoverCardPin()
@@ -37,15 +46,21 @@ export function CollectionPicker({
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
+  const changeOpen = (value: boolean) => {
+    setOpen(value)
+    pin(value)
+    onOpenChange?.(value)
+    if (!value) {
+      setCreating(false)
+      setName("")
+    }
+  }
   const run = (operation: Promise<void>) => {
     setBusy(true)
     reportCollection(
       operation
         .then(() => {
-          setOpen(false)
-          pin(false)
-          setCreating(false)
-          setName("")
+          changeOpen(false)
         })
         .finally(() => setBusy(false))
     )
@@ -54,27 +69,33 @@ export function CollectionPicker({
     <DropdownMenu
       modal={false}
       open={open}
-      onOpenChange={(value) => {
-        setOpen(value)
-        pin(value)
+      onOpenChange={(value, details) => {
+        if (!value && creating && details.reason === "trigger-hover") {
+          details.cancel()
+          return
+        }
+        changeOpen(value)
       }}
     >
       <DropdownMenuTrigger
         disabled={busy}
-        openOnHover={favorite}
+        data-hover-background={favorite ? "none" : undefined}
+        openOnHover={favorite || submenu}
+        aria-label={t(favorite && selected !== undefined ? "collection.removeFromAll" : "collection.addTo")}
         onMouseDown={(event) => {
-          if (favorite && selected !== undefined) event.preventBaseUIHandler()
+          if (favorite) event.preventBaseUIHandler()
         }}
         onClick={(event) => {
-          if (!favorite || selected === undefined) return
+          if (!favorite) return
           event.preventBaseUIHandler()
-          run(dispatchCollection({ type: "remove", sessionId }))
+          run(dispatchCollection({ type: "favorite", sessionId }))
         }}
         render={
           trigger ?? (
             <Button
               variant="ghost"
               size="icon-sm"
+              className={className}
               aria-label={t(favorite && selected !== undefined ? "collection.removeFromAll" : "collection.addTo")}
             >
               <StarIcon className={cn(selected !== undefined && "fill-current")} />
@@ -82,7 +103,12 @@ export function CollectionPicker({
           )
         }
       />
-      <DropdownMenuContent className="w-56" align="end">
+      <DropdownMenuContent
+        className="w-56 font-normal"
+        side={submenu ? "inline-end" : "bottom"}
+        align={submenu ? "start" : "end"}
+        sideOffset={4}
+      >
         <DropdownMenuGroup>
           <DropdownMenuRadioGroup value={selected ?? null}>
             {order.map((id) => (
@@ -96,11 +122,13 @@ export function CollectionPicker({
                 {id === DEFAULT_COLLECTION_ID ? (
                   <StarIcon />
                 ) : collections[id].emoji ? (
-                  <span>{collections[id].emoji}</span>
+                  <span className="flex size-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">
+                    {collections[id].emoji}
+                  </span>
                 ) : (
                   <BoxIcon />
                 )}
-                {getCollectionName(collections[id], t)}
+                <span className="min-w-0 flex-1 truncate">{getCollectionName(collections[id], t)}</span>
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
@@ -111,7 +139,7 @@ export function CollectionPicker({
             <PlusIcon />
             {t("collection.newCollection")}
           </DropdownMenuItem>
-          {selected !== undefined && (
+          {allowRemove && selected !== undefined && (
             <DropdownMenuItem
               disabled={busy}
               closeOnClick={false}
@@ -152,17 +180,19 @@ export function CollectionPicker({
   )
 }
 
-export function AddToCollectionAction({ sessionId }: { sessionId: string }) {
+export function AddToCollectionAction({ sessionId, allowRemove = true }: { sessionId: string; allowRemove?: boolean }) {
   const { t } = useTranslation()
   return (
     <CollectionPicker
       sessionId={sessionId}
+      allowRemove={allowRemove}
+      submenu
       trigger={
-        <Button variant="ghost" className="w-full justify-start px-2">
-          <StarIcon />
-          <span className="flex-1 text-start">{t("collection.addTo")}</span>
-          <ChevronRightIcon />
-        </Button>
+        <HoverInfoAction
+          icon={<StarIcon />}
+          label={t("collection.addTo")}
+          trailing={<ChevronRightIcon className="rtl:rotate-180" />}
+        />
       }
     />
   )

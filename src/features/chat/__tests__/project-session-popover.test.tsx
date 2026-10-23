@@ -4,6 +4,7 @@ import { afterAll, beforeEach, expect, test, vi } from "vitest"
 
 import type { ThreadSummary } from "@/agent/client"
 import { commands } from "@/bindings"
+import * as collectionStore from "@/features/collection/store"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
 import { ThreadInfoCard } from "@/features/threads/thread-info-card"
 import { must } from "@/lib/__tests__/must"
@@ -72,7 +73,7 @@ test("project popover shows the full count, expands beyond five chats and routes
       })
     })
     expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
-    expect(view.queryByRole("button", { name: /collection|favorite/i })).toBeNull()
+    expect(view.getAllByRole("button", { name: /collection|favorite/i })).toHaveLength(7)
     await act(() => {
       return Promise.try(() => {
         fireEvent.click(view.getByRole("button", { name: "Chat 0" }))
@@ -373,4 +374,22 @@ test("the Drive action has an explicit label and opens existing project sessions
   fireEvent.click(view.getByText("Chat 6"))
   expect(selected).toHaveBeenCalledWith(entries[6])
   expect(newChat).not.toHaveBeenCalled()
+})
+
+test("the project quick favorite targets its row without selecting the conversation", async () => {
+  client.store.setState({ threads: threads() })
+  const selected = vi.fn()
+  const dispatch = vi.spyOn(collectionStore, "dispatchCollection").mockResolvedValue()
+  try {
+    const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={selected} onNewChat={() => {}} />)
+    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+    const row = must(view.getByRole("button", { name: "Chat 6" }).parentElement, "project session row")
+    const favorite = must(row.querySelector<HTMLButtonElement>("button[aria-haspopup=menu]"), "quick favorite")
+    await act(async () => fireEvent.click(favorite))
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "favorite", sessionId: "chat-6" })
+    expect(selected).not.toHaveBeenCalled()
+    expect(view.getByRole("dialog")).toBeVisible()
+  } finally {
+    dispatch.mockRestore()
+  }
 })

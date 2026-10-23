@@ -15,12 +15,21 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { BrushCleaningIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, StarIcon, Trash2Icon } from "lucide-react"
+import {
+  BrushCleaningIcon,
+  MessageSquareIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  StarIcon,
+  Trash2Icon
+} from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { ThreadSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
+import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -39,6 +48,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
+import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
+import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { client, useApp } from "@/lib/client"
 import { isMac } from "@/lib/platform"
@@ -64,7 +75,7 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(isDragging && "opacity-50")}
+      className={cn("w-full min-w-0", isDragging && "opacity-50")}
       {...attributes}
       {...listeners}
       role="group"
@@ -97,7 +108,7 @@ function CollectionSection({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(isDragging && "opacity-50")}
+      className={cn("w-full min-w-0", isDragging && "opacity-50")}
     >
       <NavigationGroup
         open={!collection.collapsed}
@@ -175,7 +186,7 @@ export function CollectionPanel({
   onSelect,
   onNewChat
 }: {
-  renderRow: (thread: ThreadSummary, onHover: (open: boolean) => void) => ReactNode
+  renderRow: (thread: ThreadSummary, onHover: (open: boolean) => void, collectionId?: string) => ReactNode
   onSelect: (thread: ThreadSummary) => void
   onNewChat: (collectionId: string) => void
 }) {
@@ -255,29 +266,28 @@ export function CollectionPanel({
   }
   return (
     <>
-      <Pane viewportClassName="ps-2 pe-0 pb-1">
-        <div className="pe-2">
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
+      <Pane className="thread-sidebar-scroll" viewportClassName="ps-2 pe-0 pb-1">
+        <NavigationStack>
+          <NavigationItemButton
+            className={cn(MENU_HIGHLIGHT, "font-normal")}
             onClick={() => {
               setEditing("new")
               setName("")
               setEmoji("")
             }}
           >
-            <PlusIcon />
-            {t("collection.newCollection")}
-          </Button>
-          {!loaded && (
-            <p role="status" className="p-2 text-sm text-muted-foreground">
-              {error ?? t("chat.project.loading")}
-            </p>
-          )}
+            <NavigationLeading>
+              <PlusIcon />
+            </NavigationLeading>
+            <span>{t("collection.newCollection")}</span>
+          </NavigationItemButton>
           {error && (
-            <Button variant="ghost" onClick={() => reportCollection(client.listThreads({ reset: true }))}>
-              {t("collection.retry")}
-            </Button>
+            <div className="px-2 text-sm text-muted-foreground">
+              <p role="alert">{error}</p>
+              <Button variant="ghost" onClick={() => reportCollection(client.listThreads({ reset: true }))}>
+                {t("collection.retry")}
+              </Button>
+            </div>
           )}
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
             <SortableContext items={order} strategy={verticalListSortingStrategy}>
@@ -303,11 +313,18 @@ export function CollectionPanel({
                         if (thread?.archived) return null
                         if (!thread)
                           return loaded ? (
-                            <div key={sid} className="flex items-center gap-1 px-2 text-sm text-muted-foreground">
-                              <span className="flex-1">{t("collection.unavailable")}</span>
+                            <div
+                              key={sid}
+                              className="flex h-[var(--navigation-row-height)] w-full items-center gap-1 rounded-[10px] ps-1 pe-1.5 text-sm font-normal text-muted-foreground"
+                            >
+                              <NavigationLeading>
+                                <MessageSquareIcon className="size-3.5" />
+                              </NavigationLeading>
+                              <span className="min-w-0 flex-1 truncate">{t("collection.unavailable")}</span>
                               <Button
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon"
+                                className="size-5 [&_svg]:size-3.5"
                                 aria-label={t("collection.removeFromGroup")}
                                 onClick={() =>
                                   reportCollection(
@@ -321,7 +338,7 @@ export function CollectionPanel({
                           ) : null
                         return (
                           <SortableRow key={sid} collectionId={id} sessionId={sid}>
-                            {renderRow(thread, () => {})}
+                            {renderRow(thread, () => {}, id)}
                           </SortableRow>
                         )
                       })}
@@ -331,7 +348,7 @@ export function CollectionPanel({
               </NavigationStack>
             </SortableContext>
           </DndContext>
-        </div>
+        </NavigationStack>
       </Pane>
       <Dialog
         open={editing !== null}
@@ -350,9 +367,10 @@ export function CollectionPanel({
               if (editing === null || !name.trim() || busy) return
               const id = editing === "new" ? `collection-${crypto.randomUUID()}` : editing
               finish(
-                dispatchCollection(
-                  editing === "new" ? { type: "create", id, name, emoji } : { type: "rename", id, name, emoji }
-                ),
+                dispatchCollection([
+                  editing === "new" ? { type: "create", id, name } : { type: "rename", id, name },
+                  { type: "emoji", id, emoji }
+                ]),
                 () => setEditing(null)
               )
             }}
@@ -365,7 +383,7 @@ export function CollectionPanel({
               onChange={(event) => setName(event.target.value)}
               disabled={busy}
             />
-            <CollectionEmoji emoji={emoji} onChange={setEmoji} />
+            {editing !== "new" && <CollectionEmoji emoji={emoji} onChange={setEmoji} />}
             <DialogFooter>
               <Button type="button" variant="outline" disabled={busy} onClick={() => setEditing(null)}>
                 {t("collection.cancel")}

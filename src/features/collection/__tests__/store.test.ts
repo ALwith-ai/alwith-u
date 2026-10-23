@@ -53,3 +53,20 @@ test("does not overwrite another window when the revision changes", async () => 
   await expect(dispatchCollection({ type: "rename", id: "a", name: "Lost update" })).rejects.toThrow("another window")
   expect(useCollectionStore.getState().collections.a.name).toBe("Alpha")
 })
+
+test("saves collection identity and emoji in one settings transaction", async () => {
+  await dispatchCollection([
+    { type: "create", id: "a", name: "Alpha" },
+    { type: "emoji", id: "a", emoji: "⭐" }
+  ])
+  expect(settingsStore.write).toHaveBeenCalledTimes(1)
+  expect(useCollectionStore.getState().collections.a).toMatchObject({ name: "Alpha", emoji: "⭐" })
+  fail = true
+  await expect(
+    dispatchCollection([
+      { type: "rename", id: "a", name: "Beta" },
+      { type: "emoji", id: "a", emoji: "📁" }
+    ])
+  ).rejects.toThrow("Disk full")
+  expect(useCollectionStore.getState().collections.a).toMatchObject({ name: "Alpha", emoji: "⭐" })
+})

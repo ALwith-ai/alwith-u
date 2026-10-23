@@ -7,14 +7,18 @@ import { commands } from "@/bindings"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { Pane } from "@/components/alwith-ui/pane"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
+import { ROW_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
+import { TRAILING_GROUP, TrailingSwap } from "@/components/alwith-ui/trailing-swap"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { CollectionPicker } from "@/features/collection/collection-menu"
 import { ProjectPathAction } from "@/features/threads/project-path-action"
 import { relativeTime } from "@/features/threads/thread-info-card"
 import { useProjectThreads } from "@/features/threads/use-project-threads"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { basename } from "@/lib/path"
+import { cn } from "@/lib/utils"
 
 import { newChatDirectory } from "./new-chat-directory"
 
@@ -92,9 +96,10 @@ function ProjectPopover({
   const popupRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const [expanded, setExpanded] = useState(false)
+  const [collectionOpen, setCollectionOpen] = useState(false)
   const expandPointer = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
-    if (trigger === undefined || !open || !expanded) return
+    if (trigger === undefined || !open || !expanded || collectionOpen) return
     const popup = popupRef.current
     const projectTrigger = triggerRef.current
     if (popup === null || projectTrigger === null) throw new Error("Project popup is not mounted")
@@ -129,7 +134,7 @@ function ProjectPopover({
     }
     document.addEventListener("mousemove", onMouseMove)
     return () => document.removeEventListener("mousemove", onMouseMove)
-  }, [trigger, open, expanded])
+  }, [trigger, open, expanded, collectionOpen])
   const leave = (action: () => void) => {
     skipFocus.current = true
     setOpen(false)
@@ -143,7 +148,7 @@ function ProjectPopover({
           details.cancel()
           return
         }
-        if (!value && expandPointer.current !== null && details.reason === "trigger-hover") {
+        if (!value && (expandPointer.current !== null || collectionOpen) && details.reason === "trigger-hover") {
           details.cancel()
           return
         }
@@ -151,6 +156,7 @@ function ProjectPopover({
           skipFocus.current = false
           expandPointer.current = null
           setExpanded(false)
+          setCollectionOpen(false)
         }
         setOpen(value)
       }}
@@ -204,6 +210,7 @@ function ProjectPopover({
             onSelect={(thread) => leave(() => onSelect(thread))}
             onNewChat={() => leave(onNewChat)}
             onOpened={() => setOpen(false)}
+            onCollectionOpenChange={setCollectionOpen}
           />
         )}
       </PopoverContent>
@@ -226,13 +233,15 @@ function ProjectContents({
   onOpened,
   showHeading,
   expanded,
-  onExpand
+  onExpand,
+  onCollectionOpenChange
 }: ProjectActions & {
   directory: DirectoryState
   onOpened: () => void
   showHeading: boolean
   expanded: boolean
   onExpand: (x: number, y: number) => void
+  onCollectionOpenChange: (open: boolean) => void
 }) {
   const { t, i18n } = useTranslation()
   const { result, retry } = useProjectThreads(cwd)
@@ -253,7 +262,7 @@ function ProjectContents({
       {showHeading && (
         <div className="flex min-h-8 items-center gap-2 px-3 py-1.5">
           <FolderClosedIcon className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-semibold">
+          <span className="min-w-0 flex-1 truncate font-medium">
             {cwd === null ? t("sidebar.quickChats") : basename(cwd)}
           </span>
           <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
@@ -262,7 +271,7 @@ function ProjectContents({
         </div>
       )}
       <Pane
-        className="flex max-h-70 flex-auto flex-col"
+        className="flex max-h-70 flex-auto flex-col pe-0"
         viewportClassName="h-auto min-h-0 pe-0"
         viewportRef={listRef}
         viewportProps={{ tabIndex: -1 }}
@@ -287,29 +296,50 @@ function ProjectContents({
         )}
         {result?.status === "ready" &&
           (expanded ? threads : threads.slice(0, 5)).map((thread) => (
-            <Button
+            <div
               key={thread.sessionId}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-full justify-start gap-2 rounded-none border-0 px-3 font-normal"
-              aria-label={thread.title ?? t("sidebar.untitled")}
-              onClick={() => onSelect(thread)}
-            >
-              <MessageSquareIcon />
-              <OverflowMarquee className="flex-1 text-start">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
-              {thread.updatedAt !== null && (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {relativeTime(thread.updatedAt, i18n.language)}
-                </span>
+              className={cn(
+                TRAILING_GROUP,
+                ROW_HIGHLIGHT,
+                "flex h-8 w-full items-center gap-2 rounded-md px-3 focus-within:bg-foreground/8"
               )}
-            </Button>
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 min-w-0 flex-1 justify-start gap-2 rounded-none border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
+                data-hover-background="none"
+                aria-label={thread.title ?? t("sidebar.untitled")}
+                onClick={() => onSelect(thread)}
+              >
+                <MessageSquareIcon />
+                <OverflowMarquee className="flex-1 text-start">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
+              </Button>
+              <TrailingSwap
+                content={
+                  thread.updatedAt !== null ? (
+                    <span className="text-xs text-muted-foreground">
+                      {relativeTime(thread.updatedAt, i18n.language)}
+                    </span>
+                  ) : undefined
+                }
+                actions={
+                  <CollectionPicker
+                    sessionId={thread.sessionId}
+                    favorite
+                    className="size-6 [&_svg]:size-3.5"
+                    onOpenChange={onCollectionOpenChange}
+                  />
+                }
+              />
+            </div>
           ))}
       </Pane>
       {result?.status === "ready" && !expanded && threads.length > 5 && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 justify-start rounded-none border-0 ps-9 pe-3 text-muted-foreground"
+          className="h-8 justify-start rounded-none border-0 ps-9 pe-3 font-normal text-muted-foreground"
           onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")

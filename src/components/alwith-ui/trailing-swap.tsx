@@ -41,7 +41,8 @@ export function TrailingSwap({
         <span
           className={cn(
             "flex items-center justify-end",
-            actions != null && "group-hover/trailing:hidden group-has-[[data-popup-open]]/swap:hidden"
+            actions != null &&
+              "group-focus-within/trailing:hidden group-hover/trailing:hidden group-has-[[data-popup-open]]/swap:hidden"
           )}
         >
           {content}
@@ -49,7 +50,7 @@ export function TrailingSwap({
       )}
       {actions != null && (
         <span
-          className="absolute inset-y-0 end-0 hidden w-max items-center justify-end gap-0.5 group-hover/trailing:flex has-[[data-popup-open]]:flex"
+          className="absolute inset-y-0 end-0 hidden w-max items-center justify-end gap-0.5 group-focus-within/trailing:flex group-hover/trailing:flex has-[[data-popup-open]]:flex"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
