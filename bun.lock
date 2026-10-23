@@ -137,6 +137,10 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@alwith/module-chat@0.1.24": "patches/@alwith%2Fmodule-chat@0.1.24.patch",
+    "@nyssance/codex-acp-v2@0.7.30": "patches/@nyssance%2Fcodex-acp-v2@0.7.30.patch",
+  },
   "overrides": {
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
     "@alwith/module-chat": "^0.1.24",

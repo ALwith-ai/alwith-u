@@ -207,7 +207,7 @@ test("replay, completed turns, read-only ownership and disconnected sessions can
   const { client, id, item, fake } = await setup()
   const send = vi.spyOn(client, "prompt").mockResolvedValue()
   const view = render(<AsyncQuestions sessionId={id} item={{ ...item, replayed: true }} />)
-  expect(view.getByRole("button", { name: "Submit answer" })).toBeDisabled()
+  expect(view.queryByRole("button", { name: "Submit answer" })).toBeNull()
   view.rerender(<AsyncQuestions sessionId={id} item={item} />)
   act(() => {
     client.store.setState((state) => ({
@@ -235,9 +235,10 @@ test("replay, completed turns, read-only ownership and disconnected sessions can
     })
   )
   await waitFor(() => expect(view.getByRole("status")).toHaveTextContent("This turn has ended"))
-  expect(view.getByRole("textbox")).toHaveValue("Unsent draft")
+  expect(view.queryByRole("textbox")).toBeNull()
+  expect(view.getByText("Unsent draft")).toBeInTheDocument()
   await act(() => fake.pushUpdate(id, { sessionUpdate: "state_update", state: "running" }))
-  expect(view.getByRole("button", { name: "Submit answer" })).toBeDisabled()
+  expect(view.queryByRole("button", { name: "Submit answer" })).toBeNull()
   expect(send).not.toHaveBeenCalled()
   view.unmount()
 })
@@ -301,4 +302,25 @@ test("an optimistic reply displays readable content without settling the card be
     }))
   })
   expect(view.queryByRole("button", { name: "Submit answer" })).toBeNull()
+})
+
+test("ending a turn retires a failed answer form and its stale error", async () => {
+  const { client, id, item, fake } = await setup()
+  vi.spyOn(client, "prompt").mockRejectedValue(new Error("Provider settings are pending"))
+  const view = render(<AsyncQuestions sessionId={id} item={item} />)
+  fireEvent.change(view.getByRole("textbox"), { target: { value: "Keep my answer" } })
+  fireEvent.click(view.getByRole("button", { name: "Submit answer" }))
+  await waitFor(() => expect(view.getByRole("alert")).toBeInTheDocument())
+  await act(() =>
+    fake.pushUpdate(id, {
+      sessionUpdate: "state_update",
+      state: "idle",
+      stopReason: "end_turn",
+      userMessageId: "prompt"
+    })
+  )
+  await waitFor(() => expect(view.queryByRole("textbox")).toBeNull())
+  expect(view.queryByRole("alert")).toBeNull()
+  expect(view.queryByRole("button", { name: "Submit answer" })).toBeNull()
+  expect(view.getByText("Keep my answer")).toBeInTheDocument()
 })

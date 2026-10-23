@@ -188,3 +188,29 @@ fn an_unresponsive_peer_cannot_prevent_shutdown_completion() {
         assert!(state.client.lock().unwrap().is_none());
     });
 }
+
+#[test]
+fn active_prompt_admission_uses_the_explicit_target_session() {
+    for (method, params) in [
+        ("prompt", json!({"sessionId": "active"})),
+        ("acpRequest", json!({"method": "session/prompt", "params": {"sessionId": "active"}})),
+    ] {
+        let request = Request { id: 1, method: method.into(), params: Some(params) };
+        assert_eq!(prompt_session_id(&request), Some("active"));
+        assert!(is_admission(&request));
+    }
+    for method in ["session/new", "session/fork", "session/resume"] {
+        assert_eq!(prompt_session_id(&gamepad_request(method, "codex")), None);
+    }
+}
+
+#[test]
+fn only_the_active_target_bypasses_pending_catalog_application() {
+    use alwith_api::RunState;
+    for state in [RunState::Running, RunState::RequiresAction] {
+        assert!(is_active_prompt_target("target", [("target", &state)]));
+        assert!(!is_active_prompt_target("other", [("target", &state)]));
+    }
+    assert!(!is_active_prompt_target("target", [("target", &RunState::Done)]));
+    assert!(!is_active_prompt_target("target", []));
+}

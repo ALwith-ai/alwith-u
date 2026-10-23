@@ -109,13 +109,24 @@ function Question({
       put(key, { draft, error: error instanceof Error ? error.message : String(error) })
     }
   }
+  if (status === "closed") {
+    return (
+      <section className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground" aria-label={question.title}>
+        <p className="whitespace-pre-wrap">{question.title}</p>
+        {draft.text.trim() && <p className="whitespace-pre-wrap">{draft.text}</p>}
+        <span role="status" className="text-xs">
+          {t("asyncQuestion.closed")}
+        </span>
+      </section>
+    )
+  }
   return (
     <AsyncQuestionCard
       question={question}
       draft={draft}
       status={status}
       answer={answer}
-      error={entry?.error}
+      error={status === "pending" ? entry?.error : undefined}
       t={t}
       onChange={(next) => put(key, { draft: next })}
       onSkip={() => put(key, { draft, skipped: true })}

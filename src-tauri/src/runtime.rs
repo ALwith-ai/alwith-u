@@ -343,7 +343,13 @@ pub async fn runtime_send(
         }
         None => false,
     };
-    if requires_provider_application(&request) && !temporary_gamepad {
+    let active_prompt = if let Some(session_id) = prompt_session_id(&request) {
+        let states = client.run_states().await.map_err(request_error)?;
+        is_active_prompt_target(session_id, states.iter().map(|session| (session.session_id.as_str(), &session.state)))
+    } else {
+        false
+    };
+    if requires_provider_application(&request) && !temporary_gamepad && !active_prompt {
         crate::providers::apply_locked(window.app_handle(), &client).await?;
     }
     if !current_connection() {
@@ -392,6 +398,25 @@ fn is_admission(request: &Request) -> bool {
         },
         _ => false,
     }
+}
+
+fn is_active_prompt_target<'a>(
+    session_id: &str, states: impl IntoIterator<Item = (&'a str, &'a alwith_api::RunState)>,
+) -> bool {
+    states.into_iter().any(|(id, state)| {
+        id == session_id && matches!(state, alwith_api::RunState::Running | alwith_api::RunState::RequiresAction)
+    })
+}
+
+/// Replies and steering use the active turn's catalog, even when a new revision is pending.
+fn prompt_session_id(request: &Request) -> Option<&str> {
+    let params = request.params.as_ref()?;
+    let prompt = match request.method.as_str() {
+        "prompt" => params,
+        "acpRequest" if params.get("method")?.as_str()? == "session/prompt" => params.get("params")?,
+        _ => return None,
+    };
+    prompt.get("sessionId")?.as_str()
 }
 
 /// Restoring history keeps the applied catalog and still serializes with provider updates.

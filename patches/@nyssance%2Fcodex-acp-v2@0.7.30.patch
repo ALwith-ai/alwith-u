@@ -1,0 +1,169 @@
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -44650,6 +44650,15 @@
+     const match = _AgentMode.all().find((m) => m.id === modeId);
+     return match ?? null;
+   }
++  static fromThread(thread) {
++    if (thread.approvalPolicy === "never" && thread.sandbox.type === "dangerFullAccess") return _AgentMode.AgentFullAccess;
++    if (thread.approvalsReviewer === "auto_review") return _AgentMode.Agent;
++    if (thread.approvalsReviewer === "user") {
++      if (thread.sandbox.type === "readOnly") return _AgentMode.ReadOnly;
++      if (thread.sandbox.type === "workspaceWrite") return _AgentMode.WorkspaceWrite;
++    }
++    throw new Error("Unknown Codex approval mode");
++  }
+   static getInitialAgentMode() {
+     const predefinedAgentMode = process.env["INITIAL_AGENT_MODE"];
+     if (predefinedAgentMode) {
+@@ -44690,7 +44699,7 @@
+   request as httpRequest
+ } from "node:http";
+ import { request as httpsRequest } from "node:https";
+-import { pipeline } from "node:stream";
++import { pipeline, Readable as ResponsesReadable } from "node:stream";
+ import { zstdDecompressSync } from "node:zlib";
+ 
+ // node_modules/ws/wrapper.mjs
+@@ -44766,9 +44775,10 @@
+   closed = false;
+   constructor() {
+     this.server = createServer((request, response) => {
+-      void this.forwardHttp(request, response).catch(() => {
++      void this.forwardHttp(request, response).catch((error) => {
+         if (!response.headersSent) response.writeHead(502, { "content-type": "text/plain" });
+-        response.end("Responses compatibility proxy could not forward the request");
++        const code = typeof error?.code === "string" && /^[A-Za-z0-9_]+$/.test(error.code) ? error.code : "UPSTREAM_TRANSPORT_ERROR";
++        response.end(`Responses compatibility proxy could not forward the request (${code})`);
+       });
+     });
+     this.server.on("connection", (socket) => {
+@@ -44863,14 +44873,14 @@
+     this.aborts.add(abort);
+     response.once("close", () => abort.abort());
+     try {
+-      await new Promise((resolve, reject) => {
+-        const send = target.protocol === "https:" ? httpsRequest : httpRequest;
+-        const upstream = send(target, { method: "POST", headers, signal: abort.signal }, (incoming) => {
+-          response.writeHead(incoming.statusCode ?? 502, forwardingHeaders(incoming.headers, false));
+-          pipeline(incoming, response, (error62) => error62 ? reject(error62) : resolve());
+-        });
+-        upstream.once("error", reject);
+-        upstream.end(body);
++      const incoming = await fetch(target, {
++        method: "POST", headers, body, signal: abort.signal,
++        redirect: "manual", decompress: false
++      });
++      response.writeHead(incoming.status, forwardingHeaders(Object.fromEntries(incoming.headers), false));
++      if (incoming.body === null) response.end();
++      else await new Promise((resolve, reject) => {
++        pipeline(ResponsesReadable.fromWeb(incoming.body), response, (error) => error ? reject(error) : resolve());
+       });
+     } finally {
+       this.aborts.delete(abort);
+@@ -46021,6 +46031,7 @@
+   }
+   return {
+     sessionId: response.thread.id,
++    agentMode: AgentMode.fromThread(response),
+     currentModelId: dependencies.createCurrentModelId(models, response.model, response.reasoningEffort),
+     models,
+     lineage: { nativeSessionId: response.thread.sessionId, forkedFromId: response.thread.forkedFromId },
+@@ -46726,6 +46737,7 @@
+       const response = await this.codexClient.threadResume(params);
+       return {
+         thread: response.thread,
++        agentMode: AgentMode.fromThread(response),
+         model: response.model,
+         modelProvider: response.modelProvider,
+         reasoningEffort: response.reasoningEffort,
+@@ -46801,6 +46813,7 @@
+     return {
+       sessionId: request.sessionId,
+       readOnly: response.readOnly ?? false,
++      agentMode: response.agentMode,
+       currentModelId,
+       models: codexModels,
+       lineage: { nativeSessionId: response.thread.sessionId, forkedFromId: response.thread.forkedFromId },
+@@ -46878,6 +46891,7 @@
+     return {
+       sessionId: request.sessionId,
+       readOnly: response.readOnly ?? false,
++      agentMode: response.agentMode,
+       currentModelId,
+       models: codexModels,
+       lineage: { nativeSessionId: response.thread.sessionId, forkedFromId: response.thread.forkedFromId },
+@@ -46941,7 +46955,7 @@
+     const route = await this.sessionRoute(request);
+     const sessionConfig = await this.createSessionConfig(request.cwd, additionalDirectories, request.mcpServers ?? [], route.gatewayId);
+     const response = await this.codexClient.threadStart({
+-      ...hostThreadOptions(request._meta),
++      ...hostThreadOptions({ ...request._meta, codex: { ...request._meta?.codex, mode: request._meta?.codex?.mode ?? AgentMode.getInitialAgentMode().id } }),
+       ...tools ? { dynamicTools: dynamicTools(tools) } : {},
+       config: sessionConfig.config,
+       modelProvider: route.modelProvider,
+@@ -47318,6 +47332,14 @@
+       serviceTier,
+       ...clientUserMessageId !== void 0 ? { clientUserMessageId } : {}
+     }, onTurnStarted);
++  }
++  async setAgentMode(sessionId, mode, additionalDirectories) {
++    await this.codexClient.threadSettingsUpdate({
++      threadId: sessionId,
++      approvalPolicy: mode.approvalPolicy,
++      approvalsReviewer: mode.approvalsReviewer,
++      sandboxPolicy: addAdditionalDirectoriesToSandboxPolicy(mode.sandboxPolicy, additionalDirectories)
++    });
+   }
+   async setCollaborationMode(sessionId, mode, currentModelId) {
+     await this.codexClient.threadSettingsUpdate({
+@@ -55590,7 +55612,7 @@
+       availableModels: models,
+       supportedReasoningEfforts: currentModel?.supportedReasoningEfforts ?? [],
+       supportedInputModalities: currentModel?.inputModalities ?? ["text", "image"],
+-      agentMode: initialMode,
++      agentMode: modeHint === void 0 ? sessionMetadata.agentMode ?? initialMode : initialMode,
+       ...clientTools ? { clientTools } : {},
+       collaborationMode: sessionMetadata.collaborationMode,
+       currentTurnId: null,
+@@ -56865,7 +56887,7 @@
+     });
+     const sessionState = this.sessions.get(_params.sessionId);
+     if (!sessionState) throw new Error(`Session ${_params.sessionId} not found`);
+-    this.applyModeChange(sessionState, _params.modeId);
++    await this.applyModeChange(sessionState, _params.modeId);
+     return {};
+   }
+   async setSessionConfigOption(params) {
+@@ -56895,7 +56917,7 @@
+         this.applyFastModeChange(sessionState, params);
+         break;
+       case MODE_CONFIG_ID:
+-        this.applyModeChange(sessionState, this.stringConfigValue(params));
++        await this.applyModeChange(sessionState, this.stringConfigValue(params));
+         break;
+       case COLLABORATION_MODE_CONFIG_ID:
+         await this.applyCollaborationModeChange(sessionState, this.stringConfigValue(params));
+@@ -56927,11 +56949,12 @@
+     }
+     return params.value;
+   }
+-  applyModeChange(sessionState, value) {
++  async applyModeChange(sessionState, value) {
+     const newMode = AgentMode.find(value);
+     if (!newMode) {
+       throw RequestError.invalidParams();
+     }
++    await this.runWithProcessCheck(() => this.codexAcpClient.setAgentMode(sessionState.sessionId, newMode, sessionState.additionalDirectories));
+     sessionState.agentMode = newMode;
+   }
+   async applyCollaborationModeChange(sessionState, value) {
+@@ -57473,7 +57496,7 @@
+       availableModels: models,
+       supportedReasoningEfforts: currentModel?.supportedReasoningEfforts ?? [],
+       supportedInputModalities: currentModel?.inputModalities ?? ["text", "image"],
+-      agentMode: AgentMode.getInitialAgentMode(),
++      agentMode: request._meta?.codex?.mode ? AgentMode.find(request._meta.codex.mode) : sessionMetadata.agentMode ?? AgentMode.getInitialAgentMode(),
+       collaborationMode: sessionMetadata.collaborationMode,
+       currentTurnId: null,
+       interruptTurnId: null,

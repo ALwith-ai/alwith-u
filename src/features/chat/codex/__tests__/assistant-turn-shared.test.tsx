@@ -79,8 +79,6 @@ test("long turns finish older thoughts, retain every command and preserve explic
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
   const liveGroup = must(view.container.querySelector(".codex-activity-group-trigger"), "the live group")
-  expect(liveGroup).toHaveAttribute("aria-expanded", "false")
-  fireEvent.click(liveGroup)
   expect(liveGroup).toHaveAttribute("aria-expanded", "true")
   session = feed(
     session,
@@ -121,7 +119,7 @@ test("long turns finish older thoughts, retain every command and preserve explic
   expect(previousGroup).toHaveAttribute("aria-expanded", "true")
 
   view.rerender(viewOf(session, false))
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
 })
 
@@ -134,8 +132,7 @@ test("U keeps commentary after the last tool inside work, using the shared Deskt
   )
   const view = render(viewOf(session))
   mounted.push(view)
-  expect(view.container.querySelector(".codex-work-body")?.textContent).toBe("")
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
   expect(view.container.querySelector(".codex-work-body")?.textContent).toContain("Still checking the result")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).toContain("Here is the final answer")
   expect(view.container.querySelector(".codex-final-answer")?.textContent).not.toContain("Still checking the result")
@@ -262,7 +259,7 @@ test.each(["Compaction service unavailable", null])(
     expect(view.queryByText("Context compacted")).toBeNull()
 
     view.rerender(viewOf(session, false, null, false))
-    fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+    expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
     expect(view.getByRole("alert").textContent).toContain("Context compaction failed")
     if (error !== null) expect(view.getByRole("alert").textContent).toContain(error)
   }
@@ -424,7 +421,7 @@ test("commentary keeps non-text content and unknown blocks are visible", () => {
   })
   const view = render(viewOf(session))
   mounted.push(view)
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
   const work = view.container.querySelector(".codex-work-body")
   expect(work?.textContent).toContain("See")
   expect(work?.textContent).toContain("result.txt")
