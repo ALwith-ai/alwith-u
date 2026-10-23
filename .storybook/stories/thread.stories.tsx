@@ -46,28 +46,28 @@ type Story = StoryObj<typeof meta>
 export const DirectoryListing: Story = {
   play: async ({ canvasElement, canvas, userEvent }) => {
     const viewport = canvas.getByRole("log")
-    await waitFor(() => {
+    await waitFor(async () => {
       const code = canvasElement.querySelector<HTMLElement>(".codex-markdown-code-block")
-      void expect(code).not.toBeNull()
-      void expect(code!.getBoundingClientRect().width).toBeGreaterThan(viewport.clientWidth - 60)
-      void expect(code!.textContent).toContain("project-file-59.ts")
-      void expect(viewport.clientHeight).toBeLessThanOrEqual(480)
-      void expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight)
+      await expect(code).not.toBeNull()
+      await expect(code!.getBoundingClientRect().width).toBeGreaterThan(viewport.clientWidth - 60)
+      await expect(code!.textContent).toContain("project-file-59.ts")
+      await expect(viewport.clientHeight).toBeLessThanOrEqual(480)
+      await expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight)
     })
-    await waitFor(() => {
+    await waitFor(async () => {
       const last = canvasElement.querySelector<HTMLElement>("[data-codex-turn]")!
-      void expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(viewport.getBoundingClientRect().bottom)
-      void expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
+      await expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(viewport.getBoundingClientRect().bottom)
+      await expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
     })
     const expectFade = async () => {
-      await waitFor(() => {
+      await waitFor(async () => {
         const content = viewport.querySelector<HTMLElement>(".codex-thread-content")!
         const fade = canvasElement.querySelector<HTMLElement>(".codex-thread-bottom-fade")!
-        void expect(getComputedStyle(viewport).maskImage).toBe("none")
-        void expect(getComputedStyle(content).maskImage).toBe("none")
-        void expect(fade.getBoundingClientRect().height).toBe(24)
-        void expect(fade.getBoundingClientRect().bottom).toBe(viewport.getBoundingClientRect().bottom)
-        void expect(getComputedStyle(fade).pointerEvents).toBe("none")
+        await expect(getComputedStyle(viewport).maskImage).toBe("none")
+        await expect(getComputedStyle(content).maskImage).toBe("none")
+        await expect(fade.getBoundingClientRect().height).toBe(24)
+        await expect(fade.getBoundingClientRect().bottom).toBe(viewport.getBoundingClientRect().bottom)
+        await expect(getComputedStyle(fade).pointerEvents).toBe("none")
       })
     }
     await expectFade()
@@ -76,8 +76,9 @@ export const DirectoryListing: Story = {
     viewport.dispatchEvent(new Event("scroll"))
     await expectFade()
     await userEvent.click(canvas.getByRole("button", { name: "Scroll to bottom" }))
-    await waitFor(() =>
-      expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
+    await waitFor(
+      async () =>
+        await expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
     )
     await expectFade()
     await expect(getComputedStyle(viewport).overscrollBehaviorY).toBe("none")
@@ -169,15 +170,15 @@ export const RetainedTurnErrors: Story = {
   render: () => <ErrorHistoryThread />,
   play: async ({ canvas, canvasElement, userEvent }) => {
     const check = async () => {
-      await waitFor(() => {
+      await waitFor(async () => {
         const alerts = canvas.getAllByRole("alert")
-        void expect(alerts).toHaveLength(1)
-        void expect(alerts[0].textContent).toContain("Selected model is at capacity")
+        await expect(alerts).toHaveLength(1)
+        await expect(alerts[0].textContent).toContain("Selected model is at capacity")
         const spacing = getComputedStyle(alerts[0].parentElement!)
-        void expect(spacing.marginTop).toBe("16px")
-        void expect(spacing.marginBottom).toBe("16px")
+        await expect(spacing.marginTop).toBe("16px")
+        await expect(spacing.marginBottom).toBe("16px")
         const viewport = canvas.getByRole("log")
-        void expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth)
+        await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth)
       })
     }
     await check()
@@ -185,12 +186,12 @@ export const RetainedTurnErrors: Story = {
     await check()
     await userEvent.click(canvas.getByRole("button", { name: "Send next message" }))
     await check()
-    await waitFor(() => {
+    await waitFor(async () => {
       const answer = canvas.getByText("The new task is complete.")
-      void expect(canvas.getByRole("alert").getBoundingClientRect().top).toBeLessThan(
+      await expect(canvas.getByRole("alert").getBoundingClientRect().top).toBeLessThan(
         answer.getBoundingClientRect().top
       )
-      void expect(canvasElement.querySelectorAll(".codex-assistant-message")).toHaveLength(1)
+      await expect(canvasElement.querySelectorAll(".codex-assistant-message")).toHaveLength(1)
     })
   }
 }
@@ -248,18 +249,18 @@ export const ShortRepliesAfterSend: Story = {
   play: async ({ canvasElement, canvas, userEvent }) => {
     const viewport = canvas.getByRole("log")
     const expectFlow = async () => {
-      await waitFor(() => {
-        const turns = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]"))
+      await waitFor(async () => {
+        const turns = [...canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")]
         const latest = turns.at(-1)!
         const gap = viewport.getBoundingClientRect().bottom - latest.getBoundingClientRect().bottom
-        void expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
-        void expect(gap).toBeGreaterThanOrEqual(0)
+        await expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
+        await expect(gap).toBeGreaterThanOrEqual(0)
         if (viewport.scrollHeight <= viewport.clientHeight) {
           const top = turns[0].getBoundingClientRect().top - viewport.getBoundingClientRect().top
-          void expect(top).toBeGreaterThanOrEqual(0)
-          void expect(top).toBeLessThanOrEqual(24)
+          await expect(top).toBeGreaterThanOrEqual(0)
+          await expect(top).toBeLessThanOrEqual(24)
         } else {
-          void expect(gap).toBeLessThanOrEqual(120)
+          await expect(gap).toBeLessThanOrEqual(120)
         }
       })
     }
@@ -275,8 +276,8 @@ export const ShortRepliesAfterSend: Story = {
     viewport.dispatchEvent(new Event("scroll"))
     await userEvent.click(canvas.getByRole("button", { name: "Send completed reply" }))
     await canvas.findByText("Quick answer 2")
-    const latest = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")).at(-1)!
-    void expect(latest).toHaveTextContent("Quick answer 2")
+    const latest = [...canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")].at(-1)!
+    await expect(latest).toHaveTextContent("Quick answer 2")
     await expectFlow()
   }
 }
@@ -308,20 +309,20 @@ export const RapidScroll: Story = {
   args: { session: longSession },
   play: async ({ canvasElement, canvas }) => {
     const viewport = canvas.getByRole("log")
-    await waitFor(() => expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight * 10))
+    await waitFor(async () => expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight * 10))
     for (const fraction of [0, 0.8, 0.1, 0.95, 0.3, 1]) {
       viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: fraction === 0 ? -10_000 : 10_000 }))
       viewport.scrollTop = fraction * (viewport.scrollHeight - viewport.clientHeight)
       viewport.dispatchEvent(new Event("scroll"))
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
-      expect(getComputedStyle(viewport.querySelector(".codex-thread-content")!).maskImage).toBe("none")
+      await expect(getComputedStyle(viewport.querySelector(".codex-thread-content")!).maskImage).toBe("none")
     }
-    await waitFor(() => {
-      const latest = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")).at(-1)!
+    await waitFor(async () => {
+      const latest = [...canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")].at(-1)!
       const gap = viewport.getBoundingClientRect().bottom - latest.getBoundingClientRect().bottom
-      expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
-      expect(gap).toBeGreaterThanOrEqual(0)
-      expect(gap).toBeLessThanOrEqual(25)
+      await expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThanOrEqual(1)
+      await expect(gap).toBeGreaterThanOrEqual(0)
+      await expect(gap).toBeLessThanOrEqual(25)
     })
   }
 }

@@ -6,7 +6,7 @@ export function latestAssistantReply(items: readonly Item[] | undefined): string
   for (let index = items.length - 1; index >= 0; index--) {
     const item = items[index]!
     if (item.kind !== "assistant") continue
-    const text = textOf(item.content).replace(/\s+/g, " ").trim()
+    const text = textOf(item.content).replaceAll(/\s+/g, " ").trim()
     if (text) return text
   }
   return undefined
@@ -81,7 +81,7 @@ export async function readActivityReply(
           })
         )
           throw new Error("Invalid activity preview content")
-        const text = textOf(update.content).replace(/\s+/g, " ").trim()
+        const text = textOf(update.content).replaceAll(/\s+/g, " ").trim()
         if (text) return text
       }
     }

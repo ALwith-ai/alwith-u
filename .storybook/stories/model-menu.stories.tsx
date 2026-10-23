@@ -131,7 +131,7 @@ export const Providers: Story = {
     await expect(slider).toHaveAttribute("aria-valuetext", "高")
     await userEvent.keyboard("{Escape}")
     await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("高")
-    await waitFor(() => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
+    await waitFor(async () => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
   }
 }
 
@@ -139,25 +139,28 @@ export const ScrollableCatalog: Story = {
   play: async ({ canvas, userEvent }) => {
     const body = within(document.body)
     await userEvent.click(canvas.getByTestId("model-trigger"))
-    await waitFor(() => expect(document.querySelector("[data-model-menu-list]")).not.toBeNull())
+    await waitFor(async () => expect(document.querySelector("[data-model-menu-list]")).not.toBeNull())
     const list = document.querySelector<HTMLElement>("[data-model-menu-list]")!
-    await waitFor(() =>
-      expect(list.parentElement!.getAnimations().some((animation) => animation.playState === "running")).toBe(false)
+    await waitFor(
+      async () =>
+        await expect(list.parentElement!.getAnimations().some((animation) => animation.playState === "running")).toBe(
+          false
+        )
     )
     const header = document.querySelector<HTMLElement>("[data-model-menu-header]")!
     const footer = document.querySelector<HTMLElement>("[data-model-menu-footer]")!
-    await waitFor(() => expect(list.scrollHeight).toBeGreaterThan(list.clientHeight))
+    await waitFor(async () => expect(list.scrollHeight).toBeGreaterThan(list.clientHeight))
     const headerTop = header.getBoundingClientRect().top
     const footerTop = footer.getBoundingClientRect().top
     list.scrollTop = list.scrollHeight
-    expect(list.scrollTop).toBeGreaterThan(0)
-    expect(header.getBoundingClientRect().top).toBe(headerTop)
-    expect(footer.getBoundingClientRect().top).toBe(footerTop)
-    expect(getComputedStyle(list).scrollbarWidth).not.toBe("none")
+    await expect(list.scrollTop).toBeGreaterThan(0)
+    await expect(header.getBoundingClientRect().top).toBe(headerTop)
+    await expect(footer.getBoundingClientRect().top).toBe(footerTop)
+    await expect(getComputedStyle(list).scrollbarWidth).not.toBe("none")
     body.getByRole("menuitem", { name: "更多模型" }).focus()
     await userEvent.keyboard("{Enter}")
-    expect(configureModels).toHaveBeenCalled()
-    await waitFor(() => expect(body.queryByRole("menu")).toBeNull())
+    await expect(configureModels).toHaveBeenCalled()
+    await waitFor(async () => expect(body.queryByRole("menu")).toBeNull())
   }
 }
 
@@ -165,6 +168,6 @@ export const Dark: Story = {
   globals: { theme: "dark" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByTestId("model-trigger"))
-    await waitFor(() => expect(document.querySelector("[data-model-menu-list]")).not.toBeNull())
+    await waitFor(async () => expect(document.querySelector("[data-model-menu-list]")).not.toBeNull())
   }
 }
