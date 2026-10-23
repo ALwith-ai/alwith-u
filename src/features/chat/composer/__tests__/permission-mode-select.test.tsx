@@ -72,7 +72,7 @@ test("permission names and descriptions follow language changes without changing
 })
 
 test.each([
-  ["请求批准", "workspace-write"],
+  ["请求批准", "read-only"],
   ["帮我批准", "agent"],
   ["完全访问权限", "agent-full-access"]
 ])("%s sends its matching ACP mode without changing a legacy read-only session automatically", async (label, value) => {
@@ -83,7 +83,7 @@ test.each([
       disabled={false}
     />
   )
-  expect(screen.getByRole("button")).toHaveTextContent("Read-only")
+  expect(screen.getByRole("button")).toHaveTextContent("请求批准")
   expect(setConfig).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole("button"))
   expect(screen.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
@@ -92,8 +92,9 @@ test.each([
     expect.stringContaining("完全访问权限"),
     expect.stringContaining("Custom mode")
   ])
-  await act(async () => fireEvent.click(screen.getByText(label)))
-  expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat-legacy", "permissions", value)
+  await act(async () => fireEvent.click(screen.getByRole("menuitemradio", { name: new RegExp(`^${label}`) })))
+  if (value === "read-only") expect(setConfig).not.toHaveBeenCalled()
+  else expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat-legacy", "permissions", value)
 })
 
 test("every supported language supplies permission mode names and descriptions", () => {
