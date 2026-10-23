@@ -368,5 +368,19 @@
   "canvas": {
     "navigation": "Navigasi halaman",
     "page": "Halaman {{number}}"
+  },
+  "computer": {
+    "connection": "Koneksi",
+    "reconnect": "Hubungkan ulang",
+    "verifying": "Memverifikasi…",
+    "reconnectHint": "Menghubungkan ulang menghentikan tindakan dan memeriksa tangkapan layar serta aksesibilitas. Tindakan tidak diulang. Kirim pesan lagi setelah terhubung.",
+    "diagnostics": "Diagnostik (sesi aplikasi saat ini)",
+    "phases": {
+      "disabled": "Nonaktif",
+      "verifying": "Memeriksa akses",
+      "ready": "Siap",
+      "stopping": "Menghentikan",
+      "failed": "Perlu pemulihan"
+    }
   }
 }

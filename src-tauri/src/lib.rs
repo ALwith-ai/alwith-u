@@ -306,6 +306,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 autostart::autostart_status,
                 computer::computer_status,
                 computer::computer_start,
+                computer::computer_reconnect,
                 computer::computer_stop,
                 computer::computer_context,
                 computer::computer_revision,

@@ -36,7 +36,7 @@
     "@alwith/api": "^0.4.16",
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5441d1b6ece7.tgz",
     "@alwith/module-chat": "^0.1.23",
-    "@alwith/module-computer": "^0.1.5",
+    "@alwith/module-computer": "file:vendor/alwith-module-computer-0.1.6-84b5f996adbd.tgz",
     "@alwith/module-drive": "^0.1.0-rc.24",
     "@alwith/module-editor": "^0.1.0-rc.13",
     "@alwith/module-extension": "^0.1.0-rc.13",
@@ -145,7 +145,7 @@
     "@alwith/native-voice": "^0.1.0",
     "@alwith/native-fs": "^0.1.0",
     "@alwith/native-gamepad": "^0.1.0",
-    "@alwith/native-computer": "^0.1.0",
+    "@alwith/native-computer": "file:vendor/alwith-native-computer-0.1.1.tgz",
     "@alwith/native-drive": "^0.1.0",
     "@alwith/native-extension": "^0.1.0",
     "@alwith/native-kit": "^0.1.0"
@@ -164,6 +164,7 @@
   },
   "overrides": {
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5441d1b6ece7.tgz",
-    "@alwith/module-chat": "^0.1.23"
+    "@alwith/module-chat": "^0.1.23",
+    "@alwith/native-computer-darwin-arm64": "file:vendor/alwith-native-computer-darwin-arm64-0.1.1-95d59aaa90b3.tgz"
   }
 }

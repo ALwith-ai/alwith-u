@@ -382,5 +382,19 @@
   "canvas": {
     "navigation": "ページナビゲーション",
     "page": "ページ {{number}}"
+  },
+  "computer": {
+    "connection": "接続",
+    "reconnect": "再接続",
+    "verifying": "確認中…",
+    "reconnectHint": "再接続すると操作を停止し、画面取得とアクセシビリティを確認します。操作は再実行されません。接続後にメッセージを再送してください。",
+    "diagnostics": "診断（現在のアプリセッション）",
+    "phases": {
+      "disabled": "オフ",
+      "verifying": "アクセスを確認中",
+      "ready": "準備完了",
+      "stopping": "停止中",
+      "failed": "復旧が必要"
+    }
   }
 }

@@ -26,3 +26,14 @@ export async function restoreComputer(): Promise<void> {
   if (!status.permissions.accessibility || !status.permissions.screenCapture) return
   await commands.computerStart()
 }
+
+/** Reconnect replaces the driver generation without replaying any previous action. */
+export async function reconnectComputer(): Promise<void> {
+  await commands.computerReconnect()
+  try {
+    await updateSettings({ "computer.enabled": true })
+  } catch (error) {
+    await commands.computerStop()
+    throw error
+  }
+}

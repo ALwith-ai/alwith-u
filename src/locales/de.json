@@ -352,5 +352,19 @@
   "canvas": {
     "navigation": "Seitennavigation",
     "page": "Seite {{number}}"
+  },
+  "computer": {
+    "connection": "Verbindung",
+    "reconnect": "Neu verbinden",
+    "verifying": "Wird geprüft…",
+    "reconnectHint": "Die Neuverbindung stoppt Computeraktionen und prüft Bildschirmaufnahme und Bedienungshilfen. Aktionen werden nicht wiederholt. Senden Sie danach Ihre Nachricht erneut.",
+    "diagnostics": "Diagnose (aktuelle App-Sitzung)",
+    "phases": {
+      "disabled": "Aus",
+      "verifying": "Zugriff wird geprüft",
+      "ready": "Bereit",
+      "stopping": "Wird gestoppt",
+      "failed": "Wiederherstellung nötig"
+    }
   }
 }
