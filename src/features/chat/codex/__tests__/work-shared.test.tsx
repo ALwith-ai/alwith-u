@@ -27,13 +27,13 @@ test("Desktop work-section disclosure survives virtualized unmounts", () => {
   const view = render(content)
   mounted.push(view)
   const toggle = view.getByRole("button", { name: "stream.codex.worked" })
-  expect(toggle.getAttribute("aria-expanded")).toBe("false")
-  fireEvent.click(toggle)
   expect(toggle.getAttribute("aria-expanded")).toBe("true")
+  fireEvent.click(toggle)
+  expect(toggle.getAttribute("aria-expanded")).toBe("false")
   view.unmount()
   const restored = render(content)
   mounted.push(restored)
-  expect(restored.getByRole("button").getAttribute("aria-expanded")).toBe("true")
+  expect(restored.getByRole("button").getAttribute("aria-expanded")).toBe("false")
 })
 
 test("Desktop plan renders completed and active entries from ACP", () => {

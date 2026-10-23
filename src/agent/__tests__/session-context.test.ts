@@ -236,3 +236,55 @@ test.each([false, true])(
     }
   }
 )
+
+test.each(["running", "requires_action"] as const)("tool changes defer refresh while %s replies are sent", async (state) => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const request = vi.spyOn(port, "acpRequest")
+  let revision = "before"
+  const client = new CodexClient(() => Promise.resolve(port), {
+    agentId: "codex",
+    launch: { engine: "codex" },
+    sessionContext: () => Promise.resolve({ revision, mcpServers: [] }),
+    sessionContextRevision: () => Promise.resolve(revision)
+  })
+  try {
+    await client.connect()
+    const id = await client.newSession("/a")
+    revision = "after"
+    const run = {
+      sessionId: id,
+      state,
+      reusableDraft: false,
+      owner: "stdio",
+      cwd: "/a",
+      title: "",
+      since: 0,
+      lastActivityAt: 0,
+      version: 1,
+      interruption: null,
+      tasks: [],
+      listeningPorts: [],
+      executionId: null,
+      executionRole: null
+    }
+    client.applyRunStates([run])
+    request.mockClear()
+    await client.prompt(id, [{ type: "text", text: "Answer while active" }])
+    expect(
+      request.mock.calls
+        .filter((call) => ["session/close", "session/resume", "session/prompt"].includes(call[1]))
+        .map((call) => call[1])
+    ).toEqual(["session/prompt"])
+    client.applyRunStates([{ ...run, state: "done", version: 2 }])
+    request.mockClear()
+    await client.prompt(id, [{ type: "text", text: "Next turn" }])
+    expect(
+      request.mock.calls
+        .filter((call) => ["session/close", "session/resume", "session/prompt"].includes(call[1]))
+        .map((call) => call[1])
+    ).toEqual(["session/close", "session/resume", "session/prompt"])
+  } finally {
+    client.disconnect()
+  }
+})

@@ -1,0 +1,64 @@
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -17426,12 +17426,8 @@
+ 
+ // src/codex/responsesProxy.ts
+ import { randomBytes } from "crypto";
+-import {
+-  createServer,
+-  request as httpRequest
+-} from "http";
+-import { request as httpsRequest } from "https";
+-import { pipeline } from "stream";
++import { createServer } from "http";
++import { pipeline, Readable as ResponsesReadable } from "stream";
+ import { zstdDecompressSync } from "zlib";
+ import WebSocket, { WebSocketServer } from "ws";
+ 
+@@ -17499,10 +17495,11 @@
+   closed = false;
+   constructor() {
+     this.server = createServer((request, response) => {
+-      this.forwardHttp(request, response).catch(() => {
++      this.forwardHttp(request, response).catch((error) => {
+         if (!response.headersSent)
+           response.writeHead(502, { "content-type": "text/plain" });
+-        response.end("Responses compatibility proxy could not forward the request");
++        const code = typeof error?.code === "string" && /^[A-Za-z0-9_]+$/.test(error.code) ? error.code : "UPSTREAM_TRANSPORT_ERROR";
++        response.end(`Responses compatibility proxy could not forward the request (${code})`);
+       });
+     });
+     this.server.on("connection", (socket) => {
+@@ -17597,15 +17594,24 @@
+     this.aborts.add(abort);
+     response.once("close", () => abort.abort());
+     try {
+-      await new Promise((resolve, reject) => {
+-        const send = target.protocol === "https:" ? httpsRequest : httpRequest;
+-        const upstream = send(target, { method: "POST", headers, signal: abort.signal }, (incoming) => {
+-          response.writeHead(incoming.statusCode ?? 502, forwardingHeaders(incoming.headers, false));
+-          pipeline(incoming, response, (error) => error ? reject(error) : resolve());
++      // Bun fetch respects HTTPS_PROXY/HTTP_PROXY/NO_PROXY, unlike node:http requests.
++      // Preserve upstream bytes and headers, including compressed SSE responses.
++      const incoming = await fetch(target, {
++        method: "POST",
++        headers,
++        body,
++        signal: abort.signal,
++        redirect: "manual",
++        decompress: false
++      });
++      response.writeHead(incoming.status, forwardingHeaders(Object.fromEntries(incoming.headers), false));
++      if (incoming.body === null) {
++        response.end();
++      } else {
++        await new Promise((resolve, reject) => {
++          pipeline(ResponsesReadable.fromWeb(incoming.body), response, (error) => error ? reject(error) : resolve());
+         });
+-        upstream.once("error", reject);
+-        upstream.end(body);
+-      });
++      }
+     } finally {
+       this.aborts.delete(abort);
+     }

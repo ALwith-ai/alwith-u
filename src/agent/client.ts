@@ -1314,13 +1314,14 @@ export class CodexClient {
     let session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
+    const run = this.state.runStates[id]?.state
+    // Refresh tools on the next idle prompt; active turns must still accept replies and steering.
     if (
+      run !== "running" &&
+      run !== "requires_action" &&
       this.options.sessionContextRevision &&
       this.contextRevisions.get(id) !== (await this.options.sessionContextRevision())
     ) {
-      const run = this.state.runStates[id]?.state
-      if (run === "running" || run === "requires_action")
-        throw new Error("Wait for the current task to finish before refreshing computer tools")
       await this.live().request("session/close", { sessionId: id })
       this.updates.remove(id)
       this.publishSession({ ...this.sessions.get(id), attached: false })
