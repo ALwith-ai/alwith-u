@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ inputs.tos_release_tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   test-bundles:
     if: github.event_name == 'workflow_dispatch' && inputs.tos_release_tag == ''
@@ -66,8 +70,12 @@ jobs:
           if-no-files-found: error
 
   release-preflight:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.prepare-release.outputs.release_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -97,9 +105,30 @@ jobs:
           "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"];
           const missing = required.filter(name => !process.env[name]);
           if (missing.length) throw new Error(`Missing release secrets: ${missing.join(", ")}`)'
+      - name: Prepare shared draft release
+        id: prepare-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          releases=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
+            jq -s --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag)]')
+          count=$(jq 'length' <<< "$releases")
+          if [ "$count" -eq 0 ]; then
+            release_id=$(gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$RELEASE_TAG" -f name="ALwith U $RELEASE_TAG" \
+              -F draft=true -F generate_release_notes=true --jq '.id')
+          elif [ "$count" -eq 1 ]; then
+            release_id=$(jq -er '.[0] | if .draft then .id else error("Release is already published") end' <<< "$releases")
+          else
+            echo "Multiple releases exist for $RELEASE_TAG; use tos_release_tag to recover their artifacts." >&2
+            exit 1
+          fi
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: release-preflight
     permissions:
       contents: write
@@ -147,6 +176,7 @@ jobs:
         with:
           tauriScript: bun run tauri
           tagName: ${{ github.ref_name }}
+          releaseId: ${{ needs.release-preflight.outputs.release_id }}
           releaseName: ALwith U ${{ github.ref_name }}
           releaseDraft: true
           generateReleaseNotes: true
@@ -190,7 +220,7 @@ jobs:
     if: >-
       always() && ((startsWith(github.ref, 'refs/tags/v') && needs.release.result == 'success') ||
       (github.event_name == 'workflow_dispatch' && inputs.tos_release_tag != ''))
-    needs: release
+    needs: [release-preflight, release]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -214,16 +244,41 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+          RELEASE_ID: ${{ inputs.tos_release_tag == '' && needs.release-preflight.outputs.release_id || '' }}
         run: |
           set -euo pipefail
-          release_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
-            jq -rs --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .id] | if length == 1 then .[0] else error("release not found") end')
+          # Manual recovery collects platforms split across historical duplicate drafts.
+          release_ids="$RELEASE_ID"
+          if [ -z "$release_ids" ]; then
+            release_ids=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
+              jq -ers --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .id] | if length > 0 then .[] else error("No releases found for " + $tag) end')
+          fi
           mkdir -p "$RUNNER_TEMP/tos-release"
-          gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" |
-            jq -rs '.[][] | select(.name | test("\\.(dmg|exe|msi|app\\.tar\\.gz)(\\.sig)?$")) | [.id, .name] | @tsv' |
+          while read -r release_id; do
+            echo "Downloading assets from release $release_id"
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" |
+              jq -rs '.[][] | select(.name | test("\\.(dmg|exe|msi|app\\.tar\\.gz)(\\.sig)?$")) | [.id, .name] | @tsv' > "$RUNNER_TEMP/tos-assets.tsv"
             while IFS=$'\t' read -r asset_id asset_name; do
-              gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$RUNNER_TEMP/tos-release/$asset_name"
-            done
+              if [[ "$asset_name" == */* || "$asset_name" == *\\* ]]; then
+                echo "Invalid asset name: $asset_name" >&2
+                exit 1
+              fi
+              gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$RUNNER_TEMP/tos-asset"
+              destination="$RUNNER_TEMP/tos-release/$asset_name"
+              if [ -f "$destination" ] && ! cmp -s "$destination" "$RUNNER_TEMP/tos-asset"; then
+                echo "Conflicting assets across releases: $asset_name" >&2
+                exit 1
+              fi
+              mv "$RUNNER_TEMP/tos-asset" "$destination"
+              echo "Downloaded: $asset_name"
+            done < "$RUNNER_TEMP/tos-assets.tsv"
+          done <<< "$release_ids"
+      - name: Validate complete release artifacts
+        env:
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+        run: >-
+          bun -e 'import { releaseArtifacts } from "./scripts/lib/release-artifacts";
+          releaseArtifacts(`${process.env.RUNNER_TEMP}/tos-release`, process.env.RELEASE_TAG!)'
       - name: Mirror release assets to TOS
         env:
           RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
