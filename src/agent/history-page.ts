@@ -160,13 +160,10 @@ export function prependHistory(current: Session, page: Session, baseline?: Sessi
   return {
     ...current,
     lastStopReason:
-      baseline !== undefined && current.items === baseline.items && current.lastStopReason === baseline.lastStopReason
+      current.items === baseline?.items && current.lastStopReason === baseline.lastStopReason
         ? page.lastStopReason
         : current.lastStopReason,
-    title:
-      baseline !== undefined && current.title === baseline.title
-        ? (page.title ?? current.title)
-        : (current.title ?? page.title),
+    title: current.title === baseline?.title ? (page.title ?? current.title) : (current.title ?? page.title),
     items: [
       ...prefix,
       ...merged,

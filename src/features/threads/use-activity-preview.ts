@@ -8,10 +8,10 @@ import type { RunState } from "@/lib/run-state"
 export function useActivityPreview(sessionId: string, state: RunState): string | undefined {
   const connection = useApp((store) => store.connection)
   const attached = useApp(
-    (store) => store.sessions[sessionId]?.attached === true && !store.sessions[sessionId]?.restoring
+    (store) => Boolean(store.sessions[sessionId]?.attached) && !store.sessions[sessionId]?.restoring
   )
   const live = useApp((store) => latestAssistantReply(store.sessions[sessionId]?.items))
-  const draft = useApp((store) => store.runStates[sessionId]?.reusableDraft === true)
+  const draft = useApp((store) => Boolean(store.runStates[sessionId]?.reusableDraft))
   const [preview, setPreview] = useState<string>()
   useEffect(() => {
     if (connection !== "ready" || draft || attached) return

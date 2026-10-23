@@ -228,7 +228,7 @@ test("configured catalogs expose every native and gateway model in the scrollabl
     view
       .getAllByRole("menuitemradio")
       .map((item) => item.querySelector("span.flex-1")?.textContent ?? item.querySelector("span.truncate")?.textContent)
-  ).toEqual(["First", "Second", "Third", "Fourth", "Fifth", "3.8 Max", "3.8 Flash"])
+  ).toEqual(["First", "Second", "Third", "3.8 Max", "Fourth", "Fifth", "3.8 Flash"])
   expect(view.getAllByText("More models")).toHaveLength(1)
   expect(view.getAllByRole("menuitemradio").every((item) => item.querySelector("svg, img"))).toBe(true)
   await act(() => Promise.try(() => fireEvent.click(view.getByText("3.8 Flash"))))
@@ -245,6 +245,40 @@ test("native catalogs keep every model visible in catalog order", async () => {
       .getAllByRole("menuitemradio")
       .map((item) => item.querySelector("span.flex-1")?.textContent ?? item.querySelector("span.truncate")?.textContent)
   ).toEqual(["First", "Second", "Third", "Fourth", "Fifth"])
+})
+
+test("an applied DeepSeek catalog appears before native overflow in an already open draft", async () => {
+  const native = Array.from({ length: 20 }, (_, index) => ({ value: `gpt-${index}`, name: `GPT-${index}` }))
+  const config = (configured: boolean): acp.SessionConfigOption[] => [
+    {
+      configId: "model",
+      category: "model",
+      name: "Model",
+      type: "select",
+      currentValue: "gpt-0",
+      options: [
+        { groupId: "chatgpt", name: "ChatGPT", options: native },
+        ...(configured
+          ? [{ groupId: "deepseek", name: "DeepSeek", options: [{ value: providerModel, name: "DeepSeek-Flash" }] }]
+          : [])
+      ]
+    }
+  ]
+  const onModelChange = vi.fn()
+  const view = render(
+    <ModelSelectGroup sessionId="draft" options={config(false)} disabled={false} onModelChange={onModelChange} />
+  )
+  await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+  expect(view.queryByRole("menuitemradio", { name: "DeepSeek-Flash" })).not.toBeInTheDocument()
+  view.rerender(
+    <ModelSelectGroup sessionId="draft" options={config(true)} disabled={false} onModelChange={onModelChange} />
+  )
+  const choices = view.getAllByRole("menuitemradio")
+  expect(choices).toHaveLength(21)
+  expect(choices[3]).toHaveAccessibleName("DeepSeek-Flash")
+  await act(() => Promise.try(() => fireEvent.click(choices[3])))
+  expect(onModelChange).toHaveBeenCalledWith(providerModel)
+  expect(controls.setConfig).not.toHaveBeenCalled()
 })
 
 test("unsupported fast mode stays visible and disabled", async () => {

@@ -228,7 +228,7 @@ test("reports a single item exceeding the history protocol budget without invali
       "s",
       async (params) => {
         calls.push({ limit: params.limit, maxBytes: params.maxBytes })
-        throw { data: { reason: "history_page_too_large" } }
+        throw Object.assign(new Error("History page too large"), { data: { reason: "history_page_too_large" } })
       },
       () => {}
     )

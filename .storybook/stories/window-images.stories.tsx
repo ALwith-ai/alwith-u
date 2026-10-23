@@ -40,23 +40,23 @@ export const PreviewCloseButton: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Preview image" }))
     const dialog = await body.findByRole("dialog")
     const close = within(dialog).getByRole("button", { name: "Close" })
-    await waitFor(() => {
-      expect(close.getBoundingClientRect().width).toBe(32)
-      expect(close.getBoundingClientRect().height).toBe(32)
-      expect(getComputedStyle(close).borderRadius).toBe("8px")
-      expect(close.getBoundingClientRect().top).toBe(16)
-      expect(canvasElement.ownerDocument.defaultView!.innerWidth - close.getBoundingClientRect().right).toBe(16)
-      expect(getComputedStyle(close).cursor).toBe("pointer")
-      expect(getComputedStyle(close).backgroundColor).toBe("rgba(0, 0, 0, 0)")
-      expect(close.querySelector("svg")!.getBoundingClientRect().width).toBe(16)
+    await waitFor(async () => {
+      await expect(close.getBoundingClientRect().width).toBe(32)
+      await expect(close.getBoundingClientRect().height).toBe(32)
+      await expect(getComputedStyle(close).borderRadius).toBe("8px")
+      await expect(close.getBoundingClientRect().top).toBe(16)
+      await expect(canvasElement.ownerDocument.defaultView!.innerWidth - close.getBoundingClientRect().right).toBe(16)
+      await expect(getComputedStyle(close).cursor).toBe("pointer")
+      await expect(getComputedStyle(close).backgroundColor).toBe("rgba(0, 0, 0, 0)")
+      await expect(close.querySelector("svg")!.getBoundingClientRect().width).toBe(16)
     })
     await userEvent.hover(close)
-    await waitFor(() => expect(getComputedStyle(close).backgroundColor).not.toBe("rgba(0, 0, 0, 0)"))
+    await waitFor(async () => expect(getComputedStyle(close).backgroundColor).not.toBe("rgba(0, 0, 0, 0)"))
     await userEvent.click(close)
-    await waitFor(() => expect(body.queryByRole("dialog")).toBeNull())
+    await waitFor(async () => expect(body.queryByRole("dialog")).toBeNull())
     await userEvent.click(canvas.getByRole("button", { name: "Preview image" }))
     await userEvent.keyboard("{Escape}")
-    await waitFor(() => expect(body.queryByRole("dialog")).toBeNull())
+    await waitFor(async () => expect(body.queryByRole("dialog")).toBeNull())
   }
 }
 
@@ -64,8 +64,8 @@ export const PetImagesDoNotDrag: Story = {
   render: () => <PetImageExample />,
   play: async ({ canvas }) => {
     const image = canvas.getByRole("img", { name: "Pet image" })
-    await waitFor(() => expect(getComputedStyle(image).getPropertyValue("-webkit-user-drag")).toBe("none"))
-    expect(image.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true }))).toBe(false)
+    await waitFor(async () => expect(getComputedStyle(image).getPropertyValue("-webkit-user-drag")).toBe("none"))
+    await expect(image.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true }))).toBe(false)
   }
 }
 
@@ -105,19 +105,19 @@ export const ImageViewGallery: Story = {
   play: async ({ canvasElement, canvas, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(canvas.getByRole("button", { name: "Viewed 12 images" }))
-    await waitFor(() => expect(canvas.getAllByRole("img")).toHaveLength(12))
+    await waitFor(async () => expect(canvas.getAllByRole("img")).toHaveLength(12))
     const thumbnail = canvas.getAllByRole("img")[0]!
-    expect(thumbnail.getBoundingClientRect().width).toBe(80)
-    expect(thumbnail.getBoundingClientRect().height).toBe(80)
+    await expect(thumbnail.getBoundingClientRect().width).toBe(80)
+    await expect(thumbnail.getBoundingClientRect().height).toBe(80)
     const strip = thumbnail.closest(".codex-image-thumbnails")!
-    expect(strip.scrollWidth).toBeGreaterThan(strip.clientWidth)
+    await expect(strip.scrollWidth).toBeGreaterThan(strip.clientWidth)
     await userEvent.click(canvas.getByRole("button", { name: "screenshot-0.png" }))
     const dialog = await body.findByRole("dialog")
     await userEvent.click(within(dialog).getByRole("button", { name: "Next image" }))
-    expect(within(dialog).getByRole("img")).toHaveAttribute("alt", "screenshot-1.png")
+    await expect(within(dialog).getByRole("img")).toHaveAttribute("alt", "screenshot-1.png")
     await userEvent.keyboard("{ArrowLeft}")
-    expect(within(dialog).getByRole("img")).toHaveAttribute("alt", "screenshot-0.png")
+    await expect(within(dialog).getByRole("img")).toHaveAttribute("alt", "screenshot-0.png")
     await userEvent.keyboard("{Escape}")
-    await waitFor(() => expect(body.queryByRole("dialog")).toBeNull())
+    await waitFor(async () => expect(body.queryByRole("dialog")).toBeNull())
   }
 }
