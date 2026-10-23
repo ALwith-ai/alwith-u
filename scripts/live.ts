@@ -73,6 +73,8 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
     if (!client.state.threads.some((thread) => thread.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
+    if (!client.session(id).commands.some((command) => command.name === "status"))
+      throw new Error("Resumed session has no status command")
     // WebSocket history notifications can arrive after open resolves, in separate batches.
     await until(
       () =>
@@ -116,6 +118,8 @@ async function check(transport: "stdio" | "ws") {
     const draft = await client.prepareDraft("main", directory)
     if (!client.session(draft).configOptions.some((option) => option.category === "model"))
       throw new Error("Precreated draft has no model selector")
+    if (!client.session(draft).commands.some((command) => command.name === "status"))
+      throw new Error("Precreated draft has no status command")
     if ((await client.listProjectThreads(directory)).some((thread) => thread.sessionId === draft))
       throw new Error("Precreated draft leaked into the project index")
     await client.discardDraft("main")
@@ -210,6 +214,8 @@ async function check(transport: "stdio" | "ws") {
     await second.renameSession(a, sourceTitle)
     const forked = await second.fork(a, directory, turnId)
     try {
+      if (!second.session(forked).commands.some((command) => command.name === "status"))
+        throw new Error("Forked session has no status command")
       await until(
         () =>
           second!.session(forked).items.some((item) => item.kind === "user") &&

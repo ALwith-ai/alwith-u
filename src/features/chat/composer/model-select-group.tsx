@@ -131,7 +131,8 @@ export function ModelSelectGroup({
       }))}
       booleanOptions={[
         {
-          id: "fast-mode",
+          // The shared menu's presentation key is separate from the adapter's config id.
+          id: "fast_mode",
           name: t("chat.model.fastMode"),
           currentValue: fast?.currentValue ?? false,
           disabled: !fast,
@@ -147,7 +148,7 @@ export function ModelSelectGroup({
           }))
       ]}
       onBooleanChange={(id, value) => {
-        const option = booleans.find((option) => option.configId === id)
+        const option = id === "fast_mode" ? fast : booleans.find((option) => option.configId === id)
         if (!option) throw new Error(`Unknown boolean config: ${id}`)
         set(option, value)
       }}

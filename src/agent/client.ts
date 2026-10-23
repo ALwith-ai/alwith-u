@@ -790,6 +790,7 @@ export class CodexClient {
           ...createSession(response.sessionId, cwd),
           attached: true,
           configOptions: response.configOptions ?? [],
+          commands: response.availableCommands ?? [],
           configRevision: configRevisionOf(response)
         }
         this.publishSession(session)
@@ -1066,6 +1067,7 @@ export class CodexClient {
         cwd,
         readOnly: isReadOnlyResume(response),
         configOptions: response.configOptions ?? [],
+        commands: response.availableCommands ?? this.sessions.get(id).commands,
         configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision,
         error: null
       })
@@ -1626,7 +1628,8 @@ export class CodexClient {
       cwd,
       attached: true,
       restoring: false,
-      configOptions: response.configOptions ?? []
+      configOptions: response.configOptions ?? [],
+      commands: response.availableCommands ?? forked.commands
     })
     this.noteModel(this.sessions.get(response.sessionId))
     this.store.setState((state) => ({

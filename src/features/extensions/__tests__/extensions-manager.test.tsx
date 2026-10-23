@@ -408,6 +408,68 @@ test("disabled extensions render Lucide metadata icons locally without image req
   expect(view.actions).toEqual([])
 })
 
+test.each([
+  ["bi-metrics", "lucide:chart", "lucide-chart-column"],
+  ["yup-kb", "lucide:globe", "lucide-book-open"],
+  ["etms-strategy-review", "lucide:settings", "lucide-shield-check"]
+])("legacy %s keeps its entry icon when disabled without reimporting", (id, oldIcon, selector): void => {
+  const snapshot = state()
+  const item = installation(id, id)
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = oldIcon
+  item.enabled = false
+  snapshot.native.installations = [item]
+  const view = setup(snapshot)
+  expect(view.getByRole("region", { name: id }).querySelector(`svg.${selector}`)).not.toBeNull()
+})
+
+test("legacy list uses its current entry icon instead of compatibility metadata", (): void => {
+  const snapshot = state()
+  const item = installation("yup-kb", "Knowledge")
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = "lucide:globe"
+  snapshot.native.installations = [item]
+  const view = setup(snapshot, false, {
+    ...host,
+    actions: [
+      {
+        id: "yup-kb/open",
+        extensionId: "yup-kb",
+        title: "Knowledge",
+        placement: "topBar",
+        icon: "file-text",
+        target: { type: "surface", id: "yup-kb/page" }
+      }
+    ],
+    views: [surface("yup-kb", "yup-kb/page", "Knowledge")]
+  })
+  const row = view.getByRole("region", { name: "Knowledge" })
+  expect(row.querySelector("svg.lucide-file-text")).not.toBeNull()
+  expect(row.querySelector("svg.lucide-globe")).toBeNull()
+})
+
+test("legacy list matches the default icon of an entry without an explicit icon", (): void => {
+  const snapshot = state()
+  const item = installation("yup-kb", "Knowledge")
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = "lucide:globe"
+  snapshot.native.installations = [item]
+  const view = setup(snapshot, false, {
+    ...host,
+    actions: [
+      {
+        id: "yup-kb/open",
+        extensionId: "yup-kb",
+        title: "Knowledge",
+        placement: "topBar",
+        target: { type: "surface", id: "yup-kb/page" }
+      }
+    ],
+    views: [surface("yup-kb", "yup-kb/page", "Knowledge")]
+  })
+  expect(view.getByRole("region", { name: "Knowledge" }).querySelector("svg.lucide-blocks")).not.toBeNull()
+})
+
 test("does not show a compatibility notice for supported Yup history", () => {
   const snapshot = state()
   snapshot.native.installations = [{ ...installation("yup-kb", "Knowledge"), source: "legacy:alwith-u" }]

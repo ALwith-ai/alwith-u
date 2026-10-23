@@ -71,6 +71,57 @@ async function make(
   return { client, fake, port }
 }
 
+test.each(["new", "resume", "fork"] as const)(
+  "%s sessions initialize commands from the response",
+  async (operation) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands-source")
+    const initial = [{ name: "status", description: "Show session status" }]
+    fake.sessionCommands.current = initial
+    const id =
+      operation === "new"
+        ? await client.newSession("/tmp/commands")
+        : operation === "fork"
+          ? await client.fork(source, "/tmp/commands-source")
+          : await client.open("h1", "/tmp/one").then(() => "h1")
+    expect(client.session(id).commands).toEqual(initial)
+    expect(client.session(source).commands).toEqual([])
+
+    const updated = [{ name: "compact", description: "Compact conversation" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: updated })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(updated))
+    expect(client.session(source).commands).toEqual([])
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "resume command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const id = await client.newSession("/tmp/commands")
+    const previous = [{ name: "status", description: "Show session status" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: previous })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(previous))
+    await client.stopSession(id)
+    fake.sessionCommands.current = snapshot
+    await client.open(id, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "fork command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands")
+    const previous = [{ name: "status", description: "Show session status" }]
+    fake.replayUpdates.push({ sessionUpdate: "available_commands_update", availableCommands: previous })
+    fake.sessionCommands.current = snapshot
+    const id = await client.fork(source, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
 test.each([true, false])(
   "new sessions start with Fast disabled when the agent default is %s",
   async (inheritedFast) => {

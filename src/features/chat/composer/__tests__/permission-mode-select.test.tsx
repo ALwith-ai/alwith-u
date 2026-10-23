@@ -9,7 +9,7 @@ import { PermissionModeSelect } from "../permission-mode-select"
 const { setConfig } = vi.hoisted(() => ({ setConfig: vi.fn(async () => {}) }))
 vi.mock("@/lib/client", () => ({ client: { setConfig } }))
 
-const options: acp.SessionConfigOption[] = [
+const options = [
   {
     configId: "permissions",
     category: "mode",
@@ -19,6 +19,11 @@ const options: acp.SessionConfigOption[] = [
     options: [
       {
         value: "read-only",
+        name: "Read-only",
+        description: "Requires approval to edit files and access the internet."
+      },
+      {
+        value: "workspace-write",
         name: "Ask for approval",
         description: "Always ask to edit external files and use the internet"
       },
@@ -31,7 +36,7 @@ const options: acp.SessionConfigOption[] = [
       { value: "custom-mode", name: "Custom mode", description: "Provider-defined policy" }
     ]
   }
-]
+] satisfies acp.SessionConfigOption[]
 
 beforeEach(async () => {
   await initI18n("zh-CN")
@@ -47,6 +52,7 @@ test("permission names and descriptions follow language changes without changing
   expect(screen.queryByText("了解更多")).not.toBeInTheDocument()
   expect(screen.getByRole("menuitemradio", { checked: true })).toHaveTextContent("帮我批准")
   expect(screen.getByText("请求批准")).toBeInTheDocument()
+  expect(screen.queryByText("Read-only")).not.toBeInTheDocument()
   expect(screen.getByText("编辑外部文件和使用互联网时始终询问")).toBeInTheDocument()
   expect(screen.getByText("仅对检测到的风险操作请求批准")).toBeInTheDocument()
   expect(screen.getByText("可不受限制地访问互联网和你电脑上的任何文件")).toBeInTheDocument()
@@ -63,6 +69,31 @@ test("permission names and descriptions follow language changes without changing
   fireEvent.click(screen.getByText("Full access"))
   expect(setConfig).toHaveBeenCalledWith("chat-1", "permissions", "agent-full-access")
   expect(options[0]?.currentValue).toBe("agent")
+})
+
+test.each([
+  ["请求批准", "workspace-write"],
+  ["帮我批准", "agent"],
+  ["完全访问权限", "agent-full-access"]
+])("%s sends its matching ACP mode without changing a legacy read-only session automatically", async (label, value) => {
+  render(
+    <PermissionModeSelect
+      sessionId="chat-legacy"
+      options={options.map((option) => ({ ...option, currentValue: "read-only" }))}
+      disabled={false}
+    />
+  )
+  expect(screen.getByRole("button")).toHaveTextContent("Read-only")
+  expect(setConfig).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole("button"))
+  expect(screen.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
+    expect.stringContaining("请求批准"),
+    expect.stringContaining("帮我批准"),
+    expect.stringContaining("完全访问权限"),
+    expect.stringContaining("Custom mode")
+  ])
+  await act(async () => fireEvent.click(screen.getByText(label)))
+  expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat-legacy", "permissions", value)
 })
 
 test("every supported language supplies permission mode names and descriptions", () => {

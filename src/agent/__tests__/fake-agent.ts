@@ -18,6 +18,7 @@ export type FakeAgent = {
   sessionOptions: {
     current: ((model: string | null, meta?: acp.NewSessionRequest["_meta"]) => acp.SessionConfigOption[]) | null
   }
+  sessionCommands: { current: acp.AvailableCommand[] | undefined }
   configResponse: {
     current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
   }
@@ -104,6 +105,7 @@ export function createFakeAgent(): FakeAgent {
   const configDelay: FakeAgent["configDelay"] = { current: null }
   const newSessionDelay: FakeAgent["newSessionDelay"] = { current: null }
   const sessionOptions: FakeAgent["sessionOptions"] = { current: null }
+  const sessionCommands: FakeAgent["sessionCommands"] = { current: undefined }
   const configResponse: FakeAgent["configResponse"] = { current: null }
   const listSessions: FakeAgent["listSessions"] = { current: null }
   const configChanges: string[] = []
@@ -218,7 +220,7 @@ export function createFakeAgent(): FakeAgent {
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
     const id = sessionId()
     modelHints.set(id, hint)
-    return { sessionId: id, configOptions: optionsFor(hint, params._meta) }
+    return { sessionId: id, configOptions: optionsFor(hint, params._meta), availableCommands: sessionCommands.current }
   })
   app.onRequest("session/fork", async ({ params, client }) => {
     forks.push(params)
@@ -232,7 +234,12 @@ export function createFakeAgent(): FakeAgent {
     }
     origins.set(id, codex)
     for (const update of replayUpdates) await client.notify("session/update", { sessionId: id, update })
-    return { sessionId: id, configOptions: optionsFor(hint, params._meta), _meta: { codex } }
+    return {
+      sessionId: id,
+      configOptions: optionsFor(hint, params._meta),
+      availableCommands: sessionCommands.current,
+      _meta: { codex }
+    }
   })
   const fullListRequests: unknown[] = []
   const list = (params: acp.ListSessionsRequest) => {
@@ -298,7 +305,11 @@ export function createFakeAgent(): FakeAgent {
     }
     if (resumeResponse.current) return resumeResponse.current(signal)
     const origin = origins.get(params.sessionId)
-    return { configOptions: optionsFor(hint, params._meta), ...(origin ? { _meta: { codex: origin } } : {}) }
+    return {
+      configOptions: optionsFor(hint, params._meta),
+      availableCommands: sessionCommands.current,
+      ...(origin ? { _meta: { codex: origin } } : {})
+    }
   })
   app.onRequest(
     "_codex/session_history",
@@ -483,6 +494,7 @@ export function createFakeAgent(): FakeAgent {
     configDelay,
     newSessionDelay,
     sessionOptions,
+    sessionCommands,
     configResponse,
     listSessions,
     fullListRequests,

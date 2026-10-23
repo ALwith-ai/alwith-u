@@ -26,8 +26,8 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { openExternal } from "@/lib/open"
 
-import { EXTENSION_ICONS } from "./extension-icons"
 import { ExtensionIcon } from "./extension-icon"
+import { EXTENSION_ICONS } from "./extension-icons"
 import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
@@ -118,6 +118,19 @@ export function ExtensionsManager({
         )}
         <PanelList className="grid grid-cols-1 gap-x-4 gap-y-3 @2xl:grid-cols-2">
           {matches.map(({ item, name, description }) => {
+            // Imported metadata has a smaller icon vocabulary than entry contributions.
+            const entryAction = sortContributions(
+              host.actions.filter(
+                (action) =>
+                  action.extensionId === item.id && (action.placement === "topBar" || action.placement === "navigation")
+              )
+            )[0]
+            const entryIcon =
+              item.source === LEGACY_SOURCE
+                ? entryAction
+                  ? (entryAction.icon ?? "blocks")
+                  : findLegacyProfile(item.id)?.entryIcon
+                : undefined
             const actions = extensionActions(item)
             const pending = state.native?.pending.find((value) => value.id === item.id)
             const error = state.errors[item.id]
@@ -130,7 +143,7 @@ export function ExtensionsManager({
                 <Item size="xs" className="group/extension py-3">
                   <ItemMedia>
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
-                      <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} />
+                      <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>
                   <Tooltip>
