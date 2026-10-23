@@ -94,7 +94,7 @@
         "@alwith/native-installed-apps": "^0.1.0",
         "@alwith/native-kit": "^0.1.0",
         "@alwith/native-voice": "^0.1.0",
-        "@nyssance/codex-acp-v2": "^0.7.28",
+        "@nyssance/codex-acp-v2": "^0.7.29",
         "@nyssance/ts7-lint": "^0.1.3",
         "@openai/codex": "0.163.0",
         "@storybook/addon-a11y": "^10.6.3",
@@ -542,7 +542,7 @@
 
     "@nyssance/atlas": ["@nyssance/atlas@github:nyssance/atlas#b629e3b", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.5.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "nyssance-atlas-b629e3b", "sha512-DfaffrcGGvdHywtAtS3XvQCTIRuzVigqo/ASZC7wwz1tpnOQgxQ7jKiMlTRltej7qsfmHPB3/Arf7S7ApqBkRA=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.28", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.0", "diff": "^9.0.0", "open": "^11.0.2", "vscode-jsonrpc": "^9.0.2", "ws": "^8.22.0" }, "optionalDependencies": { "@openai/codex": "^0.163.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-RDE6DnTmduHpYBPl914Boxfyt6/4FrAcI56qN4+JFe4FcNJJ5dZ7n2I2yc/rnIwpUR5tVvCAdoVcIZC0fUAgOg=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.29", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@openai/codex": "^0.163.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "open": "^11.0.1", "vscode-jsonrpc": "^9.0.1", "ws": "^8.22.0", "zod": "^4.0.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-5V3cNXutDlnCniPj1JR2BOY1OihnlwHehw4BWJZQxNAVu8RDdAxGfJ3qfZqmsefEeSUvy7910eJzCuFwGxClhw=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
