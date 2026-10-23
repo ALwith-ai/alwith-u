@@ -99,10 +99,14 @@ function requiredEditor(editors: Editor[]): Editor {
   return editor
 }
 async function markdownReady(editors: Editor[]): Promise<void> {
-  await waitFor(() => {
-    expect(requiredEditor(editors).status).toBe("Created")
-    expect(document.body).toContainOneByRole("textbox")
-  })
+  // The preview lazily loads Milkdown; cold imports can exceed RTL's one-second default in the full suite.
+  await waitFor(
+    () => {
+      expect(requiredEditor(editors).status).toBe("Created")
+      expect(document.body).toContainOneByRole("textbox")
+    },
+    { timeout: 5_000 }
+  )
 }
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve: ((value: T) => void) | undefined
