@@ -19,6 +19,7 @@ import { basename } from "@/lib/path"
 import { newChatDirectory } from "./new-chat-directory"
 
 type ProjectActions = {
+  actionLabel?: string
   cwd: string | null
   currentSessionId?: string | null
   onSelect: (thread: ThreadSummary) => void
@@ -72,6 +73,7 @@ export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactE
 
 /** Header click and sidebar hover share the same list and actions, as in Desktop. */
 function ProjectPopover({
+  actionLabel,
   cwd,
   currentSessionId,
   directory,
@@ -161,12 +163,12 @@ function ProjectPopover({
               variant="ghost"
               size="icon-sm"
               className="shrink-0 transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
-              aria-label={label}
-              title={cwd ?? label}
+              aria-label={actionLabel ?? label}
+              title={actionLabel ?? cwd ?? label}
             />
           }
         >
-          <FolderClosedIcon />
+          {actionLabel ? <MessageSquareIcon /> : <FolderClosedIcon />}
         </PopoverTrigger>
       ) : (
         <PopoverTrigger

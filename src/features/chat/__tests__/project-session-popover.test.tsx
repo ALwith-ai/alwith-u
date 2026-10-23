@@ -357,3 +357,20 @@ test.each([
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
   expect(view.getByText("7 chats")).toBeDefined()
 })
+
+test("the Drive action has an explicit label and opens existing project sessions", async () => {
+  const entries = threads()
+  client.store.setState({ threads: entries })
+  const selected = vi.fn()
+  const newChat = vi.fn()
+  const view = render(
+    <ProjectSessionPopover actionLabel="Recent sessions" cwd="/tmp/project" onSelect={selected} onNewChat={newChat} />
+  )
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Recent sessions" }))
+  })
+  await waitFor(() => expect(view.getByText("Chat 6")).toBeTruthy())
+  fireEvent.click(view.getByText("Chat 6"))
+  expect(selected).toHaveBeenCalledWith(entries[6])
+  expect(newChat).not.toHaveBeenCalled()
+})

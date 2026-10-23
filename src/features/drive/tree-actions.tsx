@@ -6,6 +6,7 @@ import {
   resolveDriveRoot
 } from "@alwith/module-drive/content"
 import { isPinned, togglePinned, useDrive } from "@alwith/module-drive/react"
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -22,6 +23,7 @@ export function DriveTreeActions({
   onSharing,
   onCondense,
   onMove,
+  onPublish,
   saveDocument
 }: {
   path: string
@@ -29,6 +31,7 @@ export function DriveTreeActions({
   onSharing: (path: string) => void
   onCondense: (scope: CondenseScope) => void
   onMove: (path: string, kind: "file" | "directory") => void
+  onPublish: (path: string, kind: "file" | "directory") => void
   saveDocument: (path: string) => Promise<void>
 }): ReactNode {
   const { snapshot } = useDrive(drive)
@@ -48,11 +51,11 @@ export function DriveTreeActions({
     if (response.type !== "id" || response.data === null)
       throw new Error(label("Upload this file before sharing a link", "请先上传文件再复制链接"))
     if (desktop) {
-      await navigator.clipboard.writeText(driveFileDeepLink(response.data).replace(/^alwith:/, "alwith-u:"))
+      await writeText(driveFileDeepLink(response.data).replace(/^alwith:/, "alwith-u:"))
       return
     }
     if (!snapshot.webBaseUrl) throw new Error("Drive web address is unavailable")
-    await navigator.clipboard.writeText(driveFileWebUrl(snapshot.webBaseUrl, response.data))
+    await writeText(driveFileWebUrl(snapshot.webBaseUrl, response.data))
   }
   return (
     <>
@@ -116,6 +119,11 @@ export function DriveTreeActions({
           }
         >
           {label("Move to another project…", "移动到其他项目…")}
+        </ContextMenuItem>
+      )}
+      {match.root.canWrite && scope.scopePath !== null && (
+        <ContextMenuItem onClick={() => onPublish(path, isDirectory ? "directory" : "file")}>
+          {label("Publish to…", "发布到…")}
         </ContextMenuItem>
       )}
     </>

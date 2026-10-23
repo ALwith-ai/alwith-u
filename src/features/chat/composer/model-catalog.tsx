@@ -3,14 +3,17 @@ import { Bot } from "lucide-react"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import openaiLogo from "@/components/icons/openai-logo.svg"
+import modelPresentation from "@/lib/model-presentation.json"
 import { PROVIDERS } from "@/lib/providers"
 
-type ModelGroup = { id: string; name: string; models: ChatModelOption[] }
+type ModelOption = ChatModelOption & { shortLabel?: string }
+type ModelGroup = { id: string; name: string; models: ModelOption[] }
 
-/** Compact composer labels without changing the full catalog names. */
-export function modelTriggerLabel(label: string): string {
-  if (/^deepseek[- ]flash$/i.test(label)) return "flash"
-  return label.replace(/^GPT[- ](?=\d)/i, "")
+const presentation: Record<string, { shortLabel: string } | undefined> = modelPresentation
+
+/** Short labels affect only the selected trigger; catalog labels remain authoritative. */
+export function modelTriggerLabel(model: ModelOption): string {
+  return model.shortLabel ?? model.label
 }
 
 /** Preserve catalog order and reserve the last primary slot for the active model. */
@@ -28,7 +31,7 @@ export function presentModelCatalog(groups: ModelGroup[], selected: string): Mod
       ...group,
       models: group.models.map((model) => ({
         ...model,
-        label: group.id === "qwen" && !/^qwen\b/i.test(model.label) ? `Qwen ${model.label}` : model.label,
+        shortLabel: model.shortLabel ?? presentation[model.api_id]?.shortLabel,
         icon: native ? (
           <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
         ) : (

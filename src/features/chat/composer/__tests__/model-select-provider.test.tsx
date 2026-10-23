@@ -4,6 +4,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
+import { modelTriggerLabel, presentModelCatalog } from "../model-catalog"
 import { ModelSelectGroup } from "../model-select-group"
 
 const controls = vi.hoisted(() => ({
@@ -54,7 +55,36 @@ afterEach(() => {
   controls.pending = false
 })
 
-test("the composer shows the selected alias while the menu retains the full model name", async () => {
+test("catalog-supplied short labels override local presentation without changing model identity or full names", () => {
+  const model = { api_id: "gpt-6-sol", label: "Catalog model name", shortLabel: "Catalog short name" }
+  const [group] = presentModelCatalog([{ id: "chatgpt", name: "ChatGPT", models: [model] }], model.api_id)
+  expect(group.models[0]).toMatchObject(model)
+  expect(modelTriggerLabel(group.models[0])).toBe("Catalog short name")
+})
+
+test("models without a short label keep the catalog name in the trigger and menu", async () => {
+  const view = render(
+    <ModelSelectGroup
+      sessionId="full-label"
+      disabled={false}
+      options={[
+        {
+          configId: "model",
+          category: "model",
+          name: "Model",
+          type: "select",
+          currentValue: "future-model",
+          options: [{ value: "future-model", name: "GPT Future Model" }]
+        }
+      ]}
+    />
+  )
+  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT Future Model$/)
+  await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+  expect(view.getByRole("menuitemradio", { name: "GPT Future Model" })).toHaveAttribute("aria-checked", "true")
+})
+
+test("the composer uses the configured short label while the menu preserves the full name", async () => {
   const view = render(
     <ModelSelectGroup
       sessionId="short-label"
@@ -87,7 +117,7 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
   // Only the confirmed session configuration changes the selected label.
   expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6-Astra$/)
   view.rerender(<ModelSelectGroup sessionId="floating-session" options={options(providerModel)} disabled={false} />)
-  expect(within(view.getByTestId("model-trigger")).getByText("flash", { exact: true })).toBeVisible()
+  expect(within(view.getByTestId("model-trigger")).getByText("Flash", { exact: true })).toBeVisible()
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByText("GPT-6-Astra"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", nativeModel)
@@ -198,10 +228,10 @@ test("configured catalogs expose every native and gateway model in the scrollabl
     view
       .getAllByRole("menuitemradio")
       .map((item) => item.querySelector("span.flex-1")?.textContent ?? item.querySelector("span.truncate")?.textContent)
-  ).toEqual(["First", "Second", "Third", "Fourth", "Fifth", "Qwen 3.8 Max", "Qwen 3.8 Flash"])
+  ).toEqual(["First", "Second", "Third", "Fourth", "Fifth", "3.8 Max", "3.8 Flash"])
   expect(view.getAllByText("More models")).toHaveLength(1)
   expect(view.getAllByRole("menuitemradio").every((item) => item.querySelector("svg, img"))).toBe(true)
-  await act(() => Promise.try(() => fireEvent.click(view.getByText("Qwen 3.8 Flash"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("3.8 Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("catalog", "model", "q2")
 })
 
@@ -224,7 +254,7 @@ test("unsupported fast mode stays visible and disabled", async () => {
   fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))
   expect(controls.setConfig).not.toHaveBeenCalled()
   expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).not.toBeChecked()
-  expect(view.getByRole("menuitemradio", { name: "Qwen 3.8 Flash" })).toBeVisible()
+  expect(view.getByRole("menuitemradio", { name: "3.8 Flash" })).toBeVisible()
 })
 
 test("supported fast mode and explicit effort levels target the owning session", async () => {
