@@ -5,7 +5,7 @@ fn resolve_directory(cwd: Option<PathBuf>, documents: &Path) -> Result<PathBuf, 
     let directory = match cwd {
         Some(directory) => directory,
         None => {
-            let directory = documents.join("ALwith U");
+            let directory = documents.join("ALwith");
             std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
             directory
         }
@@ -38,6 +38,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let default = resolve_directory(None, root.path()).unwrap();
         assert!(default.is_dir());
+        assert_eq!(default, root.path().join("ALwith"));
         assert_eq!(resolve_directory(None, root.path()).unwrap(), default);
         let missing = root.path().join("removed-project");
         assert!(resolve_directory(Some(missing.clone()), root.path()).is_err());

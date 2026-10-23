@@ -2,13 +2,13 @@ import type { ThreadSummary } from "@/agent/client"
 
 export const QUICK_CHATS_GROUP = "quick-chats"
 
-/** Codex descendants and the ALwith U workspace belong to quick chats. */
+/** Codex descendants and the current and legacy ALwith workspaces belong to quick chats. */
 export function isQuickChatDirectory(cwd: string): boolean {
   const windowsPath = normalizeWindowsPath(cwd)
   if (/^[a-z]:\//i.test(windowsPath) || windowsPath.startsWith("//")) {
-    return /^[a-z]:\/users\/[^/]+\/documents\/(codex(?:\/.*)?|alwith u)$/.test(windowsPath)
+    return /^[a-z]:\/users\/[^/]+\/documents\/(codex(?:\/.*)?|alwith(?: u)?)$/.test(windowsPath)
   }
-  return /^\/Users\/[^/]+\/Documents\/(Codex(?:\/.*)?|ALwith U)$/.test(cwd.replace(/\/+$/, ""))
+  return /^\/Users\/[^/]+\/Documents\/(Codex(?:\/.*)?|ALwith(?: U)?)$/.test(cwd.replace(/\/+$/, ""))
 }
 
 function normalizeWindowsPath(path: string): string {
