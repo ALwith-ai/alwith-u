@@ -10,7 +10,7 @@
         "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
         "@alwith/module-chat": "^0.1.24",
         "@alwith/module-computer": "^0.1.5",
-        "@alwith/module-drive": "0.1.1",
+        "@alwith/module-drive": "^0.1.1",
         "@alwith/module-editor": "^0.1.0-rc.13",
         "@alwith/module-extension": "^0.1.0-rc.13",
         "@alwith/module-file-tree": "^0.1.0-rc.20",
@@ -87,7 +87,7 @@
       "devDependencies": {
         "@alwith/native-auth": "^0.1.0",
         "@alwith/native-computer": "^0.1.0",
-        "@alwith/native-drive": "0.1.1",
+        "@alwith/native-drive": "^0.1.1",
         "@alwith/native-extension": "^0.1.0",
         "@alwith/native-fs": "^0.1.0",
         "@alwith/native-gamepad": "^0.1.0",
@@ -99,7 +99,7 @@
         "@openai/codex": "0.164.0",
         "@storybook/addon-a11y": "^10.6.3",
         "@storybook/addon-docs": "^10.6.3",
-        "@storybook/addon-themes": "^10.6.2",
+        "@storybook/addon-themes": "^10.6.3",
         "@storybook/addon-vitest": "^10.6.3",
         "@storybook/react-vite": "^10.6.3",
         "@tauri-apps/cli": "^3.0.0-alpha.5",
@@ -748,7 +748,7 @@
 
     "@storybook/addon-docs": ["@storybook/addon-docs@10.6.3", "https://registry.npmmirror.com/@storybook/addon-docs/-/addon-docs-10.6.3.tgz", { "dependencies": { "@mdx-js/react": "^3.0.0", "@storybook/icons": "^2.0.2", "@storybook/react-dom-shim": "10.6.3", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "ts-dedent": "^2.0.0", "unplugin": "^2.3.5" }, "peerDependencies": { "@types/react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "storybook": "^10.6.3" }, "optionalPeers": ["@types/react"] }, "sha512-365f712au4w/xvFqEKY6TIvTeGGAY7FKRB8zP4CFa3VSv9oyxHaq/ublFg4YDbCeRagppwl1PZ6k4+PoUor3+A=="],
 
-    "@storybook/addon-themes": ["@storybook/addon-themes@10.6.2", "https://registry.npmmirror.com/@storybook/addon-themes/-/addon-themes-10.6.2.tgz", { "dependencies": { "ts-dedent": "^2.0.0" }, "peerDependencies": { "storybook": "^10.6.2" } }, "sha512-NGvoAPnWH+WnCNVUAzbDzDQHz2dJNEM5CR0KLGjjDUhHjIvCoAzhD4+SMwnZQqznwm5sgYUdyyKqzrHMeSInog=="],
+    "@storybook/addon-themes": ["@storybook/addon-themes@10.6.3", "https://registry.npmmirror.com/@storybook/addon-themes/-/addon-themes-10.6.3.tgz", { "dependencies": { "ts-dedent": "^2.0.0" }, "peerDependencies": { "storybook": "^10.6.3" } }, "sha512-6LGpeMMg06qpynKhOiCR10l7tkLL/LpBdJxf+9JEjfMohbgGZj1ukR8hVDgMNJAx2RN45Ovz78/HlwMM5PCa4g=="],
 
     "@storybook/addon-vitest": ["@storybook/addon-vitest@10.6.3", "https://registry.npmmirror.com/@storybook/addon-vitest/-/addon-vitest-10.6.3.tgz", { "dependencies": { "@storybook/global": "^5.0.0", "@storybook/icons": "^2.0.2" }, "peerDependencies": { "@vitest/browser": "^4.0.0 || ^5.0.0", "@vitest/browser-playwright": "^4.0.0 || ^5.0.0", "storybook": "^10.6.3", "vitest": "^4.0.0 || ^5.0.0" }, "optionalPeers": ["@vitest/browser", "@vitest/browser-playwright", "vitest"] }, "sha512-ANz0SHAi9OTtrZt+YmcQvP7tcUZrTSm8Gq/nI7p9ZRyHAUOTdGoCex2cPyLc3mEqZTCBnaYXR6ZhURlpGsh9dQ=="],
 

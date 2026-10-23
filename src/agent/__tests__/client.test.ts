@@ -746,6 +746,21 @@ test("opening an attached read-only session retries resume until the writer is r
   expect(attempts).toBe(3)
 })
 
+test("startup sends an object for the full list through a null-normalizing transport", async () => {
+  const { client, port } = await make()
+  const send = port.acpRequest.bind(port)
+  vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    const wireParams = params ?? null
+    if (method === "_codex/session_list" && wireParams === null)
+      return Promise.reject(RequestError.invalidParams(undefined, "Expected an object"))
+    return send(agentId, method, wireParams, options)
+  })
+  await client.listThreads()
+  expect(client.state.threadsLoaded).toBe(true)
+  expect(client.state.threadsError).toBeNull()
+  expect(client.state.threads.length).toBeGreaterThan(0)
+})
+
 test("project views share one full list with empty object params, deduplicate IDs and reuse memory", async () => {
   const { client, fake } = await make()
   fake.listSessions.current = () => ({
