@@ -377,8 +377,7 @@ def check(_context: object) -> None:
 @task
 def build(context: Context) -> None:
     """Build the application with Tauri."""
-    with context.cd(str(ROOT)):
-        context.run("bun tauri build")
+    context.run("bun tauri build")
 
 
 @task(aliases=["u"])
@@ -413,17 +412,16 @@ def clean(context: Context) -> None:
             Choice("dirs", "empty directories only"),
         ],
     ).execute()
-    with context.cd(str(ROOT)):
-        if mode == "sweep":
-            if not context.run("command -v cargo-sweep", warn=True, hide=True).ok:
-                context.run("cargo install cargo-sweep")
-            with context.cd("src-tauri"):
-                context.run("cargo sweep --installed")
-                context.run("cargo sweep --time 30")
-        elif mode == "full":
-            with context.cd("src-tauri"):
-                context.run("cargo clean")
-        context.run("find . -type d -empty -print -delete")
+    if mode == "sweep":
+        if not context.run("command -v cargo-sweep", warn=True, hide=True).ok:
+            context.run("cargo install cargo-sweep")
+        with context.cd("src-tauri"):
+            context.run("cargo sweep --installed")
+            context.run("cargo sweep --time 30")
+    elif mode == "full":
+        with context.cd("src-tauri"):
+            context.run("cargo clean")
+    context.run("find . -type d -empty -print -delete")
 
 
 @task(name="format", aliases=["f"])

@@ -107,10 +107,11 @@ class UpgradeTaskTests(unittest.TestCase):
                 with patch.object(Context, "run", record), patch("fabfile.report_outdated_crates") as report:
                     Program(namespace=Collection.from_module(fabfile)).run(["fab", name], exit=False)
                 self.assertEqual(commands, [
-                    (str(ROOT), "bun install --frozen-lockfile", {}),
-                    (str(ROOT), "bun outdated", {}),
-                    (str(ROOT), "bun update", {}),
-                    (str(ROOT / "src-tauri"), "cargo update", {}),
+                    ("", "git pull --ff-only", {}),
+                    ("", "bun install --frozen-lockfile", {}),
+                    ("", "bun outdated", {}),
+                    ("", "bun update", {}),
+                    ("src-tauri", "cargo update", {}),
                 ])
                 report.assert_called_once_with(ROOT)
 
@@ -150,7 +151,7 @@ class UpgradeTaskTests(unittest.TestCase):
         self.assertEqual(sorted(reversed(ordered), key=fabfile.semver_key), ordered)
 
     def test_upgrade_stops_when_dependency_update_fails(self) -> None:
-        steps = ["bun install --frozen-lockfile", "bun outdated", "bun update", "cargo update"]
+        steps = ["git pull --ff-only", "bun install --frozen-lockfile", "bun outdated", "bun update", "cargo update"]
         for index, failing_command in enumerate(steps):
             with self.subTest(command=failing_command):
                 commands = []
