@@ -216,8 +216,8 @@ jobs:
           RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
         run: |
           set -euo pipefail
-          release_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" |
-            jq -rs --arg tag "$RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .id] | if length == 1 then .[0] else error("release not found") end')
+          # gh resolves draft releases by pending tag through GraphQL.
+          release_id=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json databaseId --jq '.databaseId')
           mkdir -p "$RUNNER_TEMP/tos-release"
           gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" |
             jq -rs '.[][] | select(.name | test("\\.(dmg|exe|msi|app\\.tar\\.gz)(\\.sig)?$")) | [.id, .name] | @tsv' |
