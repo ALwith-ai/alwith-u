@@ -6,7 +6,7 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { Session } from "@alwith/api"
 import type { DraftPort, DraftSnapshot } from "@alwith/module-voice/chat"
-import { ImageIcon } from "lucide-react"
+import { PlusIcon } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -82,7 +82,7 @@ function AttachImageButton(props: Omit<PromptInputButtonProps, "onClick">) {
       onClick={() => attachments.openFileDialog()}
       {...props}
     >
-      <ImageIcon className="size-4" />
+      <PlusIcon className="size-4" />
     </PromptInputButton>
   )
 }
@@ -295,145 +295,148 @@ export function Composer({
   )
 
   return (
-    <div data-chat-drop-zone className="relative mx-auto w-full max-w-3xl px-6 pb-5" ref={inputAreaRef}>
-      {inputHeader && (
-        <div
-          data-chat-input-header
-          className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3"
-        >
-          {inputHeader}
-        </div>
-      )}
-      <PromptInputProvider
-        attachmentPolicy={nativeAttachmentPolicy}
-        value={text}
-        revision={draftRef.current.revision}
-        onValueChange={setText}
-        onSubmittedClear={() => {
-          draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
-          setDraft(draftRef.current)
-        }}
-        attachments={attachments}
-        onAttachmentsChange={(files) => updateDraftAttachments(session.id, () => files)}
-      >
-        <CompletionMenu
-          handleRef={textareaRef}
-          commands={session.commands}
-          searchFiles={searchFiles}
-          onMention={addMention}
-          forcedOpen={slashMenuOpen}
-          onForcedOpenChange={setSlashMenuOpen}
-        />
-        <PromptInput
-          globalDrop
-          multiple
-          accept={IMAGE_TYPES.join(",")}
-          onError={onAttachmentError}
-          onSubmit={submit}
-          onSubmitAsync={submit}
-          canSubmit={() => (ready && !sending && !dropping && !pasting ? true : "chat_not_ready")}
-          className="relative z-10"
-        >
-          <NativeFileDrop
-            sessionId={session.id}
-            enabled={inputReady && !sending}
-            onMention={addMention}
-            onBusyChange={setDropping}
-          />
-          <PromptInputHeader>
-            {dropping && (
-              <span role="status" className="text-xs text-muted-foreground">
-                {t("chat.input.addingFiles")}
-              </span>
-            )}
-            <MentionChips
-              mentions={mentions}
-              onRemove={(path) => setMentions((current) => current.filter((item) => item !== path))}
-            />
-            <PromptInputAttachments>
-              {(attachment) =>
-                isPastedTextAttachment(attachment) ? (
-                  <PastedTextAttachment data={attachment} sessionId={session.id} />
-                ) : (
-                  <PromptInputAttachment data={attachment} />
-                )
-              }
-            </PromptInputAttachments>
-          </PromptInputHeader>
-          <PromptInputBody
-            className="mb-1 min-h-10 px-3"
-            onKeyDownCapture={(event) => {
-              if (
-                !prediction.text ||
-                event.nativeEvent.isComposing ||
-                event.nativeEvent.keyCode === 229 ||
-                event.shiftKey ||
-                event.ctrlKey ||
-                event.altKey ||
-                event.metaKey ||
-                event.target !== textareaRef.current?.getTextarea()
-              )
-                return
-              if (event.key === "Tab") {
-                event.preventDefault()
-                event.stopPropagation()
-                setText(prediction.text)
-              }
-            }}
+    <div data-chat-drop-zone className="mx-auto w-full max-w-3xl px-6 pb-5" ref={inputAreaRef}>
+      <div className="relative">
+        {inputHeader && (
+          <div
+            data-chat-input-header
+            className="relative top-1 z-0 mx-[13px] -mb-[18px] flex min-w-0 items-center gap-2 overflow-hidden rounded-t-2xl bg-sidebar px-1.5 pt-1.5 pb-[27px] dark:bg-foreground/3"
           >
-            <PromptInputTextarea
-              className="min-h-10"
-              ref={textareaRef}
-              rows={2}
-              disabled={!inputReady}
-              onPasteCapture={(event) => pasteLongText(event, session.id, t("chat.pastedText.filename"))}
-              placeholder={prediction.text || (active ? t("chat.steerPlaceholder") : t("chat.placeholder"))}
-              aria-label={t("chat.placeholder")}
+            {inputHeader}
+          </div>
+        )}
+        <PromptInputProvider
+          attachmentPolicy={nativeAttachmentPolicy}
+          value={text}
+          revision={draftRef.current.revision}
+          onValueChange={setText}
+          onSubmittedClear={() => {
+            draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
+            setDraft(draftRef.current)
+          }}
+          attachments={attachments}
+          onAttachmentsChange={(files) => updateDraftAttachments(session.id, () => files)}
+        >
+          <CompletionMenu
+            handleRef={textareaRef}
+            commands={session.commands}
+            searchFiles={searchFiles}
+            onMention={addMention}
+            forcedOpen={slashMenuOpen}
+            onForcedOpenChange={setSlashMenuOpen}
+          />
+          <PromptInput
+            globalDrop
+            multiple
+            accept={IMAGE_TYPES.join(",")}
+            onError={onAttachmentError}
+            onSubmit={submit}
+            onSubmitAsync={submit}
+            canSubmit={() => (ready && !sending && !dropping && !pasting ? true : "chat_not_ready")}
+            className="relative z-10"
+          >
+            <NativeFileDrop
+              sessionId={session.id}
+              enabled={inputReady && !sending}
+              onMention={addMention}
+              onBusyChange={setDropping}
             />
-            {prediction.error && (
-              <span className="text-xs text-muted-foreground" role="status" title={prediction.error}>
-                {t("chat.predictionUnavailable")}
-              </span>
-            )}
-          </PromptInputBody>
-          <PromptInputFooter className="@container/input-footer mt-0 mb-4 w-full min-w-0 p-0">
-            <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-[5px] px-2">
-              <div className="flex min-w-0 items-center gap-[5px]">
-                <SlashCommandButton
-                  textareaRef={textareaRef}
-                  menuOpen={slashMenuOpen}
-                  onOpenChange={setSlashMenuOpen}
-                  disabled={!ready || session.commands.length === 0}
-                />
-                <AttachImageButton disabled={!inputReady} />
-                <PermissionModeSelect sessionId={session.id} options={session.configOptions} disabled={!ready} />
+            <PromptInputHeader className="px-3 pt-3 pb-0 empty:hidden">
+              {dropping && (
+                <span role="status" className="text-xs text-muted-foreground">
+                  {t("chat.input.addingFiles")}
+                </span>
+              )}
+              <MentionChips
+                mentions={mentions}
+                onRemove={(path) => setMentions((current) => current.filter((item) => item !== path))}
+              />
+              <PromptInputAttachments>
+                {(attachment) =>
+                  isPastedTextAttachment(attachment) ? (
+                    <PastedTextAttachment data={attachment} sessionId={session.id} />
+                  ) : (
+                    <PromptInputAttachment data={attachment} />
+                  )
+                }
+              </PromptInputAttachments>
+            </PromptInputHeader>
+            <PromptInputBody
+              className="mb-0 min-h-16 px-3 pt-4 pb-2"
+              onKeyDownCapture={(event) => {
+                if (
+                  !prediction.text ||
+                  textareaRef.current?.isComposing() ||
+                  event.nativeEvent.isComposing ||
+                  event.nativeEvent.keyCode === 229 ||
+                  event.shiftKey ||
+                  event.ctrlKey ||
+                  event.altKey ||
+                  event.metaKey ||
+                  event.target !== textareaRef.current?.getTextarea()
+                )
+                  return
+                if (event.key === "Tab") {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setText(prediction.text)
+                }
+              }}
+            >
+              <PromptInputTextarea
+                className="min-h-10"
+                ref={textareaRef}
+                rows={2}
+                disabled={!inputReady}
+                onPasteCapture={(event) => pasteLongText(event, session.id, t("chat.pastedText.filename"))}
+                placeholder={prediction.text || (active ? t("chat.steerPlaceholder") : t("chat.placeholder"))}
+                aria-label={t("chat.placeholder")}
+              />
+              {prediction.error && (
+                <span className="text-xs text-muted-foreground" role="status" title={prediction.error}>
+                  {t("chat.predictionUnavailable")}
+                </span>
+              )}
+            </PromptInputBody>
+            <PromptInputFooter className="chat-composer-toolbar @container/input-footer mt-0 mb-2 w-full min-w-0 p-0">
+              <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-[5px] px-2">
+                <div className="flex min-w-0 items-center gap-[5px]">
+                  <AttachImageButton className="text-foreground" disabled={!inputReady} />
+                  <SlashCommandButton
+                    textareaRef={textareaRef}
+                    menuOpen={slashMenuOpen}
+                    onOpenChange={setSlashMenuOpen}
+                    disabled={!ready || session.commands.length === 0}
+                  />
+                  <PermissionModeSelect sessionId={session.id} options={session.configOptions} disabled={!ready} />
+                </div>
+                <PromptInputTools className="w-full min-w-0 items-center justify-end gap-1">
+                  <UsageMeter session={session} />
+                  {modelSelector ?? (
+                    <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
+                  )}
+                  <VoiceButton
+                    draft={draftPort}
+                    cwd={session.cwd}
+                    enabled={ready}
+                    cancelRef={voiceCancelRef}
+                    waitForTurn={waitForVoiceTurn}
+                    supportsHandsfree={onSubmit === undefined || onVoiceHandoff !== undefined}
+                    resume={resumeVoice}
+                  />
+                  <ChatSubmitButton
+                    active={active}
+                    sending={sending || preparing || dropping}
+                    ready={ready && !pasting}
+                    hasMentions={mentions.length > 0}
+                    onStop={stop}
+                  />
+                </PromptInputTools>
               </div>
-              <PromptInputTools className="w-full min-w-0 items-center justify-end gap-1">
-                <UsageMeter session={session} />
-                {modelSelector ?? (
-                  <ModelSelectGroup sessionId={session.id} options={session.configOptions} disabled={!ready} />
-                )}
-                <VoiceButton
-                  draft={draftPort}
-                  cwd={session.cwd}
-                  enabled={ready}
-                  cancelRef={voiceCancelRef}
-                  waitForTurn={waitForVoiceTurn}
-                  supportsHandsfree={onSubmit === undefined || onVoiceHandoff !== undefined}
-                  resume={resumeVoice}
-                />
-                <ChatSubmitButton
-                  active={active}
-                  sending={sending || preparing || dropping}
-                  ready={ready && !pasting}
-                  hasMentions={mentions.length > 0}
-                  onStop={stop}
-                />
-              </PromptInputTools>
-            </div>
-          </PromptInputFooter>
-        </PromptInput>
-      </PromptInputProvider>
+            </PromptInputFooter>
+          </PromptInput>
+        </PromptInputProvider>
+      </div>
     </div>
   )
 }

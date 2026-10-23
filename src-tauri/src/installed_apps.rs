@@ -13,6 +13,7 @@ pub async fn read_apps_info(
     state: tauri::State<'_, crate::native::Native>, names: Vec<String>, with_icons: bool,
 ) -> Result<Vec<AppInfo>, serde_json::Value> {
     let value = state
+        .installed_apps
         .call(
             "installed_apps.read",
             serde_json::json!({
@@ -29,6 +30,7 @@ pub async fn open_path_in_app(
     state: tauri::State<'_, crate::native::Native>, bundle_id: String, path: String,
 ) -> Result<(), serde_json::Value> {
     state
+        .installed_apps
         .call(
             "installed_apps.open_path",
             serde_json::json!({

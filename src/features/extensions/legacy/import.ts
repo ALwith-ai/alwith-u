@@ -1,7 +1,7 @@
-import type { JsonValue, PreparedImport } from "@/bindings"
+import type { PreparedImport, Value } from "@/bindings"
 export type PreparedLegacyImport = PreparedImport
 export interface ConvertedLegacyImport {
-  manifest: { [key: string]: JsonValue }
+  manifest: { [key: string]: Value }
   main: string
 }
 

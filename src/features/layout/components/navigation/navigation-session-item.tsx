@@ -34,6 +34,7 @@ type NavigationSessionItemProps = Omit<ComponentProps<"div">, "title"> & {
   hoverCard?: ReactNode
   onHoverCardOpenChange?: (open: boolean) => void
   subtitle?: ReactNode
+  preview?: string
   listeningPorts?: number[]
   accessory?: ReactNode
   meta?: ReactNode
@@ -51,6 +52,7 @@ export function NavigationSessionItem({
   hoverCard,
   onHoverCardOpenChange,
   subtitle,
+  preview,
   listeningPorts,
   accessory,
   meta,
@@ -67,7 +69,8 @@ export function NavigationSessionItem({
         TRAILING_GROUP,
         ROW_HIGHLIGHT,
         "group/navigation-row flex h-[var(--navigation-row-height)] w-full items-center gap-1 overflow-hidden rounded-[10px] ps-1 pe-1.5 text-start text-sm outline-hidden [corner-shape:superellipse(1.5)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-        listeningPorts != null && listeningPorts.length > 0 && "h-auto min-h-[var(--navigation-row-height)] py-1",
+        (preview || (listeningPorts != null && listeningPorts.length > 0)) &&
+          "h-auto min-h-[var(--navigation-row-height)] py-2.5",
         className
       )}
       {...props}
@@ -78,28 +81,30 @@ export function NavigationSessionItem({
       <span className="flex min-w-0 flex-1 flex-col">
         <OverflowMarquee className={cn("leading-none", state === "done" && "font-semibold")}>{title}</OverflowMarquee>
         {subtitle != null && <OverflowMarquee className="text-xs text-muted-foreground">{subtitle}</OverflowMarquee>}
+        {preview && (
+          <span className="mt-1.5 line-clamp-2 text-xs leading-[18px] [overflow-wrap:anywhere] break-words text-muted-foreground">
+            {preview}
+          </span>
+        )}
         {listeningPorts != null && listeningPorts.length > 0 && (
-          <span className="flex gap-2 font-mono text-xs text-muted-foreground">
-            {listeningPorts.map((port) => {
-              const url = `http://localhost:${port}`
-              return (
-                <button
-                  key={port}
-                  type="button"
-                  className="underline"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    void openUrl(url).catch((error: unknown) =>
-                      toast.error(error instanceof Error ? error.message : String(error))
-                    )
-                  }}
-                >
-                  :{port}
-                </button>
-              )
-            })}
+          <span className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
+            {listeningPorts.map((port) => (
+              <button
+                key={port}
+                type="button"
+                className="underline"
+                onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void openUrl(`http://localhost:${port}`).catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : String(error))
+                  )
+                }}
+              >
+                :{port}
+              </button>
+            ))}
           </span>
         )}
       </span>

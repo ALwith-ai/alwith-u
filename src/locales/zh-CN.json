@@ -223,6 +223,10 @@
       "remove": "移除 {{name}}"
     },
     "model": {
+      "configureModels": "自定义模型配置",
+      "fastMode": "快速",
+      "unsupported": "不支持",
+      "unsupportedHint": "当前模型不支持快速模式",
       "model": "模型",
       "switchModel": "切换模型",
       "switchPermissionMode": "切换权限模式"
@@ -348,7 +352,22 @@
     "navigationLoading": "正在加载预览",
     "navigationUnavailable": "预览暂不可用",
     "navigationEmpty": "（无内容）",
-    "navigationRetry": "重试"
+    "navigationRetry": "重试",
+    "permissionModes": {
+      "readOnly": {
+        "name": "请求批准",
+        "description": "编辑外部文件和使用互联网时始终询问"
+      },
+      "agent": {
+        "name": "帮我批准",
+        "description": "仅对检测到的风险操作请求批准"
+      },
+      "fullAccess": {
+        "name": "完全访问权限",
+        "description": "可不受限制地访问互联网和你电脑上的任何文件"
+      },
+      "heading": "应如何批准 ALwith U 操作?"
+    }
   },
   "composer": {
     "mode": "权限",
@@ -443,6 +462,7 @@
     "windowHours": "{{count}} 小时",
     "windowDays": "{{count}} 天",
     "notSignedIn": "未登录",
+    "accountUnavailable": "暂时无法读取账号状态",
     "apiKey": "API 密钥",
     "bedrock": "Amazon Bedrock",
     "unavailable": "暂无用量数据",
@@ -533,7 +553,7 @@
   },
   "plugins": {
     "title": "插件",
-    "beta": "测试版",
+    "beta": "BETA",
     "subtitle": "在你常用的工具中使用 Codex",
     "search": "搜索插件",
     "manage": "管理",

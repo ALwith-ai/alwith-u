@@ -108,7 +108,22 @@
     },
     "working": "In Bearbeitung",
     "thought": "Nachgedacht",
-    "steerPlaceholder": "Eine Anweisung zum aktuellen Durchlauf hinzufügen"
+    "steerPlaceholder": "Eine Anweisung zum aktuellen Durchlauf hinzufügen",
+    "permissionModes": {
+      "readOnly": {
+        "name": "Genehmigung anfordern",
+        "description": "Vor dem Bearbeiten externer Dateien und der Internetnutzung immer nachfragen"
+      },
+      "agent": {
+        "name": "Für mich genehmigen",
+        "description": "Nur bei als potenziell unsicher erkannten Aktionen nachfragen"
+      },
+      "fullAccess": {
+        "name": "Vollzugriff",
+        "description": "Uneingeschränkter Zugriff auf das Internet und alle Dateien auf deinem Computer"
+      },
+      "heading": "Wie sollen ALwith U-Aktionen genehmigt werden?"
+    }
   },
   "composer": {
     "mode": "Berechtigungen",
@@ -175,6 +190,7 @@
     "usage": "Nutzung",
     "resetsAt": "Zurücksetzung {{time}}",
     "notSignedIn": "Nicht angemeldet",
+    "accountUnavailable": "Kontostatus konnte nicht gelesen werden",
     "apiKey": "API-Schlüssel"
   },
   "provider": {

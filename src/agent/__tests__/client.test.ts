@@ -71,6 +71,107 @@ async function make(
   return { client, fake, port }
 }
 
+test.each([true, false])(
+  "new sessions start with Fast disabled when the agent default is %s",
+  async (inheritedFast) => {
+    const option: BooleanOption = {
+      configId: "fast_mode",
+      category: "model_config",
+      name: "Fast",
+      type: "boolean",
+      currentValue: inheritedFast
+    }
+    const writes: unknown[] = []
+    const { client } = await make((fake) => {
+      fake.sessionOptions.current = () => [{ ...option }]
+      fake.configResponse.current = (request) => {
+        writes.push(request)
+        expect(request.configId).toBe("fast_mode")
+        expect(request.type).toBe("boolean")
+        option.currentValue = request.value as boolean
+        return { configOptions: [{ ...option }] }
+      }
+    })
+    const id = await client.prepareDraft("main", "/tmp/default-fast")
+    expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: false }])
+    expect(writes).toHaveLength(inheritedFast ? 1 : 0)
+    await client.setConfig(id, "fast_mode", true)
+    expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: true }])
+    expect(await client.prepareDraft("main", "/tmp/default-fast")).toBe(id)
+    expect(client.session(id).configOptions[0]?.currentValue).toBe(true)
+  }
+)
+
+test("a failed Fast default update does not expose a ready draft", async () => {
+  const { client, fake } = await make((fake) => {
+    fake.sessionOptions.current = () => [
+      { configId: "fast_mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+    ]
+    fake.configResponse.current = () => {
+      throw RequestError.invalidRequest({}, "Cannot disable Fast")
+    }
+  })
+  await expect(client.prepareDraft("main", "/tmp/default-fast-failure")).rejects.toThrow("Cannot disable Fast")
+  expect(client.state.draftSessions).toEqual({})
+  expect(client.state.sessions).toEqual({})
+  expect(fake.deleted.has("s0")).toBe(true)
+})
+
+test("activity reply reads an unopened session without resume, selection, or transcript writes", async () => {
+  const received: unknown[] = []
+  const { client, fake } = await make((fake) => {
+    fake.app.onRequest(
+      "_codex/session_history_items",
+      (value) => value as { sessionId: string },
+      ({ params }) => {
+        received.push(params)
+        return {
+          sessionId: params.sessionId,
+          consistency: "live",
+          revision: null,
+          nextCursor: null,
+          complete: true,
+          items: [
+            {
+              updates: [
+                {
+                  sessionUpdate: "agent_message",
+                  messageId: "reply",
+                  content: [{ type: "text", text: "Latest reply" }]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    )
+  })
+  client.applyRunStates([
+    {
+      sessionId: "unopened",
+      state: "done",
+      reusableDraft: false,
+      owner: "stdio",
+      cwd: "/tmp",
+      title: "Unopened",
+      since: 0,
+      lastActivityAt: 0,
+      version: 1,
+      interruption: null,
+      tasks: [],
+      listeningPorts: [],
+      executionId: null,
+      executionRole: null
+    }
+  ])
+  expect(await client.activityReply("unopened")).toBe("Latest reply")
+  expect(received).toEqual([expect.objectContaining({ sessionId: "unopened", sortDirection: "desc", mode: "browse" })])
+  expect(client.state.sessions).toEqual({})
+  expect(client.state.sessionWindows).toEqual({})
+  expect(client.state.runStates.unopened?.state).toBe("done")
+  expect(fake.modelHints.size).toBe(0)
+})
+
 test("retry is routed by session and failed turn, deduplicated, and never inserts a user prompt", async () => {
   const received: unknown[] = []
   let finish!: () => void
@@ -137,6 +238,17 @@ test("history enumeration and export leave sidebar, selection and attachments un
   if (!agent) throw new Error("Missing initialized agent")
   client.store.setState({ agent: { ...agent, capabilities: {} } })
   await expect(client.exportHistory("h2", () => {})).rejects.toThrow("0.7.7")
+})
+
+test("history checks do not misreport a startup failure as an unsupported adapter", async () => {
+  const client = new CodexClient(() => Promise.reject(new Error("Runtime startup failed")), {
+    agentId: "codex",
+    launch: { engine: "codex" }
+  })
+  clients.push(client)
+  await expect(client.connect()).rejects.toThrow("Runtime startup failed")
+  await expect(client.exportHistory("history", () => {})).rejects.toThrow("Codex is not connected")
+  await expect(client.listHistorySessions(() => {})).rejects.toThrow("Codex is not connected")
 })
 
 async function until(predicate: () => boolean) {
@@ -623,9 +735,9 @@ test("opening an attached read-only session retries resume until the writer is r
   pending = ready.promise
   const retry = client.open("locked", "/tmp/locked")
   expect(client.session("locked").restoring).toBe(true)
-  await client.open("locked", "/tmp/locked")
+  const joined = client.open("locked", "/tmp/locked")
   ready.resolve()
-  await retry
+  await Promise.all([retry, joined])
   expect(attempts).toBe(3)
   expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
   expect(client.session("locked").items).toHaveLength(2)
@@ -1510,4 +1622,44 @@ test("prediction errors propagate without disabling future requests", async () =
   await expect(client.requestPrediction("s", "turn")).rejects.toThrow()
   await expect(client.requestPrediction("s", "turn-2")).rejects.toThrow("Prediction unavailable")
   expect(calls).toBe(2)
+})
+
+test("concurrent opens await the same replay and close cancels its request before applying a late response", async () => {
+  let finish!: () => void
+  const gate = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  let signal!: AbortSignal
+  let calls = 0
+  const { client } = await make((fake) => {
+    fake.resumeResponse.current = async (current) => {
+      calls++
+      signal = current
+      await gate
+      return { configOptions: [] }
+    }
+  })
+  const first = client.open("h1", "/projects/one")
+  const firstResult = first.catch((error: unknown) => error)
+  await until(() => calls === 1)
+  let secondSettled = false
+  const second = client.open("h1", "/projects/one").then(
+    () => {
+      secondSettled = true
+    },
+    (error: unknown) => {
+      secondSettled = true
+      return error
+    }
+  )
+  await Promise.resolve()
+  expect(secondSettled).toBe(false)
+  const closing = client.close("h1")
+  await until(() => signal.aborted)
+  expect(calls).toBe(1)
+  finish()
+  expect(await firstResult).toMatchObject({ name: "AbortError" })
+  expect(await second).toMatchObject({ name: "AbortError" })
+  await closing
+  expect(client.state.sessions.h1).toBeUndefined()
 })

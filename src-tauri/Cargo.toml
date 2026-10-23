@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "0.2.13"
+version = "0.2.14"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
@@ -17,6 +17,8 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+atlas-tauri = { version = "0.1", features = ["specta"] }
+alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }
 alwith-gamepad = { path = "../node_modules/@alwith/module-gamepad/rust", features = ["desktop"] }
@@ -28,7 +30,7 @@ alwith-extension = { path = "../node_modules/@alwith/module-extension/rust", fea
 tempfile = "3"
 sha2 = "0.11"
 hex = "0.4"
-tauri-plugin-hasgard = { version = "^0.6.0-alpha.2", optional = true }
+tauri-plugin-hasgard = { version = "0.6.0-alpha.2", optional = true }
 libloading = "0.9"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
@@ -37,8 +39,8 @@ serde_json = "1"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 # Tauri 3 keeps its runtime in a separate crate; alpha.4 provides transparency without a private-API feature.
 tauri = { version = "3.0.0-alpha.5", features = ["protocol-asset", "specta", "tray-icon"] }
-specta = { version = "2.0.0-rc.25", features = ["derive", "function"] }
-tauri3-specta = "0.1.0-alpha.2"
+specta = { version = "2.0.0-rc.27", features = ["derive", "function"] }
+tauri3-specta = "0.1.0-alpha.3"
 tauri-runtime-wry = "3.0.0-alpha.5"
 tauri-plugin-dialog = "3.0.0-alpha.4"
 tauri-plugin-clipboard-manager = "3.0.0-alpha.3"

@@ -39,7 +39,7 @@ import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
 
 import { CodexProviderSection } from "./codex-provider-section"
-import { SettingGroup } from "./shared"
+import { SettingGroup, SettingLabel } from "./shared"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -146,7 +146,7 @@ export function ProviderSection() {
   }, [snapshot, activeId, activeBuiltIn, activeCustom])
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <CodexProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
@@ -223,7 +223,7 @@ export function ProviderTabs({
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="ms-1 text-sm text-muted-foreground">{t("provider.label")}</h2>
+      <SettingLabel>{t("provider.label")}</SettingLabel>
       <div className="grid grid-cols-2 gap-2 py-4 sm:grid-cols-3">
         {PROVIDERS.map((provider) => {
           const Logo = provider.logo
@@ -452,20 +452,6 @@ export function ProviderRow({
           {t("provider.connectionSettings")}
         </h4>
         <Field className="gap-2">
-          <FieldLabel htmlFor={`${provider.id}-base-url`}>{t("provider.baseUrl")}</FieldLabel>
-          <InputGroup>
-            <InputGroupInput
-              id={`${provider.id}-base-url`}
-              type="url"
-              spellCheck={false}
-              placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
-              value={baseUrl}
-              onChange={(event) => setBaseUrl(event.target.value)}
-            />
-          </InputGroup>
-          <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
-        </Field>
-        <Field className="gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
             {keyUrl !== null && (
@@ -504,6 +490,33 @@ export function ProviderRow({
             </InputGroupAddon>
           </InputGroup>
         </Field>
+        <Collapsible className="space-y-2">
+          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group -ms-2" />}>
+            {t("provider.baseUrl")}
+            <ChevronDownIcon
+              className="size-4 transition-transform group-aria-expanded:rotate-180"
+              aria-hidden="true"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Field className="gap-2">
+              <FieldLabel htmlFor={`${provider.id}-base-url`} className="sr-only">
+                {t("provider.baseUrl")}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id={`${provider.id}-base-url`}
+                  type="url"
+                  spellCheck={false}
+                  placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
+                  value={baseUrl}
+                  onChange={(event) => setBaseUrl(event.target.value)}
+                />
+              </InputGroup>
+              <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
+            </Field>
+          </CollapsibleContent>
+        </Collapsible>
       </section>
       <ProviderActions
         busy={busy}

@@ -97,3 +97,36 @@ describe("one ordered operation lane per session", () => {
     expect(await next).toBe("ok")
   })
 })
+
+it("cancels a running open, waits for its peer response, and does not block another session", async () => {
+  const operations = new SessionOperations()
+  const peer = gate<string>()
+  let signal!: AbortSignal
+  const opening = operations.open("a", "same", (current) => {
+    signal = current
+    return peer.promise
+  })
+  let closed = false
+  const closing = operations.close("a", () => {
+    closed = true
+    return Promise.resolve()
+  })
+  expect(signal.aborted).toBe(true)
+  expect(closed).toBe(false)
+  expect(await operations.open("b", "different", () => Promise.resolve("independent"))).toBe("independent")
+  expect(closed).toBe(false)
+  peer.resolve("accepted before cancellation")
+  await opening
+  await closing
+  expect(closed).toBe(true)
+})
+
+it("a synchronous failure releases the lane", async () => {
+  const operations = new SessionOperations()
+  const failed = operations.open("a", "first", () => {
+    throw new Error("synchronous failure")
+  })
+  const next = operations.open("a", "second", () => Promise.resolve("next"))
+  await expect(failed).rejects.toThrow("synchronous failure")
+  expect(await next).toBe("next")
+})

@@ -92,7 +92,13 @@ async function checkInitialize(adapter: string): Promise<void> {
       }
     },
     journalRoot: join(codexHome, "journal"),
-    env: { PATH: "", NODE_PATH: "", CODEX_HOME: codexHome, ALWITH_MODULES_DIR: codexHome }
+    env: {
+      PATH: "",
+      NODE_PATH: "",
+      CODEX_HOME: codexHome,
+      ALWITH_MODULES_DIR: codexHome,
+      ALWITH_RUNTIME_ATTENTION: join(codexHome, "attention")
+    }
   })
   const exited = Promise.withResolvers<void>()
   const unsubscribe = runtime.onProcessExit(() => exited.resolve())

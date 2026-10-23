@@ -2,14 +2,14 @@ import { isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { commands, type ComputerPreview, events } from "@/bindings"
+import { commands, type ComputerPreview_Serialize, events } from "@/bindings"
 import { client } from "@/lib/client"
 
 import { ComputerPreviewCard } from "./preview-card"
 
 /** Ephemeral frames are scoped to a visible conversation, never added to its history. */
 export function SessionPreview({ sessionId }: { sessionId: string }) {
-  const [preview, setPreview] = useState<ComputerPreview | null>(null)
+  const [preview, setPreview] = useState<ComputerPreview_Serialize | null>(null)
   const [stopping, setStopping] = useState(false)
   useEffect(() => {
     if (!isTauri()) return

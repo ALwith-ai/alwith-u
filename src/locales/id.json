@@ -101,7 +101,22 @@
     },
     "working": "Sedang bekerja",
     "thought": "Selesai berpikir",
-    "steerPlaceholder": "Tambahkan arahan untuk giliran saat ini"
+    "steerPlaceholder": "Tambahkan arahan untuk giliran saat ini",
+    "permissionModes": {
+      "readOnly": {
+        "name": "Minta persetujuan",
+        "description": "Selalu minta persetujuan sebelum mengedit file eksternal atau menggunakan internet"
+      },
+      "agent": {
+        "name": "Setujui untuk saya",
+        "description": "Hanya minta persetujuan untuk tindakan yang terdeteksi berpotensi tidak aman"
+      },
+      "fullAccess": {
+        "name": "Akses penuh",
+        "description": "Akses tanpa batas ke internet dan file apa pun di komputer"
+      },
+      "heading": "Bagaimana tindakan ALwith U disetujui?"
+    }
   },
   "composer": {
     "mode": "Izin",
@@ -169,7 +184,8 @@
   "usage": {
     "usage": "Penggunaan",
     "resetsAt": "Atur ulang {{time}}",
-    "notSignedIn": "Belum masuk"
+    "notSignedIn": "Belum masuk",
+    "accountUnavailable": "Tidak dapat membaca status akun"
   },
   "provider": {
     "testButton": "Uji koneksi",

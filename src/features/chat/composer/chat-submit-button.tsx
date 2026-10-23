@@ -5,6 +5,7 @@
 import { SquareIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
+import { ShortcutTooltip } from "@/components/alwith-ui/shortcut-hint"
 import { cn } from "@/lib/utils"
 
 import { PromptInputButton, PromptInputSubmit, usePromptInputController } from "./prompt-input"
@@ -40,12 +41,14 @@ export function ChatSubmitButton({
         </PromptInputButton>
       )}
       <div className={cn(disabled && "cursor-not-allowed")}>
-        <PromptInputSubmit
-          aria-label={active ? t("actions.steer") : t("actions.send")}
-          disabled={disabled}
-          aria-busy={sending}
-          status={sending ? "submitted" : "ready"}
-        />
+        <ShortcutTooltip label={active ? t("actions.steer") : t("actions.send")} shortcut="Enter">
+          <PromptInputSubmit
+            aria-label={active ? t("actions.steer") : t("actions.send")}
+            disabled={disabled}
+            aria-busy={sending}
+            status={sending ? "submitted" : "ready"}
+          />
+        </ShortcutTooltip>
       </div>
     </>
   )

@@ -202,12 +202,9 @@ test("floating menu opens a new project after New chat and keeps the action avai
       fireEvent.click(view.getByRole("button", { name: "More actions" }))
     })
   })
-  expect(
-    view
-      .getAllByRole("menuitem")
-      .slice(0, 2)
-      .map((item) => item.textContent)
-  ).toEqual(["New chat", "New project"])
+  expect(view.getAllByRole("menuitem").slice(0, 2)).toEqual(
+    ["New chat", "New project"].map((name) => view.getByRole("menuitem", { name }))
+  )
   await act(() => {
     return Promise.try(() => {
       fireEvent.click(view.getByRole("menuitem", { name: "New project" }))

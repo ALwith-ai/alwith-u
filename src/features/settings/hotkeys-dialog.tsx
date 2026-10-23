@@ -7,13 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { Separator } from "@/components/ui/separator"
 import { formatShortcutForDisplay } from "@/lib/shortcut-formatter"
+import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 
 export function HotkeysDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
+  const chatWindowShortcut = useChatWindowShortcut()
   const groups = [
     {
       title: t("shortcuts.groups.general"),
       items: [
+        ...(chatWindowShortcut ? [{ label: t("chatWindow.open"), key: chatWindowShortcut }] : []),
         { label: t("shortcuts.items.newChat"), key: "CommandOrControl+N" },
         { label: t("shortcuts.items.commandPalette"), key: "CommandOrControl+K" },
         { label: t("shortcuts.items.projectTree"), key: "CommandOrControl+Shift+E" },

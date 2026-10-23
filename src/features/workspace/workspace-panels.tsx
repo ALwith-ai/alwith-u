@@ -1,4 +1,5 @@
-import useEmblaCarousel from "embla-carousel-react"
+import { resolveSplitWidths as resolvePanelWidths } from "@nyssance/atlas/layout"
+import { useAtlas } from "@nyssance/atlas/react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   type ReactNode,
@@ -18,7 +19,6 @@ import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
 import { type PanelControls, PanelControlsContext } from "./panel-controls-context"
 import { PanelDivider } from "./panel-divider"
-import { resolvePanelWidths } from "./panel-sizing"
 import "./workspace.css"
 
 // Desktop's two main Atlas regions, in chat/preview order. Both remain mounted.
@@ -52,16 +52,13 @@ export function WorkspacePanels({
   const [manuallySeparated, setManuallySeparated] = useState(false)
   const [edges, setEdges] = useState({ previous: false, next: false })
   const [edgeZone, setEdgeZone] = useState<"start" | "end" | null>(null)
-  const [emblaRef, embla] = useEmblaCarousel({
-    active: !unified,
-    axis: "x",
+  const { ref: atlasRef, atlas } = useAtlas({
     direction: i18n.dir(),
-    align: "start",
-    containScroll: "keepSnaps",
-    slidesToScroll: "auto",
-    dragFree: false,
+    initialRegion: "chat",
     watchResize: false,
-    watchDrag: (_api, event) => !event.isTrusted
+    manageInert: false,
+    hoverNavigation: false,
+    blocked: () => dragging.current
   })
   const budget = canvas?.budget ?? viewportWidth
   const fullViewportWidth = canvas?.viewportWidth ?? viewportWidth
@@ -110,18 +107,21 @@ export function WorkspacePanels({
   }, [visible, maximized])
 
   useEffect(() => {
-    if (!embla || unified) return
-    const update = (): void => setEdges({ previous: embla.canScrollPrev(), next: embla.canScrollNext() })
-    embla.on("select", update).on("reInit", update)
+    if (!atlas || unified) return
+    const update = (): void => {
+      const geometry = atlas.getGeometry()
+      setEdges({ previous: geometry.selected > 0, next: geometry.selected < geometry.snaps.length - 1 })
+    }
+    atlas.on("select", update).on("reInit", update)
     update()
     return () => {
-      embla.off("select", update).off("reInit", update)
+      atlas.off("select", update).off("reInit", update)
     }
-  }, [embla, unified])
+  }, [atlas, unified])
 
   useLayoutEffect(() => {
-    if (!embla || unified || dragging.current) return
-    const selected = embla.internalEngine().slideRegistry[embla.selectedScrollSnap()]
+    if (!atlas || unified || dragging.current) return
+    const selected = atlas.getGeometry().groups[atlas.getGeometry().selected]
     const region = !visible
       ? 0
       : !previousVisible.current || maximized || previousMaximized.current
@@ -129,55 +129,10 @@ export function WorkspacePanels({
         : (selected?.[0] ?? 0)
     previousVisible.current = visible
     previousMaximized.current = maximized
-    embla.reInit()
-    const snap = embla.internalEngine().slideRegistry.findIndex((group) => group.includes(region))
-    if (snap !== -1) embla.scrollTo(snap, true)
-  }, [embla, unified, chatWidth, fileWidth, visible, maximized, draggingPreview])
-
-  // Desktop forwards middle-button panning to Embla; ordinary dragging belongs to content.
-  useEffect(() => {
-    if (!embla || unified) return
-    const node = embla.rootNode()
-    let panning = false
-    const forward = (type: string, event: PointerEvent): void => {
-      node.dispatchEvent(
-        new MouseEvent(type, {
-          bubbles: true,
-          cancelable: true,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          button: 0
-        })
-      )
-    }
-    const down = (event: PointerEvent): void => {
-      if (event.button !== 1 || (event.target instanceof HTMLElement && event.target.closest("[data-no-drag]"))) return
-      event.preventDefault()
-      panning = true
-      node.style.cursor = "grabbing"
-      forward("mousedown", event)
-    }
-    const move = (event: PointerEvent): void => {
-      if (panning) forward("mousemove", event)
-    }
-    const up = (event: PointerEvent): void => {
-      if (!panning) return
-      panning = false
-      node.style.cursor = ""
-      forward("mouseup", event)
-    }
-    node.addEventListener("pointerdown", down)
-    window.addEventListener("pointermove", move)
-    window.addEventListener("pointerup", up)
-    window.addEventListener("pointercancel", up)
-    return () => {
-      node.style.cursor = ""
-      node.removeEventListener("pointerdown", down)
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", up)
-      window.removeEventListener("pointercancel", up)
-    }
-  }, [embla, unified])
+    atlas.refresh()
+    const snap = atlas.getGeometry().groups.findIndex((group) => group.includes(region))
+    if (snap !== -1) atlas.goToSnap(snap, { instant: true })
+  }, [atlas, unified, chatWidth, fileWidth, visible, maximized, draggingPreview])
 
   return (
     <PanelControlsContext.Provider value={{ expanded, toggleExpanded }}>
@@ -196,10 +151,11 @@ export function WorkspacePanels({
         }}
         onMouseLeave={() => setEdgeZone(null)}
       >
-        <div ref={emblaRef} className="file-workspace-viewport">
-          <div className="file-workspace-track">
+        <div ref={unified ? undefined : atlasRef} className="file-workspace-viewport">
+          <div className="file-workspace-track" data-atlas-track>
             <div
               className="file-workspace-slide"
+              data-atlas-region="chat"
               style={{ width: !visible && !maximized && !canvas ? "100%" : chatWidth }}
               inert={maximized || (canvas?.split && canvas.selected === 2)}
               aria-hidden={maximized}
@@ -208,7 +164,11 @@ export function WorkspacePanels({
                 <div className="file-workspace-chat">{chat}</div>
               </div>
             </div>
-            <div className="file-workspace-slide file-workspace-preview-slide" style={{ width: fileWidth }}>
+            <div
+              data-atlas-region="preview"
+              className="file-workspace-slide file-workspace-preview-slide"
+              style={{ width: fileWidth }}
+            >
               <div
                 className="file-workspace-slab"
                 inert={!visible || (canvas?.split && canvas.selected !== 2)}
@@ -260,7 +220,7 @@ export function WorkspacePanels({
             variant="outline"
             size="icon-sm"
             aria-label={t("workspace.previousPane")}
-            onClick={() => embla?.scrollPrev()}
+            onClick={() => atlas?.goToSnap(atlas.getGeometry().selected - 1)}
           >
             <ChevronLeft />
           </Button>
@@ -271,7 +231,7 @@ export function WorkspacePanels({
             variant="outline"
             size="icon-sm"
             aria-label={t("workspace.nextPane")}
-            onClick={() => embla?.scrollNext()}
+            onClick={() => atlas?.goToSnap(atlas.getGeometry().selected + 1)}
           >
             <ChevronRight />
           </Button>

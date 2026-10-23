@@ -17,6 +17,7 @@ import {
   CommandList,
   CommandShortcut
 } from "@/components/ui/command"
+import { Kbd } from "@/components/ui/kbd"
 import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
 import { useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
@@ -235,7 +236,11 @@ function PaletteContent({
                   {entry.detail !== undefined && (
                     <span className="ms-auto max-w-1/3 truncate text-xs text-muted-foreground">{entry.detail}</span>
                   )}
-                  {entry.shortcut !== undefined && <CommandShortcut>{entry.shortcut}</CommandShortcut>}
+                  {entry.shortcut !== undefined && (
+                    <CommandShortcut>
+                      <Kbd>{entry.shortcut}</Kbd>
+                    </CommandShortcut>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -25,7 +25,7 @@ export function CanvasDots({
           }}
           variant="ghost"
           size="icon-xs"
-          className="rounded-full"
+          className="size-4 rounded-full hover:bg-transparent active:bg-transparent dark:hover:bg-transparent"
           aria-label={t("canvas.page", { number: index + 1 })}
           aria-current={selected === index ? "page" : undefined}
           onClick={() => onSelect(index)}
@@ -50,7 +50,7 @@ export function CanvasDots({
         >
           <span
             aria-hidden="true"
-            className={`size-1.5 rounded-full transition-colors ${selected === index ? "bg-foreground" : "bg-muted-foreground/35"}`}
+            className={`size-1.5 rounded-full bg-[var(--canvas-page-indicator)] transition-opacity duration-200 motion-reduce:transition-none ${selected === index ? "opacity-100" : "opacity-40"}`}
           />
         </Button>
       ))}

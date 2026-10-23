@@ -1,11 +1,13 @@
-import type { UseEmblaCarouselType } from "embla-carousel-react"
+import { createAtlas } from "@nyssance/atlas/dom"
+import type { EmblaCarouselType } from "embla-carousel"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import type { TrackpadGesture } from "@/bindings"
 
-import { attachCanvasInput } from "../canvas-input"
+const engine = vi.hoisted(() => ({ create: vi.fn() }))
+vi.mock("embla-carousel", () => ({ default: engine.create }))
 
-type Api = NonNullable<UseEmblaCarouselType[1]>
+type Api = EmblaCarouselType
 let frames: Map<number, FrameRequestCallback>
 let frameId: number
 let now: number
@@ -57,6 +59,8 @@ function gesture(phase: TrackpadGesture["phase"], dx = 0, fingers = 3): Trackpad
  */
 function harness() {
   const root = document.createElement("div")
+  root.innerHTML =
+    '<div data-atlas-track><div data-atlas-region="leading"></div><div data-atlas-region="chat"></div><div data-atlas-region="preview"></div></div>'
   document.body.append(root)
   let viewport = 1000
   Object.defineProperty(root, "clientWidth", { get: () => viewport })
@@ -83,25 +87,38 @@ function harness() {
     selected = 2
     synthetic.push("mouseup")
   })
-  const listeners = new Map<string, () => void>()
+  const listeners = new Map<string, Set<() => void>>()
   const api = {
     rootNode: () => root,
     selectedScrollSnap: () => selected,
     scrollSnapList: () => snaps,
-    internalEngine: () => ({ location: { get: () => location }, scrollSnaps: snaps }),
+    internalEngine: () => ({ location: { get: () => location }, scrollSnaps: snaps, slideRegistry: [[0], [1], [2]] }),
     scrollTo: (index: number) => {
       selected = index
       location = snaps[index]
     },
     on: (name: string, callback: () => void) => {
-      listeners.set(name, callback)
+      if (!listeners.has(name)) listeners.set(name, new Set())
+      listeners.get(name)!.add(callback)
+      return api
     },
-    off: (name: string) => {
-      listeners.delete(name)
-    }
+    off: (name: string, callback: () => void) => {
+      listeners.get(name)?.delete(callback)
+      return api
+    },
+    destroy: () => {}
   } as unknown as Api
-  const input = attachCanvasInput(api, () => blocked)
-  disposals.push(input.dispose)
+  engine.create.mockReturnValue(api)
+  const input = createAtlas(root, {
+    initialRegion: "chat",
+    blocked: () => blocked,
+    watchResize: false,
+    watchRegions: false,
+    manageInert: false,
+    trackpadEnabled: true,
+    trackpadAvailable: true
+  })
+  disposals.push(() => input.destroy())
   return {
     root,
     input,
@@ -115,7 +132,7 @@ function harness() {
     block: () => {
       blocked = true
     },
-    reinit: () => listeners.get("reInit")?.()
+    reinit: () => listeners.get("reInit")?.forEach((listener) => listener())
   }
 }
 
@@ -157,7 +174,7 @@ test("native cancellation settles normally but active cancellation restores the 
   expect(h.selected()).toBe(2)
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", 0.6))
-  h.input.cancel()
+  h.input.cancelInput()
   flush()
   expect(h.selected()).toBe(2)
   expect(h.location()).toBe(-2000)
@@ -167,7 +184,7 @@ test("cancel restores the starting snap even when mouseup changes carousel selec
   const h = harness()
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", -0.6))
-  h.input.cancel()
+  h.input.cancelInput()
   flush()
   expect(h.selected()).toBe(1)
   expect(h.location()).toBe(-1000)
@@ -225,7 +242,7 @@ test("dispose removes input listeners and stale release callbacks cannot navigat
   h.input.gesture(gesture("changed", 0.2))
   h.input.gesture(gesture("ended"))
   const stale = [...frames.values()]
-  h.input.dispose()
+  h.input.destroy()
   stale.forEach((callback) => callback(now))
   h.input.gesture(gesture("began"))
   pointer(h.root, "pointerdown", 1)
@@ -252,7 +269,7 @@ test("cancelling before release animation restores start and invalidates the que
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", -0.2))
   h.input.gesture(gesture("ended"))
-  h.input.cancel()
+  h.input.cancelInput()
   flush()
   expect(h.selected()).toBe(1)
 })

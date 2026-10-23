@@ -8,7 +8,7 @@ import { useComputerStatus } from "@/features/computer/computer-control"
 import { enableComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
 
-import { SettingGroup, SettingLabel, SettingRow } from "./shared"
+import { SettingGroup, SettingRow } from "./shared"
 
 export function ComputerSection() {
   const { t } = useTranslation()
@@ -35,7 +35,6 @@ export function ComputerSection() {
   return (
     <div className="space-y-6">
       <div>
-        <SettingLabel>{t("computer.title")}</SettingLabel>
         <SettingGroup>
           <SettingRow title={t("computer.title")} desc={t("computer.description")}>
             <Switch
@@ -47,7 +46,7 @@ export function ComputerSection() {
               onCheckedChange={(value) => void toggle(value)}
             />
           </SettingRow>
-          <p className="pb-3 text-xs text-muted-foreground">{t("computer.scope")}</p>
+          <p className="py-3 text-xs leading-5 text-muted-foreground">{t("computer.scope")}</p>
           {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
           {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
           {status?.permissions.supported && !permitted && (

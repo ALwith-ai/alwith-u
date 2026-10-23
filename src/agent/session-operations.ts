@@ -1,23 +1,20 @@
 /**
- * One ordered operation lane per session.
- *
- * open / close / delete run in submission order; a session runs one operation at a time. Only
- * adjacent equivalent opens (same fingerprint, nothing queued between them) merge: the second
- * caller awaits the same replay instead of sending the agent another one (dsh
- * `ApiSessionAgentController.resumes`). close / delete are revocation boundaries: everything still
- * queued before them is cancelled (AbortError), the running operation finishes first, and an open
- * submitted after the boundary is a new explicit operation that waits for it.
+ * Per-session lifecycle lanes. Adjacent equivalent opens share their result.
+ * Revocation cancels queued operations and signals the running open, but waits
+ * for the peer response before closing so late acceptance cannot outlive close.
+ * An explicit reopen queues after that boundary; other sessions are independent.
  */
 type OperationKind = "open" | "close" | "delete"
 
 interface Operation {
   kind: OperationKind
   fingerprint: string | null
-  run: () => Promise<unknown>
+  run: (signal: AbortSignal) => Promise<unknown>
   promise: Promise<unknown>
   resolve: (value: unknown) => void
   reject: (error: unknown) => void
   cancelled: boolean
+  controller: AbortController
 }
 
 interface Lane {
@@ -29,7 +26,7 @@ export class SessionOperations {
   private readonly lanes = new Map<string, Lane>()
 
   /** Merges with an adjacent open of the same fingerprint, otherwise queues. */
-  open<T>(sessionId: string, fingerprint: string, run: () => Promise<T>): Promise<T> {
+  open<T>(sessionId: string, fingerprint: string, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const lane = this.lane(sessionId)
     const last = lane.queued.at(-1) ?? lane.running
     if (last?.kind === "open" && last.fingerprint === fingerprint && !last.cancelled) {
@@ -47,6 +44,11 @@ export class SessionOperations {
     return this.revokeAndEnqueue(sessionId, "delete", run)
   }
 
+  busy(sessionId: string): boolean {
+    const lane = this.lanes.get(sessionId)
+    return !!lane && (lane.running !== null || lane.queued.length > 0)
+  }
+
   /** Operations not yet started (for tests). */
   pending(sessionId: string): number {
     return this.lanes.get(sessionId)?.queued.length ?? 0
@@ -54,6 +56,11 @@ export class SessionOperations {
 
   private revokeAndEnqueue<T>(sessionId: string, kind: OperationKind, run: () => Promise<T>): Promise<T> {
     const lane = this.lane(sessionId)
+    // Cancellation is cooperative: retain the lane until the peer settles the request.
+    if (lane.running?.kind === "open") {
+      lane.running.cancelled = true
+      lane.running.controller.abort(new DOMException(`Session ${kind} revoked the running open`, "AbortError"))
+    }
     for (const operation of lane.queued) {
       operation.cancelled = true
       operation.reject(new DOMException(`Session ${kind} revoked the queued ${operation.kind}`, "AbortError"))
@@ -62,14 +69,23 @@ export class SessionOperations {
     return this.enqueue(lane, kind, null, run)
   }
 
-  private enqueue<T>(lane: Lane, kind: OperationKind, fingerprint: string | null, run: () => Promise<T>): Promise<T> {
+  private enqueue<T>(
+    lane: Lane,
+    kind: OperationKind,
+    fingerprint: string | null,
+    run: (signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
     let resolve!: (value: unknown) => void
     let reject!: (error: unknown) => void
     const promise = new Promise<unknown>((res, rej) => {
       resolve = res
       reject = rej
     })
-    const operation: Operation = { kind, fingerprint, run, promise, resolve, reject, cancelled: false }
+    const operation: Operation = {
+      kind, fingerprint, run, promise, resolve, reject,
+      cancelled: false,
+      controller: new AbortController()
+    }
     lane.queued.push(operation)
     this.advance(lane)
     return promise as Promise<T>
@@ -80,7 +96,7 @@ export class SessionOperations {
     const next = lane.queued.shift()
     if (!next) return
     lane.running = next
-    next.run().then(next.resolve, next.reject)
+    Promise.try(() => next.run(next.controller.signal)).then(next.resolve, next.reject)
     void next.promise.then(
       () => this.settle(lane, next),
       () => this.settle(lane, next)

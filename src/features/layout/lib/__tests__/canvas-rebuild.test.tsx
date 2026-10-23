@@ -7,11 +7,11 @@ import { useMainCanvas } from "../use-main-canvas"
 
 const carousel = vi.hoisted(() => {
   const api = {
-    rootNode: () => document.body,
-    reInit: vi.fn(),
-    scrollTo: vi.fn(),
-    selectedScrollSnap: () => 1,
-    scrollSnapList: () => [0, 1],
+    refresh: vi.fn(),
+    subscribe: vi.fn(() => vi.fn()),
+    cancelInput: vi.fn(),
+    goToSnap: vi.fn(),
+    getGeometry: () => ({ selected: 1, snaps: [0, 1] }),
     on: vi.fn(),
     off: vi.fn()
   }
@@ -19,7 +19,7 @@ const carousel = vi.hoisted(() => {
   api.off.mockReturnValue(api)
   return { api, ref: vi.fn() }
 })
-vi.mock("embla-carousel-react", () => ({ default: () => [carousel.ref, carousel.api] }))
+vi.mock("@nyssance/atlas/react", () => ({ useAtlas: () => ({ ref: carousel.ref, atlas: carousel.api }) }))
 vi.mock("@/lib/trackpad-preference", () => ({ useThreeFingerSwipeEnabled: () => false }))
 await initI18n("en")
 
@@ -43,7 +43,7 @@ function Harness() {
 beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000)
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(256)
-  carousel.api.reInit.mockClear()
+  carousel.api.refresh.mockClear()
 })
 afterEach(() => {
   cleanup()
@@ -52,20 +52,20 @@ afterEach(() => {
 
 test("semantic navigation does not rebuild unchanged canvas geometry", () => {
   const view = render(<Harness />)
-  const before = carousel.api.reInit.mock.calls.length
+  const before = carousel.api.refresh.mock.calls.length
   expect(before).toBeGreaterThan(0)
   fireEvent.click(view.getByText("Chat"))
   fireEvent.click(view.getByText("Chat"))
-  expect(carousel.api.reInit).toHaveBeenCalledTimes(before)
+  expect(carousel.api.refresh).toHaveBeenCalledTimes(before)
   expect(view.getByTestId("canvas")).toHaveAttribute("data-moving", "false")
 })
 
 test("divider movement defers rebuilding until release", () => {
   const view = render(<Harness />)
-  const before = carousel.api.reInit.mock.calls.length
+  const before = carousel.api.refresh.mock.calls.length
   fireEvent.click(view.getByText("Start"))
   fireEvent.click(view.getByText("Resize"))
-  expect(carousel.api.reInit).toHaveBeenCalledTimes(before)
+  expect(carousel.api.refresh).toHaveBeenCalledTimes(before)
   fireEvent.click(view.getByText("End"))
-  expect(carousel.api.reInit).toHaveBeenCalledTimes(before + 1)
+  expect(carousel.api.refresh).toHaveBeenCalledTimes(before + 1)
 })

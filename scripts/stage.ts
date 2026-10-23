@@ -11,10 +11,17 @@
  *
  * Usage: bun scripts/stage.ts [rust-target-triple]   (then TAURI_ENV_TARGET_TRIPLE, then the host)
  */
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-import { stageNative } from "@alwith/native/stage"
+import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
+import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
+import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
+import { stageNative as stageNativeExtension } from "@alwith/native-extension/stage"
+import { stageNative as stageNativeFs } from "@alwith/native-fs/stage"
+import { stageNative as stageNativeGamepad } from "@alwith/native-gamepad/stage"
+import { stageNative as stageNativeInstalledApps } from "@alwith/native-installed-apps/stage"
+import { stageNative as stageNativeVoice } from "@alwith/native-voice/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
 
@@ -114,13 +121,29 @@ mkdirSync(voiceLicenses, { recursive: true })
 for (const entry of ["LICENSE", "THIRD_PARTY_LICENSES.txt"]) {
   copyFileSync(join(voicePackage, entry), join(voiceLicenses, entry))
 }
-const nativeLibrary = stageNative(triple, join(root, "src-tauri/resources/native"), licenses)
+// Rebuild generated native output so removed modules cannot survive an upgrade.
+rmSync(join(root, "src-tauri/resources/native"), { recursive: true, force: true })
+for (const entry of readdirSync(licenses)) {
+  if (entry === "alwith-native" || entry.startsWith("alwith-native-"))
+    rmSync(join(licenses, entry), { recursive: true, force: true })
+}
+const nativeLibraries = [
+  stageNativeAuth,
+  stageNativeInstalledApps,
+  stageNativeVoice,
+  stageNativeFs,
+  stageNativeGamepad,
+  stageNativeComputer,
+  stageNativeDrive,
+  stageNativeExtension
+].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify
   // the distributed bytes first, then sign the staged copy using the app's identity.
-  await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${nativeLibrary}`
+  for (const library of nativeLibraries)
+    await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${library}`
 }
-console.log(`alwith-native -> ${nativeLibrary}`)
+for (const library of nativeLibraries) console.log(`native module -> ${library}`)
 
 const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8")) as {
   version: string

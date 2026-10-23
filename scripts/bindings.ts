@@ -23,34 +23,7 @@ const source = await output([
   "--example",
   "export_bindings"
 ])
-const clean = await output(
-  [
-    "bun",
-    "biome",
-    "check",
-    "--write",
-    "--unsafe",
-    "--formatter-enabled=false",
-    "--linter-enabled=true",
-    "--assist-enabled=true",
-    "--stdin-file-path=src/bindings.ts"
-  ],
-  source
-)
-const formatted = await output(
-  [
-    "bun",
-    "prettier",
-    "--print-width",
-    "120",
-    "--no-semi",
-    "--trailing-comma",
-    "none",
-    "--stdin-filepath",
-    "src/bindings.ts"
-  ],
-  clean
-)
+const formatted = await output(["bun", "fmt", "--stdin-filepath=src/bindings.ts"], source)
 const path = resolve(root, "src/bindings.ts")
 if (process.argv.includes("--check")) {
   if ((await readFile(path, "utf8")) !== formatted) throw new Error("Native bindings are stale; run bun run bindings")

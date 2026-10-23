@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod codex_launcher;
 
+#[cfg(all(test, target_os = "macos"))]
+#[path = "__tests__/dropped_file_url.rs"]
+mod dropped_file_url_tests;
+
 mod appearance;
 mod auth;
 mod autostart;
@@ -29,7 +33,7 @@ mod runtime;
 mod secret_store;
 mod settings;
 mod settings_store;
-mod trackpad;
+use atlas_tauri as trackpad;
 mod tray;
 mod updater;
 mod vibemon;
@@ -97,7 +101,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(alwith_extension::plugin::init())
+        .plugin(alwith_extension::plugin::init_with_paths(None, native::development_directory()))
         .plugin(appearance::wallpaper::plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -136,9 +140,6 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             fullscreen_controls::on_window_event(window, event);
-            if window.label() == "main" && matches!(event, tauri::WindowEvent::Focused(false)) {
-                trackpad::reset();
-            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 voice::detach(window.app_handle(), window.label());
             }

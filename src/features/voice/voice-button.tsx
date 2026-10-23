@@ -1,3 +1,4 @@
+import { ShortcutTooltip } from "@/components/alwith-ui/shortcut-hint"
 import "./voice-waveform.css"
 import { usePromptInputSubmission } from "@alwith/module-chat/composer-context"
 import { recordingSettings } from "@alwith/module-voice"
@@ -193,22 +194,23 @@ function EnabledVoiceButton({
   return (
     <div className="voice-controls-layout">
       <div className="voice-controls-buttons">
-        <PromptInputButton
-          aria-label={label}
-          title={`${label} · ${t("voice.shortcutHint")}`}
-          disabled={!enabled || busy || phase === "finishing"}
-          onClick={() => {
-            void toggle().catch(report)
-          }}
-        >
-          {phase === "starting" || phase === "finishing" ? (
-            <Loader2Icon className="size-4 animate-spin" />
-          ) : phase === "recording" ? (
-            <SquareIcon className="size-3 fill-current text-foreground" />
-          ) : (
-            <MicIcon className="size-4" />
-          )}
-        </PromptInputButton>
+        <ShortcutTooltip label={`${label} · ${t("voice.shortcutHint")}`} shortcut="Alt">
+          <PromptInputButton
+            aria-label={label}
+            disabled={!enabled || busy || phase === "finishing"}
+            onClick={() => {
+              void toggle().catch(report)
+            }}
+          >
+            {phase === "starting" || phase === "finishing" ? (
+              <Loader2Icon className="size-4 animate-spin" />
+            ) : phase === "recording" ? (
+              <SquareIcon className="size-3 fill-current text-foreground" />
+            ) : (
+              <MicIcon className="size-4" />
+            )}
+          </PromptInputButton>
+        </ShortcutTooltip>
         {(busy || phase === "starting" || phase === "recording" || phase === "finishing") && (
           <PromptInputButton
             aria-label={t("voice.cancel")}

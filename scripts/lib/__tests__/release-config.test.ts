@@ -14,7 +14,8 @@ type Step = {
 
 type Job = {
   if?: string
-  needs?: string
+  needs?: string | string[]
+  outputs?: Record<string, string>
   permissions?: Record<string, string>
   strategy?: { matrix?: { include?: unknown[] } }
   steps?: Step[]
@@ -94,9 +95,11 @@ test("tag runs validate release inputs and publish signed updater artifacts to a
   const release = jobs.release
 
   expect(preflight).toBeDefined()
-  expect(preflight.if).toBe("startsWith(github.ref, 'refs/tags/v')")
+  expect(preflight.if).toBe("github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')")
+  expect(preflight.outputs?.release_id).toBe("${{ steps.prepare-release.outputs.release_id }}")
+  expect(preflight.permissions).toEqual({ contents: "write" })
   expect(release).toBeDefined()
-  expect(release.if).toBe("startsWith(github.ref, 'refs/tags/v')")
+  expect(release.if).toBe("github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')")
   expect(release.needs).toBe("release-preflight")
   expect(release.permissions).toEqual({ contents: "write" })
   expect(release.strategy?.matrix?.include).toEqual(releaseTargets)
@@ -104,6 +107,7 @@ test("tag runs validate release inputs and publish signed updater artifacts to a
   const step = tauriStep(release)
   expect(step.uses).toBe("tauri-apps/tauri-action@v1")
   expect(step.with?.tagName).toBe("${{ github.ref_name }}")
+  expect(step.with?.releaseId).toBe("${{ needs.release-preflight.outputs.release_id }}")
   expect(step.with?.tauriScript).toBe("bun run tauri")
   expect(step.with?.releaseName).toBe("ALwith U ${{ github.ref_name }}")
   expect(step.with?.releaseDraft).toBe(true)
@@ -137,7 +141,7 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   const job = releaseWorkflow()["upload-to-tos"]
   const testBundles = releaseWorkflow()["test-bundles"]
   expect(job).toBeDefined()
-  expect(job.needs).toBe("release")
+  expect(job.needs).toEqual(["release-preflight", "release"])
   expect(job.if).toContain("needs.release.result == 'success'")
   expect(job.if).toContain("inputs.tos_release_tag != ''")
   expect(testBundles.if).toContain("inputs.tos_release_tag == ''")
@@ -151,6 +155,9 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   expect(download).toBeGreaterThan(-1)
   expect(job.steps![download]?.run).toContain("releases/$release_id/assets")
   expect(upload).toBeGreaterThan(download)
+  const validate = job.steps!.findIndex((step) => step.name === "Validate complete release artifacts")
+  expect(validate).toBeGreaterThan(download)
+  expect(validate).toBeLessThan(upload)
   const register = job.steps!.findIndex((step) => step.name === "Register release artifacts")
   expect(register).toBeGreaterThan(upload)
   expect(job.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')

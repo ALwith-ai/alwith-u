@@ -1,5 +1,5 @@
-import type { SessionRunState } from "@alwith/api"
-import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { createSession, type MessageItem, type SessionRunState } from "@alwith/api"
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import type { ThreadSummary } from "@/agent/client"
@@ -26,7 +26,7 @@ afterEach(async () => {
       client.store.setState(originalState, true)
       useThreadsUiStore.setState(originalUi, true)
       useChatWindowSurface.setState({ sessionId: null, visible: false })
-      vi.clearAllMocks()
+      vi.restoreAllMocks()
       vi.mocked(isMac).mockReturnValue(false)
     })
   })
@@ -157,13 +157,43 @@ test("Ctrl hints and shortcuts follow visible rows and ignore collapsed groups",
   expect(view.queryByText("Ctrl+1")).not.toBeInTheDocument()
 })
 
-test("listening ports open externally without selecting the session", async () => {
-  client.applyRunStates([{ ...record("server", false), listeningPorts: [3000, 5173] }])
-  const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: ":5173" }))))
-  expect(openUrl).toHaveBeenCalledExactlyOnceWith("http://localhost:5173")
-  expect(selected).toEqual([])
+test("shared ports follow Runtime's session assignment and open without selecting a session", async () => {
+  client.applyRunStates([{ ...record("first", false), listeningPorts: [50945] }, record("second", false)])
+  const select = vi.fn()
+  const view = render(<ActivityPanel selectedId={null} onSelect={select} />)
+  const port = view.getByRole("button", { name: ":50945" })
+  expect(port.closest("[data-session-id]")).toHaveAttribute("data-session-id", "first")
+  await act(() => Promise.try(() => fireEvent.click(port)))
+  expect(openUrl).toHaveBeenCalledExactlyOnceWith("http://localhost:50945")
+  expect(select).not.toHaveBeenCalled()
+  await act(() =>
+    Promise.try(() =>
+      client.applyRunStates([record("first", false), { ...record("second", false), listeningPorts: [50945] }])
+    )
+  )
+  expect(view.getAllByRole("button", { name: ":50945" })).toHaveLength(1)
+  expect(view.getByRole("button", { name: ":50945" }).closest("[data-session-id]")).toHaveAttribute(
+    "data-session-id",
+    "second"
+  )
+})
+
+test("unopened activities fetch replies without selecting or reading either session", async () => {
+  client.store.setState({ connection: "ready", sessions: {} })
+  client.applyRunStates([record("first", false, "done"), record("second", false)])
+  const replies = vi.spyOn(client, "activityReply").mockImplementation(async (id) => `Reply for ${id}`)
+  const select = vi.fn()
+  const view = render(<ActivityPanel selectedId={null} onSelect={select} />)
+  await waitFor(() => expect(view.getByText("Reply for first")).toBeInTheDocument())
+  expect(view.getByText("Reply for second")).toBeInTheDocument()
+  expect(replies).toHaveBeenCalledWith("first")
+  expect(replies).toHaveBeenCalledWith("second")
+  expect(select).not.toHaveBeenCalled()
+  expect(client.state.sessions).toEqual({})
+  expect(client.state.runStates.first?.state).toBe("done")
+  const row = view.getByText("Reply for first").closest("[data-session-id]")
+  expect(row).toHaveClass("items-center")
+  expect(row).not.toHaveClass("items-start")
 })
 
 test("visible chat-window sessions join the foreground and clicks focus their existing window", async () => {
@@ -231,4 +261,55 @@ test("the state dot carries Runtime's interruption as its title", () => {
     const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />)
     expect(view.getByTitle("runtime restarted")).toBeInTheDocument()
   })
+})
+
+test("reply previews follow their own session's latest assistant upsert and preserve running tasks", async () => {
+  const message = (id: string, kind: MessageItem["kind"], text: string): MessageItem => ({
+    id,
+    kind,
+    content: [{ type: "text", text }],
+    at: 0,
+    replayed: false,
+    _meta: null,
+    echo: null
+  })
+  const first = {
+    ...createSession("first", "/tmp"),
+    items: [message("reply", "assistant", "First response"), message("user", "user", "New request")]
+  }
+  client.store.setState({
+    sessions: {
+      first,
+      second: {
+        ...createSession("second", "/tmp"),
+        items: [message("reply", "assistant", "Second response"), message("thought", "thought", "Private reasoning")]
+      }
+    }
+  })
+  client.applyRunStates([
+    {
+      ...record("first", false, "running"),
+      tasks: [{ id: "worker", title: "Checking results", background: true, since: 0 }]
+    },
+    record("second", false)
+  ])
+  const view = render(<ActivityPanel selectedId="first" onSelect={() => {}} />)
+  expect(view.getByText("First response").closest("[data-session-id]")).toHaveAttribute("data-session-id", "first")
+  expect(view.getByText("Second response").closest("[data-session-id]")).toHaveAttribute("data-session-id", "second")
+  expect(view.queryByText("Private reasoning")).not.toBeInTheDocument()
+  expect(view.queryByText("New request")).not.toBeInTheDocument()
+  expect(view.getByText("Checking results")).toBeInTheDocument()
+  await act(() =>
+    Promise.try(() =>
+      client.store.setState({
+        sessions: {
+          ...client.state.sessions,
+          first: { ...first, items: [message("reply", "assistant", "Updated\nstreaming response")] }
+        }
+      })
+    )
+  )
+  expect(view.queryByText("First response")).not.toBeInTheDocument()
+  expect(view.getByText("Updated streaming response")).toHaveClass("line-clamp-2")
+  expect(view.getByText("Second response")).toBeInTheDocument()
 })

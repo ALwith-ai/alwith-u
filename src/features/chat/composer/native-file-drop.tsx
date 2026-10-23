@@ -1,12 +1,12 @@
 import type { AttachmentPolicy } from "@alwith/module-chat/composer-context"
-import { invoke, isTauri } from "@tauri-apps/api/core"
+import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebview } from "@tauri-apps/api/webview"
 import { useEffect, useLayoutEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ChatDroppedFile } from "@/bindings"
+import { commands } from "@/bindings"
 import { basename } from "@/lib/path"
 
 import { usePromptInputAttachments } from "./prompt-input"
@@ -74,7 +74,7 @@ export function NativeFileDrop({
             for (const path of new Set(paths)) {
               if (!writable()) return
               try {
-                const file = await invoke<ChatDroppedFile>("chat_read_dropped_file", { path })
+                const file = await commands.chatReadDroppedFile({ path })
                 if (!writable()) return
                 if (file.image === null) {
                   flushSync(() => current.current.onMention(file.path))

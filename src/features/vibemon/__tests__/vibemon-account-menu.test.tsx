@@ -103,13 +103,9 @@ test("the account menu groups settings and language above tools and sign out", a
   await waitFor(() =>
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
-  expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
-    "Settings",
-    "Language",
-    "Show Vibémon",
-    "Gamepad",
-    "Sign out"
-  ])
+  expect(view.getAllByRole("menuitem")).toEqual(
+    ["Settings", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) => view.getByRole("menuitem", { name }))
+  )
   expect(view.getByRole("menuitem", { name: "Settings" }).parentElement).toBe(
     view.getByRole("menuitem", { name: "Language" }).parentElement
   )

@@ -28,6 +28,7 @@ const METHODS = [
   "listThreads",
   "open",
   "loadOlderHistory",
+  "activityReply",
   "loadHistoryNavigation",
   "previewHistoryTurn",
   "loadHistoryTurn",
@@ -310,6 +311,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override open(...args: Parameters<CodexClient["open"]>): Promise<void> {
     return this.request("open", [args[0], args[1], "chat"])
+  }
+  override activityReply(...args: Parameters<CodexClient["activityReply"]>): Promise<string | null> {
+    return this.request("activityReply", args)
   }
   override loadOlderHistory(...args: Parameters<CodexClient["loadOlderHistory"]>): Promise<void> {
     return this.request("loadOlderHistory", args)

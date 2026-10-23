@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next"
 import type { ThreadSummary } from "@/agent/client"
 import { HoverInfoCard, type HoverInfoRow } from "@/components/alwith-ui/hover-info-card"
 import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import { ShortcutHint } from "@/components/alwith-ui/shortcut-hint"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -31,11 +32,13 @@ export function relativeTime(iso: string, language: string): string {
 export function ThreadInfoCard({
   thread,
   actions,
+  shortcut,
   renaming = false,
   onRename
 }: {
   thread: ThreadSummary
   actions?: ReactNode
+  shortcut?: string
   /** Title shows as an input; the card stays pinned while it is open. */
   renaming?: boolean
   /** Called with the trimmed new name (or `null` when cancelled or unchanged). */
@@ -80,7 +83,14 @@ export function ThreadInfoCard({
             onBlur={(event) => commit(event.target.value)}
           />
         ) : (
-          <OverflowMarquee className="block">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
+          <span className="flex items-center gap-2">
+            <ShortcutHint
+              label={
+                <OverflowMarquee className="min-w-0 flex-1">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
+              }
+              shortcut={shortcut ?? ""}
+            />
+          </span>
         )
       }
       titleIcon={<MessageSquareIcon className="size-3.5" />}

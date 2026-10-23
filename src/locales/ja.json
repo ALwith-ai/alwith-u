@@ -109,7 +109,22 @@
     },
     "working": "処理中",
     "thought": "思考完了",
-    "steerPlaceholder": "現在のターンに指示を追加"
+    "steerPlaceholder": "現在のターンに指示を追加",
+    "permissionModes": {
+      "readOnly": {
+        "name": "承認を求める",
+        "description": "外部ファイルの編集やインターネットの使用前に必ず承認を求めます"
+      },
+      "agent": {
+        "name": "代わりに承認",
+        "description": "安全でない可能性があると検出された操作のみ承認を求めます"
+      },
+      "fullAccess": {
+        "name": "フルアクセス",
+        "description": "インターネットとコンピューター上のすべてのファイルに制限なくアクセスします"
+      },
+      "heading": "ALwith U の操作をどのように承認しますか？"
+    }
   },
   "composer": {
     "mode": "権限",
@@ -182,7 +197,8 @@
   "usage": {
     "usage": "使用量",
     "resetsAt": "{{time}}にリセット",
-    "notSignedIn": "ログインしていません"
+    "notSignedIn": "ログインしていません",
+    "accountUnavailable": "アカウントの状態を取得できません"
   },
   "provider": {
     "testButton": "接続テスト",

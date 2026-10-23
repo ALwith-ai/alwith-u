@@ -115,7 +115,7 @@ export async function startStoryAgent(root: string): Promise<StoryAgent> {
   const agentId = `story-${crypto.randomUUID()}`
   const agents = new Agents(port, { info: { name: "alwith-u-story", version: "0.1.0" }, capabilities: {} })
   const agent = await agents.start(agentId, launch as never, "dsh")
-  const { sessionId } = await agent.request<{ sessionId: string }>("session/new", { cwd: root, mcpServers: [] })
+  const { sessionId } = await agent.request("session/new", { cwd: root, mcpServers: [] })
   return { agent, sessionId }
 }
 

@@ -177,3 +177,16 @@ fn rejected_voice_saves_do_not_cancel_recording() {
     assert!(!cancelled);
     assert_eq!(store.secret("voice.doubao.apiKey").unwrap(), None);
 }
+
+#[test]
+fn computer_preference_survives_restart_and_rejects_non_boolean_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    assert!(!store.values.contains_key("computer.enabled"));
+    for enabled in [true, false] {
+        store.update(changes(json!({"computer.enabled": enabled})), None).unwrap();
+        store = SettingsStore::load(dir.path().into()).unwrap();
+        assert_eq!(store.values["computer.enabled"], enabled);
+    }
+    assert!(store.update(changes(json!({"computer.enabled": "true"})), None).is_err());
+}

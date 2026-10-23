@@ -1,3 +1,4 @@
+import type { ExtensionManifest } from "@alwith/module-extension"
 import type { HostSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { act, fireEvent, render } from "@testing-library/react"
 import { beforeEach, expect, test } from "vitest"
@@ -130,6 +131,38 @@ test("settings columns select full pages and show unavailable after withdrawal",
   ui.rerender(<ExtensionSettingsContent id={page.id} views={[]} renderView={() => <div>Stale content</div>} />)
   expect(ui.queryByText("Stale content")).toBeNull()
   expect(ui.getByText("Extension page unavailable")).toBeTruthy()
+})
+
+test("settings navigation uses the owning extension icon rather than its settings-page icon", () => {
+  const manifest: ExtensionManifest = {
+    id: "demo",
+    name: "Demo",
+    version: "1.0.0",
+    manifestVersion: 3,
+    entry: "main.js",
+    dataSchemaVersion: 1,
+    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    hosts: {},
+    icon: "lucide:chart"
+  }
+  const page = { ...view("demo/preferences", "settingsPages"), icon: "settings" as const }
+  const ui = render(
+    <ExtensionSettingsNavigation views={[page]} manifests={[manifest]} activeId={null} onSelect={() => {}} />
+  )
+  const button = ui.getByRole("button", { name: page.title })
+  expect(button.querySelector(".lucide-chart-no-axes-column")).toBeInTheDocument()
+  expect(button.querySelector(".lucide-settings")).not.toBeInTheDocument()
+  ui.rerender(
+    <ExtensionSettingsNavigation
+      views={[page]}
+      manifests={[{ ...manifest, icon: "https://example.com/icon.png" }]}
+      activeId={null}
+      onSelect={() => {}}
+    />
+  )
+  expect(button.querySelector("img")).toHaveAttribute("src", "https://example.com/icon.png")
+  fireEvent.error(button.querySelector("img")!)
+  expect(button.querySelector(".lucide-blocks")).toBeInTheDocument()
 })
 
 test("top bar defaults to left while preserving explicit center/right and sorting", () => {

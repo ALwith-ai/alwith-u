@@ -107,7 +107,22 @@
     },
     "working": "Trabajando",
     "thought": "Razonamiento completado",
-    "steerPlaceholder": "Añade una indicación al turno actual"
+    "steerPlaceholder": "Añade una indicación al turno actual",
+    "permissionModes": {
+      "readOnly": {
+        "name": "Solicitar aprobación",
+        "description": "Preguntar siempre antes de editar archivos externos o usar Internet"
+      },
+      "agent": {
+        "name": "Aprobar por mí",
+        "description": "Preguntar solo por acciones detectadas como potencialmente inseguras"
+      },
+      "fullAccess": {
+        "name": "Acceso completo",
+        "description": "Acceso sin restricciones a Internet y a cualquier archivo del equipo"
+      },
+      "heading": "¿Cómo aprobar las acciones de ALwith U?"
+    }
   },
   "composer": {
     "mode": "Permisos",
@@ -177,6 +192,7 @@
     "usage": "Uso",
     "resetsAt": "Se reinicia {{time}}",
     "notSignedIn": "No conectado",
+    "accountUnavailable": "No se puede leer el estado de la cuenta",
     "apiKey": "Clave de API"
   },
   "provider": {

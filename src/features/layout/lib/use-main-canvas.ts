@@ -1,5 +1,6 @@
+import { resolveSplitGeometry } from "@nyssance/atlas/layout"
+import { useAtlas } from "@nyssance/atlas/react"
 import { isTauri } from "@tauri-apps/api/core"
-import useEmblaCarousel from "embla-carousel-react"
 import {
   type ContextType,
   type RefCallback,
@@ -17,9 +18,7 @@ import { toast } from "sonner"
 import { events } from "@/bindings"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
 
-import { CanvasContext, type CanvasWorkspace } from "./canvas-context"
-import { resolveCanvasGeometry } from "./canvas-geometry"
-import { attachCanvasInput } from "./canvas-input"
+import type { CanvasContext, CanvasWorkspace } from "./canvas-context"
 
 export function useMainCanvas(
   screen: "main" | "leading",
@@ -28,10 +27,11 @@ export function useMainCanvas(
 ): {
   ref: RefCallback<HTMLDivElement>
   navigationRef: RefCallback<HTMLDivElement>
-  geometry: ReturnType<typeof resolveCanvasGeometry>
+  geometry: ReturnType<typeof resolveSplitGeometry>
   context: NonNullable<ContextType<typeof CanvasContext>>
   selected: number
   moving: boolean
+  navigationPeeking: boolean
   select: (index: number) => void
   width: number
   direction: "ltr" | "rtl"
@@ -47,6 +47,7 @@ export function useMainCanvas(
   const [workspace, setWorkspace] = useState<CanvasWorkspace>({ chat: 0, preview: 0, visible: false, maximized: false })
   const [selected, setSelected] = useState(screen === "leading" ? 0 : 1)
   const [moving, setMoving] = useState(false)
+  const [navigationPeeking, setNavigationPeeking] = useState(false)
   const divider = useRef(false)
   const [dividerDragging, setDividerState] = useState(false)
   const appliedGeometry = useRef<string | null>(null)
@@ -60,22 +61,24 @@ export function useMainCanvas(
   useLayoutEffect(() => {
     callbacks.current = { onScreenChange, screen }
   }, [onScreenChange, screen])
-  const geometry = resolveCanvasGeometry({ ...size, pinned, chat: workspace.chat, preview: workspace.preview })
-  const geometryKey = geometry.stops.join(":") + `:${geometry.content}:${direction}`
-  const [emblaRef, api] = useEmblaCarousel({
-    container: ".main-screen-track",
-    slides: ".canvas-snap",
-    axis: "x",
+  const geometry = resolveSplitGeometry({ ...size, pinned, chat: workspace.chat, preview: workspace.preview })
+  const geometryKey = `${geometry.stops.join(":")}:${geometry.content}:${direction}`
+  const { ref: atlasRef, atlas: api } = useAtlas({
+    regions: ".canvas-snap",
     direction: initialDirection,
-    align: "start",
-    containScroll: false,
-    slidesToScroll: 1,
-    startIndex: initialIndex,
+    contain: false,
+    groupRegions: false,
+    initialRegion: initialIndex === 0 ? "leading" : "chat",
     watchResize: false,
-    watchSlides: false,
-    watchDrag: (_api, event) => !event.isTrusted
+    watchRegions: false,
+    manageInert: false,
+    navigationPinned: screen === "leading" || (pinned && selected !== 2),
+    navigationWidth: size.navigation || 248,
+    onNavigationChange: setNavigationPeeking,
+    trackpadEnabled: enabled,
+    trackpadAvailable: enabled && isTauri(),
+    blocked: () => divider.current
   })
-  const input = useRef<ReturnType<typeof attachCanvasInput> | null>(null)
   const navigationRef = useCallback((node: HTMLDivElement | null): void => {
     navigation.current = node
   }, [])
@@ -83,9 +86,9 @@ export function useMainCanvas(
   const ref = useCallback(
     (node: HTMLDivElement | null): void => {
       viewport.current = node
-      emblaRef(node)
+      atlasRef(node)
     },
-    [emblaRef]
+    [atlasRef]
   )
 
   useLayoutEffect(() => {
@@ -113,21 +116,24 @@ export function useMainCanvas(
   const navigate = useCallback((region: "chat" | "preview"): void => {
     setRequest((current) => ({ region, revision: (current?.revision ?? 0) + 1 }))
   }, [])
-  const setDividerDragging = useCallback((dragging: boolean): void => {
-    divider.current = dragging
-    setDividerState(dragging)
-    if (dragging) input.current?.cancel()
-  }, [])
+  const setDividerDragging = useCallback(
+    (dragging: boolean): void => {
+      divider.current = dragging
+      setDividerState(dragging)
+      if (dragging) api?.cancelInput()
+    },
+    [api]
+  )
 
   useLayoutEffect(() => {
     if (!api || size.viewport === 0 || dividerDragging) return
     const requested = request !== null && appliedRequest.current !== request.revision
     const geometryChanged = appliedGeometry.current !== geometryKey
     if (!geometryChanged && !requested) return
-    input.current?.cancel()
+    api?.cancelInput()
     rebuilding.current = true
     if (geometryChanged) {
-      api.reInit({ direction })
+      api.refresh({ direction })
       appliedGeometry.current = geometryKey
     }
     if (requested) region.current = request.region
@@ -135,8 +141,8 @@ export function useMainCanvas(
     const desired =
       region.current === "leading" ? 0 : region.current === "preview" ? Math.min(2, geometry.stops.length - 1) : 1
     appliedRequest.current = request?.revision ?? null
-    const animating = requested && !reduced() && api.selectedScrollSnap() !== desired
-    api.scrollTo(desired, !animating)
+    const animating = requested && !reduced() && api.getGeometry().selected !== desired
+    api.goToSnap(desired, { instant: !animating })
     rebuilding.current = false
     if (requested) commitScreen(desired)
     setSelected(desired)
@@ -157,12 +163,15 @@ export function useMainCanvas(
     if (!api) return
     if (previousScreen.current !== screen) {
       region.current = screen === "leading" ? "leading" : "chat"
-      input.current?.cancel()
+      api?.cancelInput()
       const target = screen === "leading" ? 0 : 1
       const animating =
-        size.viewport > 0 && !reduced() && target < api.scrollSnapList().length && api.selectedScrollSnap() !== target
+        size.viewport > 0 &&
+        !reduced() &&
+        target < api.getGeometry().snaps.length &&
+        api.getGeometry().selected !== target
       setMoving(animating)
-      api.scrollTo(target, !animating)
+      api.goToSnap(target, { instant: !animating })
     }
     previousScreen.current = screen
   }, [api, screen, size.viewport])
@@ -170,42 +179,35 @@ export function useMainCanvas(
   useEffect(() => {
     if (!api) return
     const select = (): void => {
-      const index = api.selectedScrollSnap()
+      const index = api.getGeometry().selected
       setSelected(index)
       if (!rebuilding.current) {
         if (index === 0) region.current = "leading"
         else if (index === 2) region.current = "preview"
-        else if (api.scrollSnapList().length > 2 || region.current !== "preview") region.current = "chat"
+        else if (api.getGeometry().snaps.length > 2 || region.current !== "preview") region.current = "chat"
       }
     }
-    const move = (): void => setMoving(true)
+    const stop = api.subscribe((state) => setMoving(state.moving))
     const settle = (): void => {
       setMoving(false)
       select()
-      commitScreen(api.selectedScrollSnap())
+      commitScreen(api.getGeometry().selected)
     }
-    api.on("select", select).on("scroll", move).on("settle", settle)
+    api.on("select", select).on("settle", settle)
     return () => {
-      api.off("select", select).off("scroll", move).off("settle", settle)
+      stop()
+      api.off("select", select).off("settle", settle)
     }
   }, [api, commitScreen])
 
   useEffect(() => {
     if (!api) return
-    const blocked = (): boolean =>
-      divider.current ||
-      !!viewport.current?.closest("[inert]") ||
-      !!document.querySelector(
-        '[role="dialog"][data-open], [role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], dialog[open]'
-      )
-    const controller = attachCanvasInput(api, blocked)
-    input.current = controller
     let disposed = false
     let unsubscribe: (() => void) | undefined
     if (enabled && isTauri()) {
       void events["trackpad-gesture"]
         .listen(({ payload }) => {
-          if (!disposed) controller.gesture(payload)
+          if (!disposed) api.gesture(payload)
         })
         .then((stop) => {
           if (disposed) stop()
@@ -215,35 +217,24 @@ export function useMainCanvas(
           if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
         })
     }
-    const observer = new MutationObserver(() => {
-      if (blocked()) controller.cancel()
-    })
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["inert", "data-state", "data-open", "open"]
-    })
     return () => {
       disposed = true
       unsubscribe?.()
-      observer.disconnect()
-      controller.dispose()
-      input.current = null
+      api.cancelInput()
     }
   }, [api, enabled])
 
   const select = (index: number): void => {
-    input.current?.cancel()
+    api?.cancelInput()
     region.current = index === 0 ? "leading" : index === 2 ? "preview" : "chat"
     const animating =
       size.viewport > 0 &&
       !!api &&
       !reduced() &&
-      index < api.scrollSnapList().length &&
-      api.selectedScrollSnap() !== index
+      index < api.getGeometry().snaps.length &&
+      api.getGeometry().selected !== index
     setMoving(animating)
-    api?.scrollTo(index, !animating)
+    api?.goToSnap(index, { instant: !animating })
     commitScreen(index)
   }
   const context = useMemo(
@@ -259,5 +250,16 @@ export function useMainCanvas(
     }),
     [size, pinned, selected, geometry.stops.length, moving, navigate, setDividerDragging]
   )
-  return { ref, navigationRef, geometry, context, selected, moving, select, width: size.viewport, direction }
+  return {
+    ref,
+    navigationRef,
+    geometry,
+    context,
+    selected,
+    moving,
+    navigationPeeking,
+    select,
+    width: size.viewport,
+    direction
+  }
 }

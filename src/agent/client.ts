@@ -1,7 +1,6 @@
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 // The one ACP v2 client. Owns the connection, routes every update by session id,
 // and publishes state through a framework-agnostic zustand store.
-
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
   type Agent,
@@ -32,6 +31,7 @@ import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
 import { asError } from "../lib/text"
+import { readActivityReply } from "./activity-preview"
 import type {
   AccountReadResponse,
   FuzzyFileSearchParams,
@@ -267,6 +267,7 @@ export class CodexClient {
   private readonly navigationEpochs = new Map<string, object>()
   private readonly turnHistoryRequests = new Map<string, Map<string, Promise<void>>>()
   private readonly previewHistoryRequests = new Map<string, Map<string, Promise<void>>>()
+  private readonly activityReplyRequests = new Map<string, Promise<string | null>>()
   private readonly loadedHistoryTurns = new Map<string, Set<string>>()
   private readonly listRequests = { threads: 0, archived: 0 }
   private readonly updates = new ChatUpdateScheduler<Session>((snapshots) => {
@@ -436,6 +437,7 @@ export class CodexClient {
     this.listRequests.archived++
     this.updates.cancel()
     this.historyRequests.clear()
+    this.activityReplyRequests.clear()
     // The process is gone (or we let go of it): nothing pending can be answered any more.
     this.requests.release()
     const sessions: Record<string, Session> = {}
@@ -570,7 +572,7 @@ export class CodexClient {
     }
     try {
       const response = archived
-        ? await this.live().request<acp.ListSessionsResponse>("session/list", request)
+        ? await this.live().request("session/list", request)
         : await this.live().request<acp.ListSessionsResponse>("_codex/session_list")
       if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
       if (requestId !== this.listRequests[bucket]) return
@@ -634,7 +636,27 @@ export class CodexClient {
     )
   }
 
+  /** Read-only sidebar projection; never attaches or changes the selected chat. */
+  activityReply(sessionId: string): Promise<string | null> {
+    const pending = this.activityReplyRequests.get(sessionId)
+    if (pending) return pending
+    const agent = this.live()
+    if (!this.historyCapability("browse")) throw new Error("Activity preview requires history browsing")
+    const request = readActivityReply(
+      sessionId,
+      (params) => agent.request("_codex/session_history_items", params),
+      () => {
+        if (this.agent !== agent || !this.state.runStates[sessionId]) throw new Error("Activity preview was cancelled")
+      }
+    ).finally(() => {
+      if (this.activityReplyRequests.get(sessionId) === request) this.activityReplyRequests.delete(sessionId)
+    })
+    this.activityReplyRequests.set(sessionId, request)
+    return request
+  }
+
   private requireHistory(): void {
+    this.live()
     if (!this.historyCapability("export"))
       throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
   }
@@ -653,7 +675,7 @@ export class CodexClient {
     this.requireHistory()
     return exportConversation(
       sessionId,
-      (params) => this.live().request("_codex/session_history_items", params, { signal }),
+      (params) => this.live().request("_codex/session_history_items", params, { cancellationSignal: signal }),
       check
     )
   }
@@ -667,7 +689,7 @@ export class CodexClient {
       const cursors = new Set<string>()
       let cursor: string | undefined
       do {
-        const response = await agent.request<acp.ListSessionsResponse>("session/list", {
+        const response = await agent.request("session/list", {
           ...(queryCwd === undefined ? {} : { cwd: queryCwd }),
           ...(archived ? { _meta: { codex: { archived: true } } } : {}),
           ...(cursor === undefined ? {} : { cursor })
@@ -748,7 +770,7 @@ export class CodexClient {
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
     const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" }, owner !== null)
     const response = await this.born(
-      () => this.live().request<acp.NewSessionResponse>("session/new", { cwd, mcpServers: [], ...context }),
+      () => this.live().request("session/new", { cwd, mcpServers: [], ...context }),
       (response) => {
         const session: Session = {
           ...createSession(response.sessionId, cwd),
@@ -762,6 +784,20 @@ export class CodexClient {
       }
     )
     await bind?.(response.sessionId)
+    // New chats use standard speed even when Codex's global default is priority.
+    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast_mode")
+    if (fast && isBooleanOption(fast) && fast.currentValue) {
+      try {
+        await this.setConfig(response.sessionId, fast.configId, false)
+      } catch (error) {
+        try {
+          await this.delete(response.sessionId)
+        } catch (cleanupError) {
+          throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the new session")
+        }
+        throw error
+      }
+    }
     this.contextRevisions.set(response.sessionId, revision)
     this.noteModel(this.sessions.get(response.sessionId))
     return response.sessionId
@@ -935,8 +971,7 @@ export class CodexClient {
     const existing = this.sessions.sessions.get(id)
     // A replay in flight already carries this open. A read-only attach (another client holds the
     // writer) is resumed again: the writer may have let go since.
-    if (existing?.restoring) return
-    if (existing?.attached && !existing.readOnly) {
+    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.operations.busy(id)) {
       this.followModel(owner, existing)
       return
     }
@@ -955,10 +990,10 @@ export class CodexClient {
   }
 
   private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
-    return this.operations.open(id, cwd, () => this.runReplay(id, cwd, owner))
+    return this.operations.open(id, cwd, (signal) => this.runReplay(id, cwd, signal, owner))
   }
 
-  private async runReplay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
+  private async runReplay(id: string, cwd: string, signal: AbortSignal, owner?: DraftOwner): Promise<void> {
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     const agent = this.live()
     const history = this.historyCapability("browse")
@@ -983,16 +1018,27 @@ export class CodexClient {
           ? await this.resolveModel(this.slotModels[owner])
           : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
       const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
-      const response = await agent.request<acp.ResumeSessionResponse>("session/resume", {
-        sessionId: id,
-        cwd,
-        ...(history ? {} : { replayFrom: cursor }),
-        ...context
-      })
+      signal.throwIfAborted()
+      const response = await agent.request(
+        "session/resume",
+        {
+          sessionId: id,
+          cwd,
+          ...(history ? {} : { replayFrom: cursor }),
+          ...context
+        },
+        { cancellationSignal: signal }
+      )
+      signal.throwIfAborted()
+      if (this.agent !== agent) throw new Error("Codex disconnected during session resume")
       await bind?.(id)
+      signal.throwIfAborted()
       this.contextRevisions.set(id, revision)
       if (history) {
-        const page = await readHistoryPage(id, cwd, null, (params) => agent.request("_codex/session_history", params))
+        const page = await readHistoryPage(id, cwd, null, (params) =>
+          agent.request("_codex/session_history", params, { cancellationSignal: signal })
+        )
+        signal.throwIfAborted()
         if (this.agent !== agent) throw new Error("Codex disconnected during history load")
         this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
         this.noteLoadedHistory(id, page.turnIds)
@@ -1012,6 +1058,7 @@ export class CodexClient {
       this.noteModel(this.sessions.get(id))
       this.recordForkOrigin(id, response._meta)
     } catch (error) {
+      if (this.agent !== agent || !this.sessions.sessions.has(id)) throw error
       this.publishSession({
         ...this.sessions.get(id),
         restoring: false,
@@ -1310,7 +1357,7 @@ export class CodexClient {
     const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
     let response: acp.PromptResponse
     try {
-      response = await agent.request<acp.PromptResponse>("session/prompt", {
+      response = await agent.request("session/prompt", {
         sessionId: id,
         prompt,
         _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
@@ -1351,7 +1398,7 @@ export class CodexClient {
 
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
-      const response = await this.live().request<acp.SetSessionConfigOptionResponse>(
+      const response = await this.live().request(
         "session/set_config_option",
         configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
       )
@@ -1545,7 +1592,7 @@ export class CodexClient {
     })
     const response = await this.born(
       () =>
-        this.live().request<acp.ForkSessionResponse>("session/fork", {
+        this.live().request("session/fork", {
           sessionId: id,
           cwd,
           ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),

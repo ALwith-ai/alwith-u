@@ -135,7 +135,7 @@ export function ArchivedChatsPage(): ReactElement {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label={t("archives.title")}>
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10 lg:px-10 lg:py-14">
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-8 px-6 pt-8 pb-10 lg:pb-14">
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold tracking-tight">{t("archives.title")}</h1>
           <Button
@@ -164,7 +164,7 @@ export function ArchivedChatsPage(): ReactElement {
               placeholder={t("archives.search")}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="rounded-full ps-9"
+              className="rounded-md ps-9"
             />
           </div>
           <Select
@@ -174,7 +174,7 @@ export function ArchivedChatsPage(): ReactElement {
               setKind(value)
             }}
           >
-            <SelectTrigger aria-label={t("archives.chatType")} className="min-w-40 rounded-xl">
+            <SelectTrigger aria-label={t("archives.chatType")} className="min-w-40 rounded-md">
               <ListFilterIcon aria-hidden="true" />
               <SelectValue>
                 {t(`archives.${kind === "all" ? "allChats" : kind === "quick" ? "quickChats" : "projectChats"}`)}
@@ -193,7 +193,7 @@ export function ArchivedChatsPage(): ReactElement {
               setProject(value)
             }}
           >
-            <SelectTrigger aria-label={t("archives.project")} className="max-w-64 min-w-40 rounded-xl">
+            <SelectTrigger aria-label={t("archives.project")} className="max-w-64 min-w-40 rounded-md">
               <FolderIcon aria-hidden="true" />
               <SelectValue className="truncate">
                 {project === "all"
@@ -215,7 +215,7 @@ export function ArchivedChatsPage(): ReactElement {
           </Select>
         </div>
 
-        <Pane>
+        <Pane className="-me-[calc(var(--app-scrollbar-track-size)+0.5rem)]">
           <ScrollArea.Content className="flex flex-col gap-8" style={{ minWidth: 0 }}>
             {connection !== "ready" ? (
               <p role="status" className="text-muted-foreground">

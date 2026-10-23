@@ -1,12 +1,11 @@
+import type { ActivityImage } from "@alwith/module-chat/activity-host"
 // Ported from ALwith Desktop's image-lightbox.tsx.
 // Any image in the thread opens it through `openImageLightbox`.
-
-import type { ActivityImage } from "@alwith/module-chat/activity-host"
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { create } from "zustand"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/alwith-ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 type LightboxState = { images: ActivityImage[]; index: number }
@@ -58,6 +57,8 @@ export function ImageLightbox() {
               size="icon-sm"
               className="absolute start-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
               aria-label={t("chat.image.previous")}
+              title={t("chat.image.previous")}
+              shortcut="ArrowLeft"
               disabled={index === 0}
               onClick={() => moveImage(-1)}
             >
@@ -68,6 +69,8 @@ export function ImageLightbox() {
               size="icon-sm"
               className="absolute end-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
               aria-label={t("chat.image.next")}
+              title={t("chat.image.next")}
+              shortcut="ArrowRight"
               disabled={index === images.length - 1}
               onClick={() => moveImage(1)}
             >
@@ -83,11 +86,12 @@ export function ImageLightbox() {
         )}
         <DialogClose
           aria-label={t("actions.close")}
-          title={t("actions.close")}
           render={
             <Button
               variant="ghost"
               size="icon-sm"
+              title={t("actions.close")}
+              shortcut="Escape"
               className="absolute top-4 right-4 z-10 cursor-pointer rounded-[8px] border-0 bg-transparent text-foreground active:bg-muted"
             />
           }

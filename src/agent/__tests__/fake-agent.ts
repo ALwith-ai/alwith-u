@@ -32,7 +32,7 @@ export type FakeAgent = {
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
-  resumeResponse: { current: (() => Promise<acp.ResumeSessionResponse>) | null }
+  resumeResponse: { current: ((signal: AbortSignal) => Promise<acp.ResumeSessionResponse>) | null }
   replayUpdates: acp.SessionUpdate[]
   historyRequests: Array<Record<string, unknown>>
   historyResponse: { current: ((params: Record<string, unknown>) => unknown) | null }
@@ -268,7 +268,7 @@ export function createFakeAgent(): FakeAgent {
     while (active.has(params.sessionId)) await new Promise((resolve) => setTimeout(resolve, 1))
     return {}
   })
-  app.onRequest("session/resume", async ({ params, client }) => {
+  app.onRequest("session/resume", async ({ params, client, signal }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
     if (params.replayFrom != null) {
@@ -290,7 +290,7 @@ export function createFakeAgent(): FakeAgent {
         }
       })
     }
-    if (resumeResponse.current) return resumeResponse.current()
+    if (resumeResponse.current) return resumeResponse.current(signal)
     const origin = origins.get(params.sessionId)
     return { configOptions: optionsFor(hint), ...(origin ? { _meta: { codex: origin } } : {}) }
   })

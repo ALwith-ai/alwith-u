@@ -88,19 +88,33 @@ function setup(initialPinned = false, initialScreen: MainScreen = "main") {
 
 async function afterCloseDelay() {
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 230))
+    await new Promise((resolve) => setTimeout(resolve, 550))
   })
+}
+async function hover(target: Element) {
+  fireEvent.pointerMove(document, { pointerType: "mouse", clientX: 500, clientY: 100 })
+  fireEvent.pointerMove(target, {
+    pointerType: "mouse",
+    clientX: target.matches("[data-atlas-viewport]") ? 0 : target.matches("[data-atlas-navigation-trigger]") ? 500 : 20,
+    clientY: 100
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 130))
+  })
+}
+function leave(target: Element | Window = document.body) {
+  fireEvent.pointerMove(target, { pointerType: "mouse", clientX: 700, clientY: 100 })
 }
 
 test("starts collapsed; edge hover previews without saving and closes after the delay", async () => {
   const view = setup()
   expect(view.mode()).toBe("hidden")
   expect(view.panel.hasAttribute("inert")).toBe(true)
-  const edge = must(view.container.querySelector(".main-sidebar-edge"), "left edge")
-  fireEvent.pointerOver(edge, { pointerType: "mouse" })
+  const edge = must(view.container.querySelector("[data-atlas-viewport]"), "Atlas viewport")
+  await hover(edge)
   expect(view.mode()).toBe("floating")
   expect(view.panel.hasAttribute("inert")).toBe(false)
-  fireEvent.pointerOut(edge, { relatedTarget: view.getByTestId("chat") })
+  leave()
   expect(view.mode()).toBe("floating")
   await afterCloseDelay()
   expect(view.mode()).toBe("hidden")
@@ -108,12 +122,12 @@ test("starts collapsed; edge hover previews without saving and closes after the 
   expect(save).not.toHaveBeenCalled()
 })
 
-test("hovering the switch previews and entering the panel cancels pending close", async () => {
+test("hovering the switch previews and approaching the panel keeps it open", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle, { pointerType: "mouse" })
+  await hover(view.toggle)
   expect(view.mode()).toBe("floating")
-  fireEvent.pointerOut(view.toggle, { relatedTarget: view.getByTestId("chat") })
-  fireEvent.pointerOver(view.panel, { pointerType: "mouse" })
+  fireEvent.pointerMove(document, { pointerType: "mouse", clientX: 300, clientY: 100 })
+  fireEvent.pointerMove(view.panel, { pointerType: "mouse", clientX: 20, clientY: 100 })
   await afterCloseDelay()
   expect(view.mode()).toBe("floating")
   expect(save).not.toHaveBeenCalled()
@@ -128,8 +142,8 @@ test("click pins and persists; leaving a pinned sidebar neither hides it nor ste
   expect(save).toHaveBeenLastCalledWith("sidebarPinned", true)
   const count = view.getByRole("button", { name: "Count 0" })
   act(() => count.focus())
-  fireEvent.pointerOver(view.panel)
-  fireEvent.pointerOut(view.panel, { relatedTarget: view.getByTestId("chat") })
+  await hover(view.panel)
+  leave()
   await afterCloseDelay()
   expect(view.mode()).toBe("pinned")
   expect(document.activeElement).toBe(count)
@@ -151,7 +165,7 @@ test("restores a saved pinned preference without rewriting it", () => {
 test("solid and dashed sidebar icons follow the pin preference, not the temporary hover preview", async () => {
   const view = setup()
   expect(view.toggle.querySelector(".lucide-panel-left-dashed")).toBeTruthy()
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   expect(view.mode()).toBe("floating")
   expect(view.toggle.querySelector(".lucide-panel-left-dashed")).toBeTruthy()
   expect(view.toggle.querySelector(".lucide-panel-left")).toBeNull()
@@ -170,31 +184,33 @@ test("collapsing preserves the sidebar instance, local state and scroll position
   list.scrollTop = 180
   fireEvent.click(view.getByRole("button", { name: "Count 0" }))
   await act(() => Promise.try(() => fireEvent.click(view.toggle)))
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   expect(view.getByTestId("list")).toBe(list)
   expect(list.scrollTop).toBe(180)
   expect(view.getByRole("button", { name: "Count 1" })).toBeTruthy()
 })
 
-test("Escape and outside presses close only the temporary preview", () => {
+test("Escape and outside presses close only the temporary preview", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   const count = view.getByRole("button", { name: "Count 0" })
   act(() => count.focus())
   fireEvent.keyDown(count, { key: "Escape" })
+  await afterCloseDelay()
   expect(view.mode()).toBe("hidden")
   expect(document.activeElement).toBe(view.toggle)
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   fireEvent.pointerDown(view.getByTestId("chat"))
+  await afterCloseDelay()
   expect(view.mode()).toBe("hidden")
   expect(save).not.toHaveBeenCalled()
 })
 
 test("portalled sidebar menus retain the preview and their clicks are not outside presses", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   fireEvent.click(view.getByRole("button", { name: "Menu" }))
-  fireEvent.pointerOut(view.toggle, { relatedTarget: view.getByTestId("chat") })
+  leave()
   await afterCloseDelay()
   expect(view.mode()).toBe("floating")
   fireEvent.pointerDown(view.getByTestId("portal"))
@@ -213,7 +229,7 @@ test("touch does not trigger hover preview", () => {
 
 test("switching between floating and docked animations retains the viewport and sidebar state", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   fireEvent.click(view.getByRole("button", { name: "Count 0" }))
   expect(view.presentation()).toBe("floating")
   await act(() => Promise.try(() => fireEvent.click(view.toggle)))
@@ -222,7 +238,7 @@ test("switching between floating and docked animations retains the viewport and 
   await act(() => Promise.try(() => fireEvent.click(view.toggle)))
   expect(view.mode()).toBe("hidden")
   expect(view.presentation()).toBe("docked")
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   expect(view.mode()).toBe("floating")
   expect(view.presentation()).toBe("floating")
   expect(view.container.querySelector(".main-sidebar-viewport")).toBe(view.viewport)
@@ -232,13 +248,13 @@ test("switching between floating and docked animations retains the viewport and 
 
 test("reopening during fade-out cancels pending close and does not persist a hover state", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle)
-  fireEvent.pointerOut(view.toggle, { relatedTarget: view.getByTestId("chat") })
+  await hover(view.toggle)
+  leave()
   await afterCloseDelay()
-  // The logical state is hidden while CSS is still painting the 150ms exit.
+  // The shared spring returns the surface to its docked position after exit.
   expect(view.mode()).toBe("hidden")
   expect(view.panel.hasAttribute("inert")).toBe(true)
-  fireEvent.pointerOver(view.toggle)
+  await hover(view.toggle)
   await afterCloseDelay()
   expect(view.mode()).toBe("floating")
   expect(view.panel.hasAttribute("inert")).toBe(false)
@@ -264,7 +280,7 @@ test("leading screen stays docked without a toggle and ignores dismissal and the
   expect(view.presentation()).toBe("docked")
   expect(view.queryByRole("switch")).toBeNull()
   expect(view.container.querySelector(".main-sidebar-edge")).toBeNull()
-  fireEvent.pointerOut(view.panel, { relatedTarget: view.getByTestId("plugins") })
+  leave()
   fireEvent.keyDown(window, { key: "Escape" })
   fireEvent.keyDown(window, { key: "b", metaKey: true })
   fireEvent.pointerDown(view.getByTestId("plugins"))
@@ -293,17 +309,17 @@ test.each([false, true])(
 
 test("entering the leading screen clears the hover timer and returning restores edge hover", async () => {
   const view = setup()
-  fireEvent.pointerOver(view.toggle)
-  fireEvent.pointerOut(view.toggle, { relatedTarget: view.getByTestId("chat") })
+  await hover(view.toggle)
+  leave()
   view.showScreen("leading")
   await afterCloseDelay()
   expect(view.mode()).toBe("pinned")
   view.showScreen("main")
   expect(view.mode()).toBe("hidden")
-  const edge = must(view.container.querySelector(".main-sidebar-edge"), "left edge")
-  fireEvent.pointerOver(edge)
+  const edge = must(view.container.querySelector("[data-atlas-viewport]"), "Atlas viewport")
+  await hover(edge)
   expect(view.mode()).toBe("floating")
-  fireEvent.pointerOut(edge, { relatedTarget: view.getByTestId("chat") })
+  leave()
   await afterCloseDelay()
   expect(view.mode()).toBe("hidden")
   expect(save).not.toHaveBeenCalled()

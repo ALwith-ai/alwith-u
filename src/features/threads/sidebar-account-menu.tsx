@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -71,6 +72,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
           <DropdownMenuItem className="h-8 py-0" onClick={onOpenSettings}>
             <SettingsIcon className="text-muted-foreground" />
             {t("sidebar.settings")}
+            <ShortcutKey shortcut="CmdOrCtrl+," className="ml-auto shrink-0" />
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="h-8 py-0">

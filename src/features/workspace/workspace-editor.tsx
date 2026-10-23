@@ -1,4 +1,5 @@
 import {
+  type EditorShortcutRenderer,
   EditorWorkbench,
   type EditorWorkbenchProps,
   type EditorWorkspaceController,
@@ -7,14 +8,26 @@ import {
 } from "@alwith/module-editor"
 import { FileVisualIcon, getFileVisual, useFileIconTheme } from "@alwith/module-file-tree"
 import { FileText } from "lucide-react"
-import { type ReactNode, useSyncExternalStore } from "react"
+import { cloneElement, type ReactNode, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/alwith-ui/button"
+import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import type { IconTheme } from "./workspace-state"
+
+const EDITOR_SHORTCUTS = { save: "CmdOrCtrl+S" } as const
+const renderShortcutHint: EditorShortcutRenderer = (action, label, trigger) =>
+  cloneElement(
+    trigger,
+    { title: undefined },
+    <span className="inline-flex w-full items-center gap-4">
+      <span>{label}</span>
+      <ShortcutKey shortcut={EDITOR_SHORTCUTS[action]} className="ml-auto shrink-0" />
+    </span>
+  )
 
 export function WorkspaceEditor({
   tabs,
@@ -34,10 +47,10 @@ export function WorkspaceEditor({
   const snapshot = useSyncExternalStore(tabs.subscribe, tabs.getSnapshot)
   const selected = snapshot.tabs.find((tab) => tab.id === snapshot.activeId)
   const readyTheme = useFileIconTheme(iconTheme, props.onError)
-  const modifierKey = navigator.platform.includes("Mac") ? "⌘" : "Ctrl"
   return (
     <EditorWorkbench
       {...props}
+      renderShortcutHint={renderShortcutHint}
       tabBar={(prefix) => (
         <WorkspaceTabs
           workspace={tabs}
@@ -86,10 +99,7 @@ export function WorkspaceEditor({
                   <div className="workspace-empty-actions">
                     <Button variant="ghost" onClick={() => tabs.openNewTab()}>
                       <span>{t("workspace.emptyNewTab")}</span>
-                      <span className="workspace-empty-shortcut" aria-hidden="true">
-                        <kbd>{modifierKey}</kbd>
-                        <kbd>T</kbd>
-                      </span>
+                      <ShortcutKey shortcut="CmdOrCtrl+T" className="ml-auto shrink-0" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -98,10 +108,7 @@ export function WorkspaceEditor({
                       }}
                     >
                       <span>{t("workspace.emptyOpenSettings")}</span>
-                      <span className="workspace-empty-shortcut" aria-hidden="true">
-                        <kbd>{modifierKey}</kbd>
-                        <kbd>,</kbd>
-                      </span>
+                      <ShortcutKey shortcut="CmdOrCtrl+," className="ml-auto shrink-0" />
                     </Button>
                   </div>
                 </div>

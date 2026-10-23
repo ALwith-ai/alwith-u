@@ -29,6 +29,7 @@ function viewOf(session: Session, active = false, error: Session["error"] = null
   return (
     <ThemeProvider>
       <AssistantTurn
+        sessionId={session.id}
         turn={turn}
         terminals={session.terminals}
         active={active}
@@ -61,7 +62,7 @@ test.each(["commentary", "final_answer"])("%s completes the preceding thought wi
   expect(view.getByText("Inspecting the code")).toBeDefined()
 })
 
-test("long turns finish older thoughts, collapse completed groups and retain every command", () => {
+test("long turns finish older thoughts, retain every command and preserve explicit disclosure choices", () => {
   const id = crypto.randomUUID()
   let session = feed(createSession(id, "/tmp"), thought(`${id}-first`, "First thought"))
   const view = render(viewOf(session, true))
@@ -77,7 +78,10 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
   view.rerender(viewOf(session, true))
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
-  expect(view.container.querySelector(".codex-activity-group-trigger")).toHaveAttribute("aria-expanded", "true")
+  const liveGroup = must(view.container.querySelector(".codex-activity-group-trigger"), "the live group")
+  expect(liveGroup).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(liveGroup)
+  expect(liveGroup).toHaveAttribute("aria-expanded", "true")
   session = feed(
     session,
     { sessionUpdate: "tool_call_update", toolCallId: `${id}-test`, status: "completed" },
@@ -101,9 +105,8 @@ test("long turns finish older thoughts, collapse completed groups and retain eve
   )
   view.rerender(viewOf(session, true))
   const previousGroup = must(view.container.querySelector(".codex-activity-group-trigger"), "the previous group")
-  expect(previousGroup).toHaveAttribute("aria-expanded", "false")
+  expect(previousGroup).toHaveAttribute("aria-expanded", "true")
   expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
-  fireEvent.click(previousGroup)
   expect(view.getByRole("button", { name: "Ran bun run test" })).toBeDefined()
   expect(view.getByRole("button", { name: "Ran bun run build" })).toBeDefined()
   expect(view.getAllByRole("button", { name: "Thought" })).toHaveLength(2)
