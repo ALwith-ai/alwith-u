@@ -215,6 +215,124 @@ fn collections_persist_references_and_reject_invalid_memberships() {
 }
 
 #[test]
+fn migrates_retired_trackpad_preference_without_overwriting_current_choice() {
+    for (legacy, current, expected) in [(true, None, true), (false, None, false), (true, Some(false), false)] {
+        let dir = tempfile::tempdir().unwrap();
+        let store = SettingsStore::load(dir.path().into()).unwrap();
+        let mut values = changes(json!({"trackpad.enabled": legacy, "appearance.theme": "dark"}));
+        if let Some(current) = current {
+            values.insert("appearance.threeFingerSwipe".into(), json!(current));
+        }
+        write_json(&dir.path().join("settings.json"), &store.document(&values, 7, true)).unwrap();
+        let mut migrated = SettingsStore::load(dir.path().into()).unwrap();
+        assert_eq!(migrated.values["appearance.threeFingerSwipe"], expected);
+        assert_eq!(migrated.values["appearance.theme"], "dark");
+        assert_eq!(migrated.snapshot().unwrap().0, 7);
+        assert!(migrated.browser_migrated());
+        assert!(!migrated.values.contains_key("trackpad.enabled"));
+        assert!(migrated.update(changes(json!({"trackpad.enabled": true})), None).is_err());
+        let persisted = read_json::<BTreeMap<String, Value>>(&dir.path().join("settings.json")).unwrap().unwrap();
+        assert!(!persisted.contains_key("trackpad.enabled"));
+        let restarted = SettingsStore::load(dir.path().into()).unwrap();
+        assert_eq!(restarted.values, migrated.values);
+    }
+}
+
+#[test]
+fn recovers_transaction_with_retired_trackpad_preference() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let tx = Transaction {
+        settings: store.document(&changes(json!({"trackpad.enabled": false})), 4, true),
+        credentials: BTreeMap::from([("voice.doubao.apiKey".into(), "pending-key".into())]),
+    };
+    write_json(&dir.path().join(".settings-transaction.json"), &tx).unwrap();
+    let recovered = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(recovered.values["appearance.threeFingerSwipe"], false);
+    assert!(!recovered.values.contains_key("trackpad.enabled"));
+    assert_eq!(recovered.secret("voice.doubao.apiKey").unwrap().as_deref(), Some("pending-key"));
+    assert!(!dir.path().join(".settings-transaction.json").exists());
+}
+
+#[test]
+fn invalid_retired_trackpad_preference_leaves_storage_untouched() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let path = dir.path().join("settings.json");
+    write_json(&path, &store.document(&changes(json!({"trackpad.enabled": "invalid"})), 1, true)).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    assert!(SettingsStore::load(dir.path().into()).is_err());
+    assert_eq!(std::fs::read(path).unwrap(), original);
+}
+
+#[test]
+fn unrecognized_disk_fields_survive_all_writes_without_entering_snapshots() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let retained = changes(json!({
+        "retired.option": {"nested": [1, false]},
+        "future.option": null,
+        "voice.retired.apiKey": "private-legacy-value"
+    }));
+    let mut values = retained.clone();
+    values.insert("appearance.theme".into(), json!("dark"));
+    write_json(&dir.path().join("settings.json"), &store.document(&values, 3, false)).unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(store.snapshot().unwrap().1, changes(json!({"appearance.theme": "dark"})));
+    store.update(changes(json!({"general.language": "zh-CN"})), None).unwrap();
+    store.import_browser(changes(json!({"editor.fontSize": 18, "editor.retiredOption": true}))).unwrap();
+    store.set_secret("voice.doubao.apiKey", "current-key").unwrap();
+    store.remove_secret("voice.doubao.apiKey").unwrap();
+    let disk = read_json::<BTreeMap<String, Value>>(&dir.path().join("settings.json")).unwrap().unwrap();
+    for (key, value) in retained {
+        assert_eq!(disk[&key], value);
+        assert!(!store.snapshot().unwrap().1.contains_key(&key));
+    }
+    assert!(!store.values.contains_key("editor.retiredOption"));
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.values, store.values);
+    assert_eq!(restarted.unrecognized, store.unrecognized);
+    assert!(restarted.browser_migrated());
+}
+
+#[test]
+fn transaction_recovery_preserves_unrecognized_fields_privately() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let tx = Transaction {
+        settings: store.document(
+            &changes(json!({"future.option": {"enabled": true}, "voice.enabled": false})),
+            8,
+            true,
+        ),
+        credentials: BTreeMap::new(),
+    };
+    write_json(&dir.path().join(".settings-transaction.json"), &tx).unwrap();
+    let mut recovered = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(recovered.snapshot().unwrap().1, changes(json!({"voice.enabled": false})));
+    recovered.update(changes(json!({"appearance.theme": "dark"})), None).unwrap();
+    let disk = read_json::<BTreeMap<String, Value>>(&dir.path().join("settings.json")).unwrap().unwrap();
+    assert_eq!(disk["future.option"], json!({"enabled": true}));
+    assert!(!dir.path().join(".settings-transaction.json").exists());
+}
+
+#[test]
+fn compatibility_does_not_accept_invalid_known_values_or_future_schemas() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let path = dir.path().join("settings.json");
+    for document in [
+        store.document(&changes(json!({"appearance.theme": 42, "future.option": true})), 1, true),
+        changes(json!({"$schemaVersion": 2, "$revision": 1, "$browserMigrated": true})),
+    ] {
+        write_json(&path, &document).unwrap();
+        let original = std::fs::read(&path).unwrap();
+        assert!(SettingsStore::load(dir.path().into()).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+    }
+}
+
+#[test]
 fn trackpad_master_survives_restart_independently_of_legacy_gesture_migration() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();

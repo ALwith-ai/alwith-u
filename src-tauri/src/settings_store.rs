@@ -39,6 +39,7 @@ pub struct SettingsStore {
     root: PathBuf,
     pub values: BTreeMap<String, Value>,
     secrets: SecretStore,
+    unrecognized: BTreeMap<String, Value>,
     revision: u64,
     browser_migrated: bool,
     pending: bool,
@@ -61,7 +62,8 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<Option<T>, S
 impl SettingsStore {
     pub fn load(root: PathBuf) -> Result<Self, String> {
         let journal = root.join(".settings-transaction.json");
-        if let Some(tx) = read_json::<Transaction>(&journal)? {
+        if let Some(mut tx) = read_json::<Transaction>(&journal)? {
+            migrate_trackpad_preference(&mut tx.settings)?;
             let mut ordinary = tx.settings.clone();
             if ordinary.remove("$schemaVersion") != Some(json!(1))
                 || ordinary.remove("$revision").and_then(|v| v.as_u64()).is_none()
@@ -69,7 +71,8 @@ impl SettingsStore {
             {
                 return Err("Invalid settings transaction".into());
             }
-            validate(&ordinary)?;
+            let (known, _) = partition_settings(ordinary);
+            validate(&known)?;
             for (key, secret) in &tx.credentials {
                 validate_secret(key, secret)?;
             }
@@ -116,6 +119,8 @@ impl SettingsStore {
                 }
             }
         }
+        let migrated = migrate_trackpad_preference(&mut values)?;
+        let (mut values, unrecognized) = partition_settings(values);
         values.retain(|_, value| !value.is_null());
         normalize(&mut values);
         validate(&values)?;
@@ -136,8 +141,8 @@ impl SettingsStore {
         for (key, secret) in secrets.snapshot() {
             validate_secret(&key, &secret)?;
         }
-        let store = Self { root, values, secrets, revision, browser_migrated, pending: false };
-        if first {
+        let store = Self { root, values, secrets, unrecognized, revision, browser_migrated, pending: false };
+        if first || migrated {
             write_json(&store.root.join("settings.json"), &store.document(&store.values, revision, browser_migrated))?;
         }
         Ok(store)
@@ -162,7 +167,8 @@ impl SettingsStore {
         Ok(self.secrets.get(key).map(str::to_owned))
     }
     fn document(&self, values: &BTreeMap<String, Value>, revision: u64, browser: bool) -> BTreeMap<String, Value> {
-        let mut result = values.clone();
+        let mut result = self.unrecognized.clone();
+        result.extend(values.clone());
         result.insert("$schemaVersion".into(), json!(1));
         result.insert("$revision".into(), json!(revision));
         result.insert("$browserMigrated".into(), json!(browser));
@@ -201,7 +207,10 @@ impl SettingsStore {
         if changes.keys().any(|key| key != "appearance.theme" && !key.starts_with("editor.")) {
             return Err("Invalid browser migration key".into());
         }
-        let changes = changes.into_iter().filter(|(key, _)| !self.values.contains_key(key)).collect();
+        let changes = changes
+            .into_iter()
+            .filter(|(key, value)| setting_validity(key, value).is_some() && !self.values.contains_key(key))
+            .collect();
         let values = self.next(changes, None)?;
         let revision = self.revision + 1;
         write_json(&self.root.join("settings.json"), &self.document(&values, revision, true))?;
@@ -260,6 +269,16 @@ impl SettingsStore {
         Ok(())
     }
 }
+// Migrate persisted settings only; ordinary writes still reject retired keys.
+fn migrate_trackpad_preference(values: &mut BTreeMap<String, Value>) -> Result<bool, String> {
+    let Some(value) = values.remove("trackpad.enabled") else { return Ok(false) };
+    if !value.is_null() && !value.is_boolean() {
+        return Err("Invalid setting: trackpad.enabled".into());
+    }
+    values.entry("appearance.threeFingerSwipe".into()).or_insert(value);
+    Ok(true)
+}
+
 fn normalize(values: &mut BTreeMap<String, Value>) {
     if let Some(Value::String(value)) = values.get_mut("voice.doubao.resourceId") {
         *value = if value.trim().is_empty() { RESOURCE_ID.into() } else { value.trim().into() };
@@ -278,70 +297,79 @@ fn validate_secret(key: &str, value: &str) -> Result<(), String> {
 }
 fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
     for (key, value) in values {
-        let valid = match key.as_str() {
-            "appearance.trackpadEnabled"
-            | "computer.enabled"
-            | "voice.enabled"
-            | "voice.smooth"
-            | "appearance.sidebarPinned"
-            | "appearance.threeFingerSwipe"
-            | "editor.fontLigatures"
-            | "editor.wordWrap"
-            | "editor.minimap"
-            | "editor.lineNumbers"
-            | "editor.renderWhitespace" => value.is_boolean(),
-            "general.language"
-            | "general.lastProjectDirectory"
-            | "general.externalEditor"
-            | "chat.windowShortcut"
-            | "chat.navigationInstrument"
-            | "voice.deviceId"
-            | "voice.hotwords" => value.is_string(),
-            "voice.doubao.resourceId" => value
-                .as_str()
-                .is_some_and(|v| v.trim().bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))),
-            "collections.data" => valid_collections(value),
-            "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
-            "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),
-            "editor.fontSize" => value.as_f64().is_some_and(|n| (8.0..=40.0).contains(&n)),
-            "editor.fontFamily" => value.as_str().is_some_and(|s| s.len() <= 800),
-            "editor.iconTheme" => matches!(
-                value.as_str(),
-                Some("vscode-icons" | "catppuccin-latte" | "catppuccin-mocha" | "material-icon-theme")
-            ),
-            "chat.navigationSoundMode" => matches!(value.as_str(), Some("none" | "scale" | "auto")),
-            "voice.provider" => matches!(value.as_str(), Some("vui" | "doubao")),
-            "voice.inputMode" => matches!(value.as_str(), Some("dictation" | "send" | "handsfree")),
-            "voice.projectHotwords" => value.as_object().is_some_and(|o| o.values().all(Value::is_string)),
-            "chat.modelSelections" => value.as_object().is_some_and(|o| {
-                o.len() == 2 && ["main", "chat"].iter().all(|k| o.get(*k).is_some_and(|v| v.is_null() || v.is_string()))
-            }),
-            "voice.silence" => value.as_object().is_some_and(|o| {
-                if o.len() != 4 {
-                    return false;
-                }
-                let (Some(threshold), Some(silence), Some(initial), Some(max)) = (
-                    o.get("threshold").and_then(Value::as_f64),
-                    o.get("silenceMs").and_then(Value::as_f64),
-                    o.get("initialSilenceMs").and_then(Value::as_f64),
-                    o.get("maxDurationMs").and_then(Value::as_f64),
-                ) else {
-                    return false;
-                };
-                threshold > 0.0
-                    && threshold <= 1.0
-                    && (200.0..=10000.0).contains(&silence)
-                    && initial >= silence
-                    && max >= initial
-                    && max <= 300000.0
-            }),
-            _ => return Err("Unknown or private settings key".into()),
-        };
+        let valid = setting_validity(key, value).ok_or("Unknown or private settings key")?;
         if !value.is_null() && !valid {
             return Err(format!("Invalid setting: {key}"));
         }
     }
     Ok(())
+}
+
+// Disk documents may contain retired or newer keys; only known settings reach webviews.
+fn partition_settings(values: BTreeMap<String, Value>) -> (BTreeMap<String, Value>, BTreeMap<String, Value>) {
+    values.into_iter().partition(|(key, value)| setting_validity(key, value).is_some())
+}
+
+fn setting_validity(key: &str, value: &Value) -> Option<bool> {
+    Some(match key {
+        "appearance.trackpadEnabled"
+        | "computer.enabled"
+        | "voice.enabled"
+        | "voice.smooth"
+        | "appearance.sidebarPinned"
+        | "appearance.threeFingerSwipe"
+        | "editor.fontLigatures"
+        | "editor.wordWrap"
+        | "editor.minimap"
+        | "editor.lineNumbers"
+        | "editor.renderWhitespace" => value.is_boolean(),
+        "general.language"
+        | "general.lastProjectDirectory"
+        | "general.externalEditor"
+        | "chat.windowShortcut"
+        | "chat.navigationInstrument"
+        | "voice.deviceId"
+        | "voice.hotwords" => value.is_string(),
+        "voice.doubao.resourceId" => {
+            value.as_str().is_some_and(|v| v.trim().bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b)))
+        }
+        "collections.data" => valid_collections(value),
+        "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
+        "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),
+        "editor.fontSize" => value.as_f64().is_some_and(|n| (8.0..=40.0).contains(&n)),
+        "editor.fontFamily" => value.as_str().is_some_and(|s| s.len() <= 800),
+        "editor.iconTheme" => matches!(
+            value.as_str(),
+            Some("vscode-icons" | "catppuccin-latte" | "catppuccin-mocha" | "material-icon-theme")
+        ),
+        "chat.navigationSoundMode" => matches!(value.as_str(), Some("none" | "scale" | "auto")),
+        "voice.provider" => matches!(value.as_str(), Some("vui" | "doubao")),
+        "voice.inputMode" => matches!(value.as_str(), Some("dictation" | "send" | "handsfree")),
+        "voice.projectHotwords" => value.as_object().is_some_and(|o| o.values().all(Value::is_string)),
+        "chat.modelSelections" => value.as_object().is_some_and(|o| {
+            o.len() == 2 && ["main", "chat"].iter().all(|k| o.get(*k).is_some_and(|v| v.is_null() || v.is_string()))
+        }),
+        "voice.silence" => value.as_object().is_some_and(|o| {
+            if o.len() != 4 {
+                return false;
+            }
+            let (Some(threshold), Some(silence), Some(initial), Some(max)) = (
+                o.get("threshold").and_then(Value::as_f64),
+                o.get("silenceMs").and_then(Value::as_f64),
+                o.get("initialSilenceMs").and_then(Value::as_f64),
+                o.get("maxDurationMs").and_then(Value::as_f64),
+            ) else {
+                return false;
+            };
+            threshold > 0.0
+                && threshold <= 1.0
+                && (200.0..=10000.0).contains(&silence)
+                && initial >= silence
+                && max >= initial
+                && max <= 300000.0
+        }),
+        _ => return None,
+    })
 }
 
 // Collection preferences contain references only, never conversation content.
