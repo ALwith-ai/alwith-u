@@ -28,6 +28,7 @@ import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
 
+import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
@@ -146,6 +147,7 @@ export function FileWorkspace({
   const [condenseJob, setCondenseJob] = useState<Job | undefined>()
   const [condenseScope, setCondenseScope] = useState<CondenseScope | null>(null)
   const [moveTarget, setMoveTarget] = useState<{ path: string; kind: "file" | "directory" } | null>(null)
+  const [publishSources, setPublishSources] = useState<{ owner: Workspace; paths: readonly string[] } | null>(null)
   const [moveSources, setMoveSources] = useState<{ owner: Workspace; paths: readonly string[] } | null>(null)
   const condenseHost = useMemo(
     () => ({
@@ -894,6 +896,19 @@ export function FileWorkspace({
                   onOpenFile={(path) => workspace.treeOpener.open(path)}
                   renderActions={(paths) => {
                     const path = paths[0]
+                    if (
+                      paths.length > 1 &&
+                      driveState?.running &&
+                      paths.every((path) => {
+                        const hit = resolveDriveRoot(path, driveState.roots)
+                        return hit !== null && hit.root.canWrite && path !== hit.base
+                      })
+                    )
+                      return (
+                        <ContextMenuItem onClick={() => setPublishSources({ owner: workspace, paths })}>
+                          {t("workspace.publishTo")}
+                        </ContextMenuItem>
+                      )
                     return paths.length === 1 &&
                       path !== undefined &&
                       driveState?.running &&
@@ -909,6 +924,7 @@ export function FileWorkspace({
                           setCondenseScope(scope)
                         }}
                         onMove={(path, kind) => setMoveTarget({ path, kind })}
+                        onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
                         saveDocument={saveDriveDocument}
                       />
                     ) : null
@@ -1040,6 +1056,19 @@ export function FileWorkspace({
           )
         }
       />
+      {publishSources && (
+        <MoveToDialog
+          mode="publish"
+          sources={publishSources.paths}
+          rootPath={publishSources.owner.root}
+          fs={publishSources.owner.fs}
+          tree={publishSources.owner.tree}
+          onClose={() => setPublishSources(null)}
+          onMoveTo={async () => {
+            throw new Error("Publishing cannot move local files")
+          }}
+        />
+      )}
       {moveSources && (
         <MoveToDialog
           sources={moveSources.paths}

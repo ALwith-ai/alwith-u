@@ -37,7 +37,7 @@
     "@alwith/module-auth": "^0.1.6",
     "@alwith/module-chat": "^0.1.23",
     "@alwith/module-computer": "^0.1.5",
-    "@alwith/module-drive": "^0.1.0-rc.24",
+    "@alwith/module-drive": "0.1.1",
     "@alwith/module-editor": "^0.1.0-rc.13",
     "@alwith/module-extension": "^0.1.0-rc.13",
     "@alwith/module-file-tree": "^0.1.0-rc.20",
@@ -146,7 +146,7 @@
     "@alwith/native-fs": "^0.1.0",
     "@alwith/native-gamepad": "^0.1.0",
     "@alwith/native-computer": "^0.1.0",
-    "@alwith/native-drive": "^0.1.0",
+    "@alwith/native-drive": "0.1.1",
     "@alwith/native-extension": "^0.1.0",
     "@alwith/native-kit": "^0.1.0"
   },
