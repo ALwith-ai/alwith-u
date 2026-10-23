@@ -51,7 +51,7 @@ export function DraftModelSelect({
         })
   return (
     <ModelSelect
-      value={{ ...selected, label: modelTriggerLabel(selected.label) }}
+      value={{ ...selected, label: modelTriggerLabel(selected) }}
       models={models}
       modelGroups={catalog}
       header={{ name: t("chat.model.model"), action: <ModelSettingsAction /> }}

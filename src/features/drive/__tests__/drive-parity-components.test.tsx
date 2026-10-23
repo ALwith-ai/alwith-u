@@ -1,4 +1,4 @@
-import type { DriveController, DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import type { DriveController, DriveRequest, DriveResponse, Job, Snapshot } from "@alwith/module-drive"
 import { DriveCondense, DriveMoveDialog } from "@alwith/module-drive/content"
 import {
   DriveBadge,
@@ -14,6 +14,17 @@ import { expect, test, vi } from "vitest"
 import { mockOf } from "@/test/mock-of"
 
 import { driveControls } from "../controls"
+
+const job = (status: Job["status"]): Job => ({
+  id: 7,
+  type: "condense",
+  status,
+  projectId: 1,
+  progress: null,
+  message: null,
+  error: null,
+  result: null
+})
 
 const controls: DriveControls = {
   Button: ({ variant: _variant, size: _size, ...props }) => <button type="button" {...props} />,
@@ -146,8 +157,8 @@ test("missing pins retain their identity and expose context-menu unpin", async (
 test("file badges translate states and directories prioritize descendant conflicts", () => {
   const f = fixture({
     files: [
-      { projectId: 1, path: "a.md", localPath: "/drive/a.md", state: "error" },
-      { projectId: 1, path: "b.md", localPath: "/drive/b.md", state: "conflict" }
+      { projectId: 1, path: "a.md", localPath: "/drive/a.md", state: "error", size: 0 },
+      { projectId: 1, path: "b.md", localPath: "/drive/b.md", state: "conflict", size: 0 }
     ]
   })
   render(
@@ -560,7 +571,19 @@ test.each([
   [true, "ssoLogin"]
 ] as const)("directory adoption requires explicit confirmation (%s, %s)", async (accept, method) => {
   const f = fixture({ configured: false, running: false }, (request) => {
-    if (request.type === "ssoConfig") return Promise.resolve({ type: "ssoConfig", data: { enabled: true } })
+    if (request.type === "ssoConfig")
+      return Promise.resolve({
+        type: "ssoConfig",
+        data: {
+          enabled: true,
+          issuer: null,
+          clientId: null,
+          authorizationEndpoint: null,
+          tokenEndpoint: null,
+          redirectUris: [],
+          scopes: []
+        }
+      })
     if (request.type === method)
       return Promise.resolve({ type: "rootOwnershipConfirmation", data: { generation: 2, localRoot: "/drive" } })
     return Promise.resolve({ type: "done" })
@@ -599,7 +622,7 @@ test("condense shows only the current project upload and resumes after closing",
       return new Promise((resolve) => {
         settle = resolve
       })
-    if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
+    if (request.type === "condenseStart") return { type: "job", data: job("RUNNING") }
     throw new Error(`Unexpected request ${request.type}`)
   })
   const props = {
@@ -616,8 +639,8 @@ test("condense shows only the current project upload and resumes after closing",
   act(() =>
     f.update({
       files: [
-        { projectId: 2, path: "other.md", localPath: "/drive/other.md", state: "uploading" },
-        { projectId: 1, path: "current.md", localPath: "/drive/current.md", state: "uploading" }
+        { projectId: 2, path: "other.md", localPath: "/drive/other.md", state: "uploading", size: 0 },
+        { projectId: 1, path: "current.md", localPath: "/drive/current.md", state: "uploading", size: 0 }
       ]
     })
   )
@@ -672,7 +695,7 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
       return Promise.try(() => {
         if (request.type === "proposedCondense") return { type: "jobs", data: [] }
         if (request.type === "cancelJob") return { type: "done" }
-        if (request.type === "job") return { type: "job", data: { id: 7, status } }
+        if (request.type === "job") return { type: "job", data: job(status) }
         throw new Error(`Unexpected request ${request.type}`)
       })
     })
@@ -680,7 +703,7 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
       <DriveCondense
         controller={f.controller}
         scope={{ projectId: 1, projectName: "Reports", scopePath: null }}
-        initialJob={{ id: 7, status: "RUNNING" }}
+        initialJob={job("RUNNING")}
         controls={controls}
         locale="zh-CN"
         onClose={() => {}}
@@ -730,7 +753,7 @@ test("a conflict during preflight stays in the dialog and does not include anoth
       return new Promise((resolve) => {
         settle = resolve
       })
-    if (request.type === "condenseStart") return { type: "job", data: { id: 7, status: "RUNNING" } }
+    if (request.type === "condenseStart") return { type: "job", data: job("RUNNING") }
     throw new Error(`Unexpected request ${request.type}`)
   })
   render(
@@ -748,8 +771,8 @@ test("a conflict during preflight stays in the dialog and does not include anoth
   act(() =>
     f.update({
       files: [
-        { projectId: 1, path: "conflicted.md", localPath: "/drive/conflicted.md", state: "conflict" },
-        { projectId: 2, path: "unrelated.md", localPath: "/drive/unrelated.md", state: "conflict" }
+        { projectId: 1, path: "conflicted.md", localPath: "/drive/conflicted.md", state: "conflict", size: 0 },
+        { projectId: 2, path: "unrelated.md", localPath: "/drive/unrelated.md", state: "conflict", size: 0 }
       ]
     })
   )
@@ -770,9 +793,13 @@ test("a closed condense task finishes once and reopening preserves its result", 
           return {
             type: "job",
             data: {
-              id: 7,
-              status: "SUCCEEDED",
-              result: { knowledgeFileId: 9, knowledgeTitle: "Draft", humanUrl: "https://drive.test/draft" }
+              ...job("SUCCEEDED"),
+              result: {
+                sourcesLinked: 1,
+                knowledgeFileId: 9,
+                knowledgeTitle: "Draft",
+                humanUrl: "https://drive.test/draft"
+              }
             }
           }
         if (request.type === "localPath") return { type: "path", data: "/drive/draft.md" }
@@ -784,7 +811,7 @@ test("a closed condense task finishes once and reopening preserves its result", 
     const props = {
       controller: f.controller,
       scope: { projectId: 1, projectName: "Reports", scopePath: null },
-      initialJob: { id: 7, status: "RUNNING" as const },
+      initialJob: job("RUNNING"),
       controls,
       locale: "zh-CN" as const,
       onClose: () => {},

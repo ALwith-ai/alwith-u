@@ -141,6 +141,11 @@
   color: var(--foreground);
 }
 
+[data-slot="dropdown-menu-content"]:has(> [data-model-menu-header]) {
+  width: 280px;
+  height: 300px;
+}
+
 .chat-composer-toolbar .lucide-chevron-up {
   rotate: 180deg;
   color: var(--muted-foreground);

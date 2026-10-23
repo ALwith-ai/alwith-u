@@ -697,6 +697,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                   {driveSidebar &&
                     createPortal(
                       <DrivePage
+                        renderProjectActions={(root) => (
+                          <ChatProjectMenu
+                            actionLabel={t("workspace.recentSessions")}
+                            cwd={root.localPath}
+                            currentSessionId={selectedId}
+                            onSelect={select}
+                            onNewChat={() => void newChatInDirectory(root.localPath)}
+                          />
+                        )}
                         currentProject={session?.cwd ?? lastDirectory}
                         onOpenProject={(root) =>
                           operation.run(async () => {

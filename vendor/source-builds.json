@@ -1,12 +1,12 @@
 [
   {
     "name": "@alwith/module-auth",
-    "file": "vendor/alwith-module-auth-0.1.6-5441d1b6ece7.tgz",
-    "sha256": "5441d1b6ece7809613170f0ea26343a8c7c17a60c4a9681375ad8e44f44e5797",
+    "file": "vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
+    "sha256": "5cad916872eda1c53ced07d7a780a90c783f17865d3d693ed96d609de50c07a0",
     "source": "alwith-modules/crates/auth/guest-js",
-    "baseCommit": "1881668de7825706c0fc0a67ed7f8f28010e7d4c",
-    "sourceSnapshotSha256": "71d23432392977933c079dd03e3be87cae71e9ee9cf8955fb2ae37bfe7ab3a93",
+    "baseCommit": "9e32f84700dc87c11057e930a9a2a534f7f55f0e",
+    "sourceSnapshotSha256": "7ae207064f4d250b2b068642644155f73f62f7737d47a0f5ef8b2c1144ad9453",
     "sourceSnapshotFormat": "SHA256 of compact JSON [path, SHA256] entries, sorted: crates/auth/guest-js/{package.json,README.md,THIRD_PARTY_NOTICES.md,LICENSE,src/**/*,licenses/**/*}",
-    "sourceState": "Committed source at 1881668de7825706c0fc0a67ed7f8f28010e7d4c; built with package build script and bun pm pack"
+    "sourceState": "Committed auth source at 9e32f84700dc87c11057e930a9a2a534f7f55f0e; unchanged by the main merge; distribution verified against a fresh build"
   }
 ]

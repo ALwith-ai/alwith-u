@@ -464,7 +464,15 @@ html[data-window-backdrop="acrylic"]
 @media (hover: hover) {
   :is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
       [data-disabled]
-    ):not(:where(.codex-thread-content *, .codex-assistant-turn *, .chat-project-picker *, .vibemon-content *)):hover {
+    ):not(
+      :where(
+        .codex-thread-content *,
+        .codex-assistant-turn *,
+        .chat-project-picker *,
+        .vibemon-content *,
+        .canvas-dots *
+      )
+    ):hover {
     background-image: linear-gradient(
       color-mix(in oklab, currentColor 8%, transparent),
       color-mix(in oklab, currentColor 8%, transparent)
@@ -495,6 +503,12 @@ html[data-window-backdrop="acrylic"]
 .main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
+
+.main-sidebar-panel [role="tablist"] [role="tab"]:enabled:hover {
+  background-color: transparent;
+  background-image: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .main-screen-track,
   .main-screen-leading,
