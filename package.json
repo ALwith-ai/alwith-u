@@ -37,7 +37,7 @@
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
     "@alwith/module-chat": "^0.1.24",
     "@alwith/module-collection": "./vendor/alwith-module-collection-0.0.1.tgz",
-    "@alwith/module-computer": "^0.1.5",
+    "@alwith/module-computer": "file:vendor/alwith-module-computer-0.1.6-84b5f996adbd.tgz",
     "@alwith/module-drive": "^0.1.1",
     "@alwith/module-editor": "^0.1.0-rc.13",
     "@alwith/module-extension": "^0.1.0-rc.13",
@@ -118,7 +118,7 @@
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.1.0",
-    "@alwith/native-computer": "^0.1.0",
+    "@alwith/native-computer": "file:vendor/alwith-native-computer-0.1.1.tgz",
     "@alwith/native-drive": "^0.1.1",
     "@alwith/native-extension": "^0.1.0",
     "@alwith/native-fs": "^0.1.0",
@@ -169,7 +169,8 @@
   },
   "overrides": {
     "@alwith/module-auth": "file:vendor/alwith-module-auth-0.1.6-5cad916872ed.tgz",
-    "@alwith/module-chat": "^0.1.24"
+    "@alwith/module-chat": "^0.1.24",
+    "@alwith/native-computer-darwin-arm64": "file:vendor/alwith-native-computer-darwin-arm64-0.1.1-95d59aaa90b3.tgz"
   },
   "patchedDependencies": {
     "@alwith/module-chat@0.1.24": "patches/@alwith%2Fmodule-chat@0.1.24.patch",

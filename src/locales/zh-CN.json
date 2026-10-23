@@ -1111,6 +1111,18 @@
       "frame": "{{title}} 实时画面",
       "unavailable": "暂时无法预览此窗口",
       "waiting": "正在等待目标窗口"
+    },
+    "connection": "连接状态",
+    "reconnect": "重新连接",
+    "verifying": "正在验证…",
+    "reconnectHint": "重新连接会停止当前电脑操作，并验证截图与辅助功能是否可用。不会重放之前的动作；连接成功后请重新发送消息。",
+    "diagnostics": "诊断信息（本次应用会话）",
+    "phases": {
+      "disabled": "已关闭",
+      "verifying": "正在验证访问能力",
+      "ready": "可用",
+      "stopping": "正在停止",
+      "failed": "需要恢复"
     }
   },
   "canvas": {

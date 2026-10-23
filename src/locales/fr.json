@@ -361,5 +361,19 @@
   "canvas": {
     "navigation": "Navigation entre les pages",
     "page": "Page {{number}}"
+  },
+  "computer": {
+    "connection": "Connexion",
+    "reconnect": "Reconnecter",
+    "verifying": "Vérification…",
+    "reconnectHint": "La reconnexion arrête les actions et vérifie la capture et l’accessibilité. Aucune action n’est rejouée. Renvoyez ensuite votre message.",
+    "diagnostics": "Diagnostic (session actuelle)",
+    "phases": {
+      "disabled": "Désactivé",
+      "verifying": "Vérification de l’accès",
+      "ready": "Prêt",
+      "stopping": "Arrêt en cours",
+      "failed": "Récupération nécessaire"
+    }
   }
 }

@@ -12,8 +12,13 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
-  computerStatus: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_status"),
-  computerStart: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_start"),
+  computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
+  computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
+  /**
+   *  Never replays actions: fresh driver and MCP generation, then a new observation.
+   */
+  computerReconnect: (): Promise<ComputerStatus_Serialize> =>
+    __t3Invoke<ComputerStatus_Serialize>("computer_reconnect"),
   computerStop: (): Promise<null> => __t3Invoke<null>("computer_stop"),
   computerContext: (): Promise<{
     connection: Connection
@@ -250,6 +255,7 @@ export type CommandErrors = {
   autostartStatus: string
   computerStatus: string
   computerStart: string
+  computerReconnect: string
   computerStop: string
   computerContext: string
   computerRevision: string
@@ -598,11 +604,26 @@ export type ComputerPreview_Serialize = {
   error: string | null
 }
 
-export type ComputerStatus = {
+export type ComputerStatus = ComputerStatus_Serialize | ComputerStatus_Deserialize
+
+export type ComputerStatus_Deserialize = {
   permissions: Permissions
   available: boolean
   enabled: boolean
   version: string
+  phase: string
+  lastError?: string | null
+  diagnostics: string
+}
+
+export type ComputerStatus_Serialize = {
+  permissions: Permissions
+  available: boolean
+  enabled: boolean
+  version: string
+  phase: string
+  lastError: string | null
+  diagnostics: string
 }
 
 export type Connection = {

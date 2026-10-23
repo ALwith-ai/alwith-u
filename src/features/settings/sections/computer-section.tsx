@@ -5,7 +5,7 @@ import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { useComputerStatus } from "@/features/computer/computer-control"
-import { enableComputer, stopComputer } from "@/features/computer/operations"
+import { enableComputer, reconnectComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
 
 import { SettingGroup, SettingRow } from "./shared"
@@ -15,6 +15,7 @@ export function ComputerSection() {
   const { status, error: statusError } = useComputerStatus()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const busy = pending || status?.phase === "verifying" || status?.phase === "stopping"
   const permitted = status?.permissions.accessibility && status.permissions.screenCapture
   const perform = async (operation: () => Promise<unknown>) => {
     setError(null)
@@ -41,7 +42,7 @@ export function ComputerSection() {
               aria-label={t("computer.enable")}
               checked={status?.enabled === true}
               disabled={
-                pending || (!status?.enabled && (!status?.available || !status.permissions.supported || !permitted))
+                busy || (!status?.enabled && (!status?.available || !status.permissions.supported || !permitted))
               }
               onCheckedChange={(value) => void toggle(value)}
             />
@@ -66,7 +67,12 @@ export function ComputerSection() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        void perform(() => commands.computerRequestPermissions({ permission, request: true }))
+                        void perform(() =>
+                          commands.computerRequestPermissions({
+                            permission,
+                            request: true
+                          })
+                        )
                       }
                     >
                       {t("computer.grantPermissions")}
@@ -76,7 +82,12 @@ export function ComputerSection() {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      void perform(() => commands.computerRequestPermissions({ permission, request: false }))
+                      void perform(() =>
+                        commands.computerRequestPermissions({
+                          permission,
+                          request: false
+                        })
+                      )
                     }
                   >
                     {t("computer.openSettings")}
@@ -84,6 +95,33 @@ export function ComputerSection() {
                 </div>
               </SettingRow>
             ))}
+          {status?.available && status.permissions.supported && (
+            <SettingRow title={t("computer.connection")} desc={t(`computer.phases.${status.phase ?? "disabled"}`)}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !permitted}
+                onClick={() => {
+                  setPending(true)
+                  void perform(reconnectComputer).finally(() => setPending(false))
+                }}
+              >
+                {busy ? t("computer.verifying") : t("computer.reconnect")}
+              </Button>
+            </SettingRow>
+          )}
+          <p className="py-3 text-xs text-muted-foreground">{t("computer.reconnectHint")}</p>
+          {status?.lastError && (
+            <p role="alert" className="text-sm text-destructive">
+              {status.lastError}
+            </p>
+          )}
+          {status?.diagnostics?.trim() && (
+            <details className="py-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer">{t("computer.diagnostics")}</summary>
+              <pre className="mt-2 max-h-48 overflow-auto break-all whitespace-pre-wrap">{status.diagnostics}</pre>
+            </details>
+          )}
           {(error || statusError) && (
             <p role="alert" className="text-sm text-destructive">
               {error ?? statusError}

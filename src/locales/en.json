@@ -1111,6 +1111,18 @@
       "frame": "Live view of {{title}}",
       "unavailable": "Window preview is temporarily unavailable",
       "waiting": "Waiting for target window"
+    },
+    "connection": "Connection",
+    "reconnect": "Reconnect",
+    "verifying": "Verifying…",
+    "reconnectHint": "Reconnect stops current computer actions and verifies screen capture and accessibility. Actions are never replayed. After reconnecting, send your message again.",
+    "diagnostics": "Diagnostics (current app session)",
+    "phases": {
+      "disabled": "Off",
+      "verifying": "Verifying access",
+      "ready": "Ready",
+      "stopping": "Stopping",
+      "failed": "Needs recovery"
     }
   },
   "canvas": {

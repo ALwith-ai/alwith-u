@@ -377,5 +377,19 @@
   "canvas": {
     "navigation": "Navigazione delle pagine",
     "page": "Pagina {{number}}"
+  },
+  "computer": {
+    "connection": "Connessione",
+    "reconnect": "Riconnetti",
+    "verifying": "Verifica…",
+    "reconnectHint": "La riconnessione arresta le azioni e verifica cattura e accessibilità. Le azioni non vengono ripetute. Invia nuovamente il messaggio dopo la connessione.",
+    "diagnostics": "Diagnostica (sessione attuale)",
+    "phases": {
+      "disabled": "Disattivato",
+      "verifying": "Verifica accesso",
+      "ready": "Pronto",
+      "stopping": "Arresto",
+      "failed": "Ripristino necessario"
+    }
   }
 }
