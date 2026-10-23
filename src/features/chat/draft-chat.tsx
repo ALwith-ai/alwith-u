@@ -187,7 +187,14 @@ export function DraftChat({
       onSendingChange(target, false)
     }
   }
-  const picker = <DraftProjectPicker cwd={session?.cwd ?? cwd} recentProjects={recentProjects} onChange={onCwdChange} />
+  const picker = (
+    <DraftProjectPicker
+      cwd={session?.cwd ?? cwd}
+      recentProjects={recentProjects}
+      onChange={onCwdChange}
+      preparing={preparing}
+    />
+  )
   return (
     <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
       <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>

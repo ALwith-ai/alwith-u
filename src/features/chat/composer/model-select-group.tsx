@@ -88,7 +88,7 @@ export function ModelSelectGroup({
     <ModelSelect
       disabled={disabled || switching}
       switching={switching}
-      value={{ ...selected, label: modelTriggerLabel(selected.label) }}
+      value={{ ...selected, label: modelTriggerLabel(selected) }}
       compactCatalog
       unavailableEffort={{
         name: "Effort",

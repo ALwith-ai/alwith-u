@@ -127,6 +127,10 @@ describe("shared Desktop Drive UI", () => {
                 name: "Quarterly report",
                 projectId: 1,
                 level: "VIEW",
+                projectName: null,
+                grantedByName: null,
+                grantedAt: null,
+                folderPath: null,
                 localPath: null
               }
             ]
@@ -161,7 +165,18 @@ describe("shared Desktop Drive UI", () => {
           return {
             type: "shared",
             data: [
-              { resourceType: "FILE", resourceId: "file/42", name: "Remote report", projectId: 999, level: "VIEW" }
+              {
+                resourceType: "FILE",
+                resourceId: "file/42",
+                name: "Remote report",
+                projectId: 999,
+                level: "VIEW",
+                projectName: null,
+                grantedByName: null,
+                grantedAt: null,
+                folderPath: null,
+                localPath: null
+              }
             ]
           }
         throw new Error(`Unexpected request: ${request.type}`)
@@ -187,9 +202,25 @@ describe("shared Desktop Drive UI", () => {
       return Promise.try(() => {
         if (request.type === "shared") return { type: "shared", data: [] }
         if (request.type === "templates")
-          return { type: "templates", data: [{ id: "90071992547409999", name: "Research", kind: "KNOWLEDGE" }] }
+          return {
+            type: "templates",
+            data: [
+              {
+                id: "90071992547409999",
+                name: "Research",
+                kind: "KNOWLEDGE",
+                code: null,
+                description: null,
+                icon: null,
+                builtin: false
+              }
+            ]
+          }
         if (request.type === "departments")
-          return { type: "departments", data: [{ id: "department-a", name: "研发/基础架构" }] }
+          return {
+            type: "departments",
+            data: [{ id: "department-a", name: "研发/基础架构", code: null, parentId: null, type: null, path: null }]
+          }
         if (request.type === "createProject") return { type: "root", data: root }
         throw new Error(`Unexpected request: ${request.type}`)
       })
@@ -243,6 +274,7 @@ describe("shared permission navigation", () => {
                 type: "grants",
                 data: {
                   callerLevel: "VIEW",
+                  implicit: [],
                   grants: [
                     {
                       subjectType: "USER",
@@ -250,6 +282,7 @@ describe("shared permission navigation", () => {
                       subjectDisplay: "Alice",
                       level: "VIEW",
                       inherited: true,
+                      actions: [],
                       source: "FOLDER",
                       sourceResourceId: 8,
                       sourceDisplay: "Reports",
@@ -258,7 +291,7 @@ describe("shared permission navigation", () => {
                   ]
                 }
               }
-            : { type: "grants", data: { callerLevel: "MANAGE", grants: [] } }
+            : { type: "grants", data: { callerLevel: "MANAGE", grants: [], implicit: [] } }
         throw new Error(`Unexpected request: ${request.type}`)
       })
     })
@@ -397,7 +430,19 @@ describe("search profile isolation", () => {
   it("marks SSO as a non-submit button inside the token form", async () => {
     const f = fixture({ configured: false }, (request) => {
       return Promise.try(() => {
-        if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: true } }
+        if (request.type === "ssoConfig")
+          return {
+            type: "ssoConfig",
+            data: {
+              enabled: true,
+              issuer: null,
+              clientId: null,
+              authorizationEndpoint: null,
+              tokenEndpoint: null,
+              redirectUris: [],
+              scopes: []
+            }
+          }
         throw new Error(`Unexpected request ${request.type}`)
       })
     })
@@ -559,4 +604,20 @@ describe("Drive group deferred rendering", () => {
       expect(input).toHaveValue("Library")
     }
   )
+})
+
+it("project session actions receive the row's path without opening a new project", async () => {
+  const f = fixture()
+  const openProject = vi.fn(async () => {})
+  const openSessions = vi.fn()
+  f.host.renderProjectActions = (project) => (
+    <button onClick={() => openSessions(project.localPath)}>Recent sessions</button>
+  )
+  render(
+    <DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={openProject} confirm={async () => true} />
+  )
+  fireEvent.click(await screen.findByRole("button", { name: "Recent sessions" }))
+  expect(openSessions).toHaveBeenCalledWith("/drive/library")
+  expect(openProject).not.toHaveBeenCalled()
+  expect(document.querySelector("button button")).toBeNull()
 })
