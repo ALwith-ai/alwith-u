@@ -13,7 +13,13 @@ vi.mock("@/lib/settings-store", () => ({
   updateSettings: settings.update
 }))
 import { enableComputer, reconnectComputer, restoreComputer, stopComputer } from "../operations"
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  native.computerStart.mockResolvedValue(undefined)
+  native.computerReconnect.mockResolvedValue(undefined)
+  native.computerStop.mockResolvedValue(undefined)
+  settings.update.mockResolvedValue(undefined)
+})
 test("global enable saves its preference only after native startup succeeds", async () => {
   await enableComputer()
   expect(native.computerStart).toHaveBeenCalledExactlyOnceWith()
@@ -76,5 +82,107 @@ test("failed reconnect keeps the previous preference and propagates the capabili
 test("reconnect rolls back the driver if saving the enabled preference fails", async () => {
   settings.update.mockRejectedValue(new Error("disk full"))
   await expect(reconnectComputer()).rejects.toThrow("disk full")
+  expect(native.computerStop).toHaveBeenCalledOnce()
+})
+
+function gate() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+test.each([enableComputer, reconnectComputer])(
+  "stop waits for an in-flight grant and leaves the saved preference disabled (%#)",
+  async (grant) => {
+    const started = gate()
+    const pending = gate()
+    const start = async () => {
+      started.resolve()
+      await pending.promise
+    }
+    native.computerStart.mockImplementation(start)
+    native.computerReconnect.mockImplementation(start)
+    const granting = grant()
+    await started.promise
+    const stopping = stopComputer()
+    pending.resolve()
+    await Promise.all([granting, stopping])
+    expect(settings.update).toHaveBeenLastCalledWith({ "computer.enabled": false })
+  }
+)
+
+test("a delayed restore check cannot start the driver after global stop completes", async () => {
+  settings.get.mockReturnValue(true)
+  const queried = gate()
+  const pending = gate()
+  const calls: string[] = []
+  native.computerStatus.mockImplementation(async () => {
+    queried.resolve()
+    await pending.promise
+    return {
+      enabled: false,
+      available: true,
+      permissions: { supported: true, accessibility: true, screenCapture: true }
+    }
+  })
+  native.computerStart.mockImplementation(async () => {
+    calls.push("start")
+  })
+  native.computerStop.mockImplementation(async () => {
+    calls.push("stop")
+  })
+  const restoring = restoreComputer()
+  await queried.promise
+  const stopping = stopComputer()
+  pending.resolve()
+  await Promise.all([restoring, stopping])
+  expect(calls.at(-1)).toBe("stop")
+})
+
+test("failed rollback preserves both the save error and the native stop error", async () => {
+  const save = new Error("disk full")
+  const stop = new Error("driver stop failed")
+  settings.update.mockRejectedValue(save)
+  native.computerStop.mockRejectedValueOnce(stop)
+  await expect(enableComputer()).rejects.toMatchObject({ errors: [save, stop] })
+})
+
+test("a failed native stop does not claim the preference was disabled", async () => {
+  native.computerStop.mockRejectedValueOnce(new Error("driver stop failed"))
+  await expect(stopComputer()).rejects.toThrow("driver stop failed")
+  expect(settings.update).not.toHaveBeenCalled()
+  await enableComputer()
+  expect(settings.update).toHaveBeenLastCalledWith({ "computer.enabled": true })
+})
+
+test("the next transition waits for rollback finalization and proceeds after cleanup fails", async () => {
+  const cleanupStarted = gate()
+  const cleanupFinished = gate()
+  const saveError = new Error("save failed")
+  const cleanupError = new Error("cleanup failed")
+  settings.update.mockRejectedValueOnce(saveError)
+  native.computerStop.mockImplementationOnce(async () => {
+    cleanupStarted.resolve()
+    await cleanupFinished.promise
+    throw cleanupError
+  })
+  const enabling = enableComputer().catch((error: unknown) => error)
+  await cleanupStarted.promise
+  const reconnecting = reconnectComputer()
+  await Promise.resolve()
+  expect(native.computerReconnect).not.toHaveBeenCalled()
+  cleanupFinished.resolve()
+  expect(await enabling).toMatchObject({ errors: [saveError, cleanupError] })
+  await reconnecting
+  expect(native.computerReconnect).toHaveBeenCalledOnce()
+  expect(settings.update).toHaveBeenLastCalledWith({ "computer.enabled": true })
+})
+
+test("successful rollback preserves the exact original public rejection", async () => {
+  const error = new Error("save failed")
+  settings.update.mockRejectedValueOnce(error)
+  await expect(enableComputer()).rejects.toBe(error)
   expect(native.computerStop).toHaveBeenCalledOnce()
 })
