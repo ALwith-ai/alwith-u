@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-u"
-version = "0.2.15"
+version = "0.2.16"
 dependencies = [
  "alwith-api",
  "alwith-computer",
@@ -419,9 +419,9 @@ dependencies = [
 
 [[package]]
 name = "atlas-tauri"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29ea86229e2fa554be0674cc620d6e4e2db798e6dee79d79cb04863ebb511627"
+checksum = "50462a350f2b8f96714372e644f1b6285275a23072b14a6ec0f0aed5a46fa4f7"
 dependencies = [
  "log",
  "objc2",
