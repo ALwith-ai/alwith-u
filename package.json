@@ -21,7 +21,6 @@
     "test": "bun run test:scripts && vitest run",
     "test:live": "bun run stage && bun scripts/live.ts",
     "ts7-lint": "ts7-lint",
-    "format": "bun fmt",
     "stage": "bun scripts/stage.ts",
     "knip": "knip --no-progress",
     "bindings:check": "bun scripts/bindings.ts --check",
