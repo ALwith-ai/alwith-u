@@ -111,16 +111,20 @@
     "steerPlaceholder": "Adicione uma orientação à rodada atual",
     "permissionModes": {
       "readOnly": {
+        "name": "Somente leitura",
+        "description": "Leia arquivos da área de trabalho; alterações e acesso à internet exigem aprovação"
+      },
+      "workspaceAccess": {
         "name": "Solicitar aprovação",
-        "description": "Sempre perguntar antes de editar arquivos externos ou usar a internet"
+        "description": "Leia e edite arquivos da área de trabalho e execute comandos; acesso à internet e alterações fora da área de trabalho exigem aprovação"
       },
       "agent": {
         "name": "Aprovar por mim",
-        "description": "Perguntar apenas sobre ações detectadas como potencialmente inseguras"
+        "description": "Pergunte apenas sobre ações identificadas como potencialmente inseguras"
       },
       "fullAccess": {
         "name": "Acesso completo",
-        "description": "Acesso irrestrito à internet e a qualquer arquivo do computador"
+        "description": "Use com cuidado: o Codex pode editar arquivos fora desta área de trabalho e acessar a internet sem aprovação"
       },
       "heading": "Como aprovar as ações do ALwith U?"
     }

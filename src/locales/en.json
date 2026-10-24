@@ -356,8 +356,12 @@
     "navigationRetry": "Retry",
     "permissionModes": {
       "readOnly": {
+        "name": "Read-only",
+        "description": "Read workspace files, with approval required for edits or internet access"
+      },
+      "workspaceAccess": {
         "name": "Ask for approval",
-        "description": "Always ask to edit external files and use the internet"
+        "description": "Read and edit workspace files and run commands, with approval required for internet access or edits outside the workspace"
       },
       "agent": {
         "name": "Approve for me",
@@ -365,7 +369,7 @@
       },
       "fullAccess": {
         "name": "Full access",
-        "description": "Unrestricted access to the internet and any file on your computer"
+        "description": "Use with caution: Codex can edit files outside this workspace and access the internet without approval"
       },
       "heading": "How should ALwith U actions be approved?"
     }

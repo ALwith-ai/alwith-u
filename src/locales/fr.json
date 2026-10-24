@@ -111,8 +111,12 @@
     "steerPlaceholder": "Ajouter une instruction au tour en cours",
     "permissionModes": {
       "readOnly": {
-        "name": "Demander une autorisation",
-        "description": "Toujours demander avant de modifier des fichiers externes ou d’utiliser Internet"
+        "name": "Lecture seule",
+        "description": "Lire les fichiers de l’espace de travail ; les modifications et l’accès à Internet nécessitent une approbation"
+      },
+      "workspaceAccess": {
+        "name": "Demander une approbation",
+        "description": "Lire et modifier les fichiers de l’espace de travail et exécuter des commandes ; l’accès à Internet et les modifications hors de l’espace de travail nécessitent une approbation"
       },
       "agent": {
         "name": "Approuver pour moi",
@@ -120,7 +124,7 @@
       },
       "fullAccess": {
         "name": "Accès complet",
-        "description": "Accès illimité à Internet et à tous les fichiers de votre ordinateur"
+        "description": "À utiliser avec précaution : Codex peut modifier des fichiers hors de cet espace de travail et accéder à Internet sans approbation"
       },
       "heading": "Comment approuver les actions de ALwith U ?"
     }

@@ -109,8 +109,12 @@
     "steerPlaceholder": "Aggiungi un’indicazione al turno corrente",
     "permissionModes": {
       "readOnly": {
-        "name": "Chiedi approvazione",
-        "description": "Chiedi sempre prima di modificare file esterni o usare Internet"
+        "name": "Sola lettura",
+        "description": "Leggi i file dell’area di lavoro; le modifiche e l’accesso a Internet richiedono l’approvazione"
+      },
+      "workspaceAccess": {
+        "name": "Richiedi approvazione",
+        "description": "Leggi e modifica i file dell’area di lavoro ed esegui comandi; l’accesso a Internet e le modifiche fuori dall’area di lavoro richiedono l’approvazione"
       },
       "agent": {
         "name": "Approva per me",
@@ -118,7 +122,7 @@
       },
       "fullAccess": {
         "name": "Accesso completo",
-        "description": "Accesso senza restrizioni a Internet e a tutti i file sul computer"
+        "description": "Usa con cautela: Codex può modificare file fuori da questa area di lavoro e accedere a Internet senza approvazione"
       },
       "heading": "Come approvare le azioni di ALwith U?"
     }

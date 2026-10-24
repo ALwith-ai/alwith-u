@@ -113,16 +113,20 @@
     "steerPlaceholder": "현재 턴에 지침 추가",
     "permissionModes": {
       "readOnly": {
+        "name": "읽기 전용",
+        "description": "작업 공간의 파일을 읽을 수 있으며, 파일 수정이나 인터넷 접근에는 승인이 필요합니다"
+      },
+      "workspaceAccess": {
         "name": "승인 요청",
-        "description": "외부 파일을 수정하거나 인터넷을 사용하기 전에 항상 승인을 요청합니다"
+        "description": "작업 공간의 파일을 읽고 수정하며 명령을 실행할 수 있습니다. 인터넷 접근이나 작업 공간 밖의 파일 수정에는 승인이 필요합니다"
       },
       "agent": {
         "name": "대신 승인",
-        "description": "안전하지 않을 가능성이 있다고 감지된 작업에만 승인을 요청합니다"
+        "description": "잠재적으로 안전하지 않다고 감지된 작업에 대해서만 확인합니다"
       },
       "fullAccess": {
-        "name": "전체 액세스",
-        "description": "인터넷과 컴퓨터의 모든 파일에 제한 없이 액세스합니다"
+        "name": "전체 접근",
+        "description": "주의해서 사용하세요: Codex는 승인 없이 작업 공간 밖의 파일을 수정하고 인터넷에 접근할 수 있습니다"
       },
       "heading": "ALwith U의 작업을 어떻게 승인할까요?"
     }

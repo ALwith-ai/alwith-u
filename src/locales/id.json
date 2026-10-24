@@ -105,16 +105,20 @@
     "steerPlaceholder": "Tambahkan arahan untuk giliran saat ini",
     "permissionModes": {
       "readOnly": {
+        "name": "Hanya baca",
+        "description": "Baca berkas ruang kerja; pengeditan atau akses internet memerlukan persetujuan"
+      },
+      "workspaceAccess": {
         "name": "Minta persetujuan",
-        "description": "Selalu minta persetujuan sebelum mengedit file eksternal atau menggunakan internet"
+        "description": "Baca dan edit berkas ruang kerja serta jalankan perintah; akses internet atau pengeditan di luar ruang kerja memerlukan persetujuan"
       },
       "agent": {
         "name": "Setujui untuk saya",
-        "description": "Hanya minta persetujuan untuk tindakan yang terdeteksi berpotensi tidak aman"
+        "description": "Hanya tanyakan tindakan yang terdeteksi berpotensi tidak aman"
       },
       "fullAccess": {
         "name": "Akses penuh",
-        "description": "Akses tanpa batas ke internet dan file apa pun di komputer"
+        "description": "Gunakan dengan hati-hati: Codex dapat mengedit berkas di luar ruang kerja ini dan mengakses internet tanpa persetujuan"
       },
       "heading": "Bagaimana tindakan ALwith U disetujui?"
     }

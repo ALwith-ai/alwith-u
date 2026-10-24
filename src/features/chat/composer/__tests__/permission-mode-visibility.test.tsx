@@ -16,7 +16,7 @@ beforeEach(async () => {
 afterEach(cleanup)
 
 test.each(["agent", "workspace-write"])(
-  "hides workspace access without changing the current %s permission",
+  "shows every ACP permission without changing the current %s selection",
   async (currentValue) => {
     const options: acp.SessionConfigOption[] = [
       {
@@ -35,16 +35,17 @@ test.each(["agent", "workspace-write"])(
     ]
     const view = render(<PermissionModeSelect sessionId="chat" options={options} disabled={false} />)
     const trigger = view.getByRole("button")
-    expect(trigger).toHaveTextContent(currentValue === "workspace-write" ? "Workspace access" : "帮我批准")
+    expect(trigger).toHaveTextContent(currentValue === "workspace-write" ? "请求批准" : "帮我批准")
     fireEvent.click(trigger)
-    expect(view.queryByRole("menuitemradio", { name: "Workspace access" })).not.toBeInTheDocument()
+    expect(document.body).toContainOneByRole("menuitemradio", { name: /^请求批准/ })
     expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
+      expect.stringContaining("只读"),
       expect.stringContaining("请求批准"),
       expect.stringContaining("帮我批准"),
-      expect.stringContaining("完全访问权限")
+      expect.stringContaining("完全访问")
     ])
     expect(setConfig).not.toHaveBeenCalled()
-    await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: /^请求批准/ })))
+    await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: /^只读/ })))
     expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat", "mode", "read-only")
     expect(options[0].currentValue).toBe(currentValue)
   }
