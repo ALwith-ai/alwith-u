@@ -1,5 +1,5 @@
 import { type CollectionData, DEFAULT_COLLECTION_ID } from "@alwith/module-collection"
-import { beforeEach, expect, test, vi } from "vitest"
+import { beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
 import { type SettingsSnapshot, settingsStore } from "@/lib/settings-store"
 
@@ -8,6 +8,7 @@ import { dispatchCollection, useCollectionStore } from "../store"
 let snapshot: SettingsSnapshot
 let fail = false
 let conflict = false
+let writeSpy: MockInstance<typeof settingsStore.write>
 beforeEach(() => {
   vi.restoreAllMocks()
   snapshot = { revision: 100, values: {}, browserMigrated: true }
@@ -15,7 +16,7 @@ beforeEach(() => {
   conflict = false
   vi.spyOn(settingsStore, "get").mockImplementation((key) => snapshot.values[key])
   vi.spyOn(settingsStore, "read").mockImplementation(async () => snapshot)
-  vi.spyOn(settingsStore, "write").mockImplementation(async (request) => {
+  writeSpy = vi.spyOn(settingsStore, "write").mockImplementation(async (request) => {
     if (fail) throw new Error("Disk full")
     if (conflict) throw new Error("Settings changed in another window; reload and retry")
     expect(request.expectedRevision).toBe(snapshot.revision)
@@ -59,7 +60,7 @@ test("saves collection identity and emoji in one settings transaction", async ()
     { type: "create", id: "a", name: "Alpha" },
     { type: "emoji", id: "a", emoji: "⭐" }
   ])
-  expect(settingsStore.write).toHaveBeenCalledTimes(1)
+  expect(writeSpy).toHaveBeenCalledTimes(1)
   expect(useCollectionStore.getState().collections.a).toMatchObject({ name: "Alpha", emoji: "⭐" })
   fail = true
   await expect(
