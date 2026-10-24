@@ -100,7 +100,7 @@
         "@alwith/native-installed-apps": "^0.1.1",
         "@alwith/native-kit": "^0.1.0",
         "@alwith/native-voice": "^0.1.0",
-        "@nyssance/codex-acp-v2": "^0.7.30",
+        "@nyssance/codex-acp-v2": "^0.7.34",
         "@nyssance/ts7-lint": "^0.1.3",
         "@openai/codex": "0.164.0",
         "@storybook/addon-a11y": "^10.6.3",
@@ -145,7 +145,6 @@
   },
   "patchedDependencies": {
     "@nyssance/atlas@github:nyssance/atlas#b629e3b": "patches/@nyssance%2Fatlas@github%3Anyssance%2Fatlas#b629e3b.patch",
-    "@nyssance/codex-acp-v2@0.7.30": "patches/@nyssance%2Fcodex-acp-v2@0.7.30.patch",
   },
   "overrides": {
     "@alwith/module-auth": "^0.1.8",
@@ -562,7 +561,7 @@
 
     "@nyssance/atlas": ["@nyssance/atlas@github:nyssance/atlas#b629e3b", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.5.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "nyssance-atlas-b629e3b", "sha512-DfaffrcGGvdHywtAtS3XvQCTIRuzVigqo/ASZC7wwz1tpnOQgxQ7jKiMlTRltej7qsfmHPB3/Arf7S7ApqBkRA=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.30", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@openai/codex": "^0.164.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "open": "^11.0.1", "vscode-jsonrpc": "^9.0.1", "ws": "^8.22.0", "zod": "^4.0.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-qkUHGeIXuAWCh77tAdQAxOQP/Un/hC1j0nl7fppB1Y44c9lYS0rB4snjW64bFJMP4AE2xEDj/fKdXnWXiRPTaA=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.34", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@openai/codex": "^0.164.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "open": "^11.0.1", "vscode-jsonrpc": "^9.0.1", "ws": "^8.22.0", "zod": "^4.0.0" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-9BC1hzneN+KxsrKC9/VVvM/puMKQ7B7NqPxa/YH2jhwPMYf7bL5jZ+XqxGw0DLxchbVrYTgixslQnhzDC+Yi9w=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 

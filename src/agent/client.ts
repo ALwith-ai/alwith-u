@@ -29,6 +29,7 @@ import {
 import { type SessionGeneration, SessionLifecycle } from "@alwith/api/lifecycle"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
+import { CodexCapabilitiesClient } from "@nyssance/codex-acp-v2/client"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
 import { asError } from "../lib/text"
@@ -231,6 +232,14 @@ export class CodexClient {
   private readonly sessions = new SessionStore({ toolContent: "replace" })
   /** Agent requests awaiting user input (permissions, questionnaires), including answers, cancellation on Stop, and agent withdrawals. */
   private readonly requests = new AgentRequests((id, result, error) => void this.agent?.respond(id, result, error))
+  private nativeClient: CodexCapabilitiesClient | null = null
+
+  get codexCapabilities(): CodexCapabilitiesClient {
+    this.live()
+    if (this.nativeClient === null) throw new Error("Codex is not connected")
+    return this.nativeClient
+  }
+
   private agent: Agent | null = null
   private agents: Agents<Launch> | null = null
   private connecting: Promise<void> | null = null
@@ -344,6 +353,7 @@ export class CodexClient {
     try {
       const agent = await withTimeout(this.hold(), 60_000, "Codex did not answer initialize")
       this.agent = agent
+      this.nativeClient = new CodexCapabilitiesClient(agent)
       agent.onNotification((method, params) => {
         if (this.agent !== agent) return
         switch (method) {
@@ -429,6 +439,8 @@ export class CodexClient {
 
   private onClosed(agent: Agent): void {
     if (this.agent !== agent) return
+    this.nativeClient?.dispose()
+    this.nativeClient = null
     this.agent = null
     this.stopGap?.()
     this.stopGap = undefined
