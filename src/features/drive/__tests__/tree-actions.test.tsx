@@ -62,7 +62,7 @@ for (const [label, url] of [
         saveDocument={vi.fn()}
       />
     )
-    fireEvent.click(screen.getByText(label!))
+    fireEvent.click(screen.getByText(label))
     await waitFor(() => expect(boundary.writeText).toHaveBeenCalledWith(url))
     expect(browserWrite).not.toHaveBeenCalled()
   })

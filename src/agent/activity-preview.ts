@@ -4,7 +4,7 @@ import { type Item, textOf } from "@alwith/api"
 export function latestAssistantReply(items: readonly Item[] | undefined): string | undefined {
   if (!items) return undefined
   for (let index = items.length - 1; index >= 0; index--) {
-    const item = items[index]!
+    const item = items[index]
     if (item.kind !== "assistant") continue
     const text = textOf(item.content).replaceAll(/\s+/g, " ").trim()
     if (text) return text
@@ -85,7 +85,7 @@ export async function readActivityReply(
         if (text) return text
       }
     }
-    cursor = page.nextCursor as string | null
+    cursor = page.nextCursor
     if (cursor !== null) seen.add(cursor)
   } while (cursor !== null)
   return null

@@ -106,7 +106,7 @@ export const ImageViewGallery: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(canvas.getByRole("button", { name: "Viewed 12 images" }))
     await waitFor(async () => expect(canvas.getAllByRole("img")).toHaveLength(12))
-    const thumbnail = canvas.getAllByRole("img")[0]!
+    const thumbnail = canvas.getAllByRole("img")[0]
     await expect(thumbnail.getBoundingClientRect().width).toBe(80)
     await expect(thumbnail.getBoundingClientRect().height).toBe(80)
     const strip = thumbnail.closest(".codex-image-thumbnails")!

@@ -96,7 +96,7 @@ async function start() {
       .then((resource) =>
         serialize(async () => {
           if (scope !== petScope() || (await getVibemonState()).pet !== petId) return
-          if (!presentedResource || presentedResource.scope !== scope || presentedResource.petId !== petId) return
+          if (presentedResource?.scope !== scope || presentedResource.petId !== petId) return
           const identity = petResourceIdentity(resource)
           if (presentedResource.identity === identity || !(await WebviewWindow.getByLabel("vibemon"))) return
           await command("reload", petId)

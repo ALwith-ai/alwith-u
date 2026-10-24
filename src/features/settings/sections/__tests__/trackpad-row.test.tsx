@@ -65,7 +65,7 @@ test.each([
   ["MacIntel", /Mission Control/],
   ["Win32", /Windows Settings/]
 ])("shows conflict guidance for %s", (platform, guidance) => {
-  vi.spyOn(navigator, "platform", "get").mockReturnValue(platform as string)
+  vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
   settingsFixture({ "appearance.threeFingerSwipe": true })
   const view = render(<TrackpadRow />)
   expect(view.getByText(guidance)).toBeInTheDocument()
