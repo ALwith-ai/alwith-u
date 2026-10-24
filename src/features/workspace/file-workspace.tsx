@@ -27,6 +27,7 @@ import { containsPath, createFileSystem, dirname, type FileSystem, normalizePath
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
+import { Effect } from "effect"
 
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -87,6 +88,7 @@ import { moveWorkspaceFiles, type WorkspaceMoveOutcome } from "./move-workspace-
 import { resolvePreviewResource } from "./preview-resources"
 import { createTreeOpener } from "./tree-opener"
 import { useEditorPreferences } from "./use-editor-preferences"
+import { openWorkspaceScope, workspaceTask } from "./workspace-lifecycle"
 import { createWorkspaceStateStore, type IconTheme, type WorkspaceState } from "./workspace-state"
 import "@alwith/module-editor/previews/styles.css"
 
@@ -99,9 +101,6 @@ interface Workspace {
   editor: EditorController
   tabs: EditorWorkspaceController
   treeOpener: ReturnType<typeof createTreeOpener>
-  stopWatching: () => void
-  stopDirty: () => void
-  stopState: () => void
   iconTheme: IconTheme
 }
 const emptyEditorSnapshot = (): null => null
@@ -298,15 +297,17 @@ export function FileWorkspace({
       if (existing) return existing
       const inFlight = opening.current.get(requested)
       if (inFlight) return inFlight
-      const create = async (): Promise<Workspace> => {
-        const root = await invoke<string>("workspace_open", { path: requested })
+      const create = Effect.gen(function* () {
+        const root = yield* workspaceTask(() => invoke<string>("workspace_open", { path: requested }))
         signal.throwIfAborted()
-        let saved: WorkspaceState | null = null
-        try {
-          saved = await stateStore.load(root)
-        } catch (error) {
-          report(error)
-        }
+        const saved = yield* workspaceTask(() => stateStore.load(root)).pipe(
+          Effect.catch((error) =>
+            Effect.sync(() => {
+              report(error)
+              return null
+            })
+          )
+        )
         signal.throwIfAborted()
         const fs = createFileSystem({
           adapter: createTauriAdapter({
@@ -345,96 +346,104 @@ export function FileWorkspace({
           }),
           reportError: report
         })
-        const editor = createEditorController({
-          fs,
-          reportError: report,
-          confirmClose: async (document) => {
-            const result = await ask({
-              title: t("workspace.unsaved"),
-              detail: document.path,
-              choices: [
-                { label: t("workspace.discard"), value: "discard" },
-                { label: t("workspace.save"), value: "save" }
-              ]
+        const editor = yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            createEditorController({
+              fs,
+              reportError: report,
+              confirmClose: async (document) => {
+                const result = await ask({
+                  title: t("workspace.unsaved"),
+                  detail: document.path,
+                  choices: [
+                    { label: t("workspace.discard"), value: "discard" },
+                    { label: t("workspace.save"), value: "save" }
+                  ]
+                })
+                return result === null ? "cancel" : (result as CloseDecision)
+              }
             })
-            return result === null ? "cancel" : (result as CloseDecision)
-          }
-        })
+          ),
+          (editor) =>
+            Effect.sync(() => editor.dispose()).pipe(
+              Effect.ensuring(workspaceTask(async () => (await loadMonaco()).releaseMonaco(editor)).pipe(Effect.orDie))
+            )
+        )
         let expanded = saved?.expanded ?? [root]
         // assigned below once the editor exists; earlier tree callbacks skip persistence
         const late: { persistState?: () => void } = {}
-        const tree = createFileTreeController({
-          fs,
-          root,
-          reportError: report,
-          expanded,
-          onExpandedChange: (paths) => {
-            expanded = [...paths]
-            late.persistState?.()
-          },
-          confirmReplace: async (paths) =>
-            (await ask({
-              title: t("workspace.replace"),
-              detail: paths.join("\n"),
-              choices: [{ label: t("workspace.replace"), value: "replace" }]
-            })) === "replace"
-        })
-        try {
-          await tree.refresh()
+        const tree = yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            createFileTreeController({
+              fs,
+              root,
+              reportError: report,
+              expanded,
+              onExpandedChange: (paths) => {
+                expanded = [...paths]
+                late.persistState?.()
+              },
+              confirmReplace: async (paths) =>
+                (await ask({
+                  title: t("workspace.replace"),
+                  detail: paths.join("\n"),
+                  choices: [{ label: t("workspace.replace"), value: "replace" }]
+                })) === "replace"
+            })
+          ),
+          (tree) => Effect.sync(() => tree.dispose())
+        )
+        yield* workspaceTask(() => tree.refresh())
+        signal.throwIfAborted()
+        if (saved?.showHidden) yield* workspaceTask(() => tree.setShowHidden(true))
+        if (saved?.showIgnored) yield* workspaceTask(() => tree.setShowIgnored(true))
+        for (const tab of saved?.tabs ?? []) {
           signal.throwIfAborted()
-          if (saved?.showHidden) await tree.setShowHidden(true)
-          if (saved?.showIgnored) await tree.setShowIgnored(true)
-          for (const tab of saved?.tabs ?? []) {
-            signal.throwIfAborted()
-            try {
-              const document = await editor.open(tab.path)
-              signal.throwIfAborted()
-              if (tab.pinned) editor.pin(document.id)
-            } catch (error) {
-              signal.throwIfAborted()
-              report(error)
-            }
-          }
-          signal.throwIfAborted()
-          const active = editor.getSnapshot().documents.find((doc) => doc.path === saved?.activePath)
-          if (active) await editor.open(active.path)
-          signal.throwIfAborted()
-        } catch (error) {
-          tree.dispose()
-          editor.dispose()
-          throw error
-        }
-        let stopWatching: () => void
-        try {
-          stopWatching = await fs.watch(root)
-          if (signal.aborted) {
-            stopWatching()
-            signal.throwIfAborted()
-          }
-        } catch (error) {
-          tree.dispose()
-          editor.dispose()
-          throw error
-        }
-        const stopDirty = editor.subscribe(() => {
-          const dirty = [...workspaces.current.values()].some((value) =>
-            value.editor.getSnapshot().documents.some((doc) => doc.dirty)
+          const document = yield* workspaceTask(() => editor.open(tab.path)).pipe(
+            Effect.catch((error) =>
+              Effect.sync(() => {
+                signal.throwIfAborted()
+                report(error)
+                return null
+              })
+            )
           )
-          if (dirty !== reportedDirty.current) {
-            reportedDirty.current = dirty
-            void invoke("workspace_dirty", { dirty }).catch(report)
-          }
-        })
-        const tabs = createEditorWorkspace(editor, saved?.tabLayout)
-        const created: Workspace = {
+          signal.throwIfAborted()
+          if (document && tab.pinned) editor.pin(document.id)
+        }
+        signal.throwIfAborted()
+        const active = editor.getSnapshot().documents.find((doc) => doc.path === saved?.activePath)
+        if (active) yield* workspaceTask(() => editor.open(active.path))
+        signal.throwIfAborted()
+        yield* Effect.acquireRelease(
+          workspaceTask(() => fs.watch(root)),
+          (stop) => Effect.sync(stop)
+        )
+        signal.throwIfAborted()
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            editor.subscribe(() => {
+              const dirty = [...workspaces.current.values()].some((value) =>
+                value.editor.getSnapshot().documents.some((doc) => doc.dirty)
+              )
+              if (dirty !== reportedDirty.current) {
+                reportedDirty.current = dirty
+                void invoke("workspace_dirty", { dirty }).catch(report)
+              }
+            })
+          ),
+          (stop) => Effect.sync(stop)
+        )
+        const tabs = yield* Effect.acquireRelease(
+          Effect.sync(() => createEditorWorkspace(editor, saved?.tabLayout)),
+          (tabs) => Effect.sync(() => tabs.dispose())
+        )
+        const created = {
           root,
           fs,
           editor,
           tabs,
           tree,
-          stopWatching,
-          stopDirty,
-          stopState: () => {},
           iconTheme: saved?.iconTheme ?? "vscode-icons",
           treeOpener: createTreeOpener(
             editor,
@@ -447,6 +456,7 @@ export function FileWorkspace({
             tabs
           )
         }
+        yield* Effect.addFinalizer(() => Effect.sync(() => created.treeOpener.dispose()))
         let serialized = ""
         const persistState = () => {
           const snapshot = editor.getSnapshot(),
@@ -469,19 +479,20 @@ export function FileWorkspace({
           })
         }
         late.persistState = persistState
-        const stopEditorState = editor.subscribe(persistState),
-          stopTreeState = tree.subscribe(persistState),
-          stopTabState = created.tabs.subscribe(persistState)
-        created.stopState = () => {
-          stopEditorState()
-          stopTreeState()
-          stopTabState()
-        }
+        for (const subscribe of [
+          () => editor.subscribe(persistState),
+          () => tree.subscribe(persistState),
+          () => created.tabs.subscribe(persistState)
+        ])
+          yield* Effect.acquireRelease(Effect.sync(subscribe), (stop) => Effect.sync(stop))
         persistState()
+        return created
+      })
+      const promise = openWorkspaceScope(signal, create, report).then((created) => {
+        signal.throwIfAborted()
         workspaces.current.set(requested, created)
         return created
-      }
-      const promise = create()
+      })
       opening.current.set(requested, promise)
       try {
         return await promise
@@ -662,24 +673,8 @@ export function FileWorkspace({
     const currentOpening = opening.current
     return () => {
       activeLifecycle.abort()
-      const instances = [...currentWorkspaces.values()]
       currentWorkspaces.clear()
       currentOpening.clear()
-      for (const value of instances) {
-        value.stopWatching()
-        value.stopDirty()
-        value.stopState()
-        value.treeOpener.dispose()
-        value.tree.dispose()
-        value.tabs.dispose()
-        value.editor.dispose()
-      }
-      if (instances.length)
-        void loadMonaco()
-          .then((module) => {
-            for (const value of instances) module.releaseMonaco(value.editor)
-          })
-          .catch(report)
     }
   }, [])
   useEffect(() => {
