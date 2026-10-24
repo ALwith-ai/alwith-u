@@ -376,5 +376,10 @@
       "stopping": "Wird gestoppt",
       "failed": "Wiederherstellung nötig"
     }
+  },
+  "voice": {
+    "realtimeStart": "Codex-Sprachanruf starten",
+    "realtimeStop": "Sprachanruf beenden",
+    "realtimeCancel": "Sprachverbindung abbrechen"
   }
 }

@@ -408,5 +408,10 @@
       "stopping": "중지 중",
       "failed": "복구 필요"
     }
+  },
+  "voice": {
+    "realtimeStart": "Codex 음성 통화 시작",
+    "realtimeStop": "음성 통화 종료",
+    "realtimeCancel": "음성 연결 취소"
   }
 }

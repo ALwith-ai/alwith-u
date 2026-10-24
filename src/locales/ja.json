@@ -406,5 +406,10 @@
       "stopping": "停止中",
       "failed": "復旧が必要"
     }
+  },
+  "voice": {
+    "realtimeStart": "Codex 音声通話を開始",
+    "realtimeStop": "音声通話を終了",
+    "realtimeCancel": "音声接続をキャンセル"
   }
 }

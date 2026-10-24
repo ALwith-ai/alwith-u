@@ -1073,7 +1073,10 @@
     "resourceIdHint": "Use the resource enabled for your account.",
     "shortcut": "Voice shortcut",
     "shortcutKey": "Option / Alt",
-    "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only."
+    "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only.",
+    "realtimeStart": "Start Codex voice call",
+    "realtimeStop": "End voice call",
+    "realtimeCancel": "Cancel voice connection"
   },
   "computer": {
     "actions": {

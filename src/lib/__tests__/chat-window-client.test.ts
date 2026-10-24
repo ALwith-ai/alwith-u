@@ -652,3 +652,50 @@ test("floating project views use the owner's full session list and receive mutat
     owner.disconnect()
   }
 })
+
+test("floating realtime forwards SDP before start acknowledgement and releases its subscription", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  let receive: Parameters<CodexClient["onRealtime"]>[1] | undefined
+  const unsubscribe = vi.fn()
+  vi.spyOn(owner, "onRealtime").mockImplementation((_id, fn) => {
+    receive = fn
+    return unsubscribe
+  })
+  const start = vi.spyOn(owner, "startRealtime").mockImplementation(async (sessionId) => {
+    receive?.({ sessionId, event: "sdp", data: { sdp: "answer" } })
+    return {}
+  })
+  const end = vi.spyOn(owner, "stopRealtime").mockImplementation(async (sessionId) => {
+    receive?.({ sessionId, event: "closed", data: { reason: null } })
+    return {}
+  })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const events: string[] = []
+    const unlisten = remote.onRealtime("existing", (event) => events.push(event.event))
+    await remote.startRealtime("existing", { outputModality: "audio", transport: { type: "webrtc", sdp: "offer" } })
+    expect(events).toEqual(["sdp"])
+    expect(start).toHaveBeenCalledWith("existing", {
+      outputModality: "audio",
+      transport: { type: "webrtc", sdp: "offer" }
+    })
+    await expect(
+      remote.startRealtime("existing", { outputModality: "audio", transport: { type: "webrtc", sdp: "duplicate" } })
+    ).rejects.toThrow("A voice call already owns this session")
+    expect(unsubscribe).not.toHaveBeenCalled()
+    await remote.stopRealtime("existing")
+    expect(events).toEqual(["sdp", "closed"])
+    expect(end).toHaveBeenCalledTimes(1)
+    expect(unsubscribe).toHaveBeenCalledTimes(1)
+    unlisten()
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})

@@ -390,5 +390,10 @@
       "stopping": "Deteniendo",
       "failed": "Requiere recuperación"
     }
+  },
+  "voice": {
+    "realtimeStart": "Iniciar llamada de voz con Codex",
+    "realtimeStop": "Finalizar llamada de voz",
+    "realtimeCancel": "Cancelar conexión de voz"
   }
 }

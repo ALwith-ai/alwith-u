@@ -504,5 +504,10 @@
       "stopping": "جارٍ الإيقاف",
       "failed": "يتطلب الاستعادة"
     }
+  },
+  "voice": {
+    "realtimeStart": "بدء مكالمة صوتية مع Codex",
+    "realtimeStop": "إنهاء المكالمة الصوتية",
+    "realtimeCancel": "إلغاء الاتصال الصوتي"
   }
 }

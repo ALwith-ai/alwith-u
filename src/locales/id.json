@@ -392,5 +392,10 @@
       "stopping": "Menghentikan",
       "failed": "Perlu pemulihan"
     }
+  },
+  "voice": {
+    "realtimeStart": "Mulai panggilan suara Codex",
+    "realtimeStop": "Akhiri panggilan suara",
+    "realtimeCancel": "Batalkan koneksi suara"
   }
 }

@@ -29,7 +29,7 @@ import {
 import { type SessionGeneration, SessionLifecycle } from "@alwith/api/lifecycle"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
-import { CodexCapabilitiesClient } from "@nyssance/codex-acp-v2/client"
+import { CodexCapabilitiesClient, type RealtimeEvent, type RealtimeStart } from "@nyssance/codex-acp-v2/client"
 import { createStore, type StoreApi } from "zustand/vanilla"
 
 import { asError } from "../lib/text"
@@ -238,6 +238,17 @@ export class CodexClient {
     this.live()
     if (this.nativeClient === null) throw new Error("Codex is not connected")
     return this.nativeClient
+  }
+
+  startRealtime(sessionId: string, params: RealtimeStart): Promise<Record<string, never>> {
+    this.session(sessionId)
+    return this.codexCapabilities.startRealtime(sessionId, params)
+  }
+  stopRealtime(sessionId: string): Promise<Record<string, never>> {
+    return this.codexCapabilities.stopRealtime(sessionId)
+  }
+  onRealtime(sessionId: string, receive: (event: RealtimeEvent) => void): () => void {
+    return this.codexCapabilities.onRealtime(sessionId, receive)
   }
 
   private agent: Agent | null = null

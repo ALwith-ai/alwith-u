@@ -13,6 +13,7 @@ import { toast } from "sonner"
 
 import { hasFuzzyFileSearch } from "@/agent/codex-extensions"
 import { observeVoiceTurn } from "@/core/voice-turn"
+import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { VoiceButton } from "@/features/voice/voice-button"
 import { client, useApp } from "@/lib/client"
@@ -121,6 +122,7 @@ export function Composer({
   const [mentions, setMentions] = useState<string[]>(() => drafts.get(session.id)?.mentions ?? [])
   const pasting = attachments.some((file) => isPastedTextAttachment(file) && file.pastedText.status !== "ready")
   const [sending, setSending] = useState(false)
+  const [realtimeActive, setRealtimeActive] = useState(false)
   const [dropping, setDropping] = useState(false)
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
   const textareaRef = useRef<PromptInputTextareaHandle>(null)
@@ -418,11 +420,18 @@ export function Composer({
                   <VoiceButton
                     draft={draftPort}
                     cwd={session.cwd}
-                    enabled={ready}
+                    enabled={ready && !realtimeActive}
                     cancelRef={voiceCancelRef}
                     waitForTurn={waitForVoiceTurn}
                     supportsHandsfree={onSubmit === undefined || onVoiceHandoff !== undefined}
                     resume={resumeVoice}
+                  />
+                  <RealtimeVoiceButton
+                    key={session.id}
+                    sessionId={session.id}
+                    enabled={ready}
+                    beforeStart={() => voiceCancelRef.current?.()}
+                    onActive={setRealtimeActive}
                   />
                   <ChatSubmitButton
                     active={active}

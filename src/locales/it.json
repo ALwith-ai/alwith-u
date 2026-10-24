@@ -401,5 +401,10 @@
       "stopping": "Arresto",
       "failed": "Ripristino necessario"
     }
+  },
+  "voice": {
+    "realtimeStart": "Avvia chiamata vocale Codex",
+    "realtimeStop": "Termina chiamata vocale",
+    "realtimeCancel": "Annulla connessione vocale"
   }
 }

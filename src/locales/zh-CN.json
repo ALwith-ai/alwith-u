@@ -1073,7 +1073,10 @@
     "resourceIdHint": "使用账号已开通的资源。",
     "shortcut": "语音快捷键",
     "shortcutKey": "Option / Alt",
-    "shortcutHint": "500 毫秒内双击 Option/Alt 开始，单击结束。仅当前聊天窗口生效。"
+    "shortcutHint": "500 毫秒内双击 Option/Alt 开始，单击结束。仅当前聊天窗口生效。",
+    "realtimeStart": "开始 Codex 语音通话",
+    "realtimeStop": "结束语音通话",
+    "realtimeCancel": "取消语音连接"
   },
   "computer": {
     "actions": {
