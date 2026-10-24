@@ -55,6 +55,7 @@ export const config = (): UserConfig => ({
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],
   build: {
+    license: { fileName: "THIRD_PARTY_LICENSES.txt" },
     target: "esnext",
     rolldownOptions: {
       input: {
