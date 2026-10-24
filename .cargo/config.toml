@@ -4,3 +4,4 @@ rustflags = ["-C", "force-unwind-tables=yes"]
 
 [env]
 MACOSX_DEPLOYMENT_TARGET = { value = "26.0", force = true }
+ALWITH_NATIVE_DIRECTORY = { value = "src-tauri/resources/native", relative = true }
