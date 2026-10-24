@@ -20,14 +20,13 @@ import {
   type PendingRequest,
   promptConfigMeta,
   replayCursorFor,
-  replayIdOf,
   replayReceiptOf,
   type RuntimeClient,
   type Session,
   type SessionRunState,
   SessionStore
 } from "@alwith/api"
-import { SessionAdmission, type SessionGeneration, SessionGenerations, SessionOperations } from "@alwith/api/lifecycle"
+import { type SessionGeneration, SessionLifecycle } from "@alwith/api/lifecycle"
 import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
 import type { SessionOperation } from "@alwith/module-computer"
 import { createStore, type StoreApi } from "zustand/vanilla"
@@ -249,21 +248,13 @@ export class CodexClient {
   /** Main and floating windows allocate counted titles through the same owner. */
   private forkQueue: Promise<unknown> = Promise.resolve()
   private readonly contextRevisions = new Map<string, string | undefined>()
-  /** The adapter rejects overlapping configuration writes to one session. */
-  private readonly sessionOperations = new SessionAdmission()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
   private threadsRequest: Promise<void> | null = null
   /** open / close / delete lane per session: adjacent equal opens share one replay; close and delete revoke queued opens. */
-  private readonly operations = new SessionOperations()
-  private readonly generations = new SessionGenerations()
+  private readonly lifecycle = new SessionLifecycle()
   private stopGap: (() => void) | undefined
-  /** Sessions being created (`session/new`, `session/fork`): their ids are unknown until the response, so their first frames wait in `unborn`. */
-  private creating = 0
-  private readonly unborn = new Map<string, acp.SessionUpdate[]>()
-  /** The replay each session is waiting for (`_alwith/replay_started`); frames of any other replay are late and dropped. */
-  private readonly activeReplays = new Map<string, string>()
   private readonly historyRequests = new Map<string, Promise<void>>()
   private readonly retryRequests = new Map<string, Promise<void>>()
   private readonly navigationRequests = new Map<string, Promise<void>>()
@@ -375,12 +366,12 @@ export class CodexClient {
             break
           case "_alwith/replay_started": {
             const { sessionId, replayId } = params as { sessionId: string; replayId: string }
-            this.activeReplays.set(sessionId, replayId)
+            this.lifecycle.replays.started(sessionId, replayId)
             break
           }
           case "_alwith/replay_ended": {
             const { sessionId, replayId } = params as { sessionId: string; replayId: string }
-            if (this.activeReplays.get(sessionId) === replayId) this.activeReplays.delete(sessionId)
+            this.lifecycle.replays.ended(sessionId, replayId)
             break
           }
           // `$/cancel_request` (the agent withdraws a permission / form) and `elicitation/complete`
@@ -441,7 +432,7 @@ export class CodexClient {
     this.agent = null
     this.stopGap?.()
     this.stopGap = undefined
-    this.generations.clear()
+    this.lifecycle.clear()
     this.threadsRequest = null
     this.listRequests.threads++
     this.listRequests.archived++
@@ -483,13 +474,12 @@ export class CodexClient {
 
   private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
     // A frame of a replay this session is no longer waiting for arrived late; the one it waits for carries its own id.
-    const replayId = replayIdOf(update)
-    if (replayId !== null && this.activeReplays.get(sessionId) !== replayId) return
+    if (!this.lifecycle.accept(sessionId, update)) return
     if (!this.sessions.sessions.has(sessionId)) {
       // A frame for a session this client does not hold. While a session is being created its id is not known yet, so the
       // frame waits for the response and is applied right after it; otherwise the session was closed here and this is the
       // agent's tail after our close, which belongs to nobody any more.
-      if (this.creating > 0) this.unborn.set(sessionId, [...(this.unborn.get(sessionId) ?? []), update])
+      this.lifecycle.births.buffer(sessionId, update)
       return
     }
     const session = this.sessions.accept(sessionId, update)
@@ -830,25 +820,14 @@ export class CodexClient {
 
   /**
    * Creates a session: the response names it, `settle` records it, and the frames the agent sent for it before the response
-   * (held in `unborn`) are applied right after, in order. Frames held for ids that were never born are dropped once nothing is
+   * (held in the shared creation buffer) are applied right after, in order. Frames held for ids that were never born are dropped once nothing is
    * being created.
    */
   private async born<Response extends { sessionId: string }>(
     request: () => Promise<Response>,
     settle: (response: Response) => void
   ): Promise<Response> {
-    this.creating++
-    try {
-      const response = await request()
-      settle(response)
-      const queued = this.unborn.get(response.sessionId) ?? []
-      this.unborn.delete(response.sessionId)
-      for (const update of queued) this.onUpdate(response.sessionId, update)
-      return response
-    } finally {
-      this.creating--
-      if (this.creating === 0) this.unborn.clear()
-    }
+    return this.lifecycle.births.run(request, settle, (id, update) => this.onUpdate(id, update))
   }
 
   private listSession(session: Session): void {
@@ -889,7 +868,7 @@ export class CodexClient {
     const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
       const existing = Object.keys(this.state.draftSessions).find((id) => this.state.draftSessions[id] === owner)
-      if (existing) await this.sessionOperations.pending(existing)
+      if (existing) await this.lifecycle.admission.pending(existing)
       if (
         existing &&
         this.session(existing).cwd === cwd &&
@@ -970,9 +949,9 @@ export class CodexClient {
   }
 
   private enqueueSession<T>(id: string, operation: () => Promise<T>, continueAfterFailure = true): Promise<T> {
-    const next = this.sessionOperations.enqueue(id, operation, continueAfterFailure)
+    const next = this.lifecycle.admission.enqueue(id, operation, continueAfterFailure)
     const release = (): void => {
-      if (this.sessionOperations.pending(id) === undefined) {
+      if (this.lifecycle.admission.pending(id) === undefined) {
         this.store.setState((state) => {
           const { [id]: _pending, ...configPending } = state.configPending
           return { configPending }
@@ -989,7 +968,7 @@ export class CodexClient {
     const existing = this.sessions.sessions.get(id)
     // A replay in flight already carries this open. A read-only attach (another client holds the
     // writer) is resumed again: the writer may have let go since.
-    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.operations.busy(id)) {
+    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.lifecycle.operations.busy(id)) {
       this.followModel(owner, existing)
       return
     }
@@ -1008,12 +987,11 @@ export class CodexClient {
   }
 
   private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
-    return this.operations.open(id, cwd, (signal) => this.runReplay(id, cwd, signal, owner))
+    return this.lifecycle.operations.open(id, cwd, (signal) => this.runReplay(id, cwd, signal, owner))
   }
 
   private async runReplay(id: string, cwd: string, signal: AbortSignal, owner?: DraftOwner): Promise<void> {
-    this.generations.retire(id)
-    const generation = this.generations.capture(id)
+    const generation = this.lifecycle.beginReplay(id)
     if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
     const agent = this.live()
     const history = this.historyCapability("browse")
@@ -1050,11 +1028,11 @@ export class CodexClient {
         { cancellationSignal: signal }
       )
       signal.throwIfAborted()
-      if (this.agent !== agent || !this.generations.isCurrent(generation))
+      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
         throw new Error("Codex session retired during resume")
       await bind?.(id)
       signal.throwIfAborted()
-      if (this.agent !== agent || !this.generations.isCurrent(generation))
+      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
         throw new Error("Codex session retired during binding")
       this.contextRevisions.set(id, revision)
       if (history) {
@@ -1082,8 +1060,7 @@ export class CodexClient {
       this.noteModel(this.sessions.get(id))
       this.recordForkOrigin(id, response._meta)
     } catch (error) {
-      if (this.agent !== agent || !this.generations.isCurrent(generation) || !this.sessions.sessions.has(id))
-        throw error
+      if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) throw error
       this.publishSession({
         ...this.sessions.get(id),
         restoring: false,
@@ -1317,11 +1294,18 @@ export class CodexClient {
   }
 
   async promptReceipt(id: string, prompt: acp.ContentBlock[]): Promise<string> {
-    const dispatched = await this.enqueueSession(id, () => this.dispatchPrompt(id, prompt), false)
-    return dispatched.receipt
+    return this.lifecycle.prompt(
+      id,
+      (checkpoint) => {
+        if (this.options.sessionContextRevision || this.options.prepareSessionTools)
+          return this.preparePrompt(id, prompt, checkpoint)
+      },
+      () => this.dispatchPrompt(id, prompt).receipt,
+      (operation) => this.enqueueSession(id, operation, false)
+    )
   }
 
-  private async dispatchPrompt(id: string, prompt: acp.ContentBlock[]): Promise<{ receipt: Promise<string> }> {
+  private async preparePrompt(id: string, prompt: acp.ContentBlock[], checkpoint: () => void): Promise<void> {
     let session = this.sessions.get(id)
     if (!session.attached) throw new Error("Open the chat before sending")
     if (prompt.length === 0) throw new Error("Enter a message")
@@ -1333,26 +1317,39 @@ export class CodexClient {
       this.options.sessionContextRevision &&
       this.contextRevisions.get(id) !== (await this.options.sessionContextRevision())
     ) {
+      checkpoint()
       await this.live().request("session/close", { sessionId: id })
+      checkpoint()
       this.updates.remove(id)
       this.publishSession({ ...this.sessions.get(id), attached: false })
+      checkpoint()
       await this.replay(id, session.cwd)
       session = this.sessions.get(id)
     }
+    checkpoint()
     if (this.options.prepareSessionTools) {
       const run = this.state.runStates[id]?.state
       if (run !== "running" && run !== "requires_action") {
         try {
           await this.options.prepareSessionTools(id)
         } catch {
+          checkpoint()
           await this.live().request("session/close", { sessionId: id })
+          checkpoint()
           this.updates.remove(id)
           this.publishSession({ ...this.sessions.get(id), attached: false })
+          checkpoint()
           await this.replay(id, session.cwd)
           await this.options.prepareSessionTools(id)
         }
       }
     }
+    checkpoint()
+  }
+
+  private dispatchPrompt(id: string, prompt: acp.ContentBlock[]): { receipt: Promise<string> } {
+    if (!this.sessions.get(id).attached) throw new Error("Open the chat before sending")
+    if (prompt.length === 0) throw new Error("Enter a message")
     // The user's message goes on screen now, under a local id. The receipt says which id the
     // agent inserted it under (codex-acp-v2 mints it and hands it to Codex as
     // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
@@ -1361,18 +1358,24 @@ export class CodexClient {
     const agent = this.live()
     assertPromptSupported(agent.initialized, prompt)
     const sentAt = Date.now()
-    const generation = this.generations.capture(id)
+    const generation = this.lifecycle.capture(id)
     const localId = this.sessions.addPrompt(id, prompt)
     this.publishSession(this.sessions.get(id))
     // Once a request leaves the client, transport failure cannot prove it was not accepted.
     // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
     this.materializeDraft(id)
     const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
-    const response = agent.request("session/prompt", {
-      sessionId: id,
-      prompt,
-      _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
-    })
+    const response = this.lifecycle.submissions.submit(
+      id,
+      () =>
+        agent.request("session/prompt", {
+          sessionId: id,
+          prompt,
+          _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
+        }),
+      undefined,
+      (error) => configStaleOf(error) !== null
+    ).receipt
     // Return the receipt as data: admission ends at dispatch, not at receipt or turn completion.
     const receipt = this.acceptPromptReceipt(id, localId, agent, generation, response)
     return { receipt }
@@ -1386,7 +1389,7 @@ export class CodexClient {
     response: Promise<acp.PromptResponse>
   ): Promise<string> {
     const assertCurrent = () => {
-      if (this.agent !== agent || !this.generations.isCurrent(generation))
+      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
         throw new AgentGoneError(agent.agentId, "prompt receipt belongs to a retired session")
     }
     let accepted: acp.PromptResponse
@@ -1410,6 +1413,7 @@ export class CodexClient {
   }
 
   async cancel(id: string): Promise<void> {
+    this.lifecycle.cancelPreparing(id)
     // The protocol: every pending permission of the session MUST be answered `cancelled`
     // (and forms cancelled) — otherwise they hang in the agent and the Runtime and come back
     // as zombie prompts on the next attach.
@@ -1430,12 +1434,12 @@ export class CodexClient {
   async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     const write = async (): Promise<void> => {
       const agent = this.live()
-      const generation = this.generations.capture(id)
+      const generation = this.lifecycle.capture(id)
       const response = await agent.request(
         "session/set_config_option",
         configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
       )
-      if (this.agent !== agent || !this.generations.isCurrent(generation))
+      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
         throw new AgentGoneError(agent.agentId, "configuration belongs to a retired session")
       this.publishSession({
         ...this.sessions.get(id),
@@ -1543,7 +1547,8 @@ export class CodexClient {
   }
 
   async close(id: string): Promise<void> {
-    await this.operations.close(id, () =>
+    this.lifecycle.cancelPreparing(id)
+    await this.lifecycle.operations.close(id, () =>
       this.enqueueSession(id, async () => {
         this.requests.cancelSession(id)
         await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
@@ -1554,12 +1559,13 @@ export class CodexClient {
 
   /** End the live session while retaining its transcript, as Desktop's Activity stop does. */
   async stopSession(id: string): Promise<void> {
-    await this.operations.close(id, () =>
+    this.lifecycle.cancelPreparing(id)
+    await this.lifecycle.operations.close(id, () =>
       this.enqueueSession(id, async () => {
         this.requests.cancelSession(id)
         await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
         this.updates.remove(id)
-        this.generations.retire(id)
+        this.lifecycle.retire(id)
         const session = this.sessions.sessions.get(id)
         // Activity can also contain sessions that this window has never opened.
         if (session) {
@@ -1570,7 +1576,8 @@ export class CodexClient {
   }
 
   async archive(id: string): Promise<void> {
-    await this.operations.delete(id, async () => {
+    this.lifecycle.cancelPreparing(id)
+    await this.lifecycle.operations.delete(id, async () => {
       // Host access is revoked before the lifecycle changes; a failed revocation leaves the session as it was.
       await this.options.revokeSessionAccess?.(id)
       await this.live().request("_codex/session_archive", { sessionId: id })
@@ -1599,7 +1606,8 @@ export class CodexClient {
   }
 
   async delete(id: string): Promise<void> {
-    await this.operations.delete(id, async () => {
+    this.lifecycle.cancelPreparing(id)
+    await this.lifecycle.operations.delete(id, async () => {
       await this.options.revokeSessionAccess?.(id)
       await this.live().request("session/delete", { sessionId: id })
       this.dropSession(id)
@@ -1814,7 +1822,7 @@ export class CodexClient {
   }
 
   private dropSession(id: string): void {
-    this.generations.retire(id)
+    this.lifecycle.retire(id)
     this.historyRequests.delete(id)
     this.navigationEpochs.delete(id)
     this.navigationRequests.delete(id)
