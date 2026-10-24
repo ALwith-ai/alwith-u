@@ -1729,3 +1729,83 @@ test("concurrent opens await the same replay and close cancels its request befor
   await closing
   expect(client.state.sessions.h1).toBeUndefined()
 })
+
+test("a pending receipt does not hold admission and cannot write into a reopened session", async () => {
+  const { client, port } = await make()
+  const id = await client.newSession("/tmp/receipt-lifetime")
+  const original = port.acpRequest.bind(port)
+  let respond!: (response: { messageId: string }) => void
+  const request = vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    if (method === "session/prompt")
+      return new Promise((resolve) => {
+        respond = resolve
+      })
+    return original(agentId, method, params, options)
+  })
+  const sending = client.promptReceipt(id, [{ type: "text", text: "pending receipt" }])
+  const outcome = sending.then(
+    () => "accepted",
+    (error: unknown) => error
+  )
+  await until(() => respond !== undefined)
+  await client.setConfig(id, "model", "chosen-model")
+  expect(client.session(id).configOptions[0]?.currentValue).toBe("chosen-model")
+  await client.cancel(id)
+  await client.close(id)
+  await client.open(id, "/tmp/receipt-lifetime")
+  const reopened = client.session(id)
+  respond({ messageId: "late-receipt" })
+  expect(await outcome).toMatchObject({ name: "AgentGoneError" })
+  expect(client.session(id)).toBe(reopened)
+  request.mockRestore()
+})
+
+test("stopping while retaining the transcript retires its pending receipt", async () => {
+  const { client, port } = await make()
+  const id = await client.newSession("/tmp/stopped-receipt")
+  const original = port.acpRequest.bind(port)
+  const receipt = Promise.withResolvers<{ messageId: string }>()
+  let sent = false
+  const request = vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    if (method === "session/prompt") {
+      sent = true
+      return receipt.promise
+    }
+    return original(agentId, method, params, options)
+  })
+  try {
+    const result = client.promptReceipt(id, [{ type: "text", text: "retained" }]).catch((error) => error)
+    await until(() => sent)
+    await client.stopSession(id)
+    const stopped = client.session(id)
+    expect(stopped.items.some((item) => item.kind === "user")).toBe(true)
+    receipt.resolve({ messageId: "retired-receipt" })
+    expect(await result).toMatchObject({ name: "AgentGoneError" })
+    expect(client.session(id)).toBe(stopped)
+  } finally {
+    request.mockRestore()
+  }
+})
+
+test("reconnect releases each Runtime gap subscription", async () => {
+  const { client, port } = await make()
+  client.disconnect()
+  const subscribe = port.onGap.bind(port)
+  const releases: ReturnType<typeof vi.fn>[] = []
+  const spy = vi.spyOn(port, "onGap").mockImplementation((listener) => {
+    const release = vi.fn(subscribe(listener))
+    releases.push(release)
+    return release
+  })
+  try {
+    await client.connect()
+    client.disconnect()
+    expect(releases[0]).toHaveBeenCalledTimes(1)
+    await client.connect()
+    client.disconnect()
+    expect(releases[0]).toHaveBeenCalledTimes(1)
+    expect(releases[1]).toHaveBeenCalledTimes(1)
+  } finally {
+    spy.mockRestore()
+  }
+})

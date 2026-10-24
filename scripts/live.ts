@@ -363,6 +363,7 @@ async function check(transport: "stdio" | "ws") {
     await second.close(closeTarget)
     await second.close(survivor)
     console.log("close: idle and running sessions retire independently; sibling completes and closed history reopens")
+    if (process.env.ALWITH_LIVE_FOCUS === "lifecycle") return
     await verifyUserInput(second, directory)
     await verifyAsyncUserInput(second, directory)
   } finally {

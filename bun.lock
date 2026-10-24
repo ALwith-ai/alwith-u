@@ -6,7 +6,7 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.0.1",
-        "@alwith/api": "^0.4.16",
+        "@alwith/api": "^0.4.18",
         "@alwith/module-auth": "^0.1.8",
         "@alwith/module-chat": "^0.1.25",
         "@alwith/module-collection": "^0.0.2",
@@ -156,7 +156,7 @@
 
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.0.1", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-2.0.1.tgz", { "peerDependencies": { "zod": "^3.25.76 || ^4.0.0" } }, "sha512-v4E/NcBTGFEKmorGso8ysAjJTkNh5UMJPP4aDznyMNmnP9t10g/aCCo/Djy7RYaYZy5ZROFK3G5cEj9tDgGOTQ=="],
 
-    "@alwith/api": ["@alwith/api@0.4.16", "", { "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-n4OtBuLqFQfpNi1YUcSmETf6jLh6acm1DmdDMqKF1GDhGhqaC54cbtQkV/oBWyxNW2ZUNAi+FW6y8SW9K76+nw=="],
+    "@alwith/api": ["@alwith/api@0.4.18", "", { "dependencies": { "effect": "4.0.1" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.1", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-w314fNdxu1LubxPwjG5P4NkzifWfO6AfqKgTPSTxiouaBUDYRZLks1SLKzybAuPq8N9POCQ0HjHcliyMPdlrkA=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.8", "", { "dependencies": { "@base-ui/react": "^1.8.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "fflate": "0.8.3", "i18next": "^26.4.2", "lucide-react": "^1.49.0", "motion": "^13.4.6", "react-i18next": "^17.0.15", "sonner": "^2.0.8", "tyme4ts": "^1.5.3", "zustand": "^5.0.15" }, "peerDependencies": { "react": "^19.3.0", "react-dom": "^19.3.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-pim1ZyXEztaxV9DygK81TL0odf2LGVHQAaARkXLdhLfsMPC7/UuVOGcf+wbXpNyx1y0QJuCk0aWqQFKNOQlK8g=="],
 
@@ -1375,6 +1375,8 @@
     "dunder-proto": ["dunder-proto@1.0.1", "https://registry.npmmirror.com/dunder-proto/-/dunder-proto-1.0.1.tgz", { "dependencies": { "call-bind-apply-helpers": "^1.0.1", "es-errors": "^1.3.0", "gopd": "^1.2.0" } }, "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A=="],
 
     "ee-first": ["ee-first@1.1.1", "https://registry.npmmirror.com/ee-first/-/ee-first-1.1.1.tgz", {}, "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="],
+
+    "effect": ["effect@4.0.1", "https://registry.npmmirror.com/effect/-/effect-4.0.1.tgz", {}, "sha512-b1VlQG9g8fwxE5QnIZuPoOP/0MsqHJSRKxUijjoM80E5q95FXrX5yWtY5XI8G+GJsBQAVSDbLS458z9a++uVvw=="],
 
     "electron-to-chromium": ["electron-to-chromium@1.5.463", "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.5.463.tgz", {}, "sha512-nVWNU6ltFjopvOdD44J4zoBkgO0M+WZiFKKFV7EjebOH9z0KNphk6bCEjplXtJofL21ARIuuwWOCsFkBVklm6w=="],
 
