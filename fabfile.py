@@ -352,7 +352,7 @@ def check(_context: object) -> None:
     (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
         ("types", ["bun", "run", "typecheck"], ROOT),
-        ("lint", ["bun", "run", "lint"], ROOT),
+        ("lint", ["bun", "lint"], ROOT),
         # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
         ("lint suppressions", ["sh", "-c", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx"], ROOT),
         ("knip", ["bun", "run", "knip"], ROOT),
