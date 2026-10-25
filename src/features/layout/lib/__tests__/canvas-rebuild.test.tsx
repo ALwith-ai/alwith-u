@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
@@ -13,7 +13,7 @@ const carousel = vi.hoisted(() => {
     cancelInput: vi.fn(),
     goToSnap: vi.fn(),
     getGeometry: () => ({ selected: 1, snaps: [0, 1] }),
-    on: vi.fn(),
+    on: vi.fn<(event: string, listener: () => void) => unknown>(),
     off: vi.fn()
   }
   api.on.mockReturnValue(api)
@@ -98,13 +98,16 @@ function PagingHarness({ pinned }: { pinned: boolean }) {
   )
 }
 
-test.each([false, true])("paging preserves Atlas layout options with pinned=%s", (pinned) => {
+test.each([false, true])("offscreen navigation remains eligible for hover with pinned=%s", async (pinned) => {
   const view = render(<PagingHarness pinned={pinned} />)
-  carousel.options.mockClear()
-  for (const page of ["2", "3", "1", "2"]) fireEvent.click(view.getByText(page))
-  expect(carousel.options.mock.calls.length).toBeGreaterThan(0)
-  for (const [options] of carousel.options.mock.calls) {
-    expect(options.navigationPinned).toBe(pinned)
+  const geometry = vi.spyOn(carousel.api, "getGeometry")
+  for (const index of [1, 2, 0, 1]) {
+    fireEvent.click(view.getByText(String(index + 1)))
+    geometry.mockReturnValue({ selected: index, snaps: [0, 1, 2] })
+    const listener = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
+    if (typeof listener !== "function") throw new Error("Missing Atlas selection subscription")
+    await act(() => listener())
+    expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(pinned && index === 1)
   }
 })
 

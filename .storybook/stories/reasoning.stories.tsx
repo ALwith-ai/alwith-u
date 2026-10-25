@@ -88,6 +88,7 @@ export const LivePreview: Story = {
       if (element === null) throw new Error("Reasoning preview is missing")
       return element
     }
+    await userEvent.click(canvas.getByRole("button", { name: "Thinking" }))
     const maxHeight = 8.75 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
     await waitFor(() => {
       void expect(canvas.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
@@ -108,6 +109,10 @@ export const LivePreview: Story = {
       void expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
     })
     await userEvent.click(canvas.getByRole("button", { name: "Finish reasoning" }))
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Thought" }))
     await waitFor(() => {
       void expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
       void expect(canvas.queryByRole("button", { name: "Thinking" })).toBeNull()

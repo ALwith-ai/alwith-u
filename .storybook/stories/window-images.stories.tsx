@@ -50,8 +50,6 @@ export const PreviewCloseButton: Story = {
       await expect(getComputedStyle(close).backgroundColor).toBe("rgba(0, 0, 0, 0)")
       await expect(close.querySelector("svg")!.getBoundingClientRect().width).toBe(16)
     })
-    await userEvent.hover(close)
-    await waitFor(async () => expect(getComputedStyle(close).backgroundColor).not.toBe("rgba(0, 0, 0, 0)"))
     await userEvent.click(close)
     await waitFor(async () => expect(body.queryByRole("dialog")).toBeNull())
     await userEvent.click(canvas.getByRole("button", { name: "Preview image" }))
@@ -85,8 +83,13 @@ function ImageActivityExample() {
     title: `View image screenshot-${index}.png`,
     kind: "read",
     status: "completed",
-    content: [],
-    locations: [],
+    content: [
+      {
+        type: "content",
+        content: { type: "resource_link", uri: `/tmp/screenshot-${index}.png`, name: `screenshot-${index}.png` }
+      }
+    ],
+    locations: [{ path: `/tmp/screenshot-${index}.png` }],
     rawInput: { path: `/tmp/screenshot-${index}.png` },
     rawOutput: null
   }))

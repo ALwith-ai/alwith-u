@@ -14,6 +14,12 @@ const config: StorybookConfig = {
     const { mergeConfig } = await import("vite")
     return mergeConfig(config, {
       plugins: [tailwindcss()],
+      // Worker URLs must be transformed by Vite instead of dependency prebundling.
+      optimizeDeps: {
+        entries: [path.resolve(import.meta.dirname, "stories/**/*.stories.tsx")],
+        exclude: ["@alwith/module-chat"],
+        include: ["diff2html", "diff2html/lib/types"]
+      },
       resolve: {
         alias: {
           "@/lib/open": path.resolve(import.meta.dirname, "fixtures/open.ts"),

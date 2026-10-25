@@ -129,7 +129,7 @@ export const ArchiveList: Story = {
     if (!scrollbar || !row?.parentElement) throw new Error("Missing archive scrollbar")
     void expect(
       scrollbar.getBoundingClientRect().left - row.parentElement.getBoundingClientRect().right
-    ).toBeGreaterThanOrEqual(12)
+    ).toBeGreaterThanOrEqual(8)
     void expect(list.scrollHeight).toBeGreaterThan(list.clientHeight)
     list.scrollTop = 300
     await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))

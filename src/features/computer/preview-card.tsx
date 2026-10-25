@@ -147,7 +147,11 @@ export function ComputerPreviewCard({
             variant="ghost"
             className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 hover:bg-muted/40 [&_img]:max-h-44"
             disabled={!preview.frame || !preview.activity.target}
-            aria-label={t("computer.preview.focus", { app: title })}
+            aria-label={
+              preview.frame
+                ? t("computer.preview.focus", { app: title })
+                : t(preview.error ? "computer.preview.unavailable" : "computer.preview.waiting")
+            }
             title={t("computer.preview.focus", { app: title })}
             onClick={onFocus}
           >
@@ -165,7 +169,11 @@ export function ComputerPreviewCard({
             variant="ghost"
             className="h-auto overflow-hidden rounded-xl border bg-muted/30 p-0"
             onClick={onFocus}
-            aria-label={t("computer.preview.focus", { app: title })}
+            aria-label={
+              preview.frame
+                ? t("computer.preview.focus", { app: title })
+                : t(preview.error ? "computer.preview.unavailable" : "computer.preview.waiting")
+            }
           >
             <WindowFrame preview={preview} />
           </Button>

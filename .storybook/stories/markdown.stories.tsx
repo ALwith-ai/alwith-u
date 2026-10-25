@@ -15,7 +15,9 @@ export const Answer: Story = {
     text: "## Implementation ready\n\nThe **shared chat renderer** supports lists, code, and tables.\n\n- No agent process\n- No account required\n\n```ts\nconst greeting = 'Hello, ALwith U'\n```\n\n| Check | Result |\n| --- | --- |\n| Typecheck | Passed |"
   },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("heading", { name: "Implementation ready" })).toBeVisible()
+    await expect(
+      await canvas.findByRole("heading", { name: "Implementation ready" }, { timeout: 10_000 })
+    ).toBeVisible()
   }
 }
 

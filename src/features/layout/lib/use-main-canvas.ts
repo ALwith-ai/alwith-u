@@ -84,8 +84,8 @@ export function useMainCanvas(
     watchResize: false,
     watchRegions: false,
     manageInert: false,
-    // Page selection must not rebuild Atlas and interrupt its active animation.
-    navigationPinned: pinned,
+    // Navigation is docked only on the main chat screen.
+    navigationPinned: pinned && selected === 1,
     navigationWidth: size.navigation || 248,
     onNavigationChange: setNavigationPeeking,
     trackpadEnabled: enabled,

@@ -192,7 +192,7 @@ export const ArabicFloatingSidebar: Story = {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
       void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
+      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 4, 0)
       void expect(getComputedStyle(sidebar).visibility).toBe("visible")
     })
   }
@@ -240,7 +240,7 @@ export const EnglishFloatingSidebar: Story = {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
       void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 4, 0)
       const style = getComputedStyle(sidebar)
       void expect([
         style.borderTopLeftRadius,

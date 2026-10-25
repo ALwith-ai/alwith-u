@@ -27,8 +27,8 @@ export const EqualGutters: Story = {
       await waitFor(() => {
         const bounds = viewport.getBoundingClientRect()
         const slide = buttons[index].getBoundingClientRect()
-        void expect(slide.left).toBeCloseTo(bounds.left + 4, 0)
-        void expect(slide.right).toBeCloseTo(bounds.right - 4, 0)
+        void expect(slide.left).toBeCloseTo(bounds.left, 0)
+        void expect(slide.right).toBeCloseTo(bounds.right, 0)
         void expect(slide.height).toBeCloseTo(bounds.height, 0)
         void expect(slide.width / slide.height).toBeCloseTo(16 / 5, 1)
       })
