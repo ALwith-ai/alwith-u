@@ -138,6 +138,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "vite@8.3.5": "patches/vite@8.3.5.patch",
+  },
   "overrides": {
     "@alwith/module-auth": "^0.1.10",
     "@alwith/module-chat": "^0.1.28",

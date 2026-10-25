@@ -1,0 +1,13 @@
+diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
+index 797794fd975e746a691212c9fe265fca28167242..2adc31dbbb8cb7b10bcf5ff4599d8ac735d4a5d3 100644
+--- a/dist/node/chunks/node.js
++++ b/dist/node/chunks/node.js
+@@ -34370,7 +34370,7 @@ The app bundles dependencies which contain the following licenses:
+ 	return text;
+ }
+ function findLicenseFile(pkgDir) {
+-	const matchedFile = fs.readdirSync(pkgDir).find((file) => licenseFiles.some((re) => re.test(file)));
++	const matchedFile = fs.readdirSync(pkgDir).find((file) => licenseFiles.some((re) => re.test(file)) && fs.statSync(path.join(pkgDir, file)).isFile());
+ 	if (matchedFile) return path.join(pkgDir, matchedFile);
+ }
+ //#endregion
