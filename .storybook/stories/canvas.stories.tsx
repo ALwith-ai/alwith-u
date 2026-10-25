@@ -25,7 +25,9 @@ function ReturnToChat({ restore }: { restore: () => void }) {
   )
 }
 
-function hoverNavigationEdge(canvas: HTMLElement): void {
+async function hoverNavigationEdge(canvas: HTMLElement): Promise<void> {
+  const host = canvas.querySelector<HTMLElement>("[data-canvas-moving]")!
+  await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
   const root = canvas.querySelector<HTMLElement>("[data-atlas-viewport]")!
   const bounds = root.getBoundingClientRect()
   root.dispatchEvent(
@@ -43,6 +45,15 @@ function hoverNavigationEdge(canvas: HTMLElement): void {
       clientX: i18n.dir() === "rtl" ? bounds.right - 2 : bounds.left + 2,
       clientY: bounds.top + 100
     })
+  )
+  const surface = canvas.querySelector<HTMLElement>("[data-atlas-navigation-surface]")!
+  await waitFor(
+    () => {
+      expect(host).not.toHaveAttribute("data-sidebar-mode", "hidden")
+      expect(surface.inert).toBe(false)
+      expect(getComputedStyle(surface).pointerEvents).not.toBe("none")
+    },
+    { timeout: 3000 }
   )
 }
 
@@ -171,7 +182,7 @@ export const Unified: Story = {
       ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
-    hoverNavigationEdge(canvasElement)
+    await hoverNavigationEdge(canvasElement)
     await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
     await waitFor(() => expect(canvas.getByRole("heading", { name: "Leading page" })).toBeVisible())
     await userEvent.click(dots()[0])
@@ -246,7 +257,7 @@ export const ReturnFromPreview: Story = {
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "hidden"))
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
       await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      hoverNavigationEdge(canvasElement)
+      await hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(dots()[0])
       await waitFor(async () => {
@@ -280,7 +291,7 @@ export const ReflowWithFloatingSidebar: Story = {
       await userEvent.click(dots()[1])
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
       await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      hoverNavigationEdge(canvasElement)
+      await hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(canvas.getByRole("button", { name: action }))
       await waitFor(
@@ -401,11 +412,11 @@ export const OperationChain: Story = {
       await assertScreen(2)
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
       await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      hoverNavigationEdge(canvasElement)
+      await hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(canvas.getByRole("button", { name: "Return to chat" }))
       await assertScreen(1)
-      hoverNavigationEdge(canvasElement)
+      await hoverNavigationEdge(canvasElement)
       await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
       await waitFor(() => expect(host).toHaveAttribute("data-main-screen", "leading"))
       await userEvent.click(await canvas.findByRole("button", { name: /^Chat$/ }))
@@ -537,7 +548,7 @@ export const NavigationDuringMotion: Story = {
     const original = nav.getBoundingClientRect().left - track.getBoundingClientRect().left
     const panels = [...canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")]
     const widths = panels.map((panel) => panel.getBoundingClientRect().width)
-    hoverNavigationEdge(canvasElement)
+    await hoverNavigationEdge(canvasElement)
     await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
     for (let frame = 0; frame < 50; frame++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -592,7 +603,7 @@ export const StablePanelGap: Story = {
     await assertGap()
     for (const index of [2, 1]) {
       if (index === 0) {
-        hoverNavigationEdge(canvasElement)
+        await hoverNavigationEdge(canvasElement)
         await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
       } else await userEvent.click(dots()[index - 1])
       for (let frame = 0; frame < 50; frame++) {
@@ -617,7 +628,7 @@ export const MainControlsOnly: Story = {
     await waitFor(() => expect(dots()).toHaveLength(2))
     for (const index of [0, 1, 2, 1]) {
       if (index === 0) {
-        hoverNavigationEdge(canvasElement)
+        await hoverNavigationEdge(canvasElement)
         await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
       } else await userEvent.click(dots()[index - 1])
       await waitFor(async () => {
@@ -776,7 +787,7 @@ export const ThreeScreenTransitions: Story = {
     await userEvent.type(canvas.getByRole("textbox", { name: "Draft" }), " / retained")
     await userEvent.click(dots()[1])
     await settled(2, 3)
-    hoverNavigationEdge(canvasElement)
+    await hoverNavigationEdge(canvasElement)
     await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
     await settled(0, 3)
     // Changing geometry while on -1 must preserve that screen, even when preview's snap disappears.
@@ -799,7 +810,7 @@ export const ThreeScreenTransitions: Story = {
     await userEvent.click(dots()[0])
     await settled(1, 3)
     await userEvent.click(canvas.getByRole("switch"))
-    hoverNavigationEdge(canvasElement)
+    await hoverNavigationEdge(canvasElement)
     await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
     await settled(0, 3)
     await userEvent.click(dots()[0])
