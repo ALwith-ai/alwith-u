@@ -28,17 +28,13 @@ SEMVER = re.compile(
 PIN_VERSION = re.compile(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)")
 BUN_PLATFORM_PACKAGES = (
     "@oven/bun-darwin-aarch64",
-    "@oven/bun-linux-aarch64",
     "@oven/bun-linux-x64-baseline",
     "@oven/bun-windows-x64-baseline",
-    "@oven/bun-windows-aarch64",
 )
 CODEX_PLATFORM_PACKAGES = (
     "@openai/codex-darwin-arm64",
     "@openai/codex-linux-x64",
-    "@openai/codex-linux-arm64",
     "@openai/codex-win32-x64",
-    "@openai/codex-win32-arm64",
 )
 
 

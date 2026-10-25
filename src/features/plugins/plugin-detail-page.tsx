@@ -100,11 +100,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   })}
                   onCheckedChange={(enabled) => void toggle(current, enabled)}
                 />
-                <Button
-                  variant="destructive"
-                  disabled={!!busy}
-                  onClick={() => void uninstall(current)}
-                >
+                <Button variant="destructive" disabled={!!busy} onClick={() => void uninstall(current)}>
                   {busy ? <Spinner /> : t("plugins.detail.uninstall")}
                 </Button>
               </div>

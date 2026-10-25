@@ -2,12 +2,10 @@
 export const BUN_PACKAGES: Record<string, string> = {
   "aarch64-apple-darwin": "@oven/bun-darwin-aarch64",
   "x86_64-unknown-linux-gnu": "@oven/bun-linux-x64-baseline",
-  "aarch64-unknown-linux-gnu": "@oven/bun-linux-aarch64",
-  "x86_64-pc-windows-msvc": "@oven/bun-windows-x64-baseline",
-  "aarch64-pc-windows-msvc": "@oven/bun-windows-aarch64"
+  "x86_64-pc-windows-msvc": "@oven/bun-windows-x64-baseline"
 }
 
-const CODEX_PLATFORMS = ["darwin-arm64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"]
+const CODEX_PLATFORMS = ["darwin-arm64", "linux-x64", "win32-x64"]
 
 type Manifest = {
   packageManager: string

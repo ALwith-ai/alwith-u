@@ -32,8 +32,6 @@ jobs:
             runner: macos-15
           - target: x86_64-pc-windows-msvc
             runner: windows-2025
-          - target: aarch64-pc-windows-msvc
-            runner: windows-11-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -140,8 +138,6 @@ jobs:
             runner: macos-15
           - target: x86_64-pc-windows-msvc
             runner: windows-2025
-          - target: aarch64-pc-windows-msvc
-            runner: windows-11-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4

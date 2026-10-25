@@ -41,8 +41,7 @@ function tauriStep(job: Job): Step {
 
 const releaseTargets = [
   { target: "aarch64-apple-darwin", runner: "macos-15" },
-  { target: "x86_64-pc-windows-msvc", runner: "windows-2025" },
-  { target: "aarch64-pc-windows-msvc", runner: "windows-11-arm" }
+  { target: "x86_64-pc-windows-msvc", runner: "windows-2025" }
 ]
 
 test("every CI Bun installation uses the packageManager pin and checks toolchain consistency", () => {

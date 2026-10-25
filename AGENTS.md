@@ -129,3 +129,7 @@ Origin: explicit user instruction (2026-09-30).
 - Write commit messages in English only. No Chinese in subjects or bodies, in any repo.
 - Squash churn before pushing: one commit per logical change. Never leave an add-then-remove sequence (a feature commit followed by its revert, or a dependency pinned and re-pinned) in history; rewrite it into the net result.
 - Origin: user instruction (2026-10-20).
+
+## Desktop architecture policy
+
+Windows and Linux distributions support x64 only; do not build, stage, or publish ARM64 packages for either OS. macOS ARM64 remains supported. This also applies to shared Runtime and native module distributions. User decision: 2026-10-25.

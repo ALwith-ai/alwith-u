@@ -11,7 +11,7 @@ U's source can be public. Private implementations such as Auth are not published
 
 `bun install` installs the dependencies, `bun run stage` verifies and copies the native artifacts and their licences, and `bun tauri build` uses the same staging chain. For a cross-architecture build run `bun install --os='*' --cpu='*'` first, then pass the target triple.
 
-The native libraries are produced by the CI of the private alwith-modules repository, with arm64 and x64 artifacts for macOS, Windows and Linux. A platform package contains only the dynamic library, `artifact.json` and licence notices; no Auth Rust source. The build scripts of `@alwith/native` never run in the WebView.
+The native libraries are produced by the CI of the private alwith-modules repository, with macOS ARM64, Windows x64 and Linux x64 artifacts. A platform package contains only the dynamic library, `artifact.json` and licence notices; no Auth Rust source. The build scripts of `@alwith/native` never run in the WebView.
 
 Pet, bubble, and chat windows are managed by U's Tauri host. On macOS they share the local `tauri-nspanel` integration, including focus, input-method support, and window lifecycle. Pet state, animation, and assets remain in the shared frontend packages. `@alwith/native` stays pinned to the published `0.1.4` packages without local platform overrides.
 
@@ -31,6 +31,6 @@ A passing local Cargo build does not mean distribution is done. The final check 
 
 ## Current release scope (2026-09-16)
 
-- The native libraries and the Runtime are both npm platform packages (`@alwith/native`, `@alwith/runtime`, five platforms each: macOS arm64, Linux x64/arm64, Windows x64/arm64, no Intel Mac), published by each repository's CI through trusted publishing with versions matching the repository tag.
+- The native libraries and the Runtime are both npm platform packages (`@alwith/native`, `@alwith/runtime`, three platforms each: macOS ARM64, Linux x64 and Windows x64), published by each repository's CI through trusted publishing with versions matching the repository tag.
 - At build time `stageNative()` / `stageRuntime()` verify the SHA256 pinned in the platform package before copying into resources and sidecars. No GitHub token is read, no file is requested from a private repository, and no neighbouring checkout is borrowed implicitly (`RUNTIME_SOURCE=sibling` and `RUNTIME_PATH` are explicit development overrides).
 - Verified in an isolated macOS ARM64 directory: public dependency install, full staging, TypeScript checks, frontend tests, lint, frontend build and the Tauri release compile pass. The main workspace passes 101 Bun tests and 28 Rust tests. This does not mean end-to-end integration with real accounts or notarisation is done.

@@ -45,23 +45,14 @@ const TARGETS: Record<string, Target> = {
     npm: "linux-x64",
     exe: ""
   },
-  "aarch64-unknown-linux-gnu": {
-    npm: "linux-arm64",
-    exe: ""
-  },
   "x86_64-pc-windows-msvc": {
     npm: "win32-x64",
-    exe: ".exe"
-  },
-  "aarch64-pc-windows-msvc": {
-    npm: "win32-arm64",
     exe: ".exe"
   }
 }
 // The npm package keeps the binary under its own vendor triple, which differs from Rust's on Linux.
 const NPM_VENDOR_TRIPLE: Record<string, string> = {
-  "x86_64-unknown-linux-gnu": "x86_64-unknown-linux-musl",
-  "aarch64-unknown-linux-gnu": "aarch64-unknown-linux-musl"
+  "x86_64-unknown-linux-gnu": "x86_64-unknown-linux-musl"
 }
 
 async function hostTriple(): Promise<string> {

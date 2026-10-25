@@ -17,7 +17,7 @@ class UploadToTosTests(unittest.TestCase):
             "alwith-u_0.1.0_macos_aarch64.app.tar.gz.sig",
             "alwith-u_0.1.0_windows_x64-setup.exe",
             "alwith-u_0.1.0_windows_x64-setup.exe.sig",
-            "alwith-u_0.1.0_windows_arm64.msi",
+            "alwith-u_0.1.0_windows_x64.msi",
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

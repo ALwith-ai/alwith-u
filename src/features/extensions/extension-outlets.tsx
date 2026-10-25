@@ -8,8 +8,8 @@ import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 
-import { EXTENSION_ICONS } from "./extension-icons"
 import { ExtensionIcon } from "./extension-icon"
+import { EXTENSION_ICONS } from "./extension-icons"
 
 const ALIGNMENTS = ["left", "center", "right"] as const
 const ALIGNMENT_CLASSES: Record<ContributionAlignment, string> = {

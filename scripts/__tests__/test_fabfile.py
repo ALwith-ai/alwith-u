@@ -490,15 +490,11 @@ class ToolchainTaskTests(unittest.TestCase):
                 "devDependencies": {"@openai/codex": "0.154.0"},
                 "optionalDependencies": {
                     "@oven/bun-darwin-aarch64": "1.4.0",
-                    "@oven/bun-linux-aarch64": "1.4.0",
                     "@oven/bun-linux-x64-baseline": "1.4.0",
                     "@oven/bun-windows-x64-baseline": "1.4.0",
-                    "@oven/bun-windows-aarch64": "1.4.0",
                     "@openai/codex-darwin-arm64": "npm:@openai/codex@0.154.0-darwin-arm64",
-                    "@openai/codex-linux-arm64": "npm:@openai/codex@0.154.0-linux-arm64",
                     "@openai/codex-linux-x64": "npm:@openai/codex@0.154.0-linux-x64",
                     "@openai/codex-win32-x64": "npm:@openai/codex@0.154.0-win32-x64",
-                    "@openai/codex-win32-arm64": "npm:@openai/codex@0.154.0-win32-arm64",
                     "unrelated": "3.0.0",
                 },
             }, indent=2) + "\n")
@@ -510,9 +506,9 @@ class ToolchainTaskTests(unittest.TestCase):
             self.assertEqual(manifest["packageManager"], "bun@1.4.0")
             self.assertEqual(manifest["devDependencies"]["@openai/codex"], "0.155.0")
             self.assertEqual(manifest["optionalDependencies"]["@oven/bun-darwin-aarch64"], "1.4.1")
-            self.assertEqual(manifest["optionalDependencies"]["@oven/bun-linux-aarch64"], "1.4.1")
+            self.assertEqual(manifest["optionalDependencies"]["@oven/bun-linux-x64-baseline"], "1.4.1")
             self.assertEqual(manifest["optionalDependencies"]["@openai/codex-darwin-arm64"], "npm:@openai/codex@0.155.0-darwin-arm64")
-            self.assertEqual(manifest["optionalDependencies"]["@openai/codex-linux-arm64"], "npm:@openai/codex@0.155.0-linux-arm64")
+            self.assertEqual(manifest["optionalDependencies"]["@openai/codex-linux-x64"], "npm:@openai/codex@0.155.0-linux-x64")
             self.assertEqual(manifest["optionalDependencies"]["unrelated"], "3.0.0")
             self.assertEqual(manifest["dependencies"]["@alwith/runtime"], "0.1.4")
 

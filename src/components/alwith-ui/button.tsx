@@ -13,12 +13,7 @@ export function Button({
   ...props
 }: ComponentProps<typeof BaseButton> & { shortcut?: string }) {
   const button = (
-    <BaseButton
-      {...props}
-      title={shortcut === undefined ? title : undefined}
-      variant={variant}
-      className={className}
-    />
+    <BaseButton {...props} title={shortcut === undefined ? title : undefined} variant={variant} className={className} />
   )
   if (shortcut === undefined) return button
   const label = title ?? props["aria-label"]
