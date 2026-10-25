@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "0.2.16"
+version = "0.2.17"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
@@ -17,7 +17,7 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
-atlas-tauri = { version = "0.1.1", features = ["specta"] }
+atlas-tauri = { version = "0.1", features = ["specta"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }
@@ -59,7 +59,7 @@ tauri-plugin-single-instance = { version = "3.0.0-alpha.3", features = ["deep-li
 tauri-plugin-deep-link = "3.0.0-alpha.3"
 tauri-plugin-updater = { version = "3.0.0-alpha.3", default-features = false, features = ["system-proxy", "zip"] }
 tauri-plugin-window-state = "3.0.0-alpha.2"
-image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 base64 = "0.23"
 minisign-verify = "0.3"
 semver = "1"

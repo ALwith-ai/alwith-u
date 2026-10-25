@@ -308,8 +308,8 @@ def story(_context: object) -> None:
     commands = {
         "dev": ["bun", "run", "storybook"],
         "test": ["bun", "run", "storybook:test"],
-        "watch": ["bun", "x", "vitest", "--config", ".storybook/vitest.config.ts"],
-        "browsers": ["bun", "x", "playwright", "install", "chromium"],
+        "watch": ["bun", "x", "--bun", "vitest", "--config", ".storybook/vitest.config.ts"],
+        "browsers": ["bun", "x", "--bun", "playwright", "install", "chromium"],
     }
     run(*commands[action])
 
@@ -351,7 +351,7 @@ def check(_context: object) -> None:
     Same table in all three repos: types, lint (`bun lint`), dead code, tests, then the Rust side
     (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
-        ("types", ["bun", "run", "typecheck"], ROOT),
+        ("types", ["bun", "check", "--no-script", "-b"], ROOT),
         ("lint", ["bun", "lint"], ROOT),
         # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
         ("lint suppressions", ["sh", "-c", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx"], ROOT),

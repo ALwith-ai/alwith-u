@@ -338,6 +338,11 @@ class VersionTaskTests(unittest.TestCase):
 
 
 class ToolchainTaskTests(unittest.TestCase):
+    def setUp(self) -> None:
+        hasgard = patch("fabfile.shutil.which", return_value="/tools/tauri-hasgard")
+        hasgard.start()
+        self.addCleanup(hasgard.stop)
+
     def test_cli_reports_invalid_version_without_traceback(self) -> None:
         stderr = io.StringIO()
         with patch("builtins.input", side_effect=["invalid", ""]), redirect_stderr(stderr):

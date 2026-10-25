@@ -49,3 +49,6 @@ ignorePatterns = [
   "src/components/ui/**",
   "docs/**",
 ]
+
+[run]
+bun = true

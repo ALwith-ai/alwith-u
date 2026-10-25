@@ -3,7 +3,7 @@
 Verified on macOS (arm64) against the pinned `@nyssance/codex-acp-v2@0.3.5` and
 `@openai/codex@0.154.0`.
 
-- `bun run typecheck`, `bun test` (13 tests: in-process fake agent and fake Runtime), `bun lint`
+- `bun check --no-script -b`, `bun test` (13 tests: in-process fake agent and fake Runtime), `bun lint`
   and `bun run build` pass.
 - `bun scripts/stage.ts` stages `codex`, `codex-code-mode-host` and a compiled
   `codex-acp-v2` for `aarch64-apple-darwin`; `bunx tauri build --debug --no-bundle`

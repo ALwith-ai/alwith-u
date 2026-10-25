@@ -39,7 +39,7 @@ function ModelMenuPreview(): ReactElement {
   return (
     <div className="flex h-[540px] items-end justify-center">
       <ModelSelect<ChatModelOption>
-        value={{ ...selectedModel, label: modelTriggerLabel(selectedModel.label) }}
+        value={{ ...selectedModel, label: modelTriggerLabel(selectedModel) }}
         models={models}
         modelGroups={groups}
         compactCatalog
@@ -118,10 +118,10 @@ export const Providers: Story = {
     const body = within(document.body)
     await userEvent.click(canvas.getByTestId("model-trigger"))
     await expect(body.getAllByRole("menuitemradio")).toHaveLength(11)
-    const qwen = body.getByRole("menuitemradio", { name: "Qwen 3.8 Flash" })
+    const qwen = body.getByRole("menuitemradio", { name: "3.8 Flash" })
     qwen.focus()
     await userEvent.keyboard("{Enter}")
-    await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("Qwen 3.8 Flash")
+    await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("3.8 Flash")
     canvas.getByTestId("model-trigger").focus()
     await userEvent.keyboard("{Enter}")
     await expect(body.getByRole("menuitemcheckbox", { name: "快速" })).toHaveAttribute("aria-disabled", "true")

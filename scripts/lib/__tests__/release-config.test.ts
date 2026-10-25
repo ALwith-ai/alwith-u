@@ -108,7 +108,7 @@ test("tag runs validate release inputs and publish signed updater artifacts to a
   expect(step.uses).toBe("tauri-apps/tauri-action@v1")
   expect(step.with?.tagName).toBe("${{ github.ref_name }}")
   expect(step.with?.releaseId).toBe("${{ needs.release-preflight.outputs.release_id }}")
-  expect(step.with?.tauriScript).toBe("bun run tauri")
+  expect(step.with?.tauriScript).toBe("bun tauri")
   expect(step.with?.releaseName).toBe("ALwith U ${{ github.ref_name }}")
   expect(step.with?.releaseDraft).toBe(true)
   expect(step.with?.updaterJsonPreferNsis).toBe(true)

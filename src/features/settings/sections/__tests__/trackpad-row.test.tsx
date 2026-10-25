@@ -64,7 +64,7 @@ test("Linux cannot enable gestures even when a synced preference is enabled", ()
 test.each([
   ["MacIntel", /Mission Control/],
   ["Win32", /Windows Settings/]
-])("shows conflict guidance for %s", (platform, guidance) => {
+] as const)("shows conflict guidance for %s", (platform, guidance) => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
   settingsFixture({ "appearance.threeFingerSwipe": true })
   const view = render(<TrackpadRow />)

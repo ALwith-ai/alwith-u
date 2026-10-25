@@ -74,7 +74,7 @@ Always answer the user in Chinese.
 
 ## Validate before handing back
 
-`bun run typecheck`, `bun run test`, `bun lint`, `bun run knip`, `bun run build`;
+`bun check --no-script -b`, `bun run test`, `bun lint`, `bun run knip`, `bun run build`;
 these are CI's gates and match ALwith Desktop's (`bun lint`, knip for dead
 code). `bun fmt` before committing; formatting is not a gate. Run
 `bun run test:live` (uses the user's Codex login) when touching the protocol or

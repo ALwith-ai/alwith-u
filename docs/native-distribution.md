@@ -9,7 +9,7 @@ U's source can be public. Private implementations such as Auth are not published
 | Tauri | The thin C ABI bridge in `src-tauri/src/native.rs` | No; it holds no Auth implementation |
 | Agent hosting | A pinned Runtime binary | No |
 
-`bun install` installs the dependencies, `bun run stage` verifies and copies the native artifacts and their licences, and `bun run tauri build` uses the same staging chain. For a cross-architecture build run `bun install --os='*' --cpu='*'` first, then pass the target triple.
+`bun install` installs the dependencies, `bun run stage` verifies and copies the native artifacts and their licences, and `bun tauri build` uses the same staging chain. For a cross-architecture build run `bun install --os='*' --cpu='*'` first, then pass the target triple.
 
 The native libraries are produced by the CI of the private alwith-modules repository, with arm64 and x64 artifacts for macOS, Windows and Linux. A platform package contains only the dynamic library, `artifact.json` and licence notices; no Auth Rust source. The build scripts of `@alwith/native` never run in the WebView.
 
