@@ -549,6 +549,7 @@
     "note": "Keys stay in this app's preferences and only route chats whose model picker is set to that provider's model. Nothing in ~/.codex changes."
   },
   "updater": {
+    "installing": "Installing update… The app will restart automatically.",
     "readyDesc": "Version {{version}} is downloaded and ready to install.",
     "upToDate": "Up to date",
     "checking": "Checking for updates",

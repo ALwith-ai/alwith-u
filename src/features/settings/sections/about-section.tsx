@@ -45,8 +45,9 @@ export function AboutSection() {
   const updaterText = (() => {
     switch (state.type) {
       case "ready":
-      case "restarting":
         return t("updater.readyDesc", { version: state.update.version })
+      case "restarting":
+        return t("updater.installing")
       case "downloading": {
         const total = state.totalBytes ?? 0
         const percent = total > 0 ? Math.min(Math.round(((state.downloadedBytes ?? 0) / total) * 100), 100) : 0
@@ -78,7 +79,9 @@ export function AboutSection() {
               )
             }}
           >
-            {t("updater.ready", { version: state.update.version })}
+            {state.type === "restarting"
+              ? t("updater.installing")
+              : t("updater.ready", { version: state.update.version })}
           </Button>
         )}
       </SettingRow>

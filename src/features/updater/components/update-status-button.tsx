@@ -1,4 +1,4 @@
-import { ArrowRightIcon, RocketIcon } from "lucide-react"
+import { ArrowRightIcon, LoaderCircleIcon, RocketIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -42,6 +42,15 @@ export function UpdateStatusButton() {
           />
         </svg>
         <span className="truncate text-sm font-medium text-foreground">{label}</span>
+      </div>
+    )
+  }
+
+  if (state.type === "restarting") {
+    return (
+      <div className="flex h-12 w-full items-center gap-2 rounded-xl border bg-card p-2 shadow-lg" role="status">
+        <LoaderCircleIcon className="size-8 shrink-0 animate-spin" aria-hidden="true" />
+        <span className="truncate text-sm font-medium text-foreground">{t("updater.installing")}</span>
       </div>
     )
   }

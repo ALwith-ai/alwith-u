@@ -167,18 +167,34 @@ impl UpdaterService {
     pub async fn install_and_relaunch(
         &self, installer: &dyn Installer, updater_dir: &std::path::Path,
     ) -> Result<(), String> {
-        let (update, ready_snapshot) = match self.state() {
-            ref s @ State::Ready { ref update } => (update.clone(), s.clone()),
-            _ => return Err("not in Ready state".into()),
+        // Claim the update before any I/O so concurrent windows cannot install it twice.
+        let update = {
+            let mut state = self.state.write().unwrap();
+            let State::Ready { update } = &*state else {
+                return Err("not in Ready state".into());
+            };
+            let update = update.clone();
+            *state = State::Restarting { update: update.clone() };
+            update
         };
-
-        let bytes = std::fs::read(updater_dir.join(&update.filename)).map_err(|e| e.to_string())?;
-        self.set_state(State::Restarting { update: update.clone() });
-
-        if let Err(e) = installer.install(&update, bytes).await {
-            self.set_state(ready_snapshot);
+        (self.notify_listeners)(&State::Restarting { update: update.clone() });
+        let started = std::time::Instant::now();
+        log::info!("Installing update {}", update.version);
+        let archive = updater_dir.join(&update.filename);
+        let result = async {
+            let bytes = tokio::task::spawn_blocking(move || std::fs::read(archive))
+                .await
+                .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?;
+            installer.install(&update, bytes).await
+        }
+        .await;
+        if let Err(e) = result {
+            log::error!("Update installation failed after {:?}: {e}", started.elapsed());
+            self.set_state(State::Ready { update });
             return Err(e);
         }
+        log::info!("Update installed in {:?}; preparing restart", started.elapsed());
 
         persist::clear_or_log(updater_dir, Some(&update.filename));
 
@@ -313,13 +329,23 @@ impl PluginInstaller {
 impl Installer for PluginInstaller {
     fn install<'a>(&'a self, update: &'a UpdateInfo, bytes: Vec<u8>) -> BoxFuture<'a, Result<(), String>> {
         Box::pin(async move {
-            let updater = self.app.updater().map_err(|e| e.to_string())?;
+            let started = std::time::Instant::now();
+            let updater = self
+                .app
+                .updater_builder()
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .map_err(|e| e.to_string())?;
             let plugin_update =
                 updater.check().await.map_err(|e| e.to_string())?.ok_or_else(|| "no update available".to_string())?;
+            log::info!("Update release revalidated in {:?}", started.elapsed());
             if plugin_update.version != update.version || plugin_update.signature != update.signature {
                 return Err("downloaded update is no longer the current release".to_string());
             }
-            plugin_update.install(bytes).map_err(|e| e.to_string())
+            // Signature verification, archive extraction and application replacement are blocking.
+            tokio::task::spawn_blocking(move || plugin_update.install(bytes).map_err(|e| e.to_string()))
+                .await
+                .map_err(|e| e.to_string())?
         })
     }
 
@@ -672,6 +698,56 @@ mod tests {
         assert!(svc.install_and_relaunch(&installer, tmp.path()).await.is_err());
         assert!(matches!(svc.state(), State::Ready { .. }));
         assert!(tmp.path().join(&update.filename).exists());
+    }
+
+    #[tokio::test]
+    async fn missing_archive_restores_ready_after_notifying_installation() {
+        let (svc, emitted) = recording_service();
+        let update = sample_update("0.2.0");
+        svc.set_state(State::Ready { update });
+        let tmp = TempDir::new();
+        let installer = MockInstaller {
+            install_result: Ok(()),
+            needs_restart: false,
+            restart_called: Arc::new(AtomicBool::new(false)),
+        };
+        assert!(svc.install_and_relaunch(&installer, tmp.path()).await.is_err());
+        let states = emitted.lock().unwrap();
+        assert!(matches!(states[1], State::Restarting { .. }));
+        assert!(matches!(states[2], State::Ready { .. }));
+    }
+
+    #[tokio::test]
+    async fn concurrent_install_is_rejected_while_first_install_is_pending() {
+        struct PendingInstaller {
+            entered: tokio::sync::Notify,
+            release: tokio::sync::Notify,
+        }
+        impl Installer for PendingInstaller {
+            fn install<'a>(&'a self, _: &'a UpdateInfo, _: Vec<u8>) -> BoxFuture<'a, Result<(), String>> {
+                Box::pin(async move {
+                    self.entered.notify_one();
+                    self.release.notified().await;
+                    Ok(())
+                })
+            }
+            fn needs_explicit_restart(&self) -> bool {
+                false
+            }
+            fn restart(&self) -> BoxFuture<'_, Result<(), String>> {
+                Box::pin(async { Ok(()) })
+            }
+        }
+        let (svc, tmp, update) = ready_on_disk("0.2.0");
+        svc.set_state(State::Ready { update });
+        let installer = PendingInstaller { entered: tokio::sync::Notify::new(), release: tokio::sync::Notify::new() };
+        let (first, ()) = tokio::join!(svc.install_and_relaunch(&installer, tmp.path()), async {
+            installer.entered.notified().await;
+            assert!(matches!(svc.state(), State::Restarting { .. }));
+            assert_eq!(svc.install_and_relaunch(&installer, tmp.path()).await.unwrap_err(), "not in Ready state");
+            installer.release.notify_one();
+        });
+        first.unwrap();
     }
 
     #[tokio::test]
