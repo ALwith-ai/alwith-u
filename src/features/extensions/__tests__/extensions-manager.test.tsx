@@ -67,6 +67,9 @@ function setup(
       state={snapshot}
       host={contributions}
       busy={busy}
+      onRetry={() => {
+        actions.push({ retry: true })
+      }}
       onInstall={(id?: string): void => {
         actions.push({ install: id ?? null })
       }}
@@ -231,6 +234,9 @@ test("service failure is distinct from empty installations and blocks local acti
   expect(view.getByRole("alert").textContent).toContain("Storage unavailable")
   expect(view.queryByText("No app extensions installed.")).toBeNull()
   expect((view.getByRole("button", { name: "Install from folder" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(view.queryByRole("status")).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "Retry" }))
+  expect(view.actions).toEqual([{ retry: true }])
 })
 
 test("bundled wallpaper can be disabled but has no manual update or uninstall actions", async (): Promise<void> => {

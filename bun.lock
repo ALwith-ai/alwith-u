@@ -13,7 +13,7 @@
         "@alwith/module-computer": "^0.1.8",
         "@alwith/module-drive": "^0.1.4",
         "@alwith/module-editor": "^0.1.0-rc.15",
-        "@alwith/module-extension": "^0.1.0-rc.18",
+        "@alwith/module-extension": "^0.1.0-rc.19",
         "@alwith/module-file-tree": "^0.1.0-rc.23",
         "@alwith/module-fs": "^0.1.0-rc.10",
         "@alwith/module-gamepad": "^0.1.0-rc.7",
@@ -168,7 +168,7 @@
 
     "@alwith/module-editor": ["@alwith/module-editor@0.1.0-rc.15", "", { "dependencies": { "@alwith/module-fs": "^0.1.0-rc.10", "@base-ui/react": "^1.9.0" }, "peerDependencies": { "@alwith/module-chat": "^0.1.29", "@milkdown/core": "^7.22.2", "@milkdown/plugin-history": "^7.22.2", "@milkdown/plugin-math": "^7.5.9", "@milkdown/preset-commonmark": "^7.22.2", "@milkdown/preset-gfm": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "audiomotion-analyzer": "^4.5.4", "docx-preview": "^0.4.1", "dompurify": "^3.4.17", "katex": "^0.19.1", "lucide-react": "^1.61.0", "marked": "^18.1.1", "monaco-editor": "^0.57.0", "pdfjs-dist": "^6.4.299", "react": "^19.3.1", "react-dom": "^19.3.1", "react-player": "^3.4.0", "shiki": "^4.5.0", "utif": "^3.1.0", "x-data-spreadsheet": "^1.1.9", "xlsx": "^0.20.3" }, "optionalPeers": ["@alwith/module-chat", "@milkdown/core", "@milkdown/plugin-history", "@milkdown/plugin-math", "@milkdown/preset-commonmark", "@milkdown/preset-gfm", "@milkdown/prose", "@milkdown/utils", "audiomotion-analyzer", "docx-preview", "dompurify", "katex", "marked", "monaco-editor", "pdfjs-dist", "react-player", "shiki", "utif", "x-data-spreadsheet", "xlsx"] }, "sha512-+7MTx1ecaJ3g9VdhvlHteIgwNDivTLsMDTXK96eLmSU/jHfL78eIlrplGRGM6BXuFcx70w1g0b302Ykp4SPwwQ=="],
 
-    "@alwith/module-extension": ["@alwith/module-extension@0.1.0-rc.18", "", { "dependencies": { "@alwith/native-kit": "0.1.1", "@babel/parser": "^8.0.8", "effect": "^4.0.6", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.2", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-uoyvEyhdkGKtpnvbECzgtMDvCe1jQQ884VjbBN5uYcLYm1LV9C1C4XrFaX9P2nBV6LGQD/99Nb3ODUGQ6hdNcg=="],
+    "@alwith/module-extension": ["@alwith/module-extension@0.1.0-rc.19", "", { "dependencies": { "@alwith/native-kit": "0.1.1", "@babel/parser": "^8.0.8", "effect": "^4.0.6", "semver": "^7.8.5" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.2", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-bEslf6whoYolJCCgjJqBn5NjDz4ycCpFJtVom58rMP9h7yFnYhGINDY+kPxBApgE2DKKw2KxwAw0rbj7XEP8fw=="],
 
     "@alwith/module-file-tree": ["@alwith/module-file-tree@0.1.0-rc.23", "", { "dependencies": { "@alwith/module-fs": "^0.1.0-rc.10", "@base-ui/react": "^1.9.0", "@iconify-json/vscode-icons": "1.2.93", "@iconify/react": "^6.0.3", "@tanstack/react-virtual": "^3.14.22", "@vscode/codicons": "^0.0.46-24", "lucide-react": "^1.61.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-2LWD0BWGQ3Fnl7NysMV6LEOc7uweijJAQk69UPK2GBSwBX1RiIRJ4mXLnlh0Ml8pdOkGcF0oJiuLAB+jHPZAUw=="],
 

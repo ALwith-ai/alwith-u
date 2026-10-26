@@ -28,6 +28,7 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
+import { refreshExtensions } from "./startup-import-control"
 import { createExtensionStartup } from "./startup-service"
 import * as extensionUi from "./ui"
 
@@ -125,9 +126,7 @@ export function useExtensions() {
   useEffect(() => {
     void startExtensionRuntime().catch(reportExtensionError)
     const refresh = (): void => {
-      void startExtensionRuntime()
-        .then(() => current.refresh())
-        .catch(reportExtensionError)
+      void refreshExtensions().catch(reportExtensionError)
     }
     window.addEventListener("focus", refresh)
     return (): void => {
