@@ -35,6 +35,8 @@ test("draft shows the configured provider models before any session exists", asy
     })
   })
   expect(document.body.textContent).toContain("DeepSeek-Flash")
+  expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
   expect(document.body.textContent).not.toContain("OpenRouter")
   expect(document.body.innerHTML).not.toContain("test-secret-never-render")
   await act(() => {

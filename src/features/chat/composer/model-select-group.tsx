@@ -79,10 +79,6 @@ export function ModelSelectGroup({
     model?.currentValue ?? ""
   )
   const models = groups.flatMap((group) => group.models)
-  // The compact menu renders a flat list. Keep each provider's primary choices
-  // ahead of the native catalog's overflow so configured gateways are discoverable.
-  if (groups.some((group) => group.id !== NATIVE_MODEL_GROUP.id && group.models.length > 0))
-    models.sort((a, b) => Number(a.more) - Number(b.more))
   const selected = models.find((item) => item.api_id === model?.currentValue) ?? {
     api_id: model?.currentValue ?? "",
     label

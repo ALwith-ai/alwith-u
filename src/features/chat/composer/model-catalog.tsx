@@ -16,16 +16,14 @@ export function modelTriggerLabel(model: ModelOption): string {
   return model.shortLabel ?? model.label
 }
 
-/** Preserve catalog order and reserve the last primary slot for the active model. */
-export function presentModelCatalog(groups: ModelGroup[], selected: string): ModelGroup[] {
-  const hasGateways = groups.some((group) => group.id !== NATIVE_MODEL_GROUP.id && group.models.length > 0)
-  return groups.map((group) => {
+/** Put the subscription provider first while preserving provider and model order. */
+export function presentModelCatalog(groups: ModelGroup[], _selected: string): ModelGroup[] {
+  const ordered = [
+    ...groups.filter((group) => group.id === NATIVE_MODEL_GROUP.id),
+    ...groups.filter((group) => group.id !== NATIVE_MODEL_GROUP.id)
+  ]
+  return ordered.map((group) => {
     const native = group.id === NATIVE_MODEL_GROUP.id
-    const limit = native ? (hasGateways ? 3 : 4) : 1
-    const primary = group.models.slice(0, limit).map((model) => model.api_id)
-    if (group.models.some((model) => model.api_id === selected) && !primary.includes(selected)) {
-      primary[primary.length - 1] = selected
-    }
     const Logo = PROVIDERS.find((provider) => provider.id === group.id)?.logo ?? Bot
     return {
       ...group,
@@ -36,8 +34,7 @@ export function presentModelCatalog(groups: ModelGroup[], selected: string): Mod
           <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
         ) : (
           <Logo aria-hidden="true" className="size-4 shrink-0" />
-        ),
-        more: !primary.includes(model.api_id)
+        )
       }))
     }
   })

@@ -62,6 +62,37 @@ test("catalog-supplied short labels override local presentation without changing
   expect(modelTriggerLabel(group.models[0])).toBe("Catalog short name")
 })
 
+test("subscription providers come first without moving selected models or reordering other providers", () => {
+  const groups = [
+    {
+      id: "qwen",
+      name: "Qwen",
+      models: [
+        { api_id: "q1", label: "Qwen 1" },
+        { api_id: "q2", label: "Qwen 2" }
+      ]
+    },
+    { id: "deepseek", name: "DeepSeek", models: [{ api_id: "d1", label: "DeepSeek" }] },
+    {
+      id: "chatgpt",
+      name: "ChatGPT",
+      models: ["First", "Second", "Third", "Fourth", "Fifth"].map((label) => ({ api_id: label, label }))
+    }
+  ]
+  const before = presentModelCatalog(groups, "First")
+  const after = presentModelCatalog(groups, "q2")
+  expect(before.map((group) => group.id)).toEqual(["chatgpt", "qwen", "deepseek"])
+  expect(before.map((group) => group.models.map((model) => model.api_id))).toEqual([
+    ["First", "Second", "Third", "Fourth", "Fifth"],
+    ["q1", "q2"],
+    ["d1"]
+  ])
+  expect(after.map((group) => group.models.map((model) => model.api_id))).toEqual(
+    before.map((group) => group.models.map((model) => model.api_id))
+  )
+  expect(groups.map((group) => group.id)).toEqual(["qwen", "deepseek", "chatgpt"])
+})
+
 test("models without a short label keep the catalog name in the trigger and menu", async () => {
   const view = render(
     <ModelSelectGroup
@@ -111,7 +142,8 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
   controls.setConfig.mockResolvedValue(undefined)
   const view = render(<ModelSelectGroup sessionId="floating-session" options={options(nativeModel)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
-  expect(document.querySelector("[data-slot=dropdown-menu-label]")).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
   await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", providerModel)
   // Only the confirmed session configuration changes the selected label.
@@ -228,11 +260,20 @@ test("configured catalogs expose every native and gateway model in the scrollabl
     view
       .getAllByRole("menuitemradio")
       .map((item) => item.querySelector("span.flex-1")?.textContent ?? item.querySelector("span.truncate")?.textContent)
-  ).toEqual(["First", "Second", "Third", "3.8 Max", "Fourth", "Fifth", "3.8 Flash"])
+  ).toEqual(["First", "Second", "Third", "Fourth", "Fifth", "3.8 Max", "3.8 Flash"])
+  expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "Qwen" })).not.toBeInTheDocument()
   expect(view.getAllByText("More models")).toHaveLength(1)
   expect(view.getAllByRole("menuitemradio").every((item) => item.querySelector("svg, img"))).toBe(true)
   await act(() => Promise.try(() => fireEvent.click(view.getByText("3.8 Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("catalog", "model", "q2")
+  view.rerender(<ModelSelectGroup sessionId="catalog" options={catalogOptions("q2")} disabled={false} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+  const expectedNames = ["First", "Second", "Third", "Fourth", "Fifth", "3.8 Max", "3.8 Flash"]
+  view.getAllByRole("menuitemradio").forEach((item, index) => {
+    expect(item).toHaveAccessibleName(expectedNames[index])
+  })
+  expect(view.getByRole("menuitemradio", { name: "3.8 Flash" })).toHaveAttribute("aria-checked", "true")
 })
 
 test("native catalogs keep every model visible in catalog order", async () => {
@@ -247,7 +288,7 @@ test("native catalogs keep every model visible in catalog order", async () => {
   ).toEqual(["First", "Second", "Third", "Fourth", "Fifth"])
 })
 
-test("an applied DeepSeek catalog appears before native overflow in an already open draft", async () => {
+test("an applied DeepSeek catalog joins the flat list without reordering native models", async () => {
   const native = Array.from({ length: 20 }, (_, index) => ({ value: `gpt-${index}`, name: `GPT-${index}` }))
   const config = (configured: boolean): acp.SessionConfigOption[] => [
     {
@@ -275,8 +316,10 @@ test("an applied DeepSeek catalog appears before native overflow in an already o
   )
   const choices = view.getAllByRole("menuitemradio")
   expect(choices).toHaveLength(21)
-  expect(choices[3]).toHaveAccessibleName("DeepSeek-Flash")
-  await act(() => Promise.try(() => fireEvent.click(choices[3])))
+  expect(choices.slice(0, 20).map((item) => item.textContent)).toEqual(native.map((item) => item.name))
+  expect(choices[20]).toHaveAccessibleName("DeepSeek-Flash")
+  expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
+  await act(() => Promise.try(() => fireEvent.click(choices[20])))
   expect(onModelChange).toHaveBeenCalledWith(providerModel)
   expect(controls.setConfig).not.toHaveBeenCalled()
 })

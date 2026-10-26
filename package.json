@@ -29,7 +29,7 @@
     "@agentclientprotocol/sdk": "^2.0.2",
     "@alwith/api": "^0.4.21",
     "@alwith/module-auth": "^0.1.11",
-    "@alwith/module-chat": "^0.1.29",
+    "@alwith/module-chat": "^0.1.30",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",
     "@alwith/module-drive": "^0.1.3",
@@ -162,6 +162,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.164.0-win32-x64"
   },
   "overrides": {
+    "@alwith/module-chat": "^0.1.30",
     "effect": "^4.0.6",
     "@alwith/native-mobile-darwin-arm64": "file:vendor/alwith-native-mobile-darwin-arm64-0.1.0.tgz"
   },
