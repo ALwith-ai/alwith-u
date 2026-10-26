@@ -45,7 +45,8 @@ pre,
   background-color: color-mix(in oklab, var(--link) 14%, transparent);
   text-decoration: underline;
 }
-@source "../node_modules/@alwith/module-auth/dist/pets";
+/* Published pet components also live in shared chunks at the dist root. */
+@source "../node_modules/@alwith/module-auth/dist";
 
 @custom-variant dark (&:is(.dark *));
 
