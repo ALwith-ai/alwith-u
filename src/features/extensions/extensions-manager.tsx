@@ -149,9 +149,9 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <Item size="xs" className="group/extension py-3">
+                <Item size="xs" className="group/extension items-start gap-3 border-0 p-4">
                   <ItemMedia>
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>
@@ -168,9 +168,11 @@ export function ExtensionsManager({
                         />
                       }
                     >
-                      <PanelItemTitle className="mb-0.5">{name}</PanelItemTitle>
-                      {description && <ItemDescription className="line-clamp-1">{description}</ItemDescription>}
-                      <ItemDescription className="truncate">
+                      <PanelItemTitle className="mb-0.5 text-sm font-medium">{name}</PanelItemTitle>
+                      {description && (
+                        <ItemDescription className="line-clamp-1 text-xs leading-5">{description}</ItemDescription>
+                      )}
+                      <ItemDescription className="truncate text-xs leading-5">
                         {item.manifest.author && (
                           <>
                             {item.manifest.authorUrl ? (

@@ -75,7 +75,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
       </nav>
       <Pane>
         <div className="mx-auto w-full max-w-3xl px-6 py-8">
-          <PluginIcon name={summary.name} className="size-16 rounded-2xl" />
+          <PluginIcon name={summary.name} className="size-16 rounded-lg" />
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="text-3xl font-semibold">{title}</h1>
@@ -106,7 +106,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
               </div>
             ) : (
               <Button
-                className="shrink-0 rounded-full"
+                className="shrink-0 rounded-md"
                 disabled={!!busy || unavailable}
                 onClick={() => void install({ ...entry, plugin: summary }).catch(() => {})}
               >

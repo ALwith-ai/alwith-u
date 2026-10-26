@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 
+import { ExtensionSettingsControls } from "./extension-settings-controls"
 import { openExtensionConsent } from "./legacy/startup-consent"
 import { reportExtensionError, useExtensions } from "./runtime"
 
@@ -53,6 +54,9 @@ export function ExtensionViewContent({
         </div>
       )}
       <div ref={setContainer} className="flex min-h-0 min-w-0 flex-1 flex-col" />
+      {container && (view?.kind === "settingsPages" || view?.kind === "settings") && (
+        <ExtensionSettingsControls container={container} />
+      )}
       {view && !failed && <ExtensionView host={host} id={id} container={container} onError={handleError} />}
     </div>
   )
@@ -63,9 +67,9 @@ export function ExtensionPage({ id, onClose }: { id: string; onClose: () => void
   const { host } = useExtensions()
   const view = host.views.find((item) => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 pt-12">
+    <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 overflow-hidden px-6 pt-8 pb-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-lg font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>
+        <h1 className="text-2xl font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>
         <Button variant="outline" onClick={onClose}>
           {t("extensions.back")}
         </Button>

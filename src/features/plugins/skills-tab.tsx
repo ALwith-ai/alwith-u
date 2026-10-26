@@ -229,7 +229,7 @@ export function SkillsTab({
                         key={group.id}
                         value={group.id}
                         title={group.path ?? group.label}
-                        className="flex-none rounded-full px-4 py-2 shadow-none! after:hidden data-active:bg-muted! dark:data-active:border-transparent"
+                        className="flex-none rounded-md px-4 py-2 shadow-none! after:hidden data-active:bg-muted! dark:data-active:border-transparent"
                       >
                         {group.label}
                       </TabsTrigger>
@@ -257,7 +257,7 @@ export function SkillsTab({
           if (!open) setSelectedPath(null)
         }}
       >
-        <DialogContent showCloseButton={false} className="max-h-[85dvh] overflow-y-auto rounded-3xl sm:max-w-3xl">
+        <DialogContent showCloseButton={false} className="max-h-[85dvh] overflow-y-auto rounded-xl sm:max-w-3xl">
           {selected && (
             <>
               <SkillDocument

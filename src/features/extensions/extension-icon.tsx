@@ -17,14 +17,14 @@ export function ExtensionIcon({
   const icon = contribution ? { type: "lucide" as const, name: contribution } : src ? parseManifestIcon(src) : undefined
   if (icon?.type === "lucide") {
     const Icon = EXTENSION_ICONS[icon.name]
-    return <Icon aria-hidden="true" className={size === "navigation" ? "size-4" : "size-8 text-muted-foreground"} />
+    return <Icon aria-hidden="true" className={size === "navigation" ? "size-4" : "size-5 text-muted-foreground"} />
   }
   return src && !failed ? (
     <img
       src={src}
       alt=""
       className={
-        size === "navigation" ? "size-4 shrink-0 rounded-sm object-contain" : "size-10 rounded-sm object-contain"
+        size === "navigation" ? "size-4 shrink-0 rounded-sm object-contain" : "size-5 rounded-sm object-contain"
       }
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}

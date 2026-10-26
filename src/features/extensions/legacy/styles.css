@@ -4,3 +4,58 @@
   /* biome-ignore lint/complexity/noImportantStyles: Override the legacy extension's inline Desktop rail inset. */
   left: 16px !important;
 }
+
+/* Legacy DOM views inherit the host's document-tab geometry. */
+.alwith-legacy .legacy-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  min-height: 36px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0 4px;
+}
+.alwith-legacy .legacy-tabs > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 240px;
+  padding: 0 6px 0 10px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.alwith-legacy .legacy-tabs > div:has([aria-selected="true"]) {
+  background: var(--background);
+}
+.alwith-legacy .legacy-tabs button[role="tab"] {
+  min-width: 0;
+  height: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.alwith-legacy .legacy-tabs button[aria-selected="true"] {
+  color: var(--foreground);
+}
+.alwith-legacy .legacy-tabs button:not([role="tab"]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+}
+.alwith-legacy .legacy-tabs button:not([role="tab"]):hover {
+  background: var(--accent);
+}

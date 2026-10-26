@@ -43,7 +43,7 @@ export function ProjectPathAction({
       disabled={opening}
       aria-label={t("actions.openFolder")}
       title={editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd}
-      className="group/path w-full min-w-0 justify-start gap-2 rounded-none border-0 px-3 font-normal active:not-aria-[haspopup]:translate-y-0"
+      className="group/path w-full min-w-0 justify-start gap-2 rounded-sm border-0 px-2 font-normal active:not-aria-[haspopup]:translate-y-0"
       onClick={() => void open()}
     >
       <ProjectAppIcon app={editor.active} />

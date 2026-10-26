@@ -587,19 +587,19 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
                 <PluginToolbar />
                 <TabsList
                   aria-label={t("plugins.catalog.pluginViews")}
-                  className="shrink-0 gap-1 rounded-full bg-muted p-1"
+                  className="shrink-0 gap-1 rounded-md bg-muted p-1"
                 >
                   <TabsTrigger
                     data-hover-background="none"
                     value="marketplace"
-                    className="rounded-full px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
+                    className="rounded-md px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
                   >
                     {t("plugins.headings.marketplace")}
                   </TabsTrigger>
                   <TabsTrigger
                     data-hover-background="none"
                     value="installed"
-                    className="rounded-full px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
+                    className="rounded-md px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
                   >
                     {t("plugins.sections.installed")}
                   </TabsTrigger>
