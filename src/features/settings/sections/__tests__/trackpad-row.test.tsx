@@ -34,6 +34,14 @@ test("defaults off, persists an enabled value and follows cross-window settings"
   })
   expect(toggle).not.toBeChecked()
   expect(view.getByRole("status")).toHaveTextContent("false")
+  const master = view.getByRole("switch", { name: "Enable trackpad gestures" })
+  expect(master).not.toBeChecked()
+  expect(toggle).toHaveAttribute("aria-disabled", "true")
+  fireEvent.click(master)
+  await waitFor(() => {
+    expect(master).toBeChecked()
+    expect(toggle).not.toHaveAttribute("aria-disabled", "true")
+  })
   fireEvent.click(toggle)
   await waitFor(() => expect(toggle).toBeChecked())
   expect(fixture.values.get("appearance.threeFingerSwipe")).toBe(true)
@@ -45,7 +53,7 @@ test("defaults off, persists an enabled value and follows cross-window settings"
 
 test("Linux cannot enable gestures even when a synced preference is enabled", () => {
   vi.spyOn(navigator, "platform", "get").mockReturnValue("Linux x86_64")
-  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true })
+  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true, "appearance.trackpadEnabled": true })
   const view = render(
     <>
       <TrackpadRow />
@@ -72,7 +80,7 @@ test.each([
 })
 
 test("failed persistence reports the error and keeps the saved state", async () => {
-  const fixture = settingsFixture()
+  const fixture = settingsFixture({ "appearance.trackpadEnabled": true })
   fixture.write.mockRejectedValue(new Error("Cannot save settings"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   const view = render(<TrackpadRow />)
@@ -82,7 +90,7 @@ test("failed persistence reports the error and keeps the saved state", async () 
 })
 
 test("the master switch suspends input without losing the gesture selection", async () => {
-  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true })
+  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true, "appearance.trackpadEnabled": true })
   const view = render(
     <>
       <TrackpadRow />

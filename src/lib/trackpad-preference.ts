@@ -29,7 +29,7 @@ function subscribe(listener: () => void): () => void {
 function readMaster(): boolean {
   const value = settingsStore.get<unknown>(masterKey)
   if (value !== undefined && typeof value !== "boolean") throw new Error("Invalid trackpad preference")
-  return trackpadPlatform() !== "unsupported" && value !== false
+  return trackpadPlatform() !== "unsupported" && value === true
 }
 
 function readEnabled(): boolean {
