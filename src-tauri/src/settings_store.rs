@@ -312,7 +312,8 @@ fn partition_settings(values: BTreeMap<String, Value>) -> (BTreeMap<String, Valu
 
 fn setting_validity(key: &str, value: &Value) -> Option<bool> {
     Some(match key {
-        "appearance.trackpadEnabled"
+        "mobile.bridgeEnabled"
+        | "appearance.trackpadEnabled"
         | "computer.enabled"
         | "voice.enabled"
         | "voice.smooth"

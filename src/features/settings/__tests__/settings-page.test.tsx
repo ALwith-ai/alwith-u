@@ -7,6 +7,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({ onCloseRequested: async () => () => {}, hide: async () => {} })
 }))
+vi.mock("@/features/mobile/mobile-section", () => ({ MobileSection: () => null }))
 vi.mock("@/features/drive/drive", () => ({ DriveSettings: () => null }))
 vi.mock("@/features/drive/use-drive-visible", () => ({ useDriveVisible: () => true }))
 vi.mock("@/features/extensions/runtime", () => ({
@@ -42,4 +43,10 @@ test("changing settings sections updates the accessible content label and curren
   expect(screen.getByRole("button", { name: "Appearance" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByRole("button", { name: "General" })).not.toHaveAttribute("aria-current")
   expect(screen.getAllByText("Appearance")).toHaveLength(1)
+})
+
+test("mobile connections are reachable from settings navigation", () => {
+  render(<SettingsPage />)
+  fireEvent.click(screen.getByRole("button", { name: "Mobile connection" }))
+  expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
 })

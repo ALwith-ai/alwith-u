@@ -1,5 +1,6 @@
 import { isFormElicitation } from "@alwith/api"
 import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -11,7 +12,7 @@ import { useShallow } from "zustand/react/shallow"
 import type { ThreadSummary } from "@/agent/client"
 import { hasAccount } from "@/agent/codex-extensions"
 import { watchThreadList } from "@/agent/thread-list-refresh"
-import { events } from "@/bindings"
+import { commands, events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
@@ -97,6 +98,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  useEffect(() => {
+    if (isTauri()) void commands.bridgeSetActiveSession({ sessionId: selectedId })
+  }, [selectedId])
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)

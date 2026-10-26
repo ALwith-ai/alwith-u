@@ -344,3 +344,13 @@ fn trackpad_master_survives_restart_independently_of_legacy_gesture_migration() 
     assert_eq!(restarted.values["appearance.threeFingerSwipe"], true);
     assert!(store.update(changes(json!({"appearance.trackpadEnabled": "false"})), None).is_err());
 }
+
+#[test]
+fn mobile_bridge_preference_survives_restart_and_rejects_non_boolean_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    store.update(changes(json!({"mobile.bridgeEnabled": true})), None).unwrap();
+    assert!(store.update(changes(json!({"mobile.bridgeEnabled": "true"})), None).is_err());
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.values["mobile.bridgeEnabled"], true);
+}

@@ -108,7 +108,9 @@
     "y-protocols": "^1.0.7",
     "y-websocket": "^3.1.0",
     "yjs": "^13.6.33",
-    "zustand": "^5.0.16"
+    "zustand": "^5.0.16",
+    "@alwith/module-mobile": "file:vendor/alwith-module-mobile-0.1.0.tgz",
+    "qrcode.react": "^4.2.0"
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.1.2",
@@ -148,7 +150,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "@alwith/native-mobile": "file:vendor/alwith-native-mobile-0.1.0.tgz"
   },
   "optionalDependencies": {
     "@oven/bun-darwin-aarch64": "1.4.4",
@@ -159,7 +162,8 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.164.0-win32-x64"
   },
   "overrides": {
-    "effect": "^4.0.6"
+    "effect": "^4.0.6",
+    "@alwith/native-mobile-darwin-arm64": "file:vendor/alwith-native-mobile-darwin-arm64-0.1.0.tgz"
   },
   "patchedDependencies": {
     "vite@8.3.5": "patches/vite@8.3.5.patch"

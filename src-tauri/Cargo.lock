@@ -109,6 +109,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-mobile"
+version = "0.1.0"
+dependencies = [
+ "alwith-native-client",
+ "serde",
+ "serde_json",
+ "specta",
+ "tauri",
+ "tauri3-specta",
+]
+
+[[package]]
 name = "alwith-native-client"
 version = "0.1.0"
 dependencies = [
@@ -128,6 +140,7 @@ dependencies = [
  "alwith-extension",
  "alwith-fs",
  "alwith-gamepad",
+ "alwith-mobile",
  "alwith-native-client",
  "alwith-voice",
  "atlas-tauri",

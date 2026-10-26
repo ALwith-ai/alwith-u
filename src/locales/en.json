@@ -460,7 +460,8 @@
     },
     "trackpad": "Trackpad",
     "trackpadEnabled": "Enable trackpad gestures",
-    "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe"
+    "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
+    "mobile": "Mobile connection"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1170,5 +1171,15 @@
     "more": "More actions for {{name}}",
     "unavailable": "Chat unavailable",
     "retry": "Retry"
+  },
+  "mobile": {
+    "enable": "Allow mobile connections",
+    "description": "Connect ALwith Mobile to ALwith U.",
+    "pair": "Pair a phone",
+    "connected": "Ready to pair",
+    "connecting": "Connecting…",
+    "generate": "Show pairing code",
+    "expires": "Expires in {{count}} seconds",
+    "unpair": "Unpair"
   }
 }

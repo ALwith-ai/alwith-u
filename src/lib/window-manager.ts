@@ -9,6 +9,7 @@ import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
 export type SettingsSection =
+  | "mobile"
   | "trackpad"
   | "general"
   | "editor"
@@ -30,6 +31,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "voice",
   "trackpad",
   "computer",
+  "mobile",
   "extensions",
   "about"
 ]

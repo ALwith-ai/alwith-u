@@ -24,6 +24,7 @@ mod html_preview;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
+mod mobile;
 mod native;
 #[cfg(target_os = "macos")]
 mod panel;
@@ -169,6 +170,7 @@ pub fn run() {
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
             app.manage(native::Native::load(app.handle())?);
+            mobile::initialize(app.handle())?;
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
@@ -385,6 +387,14 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,
+                mobile::mobile_bridge_start,
+                mobile::mobile_bridge_stop,
+                mobile::mobile_bridge_status,
+                mobile::bridge_set_active_session,
+                mobile::bridge_pairing_start,
+                mobile::bridge_identity,
+                mobile::bridge_trusted_list,
+                mobile::bridge_trusted_revoke,
                 providers::providers_read,
                 providers::providers_save,
                 providers::providers_save_custom,

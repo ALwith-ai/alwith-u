@@ -29,7 +29,7 @@ impl Native {
         let directory = app.path().resource_dir()?.join("native");
         let _ = app;
         alwith_native_client::configure(&directory)?;
-        for module in ["auth", "installed-apps", "voice", "fs", "gamepad", "computer", "drive", "extension"] {
+        for module in ["mobile", "auth", "installed-apps", "voice", "fs", "gamepad", "computer", "drive", "extension"] {
             alwith_native_client::Library::module(module)?;
         }
         Ok(Self {

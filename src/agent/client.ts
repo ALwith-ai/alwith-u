@@ -998,6 +998,15 @@ export class CodexClient {
     await this.replay(id, cwd, owner)
   }
 
+  /** Resume a known Runtime session for remote input without changing either local chat slot. */
+  async openRemote(id: string): Promise<void> {
+    const session = this.state.sessions[id]
+    if (session?.attached && !session.restoring && !session.readOnly && !this.lifecycle.operations.busy(id)) return
+    const runtime = this.state.runStates[id]
+    if (!runtime) throw new Error(`Unknown Runtime session: ${id}`)
+    await this.replay(id, runtime.cwd)
+  }
+
   /**
    * The client could not refill a hole in this session's event stream (the Runtime journal had
    * already dropped those frames): what we hold is no longer continuous, so replay the whole

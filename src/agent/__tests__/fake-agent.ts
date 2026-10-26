@@ -390,6 +390,7 @@ export function createFakeAgent(): FakeAgent {
             {
               sessionId: id,
               title: "Run command?",
+              subject: { type: "tool_call", toolCall: { toolCallId: "permission-tool", status: "pending" } },
               options: [
                 {
                   optionId: "allow_once",

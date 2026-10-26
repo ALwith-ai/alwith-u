@@ -1,0 +1,10 @@
+{
+  "repository": "ALwith-ai/alwith-modules",
+  "revision": "5532085c37d02687ff8689f01309eaca4b6877f3",
+  "target": "aarch64-apple-darwin",
+  "sha256": {
+    "alwith-module-mobile-0.1.0.tgz": "6e0216eec5dad0d270e3b7bc0f28fe20821c1caedb6106d778fc3c3c33ad6dea",
+    "alwith-native-mobile-0.1.0.tgz": "9ea33eae302bae070f9781b5d3af61984042a27b5808fb5145e333b339c88d6b",
+    "alwith-native-mobile-darwin-arm64-0.1.0.tgz": "4b2f0674af1113168a83001c075309b4dbaae41e539eca5b87d3105ceb3aa388"
+  }
+}

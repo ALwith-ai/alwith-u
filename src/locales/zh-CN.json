@@ -460,7 +460,8 @@
     },
     "trackpad": "触控板",
     "trackpadEnabled": "启用触控板手势",
-    "threeFingerSwipeDesc": "三指横滑平移画布"
+    "threeFingerSwipeDesc": "三指横滑平移画布",
+    "mobile": "移动端连接"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1170,5 +1171,15 @@
     "more": "{{name}}的更多操作",
     "unavailable": "会话不可用",
     "retry": "重试"
+  },
+  "mobile": {
+    "enable": "允许移动端连接",
+    "description": "将 ALwith Mobile 连接到 ALwith U。",
+    "pair": "配对手机",
+    "connected": "可以配对",
+    "connecting": "连接中…",
+    "generate": "显示配对码",
+    "expires": "{{count}} 秒后过期",
+    "unpair": "解除配对"
   }
 }

@@ -217,6 +217,16 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
+  mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
+  mobileBridgeStop: (): Promise<null> => __t3Invoke<null>("mobile_bridge_stop"),
+  mobileBridgeStatus: (): Promise<MobileBridgeStatus> => __t3Invoke<MobileBridgeStatus>("mobile_bridge_status"),
+  bridgeSetActiveSession: (args: { sessionId: string | null }): Promise<null> =>
+    __t3Invoke<null>("bridge_set_active_session", args),
+  bridgePairingStart: (): Promise<PairingInfo> => __t3Invoke<PairingInfo>("bridge_pairing_start"),
+  bridgeIdentity: (): Promise<BridgeIdentity> => __t3Invoke<BridgeIdentity>("bridge_identity"),
+  bridgeTrustedList: (): Promise<TrustedDevice_Serialize[]> =>
+    __t3Invoke<TrustedDevice_Serialize[]>("bridge_trusted_list"),
+  bridgeTrustedRevoke: (args: { deviceId: string }): Promise<null> => __t3Invoke<null>("bridge_trusted_revoke", args),
   providersRead: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_read"),
   providersSave: (args: {
     providerId: string
@@ -337,6 +347,14 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
+  mobileBridgeStart: string
+  mobileBridgeStop: string
+  mobileBridgeStatus: never
+  bridgeSetActiveSession: string
+  bridgePairingStart: string
+  bridgeIdentity: string
+  bridgeTrustedList: string
+  bridgeTrustedRevoke: string
   providersRead: string
   providersSave: string
   providersSaveCustom: string
@@ -556,6 +574,11 @@ export type AutostartStatus = {
   enabled: boolean
 }
 
+export type BridgeIdentity = {
+  deviceId: string
+  publicKeyB64: string
+}
+
 export type BundledExtension = {
   path: string
   id: string
@@ -761,6 +784,8 @@ export type Frame_Serialize = {
   cursor: CursorPosition | null
 }
 
+export type HostApp = "desktop" | "u"
+
 export type HttpRequest = HttpRequest_Serialize | HttpRequest_Deserialize
 
 export type HttpRequest_Deserialize = {
@@ -819,6 +844,12 @@ export type Metadata_Serialize = {
   base_url: string | null
 }
 
+export type MobileBridgeStatus = {
+  running: boolean
+  connected: boolean
+  relayConnected: boolean
+}
+
 export type MoveToOutcome = MoveToOutcome_Serialize | MoveToOutcome_Deserialize
 
 export type MoveToOutcome_Deserialize = {
@@ -842,6 +873,14 @@ export type Number = number
 export type OpenHotkeys = null
 
 export type OpenSettings = null
+
+export type PairingInfo = {
+  deviceId: string
+  publicKeyB64: string
+  code: string
+  expiresAt: number
+  hostApp: HostApp
+}
 
 export type Permissions = {
   supported: boolean
@@ -1094,6 +1133,26 @@ export type TrackpadGesture_Serialize = {
   ts: number
   deviceW: number | null
   deviceH: number | null
+}
+
+export type TrustedDevice = TrustedDevice_Serialize | TrustedDevice_Deserialize
+
+export type TrustedDevice_Deserialize = {
+  deviceId: string
+  publicKeyB64: string
+  name: string
+  model?: string | null
+  pairedAt: number
+  pushHandle?: string | null
+}
+
+export type TrustedDevice_Serialize = {
+  deviceId: string
+  publicKeyB64: string
+  name: string
+  model: string | null
+  pairedAt: number
+  pushHandle: string | null
 }
 
 export type UpdateInfo = UpdateInfo_Serialize | UpdateInfo_Deserialize
