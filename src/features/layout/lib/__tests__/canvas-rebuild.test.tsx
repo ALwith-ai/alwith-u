@@ -107,6 +107,9 @@ test.each([false, true])("offscreen navigation remains eligible for hover with p
     const listener = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
     if (typeof listener !== "function") throw new Error("Missing Atlas selection subscription")
     await act(() => listener())
+    const settle = carousel.api.on.mock.calls.findLast(([event]) => event === "settle")?.[1]
+    if (!settle) throw new Error("Missing Atlas settle subscription")
+    await act(() => settle())
     expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(pinned && index === 1)
   }
 })
@@ -119,4 +122,19 @@ test("repeated clicks on the selected target leave its animation running", () =>
   fireEvent.click(view.getByText("2"))
   expect(carousel.api.cancelInput).not.toHaveBeenCalled()
   expect(carousel.api.goToSnap).not.toHaveBeenCalled()
+})
+
+test("selection during motion defers docking changes until settle", async () => {
+  const geometry = vi.spyOn(carousel.api, "getGeometry")
+  geometry.mockReturnValue({ selected: 0, snaps: [0, 1, 2] })
+  const view = render(<PagingHarness pinned />)
+  fireEvent.click(view.getByText("2"))
+  geometry.mockReturnValue({ selected: 1, snaps: [0, 1, 2] })
+  const select = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
+  const settle = carousel.api.on.mock.calls.findLast(([event]) => event === "settle")?.[1]
+  if (!select || !settle) throw new Error("Missing Atlas subscriptions")
+  await act(() => select())
+  expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(false)
+  await act(() => settle())
+  expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(true)
 })

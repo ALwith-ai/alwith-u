@@ -53,6 +53,10 @@ export function useMainCanvas(
   })
   const [selected, setSelected] = useState(screen === "leading" ? 0 : 1)
   const [moving, setMoving] = useState(false)
+  const settledSelection = useRef(selected)
+  useLayoutEffect(() => {
+    if (!moving) settledSelection.current = selected
+  }, [moving, selected])
   const [navigationPeeking, setNavigationPeeking] = useState(false)
   const divider = useRef(false)
   const [dividerDragging, setDividerState] = useState(false)
@@ -84,8 +88,8 @@ export function useMainCanvas(
     watchResize: false,
     watchRegions: false,
     manageInert: false,
-    // Navigation is docked only on the main chat screen.
-    navigationPinned: pinned && selected === 1,
+    // Changing this option rebuilds Atlas. Defer docking until motion settles.
+    navigationPinned: pinned && (moving ? settledSelection.current : selected) === 1,
     navigationWidth: size.navigation || 248,
     onNavigationChange: setNavigationPeeking,
     trackpadEnabled: enabled,
