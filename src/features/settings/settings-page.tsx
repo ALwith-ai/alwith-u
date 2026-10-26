@@ -111,13 +111,13 @@ export function SettingsPage() {
       (() => {
         switch (section) {
           case "drive":
-            return driveVisible ? <DriveSettings /> : <AccountSection />
+            return driveVisible ? <DriveSettings /> : <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "account":
-            return <AccountSection />
+            return <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "editor":
             return <EditorSettingsSection />
           case "mobile":
-            return <MobileSection />
+            return <MobileSection onOpenAccount={() => setSection("account")} />
           case "computer":
             return <ComputerSection />
           case "trackpad":

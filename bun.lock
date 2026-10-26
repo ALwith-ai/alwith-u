@@ -7,7 +7,7 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.0.2",
         "@alwith/api": "^0.4.21",
-        "@alwith/module-auth": "^0.1.13",
+        "@alwith/module-auth": "^0.1.14",
         "@alwith/module-chat": "^0.1.31",
         "@alwith/module-collection": "^0.0.3",
         "@alwith/module-computer": "^0.1.8",
@@ -156,7 +156,7 @@
 
     "@alwith/api": ["@alwith/api@0.4.21", "", { "dependencies": { "effect": "^4.0.6" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-uNzkf8v4PlsE3jcAFRMtKWNtOzicZQPyBJUaBgshn6LXd6P/NzAuLiN27mYdj51xhHCx+CMw6C8etLA1nbCKZw=="],
 
-    "@alwith/module-auth": ["@alwith/module-auth@0.1.13", "", { "dependencies": { "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "fflate": "0.8.3", "i18next": "^26.5.10", "lucide-react": "^1.61.0", "motion": "^14.6.0", "react-i18next": "^17.1.8", "sonner": "^2.0.8", "tyme4ts": "^1.5.3", "zustand": "^5.0.16" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-YvbKeJ37WeVkJ/1rR7Qyr/hYTGDdHg46MhZJxt9Sr6Ezmh5SyXcSS4XzGX2X1PxgFNo/GNVRHPtnGPy0vIyteg=="],
+    "@alwith/module-auth": ["@alwith/module-auth@0.1.14", "", { "dependencies": { "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "fflate": "0.8.3", "i18next": "^26.5.10", "lucide-react": "^1.61.0", "motion": "^14.6.0", "react-i18next": "^17.1.8", "sonner": "^2.0.8", "tyme4ts": "^1.5.3", "zustand": "^5.0.16" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-xRGDUU9XI/rK8oqvyufxOs4CjqbVuP4wrQ6xOuSFNxQKVAES6egIHfGfRoCcPmW39zp7uvP+6rArgLY9MdnG4Q=="],
 
     "@alwith/module-chat": ["@alwith/module-chat@0.1.31", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "lucide-react": "^1.61.0", "marked": "^18.1.1", "marked-linkify-it": "^4.0.2", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@alwith/api": "^0.4.21", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-qeI7SCEQxjfhLTmgmXCwd7oKiBPkG+JVQaaeBGHAOPWMVK0/0IBGC031WVCuIekmwT6sRVNwWBxcLaawx+Ch+A=="],
 

@@ -393,6 +393,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,
+                mobile::mobile_set_draft_sessions,
                 mobile::mobile_bridge_start,
                 mobile::mobile_bridge_stop,
                 mobile::mobile_bridge_status,

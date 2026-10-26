@@ -28,7 +28,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.0.2",
     "@alwith/api": "^0.4.21",
-    "@alwith/module-auth": "^0.1.13",
+    "@alwith/module-auth": "^0.1.14",
     "@alwith/module-chat": "^0.1.31",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",

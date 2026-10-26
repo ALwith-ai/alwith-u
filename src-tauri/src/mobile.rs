@@ -2,7 +2,32 @@
 use alwith_api::{RuntimeEvent, SessionRunState};
 pub use alwith_mobile::host::*;
 use serde_json::{Value, json};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, Mutex},
+};
 use tauri::{AppHandle, Manager};
+mod history;
+
+#[derive(Default)]
+struct Projection {
+    drafts: HashSet<String>,
+    states: Vec<SessionRunState>,
+}
+static PROJECTION: LazyLock<Mutex<Projection>> = LazyLock::new(|| Mutex::new(Projection::default()));
+
+#[tauri3_specta::command]
+pub fn mobile_set_draft_sessions(session_ids: Vec<String>) {
+    let mut projection = PROJECTION.lock().unwrap();
+    projection.drafts = session_ids.into_iter().collect();
+    publish_run_states(project_states(projection.states.clone(), &projection.drafts).to_string());
+}
+
+fn project_snapshot(states: Vec<SessionRunState>) -> Value {
+    let mut projection = PROJECTION.lock().unwrap();
+    projection.states = states;
+    project_states(projection.states.clone(), &projection.drafts)
+}
 
 pub fn initialize(app: &AppHandle) -> Result<(), String> {
     let host = app.clone();
@@ -12,12 +37,29 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
             let client = app.state::<crate::runtime::RuntimeState>().current()?;
             let session_id = || params["sessionId"].as_str().ok_or_else(|| "Missing mobile sessionId".to_string());
             match method.as_str() {
-                "runStates" => Ok(project_states(client.run_states().await.map_err(crate::runtime::request_error)?)),
+                "runStates" => Ok(project_snapshot(client.run_states().await.map_err(crate::runtime::request_error)?)),
                 "agentForSession" => {
-                    Ok(json!(client.agent_for_session(session_id()?).await.map_err(crate::runtime::request_error)?))
+                    // U's conversations belong to its Codex adapter, including retained activity
+                    // whose Runtime attachment has ended. Reading history must not resume or select it.
+                    session_id()?;
+                    Ok(json!("codex"))
                 }
                 "sessionReplay" => {
-                    Ok(json!(client.session_replay(session_id()?).await.map_err(crate::runtime::request_error)?))
+                    let id = session_id()?;
+                    let mut lines = history::read(id, |params| {
+                        let client = client.clone();
+                        async move {
+                            client
+                                .acp_request("codex", "_codex/session_history", params, None, None)
+                                .await
+                                .map_err(crate::runtime::request_error)
+                        }
+                    })
+                    .await?;
+                    // Fetch after history so pending permissions reflect the latest Runtime snapshot.
+                    let replay = client.session_replay(id).await.map_err(crate::runtime::request_error)?;
+                    lines.extend(history::pending_permissions(id, replay)?);
+                    Ok(json!(lines))
                 }
                 "markRead" => {
                     client.mark_read(session_id()?, None).await.map_err(crate::runtime::request_error)?;
@@ -28,7 +70,10 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
         })
     })
 }
-fn project_states(states: Vec<SessionRunState>) -> Value {
+fn project_states(states: Vec<SessionRunState>, drafts: &HashSet<String>) -> Value {
+    // Use the same draft membership as the Activity panel; Runtime attachment can outlive a UI draft.
+    let states: Vec<_> =
+        states.into_iter().filter(|state| !state.reusable_draft || drafts.contains(&state.session_id)).collect();
     let mut states = serde_json::to_value(states).expect("serialize Runtime states");
     for state in states.as_array_mut().expect("Runtime state list") {
         state["windowLabel"] = state["owner"].clone();
@@ -37,7 +82,7 @@ fn project_states(states: Vec<SessionRunState>) -> Value {
 }
 pub fn publish(event: &RuntimeEvent) {
     match event {
-        RuntimeEvent::RunStates { sessions } => publish_run_states(project_states(sessions.clone()).to_string()),
+        RuntimeEvent::RunStates { sessions } => publish_run_states(project_snapshot(sessions.clone()).to_string()),
         RuntimeEvent::Inbound { agent_id, lines } => publish_session_lines(agent_id.clone(), json!(lines).to_string()),
         RuntimeEvent::Outbound { agent_id, line, .. } => {
             publish_session_lines(agent_id.clone(), json!([line]).to_string())
@@ -76,10 +121,33 @@ mod tests {
             "lastActivityAt": 42, "version": 7, "interruption": null
         });
         let state: SessionRunState = serde_json::from_value(source.clone()).unwrap();
-        let projected = project_states(vec![state]);
+        let projected = project_states(vec![state], &HashSet::new());
         assert_eq!(projected[0]["windowLabel"], "main");
         for (key, value) in source.as_object().unwrap() {
             assert_eq!(&projected[0][key], value, "Runtime field changed: {key}");
         }
+    }
+    #[test]
+    fn excludes_retired_drafts_but_keeps_active_and_unread_sessions() {
+        let base = json!({
+            "sessionId": "session", "state": "idle", "reusableDraft": true,
+            "owner": "", "cwd": "/repo", "title": "", "since": 42,
+            "tasks": [], "listeningPorts": [], "executionId": null, "executionRole": null,
+            "lastActivityAt": 42, "version": 1, "interruption": null
+        });
+        let mut retired: SessionRunState = serde_json::from_value(base).unwrap();
+        retired.owner_id = "stdio".into();
+        let mut active = retired.clone();
+        active.owner_id = "stdio".into();
+        active.session_id = "active".into();
+        let mut unread = retired.clone();
+        unread.session_id = "unread".into();
+        unread.reusable_draft = false;
+        unread.state = alwith_api::RunState::Done;
+        let projected = project_states(vec![retired, active, unread], &HashSet::from(["active".into()]));
+        assert_eq!(projected.as_array().unwrap().len(), 2);
+        assert_eq!(projected[0]["sessionId"], "active");
+        assert_eq!(projected[1]["sessionId"], "unread");
+        assert_eq!(projected[1]["state"], "done");
     }
 }

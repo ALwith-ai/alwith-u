@@ -225,6 +225,8 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
+  mobileSetDraftSessions: (args: { sessionIds: string[] }): Promise<null> =>
+    __t3Invoke<null>("mobile_set_draft_sessions", args),
   mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
   mobileBridgeStop: (): Promise<null> => __t3Invoke<null>("mobile_bridge_stop"),
   mobileBridgeStatus: (): Promise<MobileBridgeStatus> => __t3Invoke<MobileBridgeStatus>("mobile_bridge_status"),
@@ -360,6 +362,7 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
+  mobileSetDraftSessions: never
   mobileBridgeStart: string
   mobileBridgeStop: string
   mobileBridgeStatus: never
