@@ -25,6 +25,7 @@ import type {
   ProviderTestResult
 } from "@/lib/providers"
 import {
+  applyProvidersWhenIdle,
   parseCustomModels,
   type Provider,
   providerKeyUrl,
@@ -109,7 +110,7 @@ export function ProviderSection() {
           delete next[input.id]
           return next
         })
-        toast.success(t("provider.saved", { name: input.name }))
+        toast.success(t(result.status === "pending" ? "provider.pending" : "provider.saved", { name: input.name }))
       }
       return !result.error
     } catch (error) {
@@ -128,8 +129,21 @@ export function ProviderSection() {
       if (result.error) toast.error(result.error)
       else {
         setActiveId(PROVIDERS[0]?.id ?? "")
-        toast.success(t("provider.removed", { name: provider.name }))
+        toast.success(t(result.status === "pending" ? "provider.pending" : "provider.removed", { name: provider.name }))
       }
+    } catch (error) {
+      toast.error(describe(error))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const retry = async (): Promise<void> => {
+    setBusy("retry")
+    try {
+      const result = await applyProvidersWhenIdle()
+      if (result.error) toast.error(result.error)
+      else if (result.status === "pending") toast.info(t("provider.pending"))
     } catch (error) {
       toast.error(describe(error))
     } finally {
@@ -150,6 +164,11 @@ export function ProviderSection() {
       <CodexProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
+      {snapshot && snapshot.status !== "applied" && (
+        <Button variant="outline" className="self-start" disabled={busy !== null} onClick={() => void retry()}>
+          {t("actions.retry")}
+        </Button>
+      )}
       <SettingGroup>
         {snapshot && (
           <>

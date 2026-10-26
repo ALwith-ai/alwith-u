@@ -1,8 +1,14 @@
 import { act, type BoundFunctions, fireEvent, type queries, render, within } from "@testing-library/react"
+import { toast } from "sonner"
 import { beforeAll, beforeEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
-import { type CustomProviderInput, type ProviderSnapshot, saveCustomProvider } from "@/lib/providers"
+import {
+  applyProvidersWhenIdle,
+  type CustomProviderInput,
+  type ProviderSnapshot,
+  saveCustomProvider
+} from "@/lib/providers"
 import { useProviders } from "@/lib/use-providers"
 
 import { ProviderSection } from "../provider-section"
@@ -11,8 +17,11 @@ vi.mock("@/lib/use-providers", () => ({ useProviders: vi.fn() }))
 vi.mock("../codex-provider-section", () => ({ CodexProviderSection: () => null }))
 vi.mock("@/lib/providers", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/providers")>()),
+  applyProvidersWhenIdle: vi.fn(),
   saveCustomProvider: vi.fn()
 }))
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 
 beforeAll(async () => {
   await initI18n("en")
@@ -117,4 +126,64 @@ test("a failed save and switching tabs preserve the new provider draft", async (
   await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue("")
   expect(visibleEditor(view).getByLabelText("API key")).toHaveValue("")
+})
+
+test("pending catalog exposes an explicit retry action", async () => {
+  vi.mocked(useProviders).mockReturnValue({
+    revision: 2,
+    appliedRevision: 1,
+    status: "pending",
+    error: null,
+    providers: {},
+    customProviders: []
+  })
+  const view = render(<ProviderSection />)
+  vi.mocked(applyProvidersWhenIdle).mockResolvedValue({
+    revision: 2,
+    appliedRevision: 1,
+    status: "pending",
+    error: null,
+    providers: {},
+    customProviders: []
+  })
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))
+  expect(applyProvidersWhenIdle).toHaveBeenCalledTimes(1)
+  expect(toast.info).toHaveBeenCalledWith(
+    "Settings saved. Remaining changes apply when chats using the affected providers finish."
+  )
+  expect(view.getByRole("button", { name: "Retry" })).toBeEnabled()
+})
+
+test("saving a pending custom provider reports that it is not applied yet", async () => {
+  vi.mocked(saveCustomProvider).mockResolvedValueOnce({
+    revision: 1,
+    appliedRevision: 0,
+    status: "pending",
+    error: null,
+    providers: {},
+    customProviders: []
+  })
+  const view = render(<ProviderSection />)
+  await act(() => Promise.try(() => fireEvent.click(providerTabs(view).getByText("Custom", { selector: "span" }))))
+  await fillProvider(visibleEditor(view), "Pending")
+  await act(() => Promise.try(() => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" }))))
+  expect(toast.success).toHaveBeenLastCalledWith(
+    "Settings saved. Remaining changes apply when chats using the affected providers finish."
+  )
+})
+
+test("retry failure remains actionable and releases the busy state", async () => {
+  vi.mocked(useProviders).mockReturnValue({
+    revision: 2,
+    appliedRevision: 1,
+    status: "failed",
+    error: "Catalog unavailable",
+    providers: {},
+    customProviders: []
+  })
+  vi.mocked(applyProvidersWhenIdle).mockRejectedValueOnce(new Error("Still unavailable"))
+  const view = render(<ProviderSection />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))
+  expect(toast.error).toHaveBeenLastCalledWith("Still unavailable")
+  expect(view.getByRole("button", { name: "Retry" })).toBeEnabled()
 })

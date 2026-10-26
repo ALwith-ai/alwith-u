@@ -353,8 +353,14 @@ pub async fn runtime_send(
     } else {
         false
     };
-    if requires_provider_application(&request) && !temporary_gamepad && !active_prompt {
-        crate::providers::apply_locked(window.app_handle(), &client).await?;
+    // Busy providers retain their applied routing; unrelated sessions can continue.
+    if requires_provider_application(&request)
+        && !temporary_gamepad
+        && !active_prompt
+        && let Err(error) = crate::providers::apply_locked(window.app_handle(), &client).await
+        && !crate::providers::application_pending(&error)
+    {
+        return Err(error);
     }
     if !current_connection() {
         return Err("Window connection replaced".into());
@@ -443,7 +449,7 @@ fn requires_provider_application(request: &Request) -> bool {
 }
 
 /// Empty draft sessions may be created on the currently applied provider. The first prompt
-/// remains an admission point and applies a saved provider revision only after active turns end.
+/// retries saved changes while busy providers retain their previously applied routing.
 fn is_draft_session_new(params: Option<&Value>) -> bool {
     let Some(params) = params else { return false };
     let meta = params.get("_meta").or_else(|| params.get("meta"));

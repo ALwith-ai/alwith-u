@@ -1,6 +1,6 @@
 //! Application-owned provider credentials. Webviews receive only configured/region metadata.
-//! A persisted revision becomes active only at an idle boundary under Runtime admission.
-use alwith_api::{RunState, RuntimeClient};
+//! Independent provider changes apply under Runtime admission; busy session routing stays pinned.
+use alwith_api::{ResponseError, RuntimeClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -475,7 +475,7 @@ pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) 
     let saved = app.state::<Providers>().inner.lock().await.saved.clone();
     let mut ephemeral = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
     let resource_dir = app.path().resource_dir().map_err(|error| error.to_string())?;
-    reconcile_target(&mut ephemeral, &client, &resource_dir, &agent_id, false).await
+    reconcile_target(&mut ephemeral, &client, &resource_dir, &agent_id).await
 }
 
 pub fn schedule_apply(app: &AppHandle) {
@@ -500,20 +500,19 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
 }
 
 async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path) -> Result<(), String> {
-    reconcile_target(inner, client, resource_dir, "codex", true).await
-}
-
-/// Interrupted journal entries have no live turn whose provider configuration must be pinned.
-fn blocks_provider_application(state: &RunState, interruption: Option<&str>) -> bool {
-    matches!(state, RunState::Running | RunState::RequiresAction) && interruption.is_none()
+    reconcile_target(inner, client, resource_dir, "codex").await
 }
 
 async fn reconcile_target(
-    inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str, require_idle: bool,
+    inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str,
 ) -> Result<(), String> {
     if inner.applied_revision == Some(inner.saved.revision) {
         return Ok(());
     }
+    // The adapter owns session routing and rejects only changes affecting busy sessions.
+    // A global Runtime idle check would also block unrelated provider additions.
+    let mut pending = false;
+    let mut failures = Vec::new();
     let desired: BTreeMap<String, AppliedProvider> = inner
         .saved
         .credentials
@@ -532,16 +531,6 @@ async fn reconcile_target(
         inner.applied_revision = Some(inner.saved.revision);
         inner.error = None;
         return Ok(());
-    }
-    if require_idle
-        && client
-            .run_states()
-            .await
-            .map_err(crate::runtime::request_error)?
-            .iter()
-            .any(|s| blocks_provider_application(&s.state, s.interruption.as_deref()))
-    {
-        return Err("Provider settings are pending; finish or stop active turns before starting another turn".into());
     }
     let outcome: Result<(), String> = async {
         for (id, selected) in &desired {
@@ -573,24 +562,64 @@ async fn reconcile_target(
             if let Some(catalog) = bundled_catalog {
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
             }
-            client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
+            let result = client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
                 "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
-                .await.map_err(|e| format!("Provider {id} could not be applied ({}); retry at an idle boundary", e.code))?;
+                .await;
+            if let Err(error) = result {
+                record_application_error(id, "apply", &error, &mut pending, &mut failures);
+                continue;
+            }
             inner.applied.insert(id.clone(), selected.clone());
         }
         let removed: Vec<_> = inner.applied.keys().filter(|id| !desired.contains_key(*id)).cloned().collect();
         for id in removed {
-            client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
-                .await.map_err(|e| format!("Provider {id} could not be removed ({}); retry at an idle boundary", e.code))?;
+            let result = client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
+                .await;
+            if let Err(error) = result {
+                record_application_error(&id, "remove", &error, &mut pending, &mut failures);
+                continue;
+            }
             inner.applied.remove(&id);
         }
         Ok(())
     }.await;
-    inner.error = outcome.as_ref().err().cloned();
-    if outcome.is_ok() {
+    inner.error = outcome.err().or_else(|| (!failures.is_empty()).then(|| failures.join("; ")));
+    if inner.error.is_none() && !pending {
         inner.applied_revision = Some(inner.saved.revision);
     }
-    outcome
+    log::info!(
+        "Provider catalog: agent={agent_id} saved_revision={} applied_revision={:?} status={} pending_affected_sessions={pending}",
+        inner.saved.revision,
+        inner.applied_revision,
+        inner.snapshot().status
+    );
+    if let Some(error) = &inner.error {
+        Err(error.clone())
+    } else if pending {
+        Err(PROVIDERS_PENDING.into())
+    } else {
+        Ok(())
+    }
+}
+
+const PROVIDERS_PENDING: &str = "Provider settings are pending; waiting for affected sessions to finish";
+
+pub(crate) fn application_pending(error: &str) -> bool {
+    error == PROVIDERS_PENDING
+}
+
+fn record_application_error(
+    id: &str, operation: &str, error: &ResponseError, pending: &mut bool, failures: &mut Vec<String>,
+) {
+    // Match the installed adapter's busy response exactly; other invalid requests are failures.
+    let busy = error.code == -32600
+        && error.message == "Invalid request: Wait for affected sessions to finish before changing their provider";
+    log::warn!("Provider catalog: provider={id} operation={operation} code={} waiting_for_sessions={busy}", error.code);
+    if busy {
+        *pending = true;
+    } else {
+        failures.push(format!("Provider {id} could not {operation} ({}); retry to apply saved settings", error.code));
+    }
 }
 
 /// Preserve saved IDs while encoding custom IDs without collisions for the adapter's [a-z0-9-]+ grammar.
@@ -900,14 +929,6 @@ mod tests {
         assert_eq!(result.status, Some(200));
     }
 
-    #[test]
-    fn interrupted_turns_do_not_block_provider_application() {
-        assert!(blocks_provider_application(&RunState::Running, None));
-        assert!(blocks_provider_application(&RunState::RequiresAction, None));
-        assert!(!blocks_provider_application(&RunState::RequiresAction, Some("runtime_stopped")));
-        assert!(!blocks_provider_application(&RunState::Done, None));
-    }
-
     #[tokio::test]
     async fn unchanged_catalog_acknowledges_revision_while_another_turn_runs() {
         use std::sync::atomic::AtomicBool;
@@ -932,11 +953,23 @@ mod tests {
     fn fake_runtime(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
     ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
-        fake_runtime_with_interruption(active, fail, None)
+        fake_runtime_with_busy(active, fail, Arc::new(std::sync::atomic::AtomicBool::new(false)))
+    }
+    fn fake_runtime_with_busy(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        busy: Arc<std::sync::atomic::AtomicBool>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_state(active, fail, busy, None)
     }
     fn fake_runtime_with_interruption(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
         interruption: Option<&'static str>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_state(active, fail, Arc::new(std::sync::atomic::AtomicBool::new(false)), interruption)
+    }
+    fn fake_runtime_state(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        busy: Arc<std::sync::atomic::AtomicBool>, interruption: Option<&'static str>,
     ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
         use std::sync::atomic::Ordering;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
@@ -961,7 +994,12 @@ mod tests {
                     )
                 } else {
                     recorded.lock().unwrap().push(frame.clone());
-                    if fail.load(Ordering::SeqCst) {
+                    if busy.load(Ordering::SeqCst) && frame["params"]["params"]["_meta"]["codex"]["id"] == "qwen" {
+                        (
+                            Value::Null,
+                            json!({"code":-32600,"message":"Invalid request: Wait for affected sessions to finish before changing their provider"}),
+                        )
+                    } else if fail.load(Ordering::SeqCst) {
                         (Value::Null, json!({"code":-32000,"message":"private-test-secret upstream failure"}))
                     } else {
                         (json!({}), Value::Null)
@@ -997,7 +1035,7 @@ mod tests {
         let before = serde_json::to_value(main.snapshot()).unwrap();
         let mut ephemeral =
             Inner { saved: main.saved.clone(), applied: BTreeMap::new(), applied_revision: None, error: None };
-        reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test", false)
+        reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test")
             .await
             .unwrap();
         assert_eq!(serde_json::to_value(main.snapshot()).unwrap(), before);
@@ -1010,30 +1048,83 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn active_turn_pins_old_revision_until_idle_then_applies_latest_once() {
-        use std::sync::atomic::{AtomicBool, Ordering};
-        let active = Arc::new(AtomicBool::new(true));
-        let (client, calls) = fake_runtime(active.clone(), Arc::new(AtomicBool::new(false)));
+    async fn unrelated_active_turn_does_not_block_new_provider() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
         let mut inner = pending_provider();
-        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
-        assert!(calls.lock().unwrap().is_empty());
-        assert_eq!(inner.snapshot().status, "pending");
-        inner.saved = update(
-            &inner.saved,
-            "qwen".into(),
-            Some(Input { api_key: None, region: Some("intl".into()), base_url: None }),
-            1,
-        )
-        .unwrap();
-        active.store(false, Ordering::SeqCst);
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
-        assert_eq!(inner.applied_revision, Some(2));
-        let calls = calls.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0]["params"]["params"]["baseUrl"], "https://dashscope-intl.aliyuncs.com/compatible-mode/v1");
-        assert_eq!(calls[0]["params"]["params"]["_meta"]["codex"]["bearerToken"], "private-test-secret");
+        assert_eq!(inner.snapshot().status, "applied");
+        assert_eq!(inner.applied_revision, Some(1));
+        assert_eq!(calls.lock().unwrap().len(), 1);
     }
+
+    #[tokio::test]
+    async fn busy_provider_does_not_block_independent_changes_and_retries_only_pending() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let busy = Arc::new(AtomicBool::new(true));
+        let (client, calls) =
+            fake_runtime_with_busy(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)), busy.clone());
+        let mut inner = pending_provider();
+        let mut key = inner.saved.credentials["qwen"].clone();
+        key.region = None;
+        inner.saved.credentials.insert("xai".into(), key);
+        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
+        assert_eq!(inner.snapshot().status, "pending");
+        assert!(inner.error.is_none());
+        assert!(inner.applied.contains_key("xai"));
+        assert!(!inner.applied.contains_key("qwen"));
+        busy.store(false, Ordering::SeqCst);
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        let calls = calls.lock().unwrap();
+        let ids: Vec<_> =
+            calls.iter().map(|call| call["params"]["params"]["_meta"]["codex"]["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["qwen", "xai", "qwen"]);
+    }
+    #[tokio::test]
+    async fn busy_removal_keeps_routing_while_other_removals_apply() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let busy = Arc::new(AtomicBool::new(true));
+        let (client, calls) =
+            fake_runtime_with_busy(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)), busy.clone());
+        let mut inner = pending_provider();
+        let old = AppliedProvider::BuiltIn(inner.saved.credentials["qwen"].clone());
+        inner.applied.insert("qwen".into(), old.clone());
+        inner.applied.insert("xai".into(), old);
+        inner.applied_revision = Some(0);
+        inner.saved.credentials.clear();
+        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
+        assert_eq!(inner.snapshot().status, "pending");
+        assert!(inner.applied.contains_key("qwen"));
+        assert!(!inner.applied.contains_key("xai"));
+        busy.store(false, Ordering::SeqCst);
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert!(inner.applied.is_empty());
+        assert_eq!(inner.snapshot().status, "applied");
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 3);
+        assert!(calls.iter().all(|call| call["params"]["method"] == "providers/disable"));
+    }
+
+    #[test]
+    fn only_the_adapter_busy_response_is_pending_and_raw_errors_stay_private() {
+        let mut pending = false;
+        let mut failures = Vec::new();
+        record_application_error(
+            "qwen",
+            "apply",
+            &ResponseError::new(-32600, "private-test-secret"),
+            &mut pending,
+            &mut failures,
+        );
+        assert!(!pending);
+        assert_eq!(failures.len(), 1);
+        assert!(!failures[0].contains("private-test-secret"));
+        assert!(application_pending(PROVIDERS_PENDING));
+        assert!(!application_pending(&failures[0]));
+    }
+
     #[tokio::test]
     async fn failed_apply_is_not_acknowledged_and_can_retry_without_exposing_private_error() {
         use std::sync::atomic::{AtomicBool, Ordering};

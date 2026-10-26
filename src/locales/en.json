@@ -497,7 +497,7 @@
     }
   },
   "provider": {
-    "pending": "Settings saved. Changes apply when active chats finish.",
+    "pending": "Settings saved. Remaining changes apply when chats using the affected providers finish.",
     "label": "Models",
     "active": "{{count}} models available. Select them in each chat's model picker.",
     "configured": "Configured",

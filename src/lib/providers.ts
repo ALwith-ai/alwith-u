@@ -134,15 +134,15 @@ function applyProviders(): Promise<ProviderSnapshot> {
   return commands.providersApply()
 }
 
-/** Provider changes wait for active turns; opening a draft must keep using the last applied catalog. */
+/** Changes affecting busy provider sessions remain pending in the adapter. */
 function providerApplicationPending(error: unknown): boolean {
   const message = error instanceof Error ? error.message : typeof error === "string" ? error : String(error)
   return message.includes("Provider settings are pending")
 }
 
 /**
- * Apply the saved provider revision when the Runtime is idle. A pending revision is a valid
- * startup state, so return the read snapshot and let prompt admission retry the application.
+ * Apply independent provider changes immediately. Return the current snapshot when
+ * affected sessions are busy; Runtime state notifications retry the remaining changes.
  */
 export async function applyProvidersWhenIdle(): Promise<ProviderSnapshot> {
   try {
