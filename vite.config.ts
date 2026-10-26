@@ -4,11 +4,13 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
 
+import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
+
 const host = process.env.TAURI_DEV_HOST
 const debug = process.env.TAURI_ENV_DEBUG === "true"
 
 export const config = (): UserConfig => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), productionJsxGuard()],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"],
     alias: {
