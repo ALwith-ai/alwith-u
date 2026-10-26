@@ -222,6 +222,11 @@ function isReadOnlyResume(response: acp.ResumeSessionResponse): boolean {
   return codex?.readOnly === true
 }
 
+function isActiveWriterError(error: unknown): boolean {
+  const data = error && typeof error === "object" && "data" in error ? error.data : null
+  return !!data && typeof data === "object" && "reason" in data && data.reason === "thread_active_writer"
+}
+
 export class CodexClient {
   readonly store: StoreApi<AppState>
   /**
@@ -1093,6 +1098,38 @@ export class CodexClient {
       this.recordForkOrigin(id, response._meta)
     } catch (error) {
       if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) throw error
+      if (isActiveWriterError(error) && history) {
+        // Browsing is independent of acquiring the writer; do not fabricate an ACP attachment.
+        let historyError: string | null = null
+        try {
+          const page = await readHistoryPage(id, cwd, null, (params) =>
+            agent.request("_codex/session_history", params, { cancellationSignal: signal })
+          )
+          signal.throwIfAborted()
+          if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) return
+          this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
+          this.noteLoadedHistory(id, page.turnIds)
+          this.store.setState((state) => ({
+            historyPages: { ...state.historyPages, [id]: { cursor: page.cursor, loading: false, error: null } }
+          }))
+        } catch (reason) {
+          signal.throwIfAborted()
+          if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) return
+          historyError = reason instanceof Error ? reason.message : String(reason)
+        }
+        if (historyError) this.store.setState((state) => ({
+          historyPages: { ...state.historyPages, [id]: { cursor: null, loading: false, error: historyError } }
+        }))
+        this.publishSession({
+          ...this.sessions.get(id),
+          cwd,
+          attached: false,
+          restoring: false,
+          readOnly: true,
+          error: null
+        })
+        return
+      }
       this.publishSession({
         ...this.sessions.get(id),
         restoring: false,

@@ -193,7 +193,7 @@ function ProjectPopover({
         aria-label={label}
         initialFocus={trigger === undefined ? popupRef : false}
         finalFocus={() => !skipFocus.current}
-        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden p-1"
+        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden px-0 py-1"
       >
         {open && (
           <ProjectContents
@@ -301,7 +301,7 @@ function ProjectContents({
               className={cn(
                 TRAILING_GROUP,
                 ROW_HIGHLIGHT,
-                "flex h-8 w-full items-center gap-2 rounded-sm px-2 focus-within:bg-foreground/8"
+                "flex h-8 w-full items-center gap-2 rounded-none px-3 focus-within:bg-foreground/8"
               )}
             >
               <Button
@@ -339,7 +339,7 @@ function ProjectContents({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 justify-start rounded-sm border-0 ps-9 pe-3 font-normal text-muted-foreground"
+          className="h-8 justify-start rounded-none border-0 ps-9 pe-3 font-normal text-muted-foreground"
           onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
@@ -370,7 +370,7 @@ function ProjectContents({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-start gap-2 rounded-sm border-0 px-2 font-normal"
+        className="justify-start gap-2 rounded-none border-0 px-3 font-normal"
         onClick={onNewChat}
       >
         <PlusIcon />

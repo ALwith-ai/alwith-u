@@ -9,12 +9,12 @@
 .alwith-legacy .legacy-tabs {
   display: flex;
   flex: 0 0 auto;
-  gap: 2px;
+  gap: 0;
   min-height: 36px;
   overflow-x: auto;
   border-bottom: 1px solid var(--border);
-  background: var(--muted);
-  padding: 0 4px;
+  background: transparent;
+  padding: 0;
 }
 .alwith-legacy .legacy-tabs > div {
   display: flex;
@@ -22,10 +22,12 @@
   gap: 4px;
   max-width: 240px;
   padding: 0 6px 0 10px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
 }
 .alwith-legacy .legacy-tabs > div:has([aria-selected="true"]) {
-  background: var(--background);
+  background: transparent;
+  border-bottom-color: var(--foreground);
 }
 .alwith-legacy .legacy-tabs button[role="tab"] {
   min-width: 0;
@@ -58,4 +60,13 @@
 }
 .alwith-legacy .legacy-tabs button:not([role="tab"]):hover {
   background: var(--accent);
+}
+
+/* Extension styles and global button hover rules must not turn tabs into buttons. */
+.alwith-legacy .legacy-tabs > div,
+.alwith-legacy .legacy-tabs > div:hover,
+.alwith-legacy .legacy-tabs button[role="tab"]:is(:hover, :active, :focus) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none;
 }

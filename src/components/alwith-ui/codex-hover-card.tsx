@@ -39,15 +39,13 @@ export function CodexHoverCard({
             className={
               unstyled
                 ? "m-0 outline-hidden"
-                : "m-px flex w-fit max-w-[min(20rem,calc(100vw-16px))] min-w-56 flex-col rounded-xl bg-[rgb(255_255_255_/_0.9)] text-sm text-[#1a1c1f] shadow-[0_0_0_0.5px_rgb(0_0_0_/_0.08),0_8px_16px_-4px_rgb(0_0_0_/_0.12)] ring-[0.5px] ring-black/8 outline-hidden backdrop-blur-sm select-none dark:bg-[rgb(33_33_33_/_0.9)] dark:text-white dark:ring-white/8"
+                : "m-px flex w-80 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-md bg-popover text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden select-none"
             }
           >
             {unstyled ? (
               children
             ) : (
-              <div className="flex w-fit max-w-[min(20rem,calc(100vw-16px))] min-w-56 flex-col px-0 py-1 break-words whitespace-normal">
-                {children}
-              </div>
+              <div className="flex w-full min-w-0 flex-col px-0 py-1 break-words whitespace-normal">{children}</div>
             )}
           </PreviewCard.Popup>
         </PreviewCard.Positioner>

@@ -1809,3 +1809,43 @@ test("reconnect releases each Runtime gap subscription", async () => {
     spy.mockRestore()
   }
 })
+
+test("writer conflicts still open browsable history and retry without claiming an attachment", async () => {
+  let locked = true
+  const { client, fake } = await make((fake) => {
+    fake.historyResponse.current = () => ({
+      sessionId: "locked",
+      consistency: "live",
+      revision: null,
+      nextCursor: null,
+      complete: true,
+      turns: [
+        {
+          turnId: "stored",
+          itemsView: "full",
+          updates: [
+            {
+              sessionUpdate: "user_message",
+              messageId: "stored-user",
+              content: [{ type: "text", text: "Readable history" }]
+            }
+          ]
+        }
+      ]
+    })
+    fake.resumeResponse.current = async () => {
+      if (locked)
+        throw RequestError.invalidRequest({ reason: "thread_active_writer", threadId: "locked" }, "Session in use")
+      return {}
+    }
+  })
+  await client.open("locked", "/tmp/locked")
+  expect(client.session("locked")).toMatchObject({ attached: false, readOnly: true, restoring: false, error: null })
+  expect(
+    client.session("locked").items.some((item) => item.kind === "user" && textOf(item.content) === "Readable history")
+  ).toBe(true)
+  expect(fake.historyRequests).toHaveLength(1)
+  locked = false
+  await client.open("locked", "/tmp/locked")
+  expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
+})
