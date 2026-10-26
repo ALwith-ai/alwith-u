@@ -21,16 +21,16 @@ export type SettingsSection =
   | "drive"
   | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
-  "general",
-  "appearance",
-  "trackpad",
-  "editor",
   "account",
+  "general",
   "provider",
+  "appearance",
+  "editor",
+  "drive",
   "voice",
+  "trackpad",
   "computer",
   "extensions",
-  "drive",
   "about"
 ]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"

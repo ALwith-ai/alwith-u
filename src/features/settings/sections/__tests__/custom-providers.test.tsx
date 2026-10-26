@@ -55,7 +55,7 @@ function visibleEditor(view: ReturnType<typeof render>): Scope {
 }
 
 function providerTabs(view: ReturnType<typeof render>): Scope {
-  const tabs = view.getByRole("heading", { name: "Model providers" }).parentElement
+  const tabs = view.getByRole("heading", { name: "Models" }).parentElement
   if (!tabs) throw new Error("Provider tabs missing")
   return within(tabs)
 }

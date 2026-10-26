@@ -444,7 +444,7 @@
     "externalEditor": "Open projects with",
     "externalEditorDesc": "The app used by \"Open in\" on a chat's project folder.",
     "account": "Account",
-    "provider": "Model provider",
+    "provider": "Models",
     "about": "About",
     "version": "Version {{version}}",
     "codexVersion": "Codex CLI {{version}}",
@@ -465,6 +465,7 @@
   "usage": {
     "title": "Plan usage limits",
     "usage": "Usage",
+    "remaining": "{{percent}}% remaining",
     "used": "{{percent}}% used",
     "resetsAt": "Resets {{time}}",
     "windowHours": "{{count}}-hour",
@@ -496,7 +497,7 @@
   },
   "provider": {
     "pending": "Settings saved. Changes apply when active chats finish.",
-    "label": "Model providers",
+    "label": "Models",
     "active": "{{count}} models available. Select them in each chat's model picker.",
     "configured": "Configured",
     "connectionSettings": "Connection settings",

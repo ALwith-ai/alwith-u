@@ -24,10 +24,10 @@ import {
 
 import { SettingGroup, SettingLabel } from "./shared"
 
-/** Desktop's `UsageLimitRow`: label, a long bar, "n% used", then the reset time under it. */
+/** Desktop's `UsageLimitRow`: label, a long bar, "n% remaining", then the reset time under it. */
 function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
   const { t } = useTranslation()
-  const percent = window ? Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
+  const percent = window ? 100 - Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
   const resets =
     window && window.resetsAt !== null
       ? t("usage.resetsAt", { time: format(new Date(window.resetsAt * 1000), "yyyy/MM/dd HH:mm") })
@@ -55,7 +55,9 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
           <Skeleton className="h-2 rounded-full motion-reduce:animate-none" />
         )}
         {window ? (
-          <span className="text-end text-xs text-muted-foreground tabular-nums">{t("usage.used", { percent })}</span>
+          <span className="text-end text-xs text-muted-foreground tabular-nums">
+            {t("usage.remaining", { percent })}
+          </span>
         ) : (
           <Skeleton className="h-4 w-14 justify-self-end motion-reduce:animate-none" />
         )}

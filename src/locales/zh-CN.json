@@ -444,7 +444,7 @@
     "externalEditor": "打开项目用",
     "externalEditorDesc": "聊天项目文件夹「用…打开」时使用的应用。",
     "account": "账户",
-    "provider": "模型提供方",
+    "provider": "大模型",
     "about": "关于",
     "codexVersion": "Codex CLI {{version}}",
     "version": "版本 {{version}}",
@@ -465,6 +465,7 @@
   "usage": {
     "title": "套餐用量限额",
     "usage": "用量",
+    "remaining": "剩余 {{percent}}%",
     "used": "已用 {{percent}}%",
     "resetsAt": "{{time}} 重置",
     "windowHours": "{{count}} 小时",
@@ -496,7 +497,7 @@
   },
   "provider": {
     "pending": "设置已保存，将在运行中的对话结束后生效。",
-    "label": "模型提供方",
+    "label": "大模型",
     "active": "已提供 {{count}} 个模型，可在各聊天中选择。",
     "configured": "已配置",
     "connectionSettings": "连接设置",
