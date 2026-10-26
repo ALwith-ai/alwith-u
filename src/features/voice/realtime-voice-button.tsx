@@ -5,6 +5,7 @@ import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { PromptInputButton } from "@/features/chat/composer/prompt-input"
 import { client, useApp } from "@/lib/client"
 
@@ -39,24 +40,30 @@ export function RealtimeVoiceButton({
     phase === "idle" ? "voice.realtimeStart" : phase === "connected" ? "voice.realtimeStop" : "voice.realtimeCancel"
   )
   return (
-    <PromptInputButton
-      type="button"
-      aria-label={label}
-      title={label}
-      aria-pressed={phase === "connected"}
-      disabled={phase === "closing" || (!enabled && phase === "idle")}
-      onClick={() => {
-        if (phase === "idle") beforeStart()
-        void voice.toggle().catch((error) => toast.error(error instanceof Error ? error.message : String(error)))
-      }}
-    >
-      {phase === "connecting" || phase === "closing" ? (
-        <Loader2Icon className="animate-spin" />
-      ) : phase === "connected" ? (
-        <PhoneOffIcon />
-      ) : (
-        <HeadphonesIcon />
-      )}
-    </PromptInputButton>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <PromptInputButton
+            type="button"
+            aria-label={label}
+            aria-pressed={phase === "connected"}
+            disabled={phase === "closing" || (!enabled && phase === "idle")}
+            onClick={() => {
+              if (phase === "idle") beforeStart()
+              void voice.toggle().catch((error) => toast.error(error instanceof Error ? error.message : String(error)))
+            }}
+          >
+            {phase === "connecting" || phase === "closing" ? (
+              <Loader2Icon className="animate-spin" />
+            ) : phase === "connected" ? (
+              <PhoneOffIcon />
+            ) : (
+              <HeadphonesIcon />
+            )}
+          </PromptInputButton>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }

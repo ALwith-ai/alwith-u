@@ -1077,7 +1077,7 @@
     "shortcut": "Voice shortcut",
     "shortcutKey": "Option / Alt",
     "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only.",
-    "realtimeStart": "Start Codex voice call",
+    "realtimeStart": "Voice call",
     "realtimeStop": "End voice call",
     "realtimeCancel": "Cancel voice connection"
   },

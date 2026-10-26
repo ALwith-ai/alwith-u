@@ -30,11 +30,11 @@ export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode
         // Map -50…-12 dBFS across the display instead of saturating on ordinary speech.
         const decibels = levels[index] === 0 ? -50 : 20 * Math.log10(levels[index])
         const intensity = Math.max(0, Math.min(1, (decibels + 50) / 38)) ** 1.25
-        const height = 2 + 10 * intensity
+        const height = 3 + 9 * intensity
         bar.setAttribute("x", String(index * 6 - offset))
         bar.setAttribute("y", String((12 - height) / 2))
         bar.setAttribute("height", String(height))
-        bar.setAttribute("opacity", String(0.12 + 0.88 * intensity))
+        bar.setAttribute("opacity", String(0.2 + 0.8 * intensity))
       })
       frame = requestAnimationFrame(draw)
     }
@@ -44,14 +44,14 @@ export function VoiceWaveform({ audioLevel }: { audioLevel: number }): ReactNode
   return (
     <svg
       ref={svg}
-      className="voice-waveform-bars"
-      viewBox="0 0 72 12"
+      className="voice-waveform-bars size-auto"
+      viewBox="0 0 34 12"
       preserveAspectRatio="none"
       aria-hidden="true"
       data-voice-level={audioLevel}
     >
-      {Array.from({ length: 13 }, (_, position) => position * 6).map((position) => (
-        <rect key={position} x={position} y="5" width="2" height="2" rx="1" opacity="0.12" />
+      {Array.from({ length: 7 }, (_, position) => position * 6).map((position) => (
+        <rect key={position} x={position} y="4.5" width="3" height="3" rx="1.5" opacity="0.2" />
       ))}
     </svg>
   )
