@@ -1,7 +1,7 @@
 {
   "name": "alwith-u",
   "private": true,
-  "version": "0.2.20",
+  "version": "0.2.21",
   "description": "An independent desktop client for the OpenAI Codex CLI",
   "license": "Apache-2.0",
   "type": "module",
@@ -29,7 +29,8 @@
     "@agentclientprotocol/sdk": "^2.0.2",
     "@alwith/api": "^0.4.21",
     "@alwith/module-auth": "^0.1.14",
-    "@alwith/module-chat": "^0.1.31",
+    "@alwith/module-browser": "^0.0.1",
+    "@alwith/module-chat": "^0.1.32",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",
     "@alwith/module-drive": "^0.1.4",
@@ -162,7 +163,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.164.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "^0.1.31",
+    "@alwith/module-chat": "^0.1.32",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {

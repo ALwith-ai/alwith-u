@@ -22,6 +22,7 @@ import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
 
 import { AutostartRow } from "./autostart-row"
+import { PreventSleepRow } from "./prevent-sleep-row"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function GeneralSection() {
@@ -145,6 +146,7 @@ export function GeneralSection() {
           />
         </div>
       </SettingRow>
+      <PreventSleepRow />
       <AutostartRow />
     </SettingGroup>
   )

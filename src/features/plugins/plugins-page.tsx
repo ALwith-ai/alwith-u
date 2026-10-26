@@ -112,6 +112,7 @@ function PluginRow({
       <Button
         variant="ghost"
         className="absolute inset-0 z-0 size-full"
+        data-hover-background="none"
         aria-label={pluginTitle(plugin)}
         onClick={() => onOpen({ plugin, marketplace })}
       />
@@ -499,9 +500,13 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
   useEffect(() => {
     // The screen arrow is available even before the engine has connected.
     if (!active || !ready) return
-    void refresh(JSON.parse(directoriesKey) as string[])
-    return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
+    if (pluginsStore.getState().loadedScope !== directoriesKey) void refresh(JSON.parse(directoriesKey) as string[])
   }, [active, ready, refresh, directoriesKey])
+
+  useEffect(() => {
+    if (!ready) return
+    return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
+  }, [ready, refresh])
 
   return (
     <div className="@container flex h-full flex-col overflow-hidden">

@@ -306,39 +306,19 @@ test("search includes optional description and author", async (): Promise<void> 
   }
 })
 
-test("hovering extension information reveals full metadata and follows language changes", async (): Promise<void> => {
+test("extension rows share panel hover styling without metadata tooltips", async (): Promise<void> => {
   const snapshot = state()
-  const item = installation("alpha", "Alpha Notes")
-  item.manifest.description = "A complete description that remains available when the list truncates it."
-  item.manifest.author = "Example Team"
-  item.manifest.authorUrl = "https://example.com/team"
-  item.manifest.locales = { zh: { name: "阿尔法笔记", description: "完整的扩展简介，不因列表省略而丢失。" } }
-  snapshot.native.installations = [item]
+  snapshot.native.installations = [installation("alpha", "Alpha Notes")]
   const view = setup(snapshot)
-  expect(view.queryByRole("tooltip")).toBeNull()
+  const row = view.getByRole("region", { name: "Alpha Notes" })
+  expect(row.querySelector('[data-slot="item"]')).toHaveClass("chrome-hover", "hover:bg-foreground/8")
+  fireEvent.mouseEnter(view.getByText("Alpha Notes"))
+  fireEvent.mouseMove(view.getByText("Alpha Notes"))
   await act(async () => {
-    const information = view.getByRole("group", { name: "Details for Alpha Notes" })
-    fireEvent.mouseEnter(information)
-    fireEvent.mouseMove(information)
     await new Promise((resolve) => setTimeout(resolve, 350))
   })
-  const details = within(view.getByRole("tooltip"))
-  for (const text of [
-    "Alpha Notes",
-    item.manifest.description,
-    "Example Team",
-    "1.0.0",
-    "alpha",
-    "https://example.com/team"
-  ])
-    expect(details.getByText(text)).toBeTruthy()
-  await act(async () => {
-    await i18n.changeLanguage("zh-CN")
-  })
-  expect(details.getByText("阿尔法笔记")).toBeTruthy()
-  expect(details.getByText("完整的扩展简介，不因列表省略而丢失。")).toBeTruthy()
-  expect(details.getByText("作者")).toBeTruthy()
-  expect(view.actions).toEqual([])
+  expect(view.queryByRole("tooltip")).toBeNull()
+  expect(row.querySelector("[aria-describedby]")).toBeNull()
 })
 
 test("host language changes localize disabled extensions and uninstall prompts without runtime requests", async (): Promise<void> => {

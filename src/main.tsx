@@ -1,5 +1,6 @@
 import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { isTauri } from "@tauri-apps/api/core"
+import { listen } from "@tauri-apps/api/event"
 import { attachConsole, error as logError, info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
@@ -79,6 +80,7 @@ async function bootstrap(): Promise<void> {
   predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
   await initI18n(preferences.language)
   if (isTauri()) {
+    await listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
     await restoreComputer().catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
     void useUpdaterStore

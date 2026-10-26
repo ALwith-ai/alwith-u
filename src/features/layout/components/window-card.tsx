@@ -11,33 +11,39 @@ export function WindowCard({
   title,
   icon,
   onOpen,
-  onClose
+  onClose,
+  badge
 }: {
   title: string
   icon: ReactNode
   onOpen: () => void
   onClose?: () => void
+  badge?: ReactNode
 }) {
   const { t } = useTranslation()
   const mac = isMac()
+  const trigger = (
+    <Button
+      variant="ghost"
+      className="window-card-hit absolute inset-0 h-full w-full cursor-pointer rounded-[inherit] border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
+      aria-label={title}
+      onClick={onOpen}
+    >
+      <span className="pointer-events-none flex h-full w-full items-center justify-center [&_img]:size-12 [&_svg]:size-12">
+        {icon}
+      </span>
+      <span className="pointer-events-none absolute inset-x-2.5 bottom-1.5 truncate text-start text-xs text-foreground/70">
+        {title}
+      </span>
+    </Button>
+  )
   return (
     <div
       data-pane-feedback-frame
       className="window-card group relative aspect-[16/10] shrink-0 overflow-clip rounded-xl border border-border bg-background text-foreground"
     >
-      <Button
-        variant="ghost"
-        className="window-card-hit absolute inset-0 h-full w-full cursor-pointer rounded-[inherit] border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
-        aria-label={title}
-        onClick={onOpen}
-      >
-        <span className="pointer-events-none flex h-full w-full items-center justify-center [&_img]:size-12 [&_svg]:size-12">
-          {icon}
-        </span>
-        <span className="pointer-events-none absolute inset-x-2.5 bottom-1.5 truncate text-start text-xs text-muted-foreground">
-          {title}
-        </span>
-      </Button>
+      {trigger}
+      {badge}
       <span
         aria-hidden
         className={cn(

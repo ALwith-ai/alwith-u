@@ -33,9 +33,11 @@ export function skillMarkdownBody(text: string): string {
 
 export function SkillDocument({
   path,
-  renderHeader
+  renderHeader,
+  description
 }: {
-  path: string
+  path: string | null
+  description?: string
   renderHeader?: (actions: ReactNode) => ReactNode
 }) {
   const { t } = useTranslation()
@@ -47,7 +49,7 @@ export function SkillDocument({
     let cancelled = false
     setDocument(null)
     setError(null)
-    void readSkillDocument(path).then(
+    void (path === null ? Promise.resolve(description ?? "") : readSkillDocument(path)).then(
       (value) => {
         if (!cancelled) setDocument(value)
       },
@@ -58,36 +60,41 @@ export function SkillDocument({
     return () => {
       cancelled = true
     }
-  }, [path, attempt])
+  }, [path, description, attempt])
   const report = (action: Promise<unknown>) => void action.catch((reason: unknown) => toast.error(String(reason)))
-  const actions = (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label={t("plugins.card.moreActions")} />}
-      >
-        <MoreHorizontalIcon />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => report(openPath(path))}>{t("plugins.skills.document.open")}</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => report(revealItemsInDir(path))}>
-          {t("plugins.skills.document.reveal")}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={document === null}
-          onClick={() => {
-            if (document !== null) report(writeText(document))
-          }}
+  const actions =
+    path === null ? null : (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon-sm" aria-label={t("plugins.card.moreActions")} />}
         >
-          {t("plugins.skills.document.copy")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+          <MoreHorizontalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => report(openPath(path))}>
+            {t("plugins.skills.document.open")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => report(revealItemsInDir(path))}>
+            {t("plugins.skills.document.reveal")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={document === null}
+            onClick={() => {
+              if (document !== null) report(writeText(document))
+            }}
+          >
+            {t("plugins.skills.document.copy")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
   return (
     <>
       {renderHeader ? renderHeader(actions) : <div className="flex justify-end">{actions}</div>}
       <div
-        className="skill-document max-h-[45dvh] min-h-32 min-w-0 overflow-y-auto overscroll-contain rounded-xl bg-muted/50 p-5 text-sm leading-6"
+        className="skill-document h-[45dvh] min-h-32 min-w-0 shrink-0 overflow-y-auto overscroll-contain rounded-xl bg-muted/50 p-5 text-sm leading-6"
+        role="region"
+        tabIndex={0}
         aria-label={t("plugins.skills.document.content")}
       >
         {error ? (
@@ -113,8 +120,12 @@ export function SkillDocument({
               theme: resolvedTheme,
               copyLabel: t("actions.copy"),
               openLink: (href) =>
-                openExternal(
-                  /^(?:[a-z][a-z\d+.-]*:|\/|#)/i.test(href) ? href : normalizePath(dirname(path) + "/" + href)
+                report(
+                  openExternal(
+                    /^(?:[a-z][a-z\d+.-]*:|\/|#)/i.test(href) || path === null
+                      ? href
+                      : normalizePath(dirname(path) + "/" + href)
+                  )
                 )
             }}
           />

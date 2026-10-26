@@ -8,7 +8,10 @@ use std::{
 use tauri::{Emitter, Manager, State};
 pub struct SharedSettings(pub Arc<Mutex<SettingsStore>>);
 pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    app.manage(SharedSettings(Arc::new(Mutex::new(SettingsStore::load(app.path().app_data_dir()?)?))));
+    let store = SettingsStore::load(app.path().app_data_dir()?)?;
+    app.state::<crate::power::PreventSleep>()
+        .set_enabled(store.values.get("system.preventSleep").and_then(Value::as_bool).unwrap_or(false))?;
+    app.manage(SharedSettings(Arc::new(Mutex::new(store))));
     Ok(())
 }
 #[tauri::command]
@@ -60,8 +63,10 @@ pub fn settings_request(
     }
     let (revision, values) = store.snapshot()?;
     let snapshot = json!({"revision":revision, "values":values, "browserMigrated":store.browser_migrated()});
+    let prevent_sleep = values.get("system.preventSleep").and_then(Value::as_bool).unwrap_or(false);
     if action != "read" {
         window.app_handle().emit("settings:changed", &snapshot).map_err(|e| e.to_string())?;
+        window.app_handle().state::<crate::power::PreventSleep>().set_enabled(prevent_sleep)?;
     }
     Ok(snapshot)
 }

@@ -28,7 +28,7 @@ const catalog = [
 
 const configureModels = fn()
 
-function ModelMenuPreview(): ReactElement {
+function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
   const [selected, setSelected] = useState("GPT-6.1-Sol")
   const [effort, setEffort] = useState("medium")
   const [fast, setFast] = useState(false)
@@ -60,11 +60,14 @@ function ModelMenuPreview(): ReactElement {
           name: "Effort",
           value: effort,
           levels: [
-            { value: "low", name: "低" },
-            { value: "medium", name: "中" },
-            { value: "high", name: "高" }
+            { value: "low", name: "Low" },
+            { value: "medium", name: "Medium" },
+            { value: "high", name: "Extra High" }
           ],
-          onChange: setEffort
+          onChange: async (value) => {
+            if (delay) await new Promise<void>((resolve) => setTimeout(resolve, delay))
+            setEffort(value)
+          }
         }}
         booleanOptions={[
           {
@@ -113,6 +116,23 @@ type Story = StoryObj<typeof meta>
 
 export const Overview: Story = {}
 
+export const DelayedEffort: Story = {
+  args: { delay: 500 },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByTestId("model-trigger"))
+    const slider = within(document.body).getByRole("slider", { name: "Effort" })
+    slider.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    for (let frame = 0; frame < 12; frame++) {
+      await expect(slider).toHaveAttribute("aria-valuetext", "Extra High")
+      await new Promise<void>((resolve) => setTimeout(resolve, 60))
+    }
+    await userEvent.keyboard("{Escape}")
+    await userEvent.unhover(canvas.getByTestId("model-trigger"))
+    await waitFor(async () => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
+  }
+}
+
 export const Providers: Story = {
   play: async ({ canvas, userEvent }) => {
     const body = within(document.body)
@@ -126,11 +146,21 @@ export const Providers: Story = {
     await userEvent.keyboard("{Enter}")
     await expect(body.getByRole("menuitemcheckbox", { name: "快速" })).toHaveAttribute("aria-disabled", "true")
     const slider = body.getByRole("slider", { name: "Effort" })
+    await waitFor(async () =>
+      expect(
+        slider
+          .closest('[data-slot="dropdown-menu-content"]')!
+          .getAnimations()
+          .some((animation) => animation.playState === "running")
+      ).toBe(false)
+    )
+    const labelWidth = slider.previousElementSibling!.getBoundingClientRect().width
     slider.focus()
     await userEvent.keyboard("{ArrowRight}")
-    await expect(slider).toHaveAttribute("aria-valuetext", "高")
+    await expect(slider.previousElementSibling!.getBoundingClientRect().width).toBe(labelWidth)
+    await expect(slider).toHaveAttribute("aria-valuetext", "Extra High")
     await userEvent.keyboard("{Escape}")
-    await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("高")
+    await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("Extra High")
     await waitFor(async () => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
   }
 }

@@ -188,12 +188,12 @@ export const ArabicFloatingSidebar: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
     await userEvent.hover(toggle)
-    await waitFor(() => {
+    await waitFor(async () => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 4, 0)
-      void expect(getComputedStyle(sidebar).visibility).toBe("visible")
+      await expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      await expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
+      await expect(getComputedStyle(sidebar).visibility).toBe("visible")
     })
   }
 }
@@ -236,19 +236,21 @@ export const EnglishFloatingSidebar: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
     await userEvent.hover(toggle)
-    await waitFor(() => {
+    await waitFor(async () => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 4, 0)
-      const style = getComputedStyle(sidebar)
-      void expect([
+      await expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      await expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const surface = canvasElement.querySelector(".main-sidebar-viewport")!
+      await expect(surface.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const style = getComputedStyle(surface)
+      await expect([
         style.borderTopLeftRadius,
         style.borderTopRightRadius,
         style.borderBottomLeftRadius,
         style.borderBottomRightRadius
       ]).toEqual(["14px", "14px", "14px", "14px"])
-      void expect(style.visibility).toBe("visible")
+      await expect(style.visibility).toBe("visible")
     })
   }
 }

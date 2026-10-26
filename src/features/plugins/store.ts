@@ -49,6 +49,7 @@ export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplac
 
 type PluginsState = {
   loading: boolean
+  loadedScope: string | null
   upgrading: boolean
   /** Message of the last failed catalog load; the page shows a retry. */
   error: string | null
@@ -168,6 +169,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
 
     return {
       loading: false,
+      loadedScope: null,
       upgrading: false,
       error: null,
       cwds: [],
@@ -204,6 +206,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
               if (pendingRefresh) continue
               const merged = mergeSkills(skills)
               set({
+                loadedScope: JSON.stringify(request.cwds),
                 skills: merged.skills,
                 skillProjects: merged.projects,
                 skillErrors: merged.errors,

@@ -52,6 +52,7 @@
     "resources": {
       "resources/adapter": "adapter",
       "resources/computer": "computer",
+      "resources/chrome-bridge": "chrome-bridge",
       "resources/licenses": "licenses",
       "resources/native": "native",
       "resources/deepseek": "deepseek",

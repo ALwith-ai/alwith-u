@@ -409,8 +409,12 @@ html[data-window-backdrop="acrylic"]
 [data-sidebar-mode="hidden"] .main-sidebar-viewport {
   pointer-events: none;
 }
-[data-sidebar-mode="floating"] .main-sidebar-viewport {
-  overflow: visible;
+[data-sidebar-mode="floating"] .main-sidebar-shell[data-atlas-floating] > .main-sidebar-viewport {
+  /* Atlas paints this outer surface; include the canvas's 4px window gutter. */
+  inset-inline-start: 4px;
+  padding-inline: 0;
+  overflow: clip;
+  border-radius: var(--main-surface-radius);
 }
 [data-sidebar-mode="floating"] .main-sidebar-panel {
   overflow: clip;

@@ -14,6 +14,7 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 
+import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
 import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
 import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
@@ -248,3 +249,5 @@ for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
   copyFileSync(join(root, "node_modules/@alwith/module-drive", name), join(driveLicenses, name))
 }
 console.log(`licences -> ${licenses}`)
+
+await stageChromeBridge(join(root, "src-tauri/resources/chrome-bridge"))

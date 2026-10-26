@@ -16,6 +16,7 @@ import { openExternal } from "@/lib/open"
 
 import { pluginsStore } from "./instance"
 import { PluginIcon } from "./plugin-icon"
+import { SkillDocument } from "./skill-document"
 import type { PluginEntry } from "./store"
 
 /** Desktop's breadcrumb, hero, information strip and capability lists, fed by Codex's source catalog. */
@@ -188,9 +189,9 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   onClick={() => setSkill(item)}
                 >
                   <PluginIcon name={item.name} className="size-8" />
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">{item.interface?.displayName ?? item.name}</span>
-                    <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">
                       {item.interface?.shortDescription ?? item.shortDescription ?? item.description}
                     </span>
                   </span>
@@ -236,14 +237,25 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           if (!open) setSkill(null)
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <PluginIcon name={skill?.name ?? summary.name} className="size-12" />
-            <DialogTitle>{skill?.interface?.displayName ?? skill?.name}</DialogTitle>
-            <DialogDescription className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap">
-              {skill?.description}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="flex max-h-[85dvh] flex-col gap-4 overflow-hidden rounded-xl sm:max-w-3xl">
+          {skill && (
+            <>
+              <div className="shrink-0 pr-8">
+                <PluginIcon name={skill.name} className="size-12" />
+              </div>
+              <div className="min-h-0 overflow-y-auto overscroll-contain">
+                <DialogHeader className="gap-3">
+                  <DialogTitle className="text-xl leading-tight break-words">
+                    {skill.interface?.displayName ?? skill.name}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm leading-6 break-words whitespace-pre-wrap">
+                    {skill.description}
+                  </DialogDescription>
+                </DialogHeader>
+                <SkillDocument key={skill.path ?? skill.name} path={skill.path} description={skill.description} />
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

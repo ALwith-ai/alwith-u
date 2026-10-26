@@ -62,9 +62,14 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[calc(var(--anchor-width)+36px)]">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="flex h-8 items-center gap-2 px-2 py-0 text-sm font-medium text-popover-foreground">
+          <DropdownMenuLabel className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-popover-foreground">
             {avatar}
-            <span className="min-w-0 truncate">{displayName}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{displayName}</span>
+              <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                {user.login_email}
+              </span>
+            </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
         </DropdownMenuGroup>

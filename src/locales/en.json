@@ -461,7 +461,9 @@
     "trackpad": "Trackpad",
     "trackpadEnabled": "Enable trackpad gestures",
     "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
-    "mobile": "Mobile connection"
+    "mobile": "Mobile connection",
+    "preventSleep": "Prevent sleep while tasks are running",
+    "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off."
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1240,5 +1242,19 @@
     "unpaired": "Phone unpaired. It can no longer access this U.",
     "reconnect": "Retry connection",
     "openAccount": "Not signed in on your phone? Open Account to sign in"
+  },
+  "chromeBridge": {
+    "connectedBody": "The ALwith extension is connected. Ask the AI to open tabs, read pages, click, or fill forms.",
+    "installedBody": "Extension installed. Turn on browser control to register the bridge.",
+    "restartBody": "Bridge registered. Reload the extension or restart the browser, then check again.",
+    "noneBody": "Install the ALwith browser extension to let the AI operate this browser.",
+    "extOn": "Extension installed",
+    "extOff": "Extension not installed",
+    "bridgeOn": "Bridge connected",
+    "bridgeOff": "Bridge not connected",
+    "install": "Install extension",
+    "enableBridge": "Enable browser control",
+    "recheck": "Check",
+    "bringToFront": "Browser"
   }
 }

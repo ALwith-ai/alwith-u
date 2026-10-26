@@ -509,3 +509,19 @@ test("the skill catalog includes known projects beyond the current chat and excl
   view.rerender(<PluginsPage cwd="/work/other" active />)
   await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-desktop", "/work/other"]))
 })
+
+test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
+  client.store.setState({ threads: [] })
+  const refresh = vi.fn(async (cwds: string[] = []) => {
+    pluginsStore.setState({ loadedScope: JSON.stringify(cwds) })
+  })
+  pluginsStore.setState({ refresh })
+  const view = render(<PluginsPage cwd="/work/project" active />)
+  await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+  view.rerender(<PluginsPage cwd="/work/project" active={false} />)
+  view.rerender(<PluginsPage cwd="/work/project" active />)
+  expect(refresh).toHaveBeenCalledTimes(1)
+  view.unmount()
+  render(<PluginsPage cwd="/work/project" active />)
+  expect(refresh).toHaveBeenCalledTimes(1)
+})

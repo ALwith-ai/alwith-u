@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "0.2.20"
+version = "0.2.21"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
@@ -17,6 +17,8 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+keepawake = "0.6"
+alwith-browser = { path = "../node_modules/@alwith/module-browser/rust" }
 alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
 alwith-module-store = { version = "0.1", features = ["specta"] }

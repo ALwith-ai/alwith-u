@@ -3,7 +3,7 @@ import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/mo
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
 import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
-import { type ReactNode, useId, useState } from "react"
+import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -12,6 +12,7 @@ import {
   ItemContent,
   ItemDescription,
   ItemMedia,
+  PanelItem,
   PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
@@ -20,10 +21,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Item } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { openExternal } from "@/lib/open"
 
 import { ExtensionIcon } from "./extension-icon"
@@ -64,7 +63,6 @@ export function ExtensionsManager({
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
   const [dismissedNotices, setDismissedNotices] = useState<Set<string>>(() => new Set())
-  const detailsId = useId()
   const search = query.trim().toLocaleLowerCase()
   const installations = state.native?.installations ?? []
   const matches = installations
@@ -149,85 +147,43 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <Item size="xs" className="group/extension items-start gap-3 border-0 p-4">
+                <PanelItem className="group/extension items-start gap-3 rounded-md border-0 p-4">
                   <ItemMedia>
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>
-                  <Tooltip>
-                    <TooltipTrigger
-                      delay={300}
-                      render={
-                        <ItemContent
-                          className="min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          role="group"
-                          tabIndex={0}
-                          aria-label={t("extensions.details.label", { name })}
-                          aria-describedby={`${detailsId}-${item.id}`}
-                        />
-                      }
-                    >
-                      <PanelItemTitle className="mb-0.5 text-sm font-medium">{name}</PanelItemTitle>
-                      {description && (
-                        <ItemDescription className="line-clamp-1 text-xs leading-5">{description}</ItemDescription>
+                  <ItemContent className="min-w-0">
+                    <PanelItemTitle className="mb-0.5 text-sm font-medium">{name}</PanelItemTitle>
+                    {description && (
+                      <ItemDescription className="line-clamp-1 text-xs leading-5">{description}</ItemDescription>
+                    )}
+                    <ItemDescription className="truncate text-xs leading-5">
+                      {item.manifest.author && (
+                        <>
+                          {item.manifest.authorUrl ? (
+                            <a
+                              href={item.manifest.authorUrl}
+                              rel="noopener noreferrer"
+                              className="underline-offset-4 hover:text-foreground hover:underline"
+                              onClick={(event) => {
+                                event.preventDefault()
+                                void openExternal(event.currentTarget.href).catch((error: unknown) =>
+                                  toast.error(error instanceof Error ? error.message : String(error))
+                                )
+                              }}
+                            >
+                              {item.manifest.author}
+                            </a>
+                          ) : (
+                            item.manifest.author
+                          )}
+                          {" / "}
+                        </>
                       )}
-                      <ItemDescription className="truncate text-xs leading-5">
-                        {item.manifest.author && (
-                          <>
-                            {item.manifest.authorUrl ? (
-                              <a
-                                href={item.manifest.authorUrl}
-                                rel="noopener noreferrer"
-                                className="underline-offset-4 hover:text-foreground hover:underline"
-                                onClick={(event) => {
-                                  event.preventDefault()
-                                  void openExternal(event.currentTarget.href).catch((error: unknown) =>
-                                    toast.error(error instanceof Error ? error.message : String(error))
-                                  )
-                                }}
-                              >
-                                {item.manifest.author}
-                              </a>
-                            ) : (
-                              item.manifest.author
-                            )}
-                            {" / "}
-                          </>
-                        )}
-                        v{item.manifest.version}
-                      </ItemDescription>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      id={`${detailsId}-${item.id}`}
-                      role="tooltip"
-                      side="bottom"
-                      sideOffset={8}
-                      align="start"
-                      className="block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border border-border bg-popover p-4 leading-relaxed break-words text-popover-foreground shadow-md [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b"
-                    >
-                      <p className="text-sm font-medium">{name}</p>
-                      {description && <p className="whitespace-pre-wrap text-muted-foreground">{description}</p>}
-                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t border-border pt-3 [&>dt]:text-muted-foreground">
-                        <dt>ID</dt>
-                        <dd className="break-all">{item.id}</dd>
-                        <dt>{t("extensions.details.version")}</dt>
-                        <dd>{item.manifest.version}</dd>
-                        {item.manifest.author && (
-                          <>
-                            <dt>{t("extensions.details.author")}</dt>
-                            <dd>{item.manifest.author}</dd>
-                          </>
-                        )}
-                        {item.manifest.authorUrl && (
-                          <>
-                            <dt>{t("extensions.details.homepage")}</dt>
-                            <dd className="break-all">{item.manifest.authorUrl}</dd>
-                          </>
-                        )}
-                      </dl>
-                    </TooltipContent>
-                  </Tooltip>
+                      v{item.manifest.version}
+                    </ItemDescription>
+                  </ItemContent>
                   <ItemActions className="grid shrink-0 grid-cols-[auto_1.5rem]">
                     <Switch
                       aria-label={t("extensions.enable", { name })}
@@ -300,7 +256,7 @@ export function ExtensionsManager({
                       </DropdownMenu>
                     )}
                   </ItemActions>
-                </Item>
+                </PanelItem>
                 {item.source === LEGACY_SOURCE &&
                   findLegacyProfile(item.id)?.limitations.map((message) => {
                     const key = JSON.stringify([item.installationId, item.packageRevision, message])
