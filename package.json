@@ -114,7 +114,7 @@
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.1.2",
-    "@alwith/native-computer": "^0.1.3",
+    "@alwith/native-computer": "^0.1.4",
     "@alwith/native-drive": "^0.1.3",
     "@alwith/native-extension": "^0.1.2",
     "@alwith/native-fs": "^0.1.2",
