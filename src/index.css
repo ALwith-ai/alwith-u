@@ -9,12 +9,7 @@
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
 
-/* Match Desktop: mirror submenu navigation, but isolate technical notation. */
-:dir(rtl) [data-slot="dropdown-menu-sub-trigger"] > .lucide-chevron-right,
-:dir(rtl) [data-slot="context-menu-sub-trigger"] > .lucide-chevron-right {
-  scale: -1 1;
-}
-
+/* Isolate technical notation from the interface direction. */
 [data-slot="kbd"],
 [data-slot="kbd-group"],
 pre,
