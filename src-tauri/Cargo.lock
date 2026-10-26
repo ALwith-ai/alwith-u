@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-u"
-version = "0.2.18"
+version = "0.2.19"
 dependencies = [
  "alwith-api",
  "alwith-computer",
