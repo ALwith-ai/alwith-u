@@ -363,7 +363,7 @@ export type CommandErrors = {
   mobileBridgeStart: string
   mobileBridgeStop: string
   mobileBridgeStatus: never
-  bridgeSetActiveSession: string
+  bridgeSetActiveSession: never
   bridgePairingStart: string
   bridgeIdentity: string
   bridgeTrustedList: string
