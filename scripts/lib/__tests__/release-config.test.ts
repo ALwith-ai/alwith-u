@@ -166,3 +166,16 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   })
   expect(job.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
 })
+
+test("mobile release dependencies are installable on every desktop build runner", () => {
+  const manifest = JSON.parse(read("package.json")) as {
+    dependencies: Record<string, string>
+    devDependencies: Record<string, string>
+    overrides: Record<string, string>
+  }
+  expect(manifest.dependencies["@alwith/module-mobile"]).toMatch(/^\^?\d+\.\d+\.\d+$/)
+  expect(manifest.devDependencies["@alwith/native-mobile"]).toMatch(/^\^?\d+\.\d+\.\d+$/)
+  expect(Object.keys(manifest.overrides).filter((name) => name.startsWith("@alwith/native-mobile"))).toEqual([])
+  const workflow = Bun.YAML.parse(read(".github/workflows/ci.yml")) as Workflow
+  expect(workflow.jobs?.["windows-staging"].steps?.some((step) => step.run === "bun run stage")).toBe(true)
+})
