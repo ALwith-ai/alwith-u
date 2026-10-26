@@ -28,9 +28,9 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
+import { createExtensionStartup } from "./startup-service"
 import * as extensionUi from "./ui"
 
-let startup: Promise<ExtensionRuntime> | undefined
 let runtime: ExtensionRuntime | undefined
 
 export function reportExtensionError(error: unknown): void {
@@ -114,15 +114,9 @@ function getRuntime(): ExtensionRuntime {
 }
 
 /** The runtime belongs to the WebView, not a React mount or the selected chat. */
-export function startExtensionRuntime(): Promise<ExtensionRuntime> {
-  const current = getRuntime()
-  startup ??= (async () => {
-    await current.start()
-    if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
-    return current
-  })()
-  return startup
-}
+export const startExtensionRuntime = createExtensionStartup(getRuntime, async (current) => {
+  if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
+})
 
 export function useExtensions() {
   const current = getRuntime()
@@ -131,7 +125,9 @@ export function useExtensions() {
   useEffect(() => {
     void startExtensionRuntime().catch(reportExtensionError)
     const refresh = (): void => {
-      void current.refresh().catch(reportExtensionError)
+      void startExtensionRuntime()
+        .then(() => current.refresh())
+        .catch(reportExtensionError)
     }
     window.addEventListener("focus", refresh)
     return (): void => {
