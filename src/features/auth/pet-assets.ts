@@ -1,13 +1,14 @@
 import { createPetAssets, type PetAccount } from "@alwith/module-auth/pets"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core"
 import { emit, listen } from "@tauri-apps/api/event"
-import { LazyStore } from "@tauri-apps/plugin-store"
 
 import { logBackgroundError } from "@/lib/background-errors"
+import { openStore } from "@/lib/store"
 
 import { API_BASE_URL, platformApiRequest, usePlatformAuth } from "./store"
 
-const store = new LazyStore("vibemon.json")
+// 同一个 `appDataDir/vibemon.json`;set 失败时内存与磁盘都不变,不需要手工回滚。
+const store = openStore("vibemon")
 let writes = Promise.resolve()
 const CHANGED = "vibemon:assets-changed"
 function decode(value: string): Uint8Array {
@@ -74,15 +75,7 @@ export function createPlatformPetAssets() {
       const write = writes
         .catch(() => {})
         .then(async () => {
-          const previous = await store.get(key)
           await store.set(key, value)
-          try {
-            await store.save()
-          } catch (error) {
-            if (previous === undefined) await store.delete(key)
-            else await store.set(key, previous)
-            throw error
-          }
           await emit(CHANGED)
           for (const listener of listeners) listener()
         })

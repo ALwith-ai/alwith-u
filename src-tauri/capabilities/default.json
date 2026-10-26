@@ -51,7 +51,6 @@
       ]
     },
     "process:allow-restart",
-    "store:default",
     "updater:default",
     "window-state:default",
     "core:window:allow-start-resize-dragging"

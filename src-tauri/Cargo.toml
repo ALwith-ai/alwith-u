@@ -19,6 +19,8 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 [dependencies]
 alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
+# 命名 JSON KV 存储,与 ALwith Desktop 同一个 crate;登录态与 Vibemon 资源原先走 tauri-plugin-store
+alwith-module-store = { version = "0.1", features = ["specta"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }
@@ -53,7 +55,6 @@ tauri-plugin-os = "3.0.0-alpha.3"
 tauri-plugin-notification = "3.0.0-alpha.3"
 tauri-plugin-opener = "3.0.0-alpha.3"
 tauri-plugin-shell = "3.0.0-alpha.3"
-tauri-plugin-store = "3.0.0-alpha.3"
 tauri-plugin-autostart = "3.0.0-alpha.3"
 tauri-plugin-process = "3.0.0-alpha.3"
 tauri-plugin-single-instance = { version = "3.0.0-alpha.3", features = ["deep-link"] }
@@ -65,7 +66,7 @@ base64 = "0.23"
 minisign-verify = "0.3"
 semver = "1"
 sys-locale = "0.3"
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

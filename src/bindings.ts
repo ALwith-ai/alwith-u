@@ -11,6 +11,14 @@ import {
 } from "@tauri-apps/api/event"
 
 export const commands = {
+  storeEntries: (args: { scope: StoreScope; store: string }): Promise<Value> =>
+    __t3Invoke<Value>("store_entries", args),
+  storeSet: (args: { scope: StoreScope; store: string; key: string; value: Value }): Promise<null> =>
+    __t3Invoke<null>("store_set", args),
+  storeDelete: (args: { scope: StoreScope; store: string; key: string }): Promise<null> =>
+    __t3Invoke<null>("store_delete", args),
+  storeClear: (args: { scope: StoreScope; store: string }): Promise<null> => __t3Invoke<null>("store_clear", args),
+  storeReload: (args: { scope: StoreScope; store: string }): Promise<null> => __t3Invoke<null>("store_reload", args),
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
   computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
   computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
@@ -265,6 +273,11 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
+  storeEntries: string
+  storeSet: string
+  storeDelete: string
+  storeClear: string
+  storeReload: string
   autostartStatus: string
   computerStatus: string
   computerStart: string
@@ -1076,6 +1089,12 @@ export type State_Serialize =
   | { type: "downloading"; update: UpdateInfo_Serialize; downloadedBytes: number | null; totalBytes: number | null }
   | { type: "ready"; update: UpdateInfo_Serialize }
   | { type: "restarting"; update: UpdateInfo_Serialize }
+
+/**
+ *  Storage domain. data = follows app data (settings, sign-in state and other things to keep);
+ *  cache = run detail (execution logs etc.), deletable any time and reclaimed by "Settings → Cache → Clear".
+ */
+export type StoreScope = "data" | "cache"
 
 export type Target = {
   pid: number

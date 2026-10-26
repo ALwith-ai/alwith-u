@@ -25,6 +25,7 @@ mod installed_apps;
 mod legacy_extensions;
 mod menu;
 mod mobile;
+mod named_store;
 mod native;
 #[cfg(target_os = "macos")]
 mod panel;
@@ -108,7 +109,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![autostart::ARGUMENT]),
@@ -171,6 +171,7 @@ pub fn run() {
             }
             app.manage(native::Native::load(app.handle())?);
             mobile::initialize(app.handle())?;
+            named_store::init(app.handle())?;
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
@@ -305,6 +306,11 @@ pub fn bindings() -> tauri3_specta::Bindings {
         ($($platform:path),* $(,)?) => {
             tauri3_specta::commands![
                 $($platform,)*
+                named_store::store_entries,
+                named_store::store_set,
+                named_store::store_delete,
+                named_store::store_clear,
+                named_store::store_reload,
                 autostart::autostart_status,
                 computer::computer_status,
                 computer::computer_start,

@@ -12,10 +12,10 @@ import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
 import { arch, platform } from "@tauri-apps/plugin-os"
-import { LazyStore } from "@tauri-apps/plugin-store"
 import { create } from "zustand"
 
 import { commands } from "@/bindings"
+import { openStore } from "@/lib/store"
 
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
@@ -24,17 +24,12 @@ export const API_BASE_URL = import.meta.env.DEV ? "https://api-dev.alwith.ai/ser
 const STATE_EVENT = "alwith-auth-state"
 const LOGOUT_EVENT = "alwith-auth-logout-request"
 const isMain = () => getCurrentWebviewWindow().label === "main"
-const store = new LazyStore(`${authStoreName(API_BASE_URL)}.json`)
+// 同一个 `appDataDir/<name>.json`,原 tauri-plugin-store 写下的登录态原样读回;每次 set 即原子落盘。
+const store = openStore(authStoreName(API_BASE_URL))
 const storage = createTokenStorage({
   get: (key) => store.get(key),
-  set: async (key, value) => {
-    await store.set(key, value)
-    await store.save()
-  },
-  delete: async (key) => {
-    await store.delete(key)
-    await store.save()
-  }
+  set: (key, value) => store.set(key, value),
+  delete: (key) => store.delete(key)
 })
 const expiredListeners = new Set<() => void>()
 const stateListeners = new Set<(event: AuthStateEvent) => void>()

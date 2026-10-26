@@ -121,6 +121,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-module-store"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23722261016c85d914ff37ae8f056d36fde2bdc99f7adaeeccfa17017b2d1788"
+dependencies = [
+ "serde",
+ "serde_json",
+ "specta",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-native-client"
 version = "0.1.0"
 dependencies = [
@@ -141,6 +154,7 @@ dependencies = [
  "alwith-fs",
  "alwith-gamepad",
  "alwith-mobile",
+ "alwith-module-store",
  "alwith-native-client",
  "alwith-voice",
  "atlas-tauri",
@@ -183,7 +197,6 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
- "tauri-plugin-store",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tauri-runtime-wry",
@@ -5300,22 +5313,6 @@ dependencies = [
  "tracing",
  "windows-sys 0.61.2",
  "zbus",
-]
-
-[[package]]
-name = "tauri-plugin-store"
-version = "3.0.0-alpha.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31bb95aebf9519fa0b3001bf7978a49faa97da4a4fc3bc2d74a5b194e60f37f3"
-dependencies = [
- "dunce",
- "serde",
- "serde_json",
- "tauri",
- "tauri-plugin",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
 ]
 
 [[package]]
