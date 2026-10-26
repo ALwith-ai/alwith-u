@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-extension"
-version = "0.1.0-rc.12"
+version = "0.1.0-rc.17"
 dependencies = [
  "alwith-native-client",
  "percent-encoding",
