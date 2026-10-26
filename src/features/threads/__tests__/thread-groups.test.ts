@@ -6,18 +6,21 @@ test.each([
   "/Users/alice/Documents/Codex",
   "/Users/alice/Documents/Codex/project",
   "/Users/alice/Documents/Codex/2026-09-23/nested/",
-  "/Users/bob/Documents/ALwith U/",
   "/Users/bob/Documents/ALwith/",
   "c:/users/Bob/documents/ALWITH/",
   String.raw`C:\Users\Alice\Documents\Codex`,
   String.raw`C:\Users\Alice\Documents\Codex\project`,
-  "c:/users/Alice/documents/CODEX/2026-09-23/nested/",
-  "c:/users/Bob/documents/ALWITH U/"
+  "c:/users/Alice/documents/CODEX/2026-09-23/nested/"
 ])("%s belongs to quick chats", (cwd) => {
   expect(isQuickChatDirectory(cwd)).toBe(true)
 })
 
 test.each([
+  "/Users/bob/Documents/ALwith U",
+  "/Users/bob/Documents/ALwith U/",
+  "c:/users/Bob/documents/ALWITH U/",
+  String.raw`C:\Users\Alice\Documents\ALwith U`,
+  String.raw`\\?\C:\Users\Alice\Documents\ALwith U`,
   "/private/var/folders",
   "/private/var/folders/example/T/project",
   "/var/folders/",
@@ -36,7 +39,7 @@ test.each([
   "/Users/alice/Documents/ALwith U/project",
   "/Users/alice/Documents/ALwith/project",
   "c:/users/Bob/documents/ALwith/project",
-  String.raw`C:\Users\Alice\Documents\ALwith U\project`,
+  String.raw`C:\Users\Alice\Documents\ALwith\project`,
   "/Users/alice/Documents/Codex-other",
   String.raw`C:\Users\Alice\Documents\Codex-other\project`,
   "/work/Codex",
@@ -52,7 +55,7 @@ test.each([
 
 test("quick chats stays first even when empty and grouping preserves each original cwd", () => {
   expect(groupThreads([])).toEqual([[QUICK_CHATS_GROUP, []]])
-  const paths = ["/project", "/Users/mac/Documents/Codex", String.raw`C:\Users\mac\Documents\ALwith U`]
+  const paths = ["/project", "/Users/mac/Documents/Codex", String.raw`C:\Users\mac\Documents\ALwith`]
   const threads = paths.map((cwd, index) => ({
     sessionId: String(index),
     cwd,

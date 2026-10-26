@@ -22,7 +22,7 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({
 
 await initI18n("en")
 const connect = vi.spyOn(client, "connect").mockResolvedValue()
-const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith U")
+const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith")
 const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
   apps: [],
   active: undefined,
@@ -335,14 +335,14 @@ test("project path aliases share the popover cache and still show every matching
   }
 })
 
-test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith U"])(
+test.each(["/Users/mac/Documents/Codex", "/Users/mac/Documents/ALwith"])(
   "quick-chat directory %s exposes the shared quick-chat popover",
   async (cwd) => {
     client.store.setState({ threads: threads("/Users/mac/Documents/Codex/nested") })
     const view = render(<ProjectSessionPopover cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
     expect(view.getByText("7 chats")).toBeVisible()
-    expect(view.getByText("/Users/mac/Documents/ALwith U")).toBeVisible()
+    expect(view.getByText("/Users/mac/Documents/ALwith")).toBeVisible()
   }
 )
 

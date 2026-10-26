@@ -19,7 +19,7 @@ const original = client.state
 const originalUi = useThreadsUiStore.getState()
 const originalChatSurface = useChatWindowSurface.getState()
 const originalMainSurface = useMainWindowSurface.getState()
-const defaultCwd = "/Volumes/Work/Documents/ALwith U"
+const defaultCwd = "/Volumes/Work/Documents/ALwith"
 const openDirectory = vi.fn(async (_cwd: string | null) => {})
 const resolveDirectory = vi.spyOn(commands, "draftDirectory")
 afterAll(() => resolveDirectory.mockRestore())
@@ -99,7 +99,7 @@ test.each(["main", "floating"] as const)(
 )
 
 test("quick chats update their empty state as windows hide and keep the current conversation excluded", async () => {
-  const cwd = "/Users/mac/Documents/ALwith U"
+  const cwd = "/Users/mac/Documents/ALwith"
   const main = thread("Main chat", cwd)
   const floating = thread("Floating chat", cwd)
   client.store.setState({ threads: [main, floating] })
@@ -127,11 +127,11 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   resolveDirectory.mockReturnValueOnce(pending.promise)
   const select = vi.fn()
   const entries = [
-    thread("ALwith chat", "/Users/mac/Documents/ALwith U"),
+    thread("ALwith chat", "/Users/mac/Documents/ALwith"),
     { ...thread("Codex chat", "/Users/mac/Documents/Codex/nested"), updatedAt: "2026-10-14T01:00:00Z" },
     { ...thread("Windows chat", String.raw`C:\Users\Alice\Documents\Codex`), updatedAt: "2026-10-14T02:00:00Z" },
     thread("Other project", "/tmp/project"),
-    thread("Nested project", "/Users/mac/Documents/ALwith U/project"),
+    thread("Nested project", "/Users/mac/Documents/ALwith/project"),
     thread("Resolved directory chat", defaultCwd)
   ]
   client.store.setState({ threads: entries })
@@ -168,10 +168,10 @@ test("quick chats use the sidebar grouping and ordering before the default direc
 })
 
 test.each([
-  "/Users/mac/Documents/ALwith U",
+  "/Users/mac/Documents/ALwith",
   "/Users/mac/Documents/Codex",
   "/Users/mac/Documents/Codex/nested",
-  String.raw`C:\Users\Alice\Documents\ALwith U`
+  String.raw`C:\Users\Alice\Documents\ALwith`
 ])("quick-chat directory %s keeps the default-folder and new-chat actions", async (cwd) => {
   const newChat = vi.fn()
   const view = render(<ChatProjectMenu cwd={cwd} onSelect={() => {}} onNewChat={newChat} />)
@@ -187,10 +187,13 @@ test.each([
   expect(newChat).toHaveBeenCalledOnce()
 })
 
-test("an explicit project keeps its own menu without resolving the default directory", async () => {
-  client.store.setState({ threads: [thread("Project chat", "/tmp/project"), thread("Quick chat", defaultCwd)] })
-  const view = render(<ChatProjectMenu cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
+test.each([
+  ["/tmp/project", "project"],
+  ["/Users/mac/Documents/ALwith U", "ALwith U"]
+])("project %s keeps its own menu without resolving the default directory", async (cwd, name) => {
+  client.store.setState({ threads: [thread("Project chat", cwd), thread("Quick chat", defaultCwd)] })
+  const view = render(<ChatProjectMenu cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name }))))
   expect(view.getByRole("button", { name: "Project chat" })).toBeVisible()
   expect(view.queryByRole("button", { name: "Quick chat" })).toBeNull()
   expect(resolveDirectory).not.toHaveBeenCalled()
@@ -231,14 +234,14 @@ test("clearing a project switches the open menu to localized quick chats and fol
   expect(view.getByText("随聊")).toBeVisible()
   expect(view.queryByRole("button", { name: "Project chat" })).toBeNull()
   await act(() =>
-    Promise.try(() => client.store.setState({ threads: [thread("New quick chat", "/Users/mac/Documents/ALwith U")] }))
+    Promise.try(() => client.store.setState({ threads: [thread("New quick chat", "/Users/mac/Documents/ALwith")] }))
   )
   expect(view.getByRole("button", { name: "New quick chat" })).toBeVisible()
 })
 
 test("the sidebar quick-chat hover shares the header list and default folder while clicks still expand the group", async () => {
   const entries = [
-    thread("ALwith chat", "/Users/mac/Documents/ALwith U"),
+    thread("ALwith chat", "/Users/mac/Documents/ALwith"),
     thread("Codex chat", "/Users/mac/Documents/Codex")
   ]
   client.store.setState({ threads: [...entries, thread("Other project", "/tmp/project")] })

@@ -58,7 +58,8 @@ function environment(nativeWindow = false) {
       vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
       vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
         let result: unknown
-        if (command === "draft_directory") result = (args as { cwd: string | null }).cwd ?? "/tmp/ALwith U"
+        if (command === "draft_directory")
+          result = (args as { cwd: string | null }).cwd ?? "/Users/mac/Documents/ALwith"
         else if (command === "providers_apply" || command === "providers_read") result = providers
         else if (command === "read_apps_info") result = []
         else if (nativeWindow) return invokeHost<T>(command, args)
@@ -202,7 +203,7 @@ test("floating project menus switch from a draft to another conversation and exc
 
 test.each([
   ["/private/var/folders/example/T/project", "/private/var/folders/example/T/project"],
-  ["/Users/mac/Documents/Codex/project", "/tmp/ALwith U"],
+  ["/Users/mac/Documents/Codex/project", "/Users/mac/Documents/ALwith"],
   ["/work/project", "/work/project"]
 ])("floating new chat from %s prepares in %s", async (cwd, expected) => {
   const env = await windowEnvironment()
@@ -599,7 +600,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     await waitFor(() => expect(view.getByRole("textbox").hasAttribute("disabled")).toBe(false))
     expect(selected).not.toBeNull()
     expect(fake.modelHints.size).toBe(1)
-    expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/ALwith U")
+    expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/Users/mac/Documents/ALwith")
     expect(real.session(must<string>(selected, "selected draft")).items).toEqual([])
     expect(real.state.threads).toEqual([])
     await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))

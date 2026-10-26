@@ -12,7 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
 vi.mock("@tauri-apps/plugin-dialog", async (importOriginal) => ({ ...(await importOriginal<object>()), open: vi.fn() }))
 
 await initI18n("en")
-beforeEach(() => vi.mocked(invoke).mockResolvedValue("/tmp/ALwith U"))
+beforeEach(() => vi.mocked(invoke).mockResolvedValue("/Users/mac/Documents/ALwith"))
 afterEach(() => vi.clearAllMocks())
 
 test("project preparation keeps the folder and hover-clear icons without a spinner", async () => {
@@ -73,15 +73,25 @@ test("canceling the directory dialog keeps a draft without a project", async () 
 test("outside-project selection resolves to the host default and hides it from recent projects", async () => {
   const onChange = vi.fn()
   const view = render(
-    <DraftProjectPicker cwd="/tmp/current" recentProjects={["/tmp/ALwith U", "/tmp/recent"]} onChange={onChange} />
+    <DraftProjectPicker
+      cwd="/tmp/current"
+      recentProjects={["/Users/mac/Documents/ALwith", "/tmp/recent"]}
+      onChange={onChange}
+    />
   )
   await act(async () => {})
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
   expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["current", "recent"])
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" }))))
-  expect(onChange).toHaveBeenCalledWith("/tmp/ALwith U")
+  expect(onChange).toHaveBeenCalledWith("/Users/mac/Documents/ALwith")
   expect(invoke).toHaveBeenCalledWith("draft_directory", { cwd: null })
-  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={["/tmp/ALwith U"]} onChange={onChange} />)
+  view.rerender(
+    <DraftProjectPicker
+      cwd="/Users/mac/Documents/ALwith"
+      recentProjects={["/Users/mac/Documents/ALwith"]}
+      onChange={onChange}
+    />
+  )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Select project" }))))
   expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
   expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
@@ -93,10 +103,10 @@ test("the project icon exits directly without opening the project menu", async (
   const clear = view.getByRole("button", { name: "Work outside a project" })
   await waitFor(() => expect(clear).toBeEnabled())
   fireEvent.click(clear)
-  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("/Users/mac/Documents/ALwith")
   expect(view.queryByRole("menu")).toBeNull()
   expect(view.container.querySelector("button button")).toBeNull()
-  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={[]} onChange={onChange} />)
+  view.rerender(<DraftProjectPicker cwd="/Users/mac/Documents/ALwith" recentProjects={[]} onChange={onChange} />)
   expect(view.queryByRole("button", { name: "Work outside a project" })).toBeNull()
   expect(view.getByRole("button", { name: "Select project" })).toBeVisible()
 })
@@ -110,10 +120,10 @@ test("the project icon waits for the host default before allowing an exit", asyn
   expect(clear).toBeDisabled()
   fireEvent.click(clear)
   expect(onChange).not.toHaveBeenCalled()
-  await act(async () => directory.resolve("/tmp/ALwith U"))
+  await act(async () => directory.resolve("/Users/mac/Documents/ALwith"))
   expect(clear).toBeEnabled()
   fireEvent.click(clear)
-  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("/Users/mac/Documents/ALwith")
 })
 
 test("project choices exclude quick-chat directories but retain temporary workspaces", async () => {
@@ -123,14 +133,15 @@ test("project choices exclude quick-chat directories but retain temporary worksp
       cwd="/private/var/folders/example/T/current"
       recentProjects={[
         "/Users/mac/Documents/Codex/project",
-        "/Users/mac/Documents/ALwith U",
+        "/Users/mac/Documents/ALwith",
         "/var/folders/example/T/project",
         String.raw`C:\Users\Alice\Documents\Codex\project`,
         String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
         String.raw`C:\Windows\Temp\project`,
         String.raw`D:\Scratch\project`,
         "/work/recent",
-        "/Users/mac/Documents/ALwith U/real-project",
+        "/Users/mac/Documents/ALwith U",
+        "/Users/mac/Documents/ALwith/real-project",
         "/var/folders-other/ordinary"
       ]}
       onChange={onChange}
@@ -145,6 +156,7 @@ test("project choices exclude quick-chat directories but retain temporary worksp
       "project",
       "project",
       "recent",
+      "ALwith U",
       "real-project",
       "ordinary"
     ])
