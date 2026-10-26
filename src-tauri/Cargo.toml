@@ -19,7 +19,6 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 [dependencies]
 alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
-# 命名 JSON KV 存储,与 ALwith Desktop 同一个 crate;登录态与 Vibemon 资源原先走 tauri-plugin-store
 alwith-module-store = { version = "0.1", features = ["specta"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
