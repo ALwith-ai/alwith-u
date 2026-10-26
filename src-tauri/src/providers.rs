@@ -503,21 +503,16 @@ async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std
     reconcile_target(inner, client, resource_dir, "codex", true).await
 }
 
+/// Interrupted journal entries have no live turn whose provider configuration must be pinned.
+fn blocks_provider_application(state: &RunState, interruption: Option<&str>) -> bool {
+    matches!(state, RunState::Running | RunState::RequiresAction) && interruption.is_none()
+}
+
 async fn reconcile_target(
     inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str, require_idle: bool,
 ) -> Result<(), String> {
     if inner.applied_revision == Some(inner.saved.revision) {
         return Ok(());
-    }
-    if require_idle
-        && client
-            .run_states()
-            .await
-            .map_err(crate::runtime::request_error)?
-            .iter()
-            .any(|s| matches!(s.state, RunState::Running | RunState::RequiresAction))
-    {
-        return Err("Provider settings are pending; finish or stop active turns before starting another turn".into());
     }
     let desired: BTreeMap<String, AppliedProvider> = inner
         .saved
@@ -532,6 +527,22 @@ async fn reconcile_target(
                 .map(|(id, provider)| (id.clone(), AppliedProvider::Custom(provider.clone()))),
         )
         .collect();
+    // A revision without catalog changes does not need an idle boundary.
+    if inner.applied == desired {
+        inner.applied_revision = Some(inner.saved.revision);
+        inner.error = None;
+        return Ok(());
+    }
+    if require_idle
+        && client
+            .run_states()
+            .await
+            .map_err(crate::runtime::request_error)?
+            .iter()
+            .any(|s| blocks_provider_application(&s.state, s.interruption.as_deref()))
+    {
+        return Err("Provider settings are pending; finish or stop active turns before starting another turn".into());
+    }
     let outcome: Result<(), String> = async {
         for (id, selected) in &desired {
             if inner.applied.get(id) == Some(selected) { continue; }
@@ -889,6 +900,25 @@ mod tests {
         assert_eq!(result.status, Some(200));
     }
 
+    #[test]
+    fn interrupted_turns_do_not_block_provider_application() {
+        assert!(blocks_provider_application(&RunState::Running, None));
+        assert!(blocks_provider_application(&RunState::RequiresAction, None));
+        assert!(!blocks_provider_application(&RunState::RequiresAction, Some("runtime_stopped")));
+        assert!(!blocks_provider_application(&RunState::Done, None));
+    }
+
+    #[tokio::test]
+    async fn unchanged_catalog_acknowledges_revision_while_another_turn_runs() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
+        let mut inner =
+            Inner { saved: Saved::default(), applied: BTreeMap::new(), applied_revision: None, error: None };
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        assert!(calls.lock().unwrap().is_empty());
+    }
+
     fn pending_provider() -> Inner {
         let saved = update(
             &Saved::default(),
@@ -901,6 +931,12 @@ mod tests {
     }
     fn fake_runtime(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_with_interruption(active, fail, None)
+    }
+    fn fake_runtime_with_interruption(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        interruption: Option<&'static str>,
     ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
         use std::sync::atomic::Ordering;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
@@ -917,7 +953,7 @@ mod tests {
                 let (result, error) = if frame["method"] == "runStates" {
                     (
                         if active.load(Ordering::SeqCst) {
-                            json!([{"sessionId":"active","state":"running","reusableDraft":false,"owner":"u","cwd":"/tmp","title":"","since":0,"tasks":[],"listeningPorts":[],"executionId":null,"executionRole":null,"lastActivityAt":0}])
+                            json!([{"sessionId":"active","state":if interruption.is_some() { "requires_action" } else { "running" },"version":1,"interruption":interruption,"reusableDraft":false,"owner":"u","cwd":"/tmp","title":"","since":0,"tasks":[],"listeningPorts":[],"executionId":null,"executionRole":null,"lastActivityAt":0}])
                         } else {
                             json!([])
                         },
@@ -939,6 +975,20 @@ mod tests {
         });
         (client, calls)
     }
+    #[tokio::test]
+    async fn restored_interrupted_session_allows_saved_provider_application() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime_with_interruption(
+            Arc::new(AtomicBool::new(true)),
+            Arc::new(AtomicBool::new(false)),
+            Some("runtime_stopped"),
+        );
+        let mut inner = pending_provider();
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        assert_eq!(calls.lock().unwrap().len(), 1);
+    }
+
     #[tokio::test]
     async fn gamepad_catalog_targets_only_ephemeral_agent_while_main_turn_runs() {
         use std::sync::atomic::AtomicBool;

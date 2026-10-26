@@ -214,3 +214,9 @@ fn only_the_active_target_bypasses_pending_catalog_application() {
     assert!(!is_active_prompt_target("target", [("target", &RunState::Done)]));
     assert!(!is_active_prompt_target("target", []));
 }
+
+#[test]
+fn auxiliary_agent_exit_preserves_main_provider_catalog() {
+    assert!(!resets_provider_catalog(&alwith_api::RuntimeEvent::Exit { agent_id: "gamepad-config-test".into() }));
+    assert!(resets_provider_catalog(&alwith_api::RuntimeEvent::Exit { agent_id: "codex".into() }));
+}

@@ -291,7 +291,7 @@ pub async fn runtime_start(
                             app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
-                        if matches!(&event, alwith_api::RuntimeEvent::Exit { .. }) {
+                        if resets_provider_catalog(&event) {
                             app.state::<crate::providers::Providers>().reset().await;
                         }
                         if retry {
@@ -371,6 +371,11 @@ pub async fn runtime_send(
         Err(error) => json!({"connectionId":connection_id,"id":request.id,"error":error}),
     };
     RuntimeLines(vec![response.to_string()]).emit(&window).map_err(|error| error.to_string())
+}
+
+/// Auxiliary agents own separate catalogs and cannot invalidate the main Codex catalog.
+fn resets_provider_catalog(event: &alwith_api::RuntimeEvent) -> bool {
+    matches!(event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
 }
 
 pub fn request_error(error: ResponseError) -> String {
