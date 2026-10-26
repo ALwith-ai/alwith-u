@@ -344,11 +344,12 @@ def workspace_packages() -> list[str]:
 def check(_context: object) -> None:
     """Run the CI gates shared by Desktop, U and Board, reporting every failure at the end.
 
-    Same table in all three repos: types, lint (`bun lint`), dead code, tests, then the Rust side
+    Same table in all three repos: types, lint (`bun lint`, `bun ts7-lint`), dead code, tests, then the Rust side
     (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
         ("types", ["bun", "check", "--no-script", "-b"], ROOT),
         ("lint", ["bun", "lint"], ROOT),
+        ("ts7-lint", ["bun", "ts7-lint"], ROOT),
         # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
         ("lint suppressions", ["sh", "-c", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx"], ROOT),
         ("knip", ["bun", "run", "knip"], ROOT),

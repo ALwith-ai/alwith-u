@@ -27,6 +27,7 @@ jobs:
           path: test-results.xml
           if-no-files-found: ignore
       - run: bun run knip
+      - run: bun ts7-lint
       - run: bun run build
       - run: bun run storybook:check
       - run: bun run storybook:build

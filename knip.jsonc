@@ -16,7 +16,9 @@
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     // only imported by the unused registry component ui/message-scroller
-    "@shadcn/react"
+    "@shadcn/react",
+    // invoked as `bun ts7-lint` by the fabfile.py check gate
+    "@nyssance/ts7-lint"
   ],
   // rustc supplies the host target triple; fmt is built into Bun rather than installed from npm.
   "ignoreBinaries": ["rustc", "fmt"]

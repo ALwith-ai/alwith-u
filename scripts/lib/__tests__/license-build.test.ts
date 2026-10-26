@@ -26,7 +26,7 @@ test("license collection ignores directories and retains the package license tex
     })
     if (Array.isArray(result) || !("output" in result)) throw new Error("Expected one frontend build")
     const license = result.output.find((entry) => entry.fileName === "licenses.json")
-    if (!license || license.type !== "asset") throw new Error("Missing license output")
+    if (license?.type !== "asset") throw new Error("Missing license output")
     expect(JSON.parse(String(license.source))).toContainEqual({
       name: "license-fixture",
       version: "1.0.0",
