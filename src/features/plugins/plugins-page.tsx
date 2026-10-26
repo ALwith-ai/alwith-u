@@ -1,15 +1,18 @@
-import { convertFileSrc } from "@tauri-apps/api/core"
-// Skills and plugins store, reduced from ALwith Desktop's extensions page: title + BETA,
-// Marketplace / Installed tabs, PanelItem rows with icon box, title, description and
-// the install / installing / installed action button. Data is Codex's own catalog
-// (`_codex/plugin_*`, `_codex/skills_*`); Desktop's registry fetch, zip download progress
-// and version-diff "update" state have no counterpart here and are dropped.
-import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, SparklesIcon, Trash2Icon } from "lucide-react"
+// Browse and manage Codex plugins and skills from one catalog surface.
+import {
+  CircleArrowUpIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  Trash2Icon,
+  XIcon
+} from "lucide-react"
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
+import type { PluginMarketplaceEntry, PluginSummary } from "@/agent/codex-extensions"
 import { hasPluginStore } from "@/agent/codex-extensions"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
@@ -21,46 +24,30 @@ import {
   PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Item } from "@/components/ui/item"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { client, useApp } from "@/lib/client"
 
+import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
 import { PluginDetailPage } from "./plugin-detail-page"
 import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
+import { SkillsTab } from "./skills-tab"
 import type { PluginEntry } from "./store"
-
-/**
- * Codex skills ship their icon as a file under ~/.codex (`interface.iconSmall`); the remote
- * catalog gives a URL instead. The local file is served through Tauri's asset protocol.
- */
-function skillIconSrc(skill: SkillMetadata): string | null {
-  const local = skill.interface?.iconSmall
-  if (typeof local === "string" && local.length > 0) return convertFileSrc(local)
-  return skill.interface?.iconSmallUrl ?? null
-}
-
-/** Icon box: 40 (size-10) outside, 20 (size-5) inside; an image when the catalog has one. */
-function SkillIconBox({ src }: { src: string | null }) {
-  return (
-    <ItemMedia>
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
-        {src ? (
-          <img src={src} alt="" className="size-8 rounded-sm object-cover" />
-        ) : (
-          <SparklesIcon className="size-5 text-muted-foreground" />
-        )}
-      </div>
-    </ItemMedia>
-  )
-}
 
 function pluginTitle(plugin: PluginSummary): string {
   return plugin.interface?.displayName ?? plugin.name
@@ -138,7 +125,7 @@ function PluginRow({
         <ItemDescription className="line-clamp-1" title={description}>
           {description || marketplace.interface?.displayName || marketplace.name}
         </ItemDescription>
-        {meta && <ItemDescription className="-mt-0.5 opacity-60">{meta}</ItemDescription>}
+        {meta && <ItemDescription className="-mt-0.5">{meta}</ItemDescription>}
       </ItemContent>
       <ItemActions className="relative">{actions}</ItemActions>
     </PanelItem>
@@ -173,7 +160,7 @@ function MarketplaceSection({
         <h2 className="text-xs font-medium text-muted-foreground">
           {marketplace.interface?.displayName ?? marketplace.name}
         </h2>
-        <span className="text-xs text-muted-foreground opacity-60">{plugins.length}</span>
+        <span className="text-xs text-muted-foreground">{plugins.length}</span>
         {marketplace.path !== null && (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -197,7 +184,7 @@ function MarketplaceSection({
           </DropdownMenu>
         )}
       </div>
-      <PanelList className="grid grid-cols-2 gap-2">
+      <PanelList className="grid grid-cols-1 gap-2 @min-[700px]:grid-cols-2">
         {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
           <PluginRow
             onOpen={onOpen}
@@ -280,171 +267,150 @@ const MarketplaceResults = memo(function MarketplaceResults({
           onOpen={onOpen}
         />
       ))}
-      {query && sections.every((section) => section.plugins.length === 0) && (
+      {sections.every((section) => section.plugins.length === 0) && (
         <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
       )}
     </>
   )
 })
 
-function MarketplaceSkeleton() {
-  const { t } = useTranslation()
-  return (
-    <div role="status" aria-label={t("plugins.loading")} className="mx-2 my-3 flex flex-col gap-3">
-      <Skeleton className="h-4 w-36" />
-      <PanelList className="grid grid-cols-2 gap-2 px-0" aria-hidden="true">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((id) => (
-          <Item key={id} size="xs">
-            <ItemMedia>
-              <Skeleton className="size-10 rounded-sm" />
-            </ItemMedia>
-            <ItemContent className="min-w-0 group-data-[size=xs]/item:gap-2">
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-1/3" />
-            </ItemContent>
-            <ItemActions>
-              <Skeleton className="h-8 w-20" />
-            </ItemActions>
-          </Item>
-        ))}
-      </PanelList>
-    </div>
-  )
-}
-
-function MarketplaceTab({ onOpen }: { onOpen: (entry: PluginEntry) => void }) {
+function PluginToolbar() {
   const { t } = useTranslation()
   const ready = usePluginsReady()
-  const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
-  const loadErrors = useStore(pluginsStore, (state) => state.marketplaceLoadErrors)
-  const error = useStore(pluginsStore, (state) => state.error)
-  const refresh = useStore(pluginsStore, (state) => state.refresh)
-  const loading = useStore(pluginsStore, (state) => state.loading) || !ready
   const addMarketplace = useStore(pluginsStore, (state) => state.addMarketplace)
   const upgrade = useStore(pluginsStore, (state) => state.upgradeAll)
   const upgrading = useStore(pluginsStore, (state) => state.upgrading)
-  const [query, setQuery] = useState("")
   const [source, setSource] = useState("")
-  const q = useDeferredValue(query.trim().toLowerCase())
+  const [adding, setAdding] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
-  const submitSource = () => {
+  const submitSource = async () => {
     const value = source.trim()
-    if (!value) return
-    setSource("")
-    void addMarketplace({ source: value })
+    if (!value || adding) return
+    setAdding(true)
+    setAddError(null)
+    try {
+      await addMarketplace({ source: value })
+      setSource("")
+      setAddOpen(false)
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setAdding(false)
+    }
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("plugins.search")} />
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!ready || upgrading}
-          aria-busy={upgrading}
-          onClick={() => void upgrade()}
-        >
-          {upgrading ? <Spinner /> : <CircleArrowUpIcon data-icon="inline-start" />}
-          {t("plugins.marketplace.upgradeAll")}
-        </Button>
-      </div>
-      <div className="flex items-center gap-2">
-        <Input
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") submitSource()
-          }}
-          placeholder={t("plugins.marketplace.sourcePlaceholder")}
-        />
-        <Button size="sm" variant="outline" disabled={loading || source.trim() === ""} onClick={submitSource}>
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!ready || upgrading}
+        aria-busy={upgrading}
+        onClick={() => void upgrade()}
+      >
+        {upgrading ? <Spinner /> : <CircleArrowUpIcon data-icon="inline-start" />}
+        {t("plugins.marketplace.upgradeAll")}
+      </Button>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          if (!adding) setAddOpen(open)
+        }}
+      >
+        <DialogTrigger render={<Button size="sm" variant="outline" disabled={!ready} />}>
           <PlusIcon data-icon="inline-start" />
           {t("plugins.addMarketplace")}
-        </Button>
-      </div>
-      <Pane>
-        <div className="flex flex-col gap-4">
-          {error && (
-            <div role="alert" className="px-2 text-xs text-destructive">
-              <p>
-                {t("plugins.loadError.title")}: {error}
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("plugins.marketplace.addTitle")}</DialogTitle>
+            <DialogDescription>{t("plugins.catalog.sourceHelp")}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submitSource()
+            }}
+          >
+            <Label htmlFor="marketplace-source">{t("plugins.marketplace.sourceLabel")}</Label>
+            <Input
+              id="marketplace-source"
+              value={source}
+              disabled={adding}
+              onChange={(event) => setSource(event.target.value)}
+              placeholder={t("plugins.marketplace.sourcePlaceholder")}
+            />
+            {addError && (
+              <p role="alert" className="text-sm text-destructive">
+                {addError}
               </p>
-              <Button size="sm" variant="outline" disabled={loading} onClick={() => void refresh()}>
-                {t("plugins.loadError.retry")}
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" disabled={adding} onClick={() => setAddOpen(false)}>
+                {t("plugins.marketplace.addCancel")}
+              </Button>
+              <Button type="submit" disabled={adding || source.trim() === ""}>
+                {adding && <Spinner />}
+                {t("plugins.marketplace.addSubmit")}
               </Button>
             </div>
-          )}
-          {loadErrors.map((error) => (
-            <p key={error.marketplacePath} className="px-2 text-xs text-destructive">
-              {error.marketplacePath}: {error.message}
-            </p>
-          ))}
-          {loading ? <MarketplaceSkeleton /> : <MarketplaceResults query={q} onOpen={onOpen} />}
-          {!loading && marketplaces.every((marketplace) => marketplace.plugins.length === 0) && (
-            <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
-          )}
-        </div>
-      </Pane>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function SkillRow({ skill }: { skill: SkillMetadata }) {
-  const { t } = useTranslation()
-  const setSkillEnabled = useStore(pluginsStore, (state) => state.setSkillEnabled)
-  const title = skill.interface?.displayName ?? skill.name
-  const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description
+function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => void; query: string }) {
+  const ready = usePluginsReady()
+  const loadErrors = useStore(pluginsStore, (state) => state.marketplaceLoadErrors)
+  const loading = useStore(pluginsStore, (state) => state.loading) || !ready
+  const q = useDeferredValue(query.trim().toLowerCase())
   return (
-    <PanelItem className="rounded-md">
-      <SkillIconBox src={skillIconSrc(skill)} />
-      <ItemContent className="min-w-0">
-        <div className="mb-0.5 flex items-center gap-1.5">
-          <PanelItemTitle className="w-auto min-w-0">{title}</PanelItemTitle>
-          <Badge variant="secondary" className="shrink-0 text-[10px]">
-            {t(`plugins.skills.scope.${skill.scope}`)}
-          </Badge>
-        </div>
-        <ItemDescription className="line-clamp-1" title={description}>
-          {description}
-        </ItemDescription>
-        <ItemDescription className="-mt-0.5 opacity-60" title={skill.path}>
-          {skill.pluginId ?? skill.path}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <Switch
-          checked={skill.enabled}
-          aria-label={t(skill.enabled ? "plugins.skills.disable" : "plugins.skills.enable")}
-          onCheckedChange={(checked) => void setSkillEnabled(skill, checked)}
-        />
-      </ItemActions>
-    </PanelItem>
+    <Pane>
+      <div className="flex flex-col gap-4">
+        {loadErrors.map((error) => (
+          <p key={error.marketplacePath} className="px-2 text-xs text-destructive">
+            {error.marketplacePath}: {error.message}
+          </p>
+        ))}
+        {loading ? <CatalogSkeleton /> : <MarketplaceResults query={q} onOpen={onOpen} />}
+      </div>
+    </Pane>
   )
 }
 
-function InstalledTab({ onOpen }: { onOpen: (entry: PluginEntry) => void }) {
+function InstalledTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => void; query: string }) {
   const { t } = useTranslation()
   const ready = usePluginsReady()
   const installed = useStore(pluginsStore, (state) => state.installed)
   const busyIds = useStore(pluginsStore, (state) => state.busyIds)
   const uninstall = useStore(pluginsStore, (state) => state.uninstall)
   const setPluginEnabled = useStore(pluginsStore, (state) => state.setPluginEnabled)
-  const skills = useStore(pluginsStore, (state) => state.skills)
-  const skillErrors = useStore(pluginsStore, (state) => state.skillErrors)
+  const loading = useStore(pluginsStore, (state) => state.loading)
+  const filtered = installed.filter(({ plugin }) =>
+    [pluginTitle(plugin), pluginDescription(plugin), plugin.name]
+      .join(" ")
+      .toLowerCase()
+      .includes(query.trim().toLowerCase())
+  )
   return (
     <Pane>
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-1">
           <h2 className="px-2 text-xs font-medium text-muted-foreground">{t("plugins.headings.plugins")}</h2>
-          {!ready ? (
-            <Spinner className="mx-2 my-4 text-muted-foreground" />
-          ) : installed.length === 0 ? (
-            <p className="px-2 py-4 text-sm text-muted-foreground">{t("plugins.sections.installedEmpty")}</p>
+          {!ready || loading ? (
+            <CatalogSkeleton />
+          ) : filtered.length === 0 ? (
+            <p className="px-2 py-4 text-sm text-muted-foreground">
+              {t(query.trim() ? "plugins.empty" : "plugins.sections.installedEmpty")}
+            </p>
           ) : (
-            <PanelList className="grid grid-cols-2 gap-2">
-              {installed.map(({ plugin, marketplace }) => (
+            <PanelList className="grid grid-cols-1 gap-2 @min-[700px]:grid-cols-2">
+              {filtered.map(({ plugin, marketplace }) => (
                 <PluginRow
                   onOpen={onOpen}
                   key={plugin.id}
@@ -492,46 +458,53 @@ function InstalledTab({ onOpen }: { onOpen: (entry: PluginEntry) => void }) {
             </PanelList>
           )}
         </section>
-        <section className="flex flex-col gap-1">
-          <h2 className="px-2 text-xs font-medium text-muted-foreground">{t("plugins.headings.skills")}</h2>
-          {skillErrors.map((error) => (
-            <p key={error.path} className="px-2 text-xs text-destructive">
-              {error.path}: {error.message}
-            </p>
-          ))}
-          {!ready ? (
-            <Spinner className="mx-2 my-4 text-muted-foreground" />
-          ) : skills.length === 0 ? (
-            <p className="px-2 py-4 text-sm text-muted-foreground">{t("plugins.skills.empty")}</p>
-          ) : (
-            <PanelList className="grid grid-cols-2 gap-2">
-              {skills.map((skill) => (
-                <SkillRow key={skill.path} skill={skill} />
-              ))}
-            </PanelList>
-          )}
-        </section>
       </div>
     </Pane>
   )
 }
 
-/** `cwd`: the selected project; repo-scoped skills and marketplaces are read from it. */
+/** Catalogs cover the selected project and known conversation projects. */
 export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, (state) => state.refresh)
+  const loading = useStore(pluginsStore, (state) => state.loading)
+  const error = useStore(pluginsStore, (state) => state.error)
+  const [kind, setKind] = useState("plugins")
+  const [pluginTab, setPluginTab] = useState("marketplace")
+  const [queries, setQueries] = useState({ plugins: "", skills: "" })
+  const query = kind === "skills" ? queries.skills : queries.plugins
+  const setQuery = (value: string) => setQueries((current) => ({ ...current, [kind]: value }))
+  const knownDirectories = useApp((state) =>
+    JSON.stringify(
+      [
+        ...new Set(
+          state.threads.map((thread) => newChatDirectory(thread.cwd)).filter((path): path is string => path !== null)
+        )
+      ].sort()
+    )
+  )
+  const directoriesKey = JSON.stringify(
+    [
+      ...new Set(
+        [newChatDirectory(cwd), ...(JSON.parse(knownDirectories) as string[])].filter(
+          (path): path is string => path !== null
+        )
+      )
+    ].sort()
+  )
+  const searchLabel = t(kind === "skills" ? "plugins.skills.search" : "plugins.search")
   const [selected, setSelected] = useState<PluginEntry | null>(null)
   const ready = usePluginsReady()
 
   useEffect(() => {
     // The screen arrow is available even before the engine has connected.
     if (!active || !ready) return
-    void refresh(cwd === null ? [] : [cwd])
+    void refresh(JSON.parse(directoriesKey) as string[])
     return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
-  }, [active, ready, refresh, cwd])
+  }, [active, ready, refresh, directoriesKey])
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="@container flex h-full flex-col overflow-hidden">
       <PluginIconDefinitions />
       {selected && (
         <PluginDetailPage
@@ -542,22 +515,105 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
       )}
       <div className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
         <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">{t("plugins.title")}</h1>
-            <Badge className="bg-primary/10 text-[10px] text-primary">{t("plugins.beta")}</Badge>
-          </div>
+          <h1 className="text-2xl font-semibold">{t("plugins.catalog.title")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t("plugins.catalog.description")}</p>
         </div>
         <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
-          <Tabs defaultValue="marketplace" className="flex min-h-0 flex-1 flex-col gap-4">
-            <TabsList>
-              <TabsTrigger value="marketplace">{t("plugins.headings.marketplace")}</TabsTrigger>
-              <TabsTrigger value="installed">{t("plugins.sections.installed")}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
-              <MarketplaceTab onOpen={setSelected} />
+          <Tabs
+            value={kind}
+            onValueChange={(value) => {
+              if (typeof value === "string") setKind(value)
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2">
+              <TabsList variant="line" aria-label={t("plugins.manageTabs.aria")}>
+                <TabsTrigger data-hover-background="none" value="plugins">
+                  {t("plugins.headings.plugins")}
+                </TabsTrigger>
+                <TabsTrigger data-hover-background="none" value="skills">
+                  {t("plugins.headings.skills")}
+                </TabsTrigger>
+              </TabsList>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("plugins.skills.refresh")}
+                disabled={!ready || loading}
+                onClick={() => void refresh(undefined, { forceRefetch: true })}
+              >
+                {loading ? <Spinner /> : <RefreshCwIcon />}
+              </Button>
+            </div>
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="ps-9 pe-9"
+                aria-label={searchLabel}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={searchLabel}
+              />
+              {query && (
+                <Button
+                  className="absolute end-1 top-1/2 -translate-y-1/2"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={t("plugins.catalog.clearSearch")}
+                  onClick={() => setQuery("")}
+                >
+                  <XIcon />
+                </Button>
+              )}
+            </div>
+            {error && (
+              <div role="alert" className="flex items-center justify-between gap-2 text-sm text-destructive">
+                <p>
+                  {t("plugins.loadError.title")}: {error}
+                </p>
+                <Button size="sm" variant="outline" disabled={loading || !ready} onClick={() => void refresh()}>
+                  {t("plugins.loadError.retry")}
+                </Button>
+              </div>
+            )}
+            <TabsContent value="plugins" keepMounted className="flex min-h-0 flex-1 flex-col data-[hidden]:hidden">
+              <Tabs
+                value={pluginTab}
+                onValueChange={(value) => {
+                  if (typeof value === "string") setPluginTab(value)
+                }}
+                className="flex min-h-0 flex-1 flex-col gap-4"
+              >
+                <PluginToolbar />
+                <TabsList
+                  aria-label={t("plugins.catalog.pluginViews")}
+                  className="shrink-0 gap-1 rounded-full bg-muted p-1"
+                >
+                  <TabsTrigger
+                    data-hover-background="none"
+                    value="marketplace"
+                    className="rounded-full px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
+                  >
+                    {t("plugins.headings.marketplace")}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    data-hover-background="none"
+                    value="installed"
+                    className="rounded-full px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
+                  >
+                    {t("plugins.sections.installed")}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
+                  <MarketplaceTab query={queries.plugins} onOpen={setSelected} />
+                </TabsContent>
+                <TabsContent value="installed" className="flex min-h-0 flex-1 flex-col">
+                  <InstalledTab query={queries.plugins} onOpen={setSelected} />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
-            <TabsContent value="installed" className="flex min-h-0 flex-1 flex-col">
-              <InstalledTab onOpen={setSelected} />
+            <TabsContent value="skills" keepMounted className="flex min-h-0 flex-1 flex-col data-[hidden]:hidden">
+              <SkillsTab query={queries.skills} ready={ready} onOpenPlugin={setSelected} />
             </TabsContent>
           </Tabs>
         </div>

@@ -563,6 +563,22 @@
     "install": "Relaunch to update"
   },
   "plugins": {
+    "catalog": {
+      "pluginViews": "Plugin views",
+      "personal": "Personal",
+      "showMore": "Show {{count}} more",
+      "title": "Plugins",
+      "description": "Discover plugins and manage skills and tools.",
+      "search": "Search plugins and skills",
+      "clearSearch": "Clear search",
+      "sourceHelp": "Add a GitHub repository, Git URL, or local folder.",
+      "scope": "Skill scope",
+      "allScopes": "All scopes",
+      "skillCount": "{{count}} skills",
+      "location": "Location",
+      "fromPlugin": "From plugin",
+      "toggleNotApplied": "The skill state did not match the requested change."
+    },
     "title": "Plugins",
     "beta": "BETA",
     "subtitle": "Work with Codex across your favorite tools",
@@ -687,6 +703,13 @@
       "marketplace": "Marketplace"
     },
     "skills": {
+      "document": {
+        "open": "Open",
+        "reveal": "Show in file manager",
+        "copy": "Copy Markdown",
+        "content": "Skill instructions",
+        "error": "Could not read SKILL.md"
+      },
       "search": "Search skills",
       "scope": {
         "user": "User",

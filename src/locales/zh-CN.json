@@ -563,6 +563,22 @@
     "install": "重新启动以更新"
   },
   "plugins": {
+    "catalog": {
+      "pluginViews": "插件视图",
+      "personal": "个人",
+      "showMore": "查看其余 {{count}} 项",
+      "title": "插件",
+      "description": "发现插件，管理技能与工具",
+      "search": "搜索插件和技能",
+      "clearSearch": "清除搜索",
+      "sourceHelp": "添加 GitHub 仓库、Git 地址或本地文件夹。",
+      "scope": "技能范围",
+      "allScopes": "全部范围",
+      "skillCount": "{{count}} 个技能",
+      "location": "位置",
+      "fromPlugin": "来自插件",
+      "toggleNotApplied": "技能实际状态与请求不一致。"
+    },
     "title": "插件",
     "beta": "BETA",
     "subtitle": "在你常用的工具中使用 Codex",
@@ -687,6 +703,13 @@
       "marketplace": "市场"
     },
     "skills": {
+      "document": {
+        "open": "打开",
+        "reveal": "在文件夹中显示",
+        "copy": "复制 Markdown",
+        "content": "技能正文",
+        "error": "无法读取 SKILL.md"
+      },
       "search": "搜索技能",
       "scope": {
         "user": "用户",
