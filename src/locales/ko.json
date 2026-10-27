@@ -49,7 +49,6 @@
     "newChat": "새 채팅",
     "chats": "채팅",
     "untitled": "새 채팅",
-    "unarchive": "복원",
     "delete": "삭제",
     "rename": "이름 바꾸기",
     "search": "채팅 검색",
@@ -61,10 +60,7 @@
     "showRight": "오른쪽 사이드바 표시",
     "hideRight": "오른쪽 사이드바 숨기기",
     "backToMain": "메인 화면으로 돌아가기",
-    "archived": "보관됨",
-    "archive": "보관",
     "loadMore": "더 불러오기",
-    "fork": "분기 만들기",
     "deleteTitle": "이 채팅을 삭제할까요?",
     "deleteDescription": "이 채팅은 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
     "noResults": "채팅을 찾을 수 없습니다"

@@ -1,9 +1,9 @@
+import { OverflowMarquee } from "@alwith/module-chat/session-list"
 import { ArrowUpRightIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { Button } from "@/components/ui/button"
 import { ProjectAppIcon, useProjectApps } from "@/features/chat/open-in-editor"
 

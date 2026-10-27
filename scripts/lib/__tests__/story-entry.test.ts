@@ -15,7 +15,7 @@ test("the app does not install the story module", () => {
 })
 
 test("the sidebar does not expose the story entry", () => {
-  const sidebar = source("src/features/threads/thread-sidebar.tsx")
+  const sidebar = source("src/features/sessions/session-sidebar.tsx")
 
   expect(sidebar).not.toContain("onOpenStory")
   expect(sidebar).not.toContain("useStoryAvailable")

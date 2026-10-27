@@ -11,34 +11,37 @@
  * Window ownership comes from the client; visibility comes from the chat surface. Clicking a floating row opens it in that window.
  */
 
-import type { SessionRunState, SessionTask } from "@alwith/api"
+import type { RunState, SessionRunState, SessionTask } from "@alwith/api"
+import {
+  HoverInfoAction,
+  NavigationGroup,
+  NavigationSessionItem,
+  NavigationStack,
+  RowStopButton,
+  SessionInfoCard,
+  SessionStateDot,
+  useActivityPreview
+} from "@alwith/module-chat/session-list"
 import { ActivityIcon, AppWindowIcon, ArrowLeftIcon, PictureInPicture2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ThreadSummary } from "@/agent/client"
-import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
+import type { SessionSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
-import { RowStopButton } from "@/components/alwith-ui/row-more-menu"
-import { SessionStateDot } from "@/components/alwith-ui/session-state-dot"
+import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { Kbd } from "@/components/ui/kbd"
-import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
-import { NavigationSessionItem } from "@/features/layout/components/navigation/navigation-session-item"
-import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { useCmdHeld } from "@/hooks/use-cmd-held"
 import { focusChatSession } from "@/lib/chat-window"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
 import { stopSession, useApp } from "@/lib/client"
+import { openExternal } from "@/lib/open"
 import { isMac } from "@/lib/platform"
-import type { RunState } from "@/lib/run-state"
 import { displayShortcut } from "@/lib/shortcut-formatter"
 
 import { useActivityOrder } from "./activity-order"
 import { activityGroupOf } from "./lib/activity-group"
-import { useThreadsUiStore } from "./store"
-import { ThreadInfoCard } from "./thread-info-card"
-import { useActivityPreview } from "./use-activity-preview"
+import { useSessionsUiStore } from "./store"
 
 function report(promise: Promise<unknown>): Promise<void> {
   return promise.then(
@@ -49,10 +52,10 @@ function report(promise: Promise<unknown>): Promise<void> {
   )
 }
 
-/** The thread behind a run state: the listed one, else a summary built from the Runtime's record. */
-function threadOf(threads: ThreadSummary[], record: SessionRunState): ThreadSummary {
+/** The session behind a run state: the listed one, else a summary built from the Runtime's record. */
+function sessionOf(sessionRows: SessionSummary[], record: SessionRunState): SessionSummary {
   return (
-    threads.find((thread) => thread.sessionId === record.sessionId) ?? {
+    sessionRows.find((sessionRow) => sessionRow.sessionId === record.sessionId) ?? {
       sessionId: record.sessionId,
       cwd: record.cwd,
       title: record.title || null,
@@ -67,11 +70,11 @@ export function ActivityPanel({
   onSelect
 }: {
   selectedId: string | null
-  onSelect: (thread: ThreadSummary) => void
+  onSelect: (sessionRow: SessionSummary) => void
 }) {
   const { t } = useTranslation()
   const runStates = useApp((state) => state.runStates)
-  const threads = useApp((state) => state.threads)
+  const sessionRows = useApp((state) => state.sessionList)
   const chatSurface = useChatWindowSurface()
   const sessionWindows = useApp((state) => state.sessionWindows)
   const draftSessions = useApp((state) => state.draftSessions)
@@ -83,10 +86,10 @@ export function ActivityPanel({
         const record = runStates[sid]
         // The derived order and source can notify React separately; never render a retired row.
         return record && (!record.reusableDraft || draftSessions[sid] !== undefined)
-          ? [{ sid, record, thread: threadOf(threads, record) }]
+          ? [{ sid, record, sessionRow: sessionOf(sessionRows, record) }]
           : []
       }),
-    [order, runStates, threads, draftSessions]
+    [order, runStates, sessionRows, draftSessions]
   )
 
   // Foreground means occupying a visible chat surface, including the separate chat window.
@@ -114,16 +117,16 @@ export function ActivityPanel({
     )
   }, [rows, selectedId, chatSurface, t])
   // Collapsed state lives only in process memory: it survives leaving Activity and returning, but resets on restart.
-  const collapsedGroups = useThreadsUiStore((s) => s.activityCollapsedGroups)
-  const setCollapsedGroups = useThreadsUiStore((s) => s.setActivityCollapsedGroups)
+  const collapsedGroups = useSessionsUiStore((s) => s.activityCollapsedGroups)
+  const setCollapsedGroups = useSessionsUiStore((s) => s.setActivityCollapsedGroups)
   // Cmd/Ctrl+1 through Cmd/Ctrl+9 and numeric hints follow the flattened group order visible to the user.
   const flatRows = groups.flatMap((group) =>
     group.key === "foreground" || !collapsedGroups.has(group.key) ? group.rows : []
   )
 
-  const openRow = (thread: ThreadSummary): void => {
-    if (sessionWindows[thread.sessionId] === "chat") void report(focusChatSession(thread.sessionId))
-    else onSelect(thread)
+  const openRow = (sessionRow: SessionSummary): void => {
+    if (sessionWindows[sessionRow.sessionId] === "chat") void report(focusChatSession(sessionRow.sessionId))
+    else onSelect(sessionRow)
   }
 
   // Cmd/Ctrl+1 through Cmd/Ctrl+9 jump to the Nth row in ascending order; number hints appear only on the first nine rows.
@@ -138,7 +141,7 @@ export function ActivityPanel({
       const row = flatRows[n - 1]
       if (!row) return
       e.preventDefault()
-      openRow(row.thread)
+      openRow(row.sessionRow)
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
@@ -149,15 +152,15 @@ export function ActivityPanel({
     return (
       <ActivityRow
         key={row.sid}
-        thread={row.thread}
+        sessionRow={row.sessionRow}
         state={row.record.state}
         interruption={row.record.interruption}
         active={row.sid === selectedId}
         tasks={row.record.tasks}
         listeningPorts={row.record.listeningPorts}
-        onOpen={() => openRow(row.thread)}
+        onOpen={() => openRow(row.sessionRow)}
         windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
-        onReturnToMain={() => onSelect(row.thread)}
+        onReturnToMain={() => onSelect(row.sessionRow)}
         shortcut={index < 9 ? `CommandOrControl+${index + 1}` : undefined}
         hint={index < 9 && cmdHeld ? <Kbd>{displayShortcut(`CommandOrControl+${index + 1}`)}</Kbd> : undefined}
       />
@@ -165,7 +168,7 @@ export function ActivityPanel({
   }
 
   return (
-    <Pane className="thread-sidebar-scroll" viewportClassName="ps-2 pe-0 pb-1">
+    <Pane className="session-list-scroll" viewportClassName="ps-2 pe-0 pb-1">
       <NavigationStack>
         {groups.map((group) =>
           group.key === "foreground" ? (
@@ -194,7 +197,7 @@ export function ActivityPanel({
 }
 
 function ActivityRow({
-  thread,
+  sessionRow,
   state,
   interruption,
   active,
@@ -206,7 +209,7 @@ function ActivityRow({
   hint,
   shortcut
 }: {
-  thread: ThreadSummary
+  sessionRow: SessionSummary
   state: RunState
   interruption: string | null
   active: boolean
@@ -220,19 +223,19 @@ function ActivityRow({
   shortcut?: string
 }) {
   const { t } = useTranslation()
-  const title = thread.title ?? t("sidebar.untitled")
-  const preview = useActivityPreview(thread.sessionId, state)
+  const title = sessionRow.title ?? t("sidebar.untitled")
+  const preview = useActivityPreview(sessionRow.sessionId, state)
   return (
     <>
       <NavigationSessionItem
-        data-session-id={thread.sessionId}
+        data-session-id={sessionRow.sessionId}
         active={active}
         role="button"
         tabIndex={0}
         hoverCard={
-          <ThreadInfoCard
-            thread={thread}
-            shortcut={shortcut}
+          <SessionInfoCard
+            sessionRow={sessionRow}
+            shortcut={shortcut && <ShortcutKey className="shrink-0" shortcut={shortcut} aria-hidden="false" />}
             actions={
               windowLabel === "chat" ? (
                 <HoverInfoAction
@@ -257,6 +260,7 @@ function ActivityRow({
         title={title}
         preview={preview}
         listeningPorts={listeningPorts}
+        onOpenPort={(port) => void report(openExternal(`http://localhost:${port}`))}
         accessory={
           windowLabel === null ? undefined : (
             <span
@@ -277,7 +281,7 @@ function ActivityRow({
         hint={hint}
         actions={
           /* Session columns and activity rows close by session ID without stopping the shared agent. */
-          <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(thread.sessionId))} />
+          <RowStopButton title={t("sidebar.stop")} onStop={() => report(stopSession(sessionRow.sessionId))} />
         }
       />
       {/* Branch lines connect running tasks to their session; Runtime removes terminal tasks. */}

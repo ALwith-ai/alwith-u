@@ -6,18 +6,18 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
-import { useThreadsUiStore } from "../store"
-import { ThreadSidebar } from "../thread-sidebar"
+import { SessionSidebar } from "../session-sidebar"
+import { useSessionsUiStore } from "../store"
 
 await initI18n("en")
 const originalState = client.state
-const originalUi = useThreadsUiStore.getState()
+const originalUi = useSessionsUiStore.getState()
 afterEach(async () => {
   await act(() => {
     return Promise.try(() => {
       cleanup()
       client.store.setState(originalState, true)
-      useThreadsUiStore.setState(originalUi, true)
+      useSessionsUiStore.setState(originalUi, true)
     })
   })
   vi.restoreAllMocks()
@@ -54,8 +54,8 @@ test.each(
     executionRole: null
   }))
   client.store.setState({
-    threadsLoaded: true,
-    threads: records.map((record) => ({
+    sessionListLoaded: true,
+    sessionList: records.map((record) => ({
       sessionId: record.sessionId,
       cwd: record.cwd,
       title: record.title,
@@ -64,10 +64,10 @@ test.each(
     }))
   })
   client.applyRunStates(records)
-  useThreadsUiStore.setState({ view, projectOpen: new Map([["/tmp", true]]) })
+  useSessionsUiStore.setState({ view, projectOpen: new Map([["/tmp", true]]) })
   const screen = render(
     <SidebarProvider>
-      <ThreadSidebar
+      <SessionSidebar
         screen="main"
         leadingPage="plugins"
         selectedId="foreground"

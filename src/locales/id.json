@@ -48,7 +48,6 @@
     "newChat": "Obrolan baru",
     "chats": "Obrolan",
     "untitled": "Obrolan baru",
-    "unarchive": "Pulihkan",
     "delete": "Hapus",
     "rename": "Ganti nama",
     "search": "Cari Obrolan…",
@@ -60,10 +59,7 @@
     "showRight": "Tampilkan bilah samping kanan",
     "hideRight": "Sembunyikan bilah samping kanan",
     "backToMain": "Kembali ke layar utama",
-    "archived": "Diarsipkan",
-    "archive": "Arsipkan",
     "loadMore": "Muat lebih banyak",
-    "fork": "Buat cabang",
     "deleteTitle": "Hapus obrolan ini?",
     "deleteDescription": "Obrolan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
     "noResults": "Tidak ada obrolan ditemukan"

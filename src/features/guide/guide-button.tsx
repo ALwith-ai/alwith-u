@@ -1,10 +1,10 @@
+import { useSidebarOverlay } from "@alwith/module-chat/session-list"
 import { CircleHelpIcon, KeyboardIcon, LifeBuoyIcon } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
-import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"

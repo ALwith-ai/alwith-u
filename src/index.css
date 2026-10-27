@@ -466,8 +466,8 @@ html[data-window-backdrop="acrylic"]
       [data-disabled]
     ):not(
       :where(
-        .codex-thread-content *,
-        .thread-user-message-navigation *,
+        .codex-timeline-content *,
+        .timeline-user-message-navigation *,
         .codex-assistant-turn *,
         .chat-project-picker *,
         .vibemon-content *,
@@ -614,16 +614,16 @@ body,
 }
 
 /* Extend only the scroll track into the adjacent gutter; keep tabs and rows aligned. */
-.thread-sidebar-content {
+.session-list-content {
   margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
   padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
 }
-.thread-sidebar-scroll {
+.session-list-scroll {
   --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
   margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
   padding-inline-end: calc(8px + var(--sidebar-scrollbar-extension, 0px));
 }
-.thread-sidebar-scroll > [data-slot="scroll-area-scrollbar"] {
+.session-list-scroll > [data-slot="scroll-area-scrollbar"] {
   padding-inline: var(--app-scrollbar-edge-gap);
 }
 

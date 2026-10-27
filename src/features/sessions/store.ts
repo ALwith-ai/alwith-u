@@ -7,7 +7,7 @@ import { create } from "zustand"
 /** Sidebar panels supported by this client. */
 export type SidebarView = "sessions" | "activity" | "drive" | "collections"
 
-interface ThreadsUiState {
+interface SessionsUiState {
   /** Current sidebar panel. */
   view: SidebarView
   setView: (view: SidebarView) => void
@@ -24,7 +24,7 @@ interface ThreadsUiState {
   setActivityCollapsedGroups: (next: ReadonlySet<string>) => void
 }
 
-export const useThreadsUiStore = create<ThreadsUiState>((set) => ({
+export const useSessionsUiStore = create<SessionsUiState>((set) => ({
   view: "sessions",
   setView: (view) => set({ view }),
   activitySeen: new Map(),

@@ -49,7 +49,6 @@
     "newChat": "新しいチャット",
     "chats": "チャット",
     "untitled": "新しいチャット",
-    "unarchive": "復元",
     "delete": "削除",
     "rename": "名前を変更",
     "search": "チャットを検索",
@@ -61,10 +60,7 @@
     "showRight": "右サイドバーを表示",
     "hideRight": "右サイドバーを非表示",
     "backToMain": "メイン画面に戻る",
-    "archived": "アーカイブ済み",
-    "archive": "アーカイブ",
     "loadMore": "さらに読み込む",
-    "fork": "分岐を作成",
     "deleteTitle": "このチャットを削除しますか？",
     "deleteDescription": "このチャットは完全に削除されます。この操作は取り消せません。",
     "noResults": "チャットが見つかりません"

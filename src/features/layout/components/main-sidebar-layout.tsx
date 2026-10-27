@@ -1,3 +1,4 @@
+import { SidebarOverlayContext } from "@alwith/module-chat/session-list"
 import "@nyssance/atlas/styles.css"
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
@@ -7,7 +8,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import { SidebarOverlayContext } from "@/components/alwith-ui/sidebar-overlay-context"
 import {
   WindowsTitleBarContext,
   WindowsWorkspaceControlsContext

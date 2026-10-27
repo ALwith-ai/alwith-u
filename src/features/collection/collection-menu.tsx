@@ -1,9 +1,9 @@
+import { HoverInfoAction, useNavigationHoverCardPin } from "@alwith/module-chat/session-list"
 import { DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import { BoxIcon, ChevronRightIcon, PlusIcon, StarIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { HoverInfoAction } from "@/components/alwith-ui/hover-info-card"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { useNavigationHoverCardPin } from "@/features/layout/components/navigation/navigation-session-item"
 import { cn } from "@/lib/utils"
 
 import { dispatchCollection, reportCollection, useCollectionStore } from "./store"

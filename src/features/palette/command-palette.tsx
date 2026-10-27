@@ -3,8 +3,8 @@ import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 
-import type { ThreadSummary } from "@/agent/client"
-import { hasPluginStore } from "@/agent/codex-extensions"
+import type { SessionSummary } from "@/agent/client"
+import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,7 +37,7 @@ interface Props {
   onOpenPlugins: () => void
   onOpenHotkeys: () => void
   onOpenExtension: (id: string) => void
-  onSelect: (thread: ThreadSummary) => void
+  onSelect: (sessionRow: SessionSummary) => void
 }
 
 type Entry = {
@@ -76,7 +76,7 @@ function PaletteContent({
   const { t } = useTranslation()
   const { host: extensions } = useExtensions()
   const { resolvedTheme, setTheme } = useTheme()
-  const threads = useApp((state) => state.threads)
+  const sessionRows = useApp((state) => state.sessionList)
   const pluginsAvailable = useApp((state) => hasPluginStore(state.agent))
   const [query, setQuery] = useState("")
   const [page, setPage] = useState({ query: "", limit: PAGE_SIZE })
@@ -148,13 +148,13 @@ function PaletteContent({
       {
         id: "chats",
         heading: t("palette.chats"),
-        entries: threads.map((thread) => ({
-          id: `thread:${thread.sessionId}`,
-          search: `${thread.title ?? ""} ${thread.cwd} ${thread.sessionId}`,
-          label: thread.title ?? t("sidebar.untitled"),
-          detail: basename(thread.cwd),
+        entries: sessionRows.map((sessionRow) => ({
+          id: `session:${sessionRow.sessionId}`,
+          search: `${sessionRow.title ?? ""} ${sessionRow.cwd} ${sessionRow.sessionId}`,
+          label: sessionRow.title ?? t("sidebar.untitled"),
+          detail: basename(sessionRow.cwd),
           icon: <MessageSquareIcon />,
-          run: () => onSelect(thread)
+          run: () => onSelect(sessionRow)
         }))
       }
     ]
@@ -171,7 +171,7 @@ function PaletteContent({
     resolvedTheme,
     setTheme,
     t,
-    threads
+    sessionRows
   ])
   // Match the complete catalog in data; cmdk only registers the displayed page.
   const matches = useMemo(() => searchPalette(groups, query), [groups, query])

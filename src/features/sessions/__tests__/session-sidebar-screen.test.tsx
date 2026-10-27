@@ -8,20 +8,20 @@ import { useUpdaterStore } from "@/features/updater/store"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
-import { useThreadsUiStore } from "../store"
-import { ThreadSidebar } from "../thread-sidebar"
+import { SessionSidebar } from "../session-sidebar"
+import { useSessionsUiStore } from "../store"
 
 await initI18n("en")
 const originalState = client.state
 const originalAuth = usePlatformAuth.getState()
-const originalUi = useThreadsUiStore.getState()
+const originalUi = useSessionsUiStore.getState()
 const originalUpdater = useUpdaterStore.getState()
 afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
     usePlatformAuth.setState(originalAuth, true)
-    useThreadsUiStore.setState(originalUi, true)
+    useSessionsUiStore.setState(originalUi, true)
     useUpdaterStore.setState(originalUpdater, true)
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
@@ -45,7 +45,7 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
         leading={<main>Plugin content</main>}
         main={<main>Chat content</main>}
         sidebar={
-          <ThreadSidebar
+          <SessionSidebar
             screen={screen}
             leadingPage="plugins"
             selectedId={null}
@@ -109,7 +109,7 @@ test("extensions sit below plugins, select their own leading page and remain ava
         leading={<main>{leadingPage === "extensions" ? "Extension management" : "Plugin content"}</main>}
         main={<main>Chat content</main>}
         sidebar={
-          <ThreadSidebar
+          <SessionSidebar
             screen={screen}
             leadingPage={leadingPage}
             selectedId={null}
@@ -163,7 +163,7 @@ test("Drive mounts on first visit and retains input across tab switches until ac
     isAuthenticated: true,
     user: { ...originalAuth.user, login_email: "test@finture.id" } as NonNullable<typeof originalAuth.user>
   })
-  useThreadsUiStore.setState({ view: "sessions" })
+  useSessionsUiStore.setState({ view: "sessions" })
   const view = render(
     <MainSidebarLayout
       initialPinned
@@ -171,7 +171,7 @@ test("Drive mounts on first visit and retains input across tab switches until ac
       leading={null}
       main={null}
       sidebar={
-        <ThreadSidebar
+        <SessionSidebar
           screen="main"
           leadingPage="plugins"
           selectedId={null}
@@ -204,14 +204,14 @@ test("Drive mounts on first visit and retains input across tab switches until ac
   }
   await act(() => Promise.try(() => usePlatformAuth.setState({ isAuthenticated: false })))
   expect(view.queryByLabelText("Drive filter")).toBeNull()
-  expect(useThreadsUiStore.getState().view).toBe("sessions")
+  expect(useSessionsUiStore.getState().view).toBe("sessions")
 })
 
 test("project counts show only the number of sessions", () => {
-  useThreadsUiStore.setState({ view: "sessions" })
+  useSessionsUiStore.setState({ view: "sessions" })
   client.store.setState({
-    threadsLoaded: true,
-    threads: [
+    sessionListLoaded: true,
+    sessionList: [
       { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
       { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }
     ]
@@ -223,7 +223,7 @@ test("project counts show only the number of sessions", () => {
       leading={null}
       main={null}
       sidebar={
-        <ThreadSidebar
+        <SessionSidebar
           screen="main"
           leadingPage="plugins"
           selectedId={null}
@@ -261,7 +261,7 @@ test("Vibemon sits below extensions and selects its own leading page without an 
         leading={<main>{page}</main>}
         main={<main>Chat content</main>}
         sidebar={
-          <ThreadSidebar
+          <SessionSidebar
             screen={screen}
             leadingPage={page}
             selectedId={null}

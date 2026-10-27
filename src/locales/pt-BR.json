@@ -48,7 +48,6 @@
     "background": "Fundo",
     "newChat": "Novo chat",
     "untitled": "Novo chat",
-    "unarchive": "Restaurar",
     "delete": "Excluir",
     "rename": "Renomear",
     "search": "Pesquisar chats…",
@@ -60,10 +59,7 @@
     "showRight": "Mostrar barra lateral direita",
     "hideRight": "Ocultar barra lateral direita",
     "backToMain": "Voltar à tela principal",
-    "archived": "Arquivadas",
-    "archive": "Arquivar",
     "loadMore": "Carregar mais",
-    "fork": "Criar ramificação",
     "deleteTitle": "Excluir esta conversa?",
     "deleteDescription": "Esta conversa será excluída permanentemente. Esta ação não pode ser desfeita.",
     "noResults": "Nenhuma conversa encontrada"

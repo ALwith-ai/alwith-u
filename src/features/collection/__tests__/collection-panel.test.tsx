@@ -2,7 +2,7 @@ import { applyCollectionAction, initialCollectionData } from "@alwith/module-col
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -23,9 +23,9 @@ test("shows Codex titles, opens explicit sessions and retains missing references
   let data = applyCollectionAction(initialCollectionData(), { type: "create", id: "a", name: "Work", sessionId: "one" })
   data = applyCollectionAction(data, { type: "add", collectionId: "a", sessionId: "missing" })
   useCollectionStore.setState(data, true)
-  const thread = { sessionId: "one", title: "Current Codex title", cwd: "/work", updatedAt: null, archived: false }
-  client.store.setState({ threads: [thread], threadsLoaded: true, threadsError: null })
-  const select = vi.fn<(entry: ThreadSummary) => void>()
+  const sessionRow = { sessionId: "one", title: "Current Codex title", cwd: "/work", updatedAt: null, archived: false }
+  client.store.setState({ sessionList: [sessionRow], sessionListLoaded: true, sessionListError: null })
+  const select = vi.fn<(entry: SessionSummary) => void>()
   const screen = render(
     <CollectionPanel
       onSelect={select}
@@ -34,10 +34,10 @@ test("shows Codex titles, opens explicit sessions and retains missing references
     />
   )
   fireEvent.click(screen.getByRole("button", { name: "Current Codex title" }))
-  expect(select).toHaveBeenCalledWith(thread)
+  expect(select).toHaveBeenCalledWith(sessionRow)
   expect(screen.getByText("Chat unavailable")).toBeVisible()
   expect(useCollectionStore.getState().collections.a.sessionIds).toEqual(["one", "missing"])
-  act(() => client.store.setState({ threads: [{ ...thread, title: "Renamed in Codex" }] }))
+  act(() => client.store.setState({ sessionList: [{ ...sessionRow, title: "Renamed in Codex" }] }))
   expect(screen.getByRole("button", { name: "Renamed in Codex" })).toBeVisible()
 })
 
@@ -78,13 +78,13 @@ test("collection rows receive their group and omit the global remove action", as
     applyCollectionAction(initialCollectionData(), { type: "create", id: "work", name: "Work", sessionId: "one" }),
     true
   )
-  const thread = { sessionId: "one", title: "Saved chat", cwd: "/work", updatedAt: null, archived: false }
-  client.store.setState({ threads: [thread], threadsLoaded: false, threadsError: null })
-  const row = vi.fn((entry: ThreadSummary, _onHover: (open: boolean) => void, collectionId?: string) => (
+  const sessionRow = { sessionId: "one", title: "Saved chat", cwd: "/work", updatedAt: null, archived: false }
+  client.store.setState({ sessionList: [sessionRow], sessionListLoaded: false, sessionListError: null })
+  const row = vi.fn((entry: SessionSummary, _onHover: (open: boolean) => void, collectionId?: string) => (
     <AddToCollectionAction sessionId={entry.sessionId} allowRemove={collectionId === undefined} />
   ))
   const screen = render(<CollectionPanel onSelect={() => {}} onNewChat={() => {}} renderRow={row} />)
-  expect(row).toHaveBeenCalledWith(thread, expect.any(Function), "work")
+  expect(row).toHaveBeenCalledWith(sessionRow, expect.any(Function), "work")
   expect(screen.queryByText("Loading chats…")).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Favorite" }))
   expect(await screen.findByRole("menuitemradio", { name: "Work" })).toBeVisible()

@@ -2,14 +2,15 @@ import { createSession, type MessageItem, type SessionRunState } from "@alwith/a
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
 import { ActivityPanel } from "../activity-panel"
-import { useThreadsUiStore } from "../store"
+import { SessionListHostProvider } from "../session-list-host"
+import { useSessionsUiStore } from "../store"
 
 await initI18n("en")
 vi.mock("@/lib/platform", () => ({ isMac: vi.fn(() => false) }))
@@ -18,13 +19,13 @@ vi.mock("@/lib/chat-window", () => ({ focusChatSession: vi.fn(async () => {}) })
 const { focusChatSession } = await import("@/lib/chat-window")
 const { openUrl } = await import("@tauri-apps/plugin-opener")
 const originalState = client.state
-const originalUi = useThreadsUiStore.getState()
+const originalUi = useSessionsUiStore.getState()
 afterEach(async () => {
   await act(() => {
     return Promise.try(() => {
       cleanup()
       client.store.setState(originalState, true)
-      useThreadsUiStore.setState(originalUi, true)
+      useSessionsUiStore.setState(originalUi, true)
       useChatWindowSurface.setState({ sessionId: null, visible: false })
       vi.restoreAllMocks()
       vi.mocked(isMac).mockReturnValue(false)
@@ -52,14 +53,17 @@ function record(sessionId: string, reusableDraft: boolean, state: SessionRunStat
 }
 
 test("owned unsent drafts appear as activity navigation targets", async () => {
-  client.store.setState({ threads: [], draftSessions: { deleted: "main" } })
+  client.store.setState({ sessionList: [], draftSessions: { deleted: "main" } })
   client.applyRunStates([
     record("deleted", true),
     record("reconnected", true),
     record("conversation", false, "running")
   ])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
+  const view = render(
+    <ActivityPanel selectedId={null} onSelect={(sessionRow) => selected.push(sessionRow.sessionId)} />,
+    { wrapper: SessionListHostProvider }
+  )
   expect(view.getByText("deleted")).toBeInTheDocument()
   // Deletion drops local ownership; Runtime may still broadcast the unsent draft.
   await act(() => Promise.try(() => client.store.setState({ draftSessions: {} })))
@@ -81,9 +85,9 @@ test("owned unsent drafts appear as activity navigation targets", async () => {
 })
 
 test("first send appears only after local ownership and Runtime draft state have both transitioned", async () => {
-  client.store.setState({ threads: [], draftSessions: { draft: "main" } })
+  client.store.setState({ sessionList: [], draftSessions: { draft: "main" } })
   client.applyRunStates([record("draft", true)])
-  const view = render(<ActivityPanel selectedId="draft" onSelect={() => {}} />)
+  const view = render(<ActivityPanel selectedId="draft" onSelect={() => {}} />, { wrapper: SessionListHostProvider })
   await act(() => Promise.try(() => client.store.setState({ draftSessions: {} })))
   expect(view.queryByText("draft")).not.toBeInTheDocument()
   await act(() => Promise.try(() => client.applyRunStates([record("draft", false, "running")])))
@@ -94,19 +98,21 @@ test("first send appears only after local ownership and Runtime draft state have
 })
 
 test("conversations remain navigable in every Runtime state without a sidebar history entry", async () => {
-  client.store.setState({ threads: [], draftSessions: {} })
+  client.store.setState({ sessionList: [], draftSessions: {} })
   client.applyRunStates([
     record("running", false, "running"),
     record("approval", false, "requires_action"),
     record("done", false, "done"),
     record("idle", false)
   ])
-  const selected: ThreadSummary[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread)} />)
+  const selected: SessionSummary[] = []
+  const view = render(<ActivityPanel selectedId={null} onSelect={(sessionRow) => selected.push(sessionRow)} />, {
+    wrapper: SessionListHostProvider
+  })
   for (const id of ["running", "approval", "done", "idle"])
     await act(() => Promise.try(() => fireEvent.click(view.getByText(id))))
-  expect(selected.map((thread) => thread.sessionId)).toEqual(["running", "approval", "done", "idle"])
-  expect(selected.every((thread) => thread.cwd === "/tmp")).toBe(true)
+  expect(selected.map((sessionRow) => sessionRow.sessionId)).toEqual(["running", "approval", "done", "idle"])
+  expect(selected.every((sessionRow) => sessionRow.cwd === "/tmp")).toBe(true)
 })
 
 function rowIds(container: HTMLElement): (string | null)[] {
@@ -115,12 +121,12 @@ function rowIds(container: HTMLElement): (string | null)[] {
 
 test("activity order survives updated timestamps, reversed snapshots and panel remounts", async () => {
   client.applyRunStates([record("first", false), record("second", false)])
-  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
   expect(rowIds(view.container)).toEqual(["first", "second"])
   await act(() => {
     return Promise.try(() => {
       client.store.setState({
-        threads: [
+        sessionList: [
           { sessionId: "first", title: "first", cwd: "/tmp", updatedAt: "2026-10-12T12:00:00Z", archived: false },
           { sessionId: "second", title: "second", cwd: "/tmp", updatedAt: "2026-10-12T10:00:00Z", archived: false }
         ]
@@ -131,7 +137,9 @@ test("activity order survives updated timestamps, reversed snapshots and panel r
   expect(rowIds(view.container)).toEqual(["first", "second"])
   view.unmount()
   client.applyRunStates([record("third", false), record("second", false), record("first", false)])
-  const remounted = render(<ActivityPanel selectedId={null} onSelect={() => {}} />)
+  const remounted = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, {
+    wrapper: SessionListHostProvider
+  })
   expect(rowIds(remounted.container)).toEqual(["first", "second", "third"])
   await act(() => Promise.try(() => client.applyRunStates([record("second", false), record("third", false)])))
   await act(() =>
@@ -143,7 +151,10 @@ test("activity order survives updated timestamps, reversed snapshots and panel r
 test("Ctrl hints and shortcuts follow visible rows and ignore collapsed groups", async () => {
   client.applyRunStates([record("background", false), record("foreground", false)])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId="foreground" onSelect={(thread) => selected.push(thread.sessionId)} />)
+  const view = render(
+    <ActivityPanel selectedId="foreground" onSelect={(sessionRow) => selected.push(sessionRow.sessionId)} />,
+    { wrapper: SessionListHostProvider }
+  )
   await act(() => Promise.try(() => fireEvent.keyDown(window, { key: "Control", ctrlKey: true })))
   expect(view.getByText("Ctrl+1")).toBeInTheDocument()
   await act(() => Promise.try(() => fireEvent.keyDown(window, { key: "2", ctrlKey: true })))
@@ -160,7 +171,7 @@ test("Ctrl hints and shortcuts follow visible rows and ignore collapsed groups",
 test("shared ports follow Runtime's session assignment and open without selecting a session", async () => {
   client.applyRunStates([{ ...record("first", false), listeningPorts: [50945] }, record("second", false)])
   const select = vi.fn()
-  const view = render(<ActivityPanel selectedId={null} onSelect={select} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={select} />, { wrapper: SessionListHostProvider })
   const port = view.getByRole("button", { name: ":50945" })
   expect(port.closest("[data-session-id]")).toHaveAttribute("data-session-id", "first")
   await act(() => Promise.try(() => fireEvent.click(port)))
@@ -183,7 +194,7 @@ test("unopened activities fetch replies without selecting or reading either sess
   client.applyRunStates([record("first", false, "done"), record("second", false)])
   const replies = vi.spyOn(client, "activityReply").mockImplementation((id) => Promise.resolve(`Reply for ${id}`))
   const select = vi.fn()
-  const view = render(<ActivityPanel selectedId={null} onSelect={select} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={select} />, { wrapper: SessionListHostProvider })
   await waitFor(() => expect(view.getByText("Reply for first")).toBeInTheDocument())
   expect(view.getByText("Reply for second")).toBeInTheDocument()
   expect(replies).toHaveBeenCalledWith("first")
@@ -201,7 +212,10 @@ test("visible chat-window sessions join the foreground and clicks focus their ex
   client.store.setState({ sessionWindows: { "chat-window": "chat" } })
   useChatWindowSurface.setState({ sessionId: "chat-window", visible: true })
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId="main" onSelect={(thread) => selected.push(thread.sessionId)} />)
+  const view = render(
+    <ActivityPanel selectedId="main" onSelect={(sessionRow) => selected.push(sessionRow.sessionId)} />,
+    { wrapper: SessionListHostProvider }
+  )
   expect(rowIds(view.container)).toEqual(["chat-window", "main", "background"])
   expect(view.getByLabelText("Floating window")).toBeInTheDocument()
   await act(() => Promise.try(() => fireEvent.click(view.getByText("chat-window"))))
@@ -219,7 +233,10 @@ test.each([true, false])("primary-modifier navigation respects platform and acti
   vi.mocked(isMac).mockReturnValue(mac)
   client.applyRunStates([record("target", false)])
   const selected: string[] = []
-  const view = render(<ActivityPanel selectedId={null} onSelect={(thread) => selected.push(thread.sessionId)} />)
+  const view = render(
+    <ActivityPanel selectedId={null} onSelect={(sessionRow) => selected.push(sessionRow.sessionId)} />,
+    { wrapper: SessionListHostProvider }
+  )
   const modifier = mac ? { metaKey: true } : { ctrlKey: true }
   await act(() =>
     Promise.try(() => fireEvent.keyDown(window, { key: "1", ...(mac ? { ctrlKey: true } : { metaKey: true }) }))
@@ -242,7 +259,7 @@ test("background conversations retain their floating host across selection chang
   client.store.setState({ sessionWindows: { first: "chat", second: "chat" } })
   useChatWindowSurface.setState({ sessionId: "second", visible: true })
   const selected = vi.fn()
-  const view = render(<ActivityPanel selectedId={null} onSelect={selected} />)
+  const view = render(<ActivityPanel selectedId={null} onSelect={selected} />, { wrapper: SessionListHostProvider })
   expect(rowIds(view.container)).toEqual(["second", "first"])
   expect(view.getAllByLabelText("Floating window")).toHaveLength(2)
   await act(() => Promise.try(() => fireEvent.click(view.getByText("first"))))
@@ -256,9 +273,9 @@ test("background conversations retain their floating host across selection chang
 
 test("the state dot carries Runtime's interruption as its title", () => {
   return Promise.try(() => {
-    client.store.setState({ threads: [], draftSessions: {} })
+    client.store.setState({ sessionList: [], draftSessions: {} })
     client.applyRunStates([{ ...record("paused", false, "requires_action"), interruption: "runtime restarted" }])
-    const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />)
+    const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
     expect(view.getByTitle("runtime restarted")).toBeInTheDocument()
   })
 })
@@ -293,7 +310,7 @@ test("reply previews follow their own session's latest assistant upsert and pres
     },
     record("second", false)
   ])
-  const view = render(<ActivityPanel selectedId="first" onSelect={() => {}} />)
+  const view = render(<ActivityPanel selectedId="first" onSelect={() => {}} />, { wrapper: SessionListHostProvider })
   expect(view.getByText("First response").closest("[data-session-id]")).toHaveAttribute("data-session-id", "first")
   expect(view.getByText("Second response").closest("[data-session-id]")).toHaveAttribute("data-session-id", "second")
   expect(view.queryByText("Private reasoning")).not.toBeInTheDocument()

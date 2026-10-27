@@ -48,7 +48,6 @@
     "background": "Fondo",
     "newChat": "Nuevo chat",
     "untitled": "Nuevo chat",
-    "unarchive": "Restaurar",
     "delete": "Eliminar",
     "rename": "Renombrar",
     "search": "Buscar chats",
@@ -60,10 +59,7 @@
     "showRight": "Mostrar barra lateral derecha",
     "hideRight": "Ocultar barra lateral derecha",
     "backToMain": "Volver a la pantalla principal",
-    "archived": "Archivados",
-    "archive": "Archivar",
     "loadMore": "Cargar más",
-    "fork": "Crear rama",
     "deleteTitle": "¿Eliminar este chat?",
     "deleteDescription": "Este chat se eliminará permanentemente. Esta acción no se puede deshacer.",
     "noResults": "No se encontraron chats"

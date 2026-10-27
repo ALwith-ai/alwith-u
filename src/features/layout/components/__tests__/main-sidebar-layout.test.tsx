@@ -1,9 +1,9 @@
+import { useSidebarOverlay } from "@alwith/module-chat/session-list"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
-import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import {
   WindowsTitleBarContext,
   WindowsWorkspaceControlsContext

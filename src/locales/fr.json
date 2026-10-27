@@ -49,7 +49,6 @@
     "newChat": "Nouveau chat",
     "chats": "Discussions",
     "untitled": "Nouveau chat",
-    "unarchive": "Restaurer",
     "delete": "Supprimer",
     "rename": "Renommer",
     "search": "Rechercher dans les chats…",
@@ -61,10 +60,7 @@
     "showRight": "Afficher la barre latérale droite",
     "hideRight": "Masquer la barre latérale droite",
     "backToMain": "Revenir à l’écran principal",
-    "archived": "Archivées",
-    "archive": "Archiver",
     "loadMore": "Charger plus",
-    "fork": "Créer une branche",
     "deleteTitle": "Supprimer cette discussion ?",
     "deleteDescription": "Cette discussion sera définitivement supprimée. Cette action est irréversible.",
     "noResults": "Aucune discussion trouvée"

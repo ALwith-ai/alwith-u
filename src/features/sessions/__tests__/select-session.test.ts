@@ -1,11 +1,11 @@
+import type { ComposerDraft } from "@alwith/module-chat/conversation"
 import { expect, test, vi } from "vitest"
 
-import type { ComposerDraft } from "@/features/chat/composer/drafts"
 import type { ChatTransfer } from "@/lib/chat-window"
 
-import { selectThread, type SelectThreadActions } from "../select-thread"
+import { selectSession, type SelectSessionActions } from "../select-session"
 
-const thread = {
+const sessionRow = {
   sessionId: "history-1",
   cwd: "/tmp/project",
   title: "History",
@@ -23,7 +23,7 @@ function deferred(): { promise: Promise<void>; resolve: () => void; reject: (err
   return { promise, resolve, reject }
 }
 
-function actions(open: () => Promise<void>, selected: string[], errors: unknown[]): SelectThreadActions {
+function actions(open: () => Promise<void>, selected: string[], errors: unknown[]): SelectSessionActions {
   return {
     connect: async () => {},
     unarchive: async () => {},
@@ -41,8 +41,8 @@ test("selects a chat while its history is still restoring", async () => {
   const selected: string[] = []
   const errors: unknown[] = []
 
-  await selectThread(
-    thread,
+  await selectSession(
+    sessionRow,
     actions(() => restoration.promise, selected, errors)
   )
 
@@ -64,11 +64,11 @@ test("includes a selected project chat before showing it, after restoring an arc
     })
   }
   callbacks.show = (id) => {
-    expect(include).toHaveBeenCalledExactlyOnceWith(thread)
+    expect(include).toHaveBeenCalledExactlyOnceWith(sessionRow)
     selected.push(id)
   }
-  await selectThread({ ...thread, archived: true }, callbacks)
-  expect(selected).toEqual([thread.sessionId])
+  await selectSession({ ...sessionRow, archived: true }, callbacks)
+  expect(selected).toEqual([sessionRow.sessionId])
   restoration.resolve()
   await restoration.promise
 })
@@ -79,8 +79,8 @@ test("reports a background restore failure after selecting the chat", async () =
   const errors: unknown[] = []
   const failure = new Error("resume failed")
 
-  await selectThread(
-    thread,
+  await selectSession(
+    sessionRow,
     actions(() => restoration.promise, selected, errors)
   )
   restoration.reject(failure)

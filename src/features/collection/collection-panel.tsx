@@ -1,3 +1,10 @@
+import {
+  MENU_HIGHLIGHT,
+  NavigationGroup,
+  NavigationItemButton,
+  NavigationLeading,
+  NavigationStack
+} from "@alwith/module-chat/session-list"
 import { type Collection, DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import {
   closestCorners,
@@ -27,9 +34,8 @@ import {
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
-import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -47,10 +53,6 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { NavigationGroup } from "@/features/layout/components/navigation/navigation-group"
-import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
-import { NavigationLeading } from "@/features/layout/components/navigation/navigation-leading"
-import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { client, useApp } from "@/lib/client"
 import { isMac } from "@/lib/platform"
 import { cn } from "@/lib/utils"
@@ -186,17 +188,17 @@ export function CollectionPanel({
   onSelect,
   onNewChat
 }: {
-  renderRow: (thread: ThreadSummary, onHover: (open: boolean) => void, collectionId?: string) => ReactNode
-  onSelect: (thread: ThreadSummary) => void
+  renderRow: (sessionRow: SessionSummary, onHover: (open: boolean) => void, collectionId?: string) => ReactNode
+  onSelect: (sessionRow: SessionSummary) => void
   onNewChat: (collectionId: string) => void
 }) {
   const { t } = useTranslation()
   const { collections, order } = useCollectionStore()
-  const threads = useApp((state) => state.threads)
-  const archivedThreads = useApp((state) => state.archivedThreads)
-  const loaded = useApp((state) => state.threadsLoaded)
-  const error = useApp((state) => state.threadsError)
-  const byId = new Map([...archivedThreads, ...threads].map((thread) => [thread.sessionId, thread]))
+  const sessionRows = useApp((state) => state.sessionList)
+  const archivedSessions = useApp((state) => state.archivedSessions)
+  const loaded = useApp((state) => state.sessionListLoaded)
+  const error = useApp((state) => state.sessionListError)
+  const byId = new Map([...archivedSessions, ...sessionRows].map((sessionRow) => [sessionRow.sessionId, sessionRow]))
   const [editing, setEditing] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [emoji, setEmoji] = useState("")
@@ -210,8 +212,8 @@ export function CollectionPanel({
     collections[id].collapsed
       ? []
       : collections[id].sessionIds.flatMap((sid) => {
-          const thread = byId.get(sid)
-          return thread && !thread.archived ? [thread] : []
+          const sessionRow = byId.get(sid)
+          return sessionRow && !sessionRow.archived ? [sessionRow] : []
         })
   )
   useEffect(() => {
@@ -266,7 +268,7 @@ export function CollectionPanel({
   }
   return (
     <>
-      <Pane className="thread-sidebar-scroll" viewportClassName="ps-2 pe-0 pb-1">
+      <Pane className="session-list-scroll" viewportClassName="ps-2 pe-0 pb-1">
         <NavigationStack>
           <NavigationItemButton
             className={cn(MENU_HIGHLIGHT, "font-normal")}
@@ -284,7 +286,7 @@ export function CollectionPanel({
           {error && (
             <div className="px-2 text-sm text-muted-foreground">
               <p role="alert">{error}</p>
-              <Button variant="ghost" onClick={() => reportCollection(client.listThreads({ reset: true }))}>
+              <Button variant="ghost" onClick={() => reportCollection(client.listSessions({ reset: true }))}>
                 {t("collection.retry")}
               </Button>
             </div>
@@ -309,9 +311,9 @@ export function CollectionPanel({
                       strategy={verticalListSortingStrategy}
                     >
                       {collections[id].sessionIds.map((sid) => {
-                        const thread = byId.get(sid)
-                        if (thread?.archived) return null
-                        if (!thread)
+                        const sessionRow = byId.get(sid)
+                        if (sessionRow?.archived) return null
+                        if (!sessionRow)
                           return loaded ? (
                             <div
                               key={sid}
@@ -338,7 +340,7 @@ export function CollectionPanel({
                           ) : null
                         return (
                           <SortableRow key={sid} collectionId={id} sessionId={sid}>
-                            {renderRow(thread, () => {}, id)}
+                            {renderRow(sessionRow, () => {}, id)}
                           </SortableRow>
                         )
                       })}

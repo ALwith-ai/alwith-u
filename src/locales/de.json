@@ -48,7 +48,6 @@
     "background": "Hintergrund",
     "newChat": "Neuer Chat",
     "untitled": "Neuer Chat",
-    "unarchive": "Wiederherstellen",
     "delete": "Löschen",
     "rename": "Umbenennen",
     "search": "Chats suchen",
@@ -60,10 +59,7 @@
     "showRight": "Rechte Seitenleiste anzeigen",
     "hideRight": "Rechte Seitenleiste ausblenden",
     "backToMain": "Zurück zum Hauptbildschirm",
-    "archived": "Archiviert",
-    "archive": "Archivieren",
     "loadMore": "Mehr laden",
-    "fork": "Verzweigen",
     "deleteTitle": "Diesen Chat löschen?",
     "deleteDescription": "Dieser Chat wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
     "noResults": "Keine Chats gefunden"

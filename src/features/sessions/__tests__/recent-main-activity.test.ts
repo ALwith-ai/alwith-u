@@ -67,7 +67,7 @@ test("returns an empty destination when no eligible activity remains", () => {
 
 test("ignores other clients and disconnected sessions even when their Runtime activity is newer", () => {
   const current = state()
-  current.threads = [
+  current.sessionList = [
     { sessionId: "history", cwd: "/tmp", title: "History", updatedAt: new Date().toISOString(), archived: false }
   ]
   current.runStates = {

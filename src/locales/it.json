@@ -49,7 +49,6 @@
     "newChat": "Nuova chat",
     "chats": "Chat",
     "untitled": "Nuova chat",
-    "unarchive": "Ripristina",
     "delete": "Elimina",
     "rename": "Rinomina",
     "search": "Cerca chat",
@@ -61,10 +60,7 @@
     "showRight": "Mostra la barra laterale destra",
     "hideRight": "Nascondi la barra laterale destra",
     "backToMain": "Torna alla schermata principale",
-    "archived": "Archiviate",
-    "archive": "Archivia",
     "loadMore": "Carica altro",
-    "fork": "Crea un ramo",
     "deleteTitle": "Eliminare questa chat?",
     "deleteDescription": "Questa chat verrà eliminata definitivamente. L’azione non può essere annullata.",
     "noResults": "Nessuna chat trovata"

@@ -1,10 +1,10 @@
+import { useSidebarOverlay } from "@alwith/module-chat/session-list"
 import { Gamepad2Icon, GlobeIcon, LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
-import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
