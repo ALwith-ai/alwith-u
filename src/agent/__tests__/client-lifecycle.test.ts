@@ -20,7 +20,7 @@ test("close during tool preparation retires the prompt without waiting on a nest
   try {
     await client.connect()
     const id = await client.newSession("/tmp/preparation-close")
-    const sending = client.prompt(id, [{ type: "text", text: "must not send" }]).catch((error) => error)
+    const sending = client.prompt(id, [{ type: "text", text: "must not send" }]).catch((error: unknown) => error)
     await entered.promise
     const closing = client.close(id)
     preparation.reject(new Error("tool refresh failed"))

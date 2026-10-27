@@ -1,11 +1,11 @@
 import { expect, test, vi } from "vitest"
 const host = vi.hoisted(() => ({
-  drafts: { empty: "main" } as Record<string, string>,
+  drafts: { empty: "main" },
   subscriber: null as null | ((state: { draftSessions: Record<string, string> }) => void),
   publish: vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
 }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }))
 vi.mock("@/bindings", () => ({ commands: { mobileSetDraftSessions: host.publish } }))
 vi.mock("@/lib/client", () => ({
   client: {

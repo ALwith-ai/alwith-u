@@ -836,7 +836,9 @@ export class CodexClient {
         try {
           await this.delete(response.sessionId)
         } catch (cleanupError) {
-          throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the new session")
+          throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the new session", {
+            cause: cleanupError
+          })
         }
         throw error
       }
@@ -1117,9 +1119,10 @@ export class CodexClient {
           if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) return
           historyError = reason instanceof Error ? reason.message : String(reason)
         }
-        if (historyError) this.store.setState((state) => ({
-          historyPages: { ...state.historyPages, [id]: { cursor: null, loading: false, error: historyError } }
-        }))
+        if (historyError)
+          this.store.setState((state) => ({
+            historyPages: { ...state.historyPages, [id]: { cursor: null, loading: false, error: historyError } }
+          }))
         this.publishSession({
           ...this.sessions.get(id),
           cwd,

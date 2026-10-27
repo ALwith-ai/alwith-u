@@ -609,12 +609,18 @@ describe("Drive group deferred rendering", () => {
 it("project session actions receive the row's path without opening a new project", async () => {
   const f = fixture()
   const openProject = vi.fn(async () => {})
-  const openSessions = vi.fn()
+  const openSessions = vi.fn<(path: string) => void>()
   f.host.renderProjectActions = (project) => (
     <button onClick={() => openSessions(project.localPath)}>Recent sessions</button>
   )
   render(
-    <DrivePanel {...f} controls={controls} mode="launcher" onOpenProject={openProject} confirm={async () => true} />
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="launcher"
+      onOpenProject={openProject}
+      confirm={() => Promise.resolve(true)}
+    />
   )
   fireEvent.click(await screen.findByRole("button", { name: "Recent sessions" }))
   expect(openSessions).toHaveBeenCalledWith("/drive/library")

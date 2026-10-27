@@ -1774,7 +1774,7 @@ test("stopping while retaining the transcript retires its pending receipt", asyn
     return original(agentId, method, params, options)
   })
   try {
-    const result = client.promptReceipt(id, [{ type: "text", text: "retained" }]).catch((error) => error)
+    const result = client.promptReceipt(id, [{ type: "text", text: "retained" }]).catch((error: unknown) => error)
     await until(() => sent)
     await client.stopSession(id)
     const stopped = client.session(id)
@@ -1833,10 +1833,12 @@ test("writer conflicts still open browsable history and retry without claiming a
         }
       ]
     })
-    fake.resumeResponse.current = async () => {
+    fake.resumeResponse.current = () => {
       if (locked)
-        throw RequestError.invalidRequest({ reason: "thread_active_writer", threadId: "locked" }, "Session in use")
-      return {}
+        return Promise.reject(
+          RequestError.invalidRequest({ reason: "thread_active_writer", threadId: "locked" }, "Session in use")
+        )
+      return Promise.resolve({})
     }
   })
   await client.open("locked", "/tmp/locked")

@@ -3,7 +3,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
-const request = vi.hoisted(() => vi.fn())
+const request = vi.hoisted(() => vi.fn<(path: string, method: string, body?: unknown) => Promise<unknown>>())
 vi.mock("@/features/auth/store", () => ({ platformApiRequest: request }))
 import { PhoneLoginView } from "../phone-login-view"
 
@@ -16,10 +16,11 @@ afterEach(() => {
 
 test("requires explicit confirmation after scanning and uses authenticated platform transport", async () => {
   vi.useFakeTimers()
-  request.mockImplementation(async (path: string) => {
-    if (path.endsWith("/status")) return { status: "SCANNED", device_id: "phone-123", device_name: "Test iPhone" }
-    if (path.endsWith("/confirm")) return undefined
-    return { qr_ticket: "ticket", qr_content: "alwith://mobile-login?ticket=ticket", expires_in: 120 }
+  request.mockImplementation((path: string) => {
+    if (path.endsWith("/status"))
+      return Promise.resolve({ status: "SCANNED", device_id: "phone-123", device_name: "Test iPhone" })
+    if (path.endsWith("/confirm")) return Promise.resolve(undefined)
+    return Promise.resolve({ qr_ticket: "ticket", qr_content: "alwith://mobile-login?ticket=ticket", expires_in: 120 })
   })
   const continuePairing = vi.fn()
   render(<PhoneLoginView onBack={() => {}} onContinue={continuePairing} />)

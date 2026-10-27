@@ -3,9 +3,14 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
-vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
-  getCurrentWebviewWindow: () => ({ onCloseRequested: async () => () => {}, hide: async () => {} })
+  getCurrentWebviewWindow: () => ({
+    onCloseRequested: () => Promise.resolve(() => {}),
+    hide: () => {
+      return Promise.resolve()
+    }
+  })
 }))
 vi.mock("@/features/mobile/mobile-section", () => ({ MobileSection: () => null }))
 vi.mock("@/features/drive/drive", () => ({ DriveSettings: () => null }))

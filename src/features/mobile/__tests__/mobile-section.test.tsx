@@ -18,7 +18,7 @@ vi.mock("@/bindings", () => ({
     bridgeTrustedRevoke: host.revoke
   }
 }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }))
 vi.mock("@/lib/settings-store", () => ({ settingsStore: { subscribe: () => () => {} } }))
 vi.mock("../bridge", () => ({
   mobileEnabled: () => true,

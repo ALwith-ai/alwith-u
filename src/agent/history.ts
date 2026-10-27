@@ -48,7 +48,7 @@ export async function exportConversation(
       const data = error && typeof error === "object" && "data" in error ? error.data : null
       if (data && typeof data === "object" && "reason" in data && data.reason === "history_page_too_large") {
         if (limit > 1) limit = Math.max(1, Math.floor(limit / 2))
-        else throw new Error(`单条历史内容超过 16 MiB 接口上限，无法完整归档（会话 ${sessionId}）`)
+        else throw new Error(`单条历史内容超过 16 MiB 接口上限，无法完整归档（会话 ${sessionId}）`, { cause: error })
         continue
       }
       throw error

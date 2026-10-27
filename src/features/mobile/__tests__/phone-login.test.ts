@@ -221,6 +221,6 @@ it("ignores a status response arriving after ticket expiry", async () => {
   await advance(0)
   await advance(2_000)
   expect(result.current.state.phase).toBe("expired")
-  await act(async () => resolve(SCANNED))
+  await act(() => Promise.resolve(resolve(SCANNED)))
   expect(result.current.state.phase).toBe("expired")
 })

@@ -169,9 +169,9 @@ test("unsynced libraries use the cloud-move warning instead of the local cross-p
 })
 
 test("publishing preserves the source and uses the cloud mirror request", async () => {
-  bridge.request.mockImplementation(async (request: { type: string }) => {
-    if (request.type === "publishBetweenProjects") return { type: "id", data: "mirror-1" }
-    return { type: "cloudFolders", data: [{ path: "Cloud child", folderId: "cloud-child" }] }
+  bridge.request.mockImplementation((request: { type: string }) => {
+    if (request.type === "publishBetweenProjects") return Promise.resolve({ type: "id", data: "mirror-1" })
+    return Promise.resolve({ type: "cloudFolders", data: [{ path: "Cloud child", folderId: "cloud-child" }] })
   })
   const onMoveTo = vi.fn(() => Promise.resolve(true))
   const onClose = vi.fn()
@@ -201,12 +201,16 @@ test("publishing preserves the source and uses the cloud mirror request", async 
 
 for (const kind of ["file", "directory"] as const) {
   test(`publishing a ${kind} keeps local contents and never uses filesystem moves`, async () => {
-    bridge.request.mockImplementation(async (request: { type: string }) =>
-      request.type === "publishBetweenProjects" ? { type: "id", data: "mirror-1" } : { type: "cloudFolders", data: [] }
+    bridge.request.mockImplementation((request: { type: string }) =>
+      Promise.resolve(
+        request.type === "publishBetweenProjects"
+          ? { type: "id", data: "mirror-1" }
+          : { type: "cloudFolders", data: [] }
+      )
     )
     const source = kind === "file" ? "/drive/One/source.txt" : "/drive/One/local"
     const onClose = vi.fn()
-    const onMoveTo = vi.fn(async () => true)
+    const onMoveTo = vi.fn(() => Promise.resolve(true))
     render(
       <MoveToDialog
         mode="publish"
@@ -234,10 +238,10 @@ for (const kind of ["file", "directory"] as const) {
 
 test("a partial publish reports the completed count and leaves the picker open", async () => {
   let calls = 0
-  bridge.request.mockImplementation(async (request: { type: string }) => {
-    if (request.type !== "publishBetweenProjects") return { type: "cloudFolders", data: [] }
-    if (++calls === 1) return { type: "id", data: "mirror-1" }
-    throw new Error("Permission denied")
+  bridge.request.mockImplementation((request: { type: string }) => {
+    if (request.type !== "publishBetweenProjects") return Promise.resolve({ type: "cloudFolders", data: [] })
+    if (++calls === 1) return Promise.resolve({ type: "id", data: "mirror-1" })
+    return Promise.reject(new Error("Permission denied"))
   })
   const error = vi.spyOn(toast, "error")
   const onClose = vi.fn()
@@ -248,7 +252,7 @@ test("a partial publish reports the completed count and leaves the picker open",
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={onClose}
     />
   )
@@ -264,11 +268,11 @@ test("a partial publish reports the completed count and leaves the picker open",
 
 test("retrying a partial publish sends only pending items to the same destination", async () => {
   const sent: string[] = []
-  bridge.request.mockImplementation(async (request: { type: string; source: string }) => {
-    if (request.type !== "publishBetweenProjects") return { type: "cloudFolders", data: [] }
+  bridge.request.mockImplementation((request: { type: string; source: string }) => {
+    if (request.type !== "publishBetweenProjects") return Promise.resolve({ type: "cloudFolders", data: [] })
     sent.push(request.source)
-    if (sent.length === 2) throw new Error("Temporary failure")
-    return { type: "id", data: "42" }
+    if (sent.length === 2) return Promise.reject(new Error("Temporary failure"))
+    return Promise.resolve({ type: "id", data: "42" })
   })
   const onClose = vi.fn()
   render(
@@ -278,7 +282,7 @@ test("retrying a partial publish sends only pending items to the same destinatio
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={onClose}
     />
   )
@@ -301,7 +305,7 @@ test.each([{ canWrite: false }, { syncEnabled: false }])(
         rootPath="/drive/One"
         fs={fs}
         tree={tree}
-        onMoveTo={async () => true}
+        onMoveTo={() => Promise.resolve(true)}
         onClose={vi.fn()}
       />
     )
@@ -314,8 +318,10 @@ test.each([{ canWrite: false }, { syncEnabled: false }])(
 
 test("a deleted source is rejected even while its tree row is stale", async () => {
   await fs.remove("/drive/One/source.txt")
-  bridge.request.mockImplementation(async (request: { type: string }) =>
-    request.type === "publishBetweenProjects" ? { type: "id", data: "42" } : { type: "cloudFolders", data: [] }
+  bridge.request.mockImplementation((request: { type: string }) =>
+    Promise.resolve(
+      request.type === "publishBetweenProjects" ? { type: "id", data: "42" } : { type: "cloudFolders", data: [] }
+    )
   )
   const onClose = vi.fn()
   render(
@@ -325,7 +331,7 @@ test("a deleted source is rejected even while its tree row is stale", async () =
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={onClose}
     />
   )
@@ -333,13 +339,23 @@ test("a deleted source is rejected even while its tree row is stale", async () =
   confirm()
   await screen.findByText(/source.*(exists|missing|available)/i)
   expect(onClose).not.toHaveBeenCalled()
-  expect(bridge.request.mock.calls.some(([request]) => request.type === "publishBetweenProjects")).toBe(false)
+  expect(
+    bridge.request.mock.calls.some(
+      ([request]: unknown[]) =>
+        typeof request === "object" &&
+        request !== null &&
+        "type" in request &&
+        request.type === "publishBetweenProjects"
+    )
+  ).toBe(false)
 })
 
 test("cloud placeholders are resolved on disk before sending their remote path", async () => {
   await fs.writeFile("/drive/One/cloud.txt.yupcloud", new Uint8Array())
-  bridge.request.mockImplementation(async (request: { type: string }) =>
-    request.type === "publishBetweenProjects" ? { type: "id", data: "42" } : { type: "cloudFolders", data: [] }
+  bridge.request.mockImplementation((request: { type: string }) =>
+    Promise.resolve(
+      request.type === "publishBetweenProjects" ? { type: "id", data: "42" } : { type: "cloudFolders", data: [] }
+    )
   )
   const onClose = vi.fn()
   render(
@@ -349,7 +365,7 @@ test("cloud placeholders are resolved on disk before sending their remote path",
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={onClose}
     />
   )
@@ -367,11 +383,11 @@ test("cloud placeholders are resolved on disk before sending their remote path",
 
 test("publishing to a different destination does not reuse another destination's successes", async () => {
   const sent: Array<{ source: string; destination: string }> = []
-  bridge.request.mockImplementation(async (request: { type: string; source: string; destination: string }) => {
-    if (request.type !== "publishBetweenProjects") return { type: "cloudFolders", data: [] }
+  bridge.request.mockImplementation((request: { type: string; source: string; destination: string }) => {
+    if (request.type !== "publishBetweenProjects") return Promise.resolve({ type: "cloudFolders", data: [] })
     sent.push({ source: request.source, destination: request.destination })
-    if (sent.length === 2) throw new Error("Temporary failure")
-    return { type: "id", data: "42" }
+    if (sent.length === 2) return Promise.reject(new Error("Temporary failure"))
+    return Promise.resolve({ type: "id", data: "42" })
   })
   const onClose = vi.fn()
   render(
@@ -381,7 +397,7 @@ test("publishing to a different destination does not reuse another destination's
       rootPath="/drive/One"
       fs={fs}
       tree={tree}
-      onMoveTo={async () => true}
+      onMoveTo={() => Promise.resolve(true)}
       onClose={onClose}
     />
   )

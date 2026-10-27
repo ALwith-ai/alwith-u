@@ -126,7 +126,7 @@ export const Dark: Story = {
 export const LongDraft: Story = {
   play: async ({ canvasElement, canvas, userEvent }) => {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
-    const textarea = canvas.getByRole("textbox") as HTMLTextAreaElement
+    const textarea = canvas.getByRole<HTMLTextAreaElement>("textbox")
     await userEvent.click(textarea)
     await userEvent.paste(Array.from({ length: 40 }, (_, index) => `Line ${index + 1}`).join("\n"))
     await waitFor(async () => expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight))

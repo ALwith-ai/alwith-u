@@ -1059,8 +1059,8 @@ export function FileWorkspace({
           fs={publishSources.owner.fs}
           tree={publishSources.owner.tree}
           onClose={() => setPublishSources(null)}
-          onMoveTo={async () => {
-            throw new Error("Publishing cannot move local files")
+          onMoveTo={() => {
+            return Promise.reject(new Error("Publishing cannot move local files"))
           }}
         />
       )}

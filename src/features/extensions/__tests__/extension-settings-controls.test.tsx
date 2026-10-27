@@ -26,9 +26,11 @@ test("host controls preserve extension change callbacks and programmatic updates
   toggle.onchange = changed
   const view = render(<ExtensionSettingsControls container={container} />)
   const ui = within(document.body)
-  await act(async () => {
+  await act(() => {
     select.value = "prod"
     toggle.checked = true
+
+    return Promise.resolve()
   })
   expect(ui.getByRole("combobox", { name: "Environment" })).toHaveTextContent("Production")
   expect(ui.getByRole("switch", { name: "Use HTTPS" })).toHaveAttribute("aria-checked", "true")
@@ -41,8 +43,10 @@ test("host controls preserve extension change callbacks and programmatic updates
   fireEvent.click(option)
   await waitFor(() => expect(select.value).toBe("qa"))
   expect(changed).toHaveBeenCalledTimes(2)
-  await act(async () => {
+  await act(() => {
     select.disabled = true
+
+    return Promise.resolve()
   })
   expect(ui.getByRole("combobox", { name: "Environment" })).toBeDisabled()
   view.unmount()
@@ -55,15 +59,19 @@ test("host controls preserve extension change callbacks and programmatic updates
 test("dynamic controls are mounted and removed without keeping stale portals", async () => {
   const { container, select } = fixture()
   const view = render(<ExtensionSettingsControls container={container} />)
-  await act(async () => {
+  await act(() => {
     select.closest(".setting-item")!.remove()
+
+    return Promise.resolve()
   })
   await waitFor(() => expect(within(document.body).queryByRole("combobox")).toBeNull())
   const next = document.createElement("select")
   next.setAttribute("aria-label", "Provider")
   next.innerHTML = '<option value="one">One</option>'
-  await act(async () => {
+  await act(() => {
     container.append(next)
+
+    return Promise.resolve()
   })
   expect(await within(document.body).findByRole("combobox", { name: "Provider" })).toHaveTextContent("One")
   view.unmount()

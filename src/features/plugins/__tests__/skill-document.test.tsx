@@ -22,10 +22,11 @@ afterEach(() => {
 })
 
 test("reads the actual skill file through the shared filesystem adapter", async () => {
-  const invoke = vi.mocked(core.invoke).mockImplementation(async (command) => {
-    if (command === "workspace_open") return "/skills/research"
-    if (command === "workspace_file") return [...new TextEncoder().encode("# Instructions\nUse evidence.")]
-    throw new Error("Unexpected command")
+  const invoke = vi.mocked(core.invoke).mockImplementation((command) => {
+    if (command === "workspace_open") return Promise.resolve("/skills/research")
+    if (command === "workspace_file")
+      return Promise.resolve([...new TextEncoder().encode("# Instructions\nUse evidence.")])
+    return Promise.reject(new Error("Unexpected command"))
   })
   expect(await readSkillDocument("/skills/research/SKILL.md")).toBe("# Instructions\nUse evidence.")
   expect(invoke).toHaveBeenCalledWith("workspace_open", { path: "/skills/research" })
@@ -43,10 +44,12 @@ test("removes only leading frontmatter, preserving Markdown separators and fence
 
 test("shows read errors and retries into rendered Markdown", async () => {
   let failed = true
-  vi.mocked(core.invoke).mockImplementation(async (command) => {
-    if (failed) throw new Error("File unavailable")
-    if (command === "workspace_open") return "/skills"
-    return [...new TextEncoder().encode("---\nname: hidden-metadata\n---\n# Instructions\n\nUse **evidence**.")]
+  vi.mocked(core.invoke).mockImplementation((command) => {
+    if (failed) return Promise.reject(new Error("File unavailable"))
+    if (command === "workspace_open") return Promise.resolve("/skills")
+    return Promise.resolve([
+      ...new TextEncoder().encode("---\nname: hidden-metadata\n---\n# Instructions\n\nUse **evidence**.")
+    ])
   })
   const view = render(<SkillDocument path="/skills/SKILL.md" />)
   expect(await view.findByRole("alert")).toHaveTextContent("File unavailable")

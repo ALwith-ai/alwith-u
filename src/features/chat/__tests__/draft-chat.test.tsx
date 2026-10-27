@@ -170,7 +170,7 @@ test("floating project menus switch from a draft to another conversation and exc
     await act(() => env.present())
     await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
     const draft = must(Object.keys(env.real.state.draftSessions)[0], "the floating draft")
-    await act(async () => {
+    await act(() => {
       env.real.store.setState({
         threadsLoaded: true,
         threads: [
@@ -184,19 +184,21 @@ test("floating project menus switch from a draft to another conversation and exc
           }
         ]
       })
+
+      return Promise.resolve()
     })
     const header = within(must(view.container.querySelector("header"), "the floating window header"))
-    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    await act(() => Promise.resolve(fireEvent.click(header.getByRole("button", { name: "window-original" }))))
     expect(view.queryByRole("button", { name: "Current draft" })).toBeNull()
     expect(view.getByText("1 chat")).toBeVisible()
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Other conversation" })))
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Other conversation" }))))
     await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(existing, true))
     expect(env.real.state.draftSessions[draft]).toBeUndefined()
     expect(env.real.state.sessionWindows[existing]).toBe("chat")
-    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    await act(() => Promise.resolve(fireEvent.click(header.getByRole("button", { name: "window-original" }))))
     expect(view.queryByRole("button", { name: "Other conversation" })).toBeNull()
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.resolve(view.unmount()))
     env.restore()
   }
 })
@@ -1266,10 +1268,10 @@ test("a collection draft is saved only after its first send is accepted", async 
     await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
     expect(sessionId).not.toBeNull()
     expect(saved).not.toHaveBeenCalled()
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Send" })))
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Send" }))))
     await waitFor(() => expect(saved).toHaveBeenCalledExactlyOnceWith({ type: "add", collectionId: "work", sessionId }))
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.resolve(view.unmount()))
     saved.mockRestore()
     env.restore()
   }

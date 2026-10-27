@@ -73,7 +73,7 @@ function ImageActivityExample() {
     i18n: { language: i18n.language },
     openLink: () => {},
     Markdown: ({ text }) => <p>{text}</p>,
-    loadImage: async () => image,
+    loadImage: () => Promise.resolve(image),
     openImageGallery
   }
   const blocks: ToolUseBlock[] = Array.from({ length: 12 }, (_, index) => ({

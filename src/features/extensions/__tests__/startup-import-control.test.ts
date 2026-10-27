@@ -87,8 +87,10 @@ test("focus recovery completes failed startup imports before refreshing", async 
   fixture.start.mockRejectedValueOnce(new Error("Directory locked"))
   const { startStartupImports, refreshExtensions } = await import("../startup-import-control")
   await expect(startStartupImports()).rejects.toThrow("Directory locked")
-  fixture.runtime.refresh.mockImplementation(async (): Promise<void> => {
+  fixture.runtime.refresh.mockImplementation((): Promise<void> => {
     expect(fixture.complete).toHaveBeenCalledWith({ taskId: "task", operationId: "startup" })
+
+    return Promise.resolve()
   })
   await refreshExtensions()
   expect(fixture.subscriptions).toBe(1)

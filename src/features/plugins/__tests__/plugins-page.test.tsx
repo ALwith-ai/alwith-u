@@ -388,7 +388,7 @@ test("adding a marketplace retains the source after failure and closes only afte
   expect(add).toHaveBeenLastCalledWith({ source: "org/catalog" })
 })
 
-test("load errors remain actionable from installed plugins and skills", async () => {
+test("load errors remain actionable from installed plugins and skills", () => {
   pluginsStore.setState({ error: "Catalog offline" })
   const view = render(<PluginsPage cwd={null} active />)
   for (const name of ["Installed", "Skills"]) {
@@ -469,7 +469,7 @@ test("plugins and skills are peers, with plugin views nested and independent sea
   expect(view.getByRole("textbox", { name: "Search skills" })).toHaveValue("review")
 })
 
-test("all catalog lists use the shared skeleton until connected and while refreshing", async () => {
+test("all catalog lists use the shared skeleton until connected and while refreshing", () => {
   client.store.setState({ connection: "connecting", agent: null })
   const view = render(<PluginsPage cwd={null} active />)
   expect(
@@ -512,8 +512,10 @@ test("the skill catalog includes known projects beyond the current chat and excl
 
 test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
   client.store.setState({ threads: [] })
-  const refresh = vi.fn(async (cwds: string[] = []) => {
+  const refresh = vi.fn((cwds: string[] = []) => {
     pluginsStore.setState({ loadedScope: JSON.stringify(cwds) })
+
+    return Promise.resolve()
   })
   pluginsStore.setState({ refresh })
   const view = render(<PluginsPage cwd="/work/project" active />)

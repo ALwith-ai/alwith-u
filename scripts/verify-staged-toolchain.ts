@@ -19,7 +19,7 @@ const suffix = process.platform === "win32" ? ".exe" : ""
 const directory = mkdtempSync(join(tmpdir(), "alwith-u staged toolchain-"))
 
 await withCleanup(
-  async () => {
+  () => {
     for (const name of [
       "bun",
       ...codexSidecars(process.platform === "win32"),
@@ -33,8 +33,10 @@ await withCleanup(
       [join(root, "scripts/verify-bundled-toolchain.ts"), directory, join(root, "src-tauri/resources")],
       { stdio: "inherit", timeout: 180_000 }
     )
-    if (result.error) throw result.error
-    if (result.status !== 0) throw new Error(`Staged toolchain verification failed (${result.status})`)
+    if (result.error) return Promise.reject(result.error)
+    if (result.status !== 0) return Promise.reject(new Error(`Staged toolchain verification failed (${result.status})`))
+
+    return Promise.resolve()
   },
   () => removeTemporaryDirectory(directory)
 )

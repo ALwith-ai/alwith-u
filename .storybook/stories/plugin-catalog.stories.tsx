@@ -74,23 +74,26 @@ function CatalogPreview({ loading = false }: { loading?: boolean }) {
         }
       ],
       refresh: async () => {},
-      readPlugin: async ({ plugin }) => ({
-        summary: plugin,
-        marketplaceName: marketplace.name,
-        marketplacePath: marketplace.path,
-        shareUrl: null,
-        description: "Explore the capabilities included with this plugin.",
-        skillProjects: { "/work/alwith-desktop": ["/project/.agents/skills/review/SKILL.md"] },
-        skills: [],
-        mcpServers: [],
-        apps: [],
-        hooks: [],
-        scheduledTasks: null
-      }),
-      setSkillEnabled: async (skill, enabled) => {
+      readPlugin: ({ plugin }) =>
+        Promise.resolve({
+          summary: plugin,
+          marketplaceName: marketplace.name,
+          marketplacePath: marketplace.path,
+          shareUrl: null,
+          description: "Explore the capabilities included with this plugin.",
+          skillProjects: { "/work/alwith-desktop": ["/project/.agents/skills/review/SKILL.md"] },
+          skills: [],
+          mcpServers: [],
+          apps: [],
+          hooks: [],
+          scheduledTasks: null
+        }),
+      setSkillEnabled: (skill, enabled) => {
         pluginsStore.setState((state) => ({
           skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled } : item))
         }))
+
+        return Promise.resolve()
       }
     })
     return () => {

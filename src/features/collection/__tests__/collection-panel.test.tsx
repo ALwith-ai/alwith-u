@@ -2,6 +2,7 @@ import { applyCollectionAction, initialCollectionData } from "@alwith/module-col
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
+import type { ThreadSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -24,7 +25,7 @@ test("shows Codex titles, opens explicit sessions and retains missing references
   useCollectionStore.setState(data, true)
   const thread = { sessionId: "one", title: "Current Codex title", cwd: "/work", updatedAt: null, archived: false }
   client.store.setState({ threads: [thread], threadsLoaded: true, threadsError: null })
-  const select = vi.fn()
+  const select = vi.fn<(entry: ThreadSummary) => void>()
   const screen = render(
     <CollectionPanel
       onSelect={select}
@@ -64,7 +65,7 @@ test("quick favorite clicks toggle the explicit session without opening the pick
   const dispatch = vi.spyOn(collectionStore, "dispatchCollection").mockResolvedValue()
   try {
     const screen = render(<CollectionPicker sessionId="one" favorite />)
-    await act(async () => fireEvent.click(screen.getByRole("button")))
+    await act(() => Promise.resolve(fireEvent.click(screen.getByRole("button"))))
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "favorite", sessionId: "one" })
     expect(screen.queryByRole("menu")).toBeNull()
   } finally {
@@ -79,7 +80,7 @@ test("collection rows receive their group and omit the global remove action", as
   )
   const thread = { sessionId: "one", title: "Saved chat", cwd: "/work", updatedAt: null, archived: false }
   client.store.setState({ threads: [thread], threadsLoaded: false, threadsError: null })
-  const row = vi.fn((entry, _onHover, collectionId) => (
+  const row = vi.fn((entry: ThreadSummary, _onHover: (open: boolean) => void, collectionId?: string) => (
     <AddToCollectionAction sessionId={entry.sessionId} allowRemove={collectionId === undefined} />
   ))
   const screen = render(<CollectionPanel onSelect={() => {}} onNewChat={() => {}} renderRow={row} />)

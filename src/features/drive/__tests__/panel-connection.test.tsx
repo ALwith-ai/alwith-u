@@ -27,9 +27,9 @@ test("settings connection failure can retry through progress into the login form
   }
   let fail = true
   const controller = createDriveController({
-    subscribe: async () => {
-      if (fail) throw new Error("Drive subscription unavailable")
-      return () => {}
+    subscribe: () => {
+      if (fail) return Promise.reject(new Error("Drive subscription unavailable"))
+      return Promise.resolve(() => {})
     },
     request: () => ready.promise
   })
@@ -40,7 +40,7 @@ test("settings connection failure can retry through progress into the login form
       mode="settings"
       locale="en"
       onOpenProject={async () => {}}
-      confirm={async () => false}
+      confirm={() => Promise.resolve(false)}
     />
   )
   expect(screen.getByRole("status")).toHaveTextContent("Connecting to YUP Drive")
@@ -50,8 +50,10 @@ test("settings connection failure can retry through progress into the login form
   })
   expect(screen.getByRole("alert")).toHaveTextContent("Drive subscription unavailable")
   fail = false
-  await act(async () => {
+  await act(() => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+
+    return Promise.resolve()
   })
   expect(screen.getByRole("status")).toHaveTextContent("Connecting to YUP Drive")
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()

@@ -197,7 +197,7 @@ export function CollectionPanel({
   const loaded = useApp((state) => state.threadsLoaded)
   const error = useApp((state) => state.threadsError)
   const byId = new Map([...archivedThreads, ...threads].map((thread) => [thread.sessionId, thread]))
-  const [editing, setEditing] = useState<string | "new" | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [emoji, setEmoji] = useState("")
   const [confirmation, setConfirmation] = useState<{ id: string; type: "clear" | "delete" } | null>(null)

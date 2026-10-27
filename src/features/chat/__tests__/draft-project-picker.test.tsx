@@ -120,7 +120,7 @@ test("the project icon waits for the host default before allowing an exit", asyn
   expect(clear).toBeDisabled()
   fireEvent.click(clear)
   expect(onChange).not.toHaveBeenCalled()
-  await act(async () => directory.resolve("/Users/mac/Documents/ALwith"))
+  await act(() => Promise.resolve(directory.resolve("/Users/mac/Documents/ALwith")))
   expect(clear).toBeEnabled()
   fireEvent.click(clear)
   expect(onChange).toHaveBeenCalledExactlyOnceWith("/Users/mac/Documents/ALwith")

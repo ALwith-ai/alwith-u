@@ -76,7 +76,7 @@ function ExtensionControl({ input }: { input: NativeControl }) {
         throw new Error(`Extension control property is not configurable: ${property}`)
       Object.defineProperty(input, property, {
         configurable: true,
-        get: () => descriptor.get!.call(input),
+        get: (): unknown => descriptor.get!.call(input),
         set: (value) => {
           descriptor.set!.call(input, value)
           refresh()

@@ -15,15 +15,15 @@ beforeEach(() => {
   fail = false
   conflict = false
   vi.spyOn(settingsStore, "get").mockImplementation((key) => snapshot.values[key])
-  vi.spyOn(settingsStore, "read").mockImplementation(async () => snapshot)
-  writeSpy = vi.spyOn(settingsStore, "write").mockImplementation(async (request) => {
-    if (fail) throw new Error("Disk full")
-    if (conflict) throw new Error("Settings changed in another window; reload and retry")
+  vi.spyOn(settingsStore, "read").mockImplementation(() => Promise.resolve(snapshot))
+  writeSpy = vi.spyOn(settingsStore, "write").mockImplementation((request) => {
+    if (fail) return Promise.reject(new Error("Disk full"))
+    if (conflict) return Promise.reject(new Error("Settings changed in another window; reload and retry"))
     expect(request.expectedRevision).toBe(snapshot.revision)
     snapshot = { ...snapshot, revision: snapshot.revision + 1, values: { ...snapshot.values, ...request.changes } }
     const saved = snapshot.values["collections.data"] as Omit<CollectionData, "sessionMeta">
     useCollectionStore.setState({ ...saved, sessionMeta: {} })
-    return snapshot
+    return Promise.resolve(snapshot)
   })
 })
 
