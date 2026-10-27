@@ -260,7 +260,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
   }
 
   /** `discardDraft("main" | "chat")` drops that slot's draft; `discardDraft(id)` is the base client's form. */
-  override discardDraft(owner: DraftOwner | string): Promise<void> {
+  override discardDraft(owner: string): Promise<void> {
     if (owner !== "main" && owner !== "chat") return super.discardDraft(owner)
     return this.changeDraft([owner], async () => {
       for (const [id, current] of Object.entries(this.state.draftSessions))
