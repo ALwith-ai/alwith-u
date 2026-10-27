@@ -1,7 +1,7 @@
 import { toast } from "sonner"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
-import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
+import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { must } from "@/lib/__tests__/must"
 import i18n from "@/lib/i18n"
 

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
+import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -491,7 +491,7 @@ test("the skill catalog includes known projects beyond the current chat and excl
   const refresh = vi.fn().mockResolvedValue(undefined)
   pluginsStore.setState({ refresh })
   client.store.setState({
-    threads: [
+    sessionList: [
       { sessionId: "quick", cwd: "/Users/example/Documents/Codex/task", title: null, updatedAt: null, archived: false },
       { sessionId: "desktop", cwd: "/work/alwith-desktop", title: "Desktop", updatedAt: null, archived: false },
       { sessionId: "desktop-2", cwd: "/work/alwith-desktop", title: "Desktop 2", updatedAt: null, archived: false }
@@ -502,7 +502,7 @@ test("the skill catalog includes known projects beyond the current chat and excl
   refresh.mockClear()
   await act(() =>
     Promise.try(() =>
-      client.store.setState({ threads: client.state.threads.map((thread) => ({ ...thread, title: "Renamed" })) })
+      client.store.setState({ sessionList: client.state.sessionList.map((sessionRow) => ({ ...sessionRow, title: "Renamed" })) })
     )
   )
   expect(refresh).not.toHaveBeenCalled()
@@ -511,7 +511,7 @@ test("the skill catalog includes known projects beyond the current chat and excl
 })
 
 test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
-  client.store.setState({ threads: [] })
+  client.store.setState({ sessionList: [] })
   const refresh = vi.fn((cwds: string[] = []) => {
     pluginsStore.setState({ loadedScope: JSON.stringify(cwds) })
 

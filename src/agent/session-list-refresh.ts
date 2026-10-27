@@ -1,7 +1,7 @@
 import type { CodexClient } from "./client"
 
 /** Coalesce Runtime state transitions; streaming task updates do not invalidate the list. */
-export function watchThreadList(client: CodexClient): () => void {
+export function watchSessionList(client: CodexClient): () => void {
   let disposed = false
   let pending = false
   let running = false
@@ -18,7 +18,7 @@ export function watchThreadList(client: CodexClient): () => void {
     pending = false
     running = true
     try {
-      await client.listThreads({ reset: true })
+      await client.listSessions({ reset: true })
     } catch {
       // The shared list exposes errors and retains the previous successful snapshot.
     } finally {

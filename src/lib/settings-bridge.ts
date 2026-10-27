@@ -9,7 +9,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import type { PendingAction } from "@/agent/client"
-import type { AccountReadResponse, RateLimitSnapshot } from "@/agent/codex-extensions"
+import type { AccountReadResponse, RateLimitSnapshot } from "@nyssance/codex-acp-v2/client"
 
 export type SettingsEvents = { listen: typeof listen; emitTo: typeof emitTo }
 const nativeEvents: SettingsEvents = { listen, emitTo }

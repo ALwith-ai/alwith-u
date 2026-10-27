@@ -1,9 +1,9 @@
 import type { NativeFileResponse } from "@alwith/module-extension/host"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 
 export interface SessionFileSource {
-  list: () => Promise<ThreadSummary[]>
+  list: () => Promise<SessionSummary[]>
   read: (id: string) => Promise<string>
   check: () => void
 }
@@ -25,53 +25,53 @@ interface SessionFiles {
 /** A virtual, read-only Desktop view of Codex history; no transcript is written or cached. */
 export function createSessionFiles(root: string, source: SessionFileSource): SessionFiles {
   const project = (cwd: string): string => cwd.replaceAll("\\", "/").replaceAll("/", "-")
-  let snapshot: { threads: ThreadSummary[]; expires: number } | undefined
-  let pending: Promise<ThreadSummary[]> | undefined
-  const index = async (refresh = false): Promise<ThreadSummary[]> => {
+  let snapshot: { sessionRows: SessionSummary[]; expires: number } | undefined
+  let pending: Promise<SessionSummary[]> | undefined
+  const index = async (refresh = false): Promise<SessionSummary[]> => {
     source.check()
-    if (!refresh && snapshot && snapshot.expires > Date.now()) return snapshot.threads
+    if (!refresh && snapshot && snapshot.expires > Date.now()) return snapshot.sessionRows
     pending ??= source
       .list()
-      .then((threads) => {
+      .then((sessionRows) => {
         // Both directory scanning and list_sessions must reject ambiguous legacy paths.
         const projects = new Map<string, string>()
-        for (const thread of threads) {
-          const key = project(thread.cwd)
+        for (const sessionRow of sessionRows) {
+          const key = project(sessionRow.cwd)
           const previous = projects.get(key)
-          if (previous !== undefined && previous !== thread.cwd)
+          if (previous !== undefined && previous !== sessionRow.cwd)
             throw new Error("旧扩展工作目录编码冲突，无法安全关联会话")
-          projects.set(key, thread.cwd)
+          projects.set(key, sessionRow.cwd)
         }
-        snapshot = { threads, expires: Date.now() + 30_000 }
-        return threads
+        snapshot = { sessionRows, expires: Date.now() + 30_000 }
+        return sessionRows
       })
       .finally(() => {
         pending = undefined
       })
-    const threads = await pending
+    const sessionRows = await pending
     source.check()
-    return threads
+    return sessionRows
   }
-  const name = (thread: ThreadSummary): string => `${project(thread.cwd)}/${encodeURIComponent(thread.sessionId)}.jsonl`
+  const name = (sessionRow: SessionSummary): string => `${project(sessionRow.cwd)}/${encodeURIComponent(sessionRow.sessionId)}.jsonl`
   return {
     async listSessions(baseDir: string): Promise<LegacySessionEntry[]> {
       if (baseDir !== root && !baseDir.startsWith(`${root}/`)) throw new Error("会话目录必须位于只读历史投影内")
       const suffix = baseDir === root ? "" : baseDir.slice(root.length + 1)
       if (suffix.includes("/") || suffix === "..") throw new Error("无效的会话目录")
-      const threads = (await index(true)).filter((thread) => !suffix || project(thread.cwd) === suffix)
-      return threads.map((thread) => ({
+      const sessionRows = (await index(true)).filter((sessionRow) => !suffix || project(sessionRow.cwd) === suffix)
+      return sessionRows.map((sessionRow) => ({
         kind: "session",
-        id: thread.sessionId,
-        title: thread.title,
-        project_dir: project(thread.cwd),
-        path: `${root}/${name(thread)}`,
-        modified_ms: thread.updatedAt === null ? 0 : Date.parse(thread.updatedAt)
+        id: sessionRow.sessionId,
+        title: sessionRow.title,
+        project_dir: project(sessionRow.cwd),
+        path: `${root}/${name(sessionRow)}`,
+        modified_ms: sessionRow.updatedAt === null ? 0 : Date.parse(sessionRow.updatedAt)
       }))
     },
     async file(operation: string, relative: string): Promise<NativeFileResponse> {
       source.check()
       if (!["read", "stat", "list"].includes(operation)) throw new Error("会话历史投影是只读的")
-      const threads = await index(relative === "")
+      const sessionRows = await index(relative === "")
       const parts = relative ? relative.split("/") : []
       if (parts.length <= 1) {
         if (operation === "read") throw new Error("不能读取会话目录正文")
@@ -80,23 +80,23 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
           return { type: "stat", exists: true, size: 0, mtime: null, isFile: false, isDirectory: true }
         const entries =
           parts.length === 0
-            ? [...new Set(threads.map((thread) => project(thread.cwd)))].map((name) => ({
+            ? [...new Set(sessionRows.map((sessionRow) => project(sessionRow.cwd)))].map((name) => ({
                 name,
                 isDirectory: true,
                 isFile: false
               }))
-            : threads
-                .filter((thread) => project(thread.cwd) === relative)
-                .map((thread) => ({
-                  name: `${encodeURIComponent(thread.sessionId)}.jsonl`,
+            : sessionRows
+                .filter((sessionRow) => project(sessionRow.cwd) === relative)
+                .map((sessionRow) => ({
+                  name: `${encodeURIComponent(sessionRow.sessionId)}.jsonl`,
                   isDirectory: false,
                   isFile: true
                 }))
         return { type: "list", entries }
       }
-      const thread = threads.find((thread) => name(thread) === relative)
-      if (!thread || operation === "list") throw new Error("会话文件不存在")
-      const text = await source.read(thread.sessionId)
+      const sessionRow = sessionRows.find((sessionRow) => name(sessionRow) === relative)
+      if (!sessionRow || operation === "list") throw new Error("会话文件不存在")
+      const text = await source.read(sessionRow.sessionId)
       source.check()
       const body = new TextEncoder().encode(text)
       // A null mtime prevents the legacy extension's size/mtime shortcut hiding same-second edits.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 
-import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@/agent/codex-extensions"
+import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@nyssance/codex-acp-v2/client"
 
 interface SkillsApi {
   listSkills: (cwds?: string[], forceReload?: boolean) => Promise<SkillsListResponse>

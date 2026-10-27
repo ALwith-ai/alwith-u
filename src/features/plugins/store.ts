@@ -26,7 +26,7 @@ import type {
   SkillsConfigWriteParams,
   SkillsConfigWriteResponse,
   SkillsListResponse
-} from "@/agent/codex-extensions"
+} from "@nyssance/codex-acp-v2/client"
 import i18n from "@/lib/i18n"
 
 /** The client methods the store needs; tests pass a fake. */

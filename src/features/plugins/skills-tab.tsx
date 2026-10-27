@@ -4,7 +4,7 @@ import { useDeferredValue, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import type { SkillMetadata } from "@/agent/codex-extensions"
+import type { SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
   ItemActions,

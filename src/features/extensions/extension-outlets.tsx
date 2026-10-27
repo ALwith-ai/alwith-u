@@ -1,12 +1,11 @@
+import { MENU_HIGHLIGHT, NavigationItemButton } from "@alwith/module-chat/session-list"
 import type { ActionPlacement, ContributionAlignment, ExtensionManifest } from "@alwith/module-extension"
 import type { ActionContribution, HostSnapshot, ViewContribution } from "@alwith/module-extension/host"
 import { resolveActionTarget, sortContributions } from "@alwith/module-extension/host"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
-import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Button } from "@/components/ui/button"
-import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 
 import { ExtensionIcon } from "./extension-icon"
 import { EXTENSION_ICONS } from "./extension-icons"

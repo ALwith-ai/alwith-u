@@ -2,7 +2,7 @@ import type { SessionRunState } from "@alwith/api"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { CodexClient } from "../client"
-import { watchThreadList } from "../thread-list-refresh"
+import { watchSessionList } from "../session-list-refresh"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
@@ -42,9 +42,9 @@ function record(state: SessionRunState["state"]): SessionRunState {
 
 test("startup refreshes once; state bursts coalesce and task updates do not refetch", async () => {
   const client = await make()
-  const list = vi.spyOn(client, "listThreads").mockResolvedValue()
+  const list = vi.spyOn(client, "listSessions").mockResolvedValue()
   vi.useFakeTimers()
-  cleanups.push(watchThreadList(client))
+  cleanups.push(watchSessionList(client))
   await vi.advanceTimersByTimeAsync(0)
   expect(list).toHaveBeenCalledTimes(1)
   client.applyRunStates([record("running")])
@@ -63,7 +63,7 @@ test("changes during a fetch schedule one trailing refresh; disposal cancels sch
   const client = await make()
   let finish!: () => void
   const list = vi
-    .spyOn(client, "listThreads")
+    .spyOn(client, "listSessions")
     .mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -72,7 +72,7 @@ test("changes during a fetch schedule one trailing refresh; disposal cancels sch
     )
     .mockResolvedValue()
   vi.useFakeTimers()
-  const stop = watchThreadList(client)
+  const stop = watchSessionList(client)
   cleanups.push(stop)
   client.applyRunStates([record("running")])
   await vi.advanceTimersByTimeAsync(500)

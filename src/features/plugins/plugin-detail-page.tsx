@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import type { PluginDetail } from "@/agent/codex-extensions"
+import type { PluginDetail } from "@nyssance/codex-acp-v2/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

@@ -26,7 +26,7 @@ function harness() {
     })
   })
   vi.spyOn(client, "newSession").mockResolvedValue("generated")
-  const prompt = vi.spyOn(client, "prompt").mockResolvedValue()
+  const prompt = vi.spyOn(client, "prompt").mockResolvedValue("u")
   const cancel = vi.spyOn(client, "cancel").mockResolvedValue()
   const close = vi.spyOn(client, "close").mockResolvedValue()
   const dispose = vi.fn(async () => {})

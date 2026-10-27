@@ -6,7 +6,7 @@ import type { RealtimeEvent } from "@nyssance/codex-acp-v2/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
 import { type AppState, CodexClient } from "@/agent/client"
-import type { RateLimitSnapshot } from "@/agent/codex-extensions"
+import type { RateLimitSnapshot } from "@nyssance/codex-acp-v2/client"
 import { macProjectPaths } from "@/agent/project-path"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
@@ -28,8 +28,9 @@ const METHODS = [
   "discardDraft",
   "transferDraft",
   "fork",
-  "readThreadSummary",
-  "listThreads",
+  "readSessionSummary",
+  "listSessions",
+  "listArchived",
   "open",
   "loadOlderHistory",
   "activityReply",
@@ -37,7 +38,6 @@ const METHODS = [
   "previewHistoryTurn",
   "loadHistoryTurn",
   "prompt",
-  "promptReceipt",
   "retrySession",
   "cancel",
   "close",
@@ -327,7 +327,15 @@ export class RemoteChatClient extends CodexClient {
       draftSessions: {},
       sessionWindows: {},
       configPending: {},
-      threads: []
+      drafts: {},
+      sessionList: [],
+      sessionListLoaded: false,
+      sessionListLoading: false,
+      sessionListError: null,
+      archivedSessions: [],
+      archivedCursor: null,
+      archivedLoaded: false,
+      forkOrigins: {}
     })
   }
 
@@ -354,8 +362,8 @@ export class RemoteChatClient extends CodexClient {
       if (listeners.size === 0) this.realtimeListeners.delete(sessionId)
     }
   }
-  override listThreads(...args: Parameters<CodexClient["listThreads"]>): Promise<void> {
-    return this.request("listThreads", args)
+  override listSessions(...args: Parameters<CodexClient["listSessions"]>): Promise<void> {
+    return this.request("listSessions", args)
   }
   override prepareDraft(...args: Parameters<CodexClient["prepareDraft"]>): Promise<string> {
     return this.request("prepareDraft", args)
@@ -369,10 +377,10 @@ export class RemoteChatClient extends CodexClient {
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", [args[0], args[1] ?? null, "chat"])
   }
-  override readThreadSummary(
-    ...args: Parameters<CodexClient["readThreadSummary"]>
-  ): ReturnType<CodexClient["readThreadSummary"]> {
-    return this.request("readThreadSummary", args)
+  override readSessionSummary(
+    ...args: Parameters<CodexClient["readSessionSummary"]>
+  ): ReturnType<CodexClient["readSessionSummary"]> {
+    return this.request("readSessionSummary", args)
   }
 
   override fork(...args: Parameters<CodexClient["fork"]>): Promise<string> {
@@ -402,11 +410,8 @@ export class RemoteChatClient extends CodexClient {
   override delete(...args: Parameters<CodexClient["delete"]>): Promise<void> {
     return this.request("delete", args)
   }
-  override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<void> {
+  override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
     return this.request("prompt", args)
-  }
-  override promptReceipt(...args: Parameters<CodexClient["promptReceipt"]>): Promise<string> {
-    return this.request("promptReceipt", args)
   }
   override retrySession(...args: Parameters<CodexClient["retrySession"]>): Promise<void> {
     return this.request("retrySession", args)

@@ -22,7 +22,7 @@ import {
 } from "@alwith/module-chat/async-question-card"
 
 import { CodexClient } from "../src/agent/client"
-import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
+import { codexTurnId, codexTurnStartedAt } from "@nyssance/codex-acp-v2/client"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
@@ -51,9 +51,9 @@ async function until(predicate: () => boolean | Promise<boolean>, timeoutMs: num
 }
 
 async function verifyHistory(client: CodexClient, directory: string, replies: Map<string, string>): Promise<void> {
-  await client.listThreads({ reset: true })
-  const projectThreads = await client.listProjectThreads(directory)
-  if (projectThreads.some((thread) => thread.cwd !== directory))
+  await client.listSessions({ reset: true })
+  const projectThreads = await client.listProjectSessions(directory)
+  if (projectThreads.some((sessionRow) => sessionRow.cwd !== directory))
     throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
     const exported = await client.exportHistory(id, () => {})
@@ -68,9 +68,9 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
       .join("")
     if (exportedText.trim() !== original.trim() || messages.filter((message) => message.type === "user").length !== 1)
       throw new Error(`Read-only export of ${id} differs from the live transcript`)
-    if (!projectThreads.some((thread) => thread.sessionId === id))
+    if (!projectThreads.some((sessionRow) => sessionRow.sessionId === id))
       throw new Error(`Thread ${id} missing from project list`)
-    if (!client.state.threads.some((thread) => thread.sessionId === id))
+    if (!client.state.sessionList.some((sessionRow) => sessionRow.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
     if (!client.session(id).commands.some((command) => command.name === "status"))
@@ -120,7 +120,7 @@ async function check(transport: "stdio" | "ws") {
       throw new Error("Precreated draft has no model selector")
     if (!client.session(draft).commands.some((command) => command.name === "status"))
       throw new Error("Precreated draft has no status command")
-    if ((await client.listProjectThreads(directory)).some((thread) => thread.sessionId === draft))
+    if ((await client.listProjectSessions(directory)).some((sessionRow) => sessionRow.sessionId === draft))
       throw new Error("Precreated draft leaked into the project index")
     await client.discardDraft("main")
     if (client.state.sessions[draft]) throw new Error("Discarded draft is still attached")
@@ -239,10 +239,10 @@ async function check(transport: "stdio" | "ws") {
         assistantText(forkSession).trim() !== replyA.trim()
       )
         throw new Error("Fork did not stop at the selected answer")
-      const branches = await second.listProjectThreads(directory)
-      if (![a, forked].every((id) => branches.some((thread) => thread.sessionId === id)))
+      const branches = await second.listProjectSessions(directory)
+      if (![a, forked].every((id) => branches.some((sessionRow) => sessionRow.sessionId === id)))
         throw new Error("Native branch index is missing the source or fork")
-      if (branches.find((thread) => thread.sessionId === forked)?.forkedFromId !== a)
+      if (branches.find((sessionRow) => sessionRow.sessionId === forked)?.forkedFromId !== a)
         throw new Error("Fork lineage does not point to the source")
       await second.close(forked)
       // A fork must survive a full agent restart before the user sends anything in it.
@@ -258,7 +258,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      const immediatelySaved = await second.readThreadSummary(forked)
+      const immediatelySaved = await second.readSessionSummary(forked)
       if (immediatelySaved?.title !== `${sourceTitle} (2)`)
         throw new Error("Fork or title was not saved before the first child prompt")
       await second.open(forked, directory)
@@ -288,7 +288,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      if (!(await second.listProjectThreads(directory)).some((thread) => thread.sessionId === forked))
+      if (!(await second.listProjectSessions(directory)).some((sessionRow) => sessionRow.sessionId === forked))
         throw new Error("Continued fork is missing from the persisted native list")
       await second.open(forked, directory)
       await until(

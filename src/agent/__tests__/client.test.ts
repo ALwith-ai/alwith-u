@@ -280,7 +280,7 @@ test("history enumeration and export leave sidebar, selection and attachments un
     )
   )
   const before = client.state
-  expect((await client.listHistorySessions(() => {})).map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
+  expect((await client.listHistorySessions(() => {})).map((sessionRow) => sessionRow.sessionId)).toEqual(["h1", "h2"])
   expect(await client.exportHistory("h2", () => {})).toBe("")
   expect(client.state).toBe(before)
   expect(port.attached).toEqual([])
@@ -335,7 +335,7 @@ test("fork sends the real turn boundary, keeps model hints and preserves replaye
     sessionId: source,
     _meta: { codex: { lastTurnId: "turn-1" }, alwith: { model: "custom-model" } }
   })
-  expect(client.state.threads.find((thread) => thread.sessionId === forked)).toMatchObject({
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === forked)).toMatchObject({
     title: "Original title (2)",
     nativeSessionId: forked,
     forkedFromId: source
@@ -377,7 +377,7 @@ test("source lookup reads every page across projects and archived chats and reje
     cwd,
     _meta: { codex: { nativeSessionId: id, forkedFromId: parent, archived } }
   })
-  const before = client.state.threads
+  const before = client.state.sessionList
   const requests: unknown[] = []
   fake.listSessions.current = (request) => {
     requests.push(request)
@@ -389,13 +389,13 @@ test("source lookup reads every page across projects and archived chats and reje
         }
       : { sessions: [entry("root", null, "/project"), entry("unrelated", null, "/project")], nextCursor: "next" }
   }
-  expect((await client.readThreadSummary("branch"))?.cwd).toBe("/other")
+  expect((await client.readSessionSummary("branch"))?.cwd).toBe("/other")
   expect(requests).toContainEqual({ _meta: { codex: { archived: true } } })
   expect(requests).toContainEqual({ cursor: "next" })
-  expect((await client.readThreadSummary("archived-parent"))?.archived).toBe(true)
-  expect(client.state.threads).toBe(before)
+  expect((await client.readSessionSummary("archived-parent"))?.archived).toBe(true)
+  expect(client.state.sessionList).toBe(before)
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "cycle" })
-  await expect(client.readThreadSummary("root")).rejects.toThrow("repeated cursor")
+  await expect(client.readSessionSummary("root")).rejects.toThrow("repeated cursor")
 })
 
 test("a newly forked attached chat remains selectable before Codex lists it", async () => {
@@ -410,11 +410,11 @@ test("a newly forked attached chat remains selectable before Codex lists it", as
           ]
         }
   const child = await client.fork(root, "/tmp/fork", "turn-1")
-  await client.listThreads({ reset: true })
-  expect(client.state.threads.some((thread) => thread.sessionId === child)).toBe(true)
-  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(true)
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList.some((sessionRow) => sessionRow.sessionId === child)).toBe(true)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(true)
   await client.delete(child)
-  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(false)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(false)
 })
 
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
@@ -749,18 +749,18 @@ test("terminal output is decoded across chunk boundaries", async () => {
 
 test("threads come from the agent and open() replays history", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
-  await client.listThreads({ archived: true })
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h2"])
+  await client.listSessions()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
+  await client.listArchived()
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(["h2"])
   await client.open("h1", "/tmp/one")
   const session = client.session("h1")
   expect(session.attached).toBe(true)
   expect(session.items.map((item) => item.kind)).toEqual(["user", "assistant"])
   await client.archive("h1")
   expect(fake.archived.has("h1")).toBe(true)
-  expect(client.state.threads).toHaveLength(0)
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
+  expect(client.state.sessionList).toHaveLength(0)
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1", "h2"])
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
@@ -806,10 +806,10 @@ test("startup sends an object for the full list through a null-normalizing trans
       return Promise.reject(RequestError.invalidParams(undefined, "Expected an object"))
     return send(agentId, method, wireParams, options)
   })
-  await client.listThreads()
-  expect(client.state.threadsLoaded).toBe(true)
-  expect(client.state.threadsError).toBeNull()
-  expect(client.state.threads.length).toBeGreaterThan(0)
+  await client.listSessions()
+  expect(client.state.sessionListLoaded).toBe(true)
+  expect(client.state.sessionListError).toBeNull()
+  expect(client.state.sessionList.length).toBeGreaterThan(0)
 })
 
 test("project views share one full list with empty object params, deduplicate IDs and reuse memory", async () => {
@@ -822,56 +822,56 @@ test("project views share one full list with empty object params, deduplicate ID
       { sessionId: "archive", cwd: "/tmp/project", _meta: { codex: { archived: true } } }
     ]
   })
-  const [project] = await Promise.all([client.listProjectThreads("/tmp/project"), client.listThreads()])
-  expect(project.map((thread) => [thread.sessionId, thread.title])).toEqual([["p1", "Renamed"]])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["p1", "other"])
-  await client.listProjectThreads("/tmp/other")
+  const [project] = await Promise.all([client.listProjectSessions("/tmp/project"), client.listSessions()])
+  expect(project.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual([["p1", "Renamed"]])
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["p1", "other"])
+  await client.listProjectSessions("/tmp/other")
   expect(fake.fullListRequests).toEqual([{}])
 })
 
 test("explicitly selected history entries join the shared list only once", async () => {
   const { client } = await make()
-  await client.listThreads()
+  await client.listSessions()
   const selected = { sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false }
-  client.includeThread(selected)
+  client.includeSession(selected)
   const state = client.state
-  client.includeThread({ ...selected, title: "Stale" })
+  client.includeSession({ ...selected, title: "Stale" })
   expect(client.state).toBe(state)
-  expect(await client.listProjectThreads("/tmp/project")).toEqual([selected])
+  expect(await client.listProjectSessions("/tmp/project")).toEqual([selected])
 })
 
 test("a pending refresh preserves a newly selected project chat", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void
   fake.listSessions.current = () =>
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ reset: true })
+  const pending = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
-  client.includeThread({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
+  client.includeSession({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
   answer({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
   await pending
-  expect(client.state.threads.filter((thread) => thread.sessionId === "older")).toHaveLength(1)
-  expect(client.state.threads.find((thread) => thread.sessionId === "older")?.title).toBe("Selected")
+  expect(client.state.sessionList.filter((sessionRow) => sessionRow.sessionId === "older")).toHaveLength(1)
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === "older")?.title).toBe("Selected")
 })
 
 test("refresh replaces the complete list and preserves the last snapshot on failure", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   fake.listSessions.current = () => {
     throw new Error("Unavailable")
   }
-  await expect(client.listThreads({ reset: true })).rejects.toThrow()
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
-  expect(client.state.threadsLoaded).toBe(true)
+  await expect(client.listSessions({ reset: true })).rejects.toThrow()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
+  expect(client.state.sessionListLoaded).toBe(true)
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "external", cwd: "/tmp/other" }] })
-  await client.listThreads({ reset: true })
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "unexpected" })
-  await expect(client.listThreads({ reset: true })).rejects.toThrow("Full session list returned a cursor")
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
+  await expect(client.listSessions({ reset: true })).rejects.toThrow("Full session list returned a cursor")
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
 })
 
 test("thread loading reports failure and clears it after retry", async () => {
@@ -886,22 +886,22 @@ test("thread loading reports failure and clears it after retry", async () => {
     })
   }
 
-  await expect(client.listThreads({ reset: true })).rejects.toThrow("Internal error")
-  expect(client.state.threadsLoaded).toBe(false)
-  expect(client.state.threadsLoading).toBe(false)
-  expect(client.state.threadsError).toContain("Internal error")
+  await expect(client.listSessions({ reset: true })).rejects.toThrow("Internal error")
+  expect(client.state.sessionListLoaded).toBe(false)
+  expect(client.state.sessionListLoading).toBe(false)
+  expect(client.state.sessionListError).toContain("Internal error")
 
-  const retry = client.listThreads({ reset: true })
-  expect(client.state.threadsLoading).toBe(true)
-  expect(client.state.threadsError).toBeNull()
+  const retry = client.listSessions({ reset: true })
+  expect(client.state.sessionListLoading).toBe(true)
+  expect(client.state.sessionListError).toBeNull()
   await until(() => answer !== null)
   const respond = answer as ((value: { sessions: [] }) => void) | null
   if (respond === null) throw new Error("The retry did not reach the agent")
   respond({ sessions: [] })
   await retry
-  expect(client.state.threadsLoaded).toBe(true)
-  expect(client.state.threadsLoading).toBe(false)
-  expect(client.state.threads).toEqual([])
+  expect(client.state.sessionListLoaded).toBe(true)
+  expect(client.state.sessionListLoading).toBe(false)
+  expect(client.state.sessionList).toEqual([])
 })
 
 test("a gap the client could not refill replays the whole session from the engine's record", async () => {
@@ -1167,10 +1167,10 @@ test("several gateways register under their own ids and can be removed one at a 
 
 test("rename, account, rate limits and file search pass through the adapter's _codex methods", async () => {
   const { client, fake } = await make()
-  await client.listThreads({ reset: true })
+  await client.listSessions({ reset: true })
   await client.renameSession("h1", "Renamed")
   expect(fake.renamed.get("h1")).toBe("Renamed")
-  expect(client.state.threads.find((thread) => thread.sessionId === "h1")?.title).toBe("Renamed")
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === "h1")?.title).toBe("Renamed")
 
   const account = await client.readAccount()
   expect(account.account).toEqual({ type: "chatgpt", email: "ny@example.com", planType: "plus" })
@@ -1230,12 +1230,12 @@ test("precreated drafts expose real models without entering thread indexes", asy
   expect(client.session(first).configOptions[0]?.currentValue).toBe("gpt-6.1-sol")
   expect(client.state.draftSessions[first]).toBe("main")
   fake.listSessions.current = () => ({ sessions: [{ sessionId: first, cwd: "/tmp/draft" }] })
-  await client.listThreads({ reset: true })
-  expect(client.state.threads).toEqual([])
-  expect(await client.listProjectThreads("/tmp/draft")).toEqual([])
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList).toEqual([])
+  expect(await client.listProjectSessions("/tmp/draft")).toEqual([])
   await client.prompt(first, [{ type: "text", text: "hello" }])
   expect(client.state.draftSessions[first]).toBeUndefined()
-  expect(client.state.threads.some((thread) => thread.sessionId === first)).toBe(true)
+  expect(client.state.sessionList.some((sessionRow) => sessionRow.sessionId === first)).toBe(true)
   await client.discardDraft("main")
   expect(fake.deleted.has(first)).toBe(false)
 })
@@ -1267,7 +1267,7 @@ test("changing an empty draft's model creates it on that model without resuming 
   expect(fake.deleted.has(first)).toBe(true)
   expect(client.state.draftSessions[replacement]).toBe("main")
   expect(await client.prepareDraft("main", "/tmp/model-draft", "deepseek-flash")).toBe(replacement)
-  expect(client.state.threads).toEqual([])
+  expect(client.state.sessionList).toEqual([])
   await client.prompt(replacement, [{ type: "text", text: "hello" }])
   expect(client.session(replacement).items.some((item) => item.kind === "user")).toBe(true)
 })
@@ -1470,27 +1470,27 @@ test("prompt waits for the model transaction and a failed switch rejects its wai
 
 test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo %s", async (action) => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
   fake.listSessions.current = () =>
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ reset: true })
+  const pending = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
   if (action === "rename") await client.renameSession("h1", "New title")
   else await client[action]("h1")
   must(answer, "pending list response")({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", title: "Old title" }] })
   await pending
-  expect(client.state.threads.map((thread) => [thread.sessionId, thread.title])).toEqual(
+  expect(client.state.sessionList.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual(
     action === "rename" ? [["h1", "New title"]] : []
   )
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
 })
 
 test("a pending archived list cannot undo restore", async () => {
   const { client, fake } = await make()
-  await client.listThreads({ archived: true })
+  await client.listArchived()
   let answer:
     | ((value: {
         sessions: Array<{ sessionId: string; cwd: string; _meta: { codex: { archived: boolean } } }>
@@ -1500,7 +1500,7 @@ test("a pending archived list cannot undo restore", async () => {
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ archived: true, reset: true })
+  const pending = client.listArchived({ reset: true })
   await until(() => answer !== undefined)
   await client.unarchive("h2")
   must(
@@ -1508,8 +1508,8 @@ test("a pending archived list cannot undo restore", async () => {
     "pending list response"
   )({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", _meta: { codex: { archived: true } } }] })
   await pending
-  expect(client.state.archivedThreads).toEqual([])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h2"])
+  expect(client.state.archivedSessions).toEqual([])
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h2"])
 })
 
 test("concurrent refreshes share one request and loading state", async () => {
@@ -1519,16 +1519,16 @@ test("concurrent refreshes share one request and loading state", async () => {
     new Promise((resolve) => {
       answer = resolve
     })
-  const first = client.listThreads({ reset: true })
+  const first = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
-  const second = client.listThreads({ reset: true })
+  const second = client.listSessions({ reset: true })
   expect(first).toBe(second)
-  expect(client.state.threadsLoading).toBe(true)
+  expect(client.state.sessionListLoading).toBe(true)
   expect(fake.fullListRequests).toHaveLength(1)
   answer({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }] })
   await Promise.all([first, second])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["new"])
-  expect(client.state.threadsLoading).toBe(false)
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["new"])
+  expect(client.state.sessionListLoading).toBe(false)
 })
 
 test("live user messages refresh recency, while history replay and older turns do not", async () => {
@@ -1536,9 +1536,9 @@ test("live user messages refresh recency, while history replay and older turns d
   const original = "2026-01-01T00:00:00.000Z"
   const current = "2026-10-10T10:00:00.000Z"
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", updatedAt: original }] })
-  await client.listThreads()
+  await client.listSessions()
   await client.open("h1", "/tmp/one")
-  expect(client.state.threads[0]?.updatedAt).toBe(original)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(original)
   await fake.pushUpdate("h1", {
     sessionUpdate: "user_message",
     messageId: "live",
@@ -1546,7 +1546,7 @@ test("live user messages refresh recency, while history replay and older turns d
     _meta: { codex: { turnStartedAt: Date.parse(current) } }
   })
   await until(() => client.session("h1").items.some((item) => item.id === "live"))
-  expect(client.state.threads[0]?.updatedAt).toBe(current)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(current)
   await fake.pushUpdate("h1", {
     sessionUpdate: "user_message",
     messageId: "older",
@@ -1554,7 +1554,7 @@ test("live user messages refresh recency, while history replay and older turns d
     _meta: { codex: { turnStartedAt: Date.parse(original) } }
   })
   await until(() => client.session("h1").items.some((item) => item.id === "older"))
-  expect(client.state.threads[0]?.updatedAt).toBe(current)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(current)
 })
 
 test("deleted-project aliases share the same complete memory list", async () => {
@@ -1567,11 +1567,11 @@ test("deleted-project aliases share the same complete memory list", async () => 
       { sessionId: "two", cwd: canonical }
     ]
   })
-  await client.listThreads()
+  await client.listSessions()
   const before = client.state
-  const result = await client.listProjectThreads(canonical)
-  expect(result.map((thread) => thread.cwd)).toEqual([canonical, canonical])
-  expect(await client.listProjectThreads(`${alias}/`)).toEqual(result)
+  const result = await client.listProjectSessions(canonical)
+  expect(result.map((sessionRow) => sessionRow.cwd)).toEqual([canonical, canonical])
+  expect(await client.listProjectSessions(`${alias}/`)).toEqual(result)
   expect(client.state).toBe(before)
   expect(fake.fullListRequests).toHaveLength(1)
 })
@@ -1579,14 +1579,14 @@ test("deleted-project aliases share the same complete memory list", async () => 
 test("new and explicitly included chats use the same project key as history", async () => {
   const { client } = await make(undefined, macProjectPaths)
   await client.newSession("/var/new-project")
-  client.includeThread({
+  client.includeSession({
     sessionId: "historical",
     cwd: "/var/new-project",
     title: "Old",
     updatedAt: null,
     archived: false
   })
-  expect(client.state.threads.map((thread) => thread.cwd)).toEqual([
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.cwd)).toEqual([
     "/private/var/new-project",
     "/private/var/new-project"
   ])
@@ -1600,9 +1600,9 @@ test("hosts without macOS aliases preserve distinct private and non-private dire
       { sessionId: "two", cwd: "/private/var/project" }
     ]
   })
-  await client.listThreads()
-  expect(client.state.threads.map((thread) => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
-  expect((await client.listProjectThreads("/var/project")).map((thread) => thread.sessionId)).toEqual(["one"])
+  await client.listSessions()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.cwd)).toEqual(["/var/project", "/private/var/project"])
+  expect((await client.listProjectSessions("/var/project")).map((sessionRow) => sessionRow.sessionId)).toEqual(["one"])
 })
 
 test("plugin enablement uses the adapter extension with an explicit plugin ID", async () => {
@@ -1632,7 +1632,7 @@ test("plugin enablement uses the adapter extension with an explicit plugin ID", 
 test("tracked prompt receipt names the retained authoritative turn", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/voice-receipt")
-  const messageId = await client.promptReceipt(id, [{ type: "text", text: "voice" }])
+  const messageId = await client.prompt(id, [{ type: "text", text: "voice" }])
   const prompt = must(client.state.sessions[id], "receipt session").items.find((item) => item.id === messageId)
   expect(prompt?.kind).toBe("user")
   expect(["acknowledged", "adopted"]).toContain(prompt && "echo" in prompt ? prompt.echo : null)
@@ -1742,7 +1742,7 @@ test("a pending receipt does not hold admission and cannot write into a reopened
       })
     return original(agentId, method, params, options)
   })
-  const sending = client.promptReceipt(id, [{ type: "text", text: "pending receipt" }])
+  const sending = client.prompt(id, [{ type: "text", text: "pending receipt" }])
   const outcome = sending.then(
     () => "accepted",
     (error: unknown) => error
@@ -1774,7 +1774,7 @@ test("stopping while retaining the transcript retires its pending receipt", asyn
     return original(agentId, method, params, options)
   })
   try {
-    const result = client.promptReceipt(id, [{ type: "text", text: "retained" }]).catch((error: unknown) => error)
+    const result = client.prompt(id, [{ type: "text", text: "retained" }]).catch((error: unknown) => error)
     await until(() => sent)
     await client.stopSession(id)
     const stopped = client.session(id)

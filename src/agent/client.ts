@@ -1,78 +1,32 @@
+// U's Codex client: `@nyssance/codex-acp-v2/client`'s CodexClient (which is `@alwith/api/client`'s
+// SessionClient plus the adapter's `_codex/*` extensions) with what only this product does: two chat
+// slots (main window and floating chat) that each hold a draft and remember a model, gateway model
+// hints, project grouping of the list, and fork titles.
+//
+// 2026-10-27 chat-layer extraction: the engine-neutral orchestration moved to `@alwith/api/client`,
+// the Codex extensions (history, skills, plugins, rate limits, file search, lineage) to the adapter.
+import { isBooleanOption, isGroupedSelect, isSelectOption, type RuntimeClient, type Session } from "@alwith/api"
+import {
+  type ClientOptions as BaseClientOptions,
+  mergeMeta,
+  type NewSessionOptions,
+  type PendingAction,
+  type SessionOperation,
+  type SessionRequestOptions,
+  type SessionSummary,
+  type StateSetter
+} from "@alwith/api/client"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-// The one ACP v2 client. Owns the connection, routes every update by session id,
-// and publishes state through a framework-agnostic zustand store.
-import { SessionUpdate as SessionUpdateGuard } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
-  type Agent,
-  AgentGoneError,
-  AgentRequests,
-  Agents,
-  assertPromptSupported,
-  configOptionRequest,
-  configRevisionOf,
-  ConfigStaleError,
-  configStaleOf,
-  createSession,
-  isBooleanOption,
-  isGroupedSelect,
-  isSelectOption,
-  markDisconnected,
-  type PendingRequest,
-  promptConfigMeta,
-  replayCursorFor,
-  replayReceiptOf,
-  type RuntimeClient,
-  type Session,
-  type SessionRunState,
-  SessionStore
-} from "@alwith/api"
-import { type SessionGeneration, SessionLifecycle } from "@alwith/api/lifecycle"
-import { ChatUpdateScheduler } from "@alwith/module-chat/update-scheduler"
-import type { SessionOperation } from "@alwith/module-computer"
-import { CodexCapabilitiesClient, type RealtimeEvent, type RealtimeStart } from "@nyssance/codex-acp-v2/client"
-import { createStore, type StoreApi } from "zustand/vanilla"
+  CodexClient as CodexAcpClient,
+  type CodexClientState,
+  type ForkOptions,
+  type ForkOrigin
+} from "@nyssance/codex-acp-v2/client"
 
-import { asError } from "../lib/text"
-import { readActivityReply } from "./activity-preview"
-import type {
-  AccountReadResponse,
-  FuzzyFileSearchParams,
-  FuzzyFileSearchResponse,
-  FuzzyFileSearchSessionUpdated,
-  MarketplaceAddParams,
-  MarketplaceAddResponse,
-  MarketplaceRemoveParams,
-  MarketplaceUpgradeParams,
-  MarketplaceUpgradeResponse,
-  PluginInstalledParams,
-  PluginInstalledResponse,
-  PluginInstallParams,
-  PluginInstallResponse,
-  PluginListParams,
-  PluginListResponse,
-  PluginReadParams,
-  PluginReadResponse,
-  PluginUninstallParams,
-  RateLimitSnapshot,
-  RateLimitsResponse,
-  SkillsConfigWriteParams,
-  SkillsConfigWriteResponse,
-  SkillsListParams,
-  SkillsListResponse
-} from "./codex-extensions"
-import { codexExtensionCapabilities, codexTurnStartedAt } from "./codex-extensions"
 import { forkTitle } from "./fork-title"
-import { exportConversation } from "./history"
-import {
-  type HistoryNavigationState,
-  historyTurnPreview,
-  mergeNavigationHistory,
-  nativeTurnId,
-  readHistoryIndex,
-  readHistoryTurn
-} from "./history-navigation"
-import { type HistoryPageState, prependHistory, readHistoryPage } from "./history-page"
-import { setRunStateSource } from "./run-state-source"
+
+export type { ForkOrigin, PendingAction }
 
 /**
  * Model group of the ChatGPT models the codex adapter serves next to gateway groups. Named after the
@@ -80,134 +34,34 @@ import { setRunStateSource } from "./run-state-source"
  */
 export const NATIVE_MODEL_GROUP = { id: "chatgpt", name: "ChatGPT" } as const
 
-type ConnectionState = "disconnected" | "connecting" | "ready" | "failed"
-
 /** A model the gateway serves; Codex cannot list them, the client says what exists. */
 export type GatewayModel = { id: string; label?: string; description?: string }
 
 /** Fires when a session's selected model is known; `isGateway` tells whose model it is. */
 export type SessionModelListener = (sessionId: string, modelId: string, isGateway: boolean) => void
 
-export type ThreadSummary = {
-  sessionId: string
-  cwd: string
-  title: string | null
-  updatedAt: string | null
-  archived: boolean
-  nativeSessionId?: string
-  forkedFromId?: string | null
-}
-
-/** A request awaiting the user's answer, stored in the pending-request ledger under its `id`. */
-export type PendingAction =
-  | {
-      id: string
-      kind: "permission"
-      sessionId: string
-      params: acp.RequestPermissionRequest
-    }
-  | {
-      id: string
-      kind: "elicitation"
-      sessionId: string | null
-      params: acp.CreateElicitationRequest
-    }
-
-function toAction(request: PendingRequest): PendingAction {
-  return request.kind === "permission"
-    ? { id: request.key, kind: "permission", sessionId: request.sessionId, params: request.params }
-    : { id: request.key, kind: "elicitation", sessionId: request.sessionId, params: request.params }
-}
+export type { SessionSummary } from "@alwith/api/client"
 
 /** What the Runtime starts the agent with: the engine, plus whatever the engine table takes (env, args…). */
 export type Launch = { engine: string; [key: string]: unknown }
 
-export type ClientOptions = {
-  /** The one agent that hosts every session of this app. */
-  agentId: string
-  launch: Launch
+export type ClientOptions = BaseClientOptions & {
   /** Resolve a slot selection against the host's applied provider configuration. */
   resolveModel?: (model: string | null) => Promise<string | null>
-  /** Resolves ephemeral host integration data for the explicit workspace, never persisted in UI state. */
-  sessionContext?: (
-    cwd: string,
-    operation: SessionOperation
-  ) => Promise<{
-    mcpServers: acp.McpServer[]
-    appendSystemPrompt?: string
-    revision?: string
-    bind?: (sessionId: string) => Promise<void>
-  }>
-  sessionContextRevision?: () => Promise<string>
-  prepareSessionTools?: (sessionId: string) => Promise<void>
-  revokeSessionAccess?: (sessionId: string) => Promise<void>
-  /** Host-specific path identity, independent of whether a historical directory still exists. */
-  projectPaths?: import("./project-path").ProjectPaths
 }
-
-export type ForkOrigin = { sourceId: string; boundaryTurnId: string | null }
 
 export type DraftOwner = "main" | "chat"
 
-export type AppState = {
+export type AppState = CodexClientState & {
   /** Window ownership survives switching the visible conversation; never persisted. */
   sessionWindows: Record<string, DraftOwner>
   /** Only drafts created by this connection are eligible for automatic cleanup. */
   draftSessions: Record<string, DraftOwner>
-  configPending: Record<string, boolean>
-  /** In-memory projection of native fork/resume metadata; never a second persisted history. */
-  forkOrigins: Record<string, ForkOrigin>
-  connection: ConnectionState
-  connectionError: string | null
-  agent: acp.InitializeResponse | null
-  sessions: Record<string, Session>
-  historyPages: Record<string, HistoryPageState>
-  historyNavigation: Record<string, HistoryNavigationState>
-  threads: ThreadSummary[]
-  threadsLoaded: boolean
-  threadsLoading: boolean
-  threadsError: string | null
-  archivedThreads: ThreadSummary[]
-  archivedCursor: string | null
-  archivedLoaded: boolean
-  actions: PendingAction[]
-  /** The Runtime's view of every session it runs: four states including `done`, keyed by session id. */
-  runStates: Record<string, SessionRunState>
-}
-
-const CLIENT_INFO = { name: "alwith-u", version: "0.1.0" }
-const CLIENT_CAPABILITIES = { elicitation: { form: {}, url: {} } }
-
-function toSummary(info: acp.SessionInfo): ThreadSummary {
-  const codex = info._meta?.codex
-  const archived = typeof codex === "object" && codex !== null && (codex as { archived?: unknown }).archived === true
-  return {
-    sessionId: info.sessionId,
-    cwd: info.cwd,
-    title: info.title ?? null,
-    updatedAt: info.updatedAt ?? null,
-    ...sessionLineage(info._meta),
-    archived
-  }
-}
-
-function sessionLineage(meta: acp.SessionInfo["_meta"]): Pick<ThreadSummary, "nativeSessionId" | "forkedFromId"> {
-  const codex = meta?.codex
-  if (typeof codex !== "object" || codex === null) return {}
-  const { nativeSessionId, forkedFromId } = codex as Record<string, unknown>
-  if (nativeSessionId === undefined && forkedFromId === undefined) return {}
-  if (
-    typeof nativeSessionId !== "string" ||
-    !nativeSessionId ||
-    (forkedFromId !== null && typeof forkedFromId !== "string")
-  )
-    throw new Error("Invalid session lineage from the agent")
-  return { nativeSessionId, forkedFromId }
 }
 
 /** `_meta.alwith.model`: open the thread on that gateway model (codex-acp-v2 catalog mode). */
-function modelHint(model: string | null): { _meta?: { alwith: { model: string } } } {
-  return model === null ? {} : { _meta: { alwith: { model } } }
+function modelHint(model: string | null): Record<string, unknown> | undefined {
+  return model === null ? undefined : { alwith: { model } }
 }
 
 /** The current value of the session's `model` option, if the agent exposes one. */
@@ -216,593 +70,50 @@ function selectedModel(options: acp.SessionConfigOption[]): string | null {
   return option?.type === "select" && typeof option.currentValue === "string" ? option.currentValue : null
 }
 
-/** `session/resume` answered from the read path because another Codex client holds the writer. */
-function isReadOnlyResume(response: acp.ResumeSessionResponse): boolean {
-  const codex = (response._meta as { codex?: { readOnly?: unknown } } | undefined)?.codex
-  return codex?.readOnly === true
-}
-
-function isActiveWriterError(error: unknown): boolean {
-  const data = error && typeof error === "object" && "data" in error ? error.data : null
-  return !!data && typeof data === "object" && "reason" in data && data.reason === "thread_active_writer"
-}
-
-export class CodexClient {
-  readonly store: StoreApi<AppState>
-  /**
-   * Codex's dialect for the fold: `tool_call_update.content` carries the whole output every
-   * time (alwith-cli sends deltas), and nothing outlives a turn or is dispatched by another
-   * tool — so the other two judgments stay unset.
-   */
-  private readonly sessions = new SessionStore({ toolContent: "replace" })
-  /** Agent requests awaiting user input (permissions, questionnaires), including answers, cancellation on Stop, and agent withdrawals. */
-  private readonly requests = new AgentRequests((id, result, error) => void this.agent?.respond(id, result, error))
-  private nativeClient: CodexCapabilitiesClient | null = null
-
-  get codexCapabilities(): CodexCapabilitiesClient {
-    this.live()
-    if (this.nativeClient === null) throw new Error("Codex is not connected")
-    return this.nativeClient
-  }
-
-  startRealtime(sessionId: string, params: RealtimeStart): Promise<Record<string, never>> {
-    this.session(sessionId)
-    return this.codexCapabilities.startRealtime(sessionId, params)
-  }
-  stopRealtime(sessionId: string): Promise<Record<string, never>> {
-    return this.codexCapabilities.stopRealtime(sessionId)
-  }
-  onRealtime(sessionId: string, receive: (event: RealtimeEvent) => void): () => void {
-    return this.codexCapabilities.onRealtime(sessionId, receive)
-  }
-
-  private agent: Agent | null = null
-  private agents: Agents<Launch> | null = null
-  private connecting: Promise<void> | null = null
-  private readonly openPort: () => Promise<RuntimeClient<Launch>>
-  private readonly options: ClientOptions
-  private readonly skillsListeners = new Set<() => void>()
+export class CodexClient extends CodexAcpClient<AppState> {
   private readonly modelListeners = new Set<SessionModelListener>()
   private readonly confirmedModelListeners = new Set<(owner: DraftOwner, model: string) => void>()
   private savedModels: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotModels: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotTargets: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotVersions: Record<DraftOwner, number> = { main: 0, chat: 0 }
-  private readonly rateLimitListeners = new Set<(limits: RateLimitSnapshot) => void>()
-  private readonly fileSearchListeners = new Set<(update: FuzzyFileSearchSessionUpdated) => void>()
-  /** Main and floating windows allocate counted titles through the same owner. */
-  private forkQueue: Promise<unknown> = Promise.resolve()
-  private readonly contextRevisions = new Map<string, string | undefined>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
-  private threadsRequest: Promise<void> | null = null
-  /** open / close / delete lane per session: adjacent equal opens share one replay; close and delete revoke queued opens. */
-  private readonly lifecycle = new SessionLifecycle()
-  private stopGap: (() => void) | undefined
-  private readonly historyRequests = new Map<string, Promise<void>>()
-  private readonly retryRequests = new Map<string, Promise<void>>()
-  private readonly navigationRequests = new Map<string, Promise<void>>()
-  private readonly navigationEpochs = new Map<string, object>()
-  private readonly turnHistoryRequests = new Map<string, Map<string, Promise<void>>>()
-  private readonly previewHistoryRequests = new Map<string, Map<string, Promise<void>>>()
-  private readonly activityReplyRequests = new Map<string, Promise<string | null>>()
-  private readonly loadedHistoryTurns = new Map<string, Set<string>>()
-  private readonly listRequests = { threads: 0, archived: 0 }
-  private readonly updates = new ChatUpdateScheduler<Session>((snapshots) => {
-    this.store.setState((state) => ({ sessions: { ...state.sessions, ...snapshots } }))
-  })
+  /** Which slot asked for a configuration write, so a confirmed model lands in that slot's memory. */
+  private readonly configOwners = new Map<string, DraftOwner>()
+  /** Which slot is opening a session, so its replay resolves that slot's model once the replay has started. */
+  private readonly openingOwners = new Map<string, DraftOwner>()
+  private readonly resolveModelOption: ClientOptions["resolveModel"]
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
-    this.openPort = openPort
-    this.options = options
-    this.requests.onChange((pending) => this.store.setState({ actions: pending.map(toAction) }))
-    this.store = createStore<AppState>(() => ({
-      sessionWindows: {},
-      draftSessions: {},
-      configPending: {},
-      connection: "disconnected",
-      connectionError: null,
-      agent: null,
-      sessions: {},
-      historyPages: {},
-      historyNavigation: {},
-      forkOrigins: {},
-      threads: [],
-      threadsLoaded: false,
-      threadsLoading: false,
-      threadsError: null,
-      archivedThreads: [],
-      archivedCursor: null,
-      archivedLoaded: false,
-      actions: [],
-      runStates: {}
-    }))
+    const { resolveModel, ...base } = options
+    super(openPort, { info: { name: "alwith-u", version: "0.1.0" }, ...base }, { sessionWindows: {}, draftSessions: {} })
+    this.resolveModelOption = resolveModel
   }
 
-  get state(): AppState {
-    return this.store.getState()
+  private setApp(partial: StateSetter<AppState>): void {
+    this.store.setState(partial)
   }
 
-  projectPath(cwd: string): string {
-    return this.projectPaths(cwd)[0]
-  }
-
-  private projectPaths(cwd: string): readonly [string, ...string[]] {
-    return this.options.projectPaths?.(cwd) ?? [cwd]
-  }
-
-  private threadSummary(info: acp.SessionInfo): ThreadSummary {
-    return { ...toSummary(info), cwd: this.projectPath(info.cwd) }
-  }
-
-  session(id: string): Session {
-    return this.sessions.get(id)
-  }
-
-  private publishSession(session: Session): void {
-    this.sessions.set(session)
-    if (!session.restoring) {
-      this.followModel("main", session)
-      this.followModel("chat", session)
-    }
-    this.updates.enqueue(session.id, session)
-    this.updates.flush()
-  }
-
-  private live(): Agent {
-    if (!this.agent || this.state.connection !== "ready") throw new Error("Codex is not connected")
-    return this.agent
-  }
-
-  connect(): Promise<void> {
-    if (this.state.connection === "ready") return Promise.resolve()
-    if (this.connecting) return this.connecting
-    this.connecting = this.doConnect().finally(() => {
-      this.connecting = null
-    })
-    return this.connecting
-  }
-
-  private async doConnect(): Promise<void> {
-    this.store.setState({ connection: "connecting", connectionError: null })
-    try {
-      const agent = await withTimeout(this.hold(), 60_000, "Codex did not answer initialize")
-      this.agent = agent
-      this.nativeClient = new CodexCapabilitiesClient(agent)
-      agent.onNotification((method, params) => {
-        if (this.agent !== agent) return
-        switch (method) {
-          case "session/update": {
-            const update = params as { sessionId: string; update: acp.SessionUpdate }
-            this.onUpdate(update.sessionId, update.update)
-            break
-          }
-          // Codex rescanned its skills or plugins (`skills/changed`): catalogs are stale.
-          case "_codex/skills_changed":
-            for (const listener of this.skillsListeners) listener()
-            break
-          // Codex's rolling rate-limit updates (`account/rateLimits/updated`), payload verbatim.
-          case "_codex/rate_limits_updated":
-            for (const listener of this.rateLimitListeners) listener((params as RateLimitsResponse).rateLimits)
-            break
-          // Incremental results of a `fuzzyFileSearch` session; the final page arrives here too.
-          case "_codex/fuzzy_file_search_updated":
-            for (const listener of this.fileSearchListeners) listener(params as FuzzyFileSearchSessionUpdated)
-            break
-          case "_alwith/replay_started": {
-            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
-            this.lifecycle.replays.started(sessionId, replayId)
-            break
-          }
-          case "_alwith/replay_ended": {
-            const { sessionId, replayId } = params as { sessionId: string; replayId: string }
-            this.lifecycle.replays.ended(sessionId, replayId)
-            break
-          }
-          // `$/cancel_request` (the agent withdraws a permission / form) and `elicitation/complete`
-          default:
-            this.requests.onNotification(method, params)
-        }
-      })
-      agent.onAgentRequest((request) => {
-        if (this.agent === agent) this.requests.receive(request)
-      })
-      void agent.exited.then(() => this.onClosed(agent))
-      this.store.setState({
-        connection: "ready",
-        connectionError: null,
-        agent: agent.initialized
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      this.agent = null
-      this.store.setState({ connection: "failed", connectionError: message })
-      throw error
-    }
-  }
-
-  /**
-   * One Runtime agent hosts every session. Attach to a session the Runtime still runs under our
-   * agent id (reload, reconnect); otherwise start the agent. Agent requests still waiting for an
-   * answer are handed over on attach and go straight into the ledger.
-   */
-  private async hold(): Promise<Agent> {
-    const port = await this.openPort()
-    this.stopGap?.()
-    this.stopGap = port.onGap((gap) => void this.reloadAfterGap(gap.sessionId))
-    const agents = new Agents<Launch>(port, {
-      info: CLIENT_INFO,
-      capabilities: CLIENT_CAPABILITIES
-    })
-    this.agents = agents
-    // Which sessions are ours is a read-only question (`agentForSession`); asking it by attaching
-    // would claim someone else's session and, on release, leave it ownerless. Ownership is per
-    // agent, so claiming one of our sessions claims the process and replays every pending request.
-    for (const state of await port.runStates()) {
-      if ((await port.agentForSession(state.sessionId)) !== this.options.agentId) continue
-      const attached = await agents.attach(state.sessionId)
-      if (!attached) continue
-      this.requests.receiveAll(attached.info.pendingAgentRequests)
-      return attached.agent
-    }
-    // A freshly started agent has no Runtime session yet. After a webview reload there is
-    // therefore no session to attach through, but the process still needs to be reused.
-    if ((await port.agents()).some((agent) => agent.agentId === this.options.agentId))
-      return agents.adopt(this.options.agentId, this.options.launch.engine)
-    return agents.start(this.options.agentId, this.options.launch, this.options.launch.engine)
-  }
-
-  private onClosed(agent: Agent): void {
-    if (this.agent !== agent) return
-    this.nativeClient?.dispose()
-    this.nativeClient = null
-    this.agent = null
-    this.stopGap?.()
-    this.stopGap = undefined
-    this.lifecycle.clear()
-    this.threadsRequest = null
-    this.listRequests.threads++
-    this.listRequests.archived++
-    this.updates.cancel()
-    this.historyRequests.clear()
-    this.activityReplyRequests.clear()
-    // The process is gone (or we let go of it): nothing pending can be answered any more.
-    this.requests.release()
-    const sessions: Record<string, Session> = {}
-    for (const session of this.sessions.sessions.values()) {
-      const detached = markDisconnected(session)
-      this.sessions.set(detached)
-      sessions[session.id] = detached
-    }
-    this.store.setState({
-      connection: "disconnected",
-      connectionError: "Codex disconnected",
-      threadsLoading: false,
-      sessions,
-      actions: []
-    })
-  }
-
-  /** Let go of the agent: the process stays in the Runtime for the next attach. */
-  disconnect(): void {
-    const agent = this.agent
-    if (!agent) return
-    this.agents?.release(agent)
-    this.onClosed(agent)
-  }
-
-  /** Runtime run-state snapshot (broadcast on every change). */
-  applyRunStates(sessions: SessionRunState[], source: "snapshot" | "event" = "event"): void {
-    const runStates: Record<string, SessionRunState> = {}
-    for (const session of sessions) runStates[session.sessionId] = session
-    setRunStateSource(runStates, source)
-    this.store.setState({ runStates })
-  }
-
-  private onUpdate(sessionId: string, update: acp.SessionUpdate): void {
-    // A frame of a replay this session is no longer waiting for arrived late; the one it waits for carries its own id.
-    if (!this.lifecycle.accept(sessionId, update)) return
-    if (!this.sessions.sessions.has(sessionId)) {
-      // A frame for a session this client does not hold. While a session is being created its id is not known yet, so the
-      // frame waits for the response and is applied right after it; otherwise the session was closed here and this is the
-      // agent's tail after our close, which belongs to nobody any more.
-      this.lifecycle.births.buffer(sessionId, update)
-      return
-    }
-    const session = this.sessions.accept(sessionId, update)
-    if (!session.restoring && SessionUpdateGuard.isUserMessage(update)) {
-      // Use native turn time when available; replay must never look like new activity.
-      const updatedAt = new Date(codexTurnStartedAt(update._meta) ?? Date.now()).toISOString()
-      this.store.setState((state) => ({
-        threads: state.threads.map((thread) =>
-          thread.sessionId === sessionId && (thread.updatedAt === null || thread.updatedAt < updatedAt)
-            ? { ...thread, updatedAt }
-            : thread
-        )
-      }))
-    }
-    // A replay folds silently: `replay()` publishes the finished transcript once the
-    // resume answers, so nothing schedules a render per replayed frame.
-    if (!session.restoring) {
-      this.followModel("main", session)
-      this.followModel("chat", session)
-      this.updates.enqueue(sessionId, session)
-      if (SessionUpdateGuard.isStateUpdate(update) || SessionUpdateGuard.isConfigOptionUpdate(update)) {
-        // Live lifecycle and configuration changes are observable immediately,
-        // together with all earlier chunks. A completion must never overtake its text.
-        this.updates.flush()
-      }
-    }
-    if (SessionUpdateGuard.isSessionInfoUpdate(update)) {
-      const frame = update
-      this.store.setState((state) => ({
-        threads: state.threads.map((thread) =>
-          thread.sessionId === sessionId
-            ? {
-                ...thread,
-                title: frame.title === undefined ? thread.title : frame.title,
-                updatedAt: frame.updatedAt === undefined ? thread.updatedAt : frame.updatedAt
-              }
-            : thread
-        )
-      }))
-    }
-  }
-
-  respond(actionId: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse): void {
-    const request = this.requests.get(actionId)
-    if (!request) throw new Error("This request has expired or was already answered")
-    if (request.kind === "permission") {
-      const response = answer as acp.RequestPermissionResponse
-      const outcome = response.outcome
-      const valid =
-        outcome.outcome === "cancelled" ||
-        (outcome.outcome === "selected" &&
-          request.params.options.some((option) => option.optionId === (outcome as { optionId: string }).optionId))
-      if (!valid) throw new Error("Invalid permission choice")
-    } else {
-      const response = answer as acp.CreateElicitationResponse
-      if (!["accept", "decline", "cancel"].includes(response.action)) throw new Error("Invalid form action")
-    }
-    this.requests.answer(actionId, answer)
-  }
-
-  /** Include an explicitly selected history entry in the shared memory list. */
-  includeThread(thread: ThreadSummary): void {
-    if (this.state.threads.some((item) => item.sessionId === thread.sessionId)) return
-    this.store.setState((state) => ({ threads: [...state.threads, { ...thread, cwd: this.projectPath(thread.cwd) }] }))
-  }
-
-  listThreads(options: { reset?: boolean; archived?: boolean } = {}): Promise<void> {
-    if (options.archived) return this.readThreadList(options)
-    if (this.threadsRequest) return this.threadsRequest
-    if (!options.reset && this.state.threadsLoaded) return Promise.resolve()
-    const request = this.readThreadList({ reset: true }).finally(() => {
-      if (this.threadsRequest === request) this.threadsRequest = null
-    })
-    this.threadsRequest = request
-    return request
-  }
-
-  private async readThreadList(options: { reset?: boolean; archived?: boolean }): Promise<void> {
-    const archived = options.archived === true
-    const state = this.state
-    const cursor = options.reset || !archived ? null : state.archivedCursor
-    if (!options.reset && (archived ? state.archivedLoaded : state.threadsLoaded) && cursor === null) return
-    const bucket = archived ? "archived" : "threads"
-    const requestId = ++this.listRequests[bucket]
-    const before = new Map([...state.threads, ...state.archivedThreads].map((thread) => [thread.sessionId, thread]))
-    if (!archived) this.store.setState({ threadsLoading: true, threadsError: null })
-    const request: acp.ListSessionsRequest = {
-      ...(cursor ? { cursor } : {}),
-      ...(archived ? { _meta: { codex: { archived: true } } } : {})
-    }
-    try {
-      const response = archived
-        ? await this.live().request("session/list", request)
-        : await this.live().request<acp.ListSessionsResponse>("_codex/session_list", {})
-      if (!archived && response.nextCursor != null) throw new Error("Full session list returned a cursor")
-      if (requestId !== this.listRequests[bucket]) return
-      const page = response.sessions
-        .map((info) => this.threadSummary(info))
-        .filter((thread) => thread.archived === archived && !this.state.draftSessions[thread.sessionId])
-      const nextCursor = response.nextCursor ?? null
-      this.store.setState((current) => {
-        // Preserve mutations made after dispatch, including removal and movement between lists.
-        const after = new Map(
-          [...current.threads, ...current.archivedThreads].map((thread) => [thread.sessionId, thread])
-        )
-        const changed = new Set([...before.keys(), ...after.keys()].filter((id) => before.get(id) !== after.get(id)))
-        const freshPage = page.filter((thread) => !changed.has(thread.sessionId))
-        const forks = new Set(archived ? [] : this.liveForks())
-        const previous = options.reset
-          ? (archived ? current.archivedThreads : current.threads).filter(
-              (thread) => changed.has(thread.sessionId) || forks.has(thread)
-            )
-          : archived
-            ? current.archivedThreads
-            : current.threads
-        const merged = [...new Map([...previous, ...freshPage].map((thread) => [thread.sessionId, thread])).values()]
-        return archived
-          ? {
-              archivedThreads: merged,
-              archivedCursor: nextCursor,
-              archivedLoaded: true
-            }
-          : { threads: merged, threadsLoaded: true }
-      })
-    } catch (error) {
-      if (requestId !== this.listRequests[bucket]) return
-      if (!archived) this.store.setState({ threadsError: error instanceof Error ? error.message : String(error) })
-      throw error
-    } finally {
-      if (!archived && requestId === this.listRequests[bucket]) this.store.setState({ threadsLoading: false })
-    }
-  }
+  // ── List by project ──
 
   /** Project views share the complete in-memory list with the sidebar. */
-  async listProjectThreads(cwd: string): Promise<ThreadSummary[]> {
-    await this.listThreads()
+  async listProjectSessions(cwd: string): Promise<SessionSummary[]> {
+    await this.listSessions()
     const project = this.projectPath(cwd)
-    return this.state.threads.filter((thread) => thread.cwd === project)
+    return this.state.sessionList.filter((item) => item.cwd === project)
   }
 
-  private historyCapability(mode: "browse" | "export"): boolean {
-    const codex = this.state.agent?.capabilities?._meta?.codex
-    const capability = codex && typeof codex === "object" && "sessionHistory" in codex ? codex.sessionHistory : null
-    return !!(
-      capability &&
-      typeof capability === "object" &&
-      "version" in capability &&
-      capability.version === 2 &&
-      "items" in capability &&
-      capability.items === true &&
-      "modes" in capability &&
-      Array.isArray(capability.modes) &&
-      capability.modes.includes(mode)
-    )
-  }
+  // ── Slots: create, open, configure ──
 
-  /** Read-only sidebar projection; never attaches or changes the selected chat. */
-  activityReply(sessionId: string): Promise<string | null> {
-    const pending = this.activityReplyRequests.get(sessionId)
-    if (pending) return pending
-    const agent = this.live()
-    if (!this.historyCapability("browse")) throw new Error("Activity preview requires history browsing")
-    const request = readActivityReply(
-      sessionId,
-      (params) => agent.request("_codex/session_history_items", params),
-      () => {
-        if (this.agent !== agent || !this.state.runStates[sessionId]) throw new Error("Activity preview was cancelled")
-      }
-    ).finally(() => {
-      if (this.activityReplyRequests.get(sessionId) === request) this.activityReplyRequests.delete(sessionId)
-    })
-    this.activityReplyRequests.set(sessionId, request)
-    return request
-  }
-
-  private requireHistory(): void {
-    this.live()
-    if (!this.historyCapability("export"))
-      throw new Error("会话归档需要 codex-acp-v2 0.7.7 或兼容的历史接口，请重启升级后的应用")
-  }
-
-  async listHistorySessions(check: () => void): Promise<ThreadSummary[]> {
-    check()
-    this.requireHistory()
-    const current = await this.listSessionIndex(undefined, false)
-    check()
-    const archived = await this.listSessionIndex(undefined, true)
-    check()
-    return [...new Map([...current, ...archived].map((thread) => [thread.sessionId, thread])).values()]
-  }
-
-  async exportHistory(sessionId: string, check: () => void, signal?: AbortSignal): Promise<string> {
-    this.requireHistory()
-    return exportConversation(
-      sessionId,
-      (params) => this.live().request("_codex/session_history_items", params, { cancellationSignal: signal }),
-      check
-    )
-  }
-
-  private async listSessionIndex(cwd?: string, archived = false): Promise<ThreadSummary[]> {
-    const agent = this.live()
-    const threads = new Map<string, ThreadSummary>()
-    const project = cwd === undefined ? undefined : this.projectPath(cwd)
-    // Codex filters historical cwd strings literally; query each system alias with its own cursor.
-    for (const queryCwd of cwd === undefined ? [undefined] : this.projectPaths(cwd)) {
-      const cursors = new Set<string>()
-      let cursor: string | undefined
-      do {
-        const response = await agent.request("session/list", {
-          ...(queryCwd === undefined ? {} : { cwd: queryCwd }),
-          ...(archived ? { _meta: { codex: { archived: true } } } : {}),
-          ...(cursor === undefined ? {} : { cursor })
-        })
-        for (const info of response.sessions) {
-          const thread = this.threadSummary(info)
-          if (this.state.draftSessions[thread.sessionId]) continue
-          if ((project === undefined || thread.cwd === project) && thread.archived === archived)
-            threads.set(thread.sessionId, thread)
-        }
-        cursor = response.nextCursor ?? undefined
-        if (cursor !== undefined) {
-          if (cursors.has(cursor)) throw new Error("Session list returned a repeated cursor")
-          cursors.add(cursor)
-        }
-      } while (cursor !== undefined)
-    }
-    if (!archived) {
-      // Codex can read a just-forked thread before it includes it in thread/list.
-      // Keep the native fork response visible while that thread is attached; this is not a persisted index.
-      for (const thread of this.liveForks(cwd)) {
-        if (!threads.has(thread.sessionId)) threads.set(thread.sessionId, thread)
-      }
-    }
-    return [...threads.values()]
-  }
-
-  private liveForks(cwd?: string): ThreadSummary[] {
-    return this.state.threads.filter(
-      (thread) =>
-        !thread.archived &&
-        thread.forkedFromId != null &&
-        this.state.sessions[thread.sessionId]?.attached &&
-        (cwd === undefined || thread.cwd === this.projectPath(cwd))
-    )
-  }
-
-  private async sessionContext(
+  /** `newSession(cwd, model, owner)` creates a listed chat in a slot; the options form is the base client's. */
+  override async newSession(
     cwd: string,
-    model: string | null,
-    operation: SessionOperation,
-    draft = false
-  ): Promise<{
-    revision?: string
-    bind?: (sessionId: string) => Promise<void>
-    mcpServers?: acp.McpServer[]
-    systemPrompt?: acp.SystemPrompt
-    _meta?: { alwith?: { model?: string; draft?: boolean }; codex?: { mode: string } }
-  }> {
-    const hint = modelHint(model)
-    const alwith = { ...hint._meta?.alwith, ...(draft ? { draft: true } : {}) }
-    const sourceId =
-      operation.kind === "resume" ? operation.sessionId : operation.kind === "fork" ? operation.sourceSessionId : null
-    const mode =
-      sourceId === null
-        ? undefined
-        : this.sessions.sessions
-            .get(sourceId)
-            ?.configOptions.find((option) => option.category === "mode" && isSelectOption(option))
-    // Reopening tools or history must not reset the session's approval destination.
-    const meta = {
-      ...(Object.keys(alwith).length > 0 ? { alwith } : {}),
-      ...(mode && isSelectOption(mode) ? { codex: { mode: mode.currentValue } } : {})
-    }
-    const metadata = Object.keys(meta).length > 0 ? { _meta: meta } : {}
-    if (!this.options.sessionContext) return metadata
-    const context = await this.options.sessionContext(cwd, operation)
-    return {
-      revision: context.revision,
-      bind: context.bind,
-      mcpServers: context.mcpServers,
-      ...(context.appendSystemPrompt ? { systemPrompt: this.systemPrompt(context.appendSystemPrompt) } : {}),
-      ...metadata
-    }
-  }
-
-  /** ACP v2 alpha.9 `systemPrompt` (append). The protocol only lets a client send it to an agent that advertises `session.systemPrompt`. */
-  private systemPrompt(text: string): acp.SystemPrompt {
-    if (!this.state.agent?.capabilities?.session?.systemPrompt) {
-      throw new Error("The agent does not advertise capabilities.session.systemPrompt")
-    }
-    return { mode: "append", content: [{ type: "text", text }] }
-  }
-
-  async newSession(cwd: string, model: string | null = null, owner: DraftOwner = "main"): Promise<string> {
+    model: string | null | NewSessionOptions = null,
+    owner: DraftOwner = "main"
+  ): Promise<string> {
+    if (model !== null && typeof model === "object") return super.newSession(cwd, model)
     const version = ++this.slotVersions[owner]
     const id = await this.createNativeSession(cwd, model, null)
     this.activateSlot(owner, id, version)
@@ -810,80 +121,76 @@ export class CodexClient {
   }
 
   private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
-    const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "new" }, owner !== null)
-    const response = await this.born(
-      () => this.live().request("session/new", { cwd, mcpServers: [], ...context }),
-      (response) => {
-        const session: Session = {
-          ...createSession(response.sessionId, cwd),
-          attached: true,
-          configOptions: response.configOptions ?? [],
-          commands: response.availableCommands ?? [],
-          configRevision: configRevisionOf(response)
-        }
-        this.publishSession(session)
-        if (owner === null) this.listSession(session)
-        else this.store.setState((state) => ({ draftSessions: { ...state.draftSessions, [session.id]: owner } }))
-      }
-    )
-    await bind?.(response.sessionId)
-    // New chats use standard speed even when Codex's global default is priority.
-    const fast = this.sessions.get(response.sessionId).configOptions.find((option) => option.configId === "fast-mode")
-    if (fast && isBooleanOption(fast) && fast.currentValue) {
-      try {
-        await this.setConfig(response.sessionId, fast.configId, false)
-      } catch (error) {
-        try {
-          await this.delete(response.sessionId)
-        } catch (cleanupError) {
-          throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the new session", {
-            cause: cleanupError
-          })
-        }
-        throw error
-      }
+    const id = await super.newSession(cwd, {
+      draft: owner !== null,
+      meta: mergeMeta(modelHint(model), owner === null ? undefined : { alwith: { draft: true } })
+    })
+    if (owner !== null) this.setApp((state) => ({ draftSessions: { ...state.draftSessions, [id]: owner } }))
+    this.noteModel(this.session(id))
+    return id
+  }
+
+  /** `open(id, cwd, owner)` shows a session in a slot; the options form is the base client's. */
+  override async open(id: string, cwd: string, owner: DraftOwner | SessionRequestOptions = "main"): Promise<void> {
+    if (typeof owner !== "string") return super.open(id, cwd, owner)
+    this.bindSlot(owner, id)
+    ++this.slotVersions[owner]
+    const existing = this.holds(id) ? this.session(id) : undefined
+    // A replay in flight already carries this open. A read-only attach (another client holds the
+    // writer) is resumed again: the writer may have let go since.
+    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.lifecycle.operations.busy(id)) {
+      this.followModel(owner, existing)
+      return
     }
-    this.contextRevisions.set(response.sessionId, revision)
-    this.noteModel(this.sessions.get(response.sessionId))
-    return response.sessionId
+    await this.replayForOwner(id, cwd, owner)
+  }
+
+  /** A replay a slot asked for resolves the slot's model after the replay has started, so the session shows as restoring meanwhile. */
+  private async replayForOwner(id: string, cwd: string, owner: DraftOwner): Promise<void> {
+    this.openingOwners.set(id, owner)
+    try {
+      await this.replay(id, cwd)
+    } finally {
+      if (this.openingOwners.get(id) === owner) this.openingOwners.delete(id)
+    }
   }
 
   /**
-   * Creates a session: the response names it, `settle` records it, and the frames the agent sent for it before the response
-   * (held in the shared creation buffer) are applied right after, in order. Frames held for ids that were never born are dropped once nothing is
-   * being created.
+   * Every resume carries the session's model: the slot's choice when a slot opens it (resolved against the host's
+   * applied providers once the replay is under way), the session's own selection otherwise.
    */
-  private async born<Response extends { sessionId: string }>(
-    request: () => Promise<Response>,
-    settle: (response: Response) => void
-  ): Promise<Response> {
-    return this.lifecycle.births.run(request, settle, (id, update) => this.onUpdate(id, update))
+  protected override async requestContext(
+    cwd: string,
+    operation: SessionOperation,
+    options: SessionRequestOptions
+  ): ReturnType<CodexAcpClient<AppState>["requestContext"]> {
+    if (operation.kind !== "resume" || (options.meta?.["alwith"] as { model?: unknown } | undefined)?.model !== undefined)
+      return super.requestContext(cwd, operation, options)
+    const id = operation.sessionId
+    const owner = this.openingOwners.get(id)
+    const session = this.holds(id) ? this.session(id) : undefined
+    const model =
+      owner !== undefined
+        ? await this.resolveModel(this.slotModels[owner])
+        : ((session ? selectedModel(session.configOptions) : null) ?? this.gatewayModels.get(id) ?? null)
+    return super.requestContext(cwd, operation, { ...options, meta: mergeMeta(modelHint(model), options.meta) })
   }
 
-  private listSession(session: Session): void {
-    this.store.setState((state) => ({
-      threads: [
-        {
-          sessionId: session.id,
-          cwd: this.projectPath(session.cwd),
-          title: session.title,
-          updatedAt: new Date().toISOString(),
-          archived: false
-        },
-        ...state.threads.filter((thread) => thread.sessionId !== session.id)
-      ]
-    }))
+  override setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
+    this.configOwners.set(`${id}:${configId}`, owner)
+    return super.setConfig(id, configId, value)
   }
 
-  private materializeDraft(id: string): void {
-    if (!this.state.draftSessions[id]) return
-    this.store.setState((state) => {
-      const { [id]: _draft, ...draftSessions } = state.draftSessions
-      return { draftSessions }
-    })
-    this.listSession(this.session(id))
+  protected override onConfigChanged(id: string, configId: string, response: acp.SetSessionConfigOptionResponse): void {
+    super.onConfigChanged(id, configId, response)
     this.noteModel(this.session(id))
+    const owner = this.configOwners.get(`${id}:${configId}`) ?? "main"
+    this.configOwners.delete(`${id}:${configId}`)
+    if (response.configOptions.some((option) => option.configId === configId && option.category === "model"))
+      this.confirmModel(owner, this.session(id))
   }
+
+  // ── Drafts ──
 
   /** Ownership changes are serialized independently of individual session operations. */
   private changeDraft<T>(owners: DraftOwner[], operation: () => Promise<T>): Promise<T> {
@@ -905,7 +212,7 @@ export class CodexClient {
         (model === null || selectedModel(this.session(existing).configOptions) === model)
       ) {
         this.activateSlot(owner, existing, version)
-        if (!this.session(existing).attached) await this.replay(existing, cwd, owner)
+        if (!this.session(existing).attached) await this.replayForOwner(existing, cwd, owner)
         if (model !== null) this.confirmModel(owner, this.session(existing))
         return existing
       }
@@ -952,7 +259,9 @@ export class CodexClient {
     })
   }
 
-  discardDraft(owner: DraftOwner): Promise<void> {
+  /** `discardDraft("main" | "chat")` drops that slot's draft; `discardDraft(id)` is the base client's form. */
+  override discardDraft(owner: DraftOwner | string): Promise<void> {
+    if (owner !== "main" && owner !== "chat") return super.discardDraft(owner)
     return this.changeDraft([owner], async () => {
       for (const [id, current] of Object.entries(this.state.draftSessions))
         if (current === owner) await this.deleteEmptyDraft(id)
@@ -964,7 +273,7 @@ export class CodexClient {
       if (!this.state.draftSessions[id] || this.state.draftSessions[id] === owner) return
       for (const [other, current] of Object.entries(this.state.draftSessions))
         if (current === owner) await this.deleteEmptyDraft(other)
-      this.store.setState((state) =>
+      this.setApp((state) =>
         state.draftSessions[id] ? { draftSessions: { ...state.draftSessions, [id]: owner } } : {}
       )
     })
@@ -978,563 +287,65 @@ export class CodexClient {
     })
   }
 
-  private enqueueSession<T>(id: string, operation: () => Promise<T>, continueAfterFailure = true): Promise<T> {
-    const next = this.lifecycle.admission.enqueue(id, operation, continueAfterFailure)
-    const release = (): void => {
-      if (this.lifecycle.admission.pending(id) === undefined) {
-        this.store.setState((state) => {
-          const { [id]: _pending, ...configPending } = state.configPending
-          return { configPending }
-        })
-      }
-    }
-    void next.then(release, release)
-    return next
-  }
-
-  async open(id: string, cwd: string, owner: DraftOwner = "main"): Promise<void> {
-    this.bindSlot(owner, id)
-    ++this.slotVersions[owner]
-    const existing = this.sessions.sessions.get(id)
-    // A replay in flight already carries this open. A read-only attach (another client holds the
-    // writer) is resumed again: the writer may have let go since.
-    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.lifecycle.operations.busy(id)) {
-      this.followModel(owner, existing)
-      return
-    }
-    await this.replay(id, cwd, owner)
-  }
-
-  /** Resume a known Runtime session for remote input without changing either local chat slot. */
-  async openRemote(id: string): Promise<void> {
-    const session = this.state.sessions[id]
-    if (session?.attached && !session.restoring && !session.readOnly && !this.lifecycle.operations.busy(id)) return
-    const runtime = this.state.runStates[id]
-    if (!runtime) throw new Error(`Unknown Runtime session: ${id}`)
-    await this.replay(id, runtime.cwd)
-  }
-
-  /**
-   * The client could not refill a hole in this session's event stream (the Runtime journal had
-   * already dropped those frames): what we hold is no longer continuous, so replay the whole
-   * session from the engine's own record instead of rendering as if nothing happened.
-   */
-  private async reloadAfterGap(id: string): Promise<void> {
-    const session = this.sessions.sessions.get(id)
-    if (!session || session.restoring) return
-    await this.replay(id, session.cwd)
-  }
-
-  private replay(id: string, cwd: string, owner?: DraftOwner): Promise<void> {
-    return this.lifecycle.operations.open(id, cwd, (signal) => this.runReplay(id, cwd, signal, owner))
-  }
-
-  private async runReplay(id: string, cwd: string, signal: AbortSignal, owner?: DraftOwner): Promise<void> {
-    const generation = this.lifecycle.beginReplay(id)
-    if (!this.sessions.sessions.has(id)) this.sessions.set(createSession(id, cwd))
-    const agent = this.live()
-    const history = this.historyCapability("browse")
-    this.historyRequests.delete(id)
-    this.navigationEpochs.set(id, {})
-    this.navigationRequests.delete(id)
-    this.turnHistoryRequests.delete(id)
-    this.previewHistoryRequests.delete(id)
-    this.loadedHistoryTurns.delete(id)
-    this.store.setState((state) => {
-      const { [id]: _navigation, ...historyNavigation } = state.historyNavigation
-      return { historyNavigation }
+  protected override onDraftMaterialized(id: string): void {
+    super.onDraftMaterialized(id)
+    this.setApp((state) => {
+      const { [id]: _draft, ...draftSessions } = state.draftSessions
+      return { draftSessions }
     })
-    // From where this session has the record when the agent can continue from a position; otherwise from the start.
-    const cursor = replayCursorFor(agent.initialized, this.sessions.get(id))
-    this.sessions.beginReplay(id, history ? 0 : cursor.type === "start" ? "start" : cursor.after)
-    const baseline = this.sessions.get(id)
-    this.publishSession(this.sessions.get(id))
-    try {
-      const model =
-        owner !== undefined
-          ? await this.resolveModel(this.slotModels[owner])
-          : (selectedModel(this.sessions.get(id).configOptions) ?? this.gatewayModels.get(id) ?? null)
-      const { revision, bind, ...context } = await this.sessionContext(cwd, model, { kind: "resume", sessionId: id })
-      signal.throwIfAborted()
-      const response = await agent.request(
-        "session/resume",
-        {
-          sessionId: id,
-          cwd,
-          ...(history ? {} : { replayFrom: cursor }),
-          ...context
-        },
-        { cancellationSignal: signal }
-      )
-      signal.throwIfAborted()
-      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
-        throw new Error("Codex session retired during resume")
-      await bind?.(id)
-      signal.throwIfAborted()
-      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
-        throw new Error("Codex session retired during binding")
-      this.contextRevisions.set(id, revision)
-      if (history) {
-        const page = await readHistoryPage(id, cwd, null, (params) =>
-          agent.request("_codex/session_history", params, { cancellationSignal: signal })
+    this.noteModel(this.session(id))
+  }
+
+  protected override onSessionDropped(id: string): void {
+    super.onSessionDropped(id)
+    this.gatewayModels.delete(id)
+    this.setApp((state) => {
+      const { [id]: _draft, ...draftSessions } = state.draftSessions
+      const { [id]: _window, ...sessionWindows } = state.sessionWindows
+      return { draftSessions, sessionWindows }
+    })
+  }
+
+  // ── Fork with a counted title ──
+
+  /** `fork(id, cwd, lastTurnId)` forks at a native turn; the options form is the base client's. */
+  override fork(id: string, cwd: string, lastTurnId?: string | ForkOptions): Promise<string> {
+    const options: ForkOptions = typeof lastTurnId === "object" ? lastTurnId : lastTurnId === undefined ? {} : { lastTurnId }
+    return super.fork(id, cwd, options)
+  }
+
+  /** Runs inside the adapter's one-at-a-time fork lane: the title is counted against what is listed at that moment. */
+  protected override async forkInternal(id: string, cwd: string, options: ForkOptions): Promise<string> {
+    const indexes = await Promise.all([this.indexSessions(), this.indexSessions(undefined, true)])
+    const known = [...indexes.flat(), ...this.state.sessionList, ...this.state.archivedSessions]
+    const sourceTitle = (this.holds(id) ? this.session(id).title : null) ?? known.find((item) => item.sessionId === id)?.title
+    const forked = await super.forkInternal(id, cwd, {
+      ...options,
+      meta: mergeMeta(modelHint(this.gatewayModels.get(id) ?? null), options.meta)
+    })
+    const title = sourceTitle ?? this.session(forked).title
+    if (title)
+      await this.renameSession(
+        forked,
+        forkTitle(
+          title,
+          known.flatMap((item) => (item.title ? [item.title] : []))
         )
-        signal.throwIfAborted()
-        if (this.agent !== agent) throw new Error("Codex disconnected during history load")
-        this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
-        this.noteLoadedHistory(id, page.turnIds)
-        this.store.setState((state) => ({
-          historyPages: { ...state.historyPages, [id]: { cursor: page.cursor, loading: false, error: null } }
-        }))
-      }
-      this.sessions.endReplay(id, replayReceiptOf(response))
-      this.publishSession({
-        ...this.sessions.get(id),
-        cwd,
-        readOnly: isReadOnlyResume(response),
-        configOptions: response.configOptions ?? [],
-        commands: response.availableCommands ?? this.sessions.get(id).commands,
-        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision,
-        error: null
-      })
-      this.noteModel(this.sessions.get(id))
-      this.recordForkOrigin(id, response._meta)
-    } catch (error) {
-      if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) throw error
-      if (isActiveWriterError(error) && history) {
-        // Browsing is independent of acquiring the writer; do not fabricate an ACP attachment.
-        let historyError: string | null = null
-        try {
-          const page = await readHistoryPage(id, cwd, null, (params) =>
-            agent.request("_codex/session_history", params, { cancellationSignal: signal })
-          )
-          signal.throwIfAborted()
-          if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) return
-          this.sessions.set(prependHistory(this.sessions.get(id), page.session, baseline))
-          this.noteLoadedHistory(id, page.turnIds)
-          this.store.setState((state) => ({
-            historyPages: { ...state.historyPages, [id]: { cursor: page.cursor, loading: false, error: null } }
-          }))
-        } catch (reason) {
-          signal.throwIfAborted()
-          if (this.agent !== agent || !this.lifecycle.isCurrent(generation) || !this.sessions.sessions.has(id)) return
-          historyError = reason instanceof Error ? reason.message : String(reason)
-        }
-        if (historyError)
-          this.store.setState((state) => ({
-            historyPages: { ...state.historyPages, [id]: { cursor: null, loading: false, error: historyError } }
-          }))
-        this.publishSession({
-          ...this.sessions.get(id),
-          cwd,
-          attached: false,
-          restoring: false,
-          readOnly: true,
-          error: null
-        })
-        return
-      }
-      this.publishSession({
-        ...this.sessions.get(id),
-        restoring: false,
-        attached: false
-      })
-      throw error
-    }
-  }
-
-  /** One request per session; closing or reconnecting invalidates its result. */
-  loadOlderHistory(id: string): Promise<void> {
-    const pending = this.historyRequests.get(id)
-    if (pending) return pending
-    const page = this.state.historyPages[id]
-    if (page?.cursor == null) return Promise.resolve()
-    const agent = this.live()
-    const session = this.sessions.get(id)
-    this.store.setState((state) => ({
-      historyPages: { ...state.historyPages, [id]: { ...page, loading: true, error: null } }
-    }))
-    const current = () =>
-      this.agent === agent && this.sessions.sessions.has(id) && this.historyRequests.get(id) === request
-    const request = readHistoryPage(id, session.cwd, page.cursor, (params) =>
-      agent.request("_codex/session_history", params)
-    )
-      .then((result) => {
-        if (!current()) return
-        const navigation = this.state.historyNavigation[id]
-        const merged = navigation?.complete
-          ? mergeNavigationHistory(this.sessions.get(id), result.session, navigation.turns)
-          : prependHistory(this.sessions.get(id), result.session)
-        this.sessions.set(merged)
-        this.noteLoadedHistory(id, result.turnIds)
-        this.updates.remove(id)
-        this.store.setState((state) => ({
-          sessions: { ...state.sessions, [id]: merged },
-          historyPages: { ...state.historyPages, [id]: { cursor: result.cursor, loading: false, error: null } }
-        }))
-      })
-      .catch((error: unknown) => {
-        if (current())
-          this.store.setState((state) => ({
-            historyPages: {
-              ...state.historyPages,
-              [id]: {
-                ...page,
-                loading: false,
-                error: error instanceof Error ? error.message : String(error)
-              }
-            }
-          }))
-        throw error
-      })
-      .finally(() => {
-        if (this.historyRequests.get(id) === request) this.historyRequests.delete(id)
-      })
-    this.historyRequests.set(id, request)
-    return request
-  }
-
-  private noteLoadedHistory(id: string, turnIds: string[]): void {
-    const loaded = this.loadedHistoryTurns.get(id) ?? new Set<string>()
-    for (const turnId of turnIds) loaded.add(turnId)
-    this.loadedHistoryTurns.set(id, loaded)
-    const navigation = this.state.historyNavigation[id]
-    if (navigation) this.setHistoryNavigation(id, { ...navigation, loadedTurnIds: [...loaded] })
-  }
-
-  private setHistoryNavigation(id: string, navigation: HistoryNavigationState): void {
-    this.store.setState((state) => ({ historyNavigation: { ...state.historyNavigation, [id]: navigation } }))
-  }
-
-  /** Turn metadata has its own traversal; opening a thread never waits for its full index. */
-  loadHistoryNavigation(id: string): Promise<void> {
-    const pending = this.navigationRequests.get(id)
-    if (pending) return pending
-    if (this.state.historyNavigation[id]?.complete || !this.state.historyPages[id]) return Promise.resolve()
-    const agent = this.live()
-    const epoch = this.navigationEpochs.get(id)
-    const current = () =>
-      this.agent === agent && this.sessions.sessions.has(id) && this.navigationEpochs.get(id) === epoch
-    const check = () => {
-      if (!current()) throw new Error("History navigation was cancelled")
-    }
-    const loaded =
-      this.loadedHistoryTurns.get(id) ??
-      new Set(
-        this.sessions.get(id).items.flatMap((item) => {
-          const turnId = nativeTurnId(item)
-          return turnId === null ? [] : [turnId]
-        })
       )
-    this.loadedHistoryTurns.set(id, loaded)
-    this.setHistoryNavigation(id, {
-      turns: [],
-      loadedTurnIds: [...loaded],
-      loading: true,
-      complete: false,
-      error: null,
-      previews: {},
-      turnErrors: {}
-    })
-    const request = readHistoryIndex(id, (method, params) => agent.request(method, params), check)
-      .then((turns) => {
-        check()
-        const navigation = this.state.historyNavigation[id]
-        this.setHistoryNavigation(id, { ...navigation, turns, loading: false, complete: true })
-      })
-      .catch((error: unknown) => {
-        if (current())
-          this.setHistoryNavigation(id, {
-            ...this.state.historyNavigation[id],
-            loading: false,
-            error: error instanceof Error ? error.message : String(error)
-          })
-        throw error
-      })
-      .finally(() => {
-        if (this.navigationRequests.get(id) === request) this.navigationRequests.delete(id)
-      })
-    this.navigationRequests.set(id, request)
-    return request
+    return forked
   }
 
-  /** Hover fetches one bounded preview page, leaving the session transcript untouched. */
-  previewHistoryTurn(id: string, turnId: string): Promise<void> {
-    return this.hydrateHistoryTurn(id, turnId, true)
+  protected override onForked(id: string, response: acp.ForkSessionResponse): void {
+    super.onForked(id, response)
+    this.noteModel(this.session(id))
   }
 
-  loadHistoryTurn(id: string, turnId: string): Promise<void> {
-    return this.hydrateHistoryTurn(id, turnId, false)
+  protected override onReplayed(id: string, response: acp.ResumeSessionResponse): void {
+    super.onReplayed(id, response)
+    this.noteModel(this.session(id))
   }
 
-  private hydrateHistoryTurn(id: string, turnId: string, preview: boolean): Promise<void> {
-    if (preview) {
-      const hydrating = this.turnHistoryRequests.get(id)?.get(turnId)
-      if (hydrating) return hydrating
-    }
-    const navigation = this.state.historyNavigation[id]
-    if (navigation?.loadedTurnIds.includes(turnId) || (preview && navigation?.previews[turnId]?.state === "loaded"))
-      return Promise.resolve()
-    const turn = navigation?.turns.find((turn) => turn.turnId === turnId)
-    if (!turn) return Promise.reject(new Error(`History navigation turn is missing: ${turnId}`))
-    const requests = preview ? this.previewHistoryRequests : this.turnHistoryRequests
-    const turns = requests.get(id) ?? new Map<string, Promise<void>>()
-    requests.set(id, turns)
-    const pending = turns.get(turnId)
-    if (pending) return pending
-    const agent = this.live()
-    const epoch = this.navigationEpochs.get(id)
-    const current = () =>
-      this.agent === agent && this.sessions.sessions.has(id) && this.navigationEpochs.get(id) === epoch
-    const check = () => {
-      if (!current()) throw new Error("History navigation was cancelled")
-    }
-    this.setHistoryNavigation(id, {
-      ...navigation,
-      previews: { ...navigation.previews, [turnId]: { state: "loading", messages: [] } },
-      turnErrors: { ...navigation.turnErrors, [turnId]: "" }
-    })
-    const request = readHistoryTurn(
-      id,
-      this.sessions.get(id).cwd,
-      turn,
-      (method, params) => agent.request(method, params),
-      check,
-      preview
-    )
-      .then((session) => {
-        check()
-        if (!preview) {
-          const merged = mergeNavigationHistory(this.sessions.get(id), session, this.state.historyNavigation[id].turns)
-          this.sessions.set(merged)
-          this.updates.remove(id)
-          this.noteLoadedHistory(id, [turnId])
-          this.publishSession(merged)
-        }
-        const latest = this.state.historyNavigation[id]
-        // A late bounded preview cannot replace a fully hydrated turn's preview.
-        if (!preview || !latest.loadedTurnIds.includes(turnId))
-          this.setHistoryNavigation(id, {
-            ...latest,
-            previews: { ...latest.previews, [turnId]: historyTurnPreview(session) }
-          })
-      })
-      .catch((error: unknown) => {
-        if (current()) {
-          const latest = this.state.historyNavigation[id]
-          if (preview && latest.loadedTurnIds.includes(turnId)) return
-          this.setHistoryNavigation(id, {
-            ...latest,
-            previews: { ...latest.previews, [turnId]: { state: "unavailable", messages: [] } },
-            turnErrors: preview
-              ? latest.turnErrors
-              : { ...latest.turnErrors, [turnId]: error instanceof Error ? error.message : String(error) }
-          })
-        }
-        throw error
-      })
-      .finally(() => {
-        if (turns.get(turnId) === request) turns.delete(turnId)
-      })
-    turns.set(turnId, request)
-    return request
-  }
-
-  async prompt(id: string, prompt: acp.ContentBlock[]): Promise<void> {
-    await this.promptReceipt(id, prompt)
-  }
-
-  retrySession(id: string, turnId: string, trigger: "manual" | "automatic"): Promise<void> {
-    const pending = this.retryRequests.get(id)
-    if (pending !== undefined) return pending
-    const request = this.enqueueSession(
-      id,
-      async () => {
-        const session = this.sessions.get(id)
-        if (!session.attached || session.readOnly || session.restoring || session.state !== "idle")
-          throw new Error("Open the idle conversation before retrying")
-        if (!codexExtensionCapabilities(this.state.agent).sessionRetry)
-          throw new Error("The Codex adapter does not support retrying turns")
-        if (this.options.prepareSessionTools) await this.options.prepareSessionTools(id)
-        await this.live().request("_codex/session_retry", { sessionId: id, turnId, trigger })
-      },
-      false
-    ).finally(() => {
-      if (this.retryRequests.get(id) === request) this.retryRequests.delete(id)
-    })
-    this.retryRequests.set(id, request)
-    return request
-  }
-
-  async promptReceipt(id: string, prompt: acp.ContentBlock[]): Promise<string> {
-    return this.lifecycle.prompt(
-      id,
-      (checkpoint) => {
-        if (this.options.sessionContextRevision || this.options.prepareSessionTools)
-          return this.preparePrompt(id, prompt, checkpoint)
-      },
-      () => this.dispatchPrompt(id, prompt).receipt,
-      (operation) => this.enqueueSession(id, operation, false)
-    )
-  }
-
-  private async preparePrompt(id: string, prompt: acp.ContentBlock[], checkpoint: () => void): Promise<void> {
-    let session = this.sessions.get(id)
-    if (!session.attached) throw new Error("Open the chat before sending")
-    if (prompt.length === 0) throw new Error("Enter a message")
-    const run = this.state.runStates[id]?.state
-    // Refresh tools on the next idle prompt; active turns must still accept replies and steering.
-    if (
-      run !== "running" &&
-      run !== "requires_action" &&
-      this.options.sessionContextRevision &&
-      this.contextRevisions.get(id) !== (await this.options.sessionContextRevision())
-    ) {
-      checkpoint()
-      await this.live().request("session/close", { sessionId: id })
-      checkpoint()
-      this.updates.remove(id)
-      this.publishSession({ ...this.sessions.get(id), attached: false })
-      checkpoint()
-      await this.replay(id, session.cwd)
-      session = this.sessions.get(id)
-    }
-    checkpoint()
-    if (this.options.prepareSessionTools) {
-      const run = this.state.runStates[id]?.state
-      if (run !== "running" && run !== "requires_action") {
-        try {
-          await this.options.prepareSessionTools(id)
-        } catch {
-          checkpoint()
-          await this.live().request("session/close", { sessionId: id })
-          checkpoint()
-          this.updates.remove(id)
-          this.publishSession({ ...this.sessions.get(id), attached: false })
-          checkpoint()
-          await this.replay(id, session.cwd)
-          await this.options.prepareSessionTools(id)
-        }
-      }
-    }
-    checkpoint()
-  }
-
-  private dispatchPrompt(id: string, prompt: acp.ContentBlock[]): { receipt: Promise<string> } {
-    if (!this.sessions.get(id).attached) throw new Error("Open the chat before sending")
-    if (prompt.length === 0) throw new Error("Enter a message")
-    // The user's message goes on screen now, under a local id. The receipt says which id the
-    // agent inserted it under (codex-acp-v2 mints it and hands it to Codex as
-    // `clientUserMessageId`); the fold claims the local copy by that receipt alone — never by
-    // the later `user_message` echo or its text, so an unclaimed copy would stay a second
-    // message. Echo and receipt may arrive in either order.
-    const agent = this.live()
-    assertPromptSupported(agent.initialized, prompt)
-    const sentAt = Date.now()
-    const generation = this.lifecycle.capture(id)
-    const localId = this.sessions.addPrompt(id, prompt)
-    this.publishSession(this.sessions.get(id))
-    // Once a request leaves the client, transport failure cannot prove it was not accepted.
-    // Retire cleanup eligibility before dispatch so a lost receipt can never erase a conversation.
-    this.materializeDraft(id)
-    const bound = promptConfigMeta(agent.initialized, this.sessions.get(id))
-    const response = this.lifecycle.submissions.submit(
-      id,
-      () =>
-        agent.request("session/prompt", {
-          sessionId: id,
-          prompt,
-          _meta: { codex: { messageSentAt: sentAt }, ...(Object.keys(bound).length > 0 ? { alwith: bound } : {}) }
-        }),
-      undefined,
-      (error) => configStaleOf(error) !== null
-    ).receipt
-    // Return the receipt as data: admission ends at dispatch, not at receipt or turn completion.
-    const receipt = this.acceptPromptReceipt(id, localId, agent, generation, response)
-    return { receipt }
-  }
-
-  private async acceptPromptReceipt(
-    id: string,
-    localId: string,
-    agent: Agent,
-    generation: SessionGeneration,
-    response: Promise<acp.PromptResponse>
-  ): Promise<string> {
-    const assertCurrent = () => {
-      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
-        throw new AgentGoneError(agent.agentId, "prompt receipt belongs to a retired session")
-    }
-    let accepted: acp.PromptResponse
-    try {
-      accepted = await response
-    } catch (error) {
-      assertCurrent()
-      const stale = configStaleOf(error)
-      if (stale === null) throw error
-      this.publishSession({
-        ...this.sessions.get(id),
-        configOptions: stale.configOptions,
-        configRevision: stale.actual
-      })
-      throw new ConfigStaleError(stale)
-    }
-    assertCurrent()
-    this.sessions.acknowledgePrompt(id, localId, accepted.messageId)
-    this.publishSession(this.sessions.get(id))
-    return accepted.messageId
-  }
-
-  async cancel(id: string): Promise<void> {
-    this.lifecycle.cancelPreparing(id)
-    // The protocol: every pending permission of the session MUST be answered `cancelled`
-    // (and forms cancelled) — otherwise they hang in the agent and the Runtime and come back
-    // as zombie prompts on the next attach.
-    this.requests.cancelSession(id)
-    await this.stopWithAccessRevocation(id, () => this.live().notify("session/cancel", { sessionId: id }))
-  }
-
-  private async stopWithAccessRevocation(id: string, stop: () => Promise<unknown>): Promise<void> {
-    // A native cleanup failure must not leave the Codex turn running. Start
-    // revocation first, attempt both operations, and report every failure.
-    const revoke = Promise.resolve().then(() => this.options.revokeSessionAccess?.(id))
-    const results = await Promise.allSettled([revoke, Promise.resolve().then(stop)])
-    const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason as unknown] : []))
-    if (errors.length === 1) throw errors[0]
-    if (errors.length > 1) throw new AggregateError(errors, "Session stop failed")
-  }
-
-  async setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
-    const write = async (): Promise<void> => {
-      const agent = this.live()
-      const generation = this.lifecycle.capture(id)
-      const response = await agent.request(
-        "session/set_config_option",
-        configOptionRequest(id, this.sessions.get(id).configOptions, configId, value)
-      )
-      if (this.agent !== agent || !this.lifecycle.isCurrent(generation))
-        throw new AgentGoneError(agent.agentId, "configuration belongs to a retired session")
-      this.publishSession({
-        ...this.sessions.get(id),
-        configOptions: response.configOptions,
-        configRevision: configRevisionOf(response) ?? this.sessions.get(id).configRevision
-      })
-      this.noteModel(this.sessions.get(id))
-      if (response.configOptions.some((option) => option.configId === configId && option.category === "model"))
-        this.confirmModel(owner, this.sessions.get(id))
-    }
-    this.store.setState((state) => ({ configPending: { ...state.configPending, [id]: true } }))
-    const pending = this.enqueueSession(id, write, false)
-
-    return pending
-  }
-
-  /** Whether the agent can host gateway models in the per-session model option. */
-  get providerCatalog(): boolean {
-    const codex = this.state.agent?.capabilities?._meta?.codex
-    return (
-      typeof codex === "object" && codex !== null && (codex as { providerCatalog?: unknown }).providerCatalog === true
-    )
-  }
+  // ── Model memory per slot ──
 
   /** Desktop keeps explicit selections per chat slot, never in historical session bindings. */
   setModelSelections(models: Record<DraftOwner, string | null>): void {
@@ -1545,6 +356,12 @@ export class CodexClient {
   onConfirmedModel(listener: (owner: DraftOwner, model: string) => void): () => void {
     this.confirmedModelListeners.add(listener)
     return () => this.confirmedModelListeners.delete(listener)
+  }
+
+  protected override onSessionChanged(session: Session): void {
+    super.onSessionChanged(session)
+    this.followModel("main", session)
+    this.followModel("chat", session)
   }
 
   private followModel(owner: DraftOwner, session: Session): void {
@@ -1567,7 +384,7 @@ export class CodexClient {
       ++this.slotVersions[other]
     }
     this.slotTargets[owner] = id
-    this.store.setState((state) => ({ sessionWindows: { ...state.sessionWindows, [id]: owner } }))
+    this.setApp((state) => ({ sessionWindows: { ...state.sessionWindows, [id]: owner } }))
   }
 
   private confirmModel(owner: DraftOwner, session: Session): void {
@@ -1579,7 +396,7 @@ export class CodexClient {
   }
 
   private resolveModel(model: string | null): Promise<string | null> {
-    return this.options.resolveModel ? this.options.resolveModel(model) : Promise.resolve(model)
+    return this.resolveModelOption ? this.resolveModelOption(model) : Promise.resolve(model)
   }
 
   onSessionModel(listener: SessionModelListener): () => void {
@@ -1606,329 +423,4 @@ export class CodexClient {
     if (!this.state.draftSessions[session.id])
       for (const listener of this.modelListeners) listener(session.id, modelId, isGateway)
   }
-
-  async login(methodId: string, extra: Record<string, unknown> = {}): Promise<void> {
-    await this.live().request("auth/login", {
-      methodId,
-      ...(Object.keys(extra).length ? { _meta: extra } : {})
-    })
-  }
-
-  async logout(): Promise<void> {
-    await this.live().request("auth/logout", {})
-  }
-
-  async close(id: string): Promise<void> {
-    this.lifecycle.cancelPreparing(id)
-    await this.lifecycle.operations.close(id, () =>
-      this.enqueueSession(id, async () => {
-        this.requests.cancelSession(id)
-        await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
-        this.dropSession(id)
-      })
-    )
-  }
-
-  /** End the live session while retaining its transcript, as Desktop's Activity stop does. */
-  async stopSession(id: string): Promise<void> {
-    this.lifecycle.cancelPreparing(id)
-    await this.lifecycle.operations.close(id, () =>
-      this.enqueueSession(id, async () => {
-        this.requests.cancelSession(id)
-        await this.stopWithAccessRevocation(id, () => this.live().request("session/close", { sessionId: id }))
-        this.updates.remove(id)
-        this.lifecycle.retire(id)
-        const session = this.sessions.sessions.get(id)
-        // Activity can also contain sessions that this window has never opened.
-        if (session) {
-          this.publishSession({ ...session, attached: false, restoring: false, readOnly: false, state: "idle" })
-        }
-      })
-    )
-  }
-
-  async archive(id: string): Promise<void> {
-    this.lifecycle.cancelPreparing(id)
-    await this.lifecycle.operations.delete(id, async () => {
-      // Host access is revoked before the lifecycle changes; a failed revocation leaves the session as it was.
-      await this.options.revokeSessionAccess?.(id)
-      await this.live().request("_codex/session_archive", { sessionId: id })
-      this.dropSession(id)
-      this.store.setState((state) => {
-        const thread = state.threads.find((item) => item.sessionId === id)
-        return {
-          threads: state.threads.filter((item) => item.sessionId !== id),
-          archivedThreads: thread
-            ? [{ ...thread, archived: true }, ...state.archivedThreads.filter((item) => item.sessionId !== id)]
-            : state.archivedThreads
-        }
-      })
-    })
-  }
-
-  async unarchive(id: string): Promise<void> {
-    await this.live().request("_codex/session_unarchive", { sessionId: id })
-    this.store.setState((state) => {
-      const thread = state.archivedThreads.find((item) => item.sessionId === id)
-      return {
-        archivedThreads: state.archivedThreads.filter((item) => item.sessionId !== id),
-        threads: thread ? [{ ...thread, archived: false }, ...state.threads] : state.threads
-      }
-    })
-  }
-
-  async delete(id: string): Promise<void> {
-    this.lifecycle.cancelPreparing(id)
-    await this.lifecycle.operations.delete(id, async () => {
-      await this.options.revokeSessionAccess?.(id)
-      await this.live().request("session/delete", { sessionId: id })
-      this.dropSession(id)
-      this.store.setState((state) => ({
-        threads: state.threads.filter((item) => item.sessionId !== id),
-        archivedThreads: state.archivedThreads.filter((item) => item.sessionId !== id)
-      }))
-    })
-  }
-
-  fork(id: string, cwd: string, lastTurnId?: string): Promise<string> {
-    const pending = this.forkQueue.then(() => this.forkInternal(id, cwd, lastTurnId))
-    this.forkQueue = pending.catch(() => {})
-    return pending
-  }
-
-  private async forkInternal(id: string, cwd: string, lastTurnId?: string): Promise<string> {
-    if (lastTurnId !== undefined && (!lastTurnId || !codexExtensionCapabilities(this.state.agent).forkAtTurn))
-      throw new Error("The agent does not support forking at this turn")
-    const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
-    const known = [...indexes.flat(), ...this.state.threads, ...this.state.archivedThreads]
-    const sourceTitle = this.sessions.sessions.get(id)?.title ?? known.find((thread) => thread.sessionId === id)?.title
-    const { revision, bind, ...hint } = await this.sessionContext(cwd, this.gatewayModels.get(id) ?? null, {
-      kind: "fork",
-      sourceSessionId: id
-    })
-    const response = await this.born(
-      () =>
-        this.live().request("session/fork", {
-          sessionId: id,
-          cwd,
-          ...(hint.mcpServers ? { mcpServers: hint.mcpServers } : {}),
-          ...(hint.systemPrompt ? { systemPrompt: hint.systemPrompt } : {}),
-          _meta: { ...hint._meta, ...(lastTurnId === undefined ? {} : { codex: { ...hint._meta?.codex, lastTurnId } }) }
-        }),
-      // Fork history arrives before the new session id is known: it waits in `unborn` and is applied as replay below.
-      (response) => this.sessions.set(createSession(response.sessionId, cwd))
-    )
-    await bind?.(response.sessionId)
-    this.contextRevisions.set(response.sessionId, revision)
-    const forked = this.sessions.get(response.sessionId)
-    this.publishSession({
-      ...forked,
-      items: forked.items.map((item) => ({ ...item, replayed: true })),
-      cwd,
-      attached: true,
-      restoring: false,
-      configOptions: response.configOptions ?? [],
-      commands: response.availableCommands ?? forked.commands
-    })
-    this.noteModel(this.sessions.get(response.sessionId))
-    this.store.setState((state) => ({
-      threads: [
-        {
-          sessionId: response.sessionId,
-          cwd: this.projectPath(cwd),
-          title: forked.title,
-          updatedAt: new Date().toISOString(),
-          archived: false,
-          ...sessionLineage(response._meta)
-        },
-        ...state.threads.filter((thread) => thread.sessionId !== response.sessionId)
-      ]
-    }))
-    this.recordForkOrigin(response.sessionId, response._meta)
-    const title = sourceTitle ?? forked.title
-    if (title)
-      await this.renameSession(
-        response.sessionId,
-        forkTitle(
-          title,
-          known.flatMap((thread) => (thread.title ? [thread.title] : []))
-        )
-      )
-    return response.sessionId
-  }
-
-  private recordForkOrigin(id: string, meta: acp.SessionInfo["_meta"]): void {
-    const lineage = sessionLineage(meta)
-    const sourceId = lineage.forkedFromId
-    if (!sourceId) return
-    const codex = meta?.codex as Record<string, unknown>
-    const boundary = codex.forkedAtTurnId
-    if (boundary !== undefined && boundary !== null && (typeof boundary !== "string" || !boundary))
-      throw new Error("Invalid fork boundary from the agent")
-    this.store.setState((state) => ({
-      forkOrigins: {
-        ...state.forkOrigins,
-        [id]: {
-          sourceId,
-          boundaryTurnId: typeof boundary === "string" ? boundary : null
-        }
-      }
-    }))
-  }
-
-  async readThreadSummary(id: string): Promise<ThreadSummary | null> {
-    const known = [...this.state.threads, ...this.state.archivedThreads].find((thread) => thread.sessionId === id)
-    if (known) return known
-    const indexes = await Promise.all([this.listSessionIndex(), this.listSessionIndex(undefined, true)])
-    return indexes.flat().find((thread) => thread.sessionId === id) ?? null
-  }
-
-  // ── Rename, account, rate limits, file search (codex-acp-v2 `_codex/*` extensions) ──
-
-  /** Codex `thread/name/set`; the list is patched at once, the `session_info_update` confirms it. */
-  async renameSession(id: string, name: string): Promise<void> {
-    await this.live().request("_codex/session_rename", { sessionId: id, name })
-    const rename = (thread: ThreadSummary) => (thread.sessionId === id ? { ...thread, title: name } : thread)
-    this.store.setState((state) => ({
-      threads: state.threads.map(rename),
-      archivedThreads: state.archivedThreads.map(rename)
-    }))
-    const session = this.sessions.sessions.get(id)
-    if (session) this.publishSession({ ...session, title: name })
-  }
-
-  async requestPrediction(sessionId: string, sourceTurnId: string): Promise<void> {
-    if (!codexExtensionCapabilities(this.state.agent).composerPredictions)
-      throw new Error("The agent does not support composer predictions")
-    await this.live().request("_codex/session_prediction_request", { sessionId, sourceTurnId })
-  }
-
-  readAccount(): Promise<AccountReadResponse> {
-    return this.live().request<AccountReadResponse>("_codex/account_read", {})
-  }
-
-  async readRateLimits(): Promise<RateLimitSnapshot> {
-    const response = await this.live().request<RateLimitsResponse>("_codex/rate_limits", {})
-    return response.rateLimits
-  }
-
-  /** Fires on every `_codex/rate_limits_updated`; returns the unsubscribe. */
-  onRateLimits(listener: (limits: RateLimitSnapshot) => void): () => void {
-    this.rateLimitListeners.add(listener)
-    return () => this.rateLimitListeners.delete(listener)
-  }
-
-  /** Codex's own file search (`fuzzyFileSearch`), the one the official app's `@` uses. */
-  fuzzyFileSearch(params: FuzzyFileSearchParams): Promise<FuzzyFileSearchResponse> {
-    return this.live().request<FuzzyFileSearchResponse>("_codex/fuzzy_file_search", params)
-  }
-
-  onFileSearchUpdate(listener: (update: FuzzyFileSearchSessionUpdated) => void): () => void {
-    this.fileSearchListeners.add(listener)
-    return () => this.fileSearchListeners.delete(listener)
-  }
-
-  // ── Skills and plugin marketplaces (codex-acp-v2 `_codex/*` extensions) ──
-
-  /** Fires after `_codex/skills_changed`; returns the unsubscribe. */
-  onSkillsChanged(listener: () => void): () => void {
-    this.skillsListeners.add(listener)
-    return () => this.skillsListeners.delete(listener)
-  }
-
-  listSkills(cwds?: string[], forceReload = false): Promise<SkillsListResponse> {
-    return this.live().request<SkillsListResponse>("_codex/skills_list", {
-      ...(cwds && cwds.length > 0 ? { cwds } : {}),
-      ...(forceReload ? { forceReload } : {})
-    } satisfies SkillsListParams)
-  }
-
-  setSkillEnabled(params: SkillsConfigWriteParams): Promise<SkillsConfigWriteResponse> {
-    return this.live().request<SkillsConfigWriteResponse>("_codex/skills_config_write", params)
-  }
-
-  listPlugins(params: PluginListParams = {}): Promise<PluginListResponse> {
-    return this.live().request<PluginListResponse>("_codex/plugin_list", params)
-  }
-
-  installedPlugins(cwds?: string[]): Promise<PluginInstalledResponse> {
-    return this.live().request<PluginInstalledResponse>(
-      "_codex/plugin_installed",
-      (cwds && cwds.length > 0 ? { cwds } : {}) satisfies PluginInstalledParams
-    )
-  }
-
-  installPlugin(params: PluginInstallParams): Promise<PluginInstallResponse> {
-    return this.live().request<PluginInstallResponse>("_codex/plugin_install", params)
-  }
-
-  setPluginEnabled(pluginId: string, enabled: boolean, remotePluginId?: string): Promise<{ enabled: boolean }> {
-    return this.live().request("_codex/plugin_set_enabled", {
-      pluginId,
-      enabled,
-      ...(remotePluginId ? { remotePluginId } : {})
-    })
-  }
-
-  async uninstallPlugin(pluginId: string): Promise<void> {
-    await this.live().request("_codex/plugin_uninstall", { pluginId } satisfies PluginUninstallParams)
-  }
-
-  readPlugin(params: PluginReadParams): Promise<PluginReadResponse> {
-    return this.live().request<PluginReadResponse>("_codex/plugin_read", params)
-  }
-
-  addMarketplace(params: MarketplaceAddParams): Promise<MarketplaceAddResponse> {
-    return this.live().request<MarketplaceAddResponse>("_codex/marketplace_add", params)
-  }
-
-  async removeMarketplace(marketplaceName: string): Promise<void> {
-    await this.live().request("_codex/marketplace_remove", { marketplaceName } satisfies MarketplaceRemoveParams)
-  }
-
-  upgradeMarketplaces(marketplaceName?: string): Promise<MarketplaceUpgradeResponse> {
-    return this.live().request<MarketplaceUpgradeResponse>(
-      "_codex/marketplace_upgrade",
-      (marketplaceName ? { marketplaceName } : {}) satisfies MarketplaceUpgradeParams
-    )
-  }
-
-  private dropSession(id: string): void {
-    this.lifecycle.retire(id)
-    this.historyRequests.delete(id)
-    this.navigationEpochs.delete(id)
-    this.navigationRequests.delete(id)
-    this.turnHistoryRequests.delete(id)
-    this.previewHistoryRequests.delete(id)
-    this.loadedHistoryTurns.delete(id)
-    this.contextRevisions.delete(id)
-    this.updates.remove(id)
-    this.requests.cancelSession(id)
-    this.sessions.sessions.delete(id)
-    this.store.setState((state) => {
-      const { [id]: _removed, ...sessions } = state.sessions
-      const { [id]: _origin, ...forkOrigins } = state.forkOrigins
-      const { [id]: _draft, ...draftSessions } = state.draftSessions
-      const { [id]: _window, ...sessionWindows } = state.sessionWindows
-      const { [id]: _history, ...historyPages } = state.historyPages
-      const { [id]: _navigation, ...historyNavigation } = state.historyNavigation
-      return { sessions, forkOrigins, draftSessions, sessionWindows, historyPages, historyNavigation }
-    })
-  }
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms)
-    promise.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (error: unknown) => {
-        clearTimeout(timer)
-        reject(asError(error))
-      }
-    )
-  })
 }

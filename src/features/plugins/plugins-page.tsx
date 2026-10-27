@@ -12,8 +12,8 @@ import { memo, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import type { PluginMarketplaceEntry, PluginSummary } from "@/agent/codex-extensions"
-import { hasPluginStore } from "@/agent/codex-extensions"
+import type { PluginMarketplaceEntry, PluginSummary } from "@nyssance/codex-acp-v2/client"
+import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
   ItemActions,
@@ -479,7 +479,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
     JSON.stringify(
       [
         ...new Set(
-          state.threads.map((thread) => newChatDirectory(thread.cwd)).filter((path): path is string => path !== null)
+          state.sessionList.map((sessionRow) => newChatDirectory(sessionRow.cwd)).filter((path): path is string => path !== null)
         )
       ].toSorted()
     )
