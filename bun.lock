@@ -6,10 +6,10 @@
       "name": "alwith-u",
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.0.2",
-        "@alwith/api": "^0.4.21",
+        "@alwith/api": "^0.5.3",
         "@alwith/module-auth": "^0.1.14",
         "@alwith/module-browser": "^0.0.1",
-        "@alwith/module-chat": "^0.1.32",
+        "@alwith/module-chat": "^0.5.3",
         "@alwith/module-collection": "^0.0.3",
         "@alwith/module-computer": "^0.1.8",
         "@alwith/module-drive": "^0.1.4",
@@ -65,7 +65,6 @@
         "highlight.js": "^11.12.0",
         "i18next": "^26.5.11",
         "katex": "^0.19.1",
-        "ldrs": "^1.1.9",
         "lucide-react": "^1.61.0",
         "marked": "^18.1.2",
         "mermaid": "12.2.0",
@@ -103,7 +102,7 @@
         "@alwith/native-kit": "^0.1.1",
         "@alwith/native-mobile": "^0.1.0",
         "@alwith/native-voice": "^0.1.2",
-        "@nyssance/codex-acp-v2": "^0.7.37",
+        "@nyssance/codex-acp-v2": "^0.7.39",
         "@nyssance/ts7-lint": "^0.1.3",
         "@openai/codex": "0.164.0",
         "@storybook/addon-a11y": "^10.6.4",
@@ -145,10 +144,9 @@
   },
   "patchedDependencies": {
     "vite@8.3.5": "patches/vite@8.3.5.patch",
-    "@alwith/module-chat@0.1.32": "patches/@alwith%2Fmodule-chat@0.1.32.patch",
   },
   "overrides": {
-    "@alwith/module-chat": "^0.1.32",
+    "@alwith/module-chat": "^0.5.3",
     "effect": "^4.0.6",
   },
   "packages": {
@@ -156,13 +154,13 @@
 
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.0.2", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-2.0.2.tgz", { "peerDependencies": { "zod": "^3.25.76 || ^4.0.0" } }, "sha512-jLywRB42hZMRMc4aUgt0uRjkY9FQnMdybv4XgLl+ddi75QuJn8Vbl0+CHcVHJDC0+WDfi1KQXRWtHaR5vp6gHw=="],
 
-    "@alwith/api": ["@alwith/api@0.4.21", "", { "dependencies": { "effect": "^4.0.6" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-uNzkf8v4PlsE3jcAFRMtKWNtOzicZQPyBJUaBgshn6LXd6P/NzAuLiN27mYdj51xhHCx+CMw6C8etLA1nbCKZw=="],
+    "@alwith/api": ["@alwith/api@0.5.3", "", { "dependencies": { "effect": "^4.0.6" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-EIER4gBbjNlLePZv5XCwRBGGJtfRyH1JqFYBFflY1LyNIM0Rjj9bOjzmhpdbilK+MyFDGytkzQHT5p/Plb6eAw=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.1.14", "", { "dependencies": { "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "fflate": "0.8.3", "i18next": "^26.5.10", "lucide-react": "^1.61.0", "motion": "^14.6.0", "react-i18next": "^17.1.8", "sonner": "^2.0.8", "tyme4ts": "^1.5.3", "zustand": "^5.0.16" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-xRGDUU9XI/rK8oqvyufxOs4CjqbVuP4wrQ6xOuSFNxQKVAES6egIHfGfRoCcPmW39zp7uvP+6rArgLY9MdnG4Q=="],
 
     "@alwith/module-browser": ["@alwith/module-browser@0.0.1", "", { "peerDependencies": { "react": "^19.3.1" } }, "sha512-4UaRGaM7cNjVJExhc+JmI1QQIVZlvPsvQ/L27+Ii+KVBOqgk5mNGJwMWrzI/NOaODLZleDBdhIZghncK1uJYFg=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.1.32", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "lucide-react": "^1.61.0", "marked": "^18.1.1", "marked-linkify-it": "^4.0.2", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@alwith/api": "^0.4.21", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-2N/NO/qdFmeOYceQhukfSqj2+LuLPwQ5UjNpMVBlDntDK0a/yu7N84ztC16yksgNd2kp/Hs4ZUKi8f0KSI1frw=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.5.3", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@floating-ui/dom": "^1.8.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.0", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^8.1.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.61.0", "marked": "^18.1.1", "marked-linkify-it": "^4.0.2", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@alwith/api": "^0.5.1", "@nyssance/codex-acp-v2": "^0.7.39", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/codex-acp-v2"] }, "sha512-PPOe1Am2+qh0uWIctcs3kHQoe3hUIQgLOpsQ8S/SQcyosugg9lNjkqMFFT5vDCkRBjh0TTZ5pMf8uMeK8Ey4WQ=="],
 
     "@alwith/module-collection": ["@alwith/module-collection@0.0.3", "", {}, "sha512-19Z+uZYKxLEJJ/anKwD2NL0cyX1C1MWJj+8sACv8epADJqQhDpnd5fLjNN+UsTGoD5Mf7MKTWKxerarjvgbZ0w=="],
 
@@ -540,7 +538,7 @@
 
     "@nyssance/atlas": ["@nyssance/atlas@github:nyssance/atlas#33e1d89", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.6.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "nyssance-atlas-33e1d89", "sha512-qLVfIP4wWDu76gcvA/712Xbb7e01dw3zRfzjfncog+VlB01h2FCoE/cZZF+V+qh8CHQZ9Q8Lle/0YpAOJwD8zQ=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.37", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@openai/codex": "^0.164.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.0", "zod": "^4.6.7" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-j+JuvkfiCTuOPhWyRzgIZFQM4rMRsQbhYB3Qi1XrK3nnznXD1mKAUX8nTs3wrF2ijty3ZNZkucCXLvMgHoCN5g=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.39", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.0.2", "@openai/codex": "^0.164.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.4.22" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-bTFREurrletjvqk4CEDmZRAHr7/N/kwOoIxXm7janOJw7bDeSZmUBtOBN4JMRnfLVffjmctpIPKCn6/aELTN6g=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
