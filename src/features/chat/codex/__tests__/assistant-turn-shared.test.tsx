@@ -524,3 +524,45 @@ test("forked sessions keep independent work and thinking disclosure choices", ()
   fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
 })
+
+test("image generation appears in the reply while running and is replaced by the result", () => {
+  let session = feed(
+    addPrompt(createSession("image-progress", "/tmp"), [{ type: "text", text: "draw" }], "prompt"),
+    text("intro", "I will generate an image", "commentary"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "image",
+      name: "image_generation",
+      kind: "other",
+      status: "in_progress"
+    }
+  )
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  const pending = view.getByRole("status", { name: "Generating image" })
+  expect(pending.textContent).not.toMatch(/\d+%/)
+  expect(view.container.querySelector(".codex-final-answer")).toContainElement(pending)
+  session = feed(session, {
+    sessionUpdate: "tool_call_update",
+    toolCallId: "image",
+    status: "completed",
+    content: [{ type: "content", content: { type: "image", data: "aGVsbG8=", mimeType: "image/png" } }]
+  })
+  view.rerender(viewOf(session))
+  expect(view.queryByRole("status", { name: "Generating image" })).toBeNull()
+  expect(view.container.querySelectorAll(".codex-reply-artifacts img")).toHaveLength(1)
+})
+
+test("stopped image generation never keeps an animated running placeholder", () => {
+  const session = feed(addPrompt(createSession("stopped-image", "/tmp"), [{ type: "text", text: "draw" }], "prompt"), {
+    sessionUpdate: "tool_call_update",
+    toolCallId: "image",
+    name: "image_generation",
+    kind: "other",
+    status: "in_progress"
+  })
+  const view = render(viewOf(session, false))
+  mounted.push(view)
+  expect(view.queryByRole("status", { name: "Generating image" })).toBeNull()
+  expect(view.getByText("Image generation stopped")).toBeDefined()
+})

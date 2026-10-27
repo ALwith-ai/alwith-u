@@ -11,7 +11,7 @@ import {
 import { ActivityHostProvider } from "@alwith/module-chat/activity-host"
 import { CodexAssistantTurn, CodexMessageActions } from "@alwith/module-chat/assistant-message"
 import { asyncQuestions } from "@alwith/module-chat/async-question-card"
-import { SparklesIcon } from "lucide-react"
+import { LoaderCircleIcon, SparklesIcon } from "lucide-react"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -163,6 +163,12 @@ function AssistantTurnImpl({
     .map(messageText)
     .join("\n")
   const time = active ? null : formatTurnTime(turn, "assistant")
+  const generatingImages = turn.items.filter(
+    (item) =>
+      item.kind === "tool" &&
+      item.name === "image_generation" &&
+      (item.status === "pending" || item.status === "in_progress")
+  )
   // Generated artifacts are tool results in both live updates and history replay.
   // Project them into the reply without moving items out of the runtime-owned session.
   const displayedImages = new Set(
@@ -187,6 +193,7 @@ function AssistantTurnImpl({
     })
   })
   const hasFinal =
+    generatingImages.length > 0 ||
     artifacts.length > 0 ||
     turn.final.some(
       (message) =>
@@ -213,18 +220,6 @@ function AssistantTurnImpl({
         answer={
           hasFinal ? (
             <div className="flex min-w-0 flex-col gap-3">
-              {artifacts.length > 0 && (
-                <div className="codex-reply-artifacts flex min-w-0 flex-col gap-3">
-                  {artifacts.map((artifact) => (
-                    <AssistantContent
-                      key={artifact.key}
-                      content={[artifact.block]}
-                      messageId={artifact.key}
-                      streaming={false}
-                    />
-                  ))}
-                </div>
-              )}
               {turn.final.map((message) =>
                 asyncQuestions(message._meta).length > 0 ? (
                   <AsyncQuestions key={message.id} sessionId={sessionId} item={message} />
@@ -236,6 +231,33 @@ function AssistantTurnImpl({
                     streaming={active}
                   />
                 )
+              )}
+              {generatingImages.map((item) => (
+                <div
+                  key={item.id}
+                  className="codex-image-generation"
+                  role="status"
+                  aria-label={t(active ? "chat.image.generating" : "chat.image.stopped")}
+                  aria-busy={active}
+                >
+                  <div className="codex-image-generation-texture" aria-hidden="true" />
+                  <span className="codex-image-generation-status">
+                    {active && <LoaderCircleIcon className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
+                    {t(active ? "chat.image.generating" : "chat.image.stopped")}
+                  </span>
+                </div>
+              ))}
+              {artifacts.length > 0 && (
+                <div className="codex-reply-artifacts flex min-w-0 flex-col gap-3">
+                  {artifacts.map((artifact) => (
+                    <AssistantContent
+                      key={artifact.key}
+                      content={[artifact.block]}
+                      messageId={artifact.key}
+                      streaming={false}
+                    />
+                  ))}
+                </div>
               )}
               {!active &&
                 (finalText.trim().length > 0 ? (

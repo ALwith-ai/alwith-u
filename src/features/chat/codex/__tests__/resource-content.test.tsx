@@ -31,6 +31,15 @@ const blob = {
   resource: { uri: "file:///tmp/photo.png", mimeType: "image/png", blob: "aGVsbG8=" }
 }
 
+test("generated images use a preview card and an icon download without size controls", () => {
+  const view = render(<ResourceContent block={blob} generated />)
+  expect(view.getByRole("button", { name: "View image" })).toBeDefined()
+  const download = view.getByRole("button", { name: "Download photo.png" })
+  expect(download.textContent).toBe("")
+  expect(view.queryByText("Download at size")).toBeNull()
+  expect(view.queryByRole("spinbutton")).toBeNull()
+})
+
 test("file references preserve encoded names, bare line locations and reserved filename characters", async () => {
   const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
   mocks.push(path)

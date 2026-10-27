@@ -1,6 +1,6 @@
 import type { ContentBlock } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isEmbeddedResource, isImage, isResourceLink } from "@alwith/api"
-import { DownloadIcon, FileIcon, ImageOffIcon } from "lucide-react"
+import { DownloadIcon, FileIcon, ImageOffIcon, LoaderCircleIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button"
 import { openImageLightbox } from "../dialogs/image-lightbox"
 import { chatFileName, downloadChatFile, useOpenChatLink } from "../file-actions"
 
-export function ResourceContent({ block }: { block: ContentBlock }): ReactElement | null {
+export function ResourceContent({
+  block,
+  generated = false
+}: {
+  block: ContentBlock
+  generated?: boolean
+}): ReactElement | null {
   const { t } = useTranslation()
   const openLink = useOpenChatLink()
   const [saving, setSaving] = useState(false)
@@ -78,35 +84,39 @@ export function ResourceContent({ block }: { block: ContentBlock }): ReactElemen
     }
   }
   return (
-    <div className="flex max-w-full min-w-0 flex-col items-start gap-1">
+    <div
+      className={generated && image ? "codex-generated-image" : "flex max-w-full min-w-0 flex-col items-start gap-1"}
+    >
       {image && (
         <Button
           variant="ghost"
-          className="h-auto max-w-full p-0"
+          className={generated ? "codex-generated-image-preview h-auto max-w-full p-0" : "h-auto max-w-full p-0"}
           aria-label={t("chat.image.view")}
-          onClick={() => openImageLightbox(src)}
+          onClick={() => openImageLightbox(src, name, resource.uri)}
         >
           <img
             src={src}
             alt=""
-            className="max-h-96 max-w-full rounded object-contain"
+            className={
+              generated ? "max-h-[40rem] max-w-full object-contain" : "max-h-96 max-w-full rounded object-contain"
+            }
             onError={() => setFailedImage(src)}
           />
         </Button>
       )}
       <Button
-        variant="link"
-        size="sm"
-        className="max-w-full min-w-0"
+        variant={generated && image ? "secondary" : "link"}
+        size={generated && image ? "icon" : "sm"}
+        className={generated && image ? "codex-generated-image-download" : "max-w-full min-w-0"}
         disabled={saving}
-        title={resource.uri}
+        title={t("chat.content.download", { name })}
         aria-label={t("chat.content.download", { name })}
         onClick={() => {
           void save()
         }}
       >
-        <DownloadIcon />
-        <span className="truncate">{name}</span>
+        {saving ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <DownloadIcon />}
+        {!(generated && image) && <span className="truncate">{name}</span>}
       </Button>
     </div>
   )

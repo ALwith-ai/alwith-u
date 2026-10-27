@@ -183,3 +183,93 @@
 .codex-markdown-table {
   min-width: 100%;
 }
+
+.codex-image-generation {
+  position: relative;
+  width: min(20rem, 100%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  background: var(--muted);
+}
+
+.codex-image-generation-texture {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--muted-foreground) 25%, transparent) 1px, transparent 1px);
+  background-size: 12px 12px;
+  mask-image: radial-gradient(ellipse at 35% 20%, black, transparent 75%);
+}
+
+.codex-image-generation[aria-busy="true"] .codex-image-generation-texture {
+  animation: codex-image-breathe 2.5s ease-in-out infinite alternate;
+}
+
+.codex-image-generation-status {
+  position: absolute;
+  inset-inline-end: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.codex-generated-image {
+  position: relative;
+  width: fit-content;
+  max-width: min(40rem, 100%);
+  overflow: hidden;
+  border-radius: 1.5rem;
+}
+
+.codex-generated-image-preview {
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  cursor: zoom-in;
+}
+
+.codex-generated-image-download {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .codex-generated-image-download {
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+  .codex-generated-image:hover .codex-generated-image-download,
+  .codex-generated-image:focus-within .codex-generated-image-download,
+  .codex-generated-image-download:disabled {
+    opacity: 1;
+  }
+}
+
+@keyframes codex-image-breathe {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .codex-image-generation[aria-busy="true"] .codex-image-generation-texture {
+    animation: none;
+  }
+  .codex-generated-image-download {
+    transition: none;
+  }
+}

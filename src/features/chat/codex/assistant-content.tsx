@@ -16,11 +16,11 @@ function AssistantContentBlock({ block, streaming }: { block: ContentBlock; stre
       </div>
     )
   }
-  if (ContentBlockGuard.isImage(block)) return <ResourceContent block={block} />
+  if (ContentBlockGuard.isImage(block)) return <ResourceContent block={block} generated />
   if (ContentBlockGuard.isAudio(block))
     // ACP audio blocks do not carry captions or a transcript.
     return <audio controls src={`data:${block.mimeType};base64,${block.data}`} />
-  if (isResourceLink(block) || isEmbeddedResource(block)) return <ResourceContent block={block} />
+  if (isResourceLink(block) || isEmbeddedResource(block)) return <ResourceContent block={block} generated />
   return <div className="text-muted-foreground">{t("chat.content.unsupported", { type: block.type })}</div>
 }
 

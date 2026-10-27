@@ -239,10 +239,19 @@
       "next": "Next match"
     },
     "image": {
+      "tools": "Image tools",
+      "zoom": "Zoom",
+      "fit": "Fit",
+      "openWith": "Open with",
+      "openSidePanel": "Open in side panel",
+      "localRequired": "This image has no local file. Download it first.",
+      "appsUnavailable": "Could not load applications",
       "view": "View image",
       "previous": "Previous image",
       "next": "Next image",
-      "unavailable": "Image unavailable"
+      "unavailable": "Image unavailable",
+      "generating": "Generating image",
+      "stopped": "Image generation stopped"
     },
     "content": {
       "download": "Download {{name}}",

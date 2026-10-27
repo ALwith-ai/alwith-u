@@ -1,22 +1,48 @@
 import type { ActivityImage } from "@alwith/module-chat/activity-host"
-// Ported from ALwith Desktop's image-lightbox.tsx.
-// Any image in the thread opens it through `openImageLightbox`.
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react"
+import { dirname } from "@alwith/module-fs"
+import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DownloadIcon,
+  FolderOpenIcon,
+  LoaderCircleIcon,
+  Maximize2Icon,
+  XIcon
+} from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { create } from "zustand"
 
-import { Button } from "@/components/alwith-ui/button"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { useWorkspace } from "@/features/workspace/context"
+import { type AppInfo, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
+import { isMac } from "@/lib/platform"
 
-type LightboxState = { images: ActivityImage[]; index: number }
+import { chatFileName, downloadChatFile } from "../file-actions"
 
+// Gallery entries keep their original attachment identity for file operations.
+type PreviewImage = ActivityImage & { uri?: string }
+type LightboxState = { images: PreviewImage[]; index: number }
 const useLightbox = create<LightboxState>(() => ({ images: [], index: 0 }))
+const closeLightbox = (): void => useLightbox.setState({ images: [], index: 0 })
 
-export function openImageLightbox(src: string, alt = ""): void {
-  openImageGallery([{ src, alt }], 0)
+export function openImageLightbox(src: string, alt = "", uri?: string): void {
+  openImageGallery([{ src, alt, uri }], 0)
 }
 
-export function openImageGallery(images: ActivityImage[], index: number): void {
+export function openImageGallery(images: PreviewImage[], index: number): void {
   if (images[index] === undefined) throw new Error("Image gallery index is out of range")
   useLightbox.setState({ images, index })
 }
@@ -27,77 +53,257 @@ function moveImage(direction: number): void {
   }))
 }
 
+function localPath(uri: string | undefined): string | null {
+  if (!uri) return null
+  if (uri.startsWith("file:")) {
+    const url = new URL(uri)
+    const path = decodeURIComponent(url.pathname)
+    if (url.hostname && url.hostname !== "localhost") return `//${url.hostname}${path}`
+    return /^\/[A-Za-z]:\//.test(path) ? path.slice(1) : path
+  }
+  return uri.startsWith("/") || /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") ? uri : null
+}
+
+function ImagePreview({ image, index, count }: { image: PreviewImage; index: number; count: number }) {
+  const { t } = useTranslation()
+  const workspace = useWorkspace()
+  const viewport = useRef<HTMLDivElement>(null)
+  const [bounds, setBounds] = useState({ width: 0, height: 0 })
+  const [natural, setNatural] = useState({ width: 0, height: 0 })
+  const [zoom, setZoom] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [apps, setApps] = useState<AppInfo[]>([])
+  const [appsError, setAppsError] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const path = localPath(image.uri)
+  const data = /^data:(image\/[^;,]+);base64,([\s\S]*)$/.exec(image.src)
+  const name = image.uri ? chatFileName(image.uri) : `image.${data?.[1]?.split("/")[1] ?? "png"}`
+  const fit =
+    natural.width && bounds.width
+      ? Math.min(1, Math.max(1, bounds.width - 48) / natural.width, Math.max(1, bounds.height - 48) / natural.height)
+      : null
+  const scale = zoom ?? fit
+  useEffect(() => {
+    const node = viewport.current
+    if (!node) return
+    const measure = (): void => setBounds({ width: node.clientWidth, height: node.clientHeight })
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  const run = async (action: () => Promise<unknown>): Promise<void> => {
+    setBusy(true)
+    try {
+      await action()
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const loadApps = (): void => {
+    setAppsError(false)
+    void readAppsInfo(
+      isMac()
+        ? ["Preview", "Photos", "Adobe Photoshop", "Affinity Photo", "Pixelmator Pro", "GIMP"]
+        : ["Photos", "Paint", "Adobe Photoshop", "GIMP"],
+      true
+    )
+      .then(setApps)
+      .catch(() => setAppsError(true))
+  }
+  return (
+    <>
+      <header className="flex w-full shrink-0 items-center justify-between gap-3 px-4 py-3">
+        <DialogTitle className="min-w-0 truncate text-sm font-medium">{image.alt || name}</DialogTitle>
+        <div className="flex shrink-0 items-center gap-2" role="toolbar" aria-label={t("chat.image.tools")}>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" className="rounded-full" aria-label={t("chat.image.zoom")} />}
+            >
+              {scale === null ? t("chat.image.fit") : `${Math.round(scale * 100)}%`}
+              <ChevronDownIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuRadioGroup
+                value={zoom === null ? "fit" : String(zoom)}
+                onValueChange={(value) => setZoom(value === "fit" ? null : Number(value))}
+              >
+                <DropdownMenuRadioItem value="fit">{t("chat.image.fit")}</DropdownMenuRadioItem>
+                {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4].map((value) => (
+                  <DropdownMenuRadioItem key={value} value={String(value)}>
+                    {value * 100}%
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex items-center rounded-full border bg-background">
+            <Button
+              variant="ghost"
+              className="rounded-s-full"
+              disabled={!path || busy}
+              title={!path ? t("chat.image.localRequired") : undefined}
+              onClick={() => path && void run(() => openPath(path))}
+            >
+              <FolderOpenIcon />
+              {t("actions.open")}
+            </Button>
+            <DropdownMenu onOpenChange={(open) => open && loadApps()}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-e-full"
+                    disabled={!path || busy}
+                    aria-label={t("chat.image.openWith")}
+                  />
+                }
+              >
+                <ChevronDownIcon />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-48">
+                {apps.map((app) => (
+                  <DropdownMenuItem
+                    key={app.bundle_id}
+                    onClick={() => path && void run(() => openPathInApp(app.bundle_id, path))}
+                  >
+                    {app.icon && <img src={app.icon} alt="" className="size-4" />}
+                    {app.name}
+                  </DropdownMenuItem>
+                ))}
+                {appsError && <DropdownMenuItem disabled>{t("chat.image.appsUnavailable")}</DropdownMenuItem>}
+                <DropdownMenuItem onClick={() => path && void run(() => revealItemsInDir(path))}>
+                  {t("chat.filePreview.reveal")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full"
+            disabled={!data || busy}
+            aria-label={t("chat.content.download", { name })}
+            title={t("chat.content.download", { name })}
+            onClick={() => data && void run(() => downloadChatFile(image.uri ?? name, data[2]))}
+          >
+            {busy ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <DownloadIcon />}
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-full"
+            aria-label={t("chat.image.openSidePanel")}
+            disabled={!path || !workspace || busy}
+            title={!path ? t("chat.image.localRequired") : undefined}
+            onClick={() =>
+              path &&
+              workspace &&
+              void run(async () => {
+                await workspace.openFile(path, dirname(path))
+                closeLightbox()
+              })
+            }
+          >
+            <Maximize2Icon />
+            <span className="hidden sm:inline">{t("chat.image.openSidePanel")}</span>
+          </Button>
+          <DialogClose
+            render={
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                aria-label={t("actions.close")}
+                title={t("actions.close")}
+              />
+            }
+          >
+            <XIcon />
+          </DialogClose>
+        </div>
+      </header>
+      <div ref={viewport} className="min-h-0 w-full flex-1 overflow-auto">
+        <div className="grid min-h-full w-max min-w-full place-items-center p-6">
+          {failed ? (
+            <p role="alert">{t("chat.image.unavailable")}</p>
+          ) : (
+            <img
+              src={image.src}
+              alt={image.alt}
+              className="block max-w-none shadow-sm"
+              style={
+                natural.width && scale
+                  ? { width: natural.width * scale, height: natural.height * scale }
+                  : { maxWidth: "100%", maxHeight: "80vh" }
+              }
+              onLoad={(event) =>
+                setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })
+              }
+              onError={() => setFailed(true)}
+            />
+          )}
+        </div>
+      </div>
+      {count > 1 && (
+        <>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute start-3 top-1/2 rounded-full"
+            aria-label={t("chat.image.previous")}
+            disabled={index === 0}
+            onClick={() => moveImage(-1)}
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute end-3 top-1/2 rounded-full"
+            aria-label={t("chat.image.next")}
+            disabled={index === count - 1}
+            onClick={() => moveImage(1)}
+          >
+            <ChevronRightIcon />
+          </Button>
+        </>
+      )}
+    </>
+  )
+}
+
 export function ImageLightbox() {
   const { t } = useTranslation()
   const { images, index } = useLightbox()
   const image = images[index]
   return (
-    <Dialog open={image !== undefined} onOpenChange={(open) => !open && useLightbox.setState({ images: [], index: 0 })}>
+    <Dialog open={image !== undefined} onOpenChange={(open) => !open && closeLightbox()}>
       <DialogContent
         showCloseButton={false}
+        aria-label={t("chat.image.view")}
         onKeyDown={(event) => {
-          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          if (
+            (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+            !event.defaultPrevented &&
+            !(event.target instanceof Element && event.target.closest('[role="menu"], input, textarea, select'))
+          ) {
             event.preventDefault()
             moveImage(event.key === "ArrowLeft" ? -1 : 1)
           }
         }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) useLightbox.setState({ images: [], index: 0 })
-        }}
-        className="fixed inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none bg-transparent p-0 ring-0 sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
+        className="fixed inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background/90 p-0 ring-0 backdrop-blur-md sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
       >
-        <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
-        {image !== undefined && (
-          <img src={image.src} alt={image.alt} className="max-h-[90vh] max-w-[90vw] rounded-md object-contain" />
+        {image && (
+          <ImagePreview
+            key={`${index}:${image.src}:${image.uri ?? ""}`}
+            image={image}
+            index={index}
+            count={images.length}
+          />
         )}
-        {images.length > 1 && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="absolute start-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
-              aria-label={t("chat.image.previous")}
-              title={t("chat.image.previous")}
-              shortcut="ArrowLeft"
-              disabled={index === 0}
-              onClick={() => moveImage(-1)}
-            >
-              <ChevronLeftIcon aria-hidden="true" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="absolute end-3 top-1/2 bg-transparent text-foreground hover:bg-transparent dark:hover:bg-transparent"
-              aria-label={t("chat.image.next")}
-              title={t("chat.image.next")}
-              shortcut="ArrowRight"
-              disabled={index === images.length - 1}
-              onClick={() => moveImage(1)}
-            >
-              <ChevronRightIcon aria-hidden="true" />
-            </Button>
-            <span
-              className="absolute bottom-3 rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground"
-              aria-live="polite"
-            >
-              {index + 1} / {images.length}
-            </span>
-          </>
-        )}
-        <DialogClose
-          aria-label={t("actions.close")}
-          render={
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title={t("actions.close")}
-              shortcut="Escape"
-              className="absolute top-4 right-4 z-10 cursor-pointer rounded-[8px] border-0 bg-transparent text-foreground active:bg-muted"
-            />
-          }
-        >
-          <XIcon aria-hidden="true" />
-        </DialogClose>
       </DialogContent>
     </Dialog>
   )
