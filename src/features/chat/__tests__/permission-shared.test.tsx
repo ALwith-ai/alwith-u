@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient, type PendingAction } from "@/agent/client"
+import { ThemeProvider } from "@/components/theme-provider"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -55,7 +56,7 @@ test.each(["Implement this plan?", "Review the implementation plan"])(
       }
     }
     const onRespond = vi.fn()
-    const view = render(<ActionCard action={action} onRespond={onRespond} />)
+    const view = render(<ActionCard action={action} onRespond={onRespond} />, { wrapper: ThemeProvider })
     mounted.push(view)
 
     expect(view.getAllByText(title)).toHaveLength(1)
@@ -82,7 +83,7 @@ test("U shared approval answers the exact pending request through the real ACP c
   const action = client.state.actions[0]
   const respond = vi.spyOn(applicationClient, "respond").mockImplementation((id, answer) => client.respond(id, answer))
   try {
-    const view = render(<ActionCard action={action} />)
+    const view = render(<ActionCard action={action} />, { wrapper: ThemeProvider })
     mounted.push(view)
     const list = view.getByRole("listbox")
     fireEvent.keyDown(list, { key: "1" })

@@ -1,11 +1,11 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { useThreadsUiStore } from "@/features/threads/store"
-import { ThreadSidebar } from "@/features/threads/thread-sidebar"
+import { SessionSidebar } from "@/features/sessions/session-sidebar"
+import { useSessionsUiStore } from "@/features/sessions/store"
 import { must } from "@/lib/__tests__/must"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
@@ -16,7 +16,7 @@ import * as projectApps from "../open-in-editor"
 import { ChatProjectMenu } from "../project-session-popover"
 
 const original = client.state
-const originalUi = useThreadsUiStore.getState()
+const originalUi = useSessionsUiStore.getState()
 const originalChatSurface = useChatWindowSurface.getState()
 const originalMainSurface = useMainWindowSurface.getState()
 const defaultCwd = "/Volumes/Work/Documents/ALwith"
@@ -35,18 +35,18 @@ beforeEach(async () => {
     refresh: () => {},
     openPreferred: () => openDirectory(cwd)
   }))
-  client.store.setState({ connection: "ready", threads: [], threadsLoaded: true, threadsError: null })
+  client.store.setState({ connection: "ready", sessionList: [], sessionListLoaded: true, sessionListError: null })
 })
 afterEach(() => {
   cleanup()
   client.store.setState(original, true)
-  useThreadsUiStore.setState(originalUi, true)
+  useSessionsUiStore.setState(originalUi, true)
   useChatWindowSurface.setState(originalChatSurface, true)
   useMainWindowSurface.setState(originalMainSurface, true)
   vi.mocked(projectApps.useProjectApps).mockRestore()
 })
 
-function thread(sessionId: string, cwd: string): ThreadSummary {
+function sessionRow(sessionId: string, cwd: string): SessionSummary {
   return { sessionId, cwd, title: sessionId, updatedAt: "2026-10-14T00:00:00Z", archived: false }
 }
 
@@ -54,10 +54,10 @@ test.each(["main", "floating"] as const)(
   "%s header excludes displayed conversations before counting and expanding the project list",
   async (surface) => {
     const cwd = "/tmp/project"
-    const entries = Array.from({ length: 7 }, (_, index) => thread(`Chat ${index}`, cwd))
-    const main = thread("Main chat", cwd)
-    const floating = thread("Floating chat", cwd)
-    client.store.setState({ threads: [main, floating, ...entries] })
+    const entries = Array.from({ length: 7 }, (_, index) => sessionRow(`Chat ${index}`, cwd))
+    const main = sessionRow("Main chat", cwd)
+    const floating = sessionRow("Floating chat", cwd)
+    client.store.setState({ sessionList: [main, floating, ...entries] })
     useMainWindowSurface.setState({ sessionId: main.sessionId, visible: true })
     useChatWindowSurface.setState({ sessionId: floating.sessionId, visible: true })
     const select = vi.fn()
@@ -100,9 +100,9 @@ test.each(["main", "floating"] as const)(
 
 test("quick chats update their empty state as windows hide and keep the current conversation excluded", async () => {
   const cwd = "/Users/mac/Documents/ALwith"
-  const main = thread("Main chat", cwd)
-  const floating = thread("Floating chat", cwd)
-  client.store.setState({ threads: [main, floating] })
+  const main = sessionRow("Main chat", cwd)
+  const floating = sessionRow("Floating chat", cwd)
+  client.store.setState({ sessionList: [main, floating] })
   useMainWindowSurface.setState({ sessionId: main.sessionId, visible: true })
   useChatWindowSurface.setState({ sessionId: floating.sessionId, visible: true })
   const view = render(
@@ -129,14 +129,14 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   resolveDirectory.mockReturnValueOnce(pending.promise)
   const select = vi.fn()
   const entries = [
-    thread("ALwith chat", "/Users/mac/Documents/ALwith"),
-    { ...thread("Codex chat", "/Users/mac/Documents/Codex/nested"), updatedAt: "2026-10-14T01:00:00Z" },
-    { ...thread("Windows chat", String.raw`C:\Users\Alice\Documents\Codex`), updatedAt: "2026-10-14T02:00:00Z" },
-    thread("Other project", "/tmp/project"),
-    thread("Nested project", "/Users/mac/Documents/ALwith/project"),
-    thread("Resolved directory chat", defaultCwd)
+    sessionRow("ALwith chat", "/Users/mac/Documents/ALwith"),
+    { ...sessionRow("Codex chat", "/Users/mac/Documents/Codex/nested"), updatedAt: "2026-10-14T01:00:00Z" },
+    { ...sessionRow("Windows chat", String.raw`C:\Users\Alice\Documents\Codex`), updatedAt: "2026-10-14T02:00:00Z" },
+    sessionRow("Other project", "/tmp/project"),
+    sessionRow("Nested project", "/Users/mac/Documents/ALwith/project"),
+    sessionRow("Resolved directory chat", defaultCwd)
   ]
-  client.store.setState({ threads: entries })
+  client.store.setState({ sessionList: entries })
   const view = render(
     <ChatHeader title="New chat" project={<ChatProjectMenu cwd={null} onSelect={select} onNewChat={() => {}} />}>
       <span>Actions</span>
@@ -193,7 +193,7 @@ test.each([
   ["/tmp/project", "project"],
   ["/Users/mac/Documents/ALwith U", "ALwith U"]
 ])("project %s keeps its own menu without resolving the default directory", async (cwd, name) => {
-  client.store.setState({ threads: [thread("Project chat", cwd), thread("Quick chat", defaultCwd)] })
+  client.store.setState({ sessionList: [sessionRow("Project chat", cwd), sessionRow("Quick chat", defaultCwd)] })
   const view = render(<ChatProjectMenu cwd={cwd} onSelect={() => {}} onNewChat={() => {}} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name }))))
   expect(view.getByRole("button", { name: "Project chat" })).toBeVisible()
@@ -213,7 +213,7 @@ test("a delayed default-directory result cannot replace a newly selected project
 
 test("directory errors leave quick chats available and support retry without inventing a path", async () => {
   resolveDirectory.mockRejectedValueOnce(new Error("Documents directory unavailable"))
-  client.store.setState({ threads: [thread("Existing quick chat", "/Users/mac/Documents/Codex")] })
+  client.store.setState({ sessionList: [sessionRow("Existing quick chat", "/Users/mac/Documents/Codex")] })
   const view = render(<ChatProjectMenu cwd={null} onSelect={() => {}} onNewChat={() => {}} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
   expect(view.getByRole("alert")).toHaveTextContent("Documents directory unavailable")
@@ -226,7 +226,7 @@ test("directory errors leave quick chats available and support retry without inv
 
 test("clearing a project switches the open menu to localized quick chats and follows the shared list", async () => {
   await initI18n("zh-CN")
-  client.store.setState({ threads: [thread("Project chat", "/tmp/project")] })
+  client.store.setState({ sessionList: [sessionRow("Project chat", "/tmp/project")] })
   const view = render(<ChatProjectMenu cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "project" }))))
   await act(() =>
@@ -236,18 +236,20 @@ test("clearing a project switches the open menu to localized quick chats and fol
   expect(view.getByText("随聊")).toBeVisible()
   expect(view.queryByRole("button", { name: "Project chat" })).toBeNull()
   await act(() =>
-    Promise.try(() => client.store.setState({ threads: [thread("New quick chat", "/Users/mac/Documents/ALwith")] }))
+    Promise.try(() =>
+      client.store.setState({ sessionList: [sessionRow("New quick chat", "/Users/mac/Documents/ALwith")] })
+    )
   )
   expect(view.getByRole("button", { name: "New quick chat" })).toBeVisible()
 })
 
 test("the sidebar quick-chat hover shares the header list and default folder while clicks still expand the group", async () => {
   const entries = [
-    thread("ALwith chat", "/Users/mac/Documents/ALwith"),
-    thread("Codex chat", "/Users/mac/Documents/Codex")
+    sessionRow("ALwith chat", "/Users/mac/Documents/ALwith"),
+    sessionRow("Codex chat", "/Users/mac/Documents/Codex")
   ]
-  client.store.setState({ threads: [...entries, thread("Other project", "/tmp/project")] })
-  useThreadsUiStore.setState({ projectOpen: new Map(), view: "sessions" })
+  client.store.setState({ sessionList: [...entries, sessionRow("Other project", "/tmp/project")] })
+  useSessionsUiStore.setState({ projectOpen: new Map(), view: "sessions" })
   const select = vi.fn()
   const newChat = vi.fn()
   const newProjectChat = vi.fn()
@@ -261,7 +263,7 @@ test("the sidebar quick-chat hover shares the header list and default folder whi
 
   const sidebar = render(
     <SidebarProvider>
-      <ThreadSidebar
+      <SessionSidebar
         screen="main"
         leadingPage="plugins"
         selectedId={null}

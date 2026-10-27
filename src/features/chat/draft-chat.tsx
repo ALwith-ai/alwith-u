@@ -1,6 +1,7 @@
 // A draft owns a real ACP session before the first send, as in Desktop.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { createSession } from "@alwith/api"
+import { drafts, importDraft, ModelMenu, SessionActions } from "@alwith/module-chat/conversation"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -16,13 +17,12 @@ import { text } from "@/lib/text"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
-import { Composer } from "./composer"
+import { ChatHostProvider } from "./chat-host"
+import { ChatComposer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
-import { drafts, importDraft } from "./composer/drafts"
-import { ModelSelectGroup } from "./composer/model-select-group"
+import { chatModelMenu } from "./composer/model-catalog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
-import { SessionActions } from "./session-actions"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -68,7 +68,7 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
-  const threads = useApp((state) => state.threads)
+  const sessionRows = useApp((state) => state.sessionList)
   const connection = useApp((state) => state.connection)
   const [id, setId] = useState<string | null>(
     () => Object.keys(client.state.draftSessions).find((key) => client.state.draftSessions[key] === owner) ?? null
@@ -98,12 +98,12 @@ export function DraftChat({
   const recentProjects = useMemo(
     () => [
       ...new Set(
-        [...threads]
+        [...sessionRows]
           .toSorted((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
-          .map((thread) => thread.cwd)
+          .map((sessionRow) => sessionRow.cwd)
       )
     ],
-    [threads]
+    [sessionRows]
   )
 
   useEffect(() => {
@@ -181,7 +181,7 @@ export function DraftChat({
     onSendingChange(target, true)
     try {
       if (accept === undefined) await client.prompt(target, prompt)
-      else accept(await client.promptReceipt(target, prompt))
+      else accept(await client.prompt(target, prompt))
       if (collectionId !== undefined)
         reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
     } finally {
@@ -199,70 +199,73 @@ export function DraftChat({
     />
   )
   return (
-    <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
-      <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
-        <ChatActionsMenu
-          surface={headerTarget === undefined ? "main" : "floating"}
-          onOpenWindow={session && !preparing ? onOpenWindow : undefined}
-          onReturnToMain={preparing ? undefined : onReturnToMain}
-          cwd={session?.cwd ?? cwd}
-          onNewChat={onNewChat}
-          onNewProject={onNewProject}
+    <ChatHostProvider>
+      <div data-chat-drop-zone className="flex h-full min-h-0 flex-col">
+        <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
+          <ChatActionsMenu
+            surface={headerTarget === undefined ? "main" : "floating"}
+            onOpenWindow={session && !preparing ? onOpenWindow : undefined}
+            onReturnToMain={preparing ? undefined : onReturnToMain}
+            cwd={session?.cwd ?? cwd}
+            onNewChat={onNewChat}
+            onNewProject={onNewProject}
+          />
+        </ChatHeader>
+        <Empty className="flex-1">
+          <EmptyHeader>
+            <EmptyTitle className="text-[28px] font-normal">{t("welcome.title")}</EmptyTitle>
+            <EmptyDescription>{t("welcome.description")}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+        {!preparing && (error !== null || connection !== "ready") && (
+          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
+            <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
+            <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
+              {t("actions.retry")}
+            </Button>
+            {isAuthError(error) && (
+              <>
+                <Button variant="outline" size="sm" onClick={onAuthRequired}>
+                  {t("chat.draft.configureProvider")}
+                </Button>
+                <DraftModelSelect snapshot={providerSnapshot} model={model} onChange={setModel} />
+              </>
+            )}
+          </div>
+        )}
+        {id !== null && <SessionActions sessionId={id} />}
+        <ChatComposer
+          inputHeader={picker}
+          session={session ?? pendingComposer}
+          allowPendingInput
+          preparing={preparing}
+          modelSelector={
+            session ? (
+              <ModelMenu
+                {...chatModelMenu}
+                sessionId={session.id}
+                options={session.configOptions}
+                disabled={
+                  preparing ||
+                  error !== null ||
+                  connection !== "ready" ||
+                  !session.attached ||
+                  session.restoring ||
+                  session.readOnly
+                }
+                onModelChange={(value) => {
+                  setPreparing(true)
+                  setModel(value)
+                }}
+              />
+            ) : undefined
+          }
+          disabled={session === null || preparing || error !== null || connection !== "ready"}
+          onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
+          onHandOff={onVoiceHandoff}
         />
-      </ChatHeader>
-      <Empty className="flex-1">
-        <EmptyHeader>
-          <EmptyTitle className="text-[28px] font-normal">{t("welcome.title")}</EmptyTitle>
-          <EmptyDescription>{t("welcome.description")}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-      {!preparing && (error !== null || connection !== "ready") && (
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
-          <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
-          <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
-            {t("actions.retry")}
-          </Button>
-          {isAuthError(error) && (
-            <>
-              <Button variant="outline" size="sm" onClick={onAuthRequired}>
-                {t("chat.draft.configureProvider")}
-              </Button>
-              <DraftModelSelect snapshot={providerSnapshot} model={model} onChange={setModel} />
-            </>
-          )}
-        </div>
-      )}
-      {id !== null && <SessionActions sessionId={id} />}
-      <Composer
-        inputHeader={picker}
-        session={session ?? pendingComposer}
-        allowPendingInput
-        preparing={preparing}
-        modelSelector={
-          session ? (
-            <ModelSelectGroup
-              sessionId={session.id}
-              options={session.configOptions}
-              disabled={
-                preparing ||
-                error !== null ||
-                connection !== "ready" ||
-                !session.attached ||
-                session.restoring ||
-                session.readOnly
-              }
-              onModelChange={(value) => {
-                setPreparing(true)
-                setModel(value)
-              }}
-            />
-          ) : undefined
-        }
-        disabled={session === null || preparing || error !== null || connection !== "ready"}
-        onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
-        onVoiceHandoff={onVoiceHandoff}
-      />
-      <FilePreviewModal />
-    </div>
+        <FilePreviewModal />
+      </div>
+    </ChatHostProvider>
   )
 }

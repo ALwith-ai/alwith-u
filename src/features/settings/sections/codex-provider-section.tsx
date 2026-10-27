@@ -1,3 +1,4 @@
+import type { RateLimitWindow } from "@nyssance/codex-acp-v2/client"
 // Account: who is signed in and how much of the plan's rate limits is used, ALwith
 // Desktop's usage section reduced to what Codex reports (`account/read`,
 // `account/rateLimits/read`). The settings window gets the data from the main window's
@@ -8,7 +9,6 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { RateLimitWindow } from "@/agent/codex-extensions"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ActionCard } from "@/features/chat/action-card"
@@ -70,7 +70,7 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
 }
 
 /** The window label: "5 hours" / "Weekly" from the window length Codex reports. */
-export function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
+function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
   const minutes = window.windowDurationMins
   if (minutes === null) return t("usage.usage")
   if (minutes % (24 * 60) === 0) return t("usage.windowDays", { count: minutes / (24 * 60) })

@@ -1,15 +1,15 @@
 import { createSession, type Session } from "@alwith/api"
+import { drafts, useComposerPrediction } from "@alwith/module-chat/conversation"
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { useStore } from "zustand"
 
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import { mockOf } from "@/test/mock-of"
 
-import { Composer } from "../composer"
-import { drafts } from "../composer/drafts"
 import { predictionPreference } from "../composer/prediction-preference"
-import { useComposerPrediction } from "../composer/use-composer-prediction"
+import { ChatTimelineHost, Composer } from "./timeline-host"
 
 await initI18n("en")
 const original = client.state
@@ -50,6 +50,15 @@ function completed(id = "s1", turn = "t1"): Session {
 }
 function predicted(session: Session, turn = "t1", text: string | null = "Run the tests") {
   return { ...session, _meta: { codex: { prediction: { sourceTurnId: turn, result: { type: "completed", text } } } } }
+}
+/** The composer's prediction with U's preference, as the U composer wires it. */
+function usePrediction(session: Session, available: boolean, hasDraft: boolean) {
+  return useComposerPrediction(
+    session,
+    available,
+    hasDraft,
+    useStore(predictionPreference, (state) => state.enabled)
+  )
 }
 
 test("Tab accepts an editable draft without sending; Shift-Tab and IME leave it alone", async () => {
@@ -101,7 +110,8 @@ test("typing, clearing and Escape preserve a prediction for repeated Tab accepta
 
 test("stale turns, running, drafts, replay, unsupported agents and unavailable results stay hidden", () => {
   const session = completed()
-  const view = renderHook(({ session, draft }) => useComposerPrediction(session, true, draft), {
+  const view = renderHook(({ session, draft }) => usePrediction(session, true, draft), {
+    wrapper: ChatTimelineHost,
     initialProps: { session, draft: false }
   })
   view.rerender({ session: predicted(session, "old"), draft: false })
@@ -121,14 +131,15 @@ test("stale turns, running, drafts, replay, unsupported agents and unavailable r
 test("request failures are visible without affecting the conversation", async () => {
   mockOf(client, "requestPrediction").mockRejectedValue(new Error("Account is not eligible"))
   const session = completed()
-  const view = renderHook(() => useComposerPrediction(session, true, false))
+  const view = renderHook(() => usePrediction(session, true, false), { wrapper: ChatTimelineHost })
   await waitFor(() => expect(view.result.current.error).toBe("Account is not eligible"))
   expect(session.state).toBe("idle")
 })
 
 test("late results from another turn or a changed model never become a draft", () => {
   const first = completed()
-  const view = renderHook(({ session }) => useComposerPrediction(session, true, false), {
+  const view = renderHook(({ session }) => usePrediction(session, true, false), {
+    wrapper: ChatTimelineHost,
     initialProps: { session: first }
   })
   const second = completed("s1", "t2")
@@ -156,7 +167,8 @@ test("late results from another turn or a changed model never become a draft", (
 
 test("null and failed results clear the suggestion; history and read-only sessions do not request", () => {
   const session = completed()
-  const view = renderHook(({ session, available }) => useComposerPrediction(session, available, false), {
+  const view = renderHook(({ session, available }) => usePrediction(session, available, false), {
+    wrapper: ChatTimelineHost,
     initialProps: { session, available: true }
   })
   view.rerender({ session: predicted(session), available: true })
@@ -179,7 +191,8 @@ test("null and failed results clear the suggestion; history and read-only sessio
 
 test("the submitted draft cannot dismiss a new turn's prediction before the input clears", () => {
   const running: Session = { ...completed(), state: "running", lastStopReason: null }
-  const view = renderHook(({ session, available, hasDraft }) => useComposerPrediction(session, available, hasDraft), {
+  const view = renderHook(({ session, available, hasDraft }) => usePrediction(session, available, hasDraft), {
+    wrapper: ChatTimelineHost,
     initialProps: { session: running, available: false, hasDraft: true }
   })
   view.rerender({ session: completed(), available: false, hasDraft: true })
@@ -192,7 +205,8 @@ test("the submitted draft cannot dismiss a new turn's prediction before the inpu
 test("disabling predictions hides results and prevents requests until enabled", () => {
   predictionPreference.setState({ enabled: false })
   const session = completed()
-  const view = renderHook(({ session }) => useComposerPrediction(session, true, false), {
+  const view = renderHook(({ session }) => usePrediction(session, true, false), {
+    wrapper: ChatTimelineHost,
     initialProps: { session }
   })
   expect(mockOf(client, "requestPrediction")).not.toHaveBeenCalled()

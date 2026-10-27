@@ -13,7 +13,7 @@ import { type MutableRefObject, type ReactNode, useEffect, useRef, useState } fr
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { PromptInputButton } from "@/features/chat/composer/prompt-input"
+import { PromptInputButton } from "@alwith/module-chat/composer"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { loadVoiceSettings, voiceProfiles } from "./settings"

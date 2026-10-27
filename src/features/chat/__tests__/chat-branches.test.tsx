@@ -4,7 +4,7 @@ import { act } from "react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -24,14 +24,14 @@ afterEach(async () => {
   })
 })
 const source = { ...createSession("source", "/project"), attached: true }
-const forked: ThreadSummary = {
+const forked: SessionSummary = {
   sessionId: "child",
   cwd: "/project",
   title: "New branch",
   archived: false,
   updatedAt: null
 }
-function setup(select: (thread: ThreadSummary) => void) {
+function setup(select: (sessionRow: SessionSummary) => void) {
   client.store.setState({
     connection: "ready",
     agent: {
@@ -59,8 +59,8 @@ test("a completed reply forks its explicit turn once and navigates to the return
       })
   )
   restores.push(() => call.mockRestore())
-  const selected: ThreadSummary[] = []
-  const view = setup((thread) => selected.push(thread))
+  const selected: SessionSummary[] = []
+  const view = setup((sessionRow) => selected.push(sessionRow))
   const button = view.getByRole("button", { name: "Create chat branch" })
   expect(button.classList.contains("codex-message-action")).toBe(true)
   expect(view.queryByRole("button", { name: "Chat branches" })).toBeNull()
@@ -77,7 +77,7 @@ test("a completed reply forks its explicit turn once and navigates to the return
   expect(call).toHaveBeenCalledTimes(1)
   expect(call).toHaveBeenCalledWith("source", "/project", "real-turn")
   expect(selected).toEqual([])
-  client.store.setState({ threads: [forked] })
+  client.store.setState({ sessionList: [forked] })
   await act(() => {
     return Promise.try(() => {
       finish("child")
@@ -93,8 +93,8 @@ test("a fork failure keeps the current chat and allows retry", async () => {
     () => call.mockRestore(),
     () => error.mockRestore()
   )
-  const selected: ThreadSummary[] = []
-  const view = setup((thread) => selected.push(thread))
+  const selected: SessionSummary[] = []
+  const view = setup((sessionRow) => selected.push(sessionRow))
   await act(() => {
     return Promise.try(() => {
       fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
@@ -116,15 +116,15 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
       })
   )
   restores.push(() => call.mockRestore())
-  const selected: ThreadSummary[] = []
-  const view = setup((thread) => selected.push(thread))
+  const selected: SessionSummary[] = []
+  const view = setup((sessionRow) => selected.push(sessionRow))
   await act(() => {
     return Promise.try(() => {
       fireEvent.click(view.getByRole("button", { name: "Create chat branch" }))
     })
   })
   view.unmount()
-  client.store.setState({ threads: [forked] })
+  client.store.setState({ sessionList: [forked] })
   await act(() => {
     return Promise.try(() => {
       finish("child")
@@ -135,21 +135,21 @@ test("a late fork cannot navigate after its source view is unmounted", async () 
 })
 
 test("the inherited-history divider returns to the exact parent and stays before child turns", async () => {
-  const read = vi.spyOn(client, "readThreadSummary").mockResolvedValue({
+  const read = vi.spyOn(client, "readSessionSummary").mockResolvedValue({
     ...forked,
     sessionId: "parent",
     title: "Original"
   })
   restores.push(() => read.mockRestore())
   client.store.setState({ forkOrigins: { source: { sourceId: "parent", boundaryTurnId: "boundary" } } })
-  const selected: ThreadSummary[] = []
+  const selected: SessionSummary[] = []
   let view!: ReturnType<typeof setup>
   await act(() => {
     return Promise.try(() => {
-      view = setup((thread) => selected.push(thread))
+      view = setup((sessionRow) => selected.push(sessionRow))
     })
   })
-  const { groupTurns } = await import("../turns")
+  const { groupTurns } = await import("@alwith/module-chat/turns")
   const session = {
     ...source,
     items: [
@@ -168,7 +168,7 @@ test("the inherited-history divider returns to the exact parent and stays before
   await act(() => {
     return Promise.try(() => {
       view.rerender(
-        <ChatBranchProvider session={session} onSelect={(thread) => selected.push(thread)}>
+        <ChatBranchProvider session={session} onSelect={(sessionRow) => selected.push(sessionRow)}>
           <ForkOriginDivider turn={turn} />
           <ForkOriginDivider turn={{ ...turn, items: [] }} />
         </ChatBranchProvider>
@@ -218,7 +218,7 @@ test("turn forks stay hidden when the adapter has no turn boundary support", asy
 })
 
 test("several user messages in one native turn place the origin only after its last UI batch", async () => {
-  const { groupTurns } = await import("../turns")
+  const { groupTurns } = await import("@alwith/module-chat/turns")
   let session = { ...source, restoring: true }
   for (const [index, turnId] of ["boundary", "boundary", "child"].entries()) {
     session = applyUpdate(session, {

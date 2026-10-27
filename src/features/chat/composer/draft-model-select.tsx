@@ -40,7 +40,7 @@ export function DraftModelSelect({
       }))
     }))
   ]
-  const catalog = presentModelCatalog(groups, model ?? "")
+  const catalog = presentModelCatalog(groups)
   const models = catalog.flatMap((group) => group.models)
   const selected =
     model === null

@@ -1,7 +1,7 @@
 import { createSession, type Item, type MessageItem, type ToolItem } from "@alwith/api"
+import { groupTurns } from "@alwith/module-chat/turns"
 import { describe, expect, test } from "vitest"
 
-import { groupTurns } from "../../turns"
 import { findCodexSearchSourceMatches } from "../codex-search-source"
 
 function message(id: string, kind: MessageItem["kind"], text: string, at: number): MessageItem {

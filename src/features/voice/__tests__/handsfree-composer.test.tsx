@@ -1,12 +1,13 @@
 import { createSession } from "@alwith/api"
+import { drafts } from "@alwith/module-chat/conversation"
 import type { VoiceEvent } from "@alwith/module-voice"
 import * as core from "@tauri-apps/api/core"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { StrictMode, useState } from "react"
+import { act, fireEvent, render as renderView, screen, waitFor } from "@testing-library/react"
+import { type ReactElement, StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { Composer } from "@/features/chat/composer"
-import { drafts } from "@/features/chat/composer/drafts"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Composer } from "@/features/chat/__tests__/timeline-host"
 import { DraftChat } from "@/features/chat/draft-chat"
 import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -52,6 +53,8 @@ vi.mock("../use-voice-enabled", () => ({ useVoiceEnabled: () => true }))
 vi.mock("sonner", () => ({ toast: { error: fake.error, info: vi.fn() } }))
 
 await initI18n("en")
+// DraftChat reads U's theme through the conversation host, as under the application's ThemeProvider.
+const render = (ui: ReactElement) => renderView(ui, { wrapper: ThemeProvider })
 const original = client.state
 beforeEach(() => {
   fake.recordings.length = 0
@@ -89,7 +92,7 @@ test.each(["Check Shenzhen weather", "Check Shenzhen weather today"])(
   async (finalText) => {
     const { accepted, accept } = deferredAcceptance()
     let receipts = 0
-    const prompt = vi.spyOn(client, "promptReceipt").mockImplementation(async (id, content) => {
+    const prompt = vi.spyOn(client, "prompt").mockImplementation(async (id, content) => {
       await accepted
       const session = client.store.getState().sessions[id]
       if (!session) throw new Error("missing session")
@@ -142,7 +145,7 @@ test.each(["Check Shenzhen weather", "Check Shenzhen weather today"])(
 
 test("typing while voice submission is pending preserves the new draft", async () => {
   const { accepted, accept } = deferredAcceptance()
-  const prompt = vi.spyOn(client, "promptReceipt").mockImplementation(async () => {
+  const prompt = vi.spyOn(client, "prompt").mockImplementation(async () => {
     await accepted
     return "receipt"
   })
@@ -162,7 +165,7 @@ test("typing while voice submission is pending preserves the new draft", async (
 })
 
 test("rejected voice submission preserves the recognized draft", async () => {
-  vi.spyOn(client, "promptReceipt").mockRejectedValue(new Error("offline"))
+  vi.spyOn(client, "prompt").mockRejectedValue(new Error("offline"))
   renderComposer()
   fireEvent.click(screen.getByRole("button", { name: "Voice input" }))
   await screen.findByRole("button", { name: "Finish recording" })
@@ -189,7 +192,7 @@ test("a new chat can start handsfree and hand its accepted receipt to the conver
       accept?.("first-receipt")
     })
   })
-  render(<Composer session={session} onSubmit={send} onVoiceHandoff={handoff} />)
+  render(<Composer session={session} onSubmit={send} onHandOff={handoff} />)
   fireEvent.click(screen.getByRole("button", { name: "Voice input" }))
   await screen.findByRole("button", { name: "Finish recording" })
   transcribe(0, "final", "first voice message")
@@ -212,7 +215,7 @@ test.each(["complete", "cancel", "shortcut", "modified-shortcut", "blur-shortcut
         <Composer
           key="draft"
           session={initial}
-          onVoiceHandoff={handoff.accept}
+          onHandOff={handoff.accept}
           onSubmit={(content, accept) => {
             return Promise.try(() => {
               client.store.setState({
@@ -291,7 +294,7 @@ test("cancelling a pending first send prevents a later accepted receipt from res
     await accepted
     onAccepted?.("cancelled-receipt")
   })
-  render(<Composer session={session} onSubmit={send} onVoiceHandoff={handoff} />)
+  render(<Composer session={session} onSubmit={send} onHandOff={handoff} />)
   fireEvent.click(screen.getByRole("button", { name: "Voice input" }))
   await screen.findByRole("button", { name: "Finish recording" })
   transcribe(0, "final", "first voice message")
@@ -333,7 +336,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
   })
   vi.spyOn(client, "connect").mockResolvedValue()
   vi.spyOn(client, "prepareDraft").mockResolvedValue("voice")
-  vi.spyOn(client, "promptReceipt").mockImplementation((id, content) => {
+  vi.spyOn(client, "prompt").mockImplementation((id, content) => {
     return Promise.try(() => {
       const session = client.store.getState().sessions[id]
       if (!session) throw new Error("missing session")
@@ -384,9 +387,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
   await screen.findByRole("button", { name: "Finish recording" })
   transcribe(0, "final", "first voice message")
   await waitFor(() =>
-    expect(mockOf(client, "promptReceipt")).toHaveBeenCalledWith("voice", [
-      { type: "text", text: "first voice message" }
-    ])
+    expect(mockOf(client, "prompt")).toHaveBeenCalledWith("voice", [{ type: "text", text: "first voice message" }])
   )
   await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue(""))
   act(() => {

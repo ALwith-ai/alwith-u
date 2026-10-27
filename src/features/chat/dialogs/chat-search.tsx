@@ -1,4 +1,5 @@
 import { ChatSearch as SharedChatSearch } from "@alwith/module-chat/search"
+import { revealTimelineTurn, timelineRegistry } from "@alwith/module-chat/timeline-registry"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { type RefObject, useCallback } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,7 +8,6 @@ import { useStore } from "zustand"
 import { events } from "@/bindings"
 
 import { findCodexSearchSourceMatches } from "../lib/codex-search-source"
-import { revealThreadTurn, threadRegistry } from "../lib/thread-registry"
 import "./chat-search.css"
 import { routeFind } from "@/features/workspace/editor-shortcuts"
 
@@ -19,8 +19,8 @@ export function openChatSearch(sessionId: string): void {
 
 export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElement | null>; sessionId: string }) {
   const { t } = useTranslation()
-  const turns = useStore(threadRegistry, (state) => state.turns)
-  const registeredSessionId = useStore(threadRegistry, (state) => state.sessionId)
+  const turns = useStore(timelineRegistry, (state) => state.turns)
+  const registeredSessionId = useStore(timelineRegistry, (state) => state.sessionId)
   const getViewport = useCallback(
     () => rootRef.current?.querySelector<HTMLElement>("[data-chat-scroll]") ?? null,
     [rootRef]
@@ -30,7 +30,7 @@ export function ChatSearch({ rootRef, sessionId }: { rootRef: RefObject<HTMLElem
     [registeredSessionId, sessionId, turns]
   )
   const revealTurn = useCallback(
-    (key: string, signal: AbortSignal) => revealThreadTurn(sessionId, key, signal),
+    (key: string, signal: AbortSignal) => revealTimelineTurn(sessionId, key, signal),
     [sessionId]
   )
   const subscribeOpen = useCallback(

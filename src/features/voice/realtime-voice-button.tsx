@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { PromptInputButton } from "@/features/chat/composer/prompt-input"
+import { PromptInputButton } from "@alwith/module-chat/composer"
 import { client, useApp } from "@/lib/client"
 
 import { useVoiceEnabled } from "./use-voice-enabled"

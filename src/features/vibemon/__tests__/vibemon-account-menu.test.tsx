@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { usePlatformAuth } from "@/features/auth/store"
-import { SidebarAccountMenu } from "@/features/threads/sidebar-account-menu"
+import { SidebarAccountMenu } from "@/features/sessions/sidebar-account-menu"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"

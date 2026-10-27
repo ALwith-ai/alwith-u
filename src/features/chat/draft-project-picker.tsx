@@ -1,6 +1,7 @@
 // ALwith Desktop's DraftProjectPicker reduced: the empty draft's project capsule. Shows the
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
 // dialog. The host prepares the default workspace when no previous project was selected.
+import { isQuickChatDirectory } from "@alwith/module-chat/session-list"
 import { invoke } from "@tauri-apps/api/core"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
@@ -20,7 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { isQuickChatDirectory } from "@/features/threads/thread-groups"
 import { basename } from "@/lib/path"
 import { cn } from "@/lib/utils"
 

@@ -1,4 +1,6 @@
 import type { Session } from "@alwith/api"
+import { OverflowMarquee } from "@alwith/module-chat/session-list"
+import { hasRename } from "@nyssance/codex-acp-v2/client"
 import {
   ArrowUpRightIcon,
   FolderPlusIcon,
@@ -14,8 +16,6 @@ import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { hasRename } from "@/agent/codex-extensions"
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { Button } from "@/components/ui/button"
 import {

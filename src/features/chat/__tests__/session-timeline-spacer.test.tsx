@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
-const { ThreadView } = await import("../thread-view")
+const { ChatTimeline: SessionTimeline } = await import("./timeline-host")
 const { navigationSoundStore } = await import("../codex/navigation-sound-store")
 await initI18n("en")
 navigationSoundStore.setState({ soundMode: "none" })
@@ -38,7 +38,7 @@ test("a steer does not create a thinking placeholder while the original output i
   session = addPrompt(session, [{ type: "text", text: "Also check this" }], "steer")
   const view = render(
     <ThemeProvider>
-      <ThreadView session={session} />
+      <SessionTimeline session={session} />
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Also check this")).toBeInTheDocument())
@@ -47,7 +47,7 @@ test("a steer does not create a thinking placeholder while the original output i
   session = applyUpdate(session, output("Still working and updating") as never)
   view.rerender(
     <ThemeProvider>
-      <ThreadView session={session} />
+      <SessionTimeline session={session} />
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Still working and updating")).toBeInTheDocument())
@@ -82,7 +82,7 @@ test("new turns follow their real content through growth and placeholder shrink,
   } as never)
   const view = render(
     <ThemeProvider>
-      <ThreadView session={first} />
+      <SessionTimeline session={first} />
     </ThemeProvider>
   )
   const viewport = view.getByRole("log")
@@ -138,7 +138,7 @@ test("new turns follow their real content through growth and placeholder shrink,
   })
   view.rerender(
     <ThemeProvider>
-      <ThreadView session={second} />
+      <SessionTimeline session={second} />
     </ThemeProvider>
   )
   await waitFor(() => expect(viewport.scrollTop).toBe(16))
@@ -177,7 +177,7 @@ test("a short reply received together with completion never leaves extra scroll 
   const completed = applyUpdate(second, { sessionUpdate: "state_update", state: "idle" } as never)
   const view = render(
     <ThemeProvider>
-      <ThreadView session={first} />
+      <SessionTimeline session={first} />
     </ThemeProvider>
   )
   const viewport = view.getByRole("log")
@@ -203,7 +203,7 @@ test("a short reply received together with completion never leaves extra scroll 
   await waitFor(() => expect(viewport.querySelectorAll("[data-codex-turn]")).toHaveLength(1))
   view.rerender(
     <ThemeProvider>
-      <ThreadView session={completed} />
+      <SessionTimeline session={completed} />
     </ThemeProvider>
   )
   // Flush deferred positioning as well as the initial render; the completed
@@ -221,7 +221,7 @@ test("layout compensation near the bottom does not resume following while readin
   )
   const view = render(
     <ThemeProvider>
-      <ThreadView session={session} />
+      <SessionTimeline session={session} />
     </ThemeProvider>
   )
   const viewport = view.getByRole("log")

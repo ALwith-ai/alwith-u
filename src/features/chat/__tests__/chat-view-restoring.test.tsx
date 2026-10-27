@@ -8,7 +8,7 @@ import { initI18n } from "@/lib/i18n"
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
-const { ChatBody } = await import("../chat-body")
+const { ChatBody } = await import("./timeline-host")
 await initI18n("en")
 navigationSoundStore.setState({ soundMode: "none" })
 

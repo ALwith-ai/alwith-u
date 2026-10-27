@@ -1,7 +1,7 @@
+import { OverflowMarquee } from "@alwith/module-chat/session-list"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { cn } from "@/lib/utils"
 
 /** The floating surface supplies its top bar; the main surface keeps its own header. */

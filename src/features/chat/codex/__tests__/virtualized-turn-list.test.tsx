@@ -86,9 +86,9 @@ function scrollElementWithHeight(
 }
 
 function threadHeight(scrollElement: HTMLElement): number {
-  const thread = scrollElement.querySelector<HTMLElement>("[data-codex-thread]")
-  if (thread === null) throw new Error("Codex thread element is missing")
-  return Number.parseFloat(thread.style.height)
+  const sessionRow = scrollElement.querySelector<HTMLElement>("[data-codex-timeline]")
+  if (sessionRow === null) throw new Error("Codex thread element is missing")
+  return Number.parseFloat(sessionRow.style.height)
 }
 
 const nativeBounds = Reflect.get(HTMLElement.prototype, "getBoundingClientRect")
@@ -124,9 +124,9 @@ describe("VirtualizedTurnList", () => {
     expect(countByTestId(scrollElement, "turn-79")).toBe(1)
     expect(countByTestId(scrollElement, "turn-0")).toBe(0)
     expect(scrollElement.querySelectorAll("[data-turn-key]")).toHaveLength(5)
-    expect(scrollElement.querySelector("[data-codex-thread]")?.getAttribute("data-codex-virtualized-turn-count")).toBe(
-      "5"
-    )
+    expect(
+      scrollElement.querySelector("[data-codex-timeline]")?.getAttribute("data-codex-virtualized-turn-count")
+    ).toBe("5")
 
     scrollElement.scrollTop = 0
     fireEvent.scroll(scrollElement)
@@ -223,9 +223,9 @@ describe("VirtualizedTurnList", () => {
     )
 
     expect(countByTestId(scrollElement, "turn-79")).toBe(1)
-    expect(scrollElement.querySelector("[data-codex-thread]")?.getAttribute("data-codex-virtualized-total-count")).toBe(
-      "80"
-    )
+    expect(
+      scrollElement.querySelector("[data-codex-timeline]")?.getAttribute("data-codex-virtualized-total-count")
+    ).toBe("80")
 
     scrollElement.scrollTop = 0
     fireEvent.scroll(scrollElement)
@@ -325,9 +325,9 @@ describe("VirtualizedTurnList", () => {
     const scrollTargets: number[] = []
     const scrollElement = scrollElementWithHeight(
       () => {
-        const thread = scrollElement.querySelector<HTMLElement>("[data-codex-thread]")
-        if (thread === null) return 80 * 280 + 79 * 12 + 409
-        return Number.parseFloat(thread.style.height) + 409
+        const sessionRow = scrollElement.querySelector<HTMLElement>("[data-codex-timeline]")
+        if (sessionRow === null) return 80 * 280 + 79 * 12 + 409
+        return Number.parseFloat(sessionRow.style.height) + 409
       },
       (top) => scrollTargets.push(top)
     )

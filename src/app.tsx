@@ -1,5 +1,7 @@
 import { isFormElicitation } from "@alwith/api"
 import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
+import { hasAccount } from "@nyssance/codex-acp-v2/client"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
@@ -9,18 +11,15 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 
-import type { ThreadSummary } from "@/agent/client"
-import { hasAccount } from "@/agent/codex-extensions"
-import { watchThreadList } from "@/agent/thread-list-refresh"
+import type { SessionSummary } from "@/agent/client"
+import { watchSessionList } from "@/agent/session-list-refresh"
 import { commands, events } from "@/bindings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
-import { ActionCard } from "@/features/chat/action-card"
+import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
-import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
-import { ElicitationFormDialog, type FormAction } from "@/features/chat/dialogs/elicitation-form-dialog"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
@@ -43,12 +42,12 @@ import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-lay
 import { TrailingBoard } from "@/features/layout/components/trailing-board"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { PluginsPage } from "@/features/plugins/plugins-page"
+import { ArchivedChatsPage } from "@/features/sessions/archived-chats-page"
+import { recentMainActivity } from "@/features/sessions/recent-main-activity"
+import { selectSession } from "@/features/sessions/select-session"
+import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
-import { ArchivedChatsPage } from "@/features/threads/archived-chats-page"
-import { recentMainActivity } from "@/features/threads/recent-main-activity"
-import { selectThread } from "@/features/threads/select-thread"
-import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
@@ -175,7 +174,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         return catalog.data.flatMap((entry) => entry.skills)
       },
       present: () => setView("chat"),
-      prompt: (targetId: string, prompt: string) => client.prompt(targetId, [{ type: "text", text: prompt }]),
+      prompt: async (targetId: string, prompt: string) => {
+        await client.prompt(targetId, [{ type: "text", text: prompt }])
+      },
       writeDraft: setComposerDraft
     }
     return connectExtensionNavigation({
@@ -211,15 +212,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useReadVisibleSession(selectedId, focused && view === "chat")
 
   const select = useCallback(
-    (thread: ThreadSummary) => {
-      // Codex refuses to resume an archived thread; opening one restores it first, as the
+    (sessionRow: SessionSummary) => {
+      // Codex refuses to resume an archived session; opening one restores it first, as the
       // official client does.
       void operation
         .run(() =>
-          selectThread(thread, {
+          selectSession(sessionRow, {
             connect: async () => {
               await client.connect()
-              if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
+              if (client.state.draftSessions[sessionRow.sessionId] !== "main") await client.discardDraft("main")
             },
             unarchive: (id) => client.unarchive(id),
             release: async (id) => {
@@ -228,7 +229,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               return transfer
             },
             importDraft,
-            include: (thread) => client.includeThread(thread),
+            include: (sessionRow) => client.includeSession(sessionRow),
             open: (id, cwd) => client.open(id, cwd),
             show: (id) => {
               setSurfaceGeneration((value) => value + 1)
@@ -370,12 +371,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [])
 
   useEffect(() => {
-    if (connection === "ready") return watchThreadList(client)
+    if (connection === "ready") return watchSessionList(client)
   }, [connection])
 
   useEffect(() => {
-    if (focused && connection === "ready" && client.state.threadsLoaded)
-      void client.listThreads({ reset: true }).catch(() => undefined)
+    if (focused && connection === "ready" && client.state.sessionListLoaded)
+      void client.listSessions({ reset: true }).catch(() => undefined)
   }, [focused, connection])
 
   // Either window can reconnect the owner; refresh Runtime subscriptions for every ready port.
@@ -550,7 +551,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newProjectChat}
             />
           }
-          onSelectThread={select}
+          onSelectSession={select}
           onOpenWindow={moveToWindow}
           onNewChat={newProjectChat}
           onDeleted={deleted}
@@ -610,7 +611,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             else openLeading()
           }}
           sidebar={
-            <ThreadSidebar
+            <SessionSidebar
               screen={leading ? "leading" : "main"}
               leadingPage={leadingPage}
               selectedId={view === "chat" && mainVisible ? selectedId : null}

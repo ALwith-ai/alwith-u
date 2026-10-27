@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext, chatFileName, resolveChatLink, useOpenChatLink } from "../file-actions"
 import { LinkedImage } from "./linked-image"
-import { ResourceContent } from "./resource-content"
+import { ResourceContent } from "@alwith/module-chat/resource-content"
 import { MermaidDiagram } from "./mermaid-diagram"
 
 const markdown = createChatMarkdown()

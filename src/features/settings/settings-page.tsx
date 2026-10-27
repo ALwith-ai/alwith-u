@@ -2,6 +2,7 @@
 // section on the right. The initial section comes from `?tab=`, later switches from the
 // `settings-change-tab` event; closing the window hides it so reopening is instant.
 
+import { MENU_HIGHLIGHT, NavigationItemButton, NavigationStack } from "@alwith/module-chat/session-list"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import {
@@ -24,15 +25,12 @@ import { toast } from "sonner"
 
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
-import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { DriveSettings } from "@/features/drive/drive"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { ExtensionSettingsContent, ExtensionSettingsNavigation } from "@/features/extensions/extension-outlets"
 import { ExtensionMount } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { useExtensions } from "@/features/extensions/use-extensions"
-import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
-import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { MobileSection } from "@/features/mobile/mobile-section"
 import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"

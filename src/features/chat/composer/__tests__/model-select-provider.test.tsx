@@ -1,11 +1,13 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { ModelMenu, type ModelMenuProps } from "@alwith/module-chat/conversation"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
+import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 
-import { modelTriggerLabel, presentModelCatalog } from "../model-catalog"
-import { ModelSelectGroup } from "../model-select-group"
+import { ChatHostProvider } from "../../chat-host"
+import { chatModelMenu, modelTriggerLabel, presentModelCatalog } from "../model-catalog"
 
 const controls = vi.hoisted(() => ({
   setConfig: vi.fn(),
@@ -14,11 +16,28 @@ const controls = vi.hoisted(() => ({
   pending: false
 }))
 vi.mock("@/lib/client", () => ({
-  client: { setConfig: controls.setConfig },
+  client: {
+    setConfig: controls.setConfig,
+    store: {
+      getState: () => ({ configPending: controls.pending ? { "main-session": true } : {} }),
+      subscribe: () => () => {}
+    }
+  },
   useApp: () => controls.pending
 }))
 vi.mock("@/lib/window-manager", () => ({ openSettingsWindow: controls.openSettings }))
 vi.mock("sonner", () => ({ toast: { error: controls.error } }))
+
+/** The package model menu with U's catalog policy and host, as the U composer mounts it. */
+function ChatModelMenu(props: Omit<ModelMenuProps, keyof typeof chatModelMenu>) {
+  return (
+    <ThemeProvider>
+      <ChatHostProvider>
+        <ModelMenu {...chatModelMenu} {...props} />
+      </ChatHostProvider>
+    </ThemeProvider>
+  )
+}
 
 const nativeModel = "gpt-6-astra"
 const providerModel = "gateway:deepseek:deepseek-flash"
@@ -57,7 +76,7 @@ afterEach(() => {
 
 test("catalog-supplied short labels override local presentation without changing model identity or full names", () => {
   const model = { api_id: "gpt-6-sol", label: "Catalog model name", shortLabel: "Catalog short name" }
-  const [group] = presentModelCatalog([{ id: "chatgpt", name: "ChatGPT", models: [model] }], model.api_id)
+  const [group] = presentModelCatalog([{ id: "chatgpt", name: "ChatGPT", models: [model] }])
   expect(group.models[0]).toMatchObject(model)
   expect(modelTriggerLabel(group.models[0])).toBe("Catalog short name")
 })
@@ -79,8 +98,8 @@ test("subscription providers come first without moving selected models or reorde
       models: ["First", "Second", "Third", "Fourth", "Fifth"].map((label) => ({ api_id: label, label }))
     }
   ]
-  const before = presentModelCatalog(groups, "First")
-  const after = presentModelCatalog(groups, "q2")
+  const before = presentModelCatalog(groups)
+  const after = presentModelCatalog(groups)
   expect(before.map((group) => group.id)).toEqual(["chatgpt", "qwen", "deepseek"])
   expect(before.map((group) => group.models.map((model) => model.api_id))).toEqual([
     ["First", "Second", "Third", "Fourth", "Fifth"],
@@ -95,7 +114,7 @@ test("subscription providers come first without moving selected models or reorde
 
 test("models without a short label keep the catalog name in the trigger and menu", async () => {
   const view = render(
-    <ModelSelectGroup
+    <ChatModelMenu
       sessionId="full-label"
       disabled={false}
       options={[
@@ -117,7 +136,7 @@ test("models without a short label keep the catalog name in the trigger and menu
 
 test("the composer uses the configured short label while the menu preserves the full name", async () => {
   const view = render(
-    <ModelSelectGroup
+    <ChatModelMenu
       sessionId="short-label"
       disabled={false}
       options={[
@@ -140,7 +159,7 @@ test("the composer uses the configured short label while the menu preserves the 
 
 test("the shared window model menu selects the DeepSeek gateway and returns to the native Codex model", async () => {
   controls.setConfig.mockResolvedValue(undefined)
-  const view = render(<ModelSelectGroup sessionId="floating-session" options={options(nativeModel)} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="floating-session" options={options(nativeModel)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
   expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
@@ -148,7 +167,7 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", providerModel)
   // Only the confirmed session configuration changes the selected label.
   expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6-Astra$/)
-  view.rerender(<ModelSelectGroup sessionId="floating-session" options={options(providerModel)} disabled={false} />)
+  view.rerender(<ChatModelMenu sessionId="floating-session" options={options(providerModel)} disabled={false} />)
   expect(within(view.getByTestId("model-trigger")).getByText("Flash", { exact: true })).toBeVisible()
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByText("GPT-6-Astra"))))
@@ -158,7 +177,7 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
 
 test("the model picker is disabled during a provider change", () => {
   controls.pending = true
-  const view = render(<ModelSelectGroup sessionId="main-session" options={options(nativeModel)} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="main-session" options={options(nativeModel)} disabled={false} />)
   expect(view.getByTestId("model-trigger")).toBeDisabled()
   fireEvent.click(view.getByTestId("model-trigger"))
   expect(controls.setConfig).not.toHaveBeenCalled()
@@ -166,7 +185,7 @@ test("the model picker is disabled during a provider change", () => {
 
 test("a rejected provider switch reports the failure and keeps the confirmed model label", async () => {
   controls.setConfig.mockRejectedValue(new Error("DeepSeek unavailable"))
-  const view = render(<ModelSelectGroup sessionId="main-session" options={options(nativeModel)} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="main-session" options={options(nativeModel)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("DeepSeek unavailable"))
@@ -176,7 +195,7 @@ test("a rejected provider switch reports the failure and keeps the confirmed mod
 test("unsent draft provider changes go through replacement instead of changing the existing session", async () => {
   const onModelChange = vi.fn()
   const view = render(
-    <ModelSelectGroup sessionId="draft" options={options(nativeModel)} disabled={false} onModelChange={onModelChange} />
+    <ChatModelMenu sessionId="draft" options={options(nativeModel)} disabled={false} onModelChange={onModelChange} />
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
@@ -211,7 +230,7 @@ test("the model menu omits collaboration mode while retaining other model settin
       ]
     }
   ]
-  const view = render(<ModelSelectGroup sessionId="main-session" options={config} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="main-session" options={config} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.queryByText("Collaboration mode")).not.toBeInTheDocument()
   expect(view.queryByText("Default")).not.toBeInTheDocument()
@@ -254,7 +273,7 @@ function catalogOptions(currentValue: string, gateways = true): acp.SessionConfi
 
 test("configured catalogs expose every native and gateway model in the scrollable list", async () => {
   controls.setConfig.mockResolvedValue(undefined)
-  const view = render(<ModelSelectGroup sessionId="catalog" options={catalogOptions("First")} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="catalog" options={catalogOptions("First")} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(
     view
@@ -267,7 +286,7 @@ test("configured catalogs expose every native and gateway model in the scrollabl
   expect(view.getAllByRole("menuitemradio").every((item) => item.querySelector("svg, img"))).toBe(true)
   await act(() => Promise.try(() => fireEvent.click(view.getByText("3.8 Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("catalog", "model", "q2")
-  view.rerender(<ModelSelectGroup sessionId="catalog" options={catalogOptions("q2")} disabled={false} />)
+  view.rerender(<ChatModelMenu sessionId="catalog" options={catalogOptions("q2")} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   const expectedNames = ["First", "Second", "Third", "Fourth", "Fifth", "3.8 Max", "3.8 Flash"]
   view.getAllByRole("menuitemradio").forEach((item, index) => {
@@ -277,9 +296,7 @@ test("configured catalogs expose every native and gateway model in the scrollabl
 })
 
 test("native catalogs keep every model visible in catalog order", async () => {
-  const view = render(
-    <ModelSelectGroup sessionId="catalog" options={catalogOptions("Fifth", false)} disabled={false} />
-  )
+  const view = render(<ChatModelMenu sessionId="catalog" options={catalogOptions("Fifth", false)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(
     view
@@ -307,12 +324,12 @@ test("an applied DeepSeek catalog joins the flat list without reordering native 
   ]
   const onModelChange = vi.fn()
   const view = render(
-    <ModelSelectGroup sessionId="draft" options={config(false)} disabled={false} onModelChange={onModelChange} />
+    <ChatModelMenu sessionId="draft" options={config(false)} disabled={false} onModelChange={onModelChange} />
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.queryByRole("menuitemradio", { name: "DeepSeek-Flash" })).not.toBeInTheDocument()
   view.rerender(
-    <ModelSelectGroup sessionId="draft" options={config(true)} disabled={false} onModelChange={onModelChange} />
+    <ChatModelMenu sessionId="draft" options={config(true)} disabled={false} onModelChange={onModelChange} />
   )
   const choices = view.getAllByRole("menuitemradio")
   expect(choices).toHaveLength(21)
@@ -325,7 +342,7 @@ test("an applied DeepSeek catalog joins the flat list without reordering native 
 })
 
 test("unsupported fast mode stays visible and disabled", async () => {
-  const view = render(<ModelSelectGroup sessionId="catalog" options={catalogOptions("q2")} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="catalog" options={catalogOptions("q2")} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).toHaveAttribute("aria-disabled", "true")
   fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))
@@ -360,7 +377,7 @@ test.each([true, false])(
         ]
       }
     ]
-    const view = render(<ModelSelectGroup sessionId="owner" options={config} disabled={false} />)
+    const view = render(<ChatModelMenu sessionId="owner" options={config} disabled={false} />)
     await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
     expect(view.getAllByRole("menuitemcheckbox", { name: "Fast mode" })).toHaveLength(1)
     const fastToggle = view.getByRole("menuitemcheckbox", { name: "Fast mode" })
@@ -379,7 +396,7 @@ test.each([true, false])(
 
 test("the more models footer opens provider configuration and reports opening failures", async () => {
   controls.openSettings.mockRejectedValue(new Error("Settings unavailable"))
-  const view = render(<ModelSelectGroup sessionId="owner" options={options(nativeModel)} disabled={false} />)
+  const view = render(<ChatModelMenu sessionId="owner" options={options(nativeModel)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "More models" }))))
   expect(controls.openSettings).toHaveBeenCalledWith("provider")

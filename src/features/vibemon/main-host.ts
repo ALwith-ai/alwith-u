@@ -18,12 +18,12 @@ import { info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 
-import { runStateSource } from "@/agent/run-state-source"
+import { runStateSource } from "@alwith/api/client"
 import { commands } from "@/bindings"
 import { openPlatformAccount } from "@/features/auth/open-account"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
-import { exportDraft } from "@/features/chat/composer/drafts"
+import { exportDraft } from "@alwith/module-chat/conversation"
 import { logBackgroundError } from "@/lib/background-errors"
 import { openChatWindow, syncChatWindowSurface } from "@/lib/chat-window"
 import { client } from "@/lib/client"
@@ -65,7 +65,9 @@ async function start() {
         sessionId: binding.sessionId,
         owner: expectedOwner
       }),
-    prompt: (id, content) => client.prompt(id, content),
+    prompt: async (id, content) => {
+      await client.prompt(id, content)
+    },
     respond: (token, answer) => client.respond(token, answer),
     async openChat(id, windowLabel) {
       if (windowLabel === "main") {

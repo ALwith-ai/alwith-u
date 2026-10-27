@@ -1,14 +1,14 @@
+import { exportDraft, importDraft } from "@alwith/module-chat/conversation"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ThreadSummary } from "@/agent/client"
+import type { SessionSummary } from "@/agent/client"
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
 import { ChatView } from "@/features/chat/chat-view"
-import { exportDraft, importDraft } from "@/features/chat/composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
@@ -139,14 +139,14 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     [newChat]
   )
 
-  const selectThread = useCallback(
-    (thread: ThreadSummary) => {
+  const selectSession = useCallback(
+    (sessionRow: SessionSummary) => {
       void operation
         .run(async () => {
-          if (client.state.draftSessions[thread.sessionId] !== "chat") await client.discardDraft("chat")
-          await client.open(thread.sessionId, thread.cwd)
-          setCwd(thread.cwd)
-          setSelectedId(thread.sessionId)
+          if (client.state.draftSessions[sessionRow.sessionId] !== "chat") await client.discardDraft("chat")
+          await client.open(sessionRow.sessionId, sessionRow.cwd)
+          setCwd(sessionRow.cwd)
+          setSelectedId(sessionRow.sessionId)
         })
         .catch(report)
     },
@@ -330,7 +330,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               owner="chat"
               headerTarget={headerTarget}
               projectMenu={
-                <ChatProjectMenu cwd={cwd} currentSessionId={selectedId} onSelect={selectThread} onNewChat={newChat} />
+                <ChatProjectMenu cwd={cwd} currentSessionId={selectedId} onSelect={selectSession} onNewChat={newChat} />
               }
               onNewChat={newChat}
               onNewProject={newProject}
@@ -357,14 +357,14 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 <ChatProjectMenu
                   cwd={session.cwd}
                   currentSessionId={session.id}
-                  onSelect={selectThread}
+                  onSelect={selectSession}
                   onNewChat={newChat}
                 />
               }
               onNewChat={newChat}
               onNewProject={newProject}
               onReturnToMain={returnToMain}
-              onSelectThread={selectThread}
+              onSelectSession={selectSession}
               onDeleted={deleted}
             />
           ) : null)}

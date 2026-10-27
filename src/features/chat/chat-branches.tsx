@@ -1,16 +1,15 @@
 import type { Item, Session } from "@alwith/api"
+import type { Turn } from "@alwith/module-chat/turns"
+import { codexExtensionCapabilities, codexTurnId } from "@nyssance/codex-acp-v2/client"
 import { SplitIcon } from "lucide-react"
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ForkOrigin, ThreadSummary } from "@/agent/client"
-import { codexExtensionCapabilities, codexTurnId } from "@/agent/codex-extensions"
+import type { ForkOrigin, SessionSummary } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { client, useApp } from "@/lib/client"
-
-import type { Turn } from "./turns"
 
 type BranchActions = {
   canFork: boolean
@@ -30,7 +29,7 @@ export function ChatBranchProvider({
   children
 }: {
   session: Session
-  onSelect?: (thread: ThreadSummary) => void
+  onSelect?: (sessionRow: SessionSummary) => void
   children: ReactNode
 }) {
   const agent = useApp((state) => state.agent)
@@ -65,11 +64,11 @@ export function ChatBranchProvider({
     sourceBusy.current = true
     setOpeningSource(true)
     void client
-      .readThreadSummary(origin.sourceId)
-      .then((thread) => {
+      .readSessionSummary(origin.sourceId)
+      .then((sessionRow) => {
         if (!mounted.current) return
-        if (!thread) throw new Error(t("chat.branches.sourceUnavailable"))
-        onSelect(thread)
+        if (!sessionRow) throw new Error(t("chat.branches.sourceUnavailable"))
+        onSelect(sessionRow)
       })
       .catch((error: unknown) => {
         if (mounted.current) toast.error(error instanceof Error ? error.message : String(error))
@@ -86,9 +85,9 @@ export function ChatBranchProvider({
     void client
       .fork(session.id, session.cwd, turnId)
       .then((id) => {
-        const thread = client.state.threads.find((entry) => entry.sessionId === id)
-        if (!thread) throw new Error("Forked chat is missing from the session list")
-        if (mounted.current) onSelect?.(thread)
+        const sessionRow = client.state.sessionList.find((entry) => entry.sessionId === id)
+        if (!sessionRow) throw new Error("Forked chat is missing from the session list")
+        if (mounted.current) onSelect?.(sessionRow)
       })
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
       .finally(() => {
