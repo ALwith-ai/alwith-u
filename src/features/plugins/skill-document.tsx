@@ -124,7 +124,7 @@ export function SkillDocument({
                   openExternal(
                     /^(?:[a-z][a-z\d+.-]*:|\/|#)/i.test(href) || path === null
                       ? href
-                      : normalizePath(dirname(path) + "/" + href)
+                      : normalizePath(`${dirname(path)}/${href}`)
                   )
                 )
             }}

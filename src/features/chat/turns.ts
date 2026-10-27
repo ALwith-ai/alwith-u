@@ -63,9 +63,11 @@ export function isSessionStatus(turn: Turn): boolean {
 
 function pushActivity(turn: Turn, item: MessageItem | ToolItem): void {
   const last = turn.work.at(-1)
+  const previousItem = last?.kind === "activity" ? last.items.at(-1) : undefined
   if (
     last?.kind === "activity" &&
-    turn.items.indexOf(item) === turn.items.indexOf(last.items[last.items.length - 1]) + 1
+    previousItem !== undefined &&
+    turn.items.indexOf(item) === turn.items.indexOf(previousItem) + 1
   ) {
     last.items.push(item)
     return

@@ -40,7 +40,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 test("window focus runs full recovery and unmount removes its listener", async () => {
-  const { useExtensions } = await import("../runtime")
+  const { useExtensions } = await import("../use-extensions")
   const view = renderHook(() => useExtensions())
   await waitFor(() => expect(ports.ensure).toHaveBeenCalledOnce())
   fireEvent(window, new Event("focus"))

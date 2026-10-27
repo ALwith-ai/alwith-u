@@ -481,7 +481,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
         ...new Set(
           state.threads.map((thread) => newChatDirectory(thread.cwd)).filter((path): path is string => path !== null)
         )
-      ].sort()
+      ].toSorted()
     )
   )
   const directoriesKey = JSON.stringify(
@@ -491,7 +491,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
           (path): path is string => path !== null
         )
       )
-    ].sort()
+    ].toSorted()
   )
   const searchLabel = t(kind === "skills" ? "plugins.skills.search" : "plugins.search")
   const [selected, setSelected] = useState<PluginEntry | null>(null)

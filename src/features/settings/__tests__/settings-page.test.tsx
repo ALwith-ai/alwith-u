@@ -10,7 +10,8 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
 vi.mock("@/features/mobile/mobile-section", () => ({ MobileSection: () => null }))
 vi.mock("@/features/drive/drive", () => ({ DriveSettings: () => null }))
 vi.mock("@/features/drive/use-drive-visible", () => ({ useDriveVisible: () => true }))
-vi.mock("@/features/extensions/runtime", () => ({
+vi.mock("@/features/extensions/runtime", () => ({ reportExtensionError: vi.fn() }))
+vi.mock("@/features/extensions/use-extensions", () => ({
   useExtensions: () => ({ host: { views: [] }, state: { native: null } })
 }))
 vi.mock("@/features/extensions/extensions-section", () => ({ ExtensionsSection: () => null }))

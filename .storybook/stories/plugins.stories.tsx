@@ -105,12 +105,13 @@ export const SkillMarkdown: Story = {
     mockIPC((command) => {
       if (command === "workspace_open") return "/example/research"
       if (command === "workspace_file")
-        return Array.from(
-          new TextEncoder().encode(
-            "---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n" +
-              "\n\nEvidence and implementation details for the research report.\n".repeat(60)
+        return [
+          ...new TextEncoder().encode(
+            `---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n${"\n\nEvidence and implementation details for the research report.\n".repeat(
+              60
+            )}`
           )
-        )
+        ]
       throw new Error(`Unexpected preview command: ${command}`)
     })
     const skill = detail.skills[0]

@@ -110,7 +110,7 @@ function ExtensionControl({ input }: { input: NativeControl }) {
     input.dispatchEvent(new Event("change", { bubbles: true }))
   }
   if (input instanceof HTMLSelectElement) {
-    const options = Array.from(input.options).map((option) => ({
+    const options = [...input.options].map((option) => ({
       value: option.value,
       label: option.label,
       disabled:

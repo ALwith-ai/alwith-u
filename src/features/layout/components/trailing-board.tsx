@@ -124,7 +124,7 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
             <GlobeIcon className="size-12" />
           )
           const onOpen = () => void commands.openAppById({ bundleId: app.bundle_id }).catch(reportPetError)
-          return /chrome/i.test(app.bundle_id + " " + app.name) ? (
+          return /chrome/i.test(`${app.bundle_id} ${app.name}`) ? (
             <BrowserBridgeCard key={app.bundle_id} title={app.name} icon={icon} onOpen={onOpen} active={active} />
           ) : (
             <WindowCard key={app.bundle_id} title={app.name} icon={icon} onOpen={onOpen} />

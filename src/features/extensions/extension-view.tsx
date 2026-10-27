@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 
 import { ExtensionSettingsControls } from "./extension-settings-controls"
 import { openExtensionConsent } from "./legacy/startup-consent"
-import { reportExtensionError, useExtensions } from "./runtime"
+import { reportExtensionError } from "./runtime"
+import { useExtensions } from "./use-extensions"
 
 export function ExtensionMount({ id }: { id: string }): ReactElement {
   const { runtime } = useExtensions()

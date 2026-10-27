@@ -205,12 +205,12 @@ function AssistantTurnImpl({
     artifacts.length > 0 || hasAnswer || turn.final.some((message) => asyncQuestions(message._meta).length > 0)
   const firstFinalIndex = turn.items.findIndex((item) => turn.final.includes(item as Turn["final"][number]))
   const entryIndex = (entry: WorkEntry) => turn.items.indexOf(entry.kind === "activity" ? entry.items[0] : entry.item)
-  const beforeAnswer = work.filter((entry) => firstFinalIndex < 0 || entryIndex(entry) < firstFinalIndex)
-  const afterAnswer = work.filter((entry) => firstFinalIndex >= 0 && entryIndex(entry) > firstFinalIndex)
+  const beforeAnswer = work.filter((entry) => firstFinalIndex === -1 || entryIndex(entry) < firstFinalIndex)
+  const afterAnswer = work.filter((entry) => firstFinalIndex !== -1 && entryIndex(entry) > firstFinalIndex)
   const response = [
     ...turn.final.map((item) => ({ kind: "answer" as const, item, index: turn.items.indexOf(item) })),
     ...afterAnswer.map((entry) => ({ kind: "work" as const, entry, index: entryIndex(entry) }))
-  ].sort((a, b) => a.index - b.index)
+  ].toSorted((a, b) => a.index - b.index)
   const working = active && (!hasAnswer || afterAnswer.length > 0)
   const hasRunningTool = activityItems.some(
     (item) => item.kind === "tool" && (item.status === "pending" || item.status === "in_progress")

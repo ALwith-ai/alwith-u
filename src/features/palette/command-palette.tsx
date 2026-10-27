@@ -18,7 +18,8 @@ import {
   CommandShortcut
 } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
-import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
+import { reportExtensionError } from "@/features/extensions/runtime"
+import { useExtensions } from "@/features/extensions/use-extensions"
 import { useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { displayShortcut } from "@/lib/shortcut-formatter"
