@@ -133,10 +133,11 @@ test.each(["user_message", "agent_message"])("exports ordered text and image blo
   const content = [{ type: "text", text: "Before" }, png, { type: "text", text: "After" }, png]
   const body = await exportConversation(
     "s",
-    async () => ({
-      ...page,
-      items: [{ ...page.items[0], updates: [{ sessionUpdate, content }] }]
-    }),
+    () =>
+      Promise.resolve({
+        ...page,
+        items: [{ ...page.items[0], updates: [{ sessionUpdate, content }] }]
+      }),
     () => {}
   )
   const record = JSON.parse(body) as { message: { content: unknown[] } }
@@ -146,28 +147,29 @@ test.each(["user_message", "agent_message"])("exports ordered text and image blo
 test("exports image-only messages and keeps unavailable image placeholders", async () => {
   const body = await exportConversation(
     "s",
-    async () => ({
-      ...page,
-      items: [
-        {
-          ...page.items[0],
-          updates: [
-            { sessionUpdate: "user_message", content: [png] },
-            {
-              sessionUpdate: "user_message",
-              content: [
-                {
-                  type: "resource_link",
-                  name: "Image unavailable",
-                  uri: "codex-image:unavailable",
-                  _meta: { codex: { imageUnavailable: true } }
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }),
+    () =>
+      Promise.resolve({
+        ...page,
+        items: [
+          {
+            ...page.items[0],
+            updates: [
+              { sessionUpdate: "user_message", content: [png] },
+              {
+                sessionUpdate: "user_message",
+                content: [
+                  {
+                    type: "resource_link",
+                    name: "Image unavailable",
+                    uri: "codex-image:unavailable",
+                    _meta: { codex: { imageUnavailable: true } }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }),
     () => {}
   )
   const records = body
@@ -187,15 +189,16 @@ test.each([
   await expect(
     exportConversation(
       "s",
-      async () => ({
-        ...page,
-        items: [
-          {
-            ...page.items[0],
-            updates: [{ sessionUpdate: "user_message", content: [{ type: "text", text: "Keep me" }, block] }]
-          }
-        ]
-      }),
+      () =>
+        Promise.resolve({
+          ...page,
+          items: [
+            {
+              ...page.items[0],
+              updates: [{ sessionUpdate: "user_message", content: [{ type: "text", text: "Keep me" }, block] }]
+            }
+          ]
+        }),
       () => {}
     )
   ).rejects.toThrow(/session s.*item u.*type/)
@@ -205,17 +208,18 @@ test("counts inline image bytes toward the complete archive size limit", async (
   await expect(
     exportConversation(
       "s",
-      async () => ({
-        ...page,
-        items: [
-          {
-            ...page.items[0],
-            updates: [
-              { sessionUpdate: "user_message", content: [{ ...png, data: "AAAA".repeat((25 * 1024 * 1024) / 4) }] }
-            ]
-          }
-        ]
-      }),
+      () =>
+        Promise.resolve({
+          ...page,
+          items: [
+            {
+              ...page.items[0],
+              updates: [
+                { sessionUpdate: "user_message", content: [{ ...png, data: "AAAA".repeat((25 * 1024 * 1024) / 4) }] }
+              ]
+            }
+          ]
+        }),
       () => {}
     )
   ).rejects.toThrow("25 MiB")
@@ -226,9 +230,11 @@ test("reports a single item exceeding the history protocol budget without invali
   await expect(
     exportConversation(
       "s",
-      async (params) => {
+      (params) => {
         calls.push({ limit: params.limit, maxBytes: params.maxBytes })
-        throw Object.assign(new Error("History page too large"), { data: { reason: "history_page_too_large" } })
+        return Promise.reject(
+          Object.assign(new Error("History page too large"), { data: { reason: "history_page_too_large" } })
+        )
       },
       () => {}
     )

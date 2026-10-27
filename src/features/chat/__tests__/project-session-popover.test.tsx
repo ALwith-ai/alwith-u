@@ -367,8 +367,10 @@ test("the Drive action has an explicit label and opens existing project sessions
   const view = render(
     <ProjectSessionPopover actionLabel="Recent sessions" cwd="/tmp/project" onSelect={selected} onNewChat={newChat} />
   )
-  await act(async () => {
+  await act(() => {
     fireEvent.click(view.getByRole("button", { name: "Recent sessions" }))
+
+    return Promise.resolve()
   })
   await waitFor(() => expect(view.getByText("Chat 6")).toBeTruthy())
   fireEvent.click(view.getByText("Chat 6"))
@@ -382,10 +384,10 @@ test("the project quick favorite targets its row without selecting the conversat
   const dispatch = vi.spyOn(collectionStore, "dispatchCollection").mockResolvedValue()
   try {
     const view = render(<ProjectSessionPopover cwd="/tmp/project" onSelect={selected} onNewChat={() => {}} />)
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "project" })))
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "project" }))))
     const row = must(view.getByRole("button", { name: "Chat 6" }).parentElement, "project session row")
     const favorite = must(row.querySelector<HTMLButtonElement>("button[aria-haspopup=menu]"), "quick favorite")
-    await act(async () => fireEvent.click(favorite))
+    await act(() => Promise.resolve(fireEvent.click(favorite)))
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "favorite", sessionId: "chat-6" })
     expect(selected).not.toHaveBeenCalled()
     expect(view.getByRole("dialog")).toBeVisible()

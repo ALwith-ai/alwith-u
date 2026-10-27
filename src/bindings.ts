@@ -225,6 +225,8 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
+  mobileSetDraftSessions: (args: { sessionIds: string[] }): Promise<null> =>
+    __t3Invoke<null>("mobile_set_draft_sessions", args),
   mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
   mobileBridgeStop: (): Promise<null> => __t3Invoke<null>("mobile_bridge_stop"),
   mobileBridgeStatus: (): Promise<MobileBridgeStatus> => __t3Invoke<MobileBridgeStatus>("mobile_bridge_status"),
@@ -265,6 +267,10 @@ export const commands = {
   attachWindowToMain: (args: { label: string }): Promise<boolean> => __t3Invoke<boolean>("attach_window_to_main", args),
   readAppsInfo: (args: { names: string[]; withIcons: boolean }): Promise<AppInfo_Serialize[]> =>
     __t3Invoke<AppInfo_Serialize[]>("read_apps_info", args),
+  chromeExtensionInstalled: (): Promise<boolean> => __t3Invoke<boolean>("chrome_extension_installed"),
+  chromeBridgeInstalled: (): Promise<boolean> => __t3Invoke<boolean>("chrome_bridge_installed"),
+  setChromeBridgeEnabled: (args: { enabled: boolean }): Promise<null> =>
+    __t3Invoke<null>("set_chrome_bridge_enabled", args),
   defaultBrowser: (): Promise<string> => __t3Invoke<string>("default_browser"),
   isAppRunning: (args: { bundleId: string }): Promise<boolean> => __t3Invoke<boolean>("is_app_running", args),
   openAppById: (args: { bundleId: string }): Promise<null> => __t3Invoke<null>("open_app_by_id", args),
@@ -360,6 +366,7 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
+  mobileSetDraftSessions: never
   mobileBridgeStart: string
   mobileBridgeStop: string
   mobileBridgeStatus: never
@@ -378,6 +385,9 @@ export type CommandErrors = {
   updaterInstallAndRelaunch: string
   attachWindowToMain: string
   readAppsInfo: Value
+  chromeExtensionInstalled: string
+  chromeBridgeInstalled: string
+  setChromeBridgeEnabled: string
   defaultBrowser: Value
   isAppRunning: Value
   openAppById: Value

@@ -127,11 +127,15 @@ test("a delayed restore check cannot start the driver after global stop complete
       permissions: { supported: true, accessibility: true, screenCapture: true }
     }
   })
-  native.computerStart.mockImplementation(async () => {
+  native.computerStart.mockImplementation(() => {
     calls.push("start")
+
+    return Promise.resolve()
   })
-  native.computerStop.mockImplementation(async () => {
+  native.computerStop.mockImplementation(() => {
     calls.push("stop")
+
+    return Promise.resolve()
   })
   const restoring = restoreComputer()
   await queried.promise

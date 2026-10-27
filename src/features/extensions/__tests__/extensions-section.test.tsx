@@ -18,8 +18,8 @@ vi.mock("@/bindings", () => ({ commands: { extensionPrepareInstall: ports.prepar
 vi.mock("../install-service", () => ({ executePreparedInstall: ports.install }))
 vi.mock("../startup-import-control", () => ({ refreshExtensions: ports.refresh, updateAndReloadExtension: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { success: ports.success } }))
-vi.mock("../runtime", () => ({
-  reportExtensionError: ports.report,
+vi.mock("../runtime", () => ({ reportExtensionError: ports.report }))
+vi.mock("../use-extensions", () => ({
   useExtensions: () => ({
     runtime: { refresh: ports.refresh },
     state: {

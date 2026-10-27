@@ -73,7 +73,7 @@ test("unsubscribes once when async setup finishes after unmount", async () => {
   await waitFor(() => expect(native.listen).toHaveBeenCalledTimes(1))
   view.unmount()
   expect(stop).not.toHaveBeenCalled()
-  await act(async () => setup.resolve(stop))
+  await act(() => Promise.resolve(setup.resolve(stop)))
   expect(stop).toHaveBeenCalledTimes(1)
   expect(native.error).not.toHaveBeenCalled()
 })
@@ -92,7 +92,7 @@ test("does not report setup rejection after the canvas unmounts", async () => {
   const view = render(<Canvas />)
   await waitFor(() => expect(native.listen).toHaveBeenCalledTimes(1))
   view.unmount()
-  await act(async () => setup.reject(new Error("Late setup failure")))
+  await act(() => Promise.resolve(setup.reject(new Error("Late setup failure"))))
   expect(native.error).not.toHaveBeenCalled()
 })
 
@@ -124,7 +124,7 @@ test("disabling during async setup cleans the late listener without installing a
   await waitFor(() => expect(native.listen).toHaveBeenCalledTimes(1))
   native.enabled = false
   view.rerender(<Canvas />)
-  await act(async () => setup.resolve(stop))
+  await act(() => Promise.resolve(setup.resolve(stop)))
   expect(stop).toHaveBeenCalledTimes(1)
   expect(native.listen).toHaveBeenCalledTimes(1)
   view.unmount()

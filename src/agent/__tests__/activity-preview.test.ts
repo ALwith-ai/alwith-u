@@ -18,21 +18,27 @@ test("walks newest-first items past tools and thoughts and stops at the latest r
   const requests: Record<string, unknown>[] = []
   const result = await readActivityReply(
     "s",
-    async (request) => {
+    (request) => {
       requests.push(request)
-      return request.cursor
-        ? page([message("Latest\n reply"), message("Earlier")])
-        : page(
-            [
-              {
-                updates: [
-                  { sessionUpdate: "agent_thought", messageId: "private", content: [{ type: "text", text: "Thought" }] }
-                ]
-              },
-              { updates: [{ sessionUpdate: "tool_call", toolCallId: "tool", title: "Tool" }] }
-            ],
-            "older"
-          )
+      return Promise.resolve(
+        request.cursor
+          ? page([message("Latest\n reply"), message("Earlier")])
+          : page(
+              [
+                {
+                  updates: [
+                    {
+                      sessionUpdate: "agent_thought",
+                      messageId: "private",
+                      content: [{ type: "text", text: "Thought" }]
+                    }
+                  ]
+                },
+                { updates: [{ sessionUpdate: "tool_call", toolCallId: "tool", title: "Tool" }] }
+              ],
+              "older"
+            )
+      )
     },
     () => {}
   )
@@ -46,14 +52,14 @@ test("rejects another session and cyclic pagination", async () => {
   await expect(
     readActivityReply(
       "s",
-      async () => ({ ...page([]), sessionId: "other" }),
+      () => Promise.resolve({ ...page([]), sessionId: "other" }),
       () => {}
     )
   ).rejects.toThrow("pagination")
   await expect(
     readActivityReply(
       "s",
-      async () => page([{ updates: [] }], "same"),
+      () => Promise.resolve(page([{ updates: [] }], "same")),
       () => {}
     )
   ).rejects.toThrow("pagination")
@@ -64,13 +70,30 @@ test("a disconnected preview cannot publish its completed read", async () => {
   await expect(
     readActivityReply(
       "s",
-      async () => {
+      () => {
         alive = false
-        return page([message("stale")])
+        return Promise.resolve(page([message("stale")]))
       },
       () => {
         if (!alive) throw new Error("Disconnected")
       }
     )
   ).rejects.toThrow("Disconnected")
+})
+
+test("preview extracts validated text, skips invalid text and rejects non-object blocks", async () => {
+  const read = (content: unknown[]) =>
+    readActivityReply(
+      "s",
+      () => Promise.resolve(page([{ updates: [{ sessionUpdate: "agent_message", messageId: "a", content }] }])),
+      () => {}
+    )
+  await expect(
+    read([
+      { type: "image", data: "ignored", mimeType: "image/png" },
+      { type: "text", text: "Reply" }
+    ])
+  ).resolves.toBe("Reply")
+  await expect(read([{ type: "text", text: 42 }])).resolves.toBeNull()
+  await expect(read([null])).rejects.toThrow("Invalid activity preview")
 })

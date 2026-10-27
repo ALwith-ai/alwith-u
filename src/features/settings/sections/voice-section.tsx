@@ -4,10 +4,10 @@ import { type ReactNode, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/alwith-ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Kbd } from "@/components/ui/kbd"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { createVoiceSettingsHost, loadVoiceSettings, saveVoiceEnabled, voiceProfiles } from "@/features/voice/settings"
@@ -59,7 +59,7 @@ const slots: VoiceSettingsSlots = {
       <SelectTrigger className="w-full min-w-0" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="w-max max-w-(--available-width) min-w-(--anchor-width)">
+      <SelectContent className="w-(--anchor-width)">
         {options.map((option) => (
           <SelectItem
             key={option.value}

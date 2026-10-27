@@ -470,7 +470,9 @@
     "trackpad": "Trackpad",
     "trackpadEnabled": "Enable trackpad gestures",
     "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
-    "mobile": "Mobile connection"
+    "mobile": "Mobile connection",
+    "preventSleep": "Prevent sleep while tasks are running",
+    "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off."
   },
   "usage": {
     "title": "Plan usage limits",
@@ -572,6 +574,22 @@
     "install": "Relaunch to update"
   },
   "plugins": {
+    "catalog": {
+      "pluginViews": "Plugin views",
+      "personal": "Personal",
+      "showMore": "Show {{count}} more",
+      "title": "Plugins",
+      "description": "Discover plugins and manage skills and tools.",
+      "search": "Search plugins and skills",
+      "clearSearch": "Clear search",
+      "sourceHelp": "Add a GitHub repository, Git URL, or local folder.",
+      "scope": "Skill scope",
+      "allScopes": "All scopes",
+      "skillCount": "{{count}} skills",
+      "location": "Location",
+      "fromPlugin": "From plugin",
+      "toggleNotApplied": "The skill state did not match the requested change."
+    },
     "title": "Plugins",
     "beta": "BETA",
     "subtitle": "Work with Codex across your favorite tools",
@@ -696,6 +714,13 @@
       "marketplace": "Marketplace"
     },
     "skills": {
+      "document": {
+        "open": "Open",
+        "reveal": "Show in file manager",
+        "copy": "Copy Markdown",
+        "content": "Skill instructions",
+        "error": "Could not read SKILL.md"
+      },
       "search": "Search skills",
       "scope": {
         "user": "User",
@@ -1183,13 +1208,62 @@
     "retry": "Retry"
   },
   "mobile": {
-    "enable": "Allow mobile connections",
-    "description": "Connect ALwith Mobile to ALwith U.",
-    "pair": "Pair a phone",
-    "connected": "Ready to pair",
-    "connecting": "Connecting…",
-    "generate": "Show pairing code",
+    "enable": "Allow phones to connect to this U",
+    "description": "Paired phones can view chats, send messages and respond to permissions. Turning this off pauses connections and keeps paired devices. Keep U running to connect.",
+    "pair": "Pair with this ALwith U",
+    "connected": "Ready. Show the pairing QR code and scan it from the pairing screen on your phone.",
+    "connecting": "Connecting to the service. A pairing QR code will be available when connected…",
+    "generate": "Show pairing QR code",
     "expires": "Expires in {{count}} seconds",
-    "unpair": "Unpair"
+    "unpair": "Unpair",
+    "login": {
+      "action": "Sign in on phone",
+      "title": "Sign in to ALwith on your phone",
+      "subtitle": "Sign in to your current ALwith account on your phone. Skip this step if already signed in.",
+      "expires": "Expires in {{seconds}}s",
+      "expired": "The QR code has expired.",
+      "refresh": "Refresh QR code",
+      "scannedHint": "Confirm only if this is your phone.",
+      "confirm": "Confirm sign-in",
+      "confirmed": "Phone sign-in approved",
+      "again": "Sign in another phone",
+      "retry": "Retry",
+      "back": "Close sign-in QR code",
+      "scanHint": "On the ALwith Pocket sign-in screen, choose “Sign in with ALwith QR code”, scan, then confirm here.",
+      "nextHint": "Finish signing in on your phone. To view this U’s chats, pair your phone next.",
+      "continue": "Continue to pair with this U"
+    },
+    "intro": "Pair this U with ALwith Pocket after signing in to view and manage chats on your phone.",
+    "refresh": "Refresh pairing QR code",
+    "scanHint": "In ALwith Pocket, open the pairing screen after signing in and choose “Scan Pairing QR Code”.",
+    "expired": "This pairing QR code has expired. Refresh it and scan again.",
+    "paired": "Phone paired. You can now view this U’s chats on your phone.",
+    "devices": "Paired phones",
+    "devicesHint": "Phones authorized to connect to this U appear here. Account sign-in and device pairing are managed separately.",
+    "loading": "Loading paired phones…",
+    "loadFailed": "Could not load paired phones. Retrying.",
+    "empty": "No phones paired yet. Phones will appear here after pairing.",
+    "phone": "Phone",
+    "pairedAt": "Paired {{date}}",
+    "revokeTitle": "Unpair “{{name}}”?",
+    "revokeHint": "This phone will lose access to this U. Scan a new pairing QR code to reconnect. Its ALwith account will stay signed in.",
+    "cancel": "Cancel",
+    "unpaired": "Phone unpaired. It can no longer access this U.",
+    "reconnect": "Retry connection",
+    "openAccount": "Not signed in on your phone? Open Account to sign in"
+  },
+  "chromeBridge": {
+    "connectedBody": "The ALwith extension is connected. Ask the AI to open tabs, read pages, click, or fill forms.",
+    "installedBody": "Extension installed. Turn on browser control to register the bridge.",
+    "restartBody": "Bridge registered. Reload the extension or restart the browser, then check again.",
+    "noneBody": "Install the ALwith browser extension to let the AI operate this browser.",
+    "extOn": "Extension installed",
+    "extOff": "Extension not installed",
+    "bridgeOn": "Bridge connected",
+    "bridgeOff": "Bridge not connected",
+    "install": "Install extension",
+    "enableBridge": "Enable browser control",
+    "recheck": "Check",
+    "bringToFront": "Browser"
   }
 }

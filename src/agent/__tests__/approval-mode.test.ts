@@ -41,11 +41,13 @@ function fixture(trigger: "revision" | "preflight" | "reopen" | "fork") {
     launch: { engine: "codex" },
     sessionContext: () => Promise.resolve({ revision, mcpServers: [] }),
     sessionContextRevision: () => Promise.resolve(revision),
-    prepareSessionTools: async () => {
+    prepareSessionTools: () => {
       if (failPreflight) {
         failPreflight = false
-        throw new Error("Connection needs refresh")
+        return Promise.reject(new Error("Connection needs refresh"))
       }
+
+      return Promise.resolve()
     }
   })
   return {
@@ -88,7 +90,7 @@ test.each(["revision", "preflight", "reopen", "fork"] as const)(
       await vi.waitFor(() => expect(client.state.actions).toHaveLength(1))
       const action = client.state.actions[0]
       expect(action.sessionId).toBe(target)
-      await client.respond(action.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
+      client.respond(action.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
       await vi.waitFor(() => expect(client.state.actions).toHaveLength(0))
       await vi.waitFor(() => expect(client.session(target).state).toBe("idle"))
     } finally {

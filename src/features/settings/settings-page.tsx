@@ -30,7 +30,7 @@ import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { ExtensionSettingsContent, ExtensionSettingsNavigation } from "@/features/extensions/extension-outlets"
 import { ExtensionMount } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
-import { useExtensions } from "@/features/extensions/runtime"
+import { useExtensions } from "@/features/extensions/use-extensions"
 import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
 import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
 import { MobileSection } from "@/features/mobile/mobile-section"
@@ -111,13 +111,13 @@ export function SettingsPage() {
       (() => {
         switch (section) {
           case "drive":
-            return driveVisible ? <DriveSettings /> : <AccountSection />
+            return driveVisible ? <DriveSettings /> : <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "account":
-            return <AccountSection />
+            return <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "editor":
             return <EditorSettingsSection />
           case "mobile":
-            return <MobileSection />
+            return <MobileSection onOpenAccount={() => setSection("account")} />
           case "computer":
             return <ComputerSection />
           case "trackpad":

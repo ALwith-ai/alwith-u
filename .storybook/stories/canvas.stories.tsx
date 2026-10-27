@@ -48,10 +48,10 @@ async function hoverNavigationEdge(canvas: HTMLElement): Promise<void> {
   )
   const surface = canvas.querySelector<HTMLElement>("[data-atlas-navigation-surface]")!
   await waitFor(
-    () => {
-      expect(host).not.toHaveAttribute("data-sidebar-mode", "hidden")
-      expect(surface.inert).toBe(false)
-      expect(getComputedStyle(surface).pointerEvents).not.toBe("none")
+    async () => {
+      await expect(host).not.toHaveAttribute("data-sidebar-mode", "hidden")
+      await expect(surface.inert).toBe(false)
+      await expect(getComputedStyle(surface).pointerEvents).not.toBe("none")
     },
     { timeout: 3000 }
   )

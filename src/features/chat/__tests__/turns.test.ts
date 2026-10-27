@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest"
 
 import { must } from "@/lib/__tests__/must"
 
-import { groupTurns } from "../turns"
+import { activeTurnKey, continuesTurn, groupTurns, turnPresentation } from "../turns"
 
 const text = (messageId: string, text: string, _meta?: Record<string, unknown>) =>
   ({
@@ -153,3 +153,114 @@ test.each([false, true])(
     expect(turns[0].work).toMatchObject([{ kind: "activity", items: [{ id: "ordinary-error", status: "failed" }] }])
   }
 )
+
+test("steering continues a native turn while a later native turn does not", () => {
+  const user = (id: string, turnId: string) => ({
+    sessionUpdate: "user_message",
+    messageId: id,
+    content: [{ type: "text", text: id }],
+    _meta: { codex: { turnId } }
+  })
+  const session = feed(
+    createSession("steer", "/"),
+    user("first", "one"),
+    text("work", "Working", { codex: { phase: "commentary", turnId: "one" } }),
+    user("steering", "one"),
+    text("answer", "Done", { codex: { phase: "final_answer", turnId: "one" } }),
+    user("next", "two")
+  )
+  const turns = groupTurns(session)
+  expect(continuesTurn(session, turns[0], turns[1])).toBe(true)
+  expect(continuesTurn(session, turns[1], turns[2])).toBe(false)
+})
+
+test("a pending steer does not complete the current work", () => {
+  let session = sent(createSession("pending-steer", "/"), "start", "local", "first")
+  session = feed(
+    session,
+    { sessionUpdate: "state_update", state: "running" },
+    text("working", "Working", { codex: { phase: "commentary" } })
+  )
+  session = addPrompt(session, [{ type: "text", text: "also check this" }], "steer")
+  const turns = groupTurns(session)
+  expect(continuesTurn(session, turns[0], turns[1])).toBe(true)
+  expect(continuesTurn({ ...session, state: "idle" }, turns[0], turns[1])).toBe(false)
+})
+
+test.each(["commentary", "final_answer"])(
+  "steering keeps %s updates on their owner until new output arrives",
+  (phase) => {
+    const user = (id: string) => ({
+      sessionUpdate: "user_message",
+      messageId: id,
+      content: [{ type: "text", text: id }],
+      _meta: { codex: { turnId: "native" } }
+    })
+    let session = feed(
+      createSession("steer-owner", "/"),
+      user("first"),
+      { sessionUpdate: "state_update", state: "running" },
+      text("output", "Starting", { codex: { phase, turnId: "native" } })
+    )
+    session = addPrompt(session, [{ type: "text", text: "also" }], "local")
+    expect(activeTurnKey(session, groupTurns(session))).toBe("turn:user:first")
+    session = acknowledgePrompt(session, "local", "steer")
+    expect(activeTurnKey(session, groupTurns(session))).toBe("turn:user:first")
+    session = feed(session, user("steer"), text("output", " still streaming", { codex: { phase, turnId: "native" } }))
+    expect(activeTurnKey(session, groupTurns(session))).toBe("turn:user:first")
+    session = feed(
+      session,
+      text("next-output", "Using the addition", { codex: { phase: "commentary", turnId: "native" } })
+    )
+    expect(activeTurnKey(session, groupTurns(session))).toBe("turn:user:steer")
+    session = feed(session, idle)
+    expect(activeTurnKey(session, groupTurns(session))).toBeUndefined()
+  }
+)
+
+test("a new request after completion owns its placeholder", () => {
+  let session = sent(createSession("new-owner", "/"), "first", "local", "first")
+  session = feed(session, text("answer", "Done"), idle)
+  session = feed(addPrompt(session, [{ type: "text", text: "next" }], "next"), {
+    sessionUpdate: "state_update",
+    state: "running"
+  })
+  expect(activeTurnKey(session, groupTurns(session))).toBe("turn:user:next")
+})
+
+test("an unanswered steer keeps the completion summary with the last actual output", () => {
+  let session = feed(
+    createSession("steer-summary", "/"),
+    { sessionUpdate: "user_message", messageId: "first", content: [], _meta: { codex: { turnId: "native" } } },
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "edit",
+      kind: "edit",
+      status: "completed",
+      _meta: { codex: { turnId: "native" } }
+    },
+    text("answer", "Done", { codex: { turnId: "native", phase: "final_answer" } }),
+    { sessionUpdate: "user_message", messageId: "steer", content: [], _meta: { codex: { turnId: "native" } } },
+    idle
+  )
+  let turns = groupTurns(session)
+  expect(turnPresentation(session, turns, 0).continued).toBe(false)
+  expect(turnPresentation(session, turns, 0).edits.map((item) => item.id)).toEqual(["edit"])
+  expect(turnPresentation(session, turns, 1).continued).toBe(true)
+  session = feed(session, text("followup", "Also done", { codex: { turnId: "native", phase: "final_answer" } }))
+  turns = groupTurns(session)
+  expect(turnPresentation(session, turns, 0).continued).toBe(true)
+  expect(turnPresentation(session, turns, 1).edits.map((item) => item.id)).toEqual(["edit"])
+})
+
+test("unphased intermediate speech stays ahead of tools while explicit final answers stay final", () => {
+  const session = feed(
+    createSession("legacy-phase", "/"),
+    text("intro", "I will inspect this"),
+    { sessionUpdate: "tool_call_update", toolCallId: "read", name: "read_file", kind: "read", status: "completed" },
+    text("final", "The result", { codex: { phase: "final_answer" } })
+  )
+  const [turn] = groupTurns(session)
+  expect(turn.work.map((entry) => entry.kind)).toEqual(["text", "activity"])
+  expect(turn.final.map((item) => item.id)).toEqual(["final"])
+})

@@ -33,5 +33,17 @@ export async function initializeMobile(): Promise<void> {
   await listen<string>("bridge:error", ({ payload }) => {
     reportBackgroundError("mobile-bridge", new Error(payload))
   })
+  let drafts = client.state.draftSessions
+  let sync = commands.mobileSetDraftSessions({ sessionIds: Object.keys(drafts) })
+  client.store.subscribe((state) => {
+    if (state.draftSessions === drafts) return
+    drafts = state.draftSessions
+    const sessionIds = Object.keys(drafts)
+    sync = sync
+      .catch((error: unknown) => reportBackgroundError("mobile-drafts", error))
+      .then(() => commands.mobileSetDraftSessions({ sessionIds }))
+    void sync.catch((error: unknown) => reportBackgroundError("mobile-drafts", error))
+  })
+  await sync
   if (mobileEnabled()) await commands.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
 }

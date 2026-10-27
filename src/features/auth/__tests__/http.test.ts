@@ -58,7 +58,7 @@ describe("ALwith account HTTP adapter", () => {
     )
     const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
-    expect(error).toMatchObject({ message: "验证码错误或已过期。" })
+    expect(error).toMatchObject({ message: "验证码错误或已过期。", status: 400 })
   })
   test("unstructured error bodies never become user-facing details", async () => {
     for (const body of [

@@ -49,6 +49,7 @@ export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplac
 
 type PluginsState = {
   loading: boolean
+  loadedScope: string | null
   upgrading: boolean
   /** Message of the last failed catalog load; the page shows a retry. */
   error: string | null
@@ -61,9 +62,13 @@ type PluginsState = {
   /** Plugins Codex reports as installed, newest install first (`plugin/installed`). */
   installed: PluginEntry[]
   skills: SkillMetadata[]
+  /** Repository skill membership from each skills/list cwd, keyed by absolute project path. */
+  skillProjects: Record<string, string[]>
   skillErrors: SkillErrorInfo[]
   /** Plugin ids with an install, uninstall or enablement change in flight. */
   busyIds: Record<string, "installing" | "uninstalling" | "toggling">
+  /** Skill paths with an enablement change in flight. */
+  busySkills: Record<string, true>
   /** Marketplace names with an upgrade or removal in flight. */
   busyMarketplaces: Record<string, true>
   refresh: (cwds?: string[], options?: { forceRefetch?: boolean; background?: boolean }) => Promise<void>
@@ -90,14 +95,26 @@ function pluginTitle(plugin: PluginSummary): string {
 }
 
 /** Skills for several cwds overlap (user and system scopes repeat); one row per path. */
-function mergeSkills(response: SkillsListResponse): { skills: SkillMetadata[]; errors: SkillErrorInfo[] } {
+function mergeSkills(response: SkillsListResponse): {
+  skills: SkillMetadata[]
+  errors: SkillErrorInfo[]
+  projects: Record<string, string[]>
+} {
+  const projects: Record<string, string[]> = {}
   const byPath = new Map<string, SkillMetadata>()
   const errors = new Map<string, SkillErrorInfo>()
   for (const entry of response.data) {
-    for (const skill of entry.skills) byPath.set(skill.path, skill)
+    for (const skill of entry.skills) {
+      byPath.set(skill.path, skill)
+      if (skill.scope === "repo") {
+        const paths = projects[entry.cwd] ?? []
+        if (!paths.includes(skill.path)) paths.push(skill.path)
+        projects[entry.cwd] = paths
+      }
+    }
     for (const error of entry.errors) errors.set(error.path, error)
   }
-  return { skills: [...byPath.values()], errors: [...errors.values()] }
+  return { skills: [...byPath.values()], errors: [...errors.values()], projects }
 }
 
 /** Installed plugins across marketplaces, newest install first, as the official Manage tab sorts. */
@@ -152,6 +169,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
 
     return {
       loading: false,
+      loadedScope: null,
       upgrading: false,
       error: null,
       cwds: [],
@@ -160,8 +178,10 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       featuredPluginIds: [],
       installed: [],
       skills: [],
+      skillProjects: {},
       skillErrors: [],
       busyIds: {},
+      busySkills: {},
       busyMarketplaces: {},
 
       refresh: (cwds = get().cwds, options = {}) => {
@@ -186,7 +206,9 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
               if (pendingRefresh) continue
               const merged = mergeSkills(skills)
               set({
+                loadedScope: JSON.stringify(request.cwds),
                 skills: merged.skills,
+                skillProjects: merged.projects,
                 skillErrors: merged.errors,
                 marketplaces: plugins.marketplaces,
                 marketplaceLoadErrors: plugins.marketplaceLoadErrors,
@@ -281,6 +303,8 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       readPlugin: async (entry) => (await api.readPlugin(readParams(entry))).plugin,
 
       setSkillEnabled: async (skill, enabled) => {
+        if (skill.path in get().busySkills) return
+        set((state) => ({ busySkills: { ...state.busySkills, [skill.path]: true } }))
         // Optimistic: the switch reflects the request; Codex answers with the effective state.
         set((state) => ({
           skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled } : item))
@@ -293,14 +317,24 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
               item.path === skill.path ? { ...item, enabled: response.effectiveEnabled } : item
             )
           }))
+          if (response.effectiveEnabled !== enabled) {
+            toast.error(i18n.t("plugins.catalog.toggleNotApplied"))
+            return
+          }
           toast.success(
             i18n.t(enabled ? "plugins.skills.enabledToast" : "plugins.skills.disabledToast", { skillName: name })
           )
         } catch (error) {
           set((state) => ({
-            skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled: !enabled } : item))
+            skills: state.skills.map((item) => (item.path === skill.path ? { ...item, enabled: skill.enabled } : item))
           }))
           toast.error(`${i18n.t("plugins.skills.toggleError")}: ${describe(error)}`)
+        } finally {
+          set((state) => {
+            const busySkills = { ...state.busySkills }
+            delete busySkills[skill.path]
+            return { busySkills }
+          })
         }
       },
 

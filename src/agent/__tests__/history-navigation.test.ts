@@ -33,14 +33,14 @@ test("sparse navigation retains terminal errors supplied by the turn index", asy
   }
   const index = await readHistoryIndex(
     "s",
-    async () => response({ turns: [{ ...summary("old"), status: "failed", updates: [error] }] }),
+    () => Promise.resolve(response({ turns: [{ ...summary("old"), status: "failed", updates: [error] }] })),
     () => {}
   )
   const session = await readHistoryTurn(
     "s",
     "/tmp",
     index[0],
-    async () => response({ items: [{ turnId: "old", itemId: "u-old", updates: [user("old")] }] }),
+    () => Promise.resolve(response({ items: [{ turnId: "old", itemId: "u-old", updates: [user("old")] }] })),
     () => {}
   )
   const item = session.items.at(-1)

@@ -408,3 +408,46 @@ test("a failed post-mutation refresh clears loading and does not announce succes
   expect(toast.success).not.toHaveBeenCalled()
   expect(toast.error).toHaveBeenCalled()
 })
+
+test("skill toggles serialize per path and failures restore the prior state", async () => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  const target = store.getState().skills[0]
+  const pending = deferred<{ effectiveEnabled: boolean }>()
+  api.setSkillEnabled = vi.fn(() => pending.promise)
+  const request = store.getState().setSkillEnabled(target, !target.enabled)
+  expect(store.getState().busySkills[target.path]).toBe(true)
+  await store.getState().setSkillEnabled(target, target.enabled)
+  expect(api.setSkillEnabled).toHaveBeenCalledOnce()
+  pending.resolve({ effectiveEnabled: target.enabled })
+  await request
+  expect(store.getState().skills.find((item) => item.path === target.path)?.enabled).toBe(target.enabled)
+  expect(store.getState().busySkills).toEqual({})
+  expect(toast.success).not.toHaveBeenCalled()
+  expect(toast.error).toHaveBeenCalledOnce()
+  api.setSkillEnabled = vi.fn().mockRejectedValue(new Error("read only"))
+  await store.getState().setSkillEnabled(target, !target.enabled)
+  expect(store.getState().skills.find((item) => item.path === target.path)?.enabled).toBe(target.enabled)
+  expect(store.getState().busySkills).toEqual({})
+})
+
+test("skills retain all repository memberships while the installed summary deduplicates paths", async () => {
+  const api = fakeApi()
+  const shared = { ...skill("/repo/.agents/skills/shared/SKILL.md", true), scope: "repo" as const }
+  const user = skill("/home/.agents/skills/personal/SKILL.md", false)
+  api.listSkills = vi.fn().mockResolvedValue({
+    data: [
+      { cwd: "/repo/a", skills: [user, shared], errors: [] },
+      { cwd: "/repo/b", skills: [user, shared], errors: [] }
+    ]
+  })
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/repo/a", "/repo/b"])
+  expect(store.getState().skills).toHaveLength(2)
+  expect(store.getState().skillProjects).toEqual({ "/repo/a": [shared.path], "/repo/b": [shared.path] })
+  api.listSkills = vi.fn().mockResolvedValue({ data: [{ cwd: "/other", skills: [user], errors: [] }] })
+  await store.getState().refresh(["/other"])
+  expect(store.getState().skillProjects).toEqual({})
+  expect(store.getState().skills).toEqual([user])
+})

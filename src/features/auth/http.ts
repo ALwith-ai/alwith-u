@@ -81,7 +81,7 @@ export function createAuthTransport(host: Host) {
         // Error bodies may be empty or HTML. Only the API's detail field is user-facing.
       }
       current(expected)
-      throw new Error(detail ?? `ALwith HTTP ${response.status}`)
+      throw Object.assign(new Error(detail ?? `ALwith HTTP ${response.status}`), { status: response.status })
     }
     const text = await response.text()
     current(expected)

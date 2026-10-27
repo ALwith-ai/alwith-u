@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@/agent/codex-extensions"
@@ -8,6 +8,8 @@ import i18n, { initI18n } from "@/lib/i18n"
 
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
+
+vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
 
 const initialState = pluginsStore.getState()
 const initialAppState = client.state
@@ -90,7 +92,8 @@ test("plugin controls and skill scopes follow a language change without remounti
     marketplaces: [marketplace],
     installed: [installed, disabled].map((plugin) => ({ plugin, marketplace })),
     busyIds: { "Installing example": "installing" },
-    skills
+    skills,
+    skillProjects: { "/example/project": ["/skills/repo"] }
   })
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByRole("tab", { name: "Marketplace" })).toBeDefined()
@@ -101,11 +104,10 @@ test("plugin controls and skill scopes follow a language change without remounti
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
   })
-  expect(view.getByRole("heading", { name: "插件" })).toBeDefined()
-  expect(view.getByText("BETA")).toBeDefined()
+  expect(view.getByRole("heading", { name: "插件", level: 1 })).toBeDefined()
   expect(view.getByRole("tab", { name: "市场" })).toBeDefined()
   expect(view.getByPlaceholderText("搜索插件")).toBeDefined()
-  expect(view.getByPlaceholderText("openai/plugins 或 git@github.com:org/repo.git")).toBeDefined()
+  expect(view.queryByPlaceholderText("openai/plugins 或 git@github.com:org/repo.git")).toBeNull()
   expect(view.getByRole("button", { name: "升级" })).toBeDefined()
   expect(view.getByRole("button", { name: "添加插件市场" })).toBeDefined()
   expect(view.getAllByRole("button", { name: "安装" })).toHaveLength(2)
@@ -121,16 +123,12 @@ test("plugin controls and skill scopes follow a language change without remounti
     .spyOn(view.getByRole("tabpanel", { name: "市场" }), "getAnimations")
     .mockReturnValue([{ finished: new Promise<Animation>(() => {}) } as Animation])
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "已安装" }))))
-  expect(view.getAllByRole("tabpanel")).toHaveLength(2)
+  expect(within(view.getByRole("tabpanel", { name: "插件", hidden: true })).getAllByRole("tabpanel")).toHaveLength(2)
   const panel = within(view.getByRole("tabpanel", { name: "已安装" }))
   animation.mockRestore()
   expect(panel.getByRole("heading", { name: "插件" })).toBeDefined()
-  expect(panel.getByRole("heading", { name: "技能" })).toBeDefined()
   expect(panel.getByRole("switch", { name: "禁用 Installed example" })).toBeDefined()
   expect(panel.getByRole("switch", { name: "启用 Disabled example" })).toBeDefined()
-  for (const scope of ["用户", "项目", "系统", "管理员"]) expect(panel.getByText(scope)).toBeDefined()
-  expect(panel.getAllByRole("switch", { name: "禁用技能" })).toHaveLength(3)
-  expect(panel.getByRole("switch", { name: "启用技能" })).toBeDefined()
   const actions = panel.getAllByRole("button", { name: "更多操作" })
   await act(() => Promise.try(() => fireEvent.click(must(actions[0], "the first plugin action"))))
   expect(view.getByRole("menuitem", { name: "卸载" })).toBeDefined()
@@ -139,9 +137,13 @@ test("plugin controls and skill scopes follow a language change without remounti
   await act(async () => {
     await i18n.changeLanguage("en")
   })
-  expect(panel.getByRole("heading", { name: "Skills" })).toBeDefined()
   expect(panel.getByRole("switch", { name: "Disable Installed example" })).toBeDefined()
-  for (const scope of ["User", "Project", "System", "Admin"]) expect(panel.getByText(scope)).toBeDefined()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Skills" }))))
+  for (const scope of ["Personal", "project", "System", "Admin"])
+    expect(view.getByRole("tab", { name: scope })).toBeDefined()
+  fireEvent.click(view.getByRole("tab", { name: "project" }))
+  fireEvent.click(within(view.getByRole("tabpanel", { name: "project" })).getByRole("button", { name: "repo skill" }))
+  expect(await view.findByRole("switch", { name: "Enable skill: repo skill" })).toBeDefined()
   expect(view.container.textContent).not.toMatch(/plugins\.|returned an object/)
 })
 
@@ -150,12 +152,15 @@ test("empty plugin and skill lists have translated messages in both supported UI
   expect(view.getByText("No plugins found")).toBeDefined()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Installed" }))))
   expect(view.getByText("No plugins installed")).toBeDefined()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Skills" }))))
   expect(view.getByText("No skills found")).toBeDefined()
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
   })
-  expect(view.getByText("尚未安装插件")).toBeDefined()
   expect(view.getByText("找不到技能")).toBeDefined()
+  fireEvent.click(view.getByRole("tab", { name: "插件" }))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "已安装" }))))
+  expect(view.getByText("尚未安装插件")).toBeDefined()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "市场" }))))
   expect(view.getByText("未找到插件")).toBeDefined()
 })
@@ -311,4 +316,214 @@ test("install controls do not open details, and detail actions follow refreshed 
   expect(uninstall).toHaveBeenCalledWith(installed)
   await act(() => Promise.try(() => pluginsStore.setState({ installed: [] })))
   expect(view.getByRole("button", { name: "Install plugin" })).toBeEnabled()
+})
+
+test("skills are directly accessible, searchable by description and scoped, with live details", async () => {
+  const skills: SkillMetadata[] = [
+    {
+      name: "Research",
+      description: "Compare primary evidence",
+      path: "/skills/research",
+      scope: "user",
+      enabled: true,
+      pluginId: null
+    },
+    {
+      name: "Review",
+      description: "Review project code",
+      path: "/repo/review",
+      scope: "repo",
+      enabled: false,
+      pluginId: null
+    }
+  ]
+  pluginsStore.setState({ skills, skillProjects: { "/work/alwith-desktop": ["/repo/review"] } })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  fireEvent.change(view.getByRole("textbox", { name: "Search skills" }), { target: { value: "evidence" } })
+  const summary = within(view.getByRole("region", { name: "Installed" }))
+  expect(await summary.findByRole("button", { name: "Research" })).toBeVisible()
+  expect(view.queryByRole("button", { name: "Review" })).toBeNull()
+  fireEvent.click(summary.getByRole("button", { name: "Research" }))
+  const dialog = await view.findByRole("dialog")
+  expect(dialog).not.toHaveTextContent("Location")
+  await act(() =>
+    Promise.try(() =>
+      pluginsStore.setState({
+        skills: [{ ...skills[0], enabled: false }, skills[1]],
+        busySkills: { "/skills/research": true }
+      })
+    )
+  )
+  expect(within(dialog).getByRole("switch", { name: "Enable skill: Research" })).toHaveAttribute(
+    "aria-disabled",
+    "true"
+  )
+  fireEvent.keyDown(dialog, { key: "Escape" })
+  fireEvent.click(view.getByRole("button", { name: "Clear search" }))
+  fireEvent.click(view.getByRole("tab", { name: "alwith-desktop" }))
+  const project = within(view.getByRole("tabpanel", { name: "alwith-desktop" }))
+  expect(project.getByRole("button", { name: "Review" })).toBeVisible()
+  expect(project.queryByRole("button", { name: "Research" })).toBeNull()
+  expect(view.queryByRole("tab", { name: "Admin" })).toBeNull()
+  expect(summary.getByRole("button", { name: "Review" })).toBeVisible()
+})
+
+test("adding a marketplace retains the source after failure and closes only after success", async () => {
+  const add = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Source offline"))
+    .mockResolvedValueOnce({ marketplaceName: "example", alreadyAdded: false })
+  pluginsStore.setState({ addMarketplace: add })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(view.getByRole("button", { name: "Add a marketplace" }))
+  const dialog = await view.findByRole("dialog")
+  fireEvent.change(within(dialog).getByLabelText("Source"), { target: { value: "org/catalog" } })
+  fireEvent.click(within(dialog).getByRole("button", { name: "Add marketplace" }))
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent("Source offline")
+  expect(within(dialog).getByLabelText("Source")).toHaveValue("org/catalog")
+  fireEvent.click(within(dialog).getByRole("button", { name: "Add marketplace" }))
+  await act(async () => {})
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+  expect(add).toHaveBeenLastCalledWith({ source: "org/catalog" })
+})
+
+test("load errors remain actionable from installed plugins and skills", () => {
+  pluginsStore.setState({ error: "Catalog offline" })
+  const view = render(<PluginsPage cwd={null} active />)
+  for (const name of ["Installed", "Skills"]) {
+    fireEvent.click(view.getByRole("tab", { name }))
+    expect(view.getByRole("alert")).toHaveTextContent("Catalog offline")
+    expect(view.getByRole("button", { name: "Retry" })).toBeEnabled()
+  }
+})
+
+test("installed skills collapse to six, expand, and include disabled skills independently of source tabs", async () => {
+  const skills: SkillMetadata[] = Array.from({ length: 9 }, (_, i) => ({
+    name: `Skill ${i}`,
+    description: "Description",
+    path: `/skills/${i}`,
+    scope: "user",
+    enabled: i !== 8,
+    pluginId: null
+  }))
+  pluginsStore.setState({ skills })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  const summary = within(view.getByRole("region", { name: "Installed" }))
+  expect(summary.getAllByRole("button", { name: /^Skill / })).toHaveLength(6)
+  fireEvent.click(summary.getByRole("button", { name: "Show 3 more" }))
+  expect(summary.getAllByRole("button", { name: /^Skill / })).toHaveLength(9)
+  expect(summary.getByText("Disabled")).toBeVisible()
+  fireEvent.click(summary.getByRole("button", { name: "Show less" }))
+  fireEvent.change(view.getByRole("textbox", { name: "Search skills" }), { target: { value: "Skill 8" } })
+  expect(await summary.findByRole("button", { name: "Skill 8" })).toBeVisible()
+  expect(summary.queryByRole("button", { name: "Show 3 more" })).toBeNull()
+})
+
+test("project membership uses response cwd, including inherited skills outside that directory", async () => {
+  const inherited: SkillMetadata = {
+    name: "Inherited",
+    description: "Shared",
+    path: "/repo/.agents/skills/shared/SKILL.md",
+    scope: "repo",
+    enabled: true,
+    pluginId: null
+  }
+  pluginsStore.setState({
+    skills: [inherited],
+    skillProjects: { "/repo/frontend": [inherited.path], "/repo/backend": [inherited.path] }
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  expect(view.queryByRole("tab", { name: "Personal" })).toBeNull()
+  expect(view.queryByRole("tab", { name: "Admin" })).toBeNull()
+  fireEvent.click(view.getByRole("tab", { name: "backend" }))
+  expect(
+    within(view.getByRole("tabpanel", { name: "backend" })).getByRole("button", { name: "Inherited" })
+  ).toBeVisible()
+  await act(() =>
+    Promise.try(() => pluginsStore.setState({ skills: [{ ...inherited, scope: "system" }], skillProjects: {} }))
+  )
+  expect(view.queryByRole("tab", { name: "backend" })).toBeNull()
+  expect(view.getByRole("tab", { name: "System" })).toHaveAttribute("aria-selected", "true")
+})
+
+test("plugins and skills are peers, with plugin views nested and independent searches", async () => {
+  const view = render(<PluginsPage cwd={null} active />)
+  const primary = within(view.getByRole("tablist", { name: "Manage extensions" }))
+  expect(primary.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Plugins", "Skills"])
+  for (const tab of primary.getAllByRole("tab")) expect(tab).toHaveAttribute("data-hover-background", "none")
+  const pluginViews = within(view.getByRole("tablist", { name: "Plugin views" }))
+  expect(pluginViews.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Marketplace", "Installed"])
+  fireEvent.click(pluginViews.getByRole("tab", { name: "Installed" }))
+  fireEvent.change(view.getByRole("textbox", { name: "Search plugins" }), { target: { value: "design" } })
+  fireEvent.click(primary.getByRole("tab", { name: "Skills" }))
+  await waitFor(() => expect(view.queryByRole("tab", { name: "Marketplace" })).toBeNull())
+  expect(view.getByRole("textbox", { name: "Search skills" })).toHaveValue("")
+  fireEvent.change(view.getByRole("textbox", { name: "Search skills" }), { target: { value: "review" } })
+  fireEvent.click(primary.getByRole("tab", { name: "Plugins" }))
+  expect(view.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true")
+  expect(view.getByRole("textbox", { name: "Search plugins" })).toHaveValue("design")
+  fireEvent.click(primary.getByRole("tab", { name: "Skills" }))
+  expect(view.getByRole("textbox", { name: "Search skills" })).toHaveValue("review")
+})
+
+test("all catalog lists use the shared skeleton until connected and while refreshing", () => {
+  client.store.setState({ connection: "connecting", agent: null })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(
+    within(view.getByRole("tabpanel", { name: "Marketplace" }))
+      .getByRole("status", { name: "Loading plugins…" })
+      .querySelector('[data-slot="skeleton"]')
+  ).not.toBeNull()
+  fireEvent.click(view.getByRole("tab", { name: "Installed" }))
+  expect(
+    within(view.getByRole("tabpanel", { name: "Installed" }))
+      .getByRole("status", { name: "Loading plugins…" })
+      .querySelector('[data-slot="skeleton"]')
+  ).not.toBeNull()
+  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  expect(view.getByRole("status", { name: "Loading skills…" }).querySelector('[data-slot="skeleton"]')).not.toBeNull()
+})
+
+test("the skill catalog includes known projects beyond the current chat and excludes quick chats", async () => {
+  const refresh = vi.fn().mockResolvedValue(undefined)
+  pluginsStore.setState({ refresh })
+  client.store.setState({
+    threads: [
+      { sessionId: "quick", cwd: "/Users/example/Documents/Codex/task", title: null, updatedAt: null, archived: false },
+      { sessionId: "desktop", cwd: "/work/alwith-desktop", title: "Desktop", updatedAt: null, archived: false },
+      { sessionId: "desktop-2", cwd: "/work/alwith-desktop", title: "Desktop 2", updatedAt: null, archived: false }
+    ]
+  })
+  const view = render(<PluginsPage cwd="/work/alwith-u" active />)
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-desktop", "/work/alwith-u"]))
+  refresh.mockClear()
+  await act(() =>
+    Promise.try(() =>
+      client.store.setState({ threads: client.state.threads.map((thread) => ({ ...thread, title: "Renamed" })) })
+    )
+  )
+  expect(refresh).not.toHaveBeenCalled()
+  view.rerender(<PluginsPage cwd="/work/other" active />)
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-desktop", "/work/other"]))
+})
+
+test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
+  client.store.setState({ threads: [] })
+  const refresh = vi.fn((cwds: string[] = []) => {
+    pluginsStore.setState({ loadedScope: JSON.stringify(cwds) })
+
+    return Promise.resolve()
+  })
+  pluginsStore.setState({ refresh })
+  const view = render(<PluginsPage cwd="/work/project" active />)
+  await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+  view.rerender(<PluginsPage cwd="/work/project" active={false} />)
+  view.rerender(<PluginsPage cwd="/work/project" active />)
+  expect(refresh).toHaveBeenCalledTimes(1)
+  view.unmount()
+  render(<PluginsPage cwd="/work/project" active />)
+  expect(refresh).toHaveBeenCalledTimes(1)
 })

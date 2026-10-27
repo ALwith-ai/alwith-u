@@ -34,7 +34,14 @@ import { historyTimeline, type HistoryTimelineEntry } from "./history-timeline"
 import { clearThread, publishThread } from "./lib/thread-registry"
 import { capacityRetryDelay } from "./lib/turn-retry"
 import { useThreadScroll } from "./lib/use-thread-scroll"
-import { groupTurns, isHistoryInterrupted, isTurnInterrupted, type Turn } from "./turns"
+import {
+  activeTurnKey,
+  groupTurns,
+  isHistoryInterrupted,
+  isTurnInterrupted,
+  type Turn,
+  turnPresentation
+} from "./turns"
 
 function HistoryTurnPlaceholder({
   sessionId,
@@ -131,6 +138,7 @@ export function ThreadView({ session }: { session: Session }) {
   const navigation = useApp((state) => state.historyNavigation?.[session.id])
   const turns = useStableTurns(session, navigation?.turns)
   const lastTurnKey = turns.at(-1)?.key
+  const workingTurnKey = activeTurnKey(session, turns)
   const running = session.state !== "idle"
   const entries = useMemo(() => historyTimeline(turns, navigation), [turns, navigation])
   const railItems = useMemo(
@@ -281,8 +289,11 @@ export function ThreadView({ session }: { session: Session }) {
         />
       )
     }
+    const turnIndex = turns.indexOf(turn)
+    const active = turn.key === workingTurnKey
+    const presentation = turnPresentation(session, turns, turnIndex)
+    const continued = !active && presentation.continued
     const isLast = turn.key === lastTurnKey
-    const active = running && isLast
     const failedItem = turn.errors.at(-1)
     const failure = failedItem === undefined ? null : codexMessageError(failedItem)
     const failedTurnId = failedItem === undefined ? null : nativeTurnId(failedItem)
@@ -318,6 +329,11 @@ export function ThreadView({ session }: { session: Session }) {
               turn={turn}
               terminals={session.terminals}
               active={active}
+              blocked={session.state === "requires_action"}
+              continued={continued}
+              edits={presentation.edits}
+              activityItems={presentation.items}
+              workStartedAt={presentation.startedAt}
               isLast={isLast}
               error={session.error}
               retrying={active ? (codexRetryNotice(session._meta) ?? undefined) : undefined}

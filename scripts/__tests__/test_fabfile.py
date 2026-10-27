@@ -81,8 +81,7 @@ class UpgradeTaskTests(unittest.TestCase):
                 commands.append(command)
                 return Result(exited=0)
 
-            with patch("fabfile.ROOT", root), patch.object(Context, "run", record), \
-                    patch("fabfile.report_outdated_crates"):
+            with patch("fabfile.ROOT", root), patch.object(Context, "run", record):
                 with self.assertRaisesRegex(
                     Exit,
                     r"tauri-plugin-http \(v2\.7\.0\) : @tauri-apps/plugin-http \(v2\.6\.1\)",
@@ -104,7 +103,7 @@ class UpgradeTaskTests(unittest.TestCase):
                     commands.append((context.cwd, command, options))
                     return Result(exited=0)
 
-                with patch.object(Context, "run", record), patch("fabfile.report_outdated_crates") as report:
+                with patch.object(Context, "run", record):
                     Program(namespace=Collection.from_module(fabfile)).run(["fab", name], exit=False)
                 self.assertEqual(commands, [
                     ("", "git pull --ff-only", {}),
@@ -112,43 +111,9 @@ class UpgradeTaskTests(unittest.TestCase):
                     ("", "bun outdated", {}),
                     ("", "bun update", {}),
                     ("src-tauri", "cargo update", {}),
+                    ("src-tauri", "command -v cargo-outdated", {"warn": True, "hide": True}),
+                    ("src-tauri", "cargo outdated --depth 1 --workspace", {"warn": True}),
                 ])
-                report.assert_called_once_with(ROOT)
-
-    def test_reports_only_registry_crates_beyond_their_resolution(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / "src-tauri").mkdir()
-            (root / "src-tauri/Cargo.toml").write_text(
-                '[package]\nname = "app"\n'
-                '[dependencies]\nserde = "1"\ntauri = "3.0.0-alpha.4"\nlocal = { path = "local" }\n'
-                '[target.\'cfg(windows)\'.dependencies]\nwin = { package = "windows-sys", version = "0.60" }\n'
-            )
-            (root / "src-tauri/Cargo.lock").write_text(
-                '[[package]]\nname = "app"\nversion = "0.1.0"\n'
-                'dependencies = ["local", "serde", "tauri", "windows-sys 0.60.2"]\n'
-                '[[package]]\nname = "windows-sys"\nversion = "0.59.0"\n'
-                '[[package]]\nname = "windows-sys"\nversion = "0.60.2"\n'
-                '[[package]]\nname = "serde"\nversion = "1.0.200"\n'
-                '[[package]]\nname = "tauri"\nversion = "3.0.0-alpha.4"\n'
-            )
-            releases = {
-                "serde": ["1.0.200", "2.0.0-rc.1"],
-                "tauri": ["2.9.0", "3.0.0-alpha.4", "3.0.0-alpha.10"],
-                "windows-sys": ["0.60.2", "0.61.2"],
-            }
-            output = io.StringIO()
-            with patch("fabfile.crate_releases", side_effect=releases.__getitem__), patch("sys.stdout", output):
-                fabfile.report_outdated_crates(root)
-        lines = output.getvalue().splitlines()
-        self.assertEqual([line.split() for line in lines[1:]], [
-            ["tauri", "3.0.0-alpha.4", "3.0.0-alpha.4", "3.0.0-alpha.10"],
-            ["windows-sys", "0.60", "0.60.2", "0.61.2"],
-        ])
-
-    def test_semver_key_orders_prereleases_below_releases(self) -> None:
-        ordered = ["1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0", "1.0.1"]
-        self.assertEqual(sorted(reversed(ordered), key=fabfile.semver_key), ordered)
 
     def test_upgrade_stops_when_dependency_update_fails(self) -> None:
         steps = ["git pull --ff-only", "bun install --frozen-lockfile", "bun outdated", "bun update", "cargo update"]

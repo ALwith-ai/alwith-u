@@ -51,7 +51,7 @@ export function ModelSelectGroup({
 
   const set = (option: acp.SessionConfigOption, value: string | boolean) => {
     if (value === option.currentValue) return
-    client.setConfig(sessionId, option.configId, value).catch((error: unknown) => {
+    return client.setConfig(sessionId, option.configId, value).catch((error: unknown) => {
       toast.error(error instanceof Error ? error.message : String(error))
     })
   }
@@ -99,7 +99,7 @@ export function ModelSelectGroup({
       onChange={(item) => {
         if (item.api_id === model?.currentValue) return
         if (onModelChange) onModelChange(item.api_id)
-        else if (model) set(model, item.api_id)
+        else if (model) void set(model, item.api_id)
       }}
       header={{ name: model?.name ?? t("chat.model.model"), action: <ModelSettingsAction /> }}
       modelGroups={groups}
@@ -146,7 +146,7 @@ export function ModelSelectGroup({
       onBooleanChange={(id, value) => {
         const option = id === "fast_mode" ? fast : booleans.find((option) => option.configId === id)
         if (!option) throw new Error(`Unknown boolean config: ${id}`)
-        set(option, value)
+        void set(option, value)
       }}
     />
   )

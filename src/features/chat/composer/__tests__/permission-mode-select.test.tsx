@@ -94,7 +94,9 @@ test.each([
     expect.stringContaining("完全访问"),
     expect.stringContaining("Custom mode")
   ])
-  await act(async () => fireEvent.click(screen.getByRole("menuitemradio", { name: new RegExp(`^${label}`) })))
+  await act(() =>
+    Promise.resolve(fireEvent.click(screen.getByRole("menuitemradio", { name: new RegExp(`^${label}`) })))
+  )
   if (value === "read-only") expect(setConfig).not.toHaveBeenCalled()
   else expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat-legacy", "permissions", value)
 })

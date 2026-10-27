@@ -179,3 +179,24 @@ test("mobile release dependencies are installable on every desktop build runner"
   const workflow = Bun.YAML.parse(read(".github/workflows/ci.yml")) as Workflow
   expect(workflow.jobs?.["windows-staging"].steps?.some((step) => step.run === "bun run stage")).toBe(true)
 })
+
+test("Windows CI verifies staged artifacts through the standalone entry point", () => {
+  const workflow = Bun.YAML.parse(read(".github/workflows/ci.yml")) as Workflow
+  const commands = workflow.jobs?.["windows-staging"].steps?.flatMap((step) => (step.run ? [step.run] : [])) ?? []
+  const stage = commands.indexOf("bun run stage")
+  expect(stage).toBeGreaterThan(-1)
+  expect(commands[stage + 1]).toBe("bun scripts/verify-staged-toolchain.ts")
+  expect(commands.some((command) => command.includes("__tests__/"))).toBe(false)
+})
+
+test("Windows installers include both sandbox helpers without replacing the shared sidecars", () => {
+  const base = JSON.parse(read("src-tauri/tauri.conf.json")) as { bundle: { externalBin: string[] } }
+  const windows = JSON.parse(read("src-tauri/tauri.windows.conf.json")) as { bundle: { externalBin: string[] } }
+  expect(windows.bundle.externalBin).toEqual([
+    ...base.bundle.externalBin,
+    "binaries/codex-windows-sandbox-setup",
+    "binaries/codex-command-runner"
+  ])
+  expect(base.bundle.externalBin).not.toContain("binaries/codex-windows-sandbox-setup")
+  expect(base.bundle.externalBin).not.toContain("binaries/codex-command-runner")
+})

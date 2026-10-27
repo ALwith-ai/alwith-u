@@ -663,13 +663,13 @@ test("floating realtime forwards SDP before start acknowledgement and releases i
     receive = fn
     return unsubscribe
   })
-  const start = vi.spyOn(owner, "startRealtime").mockImplementation(async (sessionId) => {
+  const start = vi.spyOn(owner, "startRealtime").mockImplementation((sessionId) => {
     receive?.({ sessionId, event: "sdp", data: { sdp: "answer" } })
-    return {}
+    return Promise.resolve({})
   })
-  const end = vi.spyOn(owner, "stopRealtime").mockImplementation(async (sessionId) => {
+  const end = vi.spyOn(owner, "stopRealtime").mockImplementation((sessionId) => {
     receive?.({ sessionId, event: "closed", data: { reason: null } })
-    return {}
+    return Promise.resolve({})
   })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)

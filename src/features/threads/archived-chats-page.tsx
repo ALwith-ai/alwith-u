@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 
 import type { ThreadSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/alwith-ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +17,6 @@ import {
   DialogTitle
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
@@ -174,7 +174,7 @@ export function ArchivedChatsPage(): ReactElement {
               setKind(value)
             }}
           >
-            <SelectTrigger aria-label={t("archives.chatType")} className="min-w-40 rounded-md">
+            <SelectTrigger aria-label={t("archives.chatType")} className="w-40 rounded-md">
               <ListFilterIcon aria-hidden="true" />
               <SelectValue>
                 {t(`archives.${kind === "all" ? "allChats" : kind === "quick" ? "quickChats" : "projectChats"}`)}
@@ -193,7 +193,7 @@ export function ArchivedChatsPage(): ReactElement {
               setProject(value)
             }}
           >
-            <SelectTrigger aria-label={t("archives.project")} className="max-w-64 min-w-40 rounded-md">
+            <SelectTrigger aria-label={t("archives.project")} className="w-48 rounded-md">
               <FolderIcon aria-hidden="true" />
               <SelectValue className="truncate">
                 {project === "all"
@@ -261,7 +261,7 @@ export function ArchivedChatsPage(): ReactElement {
                         {t("archives.count", { count: items.length })}
                       </span>
                     </div>
-                    <div className="divide-y divide-border overflow-hidden rounded-2xl border">
+                    <div className="divide-y divide-border overflow-hidden rounded-lg border">
                       {items.map((thread) => (
                         <article
                           key={thread.sessionId}

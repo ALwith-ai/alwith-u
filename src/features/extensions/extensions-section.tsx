@@ -11,8 +11,9 @@ import { executePreparedInstall } from "./install-service"
 import { showExtensionLimitations } from "./legacy/limitations"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
-import { reportExtensionError, useExtensions } from "./runtime"
+import { reportExtensionError } from "./runtime"
 import { refreshExtensions, updateAndReloadExtension } from "./startup-import-control"
+import { useExtensions } from "./use-extensions"
 
 export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: string) => void }) {
   const { t } = useTranslation()

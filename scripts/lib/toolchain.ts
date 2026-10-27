@@ -43,3 +43,10 @@ export function toolchainVersions(manifest: Manifest): { buildBun: string; bun: 
 export function assertVersion(name: string, actual: string | undefined, expected: string): void {
   if (actual !== expected) throw new Error(`${name}: expected ${expected}, got ${actual ?? "missing"}`)
 }
+
+/** Windows sandbox executables shipped in the pinned Codex platform package. */
+export const CODEX_WINDOWS_HELPERS = ["codex-windows-sandbox-setup", "codex-command-runner"] as const
+
+export function codexSidecars(windows: boolean): string[] {
+  return ["codex", "codex-code-mode-host", ...(windows ? CODEX_WINDOWS_HELPERS : [])]
+}

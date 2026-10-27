@@ -50,6 +50,7 @@ export function ChatView({
 }) {
   const { t } = useTranslation()
   const connected = useApp((state) => state.connection === "ready")
+  const historyError = useApp((state) => state.historyPages[session.id]?.error)
   const rootRef = useRef<HTMLDivElement>(null)
   const reopen = () => {
     client
@@ -91,8 +92,8 @@ export function ChatView({
               <SessionPreview key={session.id} sessionId={session.id} />
             </div>
             <ChatSearch rootRef={rootRef} sessionId={session.id} />
-            {connected && !session.attached && !session.restoring && (
-              <div className="px-4 pb-2">
+            {connected && !session.attached && !session.restoring && !session.readOnly && (
+              <div className="mx-auto my-3 w-full max-w-4xl px-4">
                 <Alert>
                   <UnplugIcon />
                   <AlertTitle>{t("chat.stopped")}</AlertTitle>
@@ -105,12 +106,17 @@ export function ChatView({
               </div>
             )}
             {session.readOnly && (
-              <div className="px-4 pb-2">
+              <div className="mx-auto my-3 w-full max-w-4xl px-4">
                 <Alert>
                   <LockIcon />
                   <AlertTitle>{t("chat.readOnly.title")}</AlertTitle>
                   <AlertDescription className="flex flex-wrap items-center gap-2">
                     {t("chat.readOnly.description")}
+                    {historyError && (
+                      <p role="alert" className="w-full break-words text-destructive">
+                        {historyError}
+                      </p>
+                    )}
                     <Button size="sm" variant="outline" onClick={reopen} disabled={!connected || session.restoring}>
                       {t(session.restoring ? "chat.restoring" : "chat.readOnly.retry")}
                     </Button>

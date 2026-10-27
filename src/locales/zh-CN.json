@@ -179,8 +179,8 @@
     "restoring": "正在恢复聊天",
     "reopen": "打开这个聊天",
     "readOnly": {
-      "title": "已在其他客户端打开",
-      "description": "这条聊天正被另一个客户端(ChatGPT 应用或命令行)写入,这里只能查看;在那边关掉后再试。",
+      "title": "正在其他客户端使用，当前只读",
+      "description": "可以查看已有聊天记录。其他客户端释放会话后，点击重试即可继续对话。",
       "retry": "重试"
     },
     "detached": "这个聊天尚未打开。打开后可继续上次的对话。",
@@ -470,7 +470,9 @@
     "trackpad": "触控板",
     "trackpadEnabled": "启用触控板手势",
     "threeFingerSwipeDesc": "三指横滑平移画布",
-    "mobile": "移动端连接"
+    "mobile": "移动端连接",
+    "preventSleep": "任务运行时防止休眠",
+    "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -572,6 +574,22 @@
     "install": "重新启动以更新"
   },
   "plugins": {
+    "catalog": {
+      "pluginViews": "插件视图",
+      "personal": "个人",
+      "showMore": "查看其余 {{count}} 项",
+      "title": "插件",
+      "description": "发现插件，管理技能与工具",
+      "search": "搜索插件和技能",
+      "clearSearch": "清除搜索",
+      "sourceHelp": "添加 GitHub 仓库、Git 地址或本地文件夹。",
+      "scope": "技能范围",
+      "allScopes": "全部范围",
+      "skillCount": "{{count}} 个技能",
+      "location": "位置",
+      "fromPlugin": "来自插件",
+      "toggleNotApplied": "技能实际状态与请求不一致。"
+    },
     "title": "插件",
     "beta": "BETA",
     "subtitle": "在你常用的工具中使用 Codex",
@@ -696,6 +714,13 @@
       "marketplace": "市场"
     },
     "skills": {
+      "document": {
+        "open": "打开",
+        "reveal": "在文件夹中显示",
+        "copy": "复制 Markdown",
+        "content": "技能正文",
+        "error": "无法读取 SKILL.md"
+      },
       "search": "搜索技能",
       "scope": {
         "user": "用户",
@@ -1183,13 +1208,62 @@
     "retry": "重试"
   },
   "mobile": {
-    "enable": "允许移动端连接",
-    "description": "将 ALwith Mobile 连接到 ALwith U。",
-    "pair": "配对手机",
-    "connected": "可以配对",
-    "connecting": "连接中…",
-    "generate": "显示配对码",
+    "enable": "允许手机连接这台 U",
+    "description": "绑定后，手机可查看会话、发送消息和处理授权。关闭后暂停连接，保留已绑定设备；恢复连接需保持 U 运行。",
+    "pair": "绑定这台 ALwith U",
+    "connected": "已准备好。显示绑定二维码后，用手机的配对扫码入口扫描。",
+    "connecting": "正在连接服务，连接成功后可生成绑定二维码…",
+    "generate": "显示绑定二维码",
     "expires": "{{count}} 秒后过期",
-    "unpair": "解除配对"
+    "unpair": "解除绑定",
+    "login": {
+      "action": "手机扫码登录",
+      "title": "在手机上登录 ALwith",
+      "subtitle": "让手机登录当前 ALwith 账号。手机已登录可跳过此步骤。",
+      "expires": "{{seconds}} 秒后过期",
+      "expired": "二维码已过期。",
+      "refresh": "刷新二维码",
+      "scannedHint": "确认是你自己的手机后再放行。",
+      "confirm": "确认登录",
+      "confirmed": "已确认手机登录",
+      "again": "为另一台手机登录",
+      "retry": "重试",
+      "back": "收起登录二维码",
+      "scanHint": "打开 ALwith Pocket 登录页，选择“使用 ALwith 二维码登录”，扫描后回到这里确认。",
+      "nextHint": "请在手机上完成登录。要查看这台 U 的会话，还需要扫码绑定。",
+      "continue": "继续绑定这台 U"
+    },
+    "intro": "用已登录的 ALwith Pocket 扫码绑定这台 U，即可在手机上查看和操作会话。",
+    "refresh": "刷新绑定二维码",
+    "scanHint": "在已登录的 ALwith Pocket 中打开配对页面，选择“扫描配对二维码”。",
+    "expired": "绑定二维码已过期，请刷新后重新扫描。",
+    "paired": "手机已绑定，可在手机上查看这台 U 的会话。",
+    "devices": "已绑定手机",
+    "devicesHint": "这里显示获准连接这台 U 的手机。账号登录与设备绑定分别管理。",
+    "loading": "正在读取已绑定手机…",
+    "loadFailed": "暂时无法读取已绑定手机，正在重试。",
+    "empty": "还没有绑定手机。绑定成功后会显示在这里。",
+    "phone": "手机",
+    "pairedAt": "绑定于 {{date}}",
+    "revokeTitle": "解除与“{{name}}”的绑定？",
+    "revokeHint": "该手机将失去访问这台 U 的权限，再次连接需要重新扫码绑定。手机的 ALwith 账号不会退出。",
+    "cancel": "取消",
+    "unpaired": "已解除绑定，该手机无法再访问这台 U。",
+    "reconnect": "重试连接",
+    "openAccount": "手机尚未登录？前往账户扫码登录"
+  },
+  "chromeBridge": {
+    "connectedBody": "ALwith 扩展已连接。可让 AI 开标签页、读页面、点击、填表单。",
+    "installedBody": "扩展已安装。打开「启用浏览器控制」以注册桥。",
+    "restartBody": "桥已注册。重新加载扩展或重启浏览器,然后再次检测。",
+    "noneBody": "安装 ALwith 浏览器扩展,让 AI 操作此浏览器。",
+    "extOn": "扩展已安装",
+    "extOff": "扩展未安装",
+    "bridgeOn": "桥已连接",
+    "bridgeOff": "桥未连接",
+    "install": "安装扩展",
+    "enableBridge": "启用浏览器控制",
+    "recheck": "检测",
+    "bringToFront": "浏览器"
   }
 }

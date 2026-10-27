@@ -91,6 +91,11 @@ function AssistantTurnImpl({
   turn,
   terminals,
   active,
+  blocked = false,
+  continued = false,
+  edits = turn.edits,
+  activityItems = turn.items,
+  workStartedAt = turn.startedAt,
   isLast,
   error,
   interrupted,
@@ -101,6 +106,11 @@ function AssistantTurnImpl({
   turn: Turn
   terminals: Record<string, Terminal>
   active: boolean
+  blocked?: boolean
+  continued?: boolean
+  edits?: Turn["edits"]
+  activityItems?: Turn["items"]
+  workStartedAt?: number
   isLast: boolean
   error: TurnError | null
   interrupted: boolean
@@ -156,7 +166,7 @@ function AssistantTurnImpl({
   const historyInterrupted = isHistoryInterrupted(turn)
   // Codex streams reasoning only while it is the latest non-user item in the turn.
   // Use item order, not arrival timestamps: patches to earlier items do not resume them.
-  const latestItem = turn.items.findLast((item) => item.kind !== "user")
+  const latestItem = activityItems.findLast((item) => item.kind !== "user")
   const streamingThoughtId = active && latestItem?.kind === "thought" ? latestItem.id : null
   const finalText = turn.final
     .filter((message) => asyncQuestions(message._meta).length === 0)
@@ -192,36 +202,86 @@ function AssistantTurnImpl({
       return [{ key: `${item.id}:${index}`, block }]
     })
   })
+  const hasAnswer = turn.final.some(
+    (message) =>
+      asyncQuestions(message._meta).length === 0 &&
+      message.content.some((block) => !isText(block) || block.text.trim().length > 0)
+  )
   const hasFinal =
     generatingImages.length > 0 ||
     artifacts.length > 0 ||
-    turn.final.some(
-      (message) =>
-        asyncQuestions(message._meta).length > 0 ||
-        message.content.some((block) => !isText(block) || block.text.trim().length > 0)
-    )
+    hasAnswer ||
+    turn.final.some((message) => asyncQuestions(message._meta).length > 0)
+  const firstFinalIndex = turn.items.findIndex((item) => turn.final.includes(item as Turn["final"][number]))
+  const entryIndex = (entry: WorkEntry) => turn.items.indexOf(entry.kind === "activity" ? entry.items[0] : entry.item)
+  const beforeAnswer = work.filter((entry) => firstFinalIndex === -1 || entryIndex(entry) < firstFinalIndex)
+  const afterAnswer = work.filter((entry) => firstFinalIndex !== -1 && entryIndex(entry) > firstFinalIndex)
+  const response = [
+    ...turn.final.map((item) => ({ kind: "answer" as const, item, index: turn.items.indexOf(item) })),
+    ...afterAnswer.map((entry) => ({ kind: "work" as const, entry, index: entryIndex(entry) }))
+  ].toSorted((a, b) => a.index - b.index)
+  const working = active && (!hasAnswer || afterAnswer.length > 0)
+  const hasRunningTool = activityItems.some(
+    (item) => item.kind === "tool" && (item.status === "pending" || item.status === "in_progress")
+  )
+  const latestCodex = latestItem?._meta?.codex
+  const speaking =
+    latestItem?.kind === "assistant" &&
+    !(typeof latestCodex === "object" && latestCodex !== null && "messageCompletedAt" in latestCodex)
+  const thinking =
+    working && !blocked && !hasRunningTool && !speaking && streamingThoughtId === null && retrying === undefined
+  const timing = turnTiming({ ...turn, items: activityItems })
   return (
     <ActivityHostProvider host={host}>
       <CodexAssistantTurn
         stateKey={JSON.stringify([sessionId, turn.key])}
-        active={active}
-        {...turnTiming(turn)}
-        loading={active && turn.work.length === 0 && !hasFinal && retrying === undefined}
-        work={work.map((entry) => (
-          <WorkEntryView
-            sessionId={sessionId}
-            key={entry.key}
-            entry={entry}
-            terminals={terminals}
-            streaming={active}
-            streamingThoughtId={streamingThoughtId}
-          />
-        ))}
+        active={active && !hasAnswer}
+        defaultExpanded={interrupted || historyInterrupted || (active && !hasAnswer)}
+        {...timing}
+        startedAt={timing.startedAt ?? workStartedAt}
+        loading={thinking && turn.work.length === 0}
+        work={
+          continued
+            ? []
+            : beforeAnswer.map((entry) => (
+                <WorkEntryView
+                  sessionId={sessionId}
+                  key={entry.key}
+                  entry={entry}
+                  terminals={terminals}
+                  streaming={active}
+                  streamingThoughtId={streamingThoughtId}
+                />
+              ))
+        }
         answer={
-          hasFinal ? (
+          hasFinal || continued ? (
             <div className="flex min-w-0 flex-col gap-3">
-              {turn.final.map((message) =>
-                asyncQuestions(message._meta).length > 0 ? (
+              {continued &&
+                beforeAnswer.map((entry) => (
+                  <WorkEntryView
+                    sessionId={sessionId}
+                    key={entry.key}
+                    entry={entry}
+                    terminals={terminals}
+                    streaming={false}
+                    streamingThoughtId={null}
+                  />
+                ))}
+              {response.map((part) => {
+                if (part.kind === "work")
+                  return (
+                    <WorkEntryView
+                      key={part.entry.key}
+                      sessionId={sessionId}
+                      entry={part.entry}
+                      terminals={terminals}
+                      streaming={active}
+                      streamingThoughtId={streamingThoughtId}
+                    />
+                  )
+                const message = part.item
+                return asyncQuestions(message._meta).length > 0 ? (
                   <AsyncQuestions key={message.id} sessionId={sessionId} item={message} />
                 ) : (
                   <AssistantContent
@@ -231,7 +291,7 @@ function AssistantTurnImpl({
                     streaming={active}
                   />
                 )
-              )}
+              })}
               {generatingImages.map((item) => (
                 <div
                   key={item.id}
@@ -260,6 +320,7 @@ function AssistantTurnImpl({
                 </div>
               )}
               {!active &&
+                !continued &&
                 (finalText.trim().length > 0 ? (
                   <CodexMessageActions
                     text={finalText}
@@ -282,6 +343,11 @@ function AssistantTurnImpl({
         }
         footer={
           <>
+            {thinking && turn.work.length > 0 && (
+              <div className="codex-pending-message py-2" role="status">
+                <span className="codex-activity-running">{t("chat.thinking")}</span>
+              </div>
+            )}
             {completedCompactions.map((entry) => (
               <WorkEntryView
                 sessionId={sessionId}
@@ -292,7 +358,7 @@ function AssistantTurnImpl({
                 streamingThoughtId={null}
               />
             ))}
-            {turn.edits.length > 0 && !active && <EditedFilesCard items={turn.edits} />}
+            {edits.length > 0 && !active && !continued && <EditedFilesCard items={edits} />}
             {(interrupted || historyInterrupted) && (
               <div className="codex-interrupted-turn" role="status">
                 {t(historyInterrupted ? "chat.historyInterrupted" : "chat.interrupted")}

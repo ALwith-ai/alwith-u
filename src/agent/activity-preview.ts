@@ -71,17 +71,14 @@ export async function readActivityReply(
       for (const rawUpdate of item.updates.toReversed()) {
         const update = object(rawUpdate)
         if (!SessionUpdate.isAgentMessage(update as Parameters<typeof SessionUpdate.isAgentMessage>[0])) continue
-        if (
-          !Array.isArray(update.content) ||
-          !update.content.every((block: unknown) => {
-            const value = object(block)
-            return (
-              !ContentBlock.isText(value as Parameters<typeof ContentBlock.isText>[0]) || typeof value.text === "string"
-            )
-          })
-        )
-          throw new Error("Invalid activity preview content")
-        const text = textOf(update.content).replaceAll(/\s+/g, " ").trim()
+        if (!Array.isArray(update.content)) throw new Error("Invalid activity preview content")
+        const content = update.content.flatMap((block: unknown) => {
+          const value = object(block)
+          if (!ContentBlock.isText(value as Parameters<typeof ContentBlock.isText>[0])) return []
+          if (typeof value.text !== "string") throw new Error("Invalid activity preview content")
+          return [{ type: "text" as const, text: value.text }]
+        })
+        const text = textOf(content).replaceAll(/\s+/g, " ").trim()
         if (text) return text
       }
     }

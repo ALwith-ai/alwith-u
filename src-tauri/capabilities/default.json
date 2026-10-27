@@ -30,6 +30,9 @@
       "identifier": "http:default",
       "allow": [
         {
+          "url": "http://localhost:12306/ping"
+        },
+        {
           "url": "https://api.alwith.ai/service/**"
         },
         {

@@ -112,3 +112,79 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+/* The settings shell owns outer spacing, including custom extension status blocks. */
+.settings-content .alwith-legacy.legacy-settings {
+  padding: 0;
+  overflow: visible;
+}
+.settings-content .legacy-settings > :not(.setting-item) {
+  margin-block: 1rem;
+}
+.settings-content .legacy-settings > :first-child {
+  margin-top: 0;
+}
+.settings-content .legacy-settings > :is(h1, h2, h3) {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.settings-content .alwith-legacy .setting-item {
+  padding-inline: 0;
+  align-items: center;
+}
+.settings-content .alwith-legacy .setting-item-info {
+  flex: 1;
+}
+.settings-content .alwith-legacy .setting-item-control {
+  flex: 0 0 min(18rem, 50%);
+  min-width: 0;
+  gap: 0.5rem;
+}
+.settings-content .alwith-legacy .setting-item-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.settings-content .alwith-legacy .setting-item-control > input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+}
+.extension-select-control {
+  display: block;
+  width: 100%;
+}
+.extension-switch-control {
+  display: inline-flex;
+}
+/* Drop unlayered legacy button rules so shadcn utility layers remain authoritative. */
+.settings-content .alwith-legacy [data-extension-control] button {
+  all: revert-layer;
+}
+
+.settings-content .alwith-legacy .setting-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.settings-content .alwith-legacy .setting-item-control {
+  display: flex;
+  align-items: center;
+}
+.settings-content .alwith-legacy .setting-item-description {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.settings-content .alwith-legacy .setting-item-control > input:not([type="checkbox"]) {
+  height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  outline: none;
+}
+.settings-content .alwith-legacy .setting-item-control > input:not([type="checkbox"]):focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}

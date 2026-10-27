@@ -301,13 +301,13 @@ function ProjectContents({
               className={cn(
                 TRAILING_GROUP,
                 ROW_HIGHLIGHT,
-                "flex h-8 w-full items-center gap-2 rounded-md px-3 focus-within:bg-foreground/8"
+                "flex h-8 w-full items-center gap-2 rounded-none px-3 focus-within:bg-foreground/8"
               )}
             >
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 min-w-0 flex-1 justify-start gap-2 rounded-none border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
+                className="h-8 min-w-0 flex-1 justify-start gap-2 rounded-sm border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
                 data-hover-background="none"
                 aria-label={thread.title ?? t("sidebar.untitled")}
                 onClick={() => onSelect(thread)}

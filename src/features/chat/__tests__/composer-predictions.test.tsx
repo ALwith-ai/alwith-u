@@ -206,3 +206,31 @@ test("disabling predictions hides results and prevents requests until enabled", 
   expect(view.result.current.text).toBe("Run the tests")
   expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
 })
+
+test.each(["idle", "running"] as const)(
+  "clears %s input before the receipt and preserves the next draft",
+  async (state) => {
+    const receipt = Promise.withResolvers<void>()
+    const submit = vi.fn(() => receipt.promise)
+    const session = { ...completed(), state }
+    const view = render(<Composer session={session} onSubmit={submit} />)
+    try {
+      const input = view.getByRole("textbox")
+      fireEvent.change(input, { target: { value: "first request" } })
+      fireEvent.keyDown(input, { key: "Enter" })
+      await waitFor(() => {
+        expect(submit).toHaveBeenCalledTimes(1)
+        expect(input).toHaveValue("")
+      })
+      expect(drafts.get("s1")?.text).toBe("")
+      view.rerender(<Composer session={{ ...session, clock: session.clock + 1 }} onSubmit={submit} />)
+      expect(input).toHaveValue("")
+      fireEvent.change(input, { target: { value: "next request" } })
+      await act(() => Promise.try(() => receipt.resolve()))
+      expect(input).toHaveValue("next request")
+      expect(drafts.get("s1")?.text).toBe("next request")
+    } finally {
+      view.unmount()
+    }
+  }
+)

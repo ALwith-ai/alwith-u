@@ -21,6 +21,7 @@ import { openChatWindow } from "@/lib/chat-window"
 
 import { CanvasContext } from "../lib/canvas-context"
 import { useRunningApps } from "../lib/use-running-apps"
+import { BrowserBridgeCard } from "./browser-bridge-card"
 import { WindowCard } from "./window-card"
 
 const tools = [
@@ -110,22 +111,25 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
     if (result !== "shown") throw new Error(t("common:petMode.failed"))
   }
   return (
-    <div ref={pane} className="relative flex h-full min-h-0 flex-col select-none" aria-label={t("pet.lounge")}>
+    <div
+      ref={pane}
+      className="relative flex h-full min-h-0 flex-col select-none [&_[data-testid=pet-lounge-drop]]:border-white [&_[data-testid=pet-lounge-drop]]:bg-white/10"
+      aria-label={t("pet.lounge")}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-48">
-        {runningApps.map((app) => (
-          <WindowCard
-            key={app.bundle_id}
-            title={app.name}
-            icon={
-              app.icon ? (
-                <img src={app.icon} alt="" draggable={false} className="object-contain" />
-              ) : (
-                <GlobeIcon className="size-12" />
-              )
-            }
-            onOpen={() => void commands.openAppById({ bundleId: app.bundle_id }).catch(reportPetError)}
-          />
-        ))}
+        {runningApps.map((app) => {
+          const icon = app.icon ? (
+            <img src={app.icon} alt="" draggable={false} className="object-contain" />
+          ) : (
+            <GlobeIcon className="size-12" />
+          )
+          const onOpen = () => void commands.openAppById({ bundleId: app.bundle_id }).catch(reportPetError)
+          return /chrome/i.test(`${app.bundle_id} ${app.name}`) ? (
+            <BrowserBridgeCard key={app.bundle_id} title={app.name} icon={icon} onOpen={onOpen} active={active} />
+          ) : (
+            <WindowCard key={app.bundle_id} title={app.name} icon={icon} onOpen={onOpen} />
+          )
+        })}
         {windows.map((item) => {
           const entry = tools.find((tool) => tool.label === item.label)
           if (!entry) throw new Error("Unknown tool window")

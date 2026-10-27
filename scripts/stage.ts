@@ -3,6 +3,7 @@
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
  *   binaries/bun-<triple>                                  the pinned official @oven/bun platform package
  *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
+ *   binaries/codex-{windows-sandbox-setup,command-runner}-<triple>  Windows sandbox helpers
  *   binaries/alwith-codex-launcher-<triple>              U-owned CODEX_PATH proxy
  *   resources/adapter/codex-bootstrap.mjs                U-owned local catalog startup
  *   resources/adapter/codex-acp-v2.mjs                     the adapter's self-contained JS bundle, run by bundled Bun
@@ -14,6 +15,7 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 
+import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
 import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
 import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
@@ -29,7 +31,7 @@ import { $ } from "bun"
 import manifest from "../package.json"
 import { stageComputer } from "./lib/computer-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
-import { assertVersion, BUN_PACKAGES, toolchainVersions } from "./lib/toolchain"
+import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
 
 const root = resolve(import.meta.dirname, "..")
 const binaries = join(root, "src-tauri/binaries")
@@ -155,9 +157,11 @@ const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "pack
 assertVersion("installed Codex platform package", codexPlatformPackage.version, `${codexVersion}-${target.npm}`)
 const vendorTriple = NPM_VENDOR_TRIPLE[triple] ?? triple
 // Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar
-// next to the app executable, so both land side by side.
-for (const name of ["codex", "codex-code-mode-host"]) {
-  const source = join(platformPackage, "vendor", vendorTriple, "bin", `${name}${target.exe}`)
+// next to the app executable. Windows sandbox setup and command-runner helpers
+// also support this sibling layout (their package sources live in codex-resources).
+for (const name of codexSidecars(target.exe === ".exe")) {
+  const directory = CODEX_WINDOWS_HELPERS.some((helper) => helper === name) ? "codex-resources" : "bin"
+  const source = join(platformPackage, "vendor", vendorTriple, directory, `${name}${target.exe}`)
   if (!existsSync(source)) throw new Error(`Codex binary not found at ${source}`)
   const destination = join(binaries, `${name}-${triple}${target.exe}`)
   copyFileSync(source, destination)
@@ -248,3 +252,5 @@ for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
   copyFileSync(join(root, "node_modules/@alwith/module-drive", name), join(driveLicenses, name))
 }
 console.log(`licences -> ${licenses}`)
+
+await stageChromeBridge(join(root, "src-tauri/resources/chrome-bridge"))

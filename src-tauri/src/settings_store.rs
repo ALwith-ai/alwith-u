@@ -314,6 +314,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
     Some(match key {
         "mobile.bridgeEnabled"
         | "appearance.trackpadEnabled"
+        | "system.preventSleep"
         | "computer.enabled"
         | "voice.enabled"
         | "voice.smooth"

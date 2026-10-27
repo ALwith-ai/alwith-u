@@ -181,7 +181,7 @@ test("shared ports follow Runtime's session assignment and open without selectin
 test("unopened activities fetch replies without selecting or reading either session", async () => {
   client.store.setState({ connection: "ready", sessions: {} })
   client.applyRunStates([record("first", false, "done"), record("second", false)])
-  const replies = vi.spyOn(client, "activityReply").mockImplementation(async (id) => `Reply for ${id}`)
+  const replies = vi.spyOn(client, "activityReply").mockImplementation((id) => Promise.resolve(`Reply for ${id}`))
   const select = vi.fn()
   const view = render(<ActivityPanel selectedId={null} onSelect={select} />)
   await waitFor(() => expect(view.getByText("Reply for first")).toBeInTheDocument())

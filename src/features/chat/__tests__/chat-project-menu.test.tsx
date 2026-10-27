@@ -82,14 +82,14 @@ test.each(["main", "floating"] as const)(
     try {
       const folder = view.getByRole("button", { name: "project" })
       if (target) expect(target).toContainElement(folder)
-      await act(async () => fireEvent.click(folder))
+      await act(() => Promise.resolve(fireEvent.click(folder)))
       expect(view.queryByRole("button", { name: "Main chat" })).toBeNull()
       expect(view.queryByRole("button", { name: "Floating chat" })).toBeNull()
       expect(view.getByText("7 chats")).toBeVisible()
       expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(5)
-      await act(async () => fireEvent.click(view.getByRole("button", { name: "Show more" })))
+      await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Show more" }))))
       expect(view.getAllByRole("button", { name: /^Chat / })).toHaveLength(7)
-      await act(async () => fireEvent.click(view.getByRole("button", { name: "Chat 6" })))
+      await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Chat 6" }))))
       expect(select).toHaveBeenCalledExactlyOnceWith(entries[6])
     } finally {
       view.unmount()
@@ -108,13 +108,15 @@ test("quick chats update their empty state as windows hide and keep the current 
   const view = render(
     <ChatProjectMenu cwd={cwd} currentSessionId={main.sessionId} onSelect={() => {}} onNewChat={() => {}} />
   )
-  await act(async () => fireEvent.click(view.getByRole("button", { name: "Quick chats" })))
+  await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))
   expect(view.getByText("0 chats")).toBeVisible()
   expect(view.getByText("No chats found")).toBeVisible()
   expect(view.queryByRole("button", { name: "Show more" })).toBeNull()
-  await act(async () => {
+  await act(() => {
     useChatWindowSurface.setState({ visible: false })
     useMainWindowSurface.setState({ visible: false })
+
+    return Promise.resolve()
   })
   expect(view.getByText("1 chat")).toBeVisible()
   expect(view.queryByText("No chats found")).toBeNull()

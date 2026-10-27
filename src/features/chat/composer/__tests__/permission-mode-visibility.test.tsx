@@ -45,7 +45,7 @@ test.each(["agent", "workspace-write"])(
       expect.stringContaining("完全访问")
     ])
     expect(setConfig).not.toHaveBeenCalled()
-    await act(async () => fireEvent.click(view.getByRole("menuitemradio", { name: /^只读/ })))
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("menuitemradio", { name: /^只读/ }))))
     expect(setConfig).toHaveBeenCalledExactlyOnceWith("chat", "mode", "read-only")
     expect(options[0].currentValue).toBe(currentValue)
   }

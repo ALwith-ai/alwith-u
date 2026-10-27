@@ -1,5 +1,7 @@
+mod browser_bridge;
 #[cfg(test)]
 mod codex_launcher;
+mod power;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "__tests__/dropped_file_url.rs"]
@@ -131,6 +133,7 @@ pub fn run() {
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default())
+        .manage(power::PreventSleep::default())
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
 
@@ -294,6 +297,7 @@ pub fn run() {
             app.state::<alwith_computer::ComputerHost>().kill_on_exit();
             voice::shutdown(app);
             gamepad::shutdown(app);
+            power::sync(app, false);
             app.state::<runtime::RuntimeState>().kill_on_exit();
         }
         _ => {}
@@ -393,6 +397,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,
+                mobile::mobile_set_draft_sessions,
                 mobile::mobile_bridge_start,
                 mobile::mobile_bridge_stop,
                 mobile::mobile_bridge_status,
@@ -411,6 +416,9 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 updater::commands::updater_install_and_relaunch,
                 window::attach_window_to_main,
                 installed_apps::read_apps_info,
+                browser_bridge::chrome_extension_installed,
+                browser_bridge::chrome_bridge_installed,
+                browser_bridge::set_chrome_bridge_enabled,
                 installed_apps::default_browser,
                 installed_apps::is_app_running,
                 installed_apps::open_app_by_id,

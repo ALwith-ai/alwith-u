@@ -106,10 +106,10 @@ test.each([false, true])("offscreen navigation remains eligible for hover with p
     geometry.mockReturnValue({ selected: index, snaps: [0, 1, 2] })
     const listener = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
     if (typeof listener !== "function") throw new Error("Missing Atlas selection subscription")
-    await act(() => listener())
+    await act(() => Promise.resolve(listener()))
     const settle = carousel.api.on.mock.calls.findLast(([event]) => event === "settle")?.[1]
     if (!settle) throw new Error("Missing Atlas settle subscription")
-    await act(() => settle())
+    await act(() => Promise.resolve(settle()))
     expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(pinned && index === 1)
   }
 })
@@ -133,8 +133,8 @@ test("selection during motion defers docking changes until settle", async () => 
   const select = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
   const settle = carousel.api.on.mock.calls.findLast(([event]) => event === "settle")?.[1]
   if (!select || !settle) throw new Error("Missing Atlas subscriptions")
-  await act(() => select())
+  await act(() => Promise.resolve(select()))
   expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(false)
-  await act(() => settle())
+  await act(() => Promise.resolve(settle()))
   expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(true)
 })

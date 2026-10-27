@@ -106,7 +106,7 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
     true
 }
 
-fn sidecar_path(name: &str) -> Result<PathBuf, String> {
+pub(crate) fn sidecar_path(name: &str) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|error| error.to_string())?;
     let directory = exe.parent().ok_or("executable has no parent directory")?;
     let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
@@ -209,6 +209,7 @@ pub async fn runtime_start(
     let stale = state.client.lock().unwrap().take();
     if let Some(stale) = stale {
         stale.close(SHUTDOWN_GRACE).await;
+        crate::power::sync(&app, false);
     }
     let journal = app.path().app_cache_dir().map_err(|error| error.to_string())?.join("runtime/sessions");
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
@@ -253,6 +254,7 @@ pub async fn runtime_start(
             for event in burst {
                 match event {
                     ClientEvent::Closed { reason } => {
+                        crate::power::sync(&app, false);
                         if let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
                         }
@@ -278,6 +280,10 @@ pub async fn runtime_start(
                             log::error!("Computer cleanup after Codex exit failed: {error}");
                         }
                         if let alwith_api::RuntimeEvent::RunStates { sessions } = &event {
+                            crate::power::sync(
+                                &app,
+                                crate::power::has_active_tasks(sessions.iter().map(|session| &session.state)),
+                            );
                             app.state::<crate::computer::ComputerGateway>().gateway.sync_running(
                                 sessions
                                     .iter()
@@ -306,13 +312,27 @@ pub async fn runtime_start(
                     }
                     // The webview SDK performs its own sequence check and reports unrecoverable
                     // gaps to its consumers. Prompt it to reconcile its journal cursor now.
-                    ClientEvent::Gap { .. } => lines.push(json!({"type":"lagged"}).to_string()),
+                    ClientEvent::Gap { .. } => {
+                        match client.run_states().await {
+                            Ok(states) => crate::power::sync(
+                                &app,
+                                crate::power::has_active_tasks(states.iter().map(|session| &session.state)),
+                            ),
+                            Err(error) => log::error!("Cannot reconcile sleep inhibition after Runtime gap: {error}"),
+                        }
+                        lines.push(json!({"type":"lagged"}).to_string());
+                    }
                     ClientEvent::Other(value) => lines.push(value.to_string()),
                 }
             }
             if !lines.is_empty() {
                 let _ = RuntimeLines(lines).emit(&app);
             }
+        }
+        if let Some(client) = identity.upgrade()
+            && app.state::<RuntimeState>().owns(&client)
+        {
+            crate::power::sync(&app, false);
         }
     });
     Ok(())
