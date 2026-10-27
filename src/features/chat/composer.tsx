@@ -237,6 +237,9 @@ export function Composer({
       if (trimmed.length === 0 && files.length === 0 && mentions.length === 0) return
       const observeReceipt = receiptObserver.current
       setSending(true)
+      const submitted = drafts.get(session.id)
+      const submittedRevision = draftRef.current.revision
+      let clearedRevision: number | null = null
       try {
         const prompt: acp.ContentBlock[] = []
         // Mentions go first as ACP embedded context, the way ALwith Desktop sends them.
@@ -250,6 +253,22 @@ export function Composer({
             if (file.pastedText.status !== "ready") throw new Error("Text attachment is not ready")
             prompt.push({ type: "resource_link", uri: file.url, name: file.filename ?? "pasted-text.txt" })
           } else prompt.push({ type: "image", data: await readBase64(file), mimeType: file.mediaType })
+        }
+        // Clear at submission, before a slow receipt or a draft-to-chat handoff.
+        // A new revision protects anything typed while the request is in flight.
+        if (draftRef.current.revision === submittedRevision && drafts.get(session.id) === submitted) {
+          draftRef.current = { text: "", revision: draftRef.current.revision + 1 }
+          clearedRevision = draftRef.current.revision
+          setDraft(draftRef.current)
+          setMentions([])
+          updateDraftAttachments(session.id, () => EMPTY_ATTACHMENTS)
+          drafts.set(session.id, {
+            text: "",
+            attachments: EMPTY_ATTACHMENTS,
+            mentions: [],
+            modelId: submitted?.modelId ?? null
+          })
+          textareaRef.current?.resetHeight()
         }
         if (onSubmit) {
           if (observeReceipt === null) await onSubmit(prompt)
@@ -265,8 +284,28 @@ export function Composer({
           observeReceipt.accept(receipt)
         }
         invalidatePrediction()
-        setMentions((current) => (current === mentions ? [] : current))
-        textareaRef.current?.resetHeight()
+        for (const file of submitted?.attachments ?? []) {
+          if (
+            file.url.startsWith("blob:") &&
+            !drafts.get(session.id)?.attachments.some((current) => current.id === file.id)
+          )
+            URL.revokeObjectURL(file.url)
+        }
+      } catch (error) {
+        if (
+          submitted &&
+          clearedRevision !== null &&
+          draftRef.current.revision === clearedRevision &&
+          drafts.get(session.id)?.attachments.length === 0 &&
+          drafts.get(session.id)?.mentions.length === 0
+        ) {
+          draftRef.current = { text: submitted.text, revision: clearedRevision + 1 }
+          setDraft(draftRef.current)
+          setMentions(submitted.mentions)
+          drafts.set(session.id, submitted)
+          updateDraftAttachments(session.id, () => submitted.attachments)
+        }
+        throw error
       } finally {
         setSending(false)
         textareaRef.current?.focus()

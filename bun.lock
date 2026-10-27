@@ -144,6 +144,7 @@
     },
   },
   "patchedDependencies": {
+    "@alwith/module-chat@0.1.32": "patches/@alwith%2Fmodule-chat@0.1.32.patch",
     "vite@8.3.5": "patches/vite@8.3.5.patch",
   },
   "overrides": {

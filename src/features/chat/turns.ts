@@ -63,7 +63,10 @@ export function isSessionStatus(turn: Turn): boolean {
 
 function pushActivity(turn: Turn, item: MessageItem | ToolItem): void {
   const last = turn.work.at(-1)
-  if (last?.kind === "activity") {
+  if (
+    last?.kind === "activity" &&
+    turn.items.indexOf(item) === turn.items.indexOf(last.items[last.items.length - 1]) + 1
+  ) {
     last.items.push(item)
     return
   }
@@ -88,7 +91,7 @@ function flatten(entry: TurnEntry, out: Item[], tools: ReadonlyMap<string, ToolI
   for (const child of entry.children) flatten(child, out, tools)
 }
 
-function place(turn: Turn, item: Item): void {
+function place(turn: Turn, item: Item, followedByWork: boolean): void {
   switch (item.kind) {
     case "user":
       break
@@ -102,7 +105,7 @@ function place(turn: Turn, item: Item): void {
       }
       const itemPhase = phase(item)
       if (asyncQuestions(item._meta).length > 0 || itemPhase === "final_answer") turn.final.push(item)
-      else if (itemPhase === "commentary" || isNotice(item))
+      else if (itemPhase === "commentary" || isNotice(item) || (itemPhase === null && followedByWork))
         turn.work.push({ kind: "text", key: `text:${item.id}`, item })
       else turn.final.push(item)
       break
@@ -180,7 +183,10 @@ export function groupTurns(session: Session, previous: Turn[] = [], historyOrder
         replayed: items.every((item) => item.replayed),
         items
       }
-      for (const item of items) place(turn, item)
+      // Legacy or gateway messages can omit phase. Keep intermediate speech in
+      // arrival order instead of moving it below tools as a final answer.
+      const lastWorkIndex = items.findLastIndex((item) => item.kind !== "user" && item.kind !== "compaction")
+      items.forEach((item, index) => place(turn, item, index < lastWorkIndex))
       return turn
     })
 }
@@ -227,5 +233,49 @@ export function turnTiming(turn: Turn): { durationMs?: number; durationKind: "wo
     durationMs: work ?? total,
     durationKind: work === undefined && total !== undefined ? "total" : "work",
     startedAt: value("workStartedAt")
+  }
+}
+
+/** Steering splits the timeline visually without completing the native turn. */
+export function continuesTurn(session: Session, turn: Turn, next: Turn | undefined): boolean {
+  if (next?.user == null) return false
+  const currentId = turn.items.map(nativeTurnId).find((id) => id !== null)
+  const nextId = nativeTurnId(next.user)
+  if (currentId !== undefined && nextId !== null) return currentId === nextId
+  return (
+    session.state !== "idle" &&
+    (next.user.echo === "pending" || next.user.echo === "acknowledged") &&
+    turn.user !== null &&
+    session.turnEndedAt[turn.user.id] === undefined &&
+    turn.errors.length === 0
+  )
+}
+
+/** A steer adds a user bubble, but does not move output until the agent emits there. */
+export function activeTurnKey(session: Session, turns: Turn[]): string | undefined {
+  if (session.state === "idle") return undefined
+  let index = turns.length - 1
+  while (index > 0) {
+    const turn = turns[index]
+    if (turn.items.some((item) => item.kind !== "user")) break
+    if (!continuesTurn(session, turns[index - 1], turn)) break
+    index--
+  }
+  return turns[index]?.key
+}
+
+/** Visual steer segments share native activity and one completion summary. */
+export function turnPresentation(session: Session, turns: Turn[], index: number) {
+  let start = index
+  let end = index
+  while (start > 0 && continuesTurn(session, turns[start - 1], turns[start])) start--
+  while (end + 1 < turns.length && continuesTurn(session, turns[end], turns[end + 1])) end++
+  const segments = turns.slice(start, end + 1)
+  const owner = segments.findLast((turn) => turn.items.some((item) => item.kind !== "user")) ?? segments[0]
+  return {
+    continued: turns[index] !== owner,
+    items: segments.flatMap((turn) => turn.items),
+    edits: segments.flatMap((turn) => turn.edits),
+    startedAt: segments[0].startedAt
   }
 }

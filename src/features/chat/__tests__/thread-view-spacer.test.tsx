@@ -20,6 +20,40 @@ afterEach(async () => {
   if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight)
 })
 
+test("a steer does not create a thinking placeholder while the original output is streaming", async () => {
+  let session = applyUpdate(createSession("steering-display", "/tmp"), {
+    sessionUpdate: "user_message",
+    messageId: "first",
+    content: [{ type: "text", text: "Start" }],
+    _meta: { codex: { turnId: "native" } }
+  } as never)
+  session = applyUpdate(session, { sessionUpdate: "state_update", state: "running" } as never)
+  const output = (text: string) => ({
+    sessionUpdate: "agent_message_chunk",
+    messageId: "output",
+    content: { type: "text", text },
+    _meta: { codex: { turnId: "native", phase: "commentary" } }
+  })
+  session = applyUpdate(session, output("Still working") as never)
+  session = addPrompt(session, [{ type: "text", text: "Also check this" }], "steer")
+  const view = render(
+    <ThemeProvider>
+      <ThreadView session={session} />
+    </ThemeProvider>
+  )
+  await waitFor(() => expect(view.getByText("Also check this")).toBeInTheDocument())
+  expect(view.queryByText("Thinking")).not.toBeInTheDocument()
+  expect(view.container.querySelector('[data-codex-turn="turn:user:steer"] .codex-pending-message')).toBeNull()
+  session = applyUpdate(session, output("Still working and updating") as never)
+  view.rerender(
+    <ThemeProvider>
+      <ThreadView session={session} />
+    </ThemeProvider>
+  )
+  await waitFor(() => expect(view.getByText("Still working and updating")).toBeInTheDocument())
+  expect(view.queryByText("Thinking")).not.toBeInTheDocument()
+})
+
 test("new turns follow their real content through growth and placeholder shrink, until the user scrolls", async () => {
   const observers: { targets: Set<Element>; notify: () => void }[] = []
   class Observer implements ResizeObserver {

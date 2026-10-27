@@ -450,11 +450,17 @@ pub async fn providers_test(state: State<'_, Providers>, provider_id: String) ->
 #[tauri3_specta::command]
 pub async fn providers_apply(app: AppHandle) -> Result<Snapshot, String> {
     let runtime = app.state::<crate::runtime::RuntimeState>();
-    let _admission = runtime.admission.lock().await;
+    // Draft preparation can use the applied catalog while another admission is pending.
+    // The admission owner schedules reconciliation when it releases the lock.
+    let _admission = try_apply_admission(&runtime.admission)?;
     let client = runtime.current()?;
     apply_locked(&app, &client).await?;
     Ok(app.state::<Providers>().inner.lock().await.snapshot())
 }
+fn try_apply_admission(admission: &tokio::sync::Mutex<()>) -> Result<tokio::sync::MutexGuard<'_, ()>, String> {
+    admission.try_lock().map_err(|_| PROVIDERS_PENDING.to_owned())
+}
+
 /// Configure only a newly created Gamepad agent; credentials never leave the native host.
 #[tauri3_specta::command]
 pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) -> Result<(), String> {
@@ -938,6 +944,16 @@ mod tests {
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         assert_eq!(inner.snapshot().status, "applied");
         assert!(calls.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn draft_catalog_read_does_not_wait_for_another_sessions_admission() {
+        let admission = tokio::sync::Mutex::new(());
+        let sending = admission.lock().await;
+        let error = try_apply_admission(&admission).unwrap_err();
+        assert!(application_pending(&error));
+        drop(sending);
+        assert!(try_apply_admission(&admission).is_ok());
     }
 
     fn pending_provider() -> Inner {

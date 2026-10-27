@@ -184,8 +184,6 @@ export function DraftChat({
       else accept(await client.promptReceipt(target, prompt))
       if (collectionId !== undefined)
         reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
-      // Clear persisted input before the parent mounts the conversation's composer.
-      importDraft(target, null)
     } finally {
       // On failure, keep the input and let native draft ownership decide the view:
       // a request dispatched without a receipt may already have started a turn.

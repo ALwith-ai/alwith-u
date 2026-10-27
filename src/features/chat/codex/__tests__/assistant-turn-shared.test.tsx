@@ -56,6 +56,10 @@ test.each(["commentary", "final_answer"])("%s completes the preceding thought wi
   session = feed(session, text(`${id}-message`, "Next step", phase))
   view.rerender(viewOf(session, true))
   expect(view.queryByRole("button", { name: "Thinking" })).toBeNull()
+  if (phase === "final_answer") {
+    expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  }
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
   fireEvent.click(view.getByRole("button", { name: "Thought" }))
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
@@ -511,16 +515,177 @@ test("forked sessions keep independent work and thinking disclosure choices", ()
   const view = render(viewOf(original, true))
   mounted.push(view)
   fireEvent.click(view.getByRole("button", { name: "Thinking" }))
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  fireEvent.click(view.getByRole("button", { name: /^Working/ }))
   view.rerender(viewOf(fork, true))
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
+  expect(view.getByRole("button", { name: /^Working/ })).toHaveAttribute("aria-expanded", "true")
   expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "false")
   view.rerender(viewOf(original, true))
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: /^Working/ })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(view.getByRole("button", { name: /^Working/ }))
   expect(view.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
   view.rerender(viewOf(original, false))
-  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "false")
-  fireEvent.click(view.getByRole("button", { name: /^Worked/ }))
+  expect(view.getByRole("button", { name: /^Worked/ })).toHaveAttribute("aria-expanded", "true")
   expect(view.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+})
+
+test("work before steering stays visible without a completed-work disclosure", () => {
+  const session = feed(createSession("steer-view", "/tmp"), text("working", "Still working", "commentary"))
+  const view = render(
+    <ThemeProvider>
+      <AssistantTurn
+        sessionId={session.id}
+        turn={groupTurns(session)[0]}
+        terminals={{}}
+        active={false}
+        continued
+        isLast={false}
+        error={null}
+        interrupted={false}
+      />
+    </ThemeProvider>
+  )
+  mounted.push(view)
+  expect(view.getByText("Still working")).toBeVisible()
+  expect(view.queryByText("Worked")).not.toBeInTheDocument()
+  expect(view.container.querySelector(".codex-work-section")).toBeNull()
+})
+
+test("live work uses Working, tools own their status, and thinking resumes after tools finish", () => {
+  let session = feed(createSession("status-transitions", "/tmp"), {
+    sessionUpdate: "tool_call_update",
+    toolCallId: "status-command",
+    name: "shell",
+    kind: "execute",
+    status: "in_progress",
+    rawInput: { command: "pwd" },
+    _meta: { codex: { workStartedAt: Date.now() - 31000 } }
+  })
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  expect(view.container.querySelector(".codex-work-trigger")?.textContent).toMatch(/^Working for 3[12]s/)
+  expect(view.container.querySelector(".codex-pending-message")).toBeNull()
+  session = feed(session, { sessionUpdate: "tool_call_update", toolCallId: "status-command", status: "completed" })
+  view.rerender(viewOf(session, true))
+  expect(view.container.querySelector(".codex-pending-message")).toHaveTextContent("Thinking")
+  session = feed(session, text("status-final", "Finished", "final_answer"))
+  view.rerender(viewOf(session, true))
+  expect(view.container.querySelector(".codex-work-trigger")?.textContent).toMatch(/^Worked/)
+  expect(view.container.querySelector(".codex-pending-message")).toBeNull()
+  expect(view.getByText("Finished")).toBeVisible()
+})
+
+test("waiting for user action does not claim the model is thinking", () => {
+  const session = feed(createSession("blocked-status", "/tmp"), {
+    sessionUpdate: "tool_call_update",
+    toolCallId: "completed-before-question",
+    name: "shell",
+    kind: "execute",
+    status: "completed",
+    rawInput: { command: "pwd" }
+  })
+  const view = render(
+    <ThemeProvider>
+      <AssistantTurn
+        sessionId={session.id}
+        turn={groupTurns(session)[0]}
+        terminals={{}}
+        active
+        blocked
+        isLast
+        error={null}
+        interrupted={false}
+      />
+    </ThemeProvider>
+  )
+  mounted.push(view)
+  expect(view.container.querySelector(".codex-pending-message")).toBeNull()
+})
+
+test("post-answer activity stays below the answer and outside the sealed work disclosure", () => {
+  const session = feed(
+    createSession("post-final", "/tmp"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "before",
+      name: "shell",
+      kind: "execute",
+      status: "completed",
+      rawInput: { command: "pwd" }
+    },
+    text("answer", "Initial answer", "final_answer"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "after",
+      name: "shell",
+      kind: "execute",
+      status: "in_progress",
+      rawInput: { command: "echo verify" }
+    }
+  )
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  const answer = view.getByText("Initial answer")
+  const command = view.getByRole("button", { name: "Running echo verify" })
+  expect(command).toBeVisible()
+  expect(answer.compareDocumentPosition(command) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(command.closest(".codex-work-section")).toBeNull()
+  expect(view.container.querySelector(".codex-work-trigger")).toHaveAttribute("aria-expanded", "false")
+  expect(view.container.querySelector(".codex-pending-message")).toBeNull()
+})
+
+test("native-turn tools suppress thinking across steering segments", () => {
+  const session = feed(
+    createSession("native-tool-status", "/tmp"),
+    { sessionUpdate: "tool_call_update", toolCallId: "earlier", name: "shell", kind: "execute", status: "in_progress" },
+    { sessionUpdate: "user_message", messageId: "steer", content: [] },
+    { ...text("comment", "Checking", "commentary"), _meta: { codex: { phase: "commentary", messageCompletedAt: 100 } } }
+  )
+  const turns = groupTurns(session)
+  const view = render(
+    <ThemeProvider>
+      <AssistantTurn
+        sessionId={session.id}
+        turn={turns[1]}
+        activityItems={session.items}
+        terminals={{}}
+        active
+        isLast
+        error={null}
+        interrupted={false}
+      />
+    </ThemeProvider>
+  )
+  mounted.push(view)
+  expect(view.container.querySelector(".codex-pending-message")).toBeNull()
+})
+
+test("manual work expansion survives final-answer start", () => {
+  let session = feed(createSession("manual-expand", "/tmp"), thought("manual-thought", "Inspecting"))
+  const view = render(viewOf(session, true))
+  mounted.push(view)
+  const toggle = () => view.container.querySelector<HTMLButtonElement>(".codex-work-trigger")!
+  fireEvent.click(toggle())
+  fireEvent.click(toggle())
+  session = feed(session, text("manual-final", "Done", "final_answer"))
+  view.rerender(viewOf(session, true))
+  expect(toggle()).toHaveAttribute("aria-expanded", "true")
+})
+
+test("interrupted work stays visible without requiring a disclosure click", () => {
+  const session = feed(createSession("cancel-visible", "/tmp"), thought("cancel-thought", "Checking before stop"))
+  const view = render(
+    <ThemeProvider>
+      <AssistantTurn
+        sessionId={session.id}
+        turn={groupTurns(session)[0]}
+        terminals={{}}
+        active={false}
+        isLast
+        error={null}
+        interrupted
+      />
+    </ThemeProvider>
+  )
+  mounted.push(view)
+  expect(view.container.querySelector(".codex-work-trigger")).toHaveAttribute("aria-expanded", "true")
 })

@@ -26,7 +26,7 @@ test("Desktop work-section disclosure survives virtualized unmounts", () => {
   )
   const view = render(content)
   mounted.push(view)
-  const toggle = view.getByRole("button", { name: "stream.codex.worked" })
+  const toggle = view.getByRole("button", { name: "stream.codex.working" })
   expect(toggle.getAttribute("aria-expanded")).toBe("true")
   fireEvent.click(toggle)
   expect(toggle.getAttribute("aria-expanded")).toBe("false")
@@ -62,7 +62,7 @@ test("work collapses on completion and preserves the completed disclosure choice
   )
   const view = render(content(true))
   mounted.push(view)
-  const toggle = () => view.getByRole("button", { name: "stream.codex.worked" })
+  const toggle = () => view.getByRole("button", { name: /stream\.codex\.work/ })
   expect(toggle()).toHaveAttribute("aria-expanded", "true")
   view.rerender(content(false))
   expect(toggle()).toHaveAttribute("aria-expanded", "false")
@@ -78,21 +78,26 @@ test("work collapses on completion and preserves the completed disclosure choice
   expect(restored.getByRole("button", { name: "stream.codex.worked" })).toHaveAttribute("aria-expanded", "true")
 })
 
-test("work completed while virtualized away remounts collapsed", () => {
-  const stateKey = crypto.randomUUID()
-  const content = (active: boolean) => (
-    <ActivityHostProvider host={host}>
-      <CodexWorkSection stateKey={stateKey} active={active}>
-        Details
-      </CodexWorkSection>
-    </ActivityHostProvider>
-  )
-  const view = render(content(true))
-  mounted.push(view)
-  fireEvent.click(view.getByRole("button"))
-  fireEvent.click(view.getByRole("button"))
-  view.unmount()
-  const restored = render(content(false))
-  mounted.push(restored)
-  expect(restored.getByRole("button")).toHaveAttribute("aria-expanded", "false")
-})
+test.each([false, true])(
+  "completed work preserves manual expansion across virtualization (explicit=%s)",
+  (explicit) => {
+    const stateKey = crypto.randomUUID()
+    const content = (active: boolean) => (
+      <ActivityHostProvider host={host}>
+        <CodexWorkSection stateKey={stateKey} active={active}>
+          Details
+        </CodexWorkSection>
+      </ActivityHostProvider>
+    )
+    const view = render(content(true))
+    mounted.push(view)
+    if (explicit) {
+      fireEvent.click(view.getByRole("button"))
+      fireEvent.click(view.getByRole("button"))
+    }
+    view.unmount()
+    const restored = render(content(false))
+    mounted.push(restored)
+    expect(restored.getByRole("button")).toHaveAttribute("aria-expanded", String(explicit))
+  }
+)
