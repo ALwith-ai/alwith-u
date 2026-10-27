@@ -1,11 +1,12 @@
 import { createSession, type Session } from "@alwith/api"
+import { drafts } from "@alwith/module-chat/conversation"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
-import { type ReactNode, useState } from "react"
+import { type ComponentProps, type ReactNode, useState } from "react"
 import { expect, fn, waitFor } from "storybook/test"
 
-import { Composer } from "../../src/features/chat/composer"
-import { drafts } from "../../src/features/chat/composer/drafts"
+import { ChatHostProvider } from "../../src/features/chat/chat-host"
+import { ChatComposer } from "../../src/features/chat/composer"
 import { DraftProjectPicker } from "../../src/features/chat/draft-project-picker"
 import type { SettingsRequest } from "../../src/lib/settings-store"
 
@@ -39,6 +40,15 @@ const session: Session = {
       options: [{ value: "read-only", name: "Read only" }]
     }
   ]
+}
+
+/** U's composer with U's host, as the conversation view mounts it. */
+function Composer(props: ComponentProps<typeof ChatComposer>) {
+  return (
+    <ChatHostProvider>
+      <ChatComposer {...props} />
+    </ChatHostProvider>
+  )
 }
 
 const meta = {

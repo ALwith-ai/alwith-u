@@ -18,7 +18,13 @@ const config: StorybookConfig = {
       optimizeDeps: {
         entries: [path.resolve(import.meta.dirname, "stories/**/*.stories.tsx")],
         exclude: ["@alwith/module-chat"],
-        include: ["diff2html", "diff2html/lib/types"]
+        // The excluded module's CommonJS dependencies still need prebundling, as in vite.config.ts.
+        include: [
+          "diff2html",
+          "diff2html/lib/types",
+          "use-sync-external-store/shim",
+          "use-sync-external-store/shim/with-selector"
+        ]
       },
       resolve: {
         alias: {

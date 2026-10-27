@@ -1,9 +1,9 @@
+import type { PluginDetail, PluginSummary } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
 import { useEffect } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
-import type { PluginDetail, PluginSummary } from "../../src/agent/codex-extensions"
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { PluginDetailPage } from "../../src/features/plugins/plugin-detail-page"
 import { PluginIconDefinitions } from "../../src/features/plugins/plugin-icon"

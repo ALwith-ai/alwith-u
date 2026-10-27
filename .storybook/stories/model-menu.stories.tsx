@@ -32,7 +32,7 @@ function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
   const [selected, setSelected] = useState("GPT-6.1-Sol")
   const [effort, setEffort] = useState("medium")
   const [fast, setFast] = useState(false)
-  const groups = presentModelCatalog(catalog, selected)
+  const groups = presentModelCatalog(catalog)
   const models = groups.flatMap((group) => group.models)
   const selectedModel = models.find((model) => model.api_id === selected)!
   const supportsFast = selected.startsWith("GPT")

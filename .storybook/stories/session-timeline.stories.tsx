@@ -1,11 +1,11 @@
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
+import { projectHistoryTurns } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useRef, useState } from "react"
 import { expect, spyOn, waitFor } from "storybook/test"
 
-import { projectHistoryTurns } from "../../src/agent/history-page"
 import { Button } from "../../src/components/ui/button"
-import { ThreadView } from "../../src/features/chat/thread-view"
+import { ChatTimeline } from "../fixtures/chat-timeline"
 
 function sentPrompt(previous: Session, text: string, messageId: string): Session {
   const content = [{ type: "text" as const, text }]
@@ -29,8 +29,8 @@ const session = applyUpdate(
 )
 
 const meta = {
-  title: "Chat/Thread",
-  component: ThreadView,
+  title: "Chat/Session timeline",
+  component: ChatTimeline,
   args: { session },
   decorators: [
     (Story) => (
@@ -39,7 +39,7 @@ const meta = {
       </div>
     )
   ]
-} satisfies Meta<typeof ThreadView>
+} satisfies Meta<typeof ChatTimeline>
 export default meta
 type Story = StoryObj<typeof meta>
 
@@ -61,8 +61,8 @@ export const DirectoryListing: Story = {
     })
     const expectFade = async () => {
       await waitFor(async () => {
-        const content = viewport.querySelector<HTMLElement>(".codex-thread-content")!
-        const fade = canvasElement.querySelector<HTMLElement>(".codex-thread-bottom-fade")!
+        const content = viewport.querySelector<HTMLElement>(".codex-timeline-content")!
+        const fade = canvasElement.querySelector<HTMLElement>(".codex-timeline-bottom-fade")!
         await expect(getComputedStyle(viewport).maskImage).toBe("none")
         await expect(getComputedStyle(content).maskImage).toBe("none")
         await expect(fade.getBoundingClientRect().height).toBe(24)
@@ -131,7 +131,7 @@ const failedHistory = [
   }
 ]
 
-function ErrorHistoryThread() {
+function ErrorHistoryTimeline() {
   const [current, setCurrent] = useState(() =>
     applyUpdate(
       sentPrompt(createSession("error-history", "/storybook/project"), "Inspect the project", "capacity-prompt"),
@@ -140,7 +140,7 @@ function ErrorHistoryThread() {
   )
   return (
     <>
-      <ThreadView session={current} />
+      <ChatTimeline session={current} />
       <div className="flex shrink-0 gap-2 p-2">
         <Button
           onClick={() => setCurrent(projectHistoryTurns("error-history", "/storybook/project", null, failedHistory))}
@@ -167,7 +167,7 @@ function ErrorHistoryThread() {
 }
 
 export const RetainedTurnErrors: Story = {
-  render: () => <ErrorHistoryThread />,
+  render: () => <ErrorHistoryTimeline />,
   play: async ({ canvas, canvasElement, userEvent }) => {
     const check = async () => {
       await waitFor(async () => {
@@ -196,7 +196,7 @@ export const RetainedTurnErrors: Story = {
   }
 }
 
-function ShortReplyThread({ initialSession = session }: { initialSession?: typeof session }) {
+function ShortReplyTimeline({ initialSession = session }: { initialSession?: typeof session }) {
   const [current, setCurrent] = useState(initialSession)
   const sequence = useRef(0)
   const send = (complete: boolean) => {
@@ -218,7 +218,7 @@ function ShortReplyThread({ initialSession = session }: { initialSession?: typeo
   }
   return (
     <>
-      <ThreadView session={current} />
+      <ChatTimeline session={current} />
       <div className="flex shrink-0 flex-wrap gap-2 p-2">
         <Button onClick={() => send(false)}>Send message</Button>
         <Button
@@ -245,7 +245,7 @@ function ShortReplyThread({ initialSession = session }: { initialSession?: typeo
 }
 
 export const ShortRepliesAfterSend: Story = {
-  render: () => <ShortReplyThread />,
+  render: () => <ShortReplyTimeline />,
   play: async ({ canvasElement, canvas, userEvent }) => {
     const viewport = canvas.getByRole("log")
     const expectFlow = async () => {
@@ -284,7 +284,7 @@ export const ShortRepliesAfterSend: Story = {
 
 export const FirstMessageAfterSend: Story = {
   ...ShortRepliesAfterSend,
-  render: () => <ShortReplyThread initialSession={createSession("first-message-layout", "/storybook/project")} />
+  render: () => <ShortReplyTimeline initialSession={createSession("first-message-layout", "/storybook/project")} />
 }
 
 const longSession = Array.from({ length: 60 }, (_, index) => index).reduce(
@@ -315,7 +315,7 @@ export const RapidScroll: Story = {
       viewport.scrollTop = fraction * (viewport.scrollHeight - viewport.clientHeight)
       viewport.dispatchEvent(new Event("scroll"))
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
-      await expect(getComputedStyle(viewport.querySelector(".codex-thread-content")!).maskImage).toBe("none")
+      await expect(getComputedStyle(viewport.querySelector(".codex-timeline-content")!).maskImage).toBe("none")
     }
     await waitFor(async () => {
       const latest = [...canvasElement.querySelectorAll<HTMLElement>("[data-codex-turn]")].at(-1)!

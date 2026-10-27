@@ -1,22 +1,30 @@
-import { addPrompt, applyUpdate, createSession } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/api"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { Button } from "../../src/components/ui/button"
-import { AssistantTurn } from "../../src/features/chat/codex/assistant-turn"
-import { groupTurns } from "../../src/features/chat/turns"
+import { ChatTimeline } from "../fixtures/chat-timeline"
 
 const paragraphs = Array.from({ length: 24 }, (_, index) => `Checking step ${index + 1} of the long task.`).join("\n\n")
 
 function ReasoningPreview() {
   const [id] = useState(() => crypto.randomUUID())
-  const [session, setSession] = useState(() =>
-    applyUpdate(
-      addPrompt(createSession(id, "/storybook/project"), [{ type: "text", text: "Inspect the project" }], `${id}-user`),
-      { sessionUpdate: "agent_thought_chunk", messageId: id, content: { type: "text", text: paragraphs } }
-    )
-  )
+  // A sent prompt opens the turn, which stays live so its work section remains open as reasoning streams.
+  const [session, setSession] = useState(() => {
+    const content = [{ type: "text" as const, text: "Inspect the project" }]
+    const prompted = addPrompt(createSession(id, "/storybook/project"), content, `local:${id}`)
+    const sent = applyUpdate(acknowledgePrompt(prompted, `local:${id}`, `${id}-user`), {
+      sessionUpdate: "user_message",
+      messageId: `${id}-user`,
+      content
+    })
+    return applyUpdate(applyUpdate(sent, { sessionUpdate: "state_update", state: "running" } as never), {
+      sessionUpdate: "agent_thought_chunk",
+      messageId: id,
+      content: { type: "text", text: paragraphs }
+    })
+  })
   const [finished, setFinished] = useState(false)
   return (
     <div className="flex flex-col gap-4">
@@ -52,15 +60,9 @@ function ReasoningPreview() {
           Finish reasoning
         </Button>
       </div>
-      <AssistantTurn
-        sessionId={session.id}
-        turn={groupTurns(session)[0]}
-        terminals={session.terminals}
-        active
-        isLast
-        error={null}
-        interrupted={false}
-      />
+      <div className="flex h-[480px] min-h-0 flex-col">
+        <ChatTimeline session={session} />
+      </div>
     </div>
   )
 }

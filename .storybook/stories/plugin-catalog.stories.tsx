@@ -1,7 +1,7 @@
+import type { PluginSummary } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect } from "react"
 
-import type { PluginSummary } from "../../src/agent/codex-extensions"
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { PluginsPage } from "../../src/features/plugins/plugins-page"
 import { client } from "../../src/lib/client"

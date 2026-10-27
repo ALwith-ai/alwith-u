@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, spyOn, waitFor, within } from "storybook/test"
 
-import type { ThreadSummary } from "../../src/agent/client"
+import type { SessionSummary } from "../../src/agent/client"
 import { SidebarInset } from "../../src/components/ui/sidebar"
 import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../src/features/layout/components/main-sidebar-layout"
-import { ArchivedChatsPage } from "../../src/features/threads/archived-chats-page"
+import { ArchivedChatsPage } from "../../src/features/sessions/archived-chats-page"
 import { client } from "../../src/lib/client"
 
-const chats: ThreadSummary[] = [
+const chats: SessionSummary[] = [
   {
     sessionId: "quick",
     cwd: "/Users/demo/Documents/Codex",
@@ -33,28 +33,28 @@ const chats: ThreadSummary[] = [
 ]
 
 const meta = {
-  title: "Threads/Archived chats",
+  title: "Sessions/Archived chats",
   component: ArchivedChatsPage,
   globals: { locale: "zh-CN" },
   beforeEach: () => {
     const previous = client.state
-    client.store.setState({ connection: "ready", archivedThreads: [], archivedLoaded: false, archivedCursor: null })
-    const list = spyOn(client, "listThreads").mockImplementation(() => {
+    client.store.setState({ connection: "ready", archivedSessions: [], archivedLoaded: false, archivedCursor: null })
+    const list = spyOn(client, "listArchived").mockImplementation(() => {
       return Promise.try(() => {
-        client.store.setState({ archivedThreads: chats, archivedLoaded: true, archivedCursor: null })
+        client.store.setState({ archivedSessions: chats, archivedLoaded: true, archivedCursor: null })
       })
     })
     const restore = spyOn(client, "unarchive").mockImplementation((id) => {
       return Promise.try(() => {
         client.store.setState((state) => ({
-          archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
+          archivedSessions: state.archivedSessions.filter((sessionRow) => sessionRow.sessionId !== id)
         }))
       })
     })
     const remove = spyOn(client, "delete").mockImplementation((id) => {
       return Promise.try(() => {
         client.store.setState((state) => ({
-          archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
+          archivedSessions: state.archivedSessions.filter((sessionRow) => sessionRow.sessionId !== id)
         }))
       })
     })
@@ -108,7 +108,7 @@ export const ArchiveList: Story = {
     const contentBefore = canvas.getAllByRole("article")[0]?.getBoundingClientRect()
     if (!contentBefore) throw new Error("Missing archive row")
     client.store.setState({
-      archivedThreads: Array.from({ length: 40 }, (_, index) => ({ ...sample, sessionId: `scroll-${index}` }))
+      archivedSessions: Array.from({ length: 40 }, (_, index) => ({ ...sample, sessionId: `scroll-${index}` }))
     })
     await waitFor(() => expect(canvas.getAllByRole("article")).toHaveLength(40))
     const row = canvas.getAllByRole("article")[0]
@@ -135,7 +135,7 @@ export const ArchiveList: Story = {
     await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))
     void expect(heading.getBoundingClientRect().top).toBe(headingTop)
     void expect(search.getBoundingClientRect().top).toBe(searchTop)
-    client.store.setState({ archivedThreads: chats })
+    client.store.setState({ archivedSessions: chats })
   }
 }
 
