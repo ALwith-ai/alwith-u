@@ -1,6 +1,6 @@
 // Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { delimiter, join, resolve } from "node:path"
 
@@ -8,7 +8,7 @@ import { ProcessRuntimeClient } from "@alwith/api/node"
 
 import manifest from "../package.json"
 import providers from "../src/lib/provider-catalog.json"
-import { assertVersion, toolchainVersions } from "./lib/toolchain"
+import { assertVersion, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
 
 const argument = process.argv[2]
@@ -40,7 +40,12 @@ function run(name: string, args: string[]): string {
 
 const adapterVersion = await withCleanup(
   async () => {
-    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime", "alwith-codex-launcher"]) {
+    for (const name of [
+      "bun",
+      ...codexSidecars(process.platform === "win32"),
+      "alwith-runtime",
+      "alwith-codex-launcher"
+    ]) {
       if (!existsSync(join(directory, `${name}${suffix}`))) throw new Error(`Packaged sidecar missing: ${name}`)
     }
     assertVersion("packaged Bun", run("bun", ["--version"]), versions.bun)
@@ -68,6 +73,7 @@ const adapterVersion = await withCleanup(
     const bootstrap = join(codexHome, "codex-bootstrap.mjs")
     copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), bootstrap)
     await checkInitialize(bootstrap)
+    if (process.platform === "win32") checkWindowsSandbox()
     return adapterVersion
   },
   () => removeTemporaryDirectory(codexHome)
@@ -118,4 +124,40 @@ async function checkInitialize(adapter: string): Promise<void> {
   } finally {
     unsubscribe()
   }
+}
+
+/** Exercise helper discovery and actual file IO without a model or user login. */
+function checkWindowsSandbox(): void {
+  const workspace = join(codexHome, "workspace")
+  mkdirSync(workspace)
+  const expected = "ALwith U Windows sandbox works\r\n"
+  writeFileSync(join(workspace, "input.txt"), expected)
+  const systemRoot = process.env.SystemRoot
+  if (!systemRoot) throw new Error("SystemRoot is missing")
+  const result = spawnSync(
+    join(directory, "codex.exe"),
+    [
+      "sandbox",
+      "-c",
+      'sandbox_mode="workspace-write"',
+      "-c",
+      'windows.sandbox="elevated"',
+      "--",
+      join(systemRoot, "System32", "cmd.exe"),
+      "/d",
+      "/c",
+      "type input.txt > output.txt && type output.txt"
+    ],
+    {
+      cwd: workspace,
+      env: { ...process.env, PATH: "", NODE_PATH: "", CODEX_HOME: codexHome },
+      encoding: "utf8",
+      timeout: 120_000
+    }
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) throw new Error(`Windows sandbox failed (${result.status}): ${result.stderr}`)
+  if (readFileSync(join(workspace, "output.txt"), "utf8") !== expected || !result.stdout.includes(expected.trim()))
+    throw new Error("Windows sandbox did not read and write the expected file contents")
+  console.log("Packaged Windows sandbox: file read/write passed without PATH or model login")
 }

@@ -5,6 +5,16 @@
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       }
-    }
+    },
+    "externalBin": [
+      "binaries/alwith-runtime",
+      "binaries/bun",
+      "binaries/codex",
+      "binaries/codex-code-mode-host",
+      "binaries/alwith-codex-launcher",
+      "binaries/cua-driver",
+      "binaries/codex-windows-sandbox-setup",
+      "binaries/codex-command-runner"
+    ]
   }
 }

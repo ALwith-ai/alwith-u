@@ -68,3 +68,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: bun install --frozen-lockfile
       - run: bun run stage
+      - run: bun scripts/verify-staged-toolchain.ts
