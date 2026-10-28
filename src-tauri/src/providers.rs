@@ -399,15 +399,17 @@ fn classify_response_failure(status: u16, body: &str, secret: &str) -> TestResul
 }
 
 fn classify_success_response(status: u16, body: &str, latency_ms: u128) -> TestResult {
-    let valid = serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| value.get("object").and_then(Value::as_str).map(str::to_string))
-        .is_some_and(|object| object == "response");
+    let parsed = serde_json::from_str::<Value>(body).ok();
+    let valid = parsed.as_ref().is_some_and(|value| {
+        value["object"] == "response"
+            && matches!(value["status"].as_str(), Some("completed" | "incomplete"))
+            && value.get("error").is_none_or(Value::is_null)
+    });
     if !valid {
         return TestResult {
             ok: false,
             code: "invalid_response",
-            message: "The endpoint returned success without a Responses API object".into(),
+            message: "The endpoint did not return a successful Responses API result".into(),
             status: Some(status),
             latency_ms: Some(latency_ms),
         };
@@ -1067,6 +1069,22 @@ mod tests {
         assert!(!result.ok);
         assert_eq!(result.code, "invalid_response");
         assert_eq!(result.status, Some(200));
+    }
+
+    #[test]
+    fn failed_or_pending_responses_are_not_reported_as_connected() {
+        for body in [
+            r#"{"object":"response","status":"failed","error":{"message":"Invalid API key"}}"#,
+            r#"{"object":"response","status":"completed","error":{"message":"Upstream failed"}}"#,
+            r#"{"object":"response","status":"in_progress"}"#,
+            r#"{"object":"response"}"#,
+        ] {
+            assert!(!classify_success_response(200, body, 12).ok);
+        }
+        for status in ["completed", "incomplete"] {
+            let body = json!({"object":"response","status":status,"error":null}).to_string();
+            assert!(classify_success_response(200, &body, 12).ok);
+        }
     }
 
     #[tokio::test]
