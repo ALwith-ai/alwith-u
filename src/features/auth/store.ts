@@ -15,12 +15,13 @@ import { arch, platform } from "@tauri-apps/plugin-os"
 import { create } from "zustand"
 
 import { commands } from "@/bindings"
+import { appEnv } from "@/lib/app-env"
 import { openStore } from "@/lib/store"
 
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
 
-export const API_BASE_URL = import.meta.env.DEV ? "https://api-dev.alwith.ai/service" : "https://api.alwith.ai/service"
+export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
 const LOGOUT_EVENT = "alwith-auth-logout-request"
 const isMain = () => getCurrentWebviewWindow().label === "main"

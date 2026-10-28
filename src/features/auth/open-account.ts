@@ -1,11 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener"
 
+import { appEnv } from "@/lib/app-env"
+
 import { authClient } from "./store"
 
 /** The existing account SSO route opens in the system browser. */
 export async function openPlatformAccount(): Promise<void> {
-  const origin = import.meta.env.DEV ? "https://www-dev.alwith.ai" : "https://www.alwith.ai"
-  const url = new URL("/account", origin)
+  const url = new URL("/account", appEnv.webSsoBaseUrl)
   let otp: string | null = null
   try {
     otp = (await authClient.getSsoOtp()).otp
