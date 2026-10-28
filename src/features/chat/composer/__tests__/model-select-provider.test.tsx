@@ -409,3 +409,24 @@ test("the more models footer opens provider configuration and reports opening fa
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("Settings unavailable"))
   expect(controls.setConfig).not.toHaveBeenCalled()
 })
+
+test("source-configured ALwith names preserve identity and unknown account labels", () => {
+  const id = "gateway:litellm:deepseek-V4.1-flash"
+  const groups = [
+    {
+      id: "litellm",
+      name: "ALwith",
+      models: [
+        { api_id: id, label: "Account label" },
+        { api_id: "gateway:litellm:unknown", label: "New account model" }
+      ]
+    }
+  ]
+  const [group] = presentModelCatalog(groups)
+  expect(group.models[0].api_id).toBe(id)
+  expect(group.models[0].label).toBe("DeepSeek Flash")
+  expect(modelTriggerLabel(group.models[0])).toBe("Flash")
+  expect(group.models[1].label).toBe("New account model")
+  expect(modelTriggerLabel(group.models[1])).toBe("New account model")
+  expect(groups[0].models[0].label).toBe("Account label")
+})

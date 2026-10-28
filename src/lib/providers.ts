@@ -21,7 +21,10 @@ export type ProviderKey = Metadata
 export type ProviderInput = Input
 export type CustomProvider = PublicCustomProvider
 export type CustomProviderInput = CustomInput & { id: string }
-export type ProviderSnapshot = Snapshot
+export type ProviderSnapshot = Omit<Snapshot, "customProviders" | "managedProviders"> & {
+  customProviders: CustomProvider[]
+  managedProviders?: CustomProvider[]
+}
 export type ProviderTestResult = TestResult
 
 export type ProviderRegion = { id: string; baseUrl: string; keyUrl: string }
@@ -47,7 +50,18 @@ const logos: Record<string, Provider["logo"]> = {
   qwen: QwenLogo,
   xai: GrokLogo
 }
-export const PROVIDERS: Provider[] = catalog.map((provider) => ({ ...provider, logo: logos[provider.id] }))
+export const PROVIDERS: Provider[] = catalog
+  .filter((provider) => provider.source !== "account")
+  .map((provider) => ({ ...provider, logo: logos[provider.id] }))
+
+export function isAccountModel(model: string | null | undefined): boolean {
+  return (
+    model != null &&
+    catalog.some(
+      (provider) => provider.source === "account" && model.startsWith(`gateway:${encodeURIComponent(provider.id)}:`)
+    )
+  )
+}
 
 export function parseCustomModels(source: string): CustomModel[] {
   const value: unknown = JSON.parse(source)
@@ -88,7 +102,7 @@ export function providerGroups(
       name: provider.name,
       models: provider.models
     })),
-    ...snapshot.customProviders.map((provider) => ({
+    ...[...snapshot.customProviders, ...(snapshot.managedProviders ?? [])].map((provider) => ({
       id: provider.id,
       name: provider.name,
       models: provider.models.map((model) => ({
@@ -113,6 +127,8 @@ export function resolveSessionModel(model: string | null, snapshot: ProviderSnap
     group.models.map((entry) => gatewayModelId(group.id, entry.id))
   )
   if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
+  if (isAccountModel(model))
+    throw new Error("The selected ALwith account model is unavailable. Select another model before sending.")
   return models[0] ?? null
 }
 

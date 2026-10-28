@@ -525,6 +525,13 @@
     }
   },
   "provider": {
+    "managed": {
+      "resume": "使用所选模型继续",
+      "reselect": "请选择模型后继续对话，历史记录仍可查看。",
+      "description": "模型由当前登录的 ALwith 账户提供。",
+      "refresh": "刷新账户模型",
+      "topUp": "充值"
+    },
     "pending": "设置已保存，剩余变更将在使用相关提供方的对话结束后生效。",
     "label": "大模型",
     "active": "已提供 {{count}} 个模型，可在各聊天中选择。",

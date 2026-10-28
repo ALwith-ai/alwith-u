@@ -406,6 +406,9 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 mobile::bridge_identity,
                 mobile::bridge_trusted_list,
                 mobile::bridge_trusted_revoke,
+                providers::managed::providers_account_bind,
+                providers::managed::providers_refresh_managed,
+                providers::managed::providers_clear_managed,
                 providers::providers_read,
                 providers::providers_save,
                 providers::providers_save_custom,
@@ -429,6 +432,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<computer::ComputerPreview>()
             .event::<runtime::RuntimeExit>()
             .event::<providers::Snapshot>()
+            .event::<providers::managed::RevokedSessions>()
             .event::<updater::state::State>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()

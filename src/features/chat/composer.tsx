@@ -12,6 +12,7 @@ import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { VoiceButton } from "@/features/voice/voice-button"
 import { client } from "@/lib/client"
 
+import { AccountModelRecovery } from "./composer/account-model-recovery"
 import { chatModelMenu } from "./composer/model-catalog"
 import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
 import { predictionPreference } from "./composer/prediction-preference"
@@ -84,15 +85,19 @@ export function ChatComposer({
   ...props
 }: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions"> & { voiceResume?: VoiceResume }) {
   const predictions = useStore(predictionPreference, (state) => state.enabled)
+  const accountRecovery = useStore(client.store, (state) => state.accountModelRecovery?.[props.session.id] ?? false)
   return (
-    <Composer
-      modelMenu={chatModelMenu}
-      {...props}
-      predictions={predictions}
-      attachmentPolicy={nativeAttachmentPolicy}
-      actions={<ComposerVoice voiceResume={voiceResume} />}
-    >
-      <ComposerFileDrop />
-    </Composer>
+    <>
+      {accountRecovery && <AccountModelRecovery key={props.session.id} session={props.session} />}
+      <Composer
+        modelMenu={chatModelMenu}
+        {...props}
+        predictions={predictions}
+        attachmentPolicy={nativeAttachmentPolicy}
+        actions={<ComposerVoice voiceResume={voiceResume} />}
+      >
+        <ComposerFileDrop />
+      </Composer>
+    </>
   )
 }

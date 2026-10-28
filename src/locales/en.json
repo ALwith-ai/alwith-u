@@ -525,6 +525,13 @@
     }
   },
   "provider": {
+    "managed": {
+      "resume": "Continue with selected model",
+      "reselect": "Select a model to continue. History remains available.",
+      "description": "Models supplied by your signed-in ALwith account.",
+      "refresh": "Refresh account models",
+      "topUp": "Top up"
+    },
     "pending": "Settings saved. Remaining changes apply when chats using the affected providers finish.",
     "label": "Models",
     "active": "{{count}} models available. Select them in each chat's model picker.",

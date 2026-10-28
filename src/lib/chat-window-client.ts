@@ -2,11 +2,10 @@
 // a fixed set of actions; it never attaches an agent or persists another conversation.
 
 import type { Session } from "@alwith/api"
-import type { RealtimeEvent } from "@nyssance/codex-acp-v2/client"
+import type { RateLimitSnapshot, RealtimeEvent } from "@nyssance/codex-acp-v2/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
 import { type AppState, CodexClient } from "@/agent/client"
-import type { RateLimitSnapshot } from "@nyssance/codex-acp-v2/client"
 import { macProjectPaths } from "@/agent/project-path"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
@@ -43,6 +42,7 @@ const METHODS = [
   "close",
   "stopSession",
   "setConfig",
+  "resumeAccountModel",
   "respond",
   "readRateLimits",
   "requestPrediction",
@@ -326,6 +326,7 @@ export class RemoteChatClient extends CodexClient {
       runStates: {},
       draftSessions: {},
       sessionWindows: {},
+      accountModelRecovery: {},
       configPending: {},
       drafts: {},
       sessionList: [],
@@ -426,6 +427,10 @@ export class RemoteChatClient extends CodexClient {
   override stopSession(...args: Parameters<CodexClient["stopSession"]>): Promise<void> {
     return this.request("stopSession", args)
   }
+  override resumeAccountModel(...args: Parameters<CodexClient["resumeAccountModel"]>): Promise<void> {
+    return this.request("resumeAccountModel", args)
+  }
+
   override setConfig(...args: Parameters<CodexClient["setConfig"]>): Promise<void> {
     return this.request("setConfig", [args[0], args[1], args[2], "chat"])
   }

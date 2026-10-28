@@ -273,6 +273,7 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
+                        crate::providers::managed::observe_event(&app, &event);
                         crate::mobile::publish(&event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
                             && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
@@ -359,7 +360,14 @@ pub async fn runtime_send(
         return Err("Window connection replaced".into());
     }
     let client = state.current()?;
-    let lifecycle = is_admission(&request);
+    let lifecycle = is_admission(&request)
+        || crate::providers::managed::requires_admission(&request.method, request.params.as_ref())
+        || matches!(request.method.as_str(), "sessionNew")
+        || (request.method == "acpRequest"
+            && matches!(
+                request.params.as_ref().and_then(|p| p["method"].as_str()),
+                Some("session/new" | "session/set_config_option")
+            ));
     let _admission = if lifecycle { Some(state.admission.lock().await) } else { None };
     let temporary_gamepad = match gamepad_admission_target(window.label(), &request) {
         Some(agent_id) => {
@@ -385,7 +393,18 @@ pub async fn runtime_send(
     if !current_connection() {
         return Err("Window connection replaced".into());
     }
+    let generation = crate::providers::managed::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
+    if let (Some(params), Ok(value)) = (&original, &outcome) {
+        crate::providers::managed::observe_realtime(window.app_handle(), &request.method, params);
+        let body = if request.method == "acpRequest" { &params["params"] } else { params };
+        if let Some(session) = value["sessionId"].as_str().or_else(|| body["sessionId"].as_str()) {
+            let agent = params["agentId"].as_str().unwrap_or("codex");
+            let confirmed = crate::providers::managed::confirms_model(&request.method, params).then_some(generation);
+            crate::providers::managed::observe(window.app_handle(), agent, session, value, confirmed);
+        }
+    }
     if !state.owns(&client) {
         return Err("Runtime instance replaced".into());
     }

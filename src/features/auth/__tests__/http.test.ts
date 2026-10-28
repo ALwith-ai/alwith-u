@@ -206,3 +206,18 @@ describe("ALwith account HTTP adapter", () => {
     await expect(transport.request("https://other.test", "GET")).rejects.toThrow("Invalid ALwith API path")
   })
 })
+
+test("native authenticated operations retry once with the refreshed account token", async () => {
+  const { transport } = await setup(
+    () => Promise.reject(new Error("HTTP must stay native")),
+    () => Promise.resolve(fresh)
+  )
+  const tokens: string[] = []
+  const result = await transport.authenticated(async (token: string) => {
+    tokens.push(token)
+    if (token === "old-access") throw { status: 401 }
+    return { models: ["account-model"] }
+  })
+  expect(result).toEqual({ models: ["account-model"] })
+  expect(tokens).toEqual(["old-access", "new-access"])
+})
