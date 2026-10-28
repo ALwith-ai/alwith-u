@@ -530,6 +530,9 @@
   },
   "provider": {
     "managed": {
+      "aliases": "模型别名",
+      "aliasHint": "为账户模型设置显示名称，模型标识保持不变。",
+      "saveAlias": "保存",
       "resume": "使用所选模型继续",
       "reselect": "请选择模型后继续对话，历史记录仍可查看。",
       "description": "模型由当前登录的 ALwith 账户提供。",

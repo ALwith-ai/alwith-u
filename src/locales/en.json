@@ -530,6 +530,9 @@
   },
   "provider": {
     "managed": {
+      "aliases": "Model aliases",
+      "aliasHint": "Choose display names for account models. Their original identities stay unchanged.",
+      "saveAlias": "Save",
       "resume": "Continue with selected model",
       "reselect": "Select a model to continue. History remains available.",
       "description": "Models supplied by your signed-in ALwith account.",
