@@ -2,6 +2,25 @@ use super::*;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 #[test]
+fn host_storage_namespaces_both_attention_and_journal_paths() {
+    let environments = ["u", "u-dev"].map(|host| {
+        let mut command = tokio::process::Command::new("unused-runtime-test-command");
+        let cache = PathBuf::from("cache").join(host);
+        let data = PathBuf::from("data").join(host);
+        configure_runtime_storage(&mut command, &cache, &data);
+        let environment: HashMap<_, _> =
+            command.as_std().get_envs().map(|(key, value)| (key.to_owned(), value.unwrap().to_owned())).collect();
+        assert_eq!(environment[std::ffi::OsStr::new("ALWITH_RUNTIME_JOURNAL")], cache.join("runtime/sessions"));
+        assert_eq!(environment[std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")], data.join("runtime/attention"));
+        environment
+    });
+    assert_ne!(
+        environments[0][std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")],
+        environments[1][std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")]
+    );
+}
+
+#[test]
 fn initialize_admission_survives_webview_replacement_without_blocking_other_agents() {
     tauri::async_runtime::block_on(async {
         let state = RuntimeState::default();

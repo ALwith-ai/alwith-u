@@ -4,7 +4,7 @@ use alwith_api::{ClientEvent, ResponseError, RuntimeClient, process::HideConsole
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
@@ -211,12 +211,13 @@ pub async fn runtime_start(
         stale.close(SHUTDOWN_GRACE).await;
         crate::power::sync(&app, false);
     }
-    let journal = app.path().app_cache_dir().map_err(|error| error.to_string())?.join("runtime/sessions");
+    let cache = app.path().app_cache_dir().map_err(|error| error.to_string())?;
+    let data = app.path().app_data_dir().map_err(|error| error.to_string())?;
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
+    configure_runtime_storage(&mut command, &cache, &data);
     command
         .args(["--listen", "stdio://"])
         .env("ALWITH_RUNTIME_ENGINES", engines_table(&app)?)
-        .env("ALWITH_RUNTIME_JOURNAL", journal)
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")
         .hide_console();
@@ -337,6 +338,13 @@ pub async fn runtime_start(
         }
     });
     Ok(())
+}
+
+/// Independent host processes must not overwrite each other's attention snapshots or process leases.
+fn configure_runtime_storage(command: &mut tokio::process::Command, cache: &Path, data: &Path) {
+    command
+        .env("ALWITH_RUNTIME_JOURNAL", cache.join("runtime/sessions"))
+        .env("ALWITH_RUNTIME_ATTENTION", data.join("runtime/attention"));
 }
 
 #[derive(Deserialize)]
