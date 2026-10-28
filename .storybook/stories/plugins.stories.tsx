@@ -1,12 +1,15 @@
 import type { PluginDetail, PluginSummary } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
+import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { PluginDetailPage } from "../../src/features/plugins/plugin-detail-page"
 import { PluginIconDefinitions } from "../../src/features/plugins/plugin-icon"
+import { PluginsPage } from "../../src/features/plugins/plugins-page"
+import { client } from "../../src/lib/client"
 
 const summary: PluginSummary = {
   id: "example-plugin",
@@ -138,5 +141,93 @@ export const SkillMarkdown: Story = {
     await expect(scroller.scrollTop).toBeGreaterThan(0)
     await expect(header.getBoundingClientRect().top).toBe(top)
     await expect(getComputedStyle(dialog).overflowY).toBe("hidden")
+  }
+}
+
+function CatalogPreview() {
+  useLayoutEffect(() => {
+    const previous = pluginsStore.getState()
+    const connection = client.state
+    const installed = { ...summary, installed: true, enabled: true }
+    pluginsStore.setState({
+      marketplaces: [{ ...marketplace, plugins: [installed] }],
+      installed: [{ plugin: installed, marketplace }],
+      loadedScope: "[]",
+      loading: false,
+      error: null,
+      busyIds: {},
+      refresh: () => Promise.resolve(),
+      readPlugin: () => Promise.resolve({ ...detail, summary: installed })
+    })
+    client.store.setState({
+      connection: "ready",
+      agent: {
+        info: { name: "preview", version: "1" },
+        protocolVersion: 2,
+        capabilities: { _meta: { codex: { plugins: true, skills: true } } }
+      }
+    })
+    return () => {
+      pluginsStore.setState(previous, true)
+      client.store.setState(connection, true)
+    }
+  }, [])
+  return (
+    <div className="flex h-[800px]">
+      <LeadingNavigation
+        activePage="plugins"
+        onOpenVibemon={() => {}}
+        onOpenPlugins={() => {}}
+        onOpenExtensions={() => {}}
+        onOpenArchives={() => {}}
+      />
+      <div className="min-w-0 flex-1">
+        <PluginsPage cwd={null} active />
+      </div>
+    </div>
+  )
+}
+
+export const CatalogLayout: Story = {
+  globals: { locale: "en" },
+  render: () => <CatalogPreview />,
+  play: async ({ canvasElement }) => {
+    const ui = within(canvasElement)
+    const sidebar = await ui.findByRole("complementary", { name: "Customization navigation" })
+    const main = ui.getByRole("main", { name: "Plugin and skill content" })
+    const sideHeader = sidebar.querySelector("[data-plugin-sidebar-header]")!
+    const mainHeader = main.querySelector("[data-plugin-page-header]")!
+    const center = (node: Element) => {
+      const box = node.getBoundingClientRect()
+      return box.top + box.height / 2
+    }
+    const headerCenter = center(mainHeader)
+    const catalogHeading = within(main).getByRole("heading", { name: "Plugins", level: 1 })
+    await expect(catalogHeading.getBoundingClientRect().top - main.getBoundingClientRect().top).toBeCloseTo(32, 0)
+    await expect(sideHeader.getBoundingClientRect().top - sidebar.getBoundingClientRect().top).toBeCloseTo(12, 0)
+    const left = catalogHeading.getBoundingClientRect().left
+    await expect(left - sidebar.getBoundingClientRect().right).toBeCloseTo(40, 0)
+    const customize = within(sidebar).getByRole("heading", { name: "Customize" })
+    const railIcon = canvasElement.querySelector(".leading-navigation button svg")!
+    await expect(center(customize)).toBeCloseTo(center(railIcon), 0)
+    const skillsButton = within(ui.getByRole("navigation", { name: "Manage extensions" })).getByRole("button", {
+      name: "Skills"
+    })
+    const installedHeading = within(sidebar).getByRole("heading", { name: "Installed" })
+    await expect(
+      installedHeading.getBoundingClientRect().top - skillsButton.getBoundingClientRect().bottom
+    ).toBeCloseTo(8, 0)
+    await expect(main.getBoundingClientRect().right - mainHeader.getBoundingClientRect().right).toBeCloseTo(40, 0)
+    const installed = within(ui.getByRole("navigation", { name: "Installed" }))
+    await userEvent.click(installed.getByRole("button", { name: "Research workspace" }))
+    const detailHeading = await ui.findByRole("heading", { name: "Research workspace", level: 1 })
+    await expect(center(main.querySelector("[data-plugin-page-header]")!)).toBeCloseTo(headerCenter, 0)
+    await expect(detailHeading.closest("[data-slot=scroll-area]")!.getBoundingClientRect().left + 40).toBeCloseTo(
+      left,
+      0
+    )
+    const description = await ui.findByText("Find sources and turn your research into useful documents.")
+    await expect(description).toBeVisible()
+    await expect(sidebar).toBeVisible()
   }
 }

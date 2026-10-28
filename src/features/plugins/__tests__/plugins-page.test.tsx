@@ -1,7 +1,7 @@
+import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -33,11 +33,10 @@ afterEach(() => {
   client.store.setState(initialAppState, true)
 })
 
-test("until Codex is connected the catalogs are loading, not empty", async () => {
+test("until Codex is connected the catalogs are loading, not empty", () => {
   client.store.setState({ connection: "connecting", agent: null })
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.queryByText("No plugins found")).toBeNull()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Installed" }))))
   expect(view.queryByText("No plugins installed")).toBeNull()
   expect(view.queryByText("No skills found")).toBeNull()
 })
@@ -96,7 +95,7 @@ test("plugin controls and skill scopes follow a language change without remounti
     skillProjects: { "/example/project": ["/skills/repo"] }
   })
   const view = render(<PluginsPage cwd={null} active />)
-  expect(view.getByRole("tab", { name: "Marketplace" })).toBeDefined()
+  expect(view.getByRole("button", { name: "Plugins" })).toHaveAttribute("aria-current", "page")
   expect(view.getByPlaceholderText("Search plugins")).toBeDefined()
   expect(view.getByRole("button", { name: "Installed" })).toBeDefined()
   expect(view.getByRole("button", { name: "Installing" })).toBeDefined()
@@ -105,7 +104,7 @@ test("plugin controls and skill scopes follow a language change without remounti
     await i18n.changeLanguage("zh-CN")
   })
   expect(view.getByRole("heading", { name: "插件", level: 1 })).toBeDefined()
-  expect(view.getByRole("tab", { name: "市场" })).toBeDefined()
+  expect(view.getByRole("button", { name: "插件" })).toHaveAttribute("aria-current", "page")
   expect(view.getByPlaceholderText("搜索插件")).toBeDefined()
   expect(view.queryByPlaceholderText("openai/plugins 或 git@github.com:org/repo.git")).toBeNull()
   expect(view.getByRole("button", { name: "升级" })).toBeDefined()
@@ -118,27 +117,13 @@ test("plugin controls and skill scopes follow a language change without remounti
   expect(view.getByRole("menuitem", { name: "移除市场" })).toBeDefined()
   await act(() => Promise.try(() => fireEvent.keyDown(view.getByRole("menu"), { key: "Escape" })))
 
-  // Keep the outgoing panel mounted, as it is until its exit transition completes.
-  const animation = vi
-    .spyOn(view.getByRole("tabpanel", { name: "市场" }), "getAnimations")
-    .mockReturnValue([{ finished: new Promise<Animation>(() => {}) } as Animation])
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "已安装" }))))
-  expect(within(view.getByRole("tabpanel", { name: "插件", hidden: true })).getAllByRole("tabpanel")).toHaveLength(2)
-  const panel = within(view.getByRole("tabpanel", { name: "已安装" }))
-  animation.mockRestore()
-  expect(panel.getByRole("heading", { name: "插件" })).toBeDefined()
-  expect(panel.getByRole("switch", { name: "禁用 Installed example" })).toBeDefined()
-  expect(panel.getByRole("switch", { name: "启用 Disabled example" })).toBeDefined()
-  const actions = panel.getAllByRole("button", { name: "更多操作" })
-  await act(() => Promise.try(() => fireEvent.click(must(actions[0], "the first plugin action"))))
-  expect(view.getByRole("menuitem", { name: "卸载" })).toBeDefined()
-  await act(() => Promise.try(() => fireEvent.keyDown(view.getByRole("menu", { name: "更多操作" }), { key: "Escape" })))
-
+  const installedNavigation = within(view.getByRole("navigation", { name: "已安装" }))
+  expect(installedNavigation.getByRole("button", { name: "Installed example" })).toBeVisible()
+  expect(installedNavigation.getByRole("button", { name: "Disabled example" })).toBeVisible()
   await act(async () => {
     await i18n.changeLanguage("en")
   })
-  expect(panel.getByRole("switch", { name: "Disable Installed example" })).toBeDefined()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Skills" }))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Skills" }))))
   for (const scope of ["Personal", "project", "System", "Admin"])
     expect(view.getByRole("tab", { name: scope })).toBeDefined()
   fireEvent.click(view.getByRole("tab", { name: "project" }))
@@ -150,18 +135,15 @@ test("plugin controls and skill scopes follow a language change without remounti
 test("empty plugin and skill lists have translated messages in both supported UI languages", async () => {
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByText("No plugins found")).toBeDefined()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Installed" }))))
   expect(view.getByText("No plugins installed")).toBeDefined()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Skills" }))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Skills" }))))
   expect(view.getByText("No skills found")).toBeDefined()
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
   })
   expect(view.getByText("找不到技能")).toBeDefined()
-  fireEvent.click(view.getByRole("tab", { name: "插件" }))
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "已安装" }))))
+  fireEvent.click(view.getByRole("button", { name: "插件" }))
   expect(view.getByText("尚未安装插件")).toBeDefined()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "市场" }))))
   expect(view.getByText("未找到插件")).toBeDefined()
 })
 
@@ -182,7 +164,6 @@ test("plugin icons use the same local Figma asset in marketplace and installed l
   const href = must(image.querySelector("use"), "plugin symbol").getAttribute("href")
   expect(href?.endsWith("#plugin-ladybug")).toBe(true)
   expect(image.getAttribute("aria-hidden")).toBe("true")
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Installed" }))))
   expect(must(view.container.querySelector("use"), "installed plugin icon").getAttribute("href")).toBe(href)
   expect(view.container.querySelector("#plugin-ladybug")).toBe(definition)
   await act(async () => i18n.changeLanguage("zh-CN"))
@@ -234,7 +215,7 @@ test("installed plugins have functional switches disabled while the plugin is bu
   const toggle = vi.fn().mockResolvedValue(undefined)
   pluginsStore.setState({ installed: [{ plugin: target, marketplace }], setPluginEnabled: toggle })
   const view = render(<PluginsPage cwd={null} active />)
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Installed" }))))
+  fireEvent.click(within(view.getByRole("navigation", { name: "Installed" })).getByRole("button", { name: "Example" }))
   const control = view.getByRole("switch", { name: "Disable Example" })
   expect(control).toBeChecked()
   await act(() => Promise.try(() => fireEvent.click(control)))
@@ -282,7 +263,9 @@ test("details read the selected source, retry failures, and preserve the catalog
   fireEvent.click(view.getByRole("button", { name: /Source skill/ }))
   expect(await view.findByRole("dialog")).toHaveTextContent("Complete skill description")
   fireEvent.keyDown(view.getByRole("dialog"), { key: "Escape" })
-  fireEvent.click(view.getByRole("button", { name: "Plugins" }))
+  fireEvent.click(
+    within(view.getByRole("navigation", { name: "Manage extensions" })).getByRole("button", { name: "Plugins" })
+  )
   expect(view.getByPlaceholderText("Search plugins")).toHaveValue("Source")
 })
 
@@ -339,7 +322,7 @@ test("skills are directly accessible, searchable by description and scoped, with
   ]
   pluginsStore.setState({ skills, skillProjects: { "/work/alwith-desktop": ["/repo/review"] } })
   const view = render(<PluginsPage cwd={null} active />)
-  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
   fireEvent.change(view.getByRole("textbox", { name: "Search skills" }), { target: { value: "evidence" } })
   const summary = within(view.getByRole("region", { name: "Installed" }))
   expect(await summary.findByRole("button", { name: "Research" })).toBeVisible()
@@ -391,8 +374,8 @@ test("adding a marketplace retains the source after failure and closes only afte
 test("load errors remain actionable from installed plugins and skills", () => {
   pluginsStore.setState({ error: "Catalog offline" })
   const view = render(<PluginsPage cwd={null} active />)
-  for (const name of ["Installed", "Skills"]) {
-    fireEvent.click(view.getByRole("tab", { name }))
+  for (const name of ["Plugins", "Skills"]) {
+    fireEvent.click(view.getByRole("button", { name }))
     expect(view.getByRole("alert")).toHaveTextContent("Catalog offline")
     expect(view.getByRole("button", { name: "Retry" })).toBeEnabled()
   }
@@ -409,7 +392,7 @@ test("installed skills collapse to six, expand, and include disabled skills inde
   }))
   pluginsStore.setState({ skills })
   const view = render(<PluginsPage cwd={null} active />)
-  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
   const summary = within(view.getByRole("region", { name: "Installed" }))
   expect(summary.getAllByRole("button", { name: /^Skill / })).toHaveLength(6)
   fireEvent.click(summary.getByRole("button", { name: "Show 3 more" }))
@@ -435,7 +418,7 @@ test("project membership uses response cwd, including inherited skills outside t
     skillProjects: { "/repo/frontend": [inherited.path], "/repo/backend": [inherited.path] }
   })
   const view = render(<PluginsPage cwd={null} active />)
-  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
   expect(view.queryByRole("tab", { name: "Personal" })).toBeNull()
   expect(view.queryByRole("tab", { name: "Admin" })).toBeNull()
   fireEvent.click(view.getByRole("tab", { name: "backend" }))
@@ -449,41 +432,27 @@ test("project membership uses response cwd, including inherited skills outside t
   expect(view.getByRole("tab", { name: "System" })).toHaveAttribute("aria-selected", "true")
 })
 
-test("plugins and skills are peers, with plugin views nested and independent searches", async () => {
+test("sidebar navigation preserves independent searches and defaults to plugins", () => {
   const view = render(<PluginsPage cwd={null} active />)
-  const primary = within(view.getByRole("tablist", { name: "Manage extensions" }))
-  expect(primary.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Plugins", "Skills"])
-  for (const tab of primary.getAllByRole("tab")) expect(tab).toHaveAttribute("data-hover-background", "none")
-  const pluginViews = within(view.getByRole("tablist", { name: "Plugin views" }))
-  expect(pluginViews.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Marketplace", "Installed"])
-  fireEvent.click(pluginViews.getByRole("tab", { name: "Installed" }))
+  const navigation = within(view.getByRole("navigation", { name: "Manage extensions" }))
+  expect(navigation.getAllByRole("button").map((button) => button.textContent)).toEqual(["Plugins", "Skills"])
+  expect(navigation.getByRole("button", { name: "Plugins" })).toHaveAttribute("aria-current", "page")
   fireEvent.change(view.getByRole("textbox", { name: "Search plugins" }), { target: { value: "design" } })
-  fireEvent.click(primary.getByRole("tab", { name: "Skills" }))
-  await waitFor(() => expect(view.queryByRole("tab", { name: "Marketplace" })).toBeNull())
+  fireEvent.click(navigation.getByRole("button", { name: "Skills" }))
   expect(view.getByRole("textbox", { name: "Search skills" })).toHaveValue("")
   fireEvent.change(view.getByRole("textbox", { name: "Search skills" }), { target: { value: "review" } })
-  fireEvent.click(primary.getByRole("tab", { name: "Plugins" }))
-  expect(view.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true")
+  fireEvent.click(navigation.getByRole("button", { name: "Plugins" }))
   expect(view.getByRole("textbox", { name: "Search plugins" })).toHaveValue("design")
-  fireEvent.click(primary.getByRole("tab", { name: "Skills" }))
+  fireEvent.click(navigation.getByRole("button", { name: "Skills" }))
   expect(view.getByRole("textbox", { name: "Search skills" })).toHaveValue("review")
 })
 
-test("all catalog lists use the shared skeleton until connected and while refreshing", () => {
+test("catalogs and installed sidebar show loading until connected", () => {
   client.store.setState({ connection: "connecting", agent: null })
   const view = render(<PluginsPage cwd={null} active />)
-  expect(
-    within(view.getByRole("tabpanel", { name: "Marketplace" }))
-      .getByRole("status", { name: "Loading plugins…" })
-      .querySelector('[data-slot="skeleton"]')
-  ).not.toBeNull()
-  fireEvent.click(view.getByRole("tab", { name: "Installed" }))
-  expect(
-    within(view.getByRole("tabpanel", { name: "Installed" }))
-      .getByRole("status", { name: "Loading plugins…" })
-      .querySelector('[data-slot="skeleton"]')
-  ).not.toBeNull()
-  fireEvent.click(view.getByRole("tab", { name: "Skills" }))
+  expect(view.getByRole("status", { name: "Loading plugins…" }).querySelector('[data-slot="skeleton"]')).not.toBeNull()
+  expect(within(view.getByRole("navigation", { name: "Installed" })).getByRole("status")).toBeVisible()
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
   expect(view.getByRole("status", { name: "Loading skills…" }).querySelector('[data-slot="skeleton"]')).not.toBeNull()
 })
 
@@ -502,7 +471,9 @@ test("the skill catalog includes known projects beyond the current chat and excl
   refresh.mockClear()
   await act(() =>
     Promise.try(() =>
-      client.store.setState({ sessionList: client.state.sessionList.map((sessionRow) => ({ ...sessionRow, title: "Renamed" })) })
+      client.store.setState({
+        sessionList: client.state.sessionList.map((sessionRow) => ({ ...sessionRow, title: "Renamed" }))
+      })
     )
   )
   expect(refresh).not.toHaveBeenCalled()
@@ -526,4 +497,59 @@ test("returning to a loaded catalog reuses its snapshot, including across remoun
   view.unmount()
   render(<PluginsPage cwd="/work/project" active />)
   expect(refresh).toHaveBeenCalledTimes(1)
+})
+
+test("installed sidebar lists only installed plugins and switches right-hand details without losing navigation", async () => {
+  const alpha = plugin("Installed alpha", true)
+  const beta = plugin("Installed beta", true)
+  const available = plugin("Available only")
+  const marketplace: PluginMarketplaceEntry = {
+    name: "source",
+    path: "/source",
+    interface: null,
+    plugins: [alpha, beta, available]
+  }
+  const read = vi.fn(({ plugin }: { plugin: PluginSummary }) =>
+    Promise.resolve({
+      summary: plugin,
+      description: `${plugin.name} details`,
+      marketplaceName: marketplace.name,
+      marketplacePath: marketplace.path,
+      shareUrl: null,
+      skills: [],
+      mcpServers: [],
+      hooks: [],
+      apps: [],
+      scheduledTasks: null
+    })
+  )
+  pluginsStore.setState({
+    marketplaces: [marketplace],
+    installed: [
+      { plugin: alpha, marketplace },
+      { plugin: beta, marketplace }
+    ],
+    readPlugin: read
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  const sidebar = view.getByRole("complementary", { name: "Customization navigation" })
+  const installed = within(view.getByRole("navigation", { name: "Installed" }))
+  expect(installed.getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "Installed alpha",
+    "Installed beta"
+  ])
+  expect(installed.queryByRole("button", { name: "Available only" })).toBeNull()
+  fireEvent.click(installed.getByRole("button", { name: "Installed alpha" }))
+  expect(await view.findByText("Installed alpha details")).toBeVisible()
+  expect(sidebar).toBeVisible()
+  expect(installed.getByRole("button", { name: "Installed alpha" })).toHaveAttribute("aria-current", "page")
+  fireEvent.click(installed.getByRole("button", { name: "Installed beta" }))
+  expect(await view.findByText("Installed beta details")).toBeVisible()
+  expect(view.queryByText("Installed alpha details")).toBeNull()
+  expect(read).toHaveBeenLastCalledWith({ plugin: beta, marketplace })
+  fireEvent.click(
+    within(view.getByRole("navigation", { name: "Manage extensions" })).getByRole("button", { name: "Skills" })
+  )
+  expect(view.getByRole("heading", { name: "Skills", level: 1 })).toBeVisible()
+  expect(sidebar).toBeVisible()
 })

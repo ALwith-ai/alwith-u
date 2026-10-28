@@ -603,6 +603,9 @@
   },
   "plugins": {
     "catalog": {
+      "navigation": "自定义导航",
+      "customize": "自定义",
+      "content": "插件与技能内容",
       "pluginViews": "插件视图",
       "personal": "个人",
       "showMore": "查看其余 {{count}} 项",

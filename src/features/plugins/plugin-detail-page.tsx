@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { openExternal } from "@/lib/open"
 
 import { pluginsStore } from "./instance"
+import { pluginContentClassName, PluginPageHeader } from "./page-layout"
 import { PluginIcon } from "./plugin-icon"
 import { SkillDocument } from "./skill-document"
 import type { PluginEntry } from "./store"
@@ -62,58 +63,61 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
   ]
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <nav
-        aria-label={t("plugins.detail.root")}
-        className="mx-auto flex w-full max-w-3xl shrink-0 items-center gap-1 px-6 pt-4 text-sm"
-      >
-        <Button variant="link" className="h-auto p-0 text-muted-foreground" onClick={onBack}>
-          {t("plugins.detail.root")}
-        </Button>
-        <ChevronRightIcon className="size-3.5 text-muted-foreground rtl:-scale-x-100" />
-        <span aria-current="page" className="truncate">
-          {title}
-        </span>
-      </nav>
-      <Pane>
-        <div className="mx-auto w-full max-w-3xl px-6 py-8">
-          <PluginIcon name={summary.name} className="size-16 rounded-lg" />
-          <div className="mt-4 flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-semibold">{title}</h1>
-              {info?.shortDescription && <p className="mt-1 text-sm text-muted-foreground">{info.shortDescription}</p>}
-              {summary.keywords.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {[...new Set(summary.keywords)].map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-[10px] font-normal">
-                      {tag}
-                    </Badge>
-                  ))}
+      <PluginPageHeader>
+        <nav aria-label={t("plugins.detail.root")} className="flex h-8 items-center gap-1 text-sm">
+          <Button variant="link" className="h-auto p-0 text-muted-foreground" onClick={onBack}>
+            {t("plugins.detail.root")}
+          </Button>
+          <ChevronRightIcon className="size-3.5 text-muted-foreground rtl:-scale-x-100" />
+          <span aria-current="page" className="truncate">
+            {title}
+          </span>
+        </nav>
+      </PluginPageHeader>
+      <Pane className="pe-0" viewportClassName="pe-0">
+        <div className={pluginContentClassName}>
+          <div className="flex items-start gap-4">
+            <PluginIcon name={summary.name} className="size-14 shrink-0 rounded-xl" />
+            <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-2xl leading-8 font-semibold">{title}</h1>
+                {info?.shortDescription && (
+                  <p className="mt-1 text-sm leading-8 text-muted-foreground">{info.shortDescription}</p>
+                )}
+                {summary.keywords.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {[...new Set(summary.keywords)].map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-[10px] font-normal">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {installed ? (
+                <div className="flex shrink-0 items-center gap-3">
+                  <Switch
+                    checked={current.enabled}
+                    disabled={!!busy || unavailable}
+                    aria-label={t(current.enabled ? "plugins.card.disable" : "plugins.card.enable", {
+                      pluginName: title
+                    })}
+                    onCheckedChange={(enabled) => void toggle(current, enabled)}
+                  />
+                  <Button variant="outline" disabled={!!busy} onClick={() => void uninstall(current)}>
+                    {busy ? <Spinner /> : t("plugins.detail.uninstall")}
+                  </Button>
                 </div>
+              ) : (
+                <Button
+                  className="shrink-0 rounded-md"
+                  disabled={!!busy || unavailable}
+                  onClick={() => void install({ ...entry, plugin: summary }).catch(() => {})}
+                >
+                  {busy ? <Spinner /> : t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
+                </Button>
               )}
             </div>
-            {installed ? (
-              <div className="flex shrink-0 items-center gap-3">
-                <Switch
-                  checked={current.enabled}
-                  disabled={!!busy || unavailable}
-                  aria-label={t(current.enabled ? "plugins.card.disable" : "plugins.card.enable", {
-                    pluginName: title
-                  })}
-                  onCheckedChange={(enabled) => void toggle(current, enabled)}
-                />
-                <Button variant="destructive" disabled={!!busy} onClick={() => void uninstall(current)}>
-                  {busy ? <Spinner /> : t("plugins.detail.uninstall")}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                className="shrink-0 rounded-md"
-                disabled={!!busy || unavailable}
-                onClick={() => void install({ ...entry, plugin: summary }).catch(() => {})}
-              >
-                {busy ? <Spinner /> : t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
-              </Button>
-            )}
           </div>
           <div className="mt-6 flex items-stretch overflow-x-auto border-y py-4">
             {info?.developerName && <InfoCell label={t("plugins.detail.developer")}>{info.developerName}</InfoCell>}

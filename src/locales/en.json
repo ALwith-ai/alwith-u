@@ -603,6 +603,9 @@
   },
   "plugins": {
     "catalog": {
+      "navigation": "Customization navigation",
+      "customize": "Customize",
+      "content": "Plugin and skill content",
       "pluginViews": "Plugin views",
       "personal": "Personal",
       "showMore": "Show {{count}} more",

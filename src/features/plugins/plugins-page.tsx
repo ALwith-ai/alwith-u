@@ -1,7 +1,10 @@
+import { MENU_HIGHLIGHT, NavigationItemButton, NavigationStack } from "@alwith/module-chat/session-list"
 import type { PluginMarketplaceEntry, PluginSummary } from "@nyssance/codex-acp-v2/client"
 import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 // Browse and manage Codex plugins and skills from one catalog surface.
 import {
+  BlocksIcon,
+  BookOpenIcon,
   CircleArrowUpIcon,
   MoreVerticalIcon,
   PlusIcon,
@@ -38,13 +41,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { client, useApp } from "@/lib/client"
 
 import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
+import { pluginContentClassName, PluginPageHeader } from "./page-layout"
 import { PluginDetailPage } from "./plugin-detail-page"
 import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
 import { SkillsTab } from "./skills-tab"
@@ -158,7 +160,7 @@ function MarketplaceSection({
   if (plugins.length === 0) return null
   return (
     <section key={marketplace.name} className="flex flex-col gap-1">
-      <div className="flex items-center gap-2 px-2">
+      <div className="flex items-center gap-2">
         <h2 className="text-xs font-medium text-muted-foreground">
           {marketplace.interface?.displayName ?? marketplace.name}
         </h2>
@@ -186,7 +188,7 @@ function MarketplaceSection({
           </DropdownMenu>
         )}
       </div>
-      <PanelList className="grid grid-cols-1 gap-2 @min-[700px]:grid-cols-2">
+      <PanelList className="grid grid-cols-1 gap-2 px-0 @min-[700px]:grid-cols-2">
         {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
           <PluginRow
             onOpen={onOpen}
@@ -374,7 +376,7 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
   const loading = useStore(pluginsStore, (state) => state.loading) || !ready
   const q = useDeferredValue(query.trim().toLowerCase())
   return (
-    <Pane>
+    <Pane className="pe-0" viewportClassName="pe-0">
       <div className="flex flex-col gap-4">
         {loadErrors.map((error) => (
           <p key={error.marketplacePath} className="px-2 text-xs text-destructive">
@@ -387,86 +389,6 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
   )
 }
 
-function InstalledTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => void; query: string }) {
-  const { t } = useTranslation()
-  const ready = usePluginsReady()
-  const installed = useStore(pluginsStore, (state) => state.installed)
-  const busyIds = useStore(pluginsStore, (state) => state.busyIds)
-  const uninstall = useStore(pluginsStore, (state) => state.uninstall)
-  const setPluginEnabled = useStore(pluginsStore, (state) => state.setPluginEnabled)
-  const loading = useStore(pluginsStore, (state) => state.loading)
-  const filtered = installed.filter(({ plugin }) =>
-    [pluginTitle(plugin), pluginDescription(plugin), plugin.name]
-      .join(" ")
-      .toLowerCase()
-      .includes(query.trim().toLowerCase())
-  )
-  return (
-    <Pane>
-      <div className="flex flex-col gap-4">
-        <section className="flex flex-col gap-1">
-          <h2 className="px-2 text-xs font-medium text-muted-foreground">{t("plugins.headings.plugins")}</h2>
-          {!ready || loading ? (
-            <CatalogSkeleton />
-          ) : filtered.length === 0 ? (
-            <p className="px-2 py-4 text-sm text-muted-foreground">
-              {t(query.trim() ? "plugins.empty" : "plugins.sections.installedEmpty")}
-            </p>
-          ) : (
-            <PanelList className="grid grid-cols-1 gap-2 @min-[700px]:grid-cols-2">
-              {filtered.map(({ plugin, marketplace }) => (
-                <PluginRow
-                  onOpen={onOpen}
-                  key={plugin.id}
-                  plugin={plugin}
-                  marketplace={marketplace}
-                  actions={
-                    <>
-                      {plugin.id in busyIds && <Spinner className="size-3.5 text-muted-foreground" />}
-                      <Switch
-                        checked={plugin.enabled}
-                        disabled={plugin.id in busyIds || plugin.availability !== "AVAILABLE"}
-                        aria-label={t(plugin.enabled ? "plugins.card.disable" : "plugins.card.enable", {
-                          pluginName: pluginTitle(plugin)
-                        })}
-                        onCheckedChange={(enabled) => void setPluginEnabled(plugin, enabled)}
-                      />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              className="text-muted-foreground"
-                              aria-label={t("plugins.card.moreActions")}
-                            />
-                          }
-                        >
-                          <MoreVerticalIcon />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-[140px]">
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            disabled={plugin.id in busyIds}
-                            onClick={() => void uninstall(plugin)}
-                          >
-                            <Trash2Icon className="me-2 size-3.5" />
-                            {t("plugins.card.uninstall")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  }
-                />
-              ))}
-            </PanelList>
-          )}
-        </section>
-      </div>
-    </Pane>
-  )
-}
-
 /** Catalogs cover the selected project and known conversation projects. */
 export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
   const { t } = useTranslation()
@@ -474,7 +396,6 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
   const loading = useStore(pluginsStore, (state) => state.loading)
   const error = useStore(pluginsStore, (state) => state.error)
   const [kind, setKind] = useState("plugins")
-  const [pluginTab, setPluginTab] = useState("marketplace")
   const [queries, setQueries] = useState({ plugins: "", skills: "" })
   const query = kind === "skills" ? queries.skills : queries.plugins
   const setQuery = (value: string) => setQueries((current) => ({ ...current, [kind]: value }))
@@ -498,6 +419,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
       )
     ].toSorted()
   )
+  const installed = useStore(pluginsStore, (state) => state.installed)
   const searchLabel = t(kind === "skills" ? "plugins.skills.search" : "plugins.search")
   const [selected, setSelected] = useState<PluginEntry | null>(null)
   const ready = usePluginsReady()
@@ -513,69 +435,124 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
     return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
   }, [ready, refresh])
 
+  const openPlugin = (entry: PluginEntry) => {
+    setKind("plugins")
+    setSelected(entry)
+  }
+  const showCatalog = (value: string) => {
+    setKind(value)
+    setSelected(null)
+  }
+
   return (
-    <div className="@container flex h-full flex-col overflow-hidden">
+    <div className="@container flex h-full min-h-0 overflow-hidden [--navigation-row-height:30px] [--spacing:4px]">
       <PluginIconDefinitions />
-      {selected && (
-        <PluginDetailPage
-          key={JSON.stringify([selected.marketplace.name, selected.marketplace.path, selected.plugin.id, cwd])}
-          entry={selected}
-          onBack={() => setSelected(null)}
-        />
-      )}
-      <div className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
-        <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
-          <CatalogHeader title={t("plugins.catalog.title")} />
+      <aside
+        className="flex w-44 shrink-0 flex-col border-e bg-sidebar/40 sm:w-60"
+        aria-label={t("plugins.catalog.navigation")}
+      >
+        <div className="shrink-0 px-3 pt-3">
+          <div className="flex h-9 items-center" data-plugin-sidebar-header="">
+            <h2 className="text-sm leading-8 font-semibold">{t("plugins.catalog.customize")}</h2>
+          </div>
         </div>
-        <div className="mx-auto mt-8 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
-          <Tabs
-            value={kind}
-            onValueChange={(value) => {
-              if (typeof value === "string") setKind(value)
-            }}
-            className="flex min-h-0 flex-1 flex-col gap-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2">
-              <TabsList variant="line" aria-label={t("plugins.manageTabs.aria")}>
-                <TabsTrigger data-hover-background="none" value="plugins">
-                  {t("plugins.headings.plugins")}
-                </TabsTrigger>
-                <TabsTrigger data-hover-background="none" value="skills">
-                  {t("plugins.headings.skills")}
-                </TabsTrigger>
-              </TabsList>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="h-9"
-                aria-label={t("plugins.skills.refresh")}
-                disabled={!ready || loading}
-                onClick={() => void refresh(undefined, { forceRefetch: true })}
-              >
-                {loading ? <Spinner /> : <RefreshCwIcon />}
-              </Button>
-            </div>
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="ps-9 pe-9"
-                aria-label={searchLabel}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={searchLabel}
-              />
-              {query && (
-                <Button
-                  className="absolute end-1 top-1/2 -translate-y-1/2"
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("plugins.catalog.clearSearch")}
-                  onClick={() => setQuery("")}
-                >
-                  <XIcon />
-                </Button>
+        <nav aria-label={t("plugins.manageTabs.aria")} className="flex shrink-0 flex-col gap-1 px-2 pb-1">
+          {(["plugins", "skills"] as const).map((value) => (
+            <NavigationItemButton
+              key={value}
+              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
+              active={kind === value && selected === null}
+              onClick={() => showCatalog(value)}
+            >
+              {value === "plugins" ? <BlocksIcon className="size-4" /> : <BookOpenIcon className="size-4" />}
+              <span>{t(`plugins.headings.${value}`)}</span>
+            </NavigationItemButton>
+          ))}
+        </nav>
+        <h3 className="mx-2 mt-1 mb-2 flex h-8 shrink-0 items-center px-2 text-xs font-medium text-muted-foreground">
+          {t("plugins.sections.installed")}
+        </h3>
+        <Pane className="min-h-0 flex-1 pe-0" viewportClassName="pe-0">
+          <nav aria-label={t("plugins.sections.installed")} className="px-2 pb-4">
+            <NavigationStack>
+              {!ready || (loading && installed.length === 0) ? (
+                <div role="status" className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                  <Spinner className="size-3.5" role="presentation" aria-hidden="true" />
+                  {t("plugins.detail.loading")}
+                </div>
+              ) : installed.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-muted-foreground">{t("plugins.sections.installedEmpty")}</p>
+              ) : (
+                installed.map((entry) => (
+                  <NavigationItemButton
+                    key={entry.plugin.id}
+                    title={pluginTitle(entry.plugin)}
+                    className={`${MENU_HIGHLIGHT} gap-2 px-2`}
+                    active={selected?.plugin.id === entry.plugin.id}
+                    onClick={() => openPlugin(entry)}
+                  >
+                    <PluginIcon name={entry.plugin.name} className="size-4 shrink-0" />
+                    <span className="truncate">{pluginTitle(entry.plugin)}</span>
+                  </NavigationItemButton>
+                ))
               )}
-            </div>
+            </NavigationStack>
+          </nav>
+        </Pane>
+      </aside>
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t("plugins.catalog.content")}>
+        {selected && (
+          <PluginDetailPage
+            key={JSON.stringify([selected.marketplace.name, selected.marketplace.path, selected.plugin.id, cwd])}
+            entry={selected}
+            onBack={() => showCatalog("plugins")}
+          />
+        )}
+        <div hidden={selected !== null} className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
+          <PluginPageHeader>
+            <CatalogHeader title={t(`plugins.headings.${kind}`)}>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <div className="relative w-52 max-w-full">
+                  <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="h-9 rounded-full ps-9 pe-9"
+                    aria-label={searchLabel}
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={searchLabel}
+                  />
+                  {query && (
+                    <Button
+                      className="absolute end-1 top-1/2 -translate-y-1/2"
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={t("plugins.catalog.clearSearch")}
+                      onClick={() => setQuery("")}
+                    >
+                      <XIcon />
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-9"
+                  aria-label={t("plugins.skills.refresh")}
+                  disabled={!ready || loading}
+                  onClick={() => void refresh(undefined, { forceRefetch: true })}
+                >
+                  {loading ? <Spinner /> : <RefreshCwIcon />}
+                </Button>
+                {kind === "plugins" && <PluginToolbar />}
+              </div>
+            </CatalogHeader>
+          </PluginPageHeader>
+          <div className={`${pluginContentClassName} flex shrink-0 flex-col gap-4 pt-2`}>
+            {kind === "plugins" && (
+              <>
+                <p className="text-sm text-muted-foreground">{t("plugins.catalog.description")}</p>
+              </>
+            )}
             {error && (
               <div role="alert" className="flex items-center justify-between gap-2 text-sm text-destructive">
                 <p>
@@ -592,48 +569,17 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
                 </Button>
               </div>
             )}
-            <TabsContent value="plugins" keepMounted className="flex min-h-0 flex-1 flex-col data-[hidden]:hidden">
-              <Tabs
-                value={pluginTab}
-                onValueChange={(value) => {
-                  if (typeof value === "string") setPluginTab(value)
-                }}
-                className="flex min-h-0 flex-1 flex-col gap-4"
-              >
-                <PluginToolbar />
-                <TabsList
-                  aria-label={t("plugins.catalog.pluginViews")}
-                  className="shrink-0 gap-1 rounded-md bg-muted p-1"
-                >
-                  <TabsTrigger
-                    data-hover-background="none"
-                    value="marketplace"
-                    className="rounded-md px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
-                  >
-                    {t("plugins.headings.marketplace")}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    data-hover-background="none"
-                    value="installed"
-                    className="rounded-md px-4 shadow-none! after:hidden data-active:bg-background! dark:data-active:border-transparent"
-                  >
-                    {t("plugins.sections.installed")}
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="marketplace" className="flex min-h-0 flex-1 flex-col">
-                  <MarketplaceTab query={queries.plugins} onOpen={setSelected} />
-                </TabsContent>
-                <TabsContent value="installed" className="flex min-h-0 flex-1 flex-col">
-                  <InstalledTab query={queries.plugins} onOpen={setSelected} />
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
-            <TabsContent value="skills" keepMounted className="flex min-h-0 flex-1 flex-col data-[hidden]:hidden">
-              <SkillsTab query={queries.skills} ready={ready} onOpenPlugin={setSelected} />
-            </TabsContent>
-          </Tabs>
+          </div>
+          <div className={`${pluginContentClassName} flex min-h-0 flex-1 flex-col`}>
+            <div hidden={kind !== "plugins"} className={kind === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+              <MarketplaceTab query={queries.plugins} onOpen={openPlugin} />
+            </div>
+            <div hidden={kind !== "skills"} className={kind === "skills" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+              <SkillsTab query={queries.skills} ready={ready} onOpenPlugin={openPlugin} />
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
