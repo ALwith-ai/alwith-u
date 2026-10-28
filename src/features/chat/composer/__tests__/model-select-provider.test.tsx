@@ -349,6 +349,7 @@ test("unsupported fast mode stays visible and disabled", async () => {
   expect(controls.setConfig).not.toHaveBeenCalled()
   expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).not.toBeChecked()
   expect(view.getByRole("menuitemradio", { name: "3.8 Flash" })).toBeVisible()
+  expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
 })
 
 test.each([true, false])(
@@ -391,6 +392,11 @@ test.each([true, false])(
     expect(slider).toHaveAttribute("aria-valuetext", "Medium")
     await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
     expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "effort", "high")
+    view.rerender(<ChatModelMenu sessionId="owner" options={options(providerModel)} disabled={false} />)
+    expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
+    expect(view.queryByRole("slider", { name: "Effort" })).not.toBeInTheDocument()
+    view.rerender(<ChatModelMenu sessionId="owner" options={config} disabled={false} />)
+    expect(view.getByRole("slider", { name: "Effort" })).toHaveAttribute("aria-valuetext", "Medium")
   }
 )
 
