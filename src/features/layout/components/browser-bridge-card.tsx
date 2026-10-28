@@ -42,7 +42,7 @@ export function BrowserBridgeCard({
   const { state, busy, error, recheck, setEnabled } = useBrowserBridge(host, active || open)
   const { installed, connected, registered } = state
   const body = !installed ? "none" : connected ? "connected" : registered ? "restart" : "installed"
-  const dot = (on: boolean) => cn("size-2 shrink-0 rounded-full", on ? "bg-green-500" : "bg-muted-foreground/40")
+  const dot = (on: boolean) => cn("size-2 shrink-0 rounded-full", on ? "bg-success" : "bg-muted-foreground/40")
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <WindowCard

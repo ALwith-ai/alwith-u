@@ -1,3 +1,4 @@
+import type { PluginDetail } from "@nyssance/codex-acp-v2/client"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
@@ -5,7 +6,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import type { PluginDetail } from "@nyssance/codex-acp-v2/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -141,7 +141,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
               <p className="text-sm text-destructive">
                 {t("plugins.detail.errorTitle")}: {error}
               </p>
-              <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
+              <Button variant="outline" size="sm" className="h-9" onClick={() => setAttempt((value) => value + 1)}>
                 {t("plugins.loadError.retry")}
               </Button>
             </div>

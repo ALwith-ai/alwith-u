@@ -72,6 +72,7 @@ export function AboutSection() {
           <Button
             variant="outline"
             size="sm"
+            className="h-9"
             disabled={state.type === "restarting"}
             onClick={() => {
               confirmInstallAndRelaunch().catch((error: unknown) =>

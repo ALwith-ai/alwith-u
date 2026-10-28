@@ -36,10 +36,26 @@
   align-items: start;
 }
 
-.settings-content > .settings-group:first-child > .settings-row:first-child {
+.settings-row-label > :first-child {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+}
+
+.settings-row-control {
+  min-height: 36px;
+}
+
+.settings-content .settings-group:first-child > .settings-row:first-child {
   min-height: 0;
-  align-items: start;
-  padding-block-start: 0.5rem;
+  padding-block-start: 0;
+}
+
+.settings-content > :first-child > :first-child:is(h1, h2, h3),
+.settings-content > :first-child > :first-child > :first-child:is(h1, h2, h3) {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
 }
 
 .settings-row-aligned {

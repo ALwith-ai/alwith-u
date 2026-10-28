@@ -7,6 +7,7 @@ import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { CatalogHeader } from "@/components/alwith-ui/catalog-header"
 import {
   ItemActions,
   ItemContent,
@@ -75,17 +76,16 @@ export function ExtensionsManager({
     )
   const unavailable = busy || state.native === null
   return (
-    <div className="@container flex min-w-0 flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">{t("sidebar.extensions")}</h1>
-          <Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>
-        </div>
-        <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
+    <div className="@container flex min-w-0 flex-col gap-8">
+      <CatalogHeader
+        title={t("sidebar.extensions")}
+        badge={<Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>}
+      >
+        <Button variant="outline" size="sm" className="h-9" disabled={unavailable} onClick={() => onInstall()}>
           {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
           {t("extensions.install")}
         </Button>
-      </div>
+      </CatalogHeader>
       {installPhase && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden="true" />
@@ -97,7 +97,7 @@ export function ExtensionsManager({
           <AlertDescription>
             {state.errors.service}
             {onRetry && (
-              <Button variant="outline" size="sm" disabled={busy} onClick={onRetry}>
+              <Button variant="outline" size="sm" className="h-9" disabled={busy} onClick={onRetry}>
                 {t("actions.retry")}
               </Button>
             )}
@@ -147,9 +147,9 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <PanelItem className="group/extension items-start gap-3 rounded-md border-0 p-4">
-                  <ItemMedia>
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <PanelItem className="group/extension items-center gap-3 rounded-md border-0 p-4">
+                  <ItemMedia className="translate-none! self-center!">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>

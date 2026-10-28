@@ -1,10 +1,10 @@
+import type { SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { CheckIcon, SparklesIcon, XIcon } from "lucide-react"
 import { useDeferredValue, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import type { SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
   ItemActions,
@@ -38,11 +38,11 @@ function SkillIcon({ skill }: { skill: SkillMetadata }) {
   const local = skill.interface?.iconSmall
   const src = local ? convertFileSrc(local) : skill.interface?.iconSmallUrl
   return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
       {src && !failed ? (
-        <img src={src} alt="" onError={() => setFailed(true)} className="size-8 rounded object-contain" />
+        <img src={src} alt="" onError={() => setFailed(true)} className="size-6 rounded object-contain" />
       ) : (
-        <SparklesIcon className="size-5 text-muted-foreground" />
+        <SparklesIcon className="size-6 text-muted-foreground" />
       )}
     </div>
   )
@@ -149,7 +149,7 @@ export function SkillsTab({
             aria-label={skill.interface?.displayName ?? skill.name}
             onClick={() => setSelectedPath(skill.path)}
           />
-          <ItemMedia className="pointer-events-none relative">
+          <ItemMedia className="pointer-events-none relative translate-none! self-center!">
             <SkillIcon skill={skill} />
           </ItemMedia>
           <ItemContent className="pointer-events-none relative min-w-0">

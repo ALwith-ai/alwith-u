@@ -44,6 +44,8 @@
     "completed": "已启动"
   },
   "actions": {
+    "decreaseValue": "减小{{name}}",
+    "increaseValue": "增大{{name}}",
     "confirm": "确认",
     "more": "更多操作",
     "openFolder": "打开项目文件夹",
@@ -483,7 +485,7 @@
   },
   "provider": {
     "pending": "设置已保存，剩余变更将在使用相关提供方的对话结束后生效。",
-    "label": "大模型",
+    "label": "其他模型",
     "active": "已提供 {{count}} 个模型，可在各聊天中选择。",
     "configured": "已配置",
     "connectionSettings": "连接设置",

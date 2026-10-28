@@ -1,6 +1,7 @@
 import type { DriveControls } from "@alwith/module-drive/react"
 import type { ReactNode } from "react"
 
+import { NumberInput } from "@/components/alwith-ui/number-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/alwith-ui/select"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -14,7 +15,7 @@ export const driveDialogClassName = "alwith-drive-dialog max-h-[80vh] overflow-a
 
 export const driveControls: DriveControls = {
   Button,
-  Input,
+  Input: (props) => (props.type === "number" ? <NumberInput {...props} /> : <Input {...props} />),
   Switch,
   Menu: ({ label, children, items }): ReactNode => (
     <DropdownMenu>

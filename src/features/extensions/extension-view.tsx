@@ -49,7 +49,7 @@ export function ExtensionViewContent({
           <span className="truncate" title={String(failure.error)}>
             {String(failure.error)}
           </span>
-          <Button variant="outline" size="xs" onClick={() => setFailure(null)}>
+          <Button variant="outline" size="xs" className="h-9" onClick={() => setFailure(null)}>
             {t("actions.retry")}
           </Button>
         </div>

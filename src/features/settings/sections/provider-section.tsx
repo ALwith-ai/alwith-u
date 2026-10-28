@@ -322,7 +322,7 @@ function ProviderTab({
         data-testid={`${id}-status`}
         data-configured={configured}
         aria-hidden="true"
-        className={cn("size-2 shrink-0 rounded-full", configured ? "bg-primary" : "bg-muted-foreground/30")}
+        className={cn("size-2 shrink-0 rounded-full", configured ? "bg-success" : "bg-muted-foreground/30")}
       />
     </Button>
   )
@@ -508,6 +508,7 @@ export function ProviderRow({
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
+                size="icon-xs"
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
                 onClick={() => setShowKey((value) => !value)}
               >
@@ -517,7 +518,7 @@ export function ProviderRow({
           </InputGroup>
         </Field>
         <Collapsible className="space-y-2">
-          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group -ms-2" />}>
+          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group px-2.5" />}>
             {t("provider.baseUrl")}
             <ChevronDownIcon
               className="size-4 transition-transform group-aria-expanded:rotate-180"
@@ -676,6 +677,7 @@ export function CustomProviderEditor({
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
+                size="icon-xs"
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
                 onClick={() => setShowKey((value) => !value)}
               >

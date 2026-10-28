@@ -112,7 +112,7 @@ export function SidebarAccountMenu({ onOpenSettings }: { onOpenSettings: () => v
             onClick={() => void vibemon.toggle()}
           >
             <PawPrintIcon className="text-muted-foreground" />
-            {t(vibemon.enabled ? "pet.disable" : "pet.enable")}
+            {t(vibemon.enabled ? "pet.hide" : "pet.show")}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="h-8 py-0"

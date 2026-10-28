@@ -582,7 +582,7 @@ body,
 :root {
   --app-scrollbar-size: 6px;
   --app-scrollbar-edge-gap: 2px;
-  --app-scrollbar-track-size: 10px;
+  --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
   --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
   --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
 }
@@ -598,19 +598,21 @@ body,
   }
 }
 ::-webkit-scrollbar {
-  width: var(--app-scrollbar-size);
-  height: var(--app-scrollbar-size);
+  width: var(--app-scrollbar-track-size);
+  height: var(--app-scrollbar-track-size);
 }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
+  border: var(--app-scrollbar-edge-gap) solid transparent;
   border-radius: 999px;
   background: var(--app-scrollbar-thumb);
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-scrollbar-thumb-hover);
+  background-color: var(--app-scrollbar-thumb-hover);
 }
 ::-webkit-scrollbar-button {
   display: none;
@@ -750,4 +752,48 @@ body,
   width: var(--sidebar-width);
   height: 100%;
   padding-inline: 4px;
+}
+
+/* Selected and pressed controls share an overlay; transcript disclosures stay transparent. */
+.settings-window [data-slot="toggle-group-item"][aria-pressed="true"],
+.settings-window [class~="group/button"][aria-pressed="true"] {
+  background-image: linear-gradient(
+    color-mix(in oklab, currentColor 8%, transparent),
+    color-mix(in oklab, currentColor 8%, transparent)
+  );
+}
+:is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
+    [data-disabled]
+  ):not(
+    :where(
+      .canvas-dots *,
+      .codex-assistant-turn [data-codex-disclosure],
+      .codex-assistant-turn .codex-edited-files-more
+    )
+  ):active {
+  background-image: linear-gradient(
+    color-mix(in oklab, currentColor 16%, transparent),
+    color-mix(in oklab, currentColor 16%, transparent)
+  );
+}
+
+.number-input input[type="number"] {
+  appearance: textfield;
+}
+.number-input input::-webkit-inner-spin-button,
+.number-input input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.settings-window .chrome-hover:hover {
+  background-image: none;
+}
+
+.settings-window .chrome-hover[data-active] {
+  background-color: var(--chrome-hover-background);
+}
+
+[data-model-menu-list] {
+  margin-inline-end: -6px;
 }

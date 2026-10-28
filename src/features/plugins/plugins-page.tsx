@@ -1,3 +1,5 @@
+import type { PluginMarketplaceEntry, PluginSummary } from "@nyssance/codex-acp-v2/client"
+import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 // Browse and manage Codex plugins and skills from one catalog surface.
 import {
   CircleArrowUpIcon,
@@ -12,8 +14,7 @@ import { memo, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import type { PluginMarketplaceEntry, PluginSummary } from "@nyssance/codex-acp-v2/client"
-import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
+import { CatalogHeader } from "@/components/alwith-ui/catalog-header"
 import { Pane } from "@/components/alwith-ui/pane"
 import {
   ItemActions,
@@ -116,8 +117,8 @@ function PluginRow({
         aria-label={pluginTitle(plugin)}
         onClick={() => onOpen({ plugin, marketplace })}
       />
-      <ItemMedia className="pointer-events-none relative">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
+      <ItemMedia className="pointer-events-none relative translate-none! self-center!">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-muted">
           <PluginIcon name={plugin.name} />
         </div>
       </ItemMedia>
@@ -169,7 +170,7 @@ function MarketplaceSection({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="ms-auto text-muted-foreground"
+                  className="ms-auto h-9 text-muted-foreground"
                   aria-label={t("plugins.pageActions")}
                 />
               }
@@ -198,7 +199,7 @@ function MarketplaceSection({
       </PanelList>
       {plugins.length > PAGE_SIZE && (
         <div className="flex items-center justify-end gap-2 px-2">
-          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
+          <Button variant="outline" size="sm" className="h-9" disabled={page === 0} onClick={() => setPage(page - 1)}>
             {t("plugins.previousPage")}
           </Button>
           <span className="text-xs text-muted-foreground">
@@ -207,6 +208,7 @@ function MarketplaceSection({
           <Button
             variant="outline"
             size="sm"
+            className="h-9"
             disabled={(page + 1) * PAGE_SIZE >= plugins.length}
             onClick={() => setPage(page + 1)}
           >
@@ -306,6 +308,7 @@ function PluginToolbar() {
     <div className="flex flex-wrap items-center justify-end gap-2">
       <Button
         size="sm"
+        className="h-9"
         variant="outline"
         disabled={!ready || upgrading}
         aria-busy={upgrading}
@@ -320,7 +323,7 @@ function PluginToolbar() {
           if (!adding) setAddOpen(open)
         }}
       >
-        <DialogTrigger render={<Button size="sm" variant="outline" disabled={!ready} />}>
+        <DialogTrigger render={<Button size="sm" className="h-9" variant="outline" disabled={!ready} />}>
           <PlusIcon data-icon="inline-start" />
           {t("plugins.addMarketplace")}
         </DialogTrigger>
@@ -479,7 +482,9 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
     JSON.stringify(
       [
         ...new Set(
-          state.sessionList.map((sessionRow) => newChatDirectory(sessionRow.cwd)).filter((path): path is string => path !== null)
+          state.sessionList
+            .map((sessionRow) => newChatDirectory(sessionRow.cwd))
+            .filter((path): path is string => path !== null)
         )
       ].toSorted()
     )
@@ -520,10 +525,9 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
       )}
       <div className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
         <div className="mx-auto w-full max-w-5xl shrink-0 px-6 pt-8">
-          <h1 className="text-2xl font-semibold">{t("plugins.catalog.title")}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{t("plugins.catalog.description")}</p>
+          <CatalogHeader title={t("plugins.catalog.title")} />
         </div>
-        <div className="mx-auto mt-4 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
+        <div className="mx-auto mt-8 flex min-h-0 w-full max-w-5xl flex-1 flex-col px-6 pb-6">
           <Tabs
             value={kind}
             onValueChange={(value) => {
@@ -543,6 +547,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="h-9"
                 aria-label={t("plugins.skills.refresh")}
                 disabled={!ready || loading}
                 onClick={() => void refresh(undefined, { forceRefetch: true })}
@@ -576,7 +581,13 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
                 <p>
                   {t("plugins.loadError.title")}: {error}
                 </p>
-                <Button size="sm" variant="outline" disabled={loading || !ready} onClick={() => void refresh()}>
+                <Button
+                  size="sm"
+                  className="h-9"
+                  variant="outline"
+                  disabled={loading || !ready}
+                  onClick={() => void refresh()}
+                >
                   {t("plugins.loadError.retry")}
                 </Button>
               </div>

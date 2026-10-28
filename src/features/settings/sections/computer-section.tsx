@@ -66,6 +66,7 @@ export function ComputerSection() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-9"
                       onClick={() =>
                         void perform(() =>
                           commands.computerRequestPermissions({
@@ -81,6 +82,7 @@ export function ComputerSection() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-9"
                     onClick={() =>
                       void perform(() =>
                         commands.computerRequestPermissions({
@@ -100,6 +102,7 @@ export function ComputerSection() {
               <Button
                 variant="outline"
                 size="sm"
+                className="h-9"
                 disabled={busy || !permitted}
                 onClick={() => {
                   setPending(true)

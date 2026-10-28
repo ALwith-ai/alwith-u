@@ -44,6 +44,8 @@
     "completed": "Started"
   },
   "actions": {
+    "decreaseValue": "Decrease {{name}}",
+    "increaseValue": "Increase {{name}}",
     "confirm": "Confirm",
     "more": "More actions",
     "openFolder": "Open project folder",
@@ -483,7 +485,7 @@
   },
   "provider": {
     "pending": "Settings saved. Remaining changes apply when chats using the affected providers finish.",
-    "label": "Models",
+    "label": "Other models",
     "active": "{{count}} models available. Select them in each chat's model picker.",
     "configured": "Configured",
     "connectionSettings": "Connection settings",
