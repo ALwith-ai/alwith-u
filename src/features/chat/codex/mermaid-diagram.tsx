@@ -6,6 +6,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { copyText } from "@/lib/clipboard"
 
 import { downloadChatFile } from "../file-actions"
 import { diagramImage, diagramPng } from "./mermaid-export"
@@ -73,7 +74,7 @@ export function MermaidDiagram({ source }: { source: string }) {
 
   const copySource = async () => {
     try {
-      await navigator.clipboard.writeText(source)
+      await copyText(source)
       toast.success("Mermaid 源码已复制")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))

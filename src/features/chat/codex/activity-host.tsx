@@ -1,10 +1,11 @@
 import type { ActivityHost } from "@alwith/module-chat/activity-host"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
-import { invoke, isTauri } from "@tauri-apps/api/core"
-import { writeText } from "@tauri-apps/plugin-clipboard-manager"
+import { invoke } from "@tauri-apps/api/core"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
+import { copyText } from "@/lib/clipboard"
 
 import { openImageGallery, openImageLightbox } from "../dialogs/image-lightbox"
 import { ChatDirectoryContext, ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
@@ -37,7 +38,7 @@ export function useChatActivityHost(sessionId?: string): ActivityHost {
         t: (key, values) => i18n.t(key, { ...values, ns: "alwithChat" }),
         i18n: { language },
         openLink,
-        copyText: (text) => (isTauri() ? writeText(text) : navigator.clipboard.writeText(text)),
+        copyText,
         onCopyError: (error) => toast.error(error instanceof Error ? error.message : String(error)),
         Markdown: CodexMarkdownRenderer,
         Output: TerminalOutput,

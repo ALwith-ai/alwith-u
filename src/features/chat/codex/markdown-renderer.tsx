@@ -3,6 +3,8 @@ import { createChatMarkdown } from "@alwith/module-chat/markdown-rules"
 import type { Token, Tokens } from "marked"
 import { type SyntheticEvent, useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
+import { copyText } from "@/lib/clipboard"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext, chatFileName, resolveChatLink, useOpenChatLink } from "../file-actions"
 import { LinkedImage } from "./linked-image"
@@ -65,7 +67,7 @@ export function CodexMarkdownRenderer({ text, streaming }: { text: string; strea
   const { resolvedTheme } = useTheme()
   const { t } = useTranslation()
   const copyLabel = t("actions.copy")
-  const host = useMemo<MarkdownHost>(() => ({ theme: resolvedTheme, copyLabel, openLink }), [resolvedTheme, copyLabel, openLink])
+  const host = useMemo<MarkdownHost>(() => ({ theme: resolvedTheme, copyLabel, openLink, copyText, onCopyError: (error) => toast.error(error instanceof Error ? error.message : String(error)) }), [resolvedTheme, copyLabel, openLink])
   const parts = useMemo(() => segments(text, streaming), [text, streaming])
   // Delegate to include links introduced by the shared renderer's streaming worker.
   const showLinkAddress = (event: SyntheticEvent<HTMLDivElement>): void => {
