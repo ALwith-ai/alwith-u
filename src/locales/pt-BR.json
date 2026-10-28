@@ -190,7 +190,8 @@
     },
     "trackpad": "Trackpad",
     "trackpadEnabled": "Ativar gestos do trackpad",
-    "threeFingerSwipeDesc": "Deslize horizontalmente com três dedos para mover a tela"
+    "threeFingerSwipeDesc": "Deslize horizontalmente com três dedos para mover a tela",
+    "import": "Importar"
   },
   "usage": {
     "usage": "Uso",

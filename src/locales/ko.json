@@ -196,7 +196,8 @@
     },
     "trackpad": "트랙패드",
     "trackpadEnabled": "트랙패드 제스처 활성화",
-    "threeFingerSwipeDesc": "세 손가락으로 가로로 쓸어 캔버스 이동"
+    "threeFingerSwipeDesc": "세 손가락으로 가로로 쓸어 캔버스 이동",
+    "import": "가져오기"
   },
   "usage": {
     "usage": "사용량",

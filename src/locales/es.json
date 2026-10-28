@@ -190,7 +190,8 @@
     },
     "trackpad": "Panel táctil",
     "trackpadEnabled": "Activar gestos del panel táctil",
-    "threeFingerSwipeDesc": "Desliza tres dedos horizontalmente para desplazar el lienzo"
+    "threeFingerSwipeDesc": "Desliza tres dedos horizontalmente para desplazar el lienzo",
+    "import": "Importar"
   },
   "usage": {
     "usage": "Uso",

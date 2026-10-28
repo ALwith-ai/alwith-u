@@ -20,6 +20,7 @@ export type SettingsSection =
   | "computer"
   | "extensions"
   | "drive"
+  | "import"
   | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   "account",
@@ -33,6 +34,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "computer",
   "mobile",
   "extensions",
+  "import",
   "about"
 ]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"

@@ -189,7 +189,8 @@
     },
     "trackpad": "Pavé tactile",
     "trackpadEnabled": "Activer les gestes du pavé tactile",
-    "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas"
+    "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas",
+    "import": "Importer"
   },
   "usage": {
     "usage": "Utilisation",

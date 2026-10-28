@@ -65,6 +65,7 @@ import {
 import { serveChatClient } from "@/lib/chat-window-client"
 import { useMainWindowSurface } from "@/lib/chat-window-state"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
+import { serveImportsBridge } from "@/lib/imports-bridge"
 import { watchForNotifications } from "@/lib/notifications"
 import { type Preferences, savePreference } from "@/lib/preferences"
 import { applyProvidersWhenIdle } from "@/lib/providers"
@@ -411,6 +412,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // The settings window has no agent connection of its own: it asks this window for the
   // engine identity and for sign-out, and provider keys saved there are applied here.
   useEffect(() => {
+    const stopImports = serveImportsBridge(client)
     const stopBridge = serveSettingsBridge({
       agent: () => {
         const agent = client.state.agent
@@ -436,7 +438,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       },
       onRateLimits: (listener) => client.onRateLimits(listener)
     })
-    return stopBridge
+    return () => {
+      stopImports()
+      stopBridge()
+    }
   }, [])
 
   useEffect(() => {

@@ -183,7 +183,8 @@
     },
     "trackpad": "Trackpad",
     "trackpadEnabled": "Aktifkan gestur trackpad",
-    "threeFingerSwipeDesc": "Geser horizontal dengan tiga jari untuk menggeser kanvas"
+    "threeFingerSwipeDesc": "Geser horizontal dengan tiga jari untuk menggeser kanvas",
+    "import": "Impor"
   },
   "usage": {
     "usage": "Penggunaan",

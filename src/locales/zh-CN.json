@@ -448,7 +448,8 @@
     "threeFingerSwipeDesc": "三指横滑平移画布",
     "mobile": "移动端连接",
     "preventSleep": "任务运行时防止休眠",
-    "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。"
+    "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。",
+    "import": "导入"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1241,5 +1242,39 @@
     "enableBridge": "启用浏览器控制",
     "recheck": "检测",
     "bringToFront": "浏览器"
+  },
+  "imports": {
+    "title": "从其他 AI 应用导入",
+    "description": "迁移你的设置、项目和聊天。",
+    "refresh": "重新检查",
+    "import": "导入",
+    "from": "从 {{source}} 导入",
+    "chooseDescription": "选择要导入的内容，不会影响原有应用的设置。",
+    "detecting": "正在检查可导入内容",
+    "importing": "正在导入",
+    "details": "查看详情",
+    "history": "导入历史",
+    "noHistory": "暂无导入记录",
+    "summary": "已导入 {{success}} 项 · 失败 {{failed}} 项",
+    "empty": "未发现可导入内容",
+    "setup": "工具与设置",
+    "projects": "项目",
+    "chats": "聊天会话",
+    "background": "在后台继续",
+    "close": "关闭",
+    "selected": "导入所选（{{count}}）",
+    "retry": "重试",
+    "types": {
+      "AGENTS_MD": "指令",
+      "CONFIG": "设置",
+      "SKILLS": "技能",
+      "PLUGINS": "插件",
+      "MCP_SERVER_CONFIG": "MCP 服务器",
+      "SUBAGENTS": "Agent",
+      "HOOKS": "Hooks",
+      "COMMANDS": "命令",
+      "MEMORY": "记忆",
+      "SESSIONS": "聊天"
+    }
   }
 }

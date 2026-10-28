@@ -196,7 +196,8 @@
     },
     "trackpad": "トラックパッド",
     "trackpadEnabled": "トラックパッドのジェスチャを有効にする",
-    "threeFingerSwipeDesc": "3本指で横にスワイプしてキャンバスを移動"
+    "threeFingerSwipeDesc": "3本指で横にスワイプしてキャンバスを移動",
+    "import": "インポート"
   },
   "usage": {
     "usage": "使用量",

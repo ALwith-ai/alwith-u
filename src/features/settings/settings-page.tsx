@@ -11,6 +11,7 @@ import {
   Code2Icon,
   ContrastIcon,
   CpuIcon,
+  DownloadIcon,
   InfoIcon,
   MicIcon,
   MonitorIcon,
@@ -40,6 +41,7 @@ import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
 import { GeneralSection } from "./sections/general-section"
+import { ImportSection } from "./sections/import-section"
 import { ProviderSection } from "./sections/provider-section"
 import { TrackpadRow } from "./sections/trackpad-row"
 import { VoiceSection } from "./sections/voice-section"
@@ -57,6 +59,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   provider: CpuIcon,
   voice: MicIcon,
   extensions: BlocksIcon,
+  import: DownloadIcon,
   about: InfoIcon
 }
 
@@ -128,6 +131,8 @@ export function SettingsPage() {
             return <VoiceSection />
           case "provider":
             return <ProviderSection />
+          case "import":
+            return <ImportSection />
           case "about":
             return <AboutSection />
           case "extensions":

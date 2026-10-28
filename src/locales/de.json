@@ -188,7 +188,8 @@
     },
     "trackpad": "Trackpad",
     "trackpadEnabled": "Trackpad-Gesten aktivieren",
-    "threeFingerSwipeDesc": "Mit drei Fingern horizontal über die Arbeitsfläche wischen"
+    "threeFingerSwipeDesc": "Mit drei Fingern horizontal über die Arbeitsfläche wischen",
+    "import": "Importieren"
   },
   "usage": {
     "usage": "Nutzung",

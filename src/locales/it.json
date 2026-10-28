@@ -190,7 +190,8 @@
     },
     "trackpad": "Trackpad",
     "trackpadEnabled": "Abilita gesti del trackpad",
-    "threeFingerSwipeDesc": "Scorri orizzontalmente con tre dita per spostare l’area di lavoro"
+    "threeFingerSwipeDesc": "Scorri orizzontalmente con tre dita per spostare l’area di lavoro",
+    "import": "Importa"
   },
   "usage": {
     "usage": "Utilizzo",

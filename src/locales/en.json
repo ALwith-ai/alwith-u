@@ -448,7 +448,8 @@
     "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
     "mobile": "Mobile connection",
     "preventSleep": "Prevent sleep while tasks are running",
-    "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off."
+    "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off.",
+    "import": "Import"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -1241,5 +1242,39 @@
     "enableBridge": "Enable browser control",
     "recheck": "Check",
     "bringToFront": "Browser"
+  },
+  "imports": {
+    "title": "Import from other AI apps",
+    "description": "Bring over your setup, projects, and chats.",
+    "refresh": "Check again",
+    "import": "Import",
+    "from": "Import from {{source}}",
+    "chooseDescription": "Choose what to bring over. Your existing setup won’t be affected.",
+    "detecting": "Checking for imports",
+    "importing": "Importing",
+    "details": "View details",
+    "history": "Import history",
+    "noHistory": "No imports yet",
+    "summary": "{{success}} imported · {{failed}} failed",
+    "empty": "No importable setup found",
+    "setup": "Tools & setup",
+    "projects": "Projects",
+    "chats": "Chat sessions",
+    "background": "Do it in background",
+    "close": "Close",
+    "selected": "Import selected ({{count}})",
+    "retry": "Try again",
+    "types": {
+      "AGENTS_MD": "Instructions",
+      "CONFIG": "Settings",
+      "SKILLS": "Skills",
+      "PLUGINS": "Plugins",
+      "MCP_SERVER_CONFIG": "MCP servers",
+      "SUBAGENTS": "Agents",
+      "HOOKS": "Hooks",
+      "COMMANDS": "Commands",
+      "MEMORY": "Memory",
+      "SESSIONS": "Chats"
+    }
   }
 }
