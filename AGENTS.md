@@ -133,3 +133,8 @@ Origin: explicit user instruction (2026-09-30).
 ## Desktop architecture policy
 
 Windows and Linux distributions support x64 only; do not build, stage, or publish ARM64 packages for either OS. macOS ARM64 remains supported. This also applies to shared Runtime and native module distributions. User decision: 2026-10-25.
+
+## Shared dependency release line
+
+- Keep the shared dependencies updated by this migration on the `0.5.x` release line. Use patch updates only; do not publish `0.6`.
+- Origin: explicit user instruction (2026-10-28).
