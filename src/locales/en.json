@@ -213,6 +213,49 @@
       "next": "Next match"
     },
     "image": {
+      "edit": {
+        "tools": "Edit image",
+        "annotate": "Annotate",
+        "background": "Remove background",
+        "erase": "Erase",
+        "resize": "Resize",
+        "cancel": "Cancel editing",
+        "selection": "Image selection",
+        "pen": "Brush",
+        "rectangle": "Rectangle",
+        "arrow": "Arrow",
+        "brushSize": "Brush size",
+        "undo": "Undo",
+        "eraseHint": "Paint over the area to remove",
+        "instructions": "Edit instructions",
+        "notReady": "This chat is not ready. Reconnect and try again.",
+        "redo": "Redo",
+        "addDescription": "Add a description…",
+        "ratios": {
+          "square": "Square",
+          "portrait": "Portrait",
+          "story": "Story",
+          "landscape": "Landscape",
+          "widescreen": "Widescreen"
+        },
+        "prompts": {
+          "annotate": "Edit the first image according to the user's instructions. The second image is an annotated reference showing the relevant areas. Do not include the annotation marks in the result.",
+          "background": "Remove the background from this image. Preserve all foreground subjects and fine details, and return a PNG with a transparent background.",
+          "erase": "Remove the area marked in white in the second image from the first image. The second image is a mask: white marks the area to remove; black marks the area to preserve. Reconstruct the removed area naturally, keeping the rest unchanged.",
+          "resize": "Set the aspect ratio of this image to {{ratio}}. Preserve the subject proportions; extend or recompose the surrounding area as needed without stretching the subject. Return the edited image."
+        },
+        "color": "Annotation color",
+        "colors": {
+          "red": "Red",
+          "orange": "Orange",
+          "yellow": "Yellow",
+          "green": "Green",
+          "blue": "Blue",
+          "purple": "Purple",
+          "black": "Black",
+          "white": "White"
+        }
+      },
       "tools": "Image tools",
       "zoom": "Zoom",
       "fit": "Fit",

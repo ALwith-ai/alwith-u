@@ -1,3 +1,4 @@
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { ActivityImage } from "@alwith/module-chat/activity-host"
 import { dirname } from "@alwith/module-fs"
 import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
@@ -31,25 +32,31 @@ import { type AppInfo, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
 import { isMac } from "@/lib/platform"
 
 import { chatFileName, downloadChatFile } from "../file-actions"
+import { ImageEditOverlay, ImageEditToolbar, useImageEditor } from "./image-editor"
 
 // Gallery entries keep their original attachment identity for file operations.
 type PreviewImage = ActivityImage & { uri?: string }
-type LightboxState = { images: PreviewImage[]; index: number }
-const useLightbox = create<LightboxState>(() => ({ images: [], index: 0 }))
-const closeLightbox = (): void => useLightbox.setState({ images: [], index: 0 })
+type LightboxState = { images: PreviewImage[]; index: number; sessionId?: string; sending: boolean }
+const useLightbox = create<LightboxState>(() => ({ images: [], index: 0, sessionId: undefined, sending: false }))
+const closeLightbox = (): void => {
+  if (!useLightbox.getState().sending)
+    useLightbox.setState({ images: [], index: 0, sessionId: undefined, sending: false })
+}
+const setLightboxSending = (sending: boolean): void => useLightbox.setState({ sending })
 
-export function openImageLightbox(src: string, alt = "", uri?: string): void {
-  openImageGallery([{ src, alt, uri }], 0)
+export function openImageLightbox(src: string, alt = "", uri?: string, sessionId?: string): void {
+  openImageGallery([{ src, alt, uri }], 0, sessionId)
 }
 
-export function openImageGallery(images: PreviewImage[], index: number): void {
+export function openImageGallery(images: PreviewImage[], index: number, sessionId?: string): void {
+  if (useLightbox.getState().sending) return
   if (images[index] === undefined) throw new Error("Image gallery index is out of range")
-  useLightbox.setState({ images, index })
+  useLightbox.setState({ images, index, sessionId })
 }
 
 function moveImage(direction: number): void {
   useLightbox.setState((state) => ({
-    index: Math.max(0, Math.min(state.images.length - 1, state.index + direction))
+    index: state.sending ? state.index : Math.max(0, Math.min(state.images.length - 1, state.index + direction))
   }))
 }
 
@@ -64,7 +71,19 @@ function localPath(uri: string | undefined): string | null {
   return uri.startsWith("/") || /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") ? uri : null
 }
 
-function ImagePreview({ image, index, count }: { image: PreviewImage; index: number; count: number }) {
+type SendImageEdit = (prompt: acp.ContentBlock[]) => Promise<void>
+
+function ImagePreview({
+  image,
+  index,
+  count,
+  onSend
+}: {
+  image: PreviewImage
+  index: number
+  count: number
+  onSend?: SendImageEdit
+}) {
   const { t } = useTranslation()
   const workspace = useWorkspace()
   const viewport = useRef<HTMLDivElement>(null)
@@ -75,6 +94,8 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
   const [apps, setApps] = useState<AppInfo[]>([])
   const [appsError, setAppsError] = useState(false)
   const [failed, setFailed] = useState(false)
+  const sending = useLightbox((state) => state.sending)
+  const editor = useImageEditor(image.src, natural, onSend, closeLightbox, setLightboxSending, sending)
   const path = localPath(image.uri)
   const data = /^data:(image\/[^;,]+);base64,([\s\S]*)$/.exec(image.src)
   const name = image.uri ? chatFileName(image.uri) : `image.${data?.[1]?.split("/")[1] ?? "png"}`
@@ -143,7 +164,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
             <Button
               variant="ghost"
               className="rounded-s-full"
-              disabled={!path || busy}
+              disabled={!path || busy || editor.sending}
               title={!path ? t("chat.image.localRequired") : undefined}
               onClick={() => path && void run(() => openPath(path))}
             >
@@ -157,7 +178,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
                     variant="ghost"
                     size="icon"
                     className="rounded-e-full"
-                    disabled={!path || busy}
+                    disabled={!path || busy || editor.sending}
                     aria-label={t("chat.image.openWith")}
                   />
                 }
@@ -185,7 +206,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
             variant="outline"
             size="icon"
             className="rounded-full"
-            disabled={!data || busy}
+            disabled={!data || busy || editor.sending}
             aria-label={t("chat.content.download", { name })}
             title={t("chat.content.download", { name })}
             onClick={() => data && void run(() => downloadChatFile(image.uri ?? name, data[2]))}
@@ -196,7 +217,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
             variant="outline"
             className="rounded-full"
             aria-label={t("chat.image.openSidePanel")}
-            disabled={!path || !workspace || busy}
+            disabled={!path || !workspace || busy || editor.sending}
             title={!path ? t("chat.image.localRequired") : undefined}
             onClick={() =>
               path &&
@@ -216,6 +237,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
                 variant="outline"
                 size="icon"
                 className="rounded-full"
+                disabled={editor.sending}
                 aria-label={t("actions.close")}
                 title={t("actions.close")}
               />
@@ -230,23 +252,28 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
           {failed ? (
             <p role="alert">{t("chat.image.unavailable")}</p>
           ) : (
-            <img
-              src={image.src}
-              alt={image.alt}
-              className="block max-w-none shadow-sm"
-              style={
-                natural.width && scale
-                  ? { width: natural.width * scale, height: natural.height * scale }
-                  : { maxWidth: "100%", maxHeight: "80vh" }
-              }
-              onLoad={(event) =>
-                setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })
-              }
-              onError={() => setFailed(true)}
-            />
+            <div className="relative w-fit shrink-0">
+              <img
+                draggable={false}
+                src={image.src}
+                alt={image.alt}
+                className="block max-w-none shadow-sm"
+                style={
+                  natural.width && scale
+                    ? { width: natural.width * scale, height: natural.height * scale }
+                    : { maxWidth: "100%", maxHeight: "80vh" }
+                }
+                onLoad={(event) =>
+                  setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })
+                }
+                onError={() => setFailed(true)}
+              />
+              <ImageEditOverlay editor={editor} />
+            </div>
           )}
         </div>
       </div>
+      {!failed && <ImageEditToolbar editor={editor} />}
       {count > 1 && (
         <>
           <Button
@@ -254,7 +281,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
             size="icon"
             className="absolute start-3 top-1/2 rounded-full"
             aria-label={t("chat.image.previous")}
-            disabled={index === 0}
+            disabled={index === 0 || editor.sending}
             onClick={() => moveImage(-1)}
           >
             <ChevronLeftIcon />
@@ -264,7 +291,7 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
             size="icon"
             className="absolute end-3 top-1/2 rounded-full"
             aria-label={t("chat.image.next")}
-            disabled={index === count - 1}
+            disabled={index === count - 1 || editor.sending}
             onClick={() => moveImage(1)}
           >
             <ChevronRightIcon />
@@ -275,10 +302,10 @@ function ImagePreview({ image, index, count }: { image: PreviewImage; index: num
   )
 }
 
-export function ImageLightbox() {
+export function ImageLightbox({ sessionId, onSend }: { sessionId?: string; onSend?: SendImageEdit }) {
   const { t } = useTranslation()
-  const { images, index } = useLightbox()
-  const image = images[index]
+  const { images, index, sessionId: owner } = useLightbox()
+  const image = owner === sessionId ? images[index] : undefined
   return (
     <Dialog open={image !== undefined} onOpenChange={(open) => !open && closeLightbox()}>
       <DialogContent
@@ -302,6 +329,7 @@ export function ImageLightbox() {
             image={image}
             index={index}
             count={images.length}
+            onSend={onSend}
           />
         )}
       </DialogContent>

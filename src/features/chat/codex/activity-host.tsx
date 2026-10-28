@@ -23,7 +23,7 @@ function imageFilePath(path: string, cwd: string | null): string {
   return `${cwd.replace(/[\\/]$/, "")}/${path}`
 }
 
-export function useChatActivityHost(): ActivityHost {
+export function useChatActivityHost(sessionId?: string): ActivityHost {
   const openLink = useOpenChatLink()
   const cwd = useContext(ChatDirectoryContext)
   const openSession = useContext(ChatOpenSessionContext)
@@ -38,8 +38,8 @@ export function useChatActivityHost(): ActivityHost {
         Markdown: CodexMarkdownRenderer,
         Output: TerminalOutput,
         Patch: PatchView,
-        openImage: openImageLightbox,
-        openImageGallery,
+        openImage: (src) => openImageLightbox(src, "", undefined, sessionId),
+        openImageGallery: (images, index) => openImageGallery(images, index, sessionId),
         loadImage: async (path) => {
           const preview = await invoke<
             { kind: "image"; data: string; mimeType: string } | { kind: "text"; text: string } | { kind: "unsupported" }
@@ -57,6 +57,6 @@ export function useChatActivityHost(): ActivityHost {
           return t(block.status === "failed" ? "chat.tool.failed" : "chat.tool.success")
         }
       }) satisfies ActivityHost,
-    [i18n, language, t, openLink, openSession, cwd]
+    [i18n, language, t, openLink, openSession, cwd, sessionId]
   )
 }
