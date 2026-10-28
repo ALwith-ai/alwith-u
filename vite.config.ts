@@ -47,9 +47,11 @@ export const config = (): UserConfig => ({
   },
   clearScreen: false,
   server: {
+    // WebKit stack frames can omit URLs, which crashes Vite's console-forwarding parser.
+    forwardConsole: false,
     port: 1430,
     strictPort: true,
-    host: host ?? false,
+    host: host ?? "127.0.0.1",
     hmr: host ? { protocol: "ws", host, port: 1431 } : undefined,
     watch: {
       ignored: ["**/src-tauri/**"]
