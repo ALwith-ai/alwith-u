@@ -51,7 +51,7 @@ test("image previews expose a visible close button and still close with Escape",
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 }, 15_000)
 
-test("preview toolbar zooms, downloads the original, opens its local path and hands it to the side panel", async () => {
+test("preview toolbar hides the filename and side-panel action while retaining local file actions", async () => {
   const download = vi.spyOn(files, "downloadChatFile").mockResolvedValue(true)
   const open = vi.spyOn(opener, "openPath").mockResolvedValue()
   const openFile = vi.fn().mockResolvedValue(undefined)
@@ -76,15 +76,16 @@ test("preview toolbar zooms, downloads the original, opens its local path and ha
   fireEvent.click(within(dialog).getByRole("button", { name: "Open with" }))
   fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
   await waitFor(() => expect(openPathInApp).toHaveBeenCalledWith("com.apple.Preview", "/tmp/portrait.png"))
-  fireEvent.click(within(dialog).getByRole("button", { name: "Open in side panel" }))
-  await waitFor(() => expect(openFile).toHaveBeenCalledWith("/tmp/portrait.png", "/tmp"))
-  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+  expect(within(dialog).queryByRole("button", { name: "Open in side panel" })).toBeNull()
+  expect(within(dialog).getByRole("heading", { hidden: true })).toHaveClass("sr-only")
+  expect(openFile).not.toHaveBeenCalled()
 })
 
 test("failed file actions report the error and keep the preview usable", async () => {
   vi.spyOn(files, "downloadChatFile").mockRejectedValue(new Error("Disk full"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
-  const openFile = vi.fn().mockRejectedValue(new Error("Cannot open workspace"))
+  const openFile = vi.fn()
+  vi.spyOn(opener, "openPath").mockRejectedValue(new Error("Cannot open image"))
   const view = render(
     <WorkspaceContext value={{ visible: false, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
       <ImageLightbox />
@@ -94,9 +95,9 @@ test("failed file actions report the error and keep the preview usable", async (
   act(() => openImageLightbox("data:image/png;base64,aGVsbG8=", "Portrait", "/tmp/portrait.png"))
   fireEvent.click(view.getByRole("button", { name: "Download portrait.png" }))
   await waitFor(() => expect(error).toHaveBeenCalledWith("Disk full"))
-  await waitFor(() => expect(view.getByRole("button", { name: "Open in side panel" })).not.toBeDisabled())
-  fireEvent.click(view.getByRole("button", { name: "Open in side panel" }))
-  await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot open workspace"))
+  await waitFor(() => expect(view.getByRole("button", { name: "Open" })).not.toBeDisabled())
+  fireEvent.click(view.getByRole("button", { name: "Open" }))
+  await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot open image"))
   expect(view.getByRole("dialog")).toBeDefined()
   fireEvent.click(view.getByRole("button", { name: "Close" }))
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
@@ -107,7 +108,7 @@ test("inline-only images disable local opening and reset zoom when another image
   mounted.push(view)
   act(() => openImageLightbox("data:image/png;base64,aGVsbG8=", "Inline"))
   expect(view.getByRole("button", { name: "Open" })).toBeDisabled()
-  expect(view.getByRole("button", { name: "Open in side panel" })).toBeDisabled()
+  expect(view.queryByRole("button", { name: "Open in side panel" })).toBeNull()
   fireEvent.click(view.getByRole("button", { name: "Zoom" }))
   fireEvent.click(view.getByRole("menuitemradio", { name: "200%" }))
   act(() => openImageLightbox("data:image/png;base64,bmV4dA==", "Next"))
@@ -179,4 +180,16 @@ test("a pending edit remains locked after its source conversation is remounted",
   expect(send).toHaveBeenCalledOnce()
   await act(async () => pending.resolve())
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+})
+
+test("a local file source can open even when the gallery has no separate URI", async () => {
+  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+  const view = render(<ImageLightbox />)
+  mounted.push(view)
+  act(() => openImageLightbox("file:///tmp/source%20image.png", "Hidden name"))
+  const button = view.getByRole("button", { name: "Open" })
+  expect(button).toBeEnabled()
+  fireEvent.click(button)
+  await waitFor(() => expect(open).toHaveBeenCalledWith("/tmp/source image.png"))
+  expect(view.queryByText("Hidden name")).toBeNull()
 })

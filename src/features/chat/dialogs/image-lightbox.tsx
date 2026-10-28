@@ -1,6 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { ActivityImage } from "@alwith/module-chat/activity-host"
-import { dirname } from "@alwith/module-fs"
 import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
 import {
   ChevronDownIcon,
@@ -9,7 +8,6 @@ import {
   DownloadIcon,
   FolderOpenIcon,
   LoaderCircleIcon,
-  Maximize2Icon,
   XIcon
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -27,7 +25,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { useWorkspace } from "@/features/workspace/context"
 import { type AppInfo, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
 import { isMac } from "@/lib/platform"
 
@@ -85,7 +82,6 @@ function ImagePreview({
   onSend?: SendImageEdit
 }) {
   const { t } = useTranslation()
-  const workspace = useWorkspace()
   const viewport = useRef<HTMLDivElement>(null)
   const [bounds, setBounds] = useState({ width: 0, height: 0 })
   const [natural, setNatural] = useState({ width: 0, height: 0 })
@@ -96,7 +92,7 @@ function ImagePreview({
   const [failed, setFailed] = useState(false)
   const sending = useLightbox((state) => state.sending)
   const editor = useImageEditor(image.src, natural, onSend, closeLightbox, setLightboxSending, sending)
-  const path = localPath(image.uri)
+  const path = localPath(image.uri) ?? localPath(image.src)
   const data = /^data:(image\/[^;,]+);base64,([\s\S]*)$/.exec(image.src)
   const name = image.uri ? chatFileName(image.uri) : `image.${data?.[1]?.split("/")[1] ?? "png"}`
   const fit =
@@ -136,8 +132,8 @@ function ImagePreview({
   }
   return (
     <>
-      <header className="flex w-full shrink-0 items-center justify-between gap-3 px-4 py-3">
-        <DialogTitle className="min-w-0 truncate text-sm font-medium">{image.alt || name}</DialogTitle>
+      <header className="flex w-full shrink-0 items-center justify-end gap-3 px-4 py-3">
+        <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
         <div className="flex shrink-0 items-center gap-2" role="toolbar" aria-label={t("chat.image.tools")}>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -160,7 +156,10 @@ function ImagePreview({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="flex items-center rounded-full border bg-background">
+          <div
+            className="flex items-center rounded-full border bg-background"
+            title={!path ? t("chat.image.localRequired") : undefined}
+          >
             <Button
               variant="ghost"
               className="rounded-s-full"
@@ -180,6 +179,7 @@ function ImagePreview({
                     className="rounded-e-full"
                     disabled={!path || busy || editor.sending}
                     aria-label={t("chat.image.openWith")}
+                    title={!path ? t("chat.image.localRequired") : undefined}
                   />
                 }
               >
@@ -212,24 +212,6 @@ function ImagePreview({
             onClick={() => data && void run(() => downloadChatFile(image.uri ?? name, data[2]))}
           >
             {busy ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <DownloadIcon />}
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-full"
-            aria-label={t("chat.image.openSidePanel")}
-            disabled={!path || !workspace || busy || editor.sending}
-            title={!path ? t("chat.image.localRequired") : undefined}
-            onClick={() =>
-              path &&
-              workspace &&
-              void run(async () => {
-                await workspace.openFile(path, dirname(path))
-                closeLightbox()
-              })
-            }
-          >
-            <Maximize2Icon />
-            <span className="hidden sm:inline">{t("chat.image.openSidePanel")}</span>
           </Button>
           <DialogClose
             render={
