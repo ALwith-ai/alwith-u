@@ -132,6 +132,7 @@
     },
     "stopped": "会话已终止",
     "branches": {
+      "creating": "正在创建分支会话…",
       "create": "创建聊天分支",
       "continuedFrom": "从原聊天继续",
       "sourceUnavailable": "原会话不可用"

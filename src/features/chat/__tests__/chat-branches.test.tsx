@@ -8,7 +8,7 @@ import type { SessionSummary } from "@/agent/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
-import { ChatBranchProvider, ForkOriginDivider, ForkTurnButton } from "../chat-branches"
+import { ChatBranchProvider, ForkOriginDivider, ForkProgress, ForkTurnButton } from "../chat-branches"
 
 await initI18n("en")
 const initial = client.state
@@ -42,6 +42,7 @@ function setup(select: (sessionRow: SessionSummary) => void) {
   })
   const view = render(
     <ChatBranchProvider session={source} onSelect={select}>
+      <ForkProgress />
       <ForkTurnButton turnId="real-turn" />
       <ForkOriginDivider />
     </ChatBranchProvider>
@@ -77,6 +78,7 @@ test("a completed reply forks its explicit turn once and navigates to the return
   expect(call).toHaveBeenCalledTimes(1)
   expect(call).toHaveBeenCalledWith("source", "/project", "real-turn")
   expect(selected).toEqual([])
+  expect(view.getByRole("status")).toHaveTextContent("Creating chat branch…")
   client.store.setState({ sessionList: [forked] })
   await act(() => {
     return Promise.try(() => {
@@ -84,6 +86,7 @@ test("a completed reply forks its explicit turn once and navigates to the return
     })
   })
   await waitFor(() => expect(selected).toEqual([forked]))
+  expect(view.queryByRole("status")).toBeNull()
 })
 
 test("a fork failure keeps the current chat and allows retry", async () => {
@@ -102,6 +105,7 @@ test("a fork failure keeps the current chat and allows retry", async () => {
   })
   await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot fork this turn"))
   expect(selected).toEqual([])
+  expect(view.queryByRole("status")).toBeNull()
   await waitFor(() =>
     expect((view.getByRole("button", { name: "Create chat branch" }) as HTMLButtonElement).disabled).toBe(false)
   )

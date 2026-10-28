@@ -11,7 +11,7 @@ import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client } from "@/lib/client"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
-import { ChatBranchProvider, ForkTurnButton } from "./chat-branches"
+import { ChatBranchProvider, ForkProgress, ForkTurnButton } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { useChatHost, useTimelineSlots } from "./chat-host"
 import { ChatComposer } from "./composer"
@@ -57,23 +57,26 @@ function Conversation({
       rootRef={rootRef}
       timeline={timeline}
       header={
-        <ChatHeader
-          target={headerTarget}
-          title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
-          project={projectMenu}
-        >
-          <CollectionPicker sessionId={session.id} favorite />
-          <ChatActionsMenu
-            surface={headerTarget === undefined ? "main" : "floating"}
-            onOpenWindow={onOpenWindow}
-            onReturnToMain={onReturnToMain}
-            session={session}
-            cwd={session.cwd}
-            onNewChat={onNewChat}
-            onNewProject={onNewProject}
-            onDeleted={onDeleted}
-          />
-        </ChatHeader>
+        <>
+          <ChatHeader
+            target={headerTarget}
+            title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
+            project={projectMenu}
+          >
+            <CollectionPicker sessionId={session.id} favorite />
+            <ChatActionsMenu
+              surface={headerTarget === undefined ? "main" : "floating"}
+              onOpenWindow={onOpenWindow}
+              onReturnToMain={onReturnToMain}
+              session={session}
+              cwd={session.cwd}
+              onNewChat={onNewChat}
+              onNewProject={onNewProject}
+              onDeleted={onDeleted}
+            />
+          </ChatHeader>
+          <ForkProgress />
+        </>
       }
       overlay={
         <>

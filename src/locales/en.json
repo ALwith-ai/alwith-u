@@ -132,6 +132,7 @@
     },
     "stopped": "Session stopped",
     "branches": {
+      "creating": "Creating chat branch…",
       "create": "Create chat branch",
       "continuedFrom": "Continue from original chat",
       "sourceUnavailable": "Original chat unavailable"

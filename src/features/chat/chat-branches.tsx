@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import type { ForkOrigin, SessionSummary } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { client, useApp } from "@/lib/client"
 
 type BranchActions = {
@@ -109,6 +110,25 @@ export function ChatBranchProvider({
           fork
         }
   return <BranchContext value={value}>{children}</BranchContext>
+}
+
+/** Progress belongs to the source conversation until the child can be selected. */
+export function ForkProgress() {
+  const actions = useContext(BranchContext)
+  const { t } = useTranslation()
+  if (!actions?.pending) return null
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-fork-progress=""
+      className="flex shrink-0 items-center gap-2 border-b px-6 py-3 text-sm text-muted-foreground"
+    >
+      <Spinner className="size-4" role="presentation" aria-hidden="true" />
+      {t("chat.branches.creating")}
+    </div>
+  )
 }
 
 export function ForkTurnButton({ turnId, labelled = false }: { turnId: string | null; labelled?: boolean }) {
