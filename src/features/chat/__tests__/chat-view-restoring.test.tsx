@@ -35,7 +35,7 @@ test("shows restored messages before session/resume finishes", async () => {
   await act(async () => {})
 })
 
-test("shows an interruption explanation when replay contains only the user's prompt", async () => {
+test("retains an interrupted historical prompt without claiming its response was lost", async () => {
   const session = applyUpdate(
     { ...createSession("stopped-history", "/tmp/project"), attached: true },
     {
@@ -51,7 +51,7 @@ test("shows an interruption explanation when replay contains only the user's pro
     </ThemeProvider>
   )
   expect(view.getByText("Stopped question")).toBeDefined()
-  expect(view.getByText("Stopped. Codex history may not contain the unfinished response.")).toBeDefined()
+  expect(view.queryByText("Stopped. Codex history may not contain the unfinished response.")).toBeNull()
   await act(async () => {})
 })
 

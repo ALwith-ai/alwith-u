@@ -15,6 +15,7 @@ pub const PREFERENCE_KEYS: &[(&str, &str)] = &[
     ("chatWindowShortcut", "chat.windowShortcut"),
     ("lastProjectDirectory", "general.lastProjectDirectory"),
     ("modelSelections", "chat.modelSelections"),
+    ("composerPredictions", "chat.composerPredictions"),
     ("navigationSoundMode", "chat.navigationSoundMode"),
     ("navigationInstrument", "chat.navigationInstrument"),
     ("externalEditor", "general.externalEditor"),
@@ -316,6 +317,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         | "appearance.trackpadEnabled"
         | "system.preventSleep"
         | "computer.enabled"
+        | "chat.composerPredictions"
         | "voice.enabled"
         | "voice.smooth"
         | "appearance.sidebarPinned"

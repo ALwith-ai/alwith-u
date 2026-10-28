@@ -147,22 +147,25 @@ test("late results from another turn or a changed model never become a draft", (
   expect(view.result.current.text).toBeNull()
   view.rerender({ session: predicted(second, "t2") })
   expect(view.result.current.text).toBe("Run the tests")
-  view.rerender({
-    session: {
-      ...predicted(second, "t2"),
-      configOptions: [
-        {
-          configId: "model",
-          name: "Model",
-          type: "select",
-          currentValue: "other",
-          options: [{ value: "other", name: "Other" }]
-        }
-      ]
-    }
-  })
+  const changed: Session = {
+    ...predicted(second, "t2"),
+    configOptions: [
+      {
+        configId: "model",
+        name: "Model",
+        type: "select",
+        currentValue: "other",
+        options: [{ value: "other", name: "Other" }]
+      }
+    ]
+  }
+  view.rerender({ session: changed })
   expect(view.result.current.text).toBeNull()
-  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(2)
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(3)
+  view.rerender({ session: { ...changed, clock: changed.clock + 1 } })
+  expect(view.result.current.text).toBeNull()
+  view.rerender({ session: predicted(changed, "t2", "Check with the new model") })
+  expect(view.result.current.text).toBe("Check with the new model")
 })
 
 test("null and failed results clear the suggestion; history and read-only sessions do not request", () => {
@@ -200,6 +203,54 @@ test("the submitted draft cannot dismiss a new turn's prediction before the inpu
   expect(mockOf(client, "requestPrediction")).toHaveBeenCalledWith("s1", "t1")
   view.rerender({ session: predicted(completed()), available: true, hasDraft: false })
   expect(view.result.current.text).toBe("Run the tests")
+})
+
+test("steering does not invalidate the prediction for the still-running native turn", () => {
+  const session: Session = { ...completed(), state: "running", lastStopReason: null }
+  const view = renderHook(({ session }: { session: Session }) => usePrediction(session, true, false), {
+    wrapper: ChatTimelineHost,
+    initialProps: { session }
+  })
+  act(() => view.result.current.invalidate())
+  view.rerender({ session: completed() })
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledWith("s1", "t1")
+  view.rerender({ session: predicted(completed()) })
+  expect(view.result.current.text).toBe("Run the tests")
+})
+
+test("catalog labels and choices can refresh without hiding an existing prediction", () => {
+  const session: Session = {
+    ...completed(),
+    configOptions: [
+      {
+        configId: "model",
+        category: "model",
+        name: "Model",
+        type: "select",
+        currentValue: "same",
+        options: [{ value: "same", name: "Same" }]
+      }
+    ]
+  }
+  const view = renderHook(({ session }) => usePrediction(session, true, false), {
+    wrapper: ChatTimelineHost,
+    initialProps: { session }
+  })
+  view.rerender({ session: predicted(session) })
+  expect(view.result.current.text).toBe("Run the tests")
+  view.rerender({
+    session: {
+      ...predicted(session),
+      configOptions: [
+        {
+          ...session.configOptions[0],
+          name: "Refreshed model label"
+        }
+      ]
+    }
+  })
+  expect(view.result.current.text).toBe("Run the tests")
+  expect(mockOf(client, "requestPrediction")).toHaveBeenCalledTimes(1)
 })
 
 test("disabling predictions hides results and prevents requests until enabled", () => {

@@ -20,9 +20,9 @@ import {
   questionReplies,
   questionReplyEnvelope
 } from "@alwith/module-chat/async-question-card"
+import { codexTurnId, codexTurnStartedAt, composerPrediction } from "@nyssance/codex-acp-v2/client"
 
 import { CodexClient } from "../src/agent/client"
-import { codexTurnId, codexTurnStartedAt } from "@nyssance/codex-acp-v2/client"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
 
@@ -165,6 +165,106 @@ async function check(transport: "stdio" | "ws") {
       throw new Error("Session A did not receive its own reply")
     if (!replyB.includes("BRAVO") || replyB.includes("ALPHA"))
       throw new Error("Session B did not receive its own reply")
+
+    // Check the installed adapter, not only fake frames: these facts drive chat UI.
+    const liveUser = client.session(a).items.findLast((item) => item.kind === "user")
+    const liveAnswer = client.session(a).items.findLast((item) => item.kind === "assistant" && !isNotice(item))
+    const liveTurnId = codexTurnId(liveUser?._meta)
+    const liveAnswerMeta = liveAnswer?._meta?.codex
+    if (liveTurnId === null || codexTurnId(liveAnswer?._meta) !== liveTurnId)
+      throw new Error("Live user and answer are missing their shared native turn id")
+    if (
+      typeof liveAnswerMeta !== "object" ||
+      liveAnswerMeta === null ||
+      !("messageCompleted" in liveAnswerMeta && liveAnswerMeta.messageCompleted === true)
+    )
+      throw new Error("Live answer is missing its completion marker")
+    if (
+      !("turnDurationMs" in liveAnswerMeta) ||
+      typeof liveAnswerMeta.turnDurationMs !== "number" ||
+      liveAnswerMeta.turnDurationMs < 0 ||
+      !("workDurationMs" in liveAnswerMeta) ||
+      typeof liveAnswerMeta.workDurationMs !== "number" ||
+      liveAnswerMeta.workDurationMs < 0 ||
+      liveAnswerMeta.workDurationMs > liveAnswerMeta.turnDurationMs
+    )
+      throw new Error("Live answer is missing bounded native turn and work durations")
+    const answerFrames = (await port.sessionEvents(a)).flatMap((frame) => {
+      const message = JSON.parse(frame.line) as {
+        method?: string
+        params?: {
+          update?: {
+            sessionUpdate: string
+            messageId?: string
+            _meta?: { codex?: { phase?: string; messageCompleted?: boolean } }
+          }
+        }
+      }
+      const update = message.params?.update
+      return message.method === "session/update" && update !== undefined && update.messageId === liveAnswer?.id
+        ? [update]
+        : []
+    })
+    const startedAnswer = answerFrames[0]
+    if (startedAnswer?.sessionUpdate !== "agent_message" || startedAnswer._meta?.codex?.messageCompleted === true)
+      throw new Error("Live assistant message did not reserve its position before streaming")
+    const answerPhase = startedAnswer._meta?.codex?.phase
+    if (!answerPhase || answerFrames.some((update) => update._meta?.codex?.phase !== answerPhase))
+      throw new Error("Live assistant message changed phase between start, streaming and completion")
+    console.log("chat ordering: native start reserves the message position; streamed and completed phases agree")
+    await client.requestPrediction(a, liveTurnId)
+    await until(
+      () => {
+        const meta = client.session(a)._meta?.codex
+        return typeof meta === "object" && meta !== null && "prediction" in meta
+      },
+      75_000,
+      "composer prediction result"
+    )
+    const prediction = composerPrediction(client.session(a)._meta)
+    if (prediction?.sourceTurnId !== liveTurnId || prediction.result.type !== "completed")
+      throw new Error("Composer prediction did not complete for the live native turn")
+    console.log("chat facts: live native ids, message completion and composer prediction result verified")
+    if (process.env.ALWITH_LIVE_FOCUS === "chat") return
+
+    if (process.env.ALWITH_LIVE_FOCUS === "steer") {
+      const previousItems = new Set(client.session(a).items.map((item) => item.id))
+      const first = await client.prompt(a, [
+        {
+          type: "text",
+          text: "Steering regression: run sleep 20 with exec_command and wait for that same process. After it ends, list all STEER_ markers received during this turn. Do not modify files."
+        }
+      ])
+      await until(
+        () =>
+          client
+            .session(a)
+            .items.some((item) => item.kind === "tool" && item.status === "in_progress" && !previousItems.has(item.id)),
+        45_000,
+        "steering target command"
+      )
+      const firstTurn = codexTurnId(client.session(a).items.find((item) => item.id === first)?._meta)
+      const steered = []
+      for (const marker of ["STEER_ALPHA", "STEER_BRAVO"]) {
+        steered.push(
+          await client.prompt(a, [
+            { type: "text", text: `Also include ${marker}. Continue waiting for the original process.` }
+          ])
+        )
+        if (client.session(a).state === "idle") throw new Error("Steering receipt waited for foreground completion")
+      }
+      await until(() => client.session(a).state === "idle", 90_000, "steered turn completion")
+      for (const messageId of steered) {
+        const item = client.session(a).items.find((entry) => entry.id === messageId)
+        if (item?.kind !== "user" || codexTurnId(item._meta) !== firstTurn)
+          throw new Error("Steering was queued into a different native turn")
+      }
+      const reply = assistantText(client.session(a))
+      if (!reply.includes("STEER_ALPHA") || !reply.includes("STEER_BRAVO"))
+        throw new Error("Steering markers did not reach the active turn")
+      console.log("steering: repeated acceptance receipts and native turn identity verified")
+      return
+    }
 
     // A second client on the same Runtime attaches to the running agent instead of restarting it,
     // and replays the initialize response without a second handshake.

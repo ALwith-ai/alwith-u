@@ -3,8 +3,8 @@
 // the turn and the occurrence index inside it; the DOM pass then locates the exact range
 // after the turn is revealed.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import type { Item } from "@alwith/api"
-import { isText } from "@alwith/api"
+import type { Item, Terminal } from "@alwith/api"
+import { isText, terminalOf } from "@alwith/api"
 import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"
 import type { Turn } from "@alwith/module-chat/turns"
 
@@ -21,7 +21,7 @@ function blockText(block: acp.ContentBlock): string[] {
   return isText(block) ? [block.text] : []
 }
 
-function itemText(item: Item): string[] {
+function itemText(item: Item, terminals: Record<string, Terminal>): string[] {
   switch (item.kind) {
     case "user":
     case "assistant":
@@ -31,7 +31,7 @@ function itemText(item: Item): string[] {
       return [
         item.title ?? "",
         ...stringsInValue(item.rawInput),
-        ...stringsInValue(item.rawOutput),
+        ...stringsInValue(terminalOf(item, terminals)?.output || item.rawOutput),
         ...stringsInValue(item.content)
       ]
     case "plan":
@@ -41,11 +41,15 @@ function itemText(item: Item): string[] {
   }
 }
 
-export function findCodexSearchSourceMatches(turns: Turn[], rawQuery: string): SearchSourceMatch[] {
+export function findCodexSearchSourceMatches(
+  turns: Turn[],
+  rawQuery: string,
+  terminals: Record<string, Terminal> = {}
+): SearchSourceMatch[] {
   const query = rawQuery.trim()
   if (query.length === 0) return []
   return findTextSourceMatches(
-    turns.map((turn) => ({ turnKey: turn.key, segments: turn.items.flatMap(itemText) })),
+    turns.map((turn) => ({ turnKey: turn.key, segments: turn.items.flatMap((item) => itemText(item, terminals)) })),
     query
   )
 }

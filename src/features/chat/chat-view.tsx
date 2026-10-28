@@ -1,5 +1,6 @@
 import type { Session } from "@alwith/api"
 import { ConversationView } from "@alwith/module-chat/conversation"
+import { nativeTurnId } from "@nyssance/codex-acp-v2/client"
 import { type ReactNode, type RefObject, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -10,7 +11,7 @@ import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client } from "@/lib/client"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
-import { ChatBranchProvider } from "./chat-branches"
+import { ChatBranchProvider, ForkTurnButton } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { useChatHost, useTimelineSlots } from "./chat-host"
 import { ChatComposer } from "./composer"
@@ -47,6 +48,7 @@ function Conversation({
   const { t } = useTranslation()
   const host = useChatHost()
   const timeline = useTimelineSlots()
+  const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
   return (
     <ConversationView
       session={session}
@@ -83,6 +85,9 @@ function Conversation({
           </div>
           <ChatSearch rootRef={rootRef} sessionId={session.id} />
         </>
+      }
+      readOnlyActions={
+        <ForkTurnButton labelled turnId={lastNativeItem === undefined ? null : nativeTurnId(lastNativeItem)} />
       }
       composer={<ChatComposer session={session} voiceResume={voiceResume} />}
     >

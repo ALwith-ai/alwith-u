@@ -1,4 +1,4 @@
-import { addPrompt, applyUpdate, createSession } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/api"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -20,7 +20,7 @@ afterEach(async () => {
   if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight)
 })
 
-test("a steer does not create a thinking placeholder while the original output is streaming", async () => {
+test("a steer preserves one thinking indicator while commentary continues streaming", async () => {
   let session = applyUpdate(createSession("steering-display", "/tmp"), {
     sessionUpdate: "user_message",
     messageId: "first",
@@ -42,7 +42,7 @@ test("a steer does not create a thinking placeholder while the original output i
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Also check this")).toBeInTheDocument())
-  expect(view.queryByText("Thinking")).not.toBeInTheDocument()
+  expect(view.getAllByText("Thinking")).toHaveLength(1)
   expect(view.container.querySelector('[data-codex-turn="turn:user:steer"] .codex-pending-message')).toBeNull()
   session = applyUpdate(session, output("Still working and updating") as never)
   view.rerender(
@@ -51,8 +51,90 @@ test("a steer does not create a thinking placeholder while the original output i
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Still working and updating")).toBeInTheDocument())
+  expect(view.getAllByText("Thinking")).toHaveLength(1)
+})
+
+test("steering bubbles remain visible when a native turn has no assistant output", async () => {
+  let session = createSession("empty-steered-turn", "/tmp")
+  for (const id of ["first request", "additional request"])
+    session = applyUpdate(session, {
+      sessionUpdate: "user_message",
+      messageId: id,
+      content: [{ type: "text", text: id }],
+      _meta: { codex: { turnId: "one-native-turn" } }
+    } as never)
+  const view = render(
+    <ThemeProvider>
+      <SessionTimeline session={session} />
+    </ThemeProvider>
+  )
+  await waitFor(() => expect(view.getByText("additional request")).toBeVisible())
+  expect(view.getByText("first request")).toBeVisible()
+  expect(view.container.querySelectorAll("[data-codex-turn]")).toHaveLength(2)
   expect(view.queryByText("Thinking")).not.toBeInTheDocument()
 })
+
+test.each(["commentary", "final_answer"])(
+  "%s keeps its start position through steering and completion",
+  async (phase) => {
+    const meta = { codex: { turnId: "ordering", phase } }
+    let session = applyUpdate(createSession(`order-${phase}`, "/tmp"), {
+      sessionUpdate: "user_message",
+      messageId: "opening",
+      content: [{ type: "text", text: "Original request" }],
+      _meta: meta
+    } as never)
+    const update = (value: unknown) => {
+      session = applyUpdate(session, value as never)
+    }
+    update({ sessionUpdate: "state_update", state: "running" })
+    // Native item start reserves the slot before any text delta, including a slow first token.
+    update({ sessionUpdate: "agent_message", messageId: "answer", content: [{ type: "text", text: "" }], _meta: meta })
+    const ui = () => (
+      <ThemeProvider>
+        <SessionTimeline session={session} />
+      </ThemeProvider>
+    )
+    const view = render(ui())
+    session = addPrompt(session, [{ type: "text", text: "Additional request" }], "local-steer")
+    view.rerender(ui())
+    update({
+      sessionUpdate: "agent_message_chunk",
+      messageId: "answer",
+      content: { type: "text", text: "Original response" },
+      _meta: meta
+    })
+    const verify = async () => {
+      view.rerender(ui())
+      await waitFor(() => expect(view.getAllByText("Original response")).toHaveLength(1))
+      const response = view.getByText("Original response")
+      const steer = view.getByText("Additional request")
+      expect(response.compareDocumentPosition(steer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      if (phase === "commentary") expect(response.closest(".codex-work-body")).not.toBeNull()
+      else expect(response.closest(".codex-work-body")).toBeNull()
+      expect(view.container.querySelectorAll("[data-codex-turn]")).toHaveLength(2)
+    }
+    await verify()
+    session = acknowledgePrompt(session, "local-steer", "steer")
+    await verify()
+    update({
+      sessionUpdate: "user_message",
+      messageId: "steer",
+      content: [{ type: "text", text: "Additional request" }],
+      _meta: meta
+    })
+    await verify()
+    update({
+      sessionUpdate: "agent_message",
+      messageId: "answer",
+      content: [{ type: "text", text: "Original response" }],
+      _meta: { codex: { ...meta.codex, messageCompleted: true } }
+    })
+    await verify()
+    update({ sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" })
+    await verify()
+  }
+)
 
 test("new turns follow their real content through growth and placeholder shrink, until the user scrolls", async () => {
   const observers: { targets: Set<Element>; notify: () => void }[] = []

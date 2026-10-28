@@ -1,8 +1,10 @@
 import type { ActivityHost } from "@alwith/module-chat/activity-host"
 import { TerminalOutput } from "@alwith/module-chat/terminal-output"
-import { invoke } from "@tauri-apps/api/core"
+import { invoke, isTauri } from "@tauri-apps/api/core"
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 
 import { openImageGallery, openImageLightbox } from "../dialogs/image-lightbox"
 import { ChatDirectoryContext, ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
@@ -35,6 +37,8 @@ export function useChatActivityHost(): ActivityHost {
         t: (key, values) => i18n.t(key, { ...values, ns: "alwithChat" }),
         i18n: { language },
         openLink,
+        copyText: (text) => (isTauri() ? writeText(text) : navigator.clipboard.writeText(text)),
+        onCopyError: (error) => toast.error(error instanceof Error ? error.message : String(error)),
         Markdown: CodexMarkdownRenderer,
         Output: TerminalOutput,
         Patch: PatchView,
@@ -54,6 +58,7 @@ export function useChatActivityHost(): ActivityHost {
           if (block.status === "cancelled" || block.status === "interrupted") return t("chat.tool.stopped")
           if (block.exitCode !== undefined && block.exitCode !== 0)
             return t("chat.tool.exitCode", { code: block.exitCode })
+          if (block.status === "completed" && block.exitCode === undefined) return undefined
           return t(block.status === "failed" ? "chat.tool.failed" : "chat.tool.success")
         }
       }) satisfies ActivityHost,

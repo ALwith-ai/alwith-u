@@ -153,9 +153,10 @@
     "restoring": "正在恢复聊天",
     "reopen": "打开这个聊天",
     "readOnly": {
-      "title": "正在其他客户端使用，当前只读",
-      "description": "可以查看已有聊天记录。其他客户端释放会话后，点击重试即可继续对话。",
-      "retry": "重试"
+      "title": "已在另一个应用中打开",
+      "description": "请先在那边关闭会话，才能在这里继续。",
+      "retry": "重试",
+      "fork": "创建聊天分叉"
     },
     "detached": "这个聊天尚未打开。打开后可继续上次的对话。",
     "working": "工作中",
@@ -164,7 +165,6 @@
     "thinking": "正在思考",
     "thought": "已完成思考",
     "thoughtFor": "已思考 {{duration}}",
-    "historyInterrupted": "已停止。Codex 历史可能未保存停止前的未完成回复。",
     "interrupted": "已停止",
     "contextCompacted": "上下文已压缩",
     "compacting": "正在压缩上下文",

@@ -69,8 +69,8 @@ export function DraftProjectPicker({
       <div
         aria-busy={preparing}
         className={cn(
-          "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full px-2",
-          hasProject ? "text-foreground" : "text-foreground/65"
+          "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full",
+          hasProject ? "ps-2 text-foreground" : "text-foreground/65"
         )}
       >
         {hasProject && (
@@ -94,7 +94,10 @@ export function DraftProjectPicker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 min-w-0 shrink gap-1.5 rounded-full p-0 text-sm font-normal text-inherit hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent"
+              className={cn(
+                "h-7 min-w-0 shrink gap-1.5 rounded-full py-0 text-sm font-normal text-inherit hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent",
+                hasProject ? "ps-0 pe-2" : "px-2"
+              )}
             />
           }
         >
@@ -105,7 +108,7 @@ export function DraftProjectPicker({
       <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
-            <Pane className="flex-none" viewportClassName="max-h-64 pe-0">
+            <Pane className="flex-none [&>[data-slot=scroll-area-scrollbar]]:-me-1" viewportClassName="max-h-64 pe-0">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map((path) => (
                   <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>

@@ -111,21 +111,27 @@ export function ChatBranchProvider({
   return <BranchContext value={value}>{children}</BranchContext>
 }
 
-export function ForkTurnButton({ turnId }: { turnId: string | null }) {
+export function ForkTurnButton({ turnId, labelled = false }: { turnId: string | null; labelled?: boolean }) {
   const actions = useContext(BranchContext)
   const { t } = useTranslation()
+  const label = t(labelled ? "chat.readOnly.fork" : "chat.branches.create")
   if (!actions?.atTurn || turnId === null) return null
   return (
     <Button
-      variant="ghost"
-      size="icon"
-      className="codex-message-action focus-visible:ring-0 active:translate-y-0"
-      aria-label={t("chat.branches.create")}
-      title={t("chat.branches.create")}
+      variant={labelled ? "outline" : "ghost"}
+      size={labelled ? "sm" : "icon"}
+      className={
+        labelled
+          ? "cursor-pointer text-foreground focus-visible:ring-0 active:translate-y-0 disabled:cursor-not-allowed"
+          : "codex-message-action focus-visible:ring-0 active:translate-y-0"
+      }
+      aria-label={label}
+      title={label}
       disabled={!actions.canFork || actions.pending}
       onClick={() => actions.fork(turnId)}
     >
-      <SplitIcon className="rotate-90" />
+      {!labelled && <SplitIcon className="rotate-90" />}
+      {labelled && label}
     </Button>
   )
 }

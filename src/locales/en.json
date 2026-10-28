@@ -153,9 +153,10 @@
     "restoring": "Restoring conversation",
     "reopen": "Open this chat",
     "readOnly": {
-      "title": "Open in another client",
-      "description": "This chat is being written by another client (the ChatGPT app or the CLI). You can read it here; close it there to continue.",
-      "retry": "Try again"
+      "title": "Open in another app",
+      "description": "Close the conversation there before continuing here.",
+      "retry": "Retry",
+      "fork": "Branch chat"
     },
     "detached": "This chat is not open. Open it to continue your previous conversation.",
     "working": "Working",
@@ -164,7 +165,6 @@
     "thinking": "Thinking",
     "thought": "Thought",
     "thoughtFor": "Thought for {{duration}}",
-    "historyInterrupted": "Stopped. Codex history may not contain the unfinished response.",
     "interrupted": "Stopped",
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",

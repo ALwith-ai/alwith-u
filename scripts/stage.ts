@@ -169,6 +169,12 @@ for (const name of codexSidecars(target.exe === ".exe")) {
   console.log(`${name} ${codexVersion} -> ${destination}`)
 }
 if (triple === nativeTriple) {
+  // Live checks execute the suffixed CLI directly, before Tauri strips target suffixes.
+  copyFileSync(
+    join(binaries, `codex-code-mode-host-${triple}${target.exe}`),
+    join(binaries, `codex-code-mode-host${target.exe}`)
+  )
+  if (!target.exe) chmodSync(join(binaries, "codex-code-mode-host"), 0o755)
   const codexDestination = join(binaries, `codex-${triple}${target.exe}`)
   assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }

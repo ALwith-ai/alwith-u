@@ -10,7 +10,7 @@
 /* Keep the fade in viewport coordinates so compositor scrolling cannot outrun it. */
 .codex-timeline-bottom-fade {
   position: absolute;
-  inset-inline: 0 calc(var(--app-scrollbar-size) + var(--app-scrollbar-edge-gap));
+  inset-inline: 0 var(--app-scrollbar-track-size);
   bottom: 0;
   height: 24px;
   pointer-events: none;
@@ -34,8 +34,8 @@
   }
 
   &:hover::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: var(--app-scrollbar-track-size);
+    height: var(--app-scrollbar-track-size);
   }
 
   &::-webkit-scrollbar-track {
@@ -44,7 +44,7 @@
 
   &::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+    background-color: var(--app-scrollbar-thumb);
   }
 }
 
@@ -272,4 +272,20 @@
   .codex-generated-image-download {
     transition: none;
   }
+}
+
+.codex-assistant-turn ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-scrollbar-thumb-hover);
+}
+
+.codex-patch-view::-webkit-scrollbar {
+  width: var(--app-scrollbar-track-size);
+  height: var(--app-scrollbar-track-size);
+}
+.codex-patch-view::-webkit-scrollbar-thumb {
+  border-width: var(--app-scrollbar-edge-gap);
+  background-color: var(--app-scrollbar-thumb);
+}
+.codex-patch-view::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-scrollbar-thumb-hover);
 }
