@@ -6,13 +6,13 @@ import { useStore } from "zustand"
 
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { commands } from "@/bindings"
+import { commands, events } from "@/bindings"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
-import { applyProvidersWhenIdle, resolveSessionModel } from "@/lib/providers"
+import { applyProvidersWhenIdle, isAccountModel, resolveSessionModel } from "@/lib/providers"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 export const client =
@@ -26,7 +26,7 @@ export const client =
           const providers = await applyProvidersWhenIdle()
           // Create a reusable draft on the currently applied catalog. Prompt admission retries
           // the saved provider revision after active turns have finished.
-          return providers.status === "pending" ? null : resolveSessionModel(model, providers)
+          return providers.status === "pending" && !isAccountModel(model) ? null : resolveSessionModel(model, providers)
         },
         sessionContext: hostSessionContext,
         sessionContextRevision: computerContextRevision,
@@ -38,6 +38,9 @@ export const client =
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {
+  const stopRevoked = await events["providers:managed-revoked"].listen((event) =>
+    client.markAccountModelsUnavailable(event.payload.sessionIds)
+  )
   const port = await runtimeClient()
   let revision = 0
   const stop = await port.onRunStates((sessions) => {
@@ -47,7 +50,10 @@ export async function watchRunStates(): Promise<() => void> {
   const baseline = revision
   const snapshot = await port.runStates()
   if (revision === baseline) client.applyRunStates(snapshot, "snapshot")
-  return stop
+  return () => {
+    stop()
+    stopRevoked()
+  }
 }
 
 /** `done` clears only through the Runtime: a session someone looked at is read everywhere. The

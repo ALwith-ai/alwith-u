@@ -245,6 +245,11 @@ export const commands = {
   bridgeTrustedList: (): Promise<TrustedDevice_Serialize[]> =>
     __t3Invoke<TrustedDevice_Serialize[]>("bridge_trusted_list"),
   bridgeTrustedRevoke: (args: { deviceId: string }): Promise<null> => __t3Invoke<null>("bridge_trusted_revoke", args),
+  providersAccountBind: (args: { account: Account }): Promise<number> =>
+    __t3Invoke<number>("providers_account_bind", args),
+  providersRefreshManaged: (args: { generation: number; accessToken: string }): Promise<Snapshot_Serialize> =>
+    __t3Invoke<Snapshot_Serialize>("providers_refresh_managed", args),
+  providersClearManaged: (): Promise<null> => __t3Invoke<null>("providers_clear_managed"),
   providersRead: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_read"),
   providersSave: (args: {
     providerId: string
@@ -384,6 +389,9 @@ export type CommandErrors = {
   bridgeIdentity: string
   bridgeTrustedList: string
   bridgeTrustedRevoke: string
+  providersAccountBind: string
+  providersRefreshManaged: Value
+  providersClearManaged: string
   providersRead: string
   providersSave: string
   providersSaveCustom: string
@@ -447,6 +455,15 @@ export const events = {
     emit: (payload: Snapshot_Deserialize) => __t3Emit("providers:changed", payload),
     emitTo: (target: string | __t3Target, payload: Snapshot_Deserialize) =>
       __t3EmitTo(target, "providers:changed", payload)
+  },
+  "providers:managed-revoked": {
+    name: "providers:managed-revoked",
+    listen: (handler: __t3Callback<RevokedSessions>) =>
+      __t3Listen<RevokedSessions>("providers:managed-revoked", handler),
+    once: (handler: __t3Callback<RevokedSessions>) => __t3Once<RevokedSessions>("providers:managed-revoked", handler),
+    emit: (payload: RevokedSessions) => __t3Emit("providers:managed-revoked", payload),
+    emitTo: (target: string | __t3Target, payload: RevokedSessions) =>
+      __t3EmitTo(target, "providers:managed-revoked", payload)
   },
   "updater:state": {
     name: "updater:state",
@@ -562,6 +579,11 @@ export const events = {
     emitTo: (target: string | __t3Target, payload: ActualSize) => __t3EmitTo(target, "menu:actual-size", payload)
   }
 } as const
+
+export type Account = {
+  apiBaseUrl: string
+  userUuid: string
+}
 
 export type Activity = Activity_Serialize | Activity_Deserialize
 
@@ -996,6 +1018,10 @@ export type ReplaceInFile = null
 
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
 
+export type RevokedSessions = {
+  sessionIds: string[]
+}
+
 export type RuntimeExit = RuntimeExit_Serialize | RuntimeExit_Deserialize
 
 export type RuntimeExit_Deserialize = {
@@ -1036,6 +1062,7 @@ export type Snapshot_Deserialize = {
   appliedRevision?: number | null
   providers: { [key in string]: Metadata_Deserialize }
   customProviders: PublicCustomProvider_Deserialize[]
+  managedProviders: PublicCustomProvider_Deserialize[]
   status: string
   error?: string | null
 }
@@ -1045,6 +1072,7 @@ export type Snapshot_Serialize = {
   appliedRevision: number | null
   providers: { [key in string]: Metadata_Serialize }
   customProviders: PublicCustomProvider_Serialize[]
+  managedProviders?: PublicCustomProvider_Serialize[]
   status: string
   error: string | null
 }

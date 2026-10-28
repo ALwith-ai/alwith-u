@@ -1,5 +1,7 @@
 //! Application-owned provider credentials. Webviews receive only configured/region metadata.
 //! Independent provider changes apply under Runtime admission; busy session routing stays pinned.
+pub(crate) mod managed;
+
 use alwith_api::{ResponseError, RuntimeClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -48,6 +50,8 @@ struct Saved {
     credentials: BTreeMap<String, Credential>,
     #[serde(default)]
     custom_providers: BTreeMap<String, CustomProvider>,
+    #[serde(default)]
+    managed: Option<managed::Cache>,
 }
 #[derive(Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +62,8 @@ pub struct Snapshot {
     applied_revision: Option<u64>,
     providers: BTreeMap<String, Metadata>,
     custom_providers: Vec<PublicCustomProvider>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    managed_providers: Vec<PublicCustomProvider>,
     status: &'static str,
     error: Option<String>,
 }
@@ -76,12 +82,15 @@ pub struct PublicCustomProvider {
     models: Vec<CustomModel>,
 }
 struct Inner {
+    managed_active: bool,
     saved: Saved,
     applied: BTreeMap<String, AppliedProvider>,
     applied_revision: Option<u64>,
     error: Option<String>,
 }
 pub struct Providers {
+    managed: managed::State,
+    auxiliary: tokio::sync::Mutex<BTreeMap<String, Inner>>,
     path: PathBuf,
     inner: tokio::sync::Mutex<Inner>,
 }
@@ -130,8 +139,11 @@ impl Providers {
             Err(error) => return Err(error.into()),
         };
         Ok(Self {
+            managed: managed::State::default(),
+            auxiliary: tokio::sync::Mutex::new(BTreeMap::new()),
             path,
             inner: tokio::sync::Mutex::new(Inner {
+                managed_active: false,
                 saved,
                 applied: BTreeMap::new(),
                 applied_revision: None,
@@ -140,6 +152,7 @@ impl Providers {
         })
     }
     pub async fn reset(&self) {
+        self.managed.gate.lock().unwrap().targets.remove("codex");
         let mut inner = self.inner.lock().await;
         inner.applied.clear();
         inner.applied_revision = None;
@@ -173,6 +186,21 @@ impl Inner {
                     models: provider.models.clone(),
                 })
                 .collect(),
+            managed_providers: self
+                .saved
+                .managed
+                .as_ref()
+                .filter(|_| self.managed_active)
+                .and_then(|cache| cache.provider.as_ref())
+                .map(|provider| {
+                    vec![PublicCustomProvider {
+                        id: provider.id.clone(),
+                        name: provider.name.clone(),
+                        base_url: provider.base_url.clone(),
+                        models: provider.models.clone(),
+                    }]
+                })
+                .unwrap_or_default(),
             status: if self.error.is_some() {
                 "failed"
             } else if self.applied_revision == Some(self.saved.revision) {
@@ -201,8 +229,33 @@ pub fn bundled_model_catalogs(resources: &std::path::Path) -> Result<Vec<std::pa
 fn catalog() -> Vec<Value> {
     serde_json::from_str(include_str!("../../src/lib/provider-catalog.json")).expect("bundled provider catalog")
 }
+fn managed_definition() -> Value {
+    catalog()
+        .into_iter()
+        .find(|provider| provider["id"] == managed::ID && provider["source"] == "account")
+        .expect("bundled ALwith account configuration")
+}
+
+fn apply_managed_model_overrides(models: &mut Value) {
+    let definition = managed_definition();
+    let catalog: Value =
+        serde_json::from_str(include_str!("../resources/alwith/models.json")).expect("bundled ALwith model catalog");
+    for model in models.as_array_mut().expect("provider models") {
+        if let Some(configured) =
+            definition["models"].as_array().expect("configured models").iter().find(|entry| entry["id"] == model["id"])
+        {
+            model["label"] = configured["label"].clone();
+        }
+        if let Some(entry) =
+            catalog["models"].as_array().expect("catalog models").iter().find(|entry| entry["slug"] == model["id"])
+        {
+            model["contextWindow"] = entry["context_window"].clone();
+        }
+    }
+}
+
 fn definition(id: &str) -> Result<Value, String> {
-    catalog().into_iter().find(|v| v["id"] == id).ok_or("Unknown provider".into())
+    catalog().into_iter().find(|v| v["id"] == id && v["source"] != "account").ok_or("Unknown provider".into())
 }
 fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u64) -> Result<Saved, String> {
     if saved.revision != expected_revision {
@@ -235,6 +288,7 @@ fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u6
         credentials.remove(&id);
     }
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials,
         custom_providers: saved.custom_providers.clone(),
@@ -300,6 +354,7 @@ fn update_custom(saved: &Saved, input: CustomInput, expected_revision: u64) -> R
         CustomProvider { id, name: name.to_string(), base_url: normalize_base_url(&input.base_url)?, models, api_key },
     );
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials: saved.credentials.clone(),
         custom_providers,
@@ -315,6 +370,7 @@ fn remove_custom(saved: &Saved, id: &str, expected_revision: u64) -> Result<Save
         return Err("Unknown custom provider".into());
     }
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials: saved.credentials.clone(),
         custom_providers,
@@ -478,15 +534,43 @@ pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) 
     if !client.agents().await.map_err(crate::runtime::request_error)?.iter().any(|agent| agent["agentId"] == agent_id) {
         return Err("Gamepad AI agent is not running".into());
     }
-    let saved = app.state::<Providers>().inner.lock().await.saved.clone();
-    let mut ephemeral = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+    let providers = app.state::<Providers>();
+    let inner = providers.inner.lock().await;
+    let saved = inner.saved.clone();
+    let managed_active = inner.managed_active && providers.managed.gate.lock().unwrap().account.is_some();
+    if managed_active {
+        providers.managed.gate.lock().unwrap().targets.insert(agent_id.clone());
+    }
+    drop(inner);
+    let mut auxiliary = providers.auxiliary.lock().await;
+    let ephemeral = auxiliary.entry(agent_id.clone()).or_insert_with(|| Inner {
+        managed_active,
+        saved: saved.clone(),
+        applied: BTreeMap::new(),
+        applied_revision: None,
+        error: None,
+    });
+    ephemeral.saved = saved;
+    if ephemeral.managed_active != managed_active {
+        ephemeral.applied_revision = None;
+    }
+    ephemeral.managed_active = managed_active;
     let resource_dir = app.path().resource_dir().map_err(|error| error.to_string())?;
-    reconcile_target(&mut ephemeral, &client, &resource_dir, &agent_id).await
+    reconcile_target(ephemeral, &client, &resource_dir, &agent_id).await
 }
 
 pub fn schedule_apply(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        let providers = app.state::<Providers>();
+        if let Ok(_transition) = providers.managed.transition.try_lock()
+            && let Err(error) = managed::cleanup(&app).await
+        {
+            let mut inner = providers.inner.lock().await;
+            inner.error = Some(error);
+            let _ = inner.snapshot().emit(&app);
+            return;
+        }
         let runtime = app.state::<crate::runtime::RuntimeState>();
         // The last idle notification may arrive while another admission still owns
         // the lock. Queue the retry so a saved revision cannot remain pending forever.
@@ -499,9 +583,35 @@ pub fn schedule_apply(app: &AppHandle) {
 pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Result<(), String> {
     let state = app.state::<Providers>();
     let mut inner = state.inner.lock().await;
+    if state.managed.gate.lock().unwrap().account.is_none() && inner.managed_active {
+        inner.managed_active = false;
+        inner.applied_revision = None;
+    }
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    if inner.managed_active && inner.saved.managed.as_ref().is_some_and(|cache| cache.provider.is_some()) {
+        state.managed.gate.lock().unwrap().targets.insert("codex".into());
+    }
     let outcome = reconcile(&mut inner, client, &resource_dir).await;
     let _ = inner.snapshot().emit(app);
+    let saved = inner.saved.clone();
+    let active = inner.managed_active;
+    drop(inner);
+    let mut auxiliary = state.auxiliary.lock().await;
+    if !auxiliary.is_empty() {
+        let live = client.agents().await.map_err(crate::runtime::request_error)?;
+        auxiliary.retain(|id, _| live.iter().any(|agent| agent["agentId"] == *id));
+        for (id, target) in auxiliary.iter_mut() {
+            target.saved = saved.clone();
+            if target.managed_active != active {
+                target.applied_revision = None;
+            }
+            target.managed_active = active;
+            if active {
+                state.managed.gate.lock().unwrap().targets.insert(id.clone());
+            }
+            reconcile_target(target, client, &resource_dir, id).await?;
+        }
+    }
     outcome
 }
 
@@ -531,6 +641,15 @@ async fn reconcile_target(
                 .iter()
                 .map(|(id, provider)| (id.clone(), AppliedProvider::Custom(provider.clone()))),
         )
+        .chain(
+            inner
+                .saved
+                .managed
+                .as_ref()
+                .filter(|_| inner.managed_active)
+                .and_then(|cache| cache.provider.as_ref())
+                .map(|provider| (managed::ID.to_string(), AppliedProvider::Custom(provider.clone()))),
+        )
         .collect();
     // A revision without catalog changes does not need an idle boundary.
     if inner.applied == desired {
@@ -542,7 +661,7 @@ async fn reconcile_target(
         for (id, selected) in &desired {
             if inner.applied.get(id) == Some(selected) { continue; }
             let runtime_id = runtime_provider_id(id);
-            let (name, base_url, bearer_token, models, mut config, bundled_catalog) = match selected {
+            let (name, base_url, bearer_token, mut models, mut config, bundled_catalog) = match selected {
                 AppliedProvider::BuiltIn(key) => {
                     let provider = definition(id)?;
                     let default_url = match key.region.as_deref() {
@@ -565,12 +684,22 @@ async fn reconcile_target(
                     None,
                 ),
             };
+            let bundled_catalog = if id == managed::ID {
+                let definition = managed_definition();
+                apply_managed_model_overrides(&mut models);
+                config = definition["config"].clone();
+                definition["catalog"].as_str().map(str::to_string)
+            } else {
+                bundled_catalog
+            };
             if let Some(catalog) = bundled_catalog {
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
             }
             let result = client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
                 "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
-                .await;
+                ;
+            let result = tokio::time::timeout(std::time::Duration::from_secs(10), result).await
+                .unwrap_or_else(|_| Err(ResponseError::runtime("Provider configuration timed out")));
             if let Err(error) = result {
                 record_application_error(id, "apply", &error, &mut pending, &mut failures);
                 continue;
@@ -580,7 +709,9 @@ async fn reconcile_target(
         let removed: Vec<_> = inner.applied.keys().filter(|id| !desired.contains_key(*id)).cloned().collect();
         for id in removed {
             let result = client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
-                .await;
+                ;
+            let result = tokio::time::timeout(std::time::Duration::from_secs(10), result).await
+                .unwrap_or_else(|_| Err(ResponseError::runtime("Provider configuration timed out")));
             if let Err(error) = result {
                 record_application_error(&id, "remove", &error, &mut pending, &mut failures);
                 continue;
@@ -762,7 +893,8 @@ mod tests {
                 .unwrap();
         assert_eq!(saved.credentials["qwen"].api_key, "private-test-secret");
         assert_eq!(saved.credentials["qwen"].region.as_deref(), Some("cn"));
-        let inner = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        let inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
         let public = serde_json::to_string(&inner.snapshot()).unwrap();
         assert!(!public.contains("private-test-secret"));
         assert!(!public.contains("apiKey"));
@@ -832,7 +964,8 @@ mod tests {
         assert_eq!(saved.credentials["deepseek"].base_url.as_deref(), Some("https://gateway.example.test/v1"));
         assert!(
             !serde_json::to_string(
-                &Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }.snapshot()
+                &Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+                    .snapshot()
             )
             .unwrap()
             .contains("private-test-secret")
@@ -859,7 +992,8 @@ mod tests {
         assert_eq!(provider.models[0].api_id, "model-a");
         assert!(
             !serde_json::to_string(
-                &Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }.snapshot()
+                &Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+                    .snapshot()
             )
             .unwrap()
             .contains("private-test-secret")
@@ -939,8 +1073,13 @@ mod tests {
     async fn unchanged_catalog_acknowledges_revision_while_another_turn_runs() {
         use std::sync::atomic::AtomicBool;
         let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
-        let mut inner =
-            Inner { saved: Saved::default(), applied: BTreeMap::new(), applied_revision: None, error: None };
+        let mut inner = Inner {
+            managed_active: false,
+            saved: Saved::default(),
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         assert_eq!(inner.snapshot().status, "applied");
         assert!(calls.lock().unwrap().is_empty());
@@ -964,7 +1103,7 @@ mod tests {
             0,
         )
         .unwrap();
-        Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+        Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
     }
     fn fake_runtime(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
@@ -1049,8 +1188,13 @@ mod tests {
         let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
         let main = pending_provider();
         let before = serde_json::to_value(main.snapshot()).unwrap();
-        let mut ephemeral =
-            Inner { saved: main.saved.clone(), applied: BTreeMap::new(), applied_revision: None, error: None };
+        let mut ephemeral = Inner {
+            managed_active: false,
+            saved: main.saved.clone(),
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
         reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test")
             .await
             .unwrap();
@@ -1184,7 +1328,8 @@ mod tests {
             Arc::new(std::sync::atomic::AtomicBool::new(false)),
             Arc::new(std::sync::atomic::AtomicBool::new(false)),
         );
-        let mut inner = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        let mut inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         {
             let recorded = calls.lock().unwrap();
@@ -1228,5 +1373,100 @@ mod tests {
         let body = request.body().and_then(reqwest::Body::as_bytes).unwrap();
         let body: Value = serde_json::from_slice(body).unwrap();
         assert_eq!(body, json!({"model":"model-a","input":"Reply with OK.","max_output_tokens":16,"store":false}));
+    }
+}
+
+#[cfg(test)]
+mod managed_tests {
+    use super::*;
+
+    #[test]
+    fn account_provider_cannot_be_configured_with_a_manual_key() {
+        assert_eq!(managed_definition()["source"], "account");
+        assert!(definition(managed::ID).is_err());
+        assert!(
+            update(
+                &Saved::default(),
+                managed::ID.into(),
+                Some(Input { api_key: Some("manual-key".into()), region: None, base_url: None }),
+                0
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn source_metadata_only_overrides_issued_models() {
+        let mut models = json!([
+            {"id":"deepseek-V4.1-flash","label":"Account name","contextWindow":123},
+            {"id":"unknown","label":"Account-only model","contextWindow":456}
+        ]);
+        apply_managed_model_overrides(&mut models);
+        assert_eq!(models.as_array().unwrap().len(), 2);
+        assert_eq!(models[0]["id"], "deepseek-V4.1-flash");
+        assert_eq!(models[0]["label"], "DeepSeek Flash");
+        assert_eq!(models[0]["contextWindow"], 1048576);
+        assert_eq!(models[1], json!({"id":"unknown","label":"Account-only model","contextWindow":456}));
+        let mut unissued = json!([]);
+        apply_managed_model_overrides(&mut unissued);
+        assert_eq!(unissued, json!([]));
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources");
+        assert!(bundled_model_catalogs(&root).unwrap().contains(&root.join("alwith/models.json")));
+    }
+
+    #[test]
+    fn managed_catalog_filters_unissued_hidden_and_other_protocols() {
+        let body = json!([
+            {"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"secret-key","hidden":false,"models":[{"api_id":"ds-pro","label":"DS Pro","context_window":1000000}]},
+            {"provider_id":"openrouter","api_key":"other-secret"}
+        ]);
+        let provider = managed::parse_catalog(&body.to_string()).unwrap().unwrap();
+        assert_eq!(provider.id, "litellm");
+        assert_eq!(provider.models[0].context_window, Some(1000000));
+        let mut hidden = body.clone();
+        hidden[0]["hidden"] = json!(true);
+        assert!(managed::parse_catalog(&hidden.to_string()).unwrap().is_none());
+        hidden[0]["hidden"] = json!(false);
+        hidden[0]["api_key"] = json!("  ");
+        assert!(managed::parse_catalog(&hidden.to_string()).unwrap().is_none());
+    }
+
+    #[test]
+    fn managed_cache_stays_private_and_user_edits_preserve_it() {
+        let saved = Saved { managed: Some(managed::Cache {
+            account: managed::Account { api_base_url: "https://api.alwith.ai/service".into(), user_uuid: "account-a".into() },
+            provider: managed::parse_catalog(&json!([{"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"private-model-key","hidden":false,"models":[{"api_id":"m","label":"Model"}]}]).to_string()).unwrap(),
+        }), ..Saved::default() };
+        let edited = update(
+            &saved,
+            "deepseek".into(),
+            Some(Input { api_key: Some("user-key".into()), region: None, base_url: None }),
+            0,
+        )
+        .unwrap();
+        assert_eq!(edited.managed.as_ref().unwrap().account.user_uuid, "account-a");
+        let mut inner = Inner {
+            managed_active: false,
+            saved: edited,
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
+        assert!(inner.snapshot().managed_providers.is_empty());
+        inner.managed_active = true;
+        assert_eq!(inner.snapshot().managed_providers[0].models[0].api_id, "m");
+        let snapshot = serde_json::to_string(&inner.snapshot()).unwrap();
+        assert!(!snapshot.contains("private-model-key"));
+        assert!(!snapshot.contains("user-key"));
+        let legacy: Saved = serde_json::from_str(r#"{"revision":0,"credentials":{}}"#).unwrap();
+        assert!(legacy.managed.is_none());
+    }
+
+    #[test]
+    fn malformed_managed_catalog_never_echoes_keys_and_rejects_duplicate_models() {
+        let body = json!([{"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"private-secret","hidden":false,"models":[{"api_id":"same","label":"One"},{"api_id":"same","label":"Two"}]}]);
+        let error = managed::parse_catalog(&body.to_string()).unwrap_err();
+        assert!(!error.contains("private-secret"));
+        assert!(managed::parse_catalog("not-json").is_err());
     }
 }

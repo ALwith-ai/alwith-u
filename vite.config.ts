@@ -4,12 +4,14 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
 
+import { loadAppEnv } from "./scripts/lib/app-env.ts"
 import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
 
 const host = process.env.TAURI_DEV_HOST
 const debug = process.env.TAURI_ENV_DEBUG === "true"
 
-export const config = (): UserConfig => ({
+export const config = (mode = "development"): UserConfig => ({
+  define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
   plugins: [react(), tailwindcss(), productionJsxGuard()],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"],
@@ -77,4 +79,4 @@ export const config = (): UserConfig => ({
   }
 })
 
-export default defineConfig(config)
+export default defineConfig(({ mode }) => config(mode))

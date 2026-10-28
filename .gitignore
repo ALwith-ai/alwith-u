@@ -4,6 +4,8 @@ __pycache__/
 dist/
 storybook-static/
 .env
+.env.local
+.env.*.local
 .DS_Store
 src-tauri/binaries/
 src-tauri/resources/native/

@@ -1,3 +1,4 @@
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 // U's Codex client: `@nyssance/codex-acp-v2/client`'s CodexClient (which is `@alwith/api/client`'s
 // SessionClient plus the adapter's `_codex/*` extensions) with what only this product does: two chat
 // slots (main window and floating chat) that each hold a draft and remember a model, gateway model
@@ -11,12 +12,12 @@ import {
   mergeMeta,
   type NewSessionOptions,
   type PendingAction,
+  type ReplayScope,
   type SessionOperation,
   type SessionRequestOptions,
   type SessionSummary,
   type StateSetter
 } from "@alwith/api/client"
-import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
   CodexClient as CodexAcpClient,
   type CodexClientState,
@@ -27,6 +28,8 @@ import {
 import { forkTitle } from "./fork-title"
 
 export type { ForkOrigin, PendingAction }
+
+const ACCOUNT_MODEL_REQUIRED = "account_model_required"
 
 /**
  * Model group of the ChatGPT models the codex adapter serves next to gateway groups. Named after the
@@ -53,6 +56,8 @@ export type ClientOptions = BaseClientOptions & {
 export type DraftOwner = "main" | "chat"
 
 export type AppState = CodexClientState & {
+  /** Account revocation is independent of transient turn errors and mirrored to auxiliary windows. */
+  accountModelRecovery: Record<string, boolean>
   /** Window ownership survives switching the visible conversation; never persisted. */
   sessionWindows: Record<string, DraftOwner>
   /** Only drafts created by this connection are eligible for automatic cleanup. */
@@ -84,11 +89,17 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private readonly configOwners = new Map<string, DraftOwner>()
   /** Which slot is opening a session, so its replay resolves that slot's model once the replay has started. */
   private readonly openingOwners = new Map<string, DraftOwner>()
+  private readonly accountRevocations = new Map<string, number>()
+  private readonly accountRecoveries = new Map<string, number>()
   private readonly resolveModelOption: ClientOptions["resolveModel"]
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
     const { resolveModel, ...base } = options
-    super(openPort, { info: { name: "alwith-u", version: "0.1.0" }, ...base }, { sessionWindows: {}, draftSessions: {} })
+    super(
+      openPort,
+      { info: { name: "alwith-u", version: "0.1.0" }, ...base },
+      { sessionWindows: {}, draftSessions: {}, accountModelRecovery: {} }
+    )
     this.resolveModelOption = resolveModel
   }
 
@@ -164,7 +175,10 @@ export class CodexClient extends CodexAcpClient<AppState> {
     operation: SessionOperation,
     options: SessionRequestOptions
   ): ReturnType<CodexAcpClient<AppState>["requestContext"]> {
-    if (operation.kind !== "resume" || (options.meta?.["alwith"] as { model?: unknown } | undefined)?.model !== undefined)
+    if (
+      operation.kind !== "resume" ||
+      (options.meta?.["alwith"] as { model?: unknown } | undefined)?.model !== undefined
+    )
       return super.requestContext(cwd, operation, options)
     const id = operation.sessionId
     const owner = this.openingOwners.get(id)
@@ -174,6 +188,87 @@ export class CodexClient extends CodexAcpClient<AppState> {
         ? await this.resolveModel(this.slotModels[owner])
         : ((session ? selectedModel(session.configOptions) : null) ?? this.gatewayModels.get(id) ?? null)
     return super.requestContext(cwd, operation, { ...options, meta: mergeMeta(modelHint(model), options.meta) })
+  }
+
+  protected override async recoverReplay(
+    id: string,
+    cwd: string,
+    error: unknown,
+    scope: ReplayScope
+  ): Promise<boolean> {
+    const message = error instanceof Error ? error.message : String(error)
+    if (
+      !message.includes("The ALwith account changed") &&
+      !message.includes("The selected ALwith account model is unavailable")
+    )
+      return super.recoverReplay(id, cwd, error, scope)
+    await super.afterResume(id, cwd, scope)
+    scope.signal.throwIfAborted()
+    if (!this.current(scope) || !this.holds(id)) return true
+    this.accountRevocations.set(id, (this.accountRevocations.get(id) ?? 0) + 1)
+    this.setApp((state) => ({ accountModelRecovery: { ...state.accountModelRecovery, [id]: true } }))
+    this.publishSession({
+      ...this.session(id),
+      cwd,
+      attached: false,
+      restoring: false,
+      readOnly: true,
+      error: { stopReason: ACCOUNT_MODEL_REQUIRED, error: null, meta: null }
+    })
+    return true
+  }
+
+  markAccountModelsUnavailable(ids: readonly string[]): void {
+    this.setApp((state) => ({
+      accountModelRecovery: { ...state.accountModelRecovery, ...Object.fromEntries(ids.map((id) => [id, true])) }
+    }))
+    for (const id of ids) {
+      this.accountRevocations.set(id, (this.accountRevocations.get(id) ?? 0) + 1)
+      if (!this.holds(id)) continue
+      this.publishSession({
+        ...this.session(id),
+        attached: false,
+        readOnly: true,
+        error: { stopReason: ACCOUNT_MODEL_REQUIRED, error: null, meta: null }
+      })
+    }
+  }
+
+  /** Explicit recovery is separate from the automatic model hints used by normal history replay. */
+  async resumeAccountModel(id: string, model: string | null): Promise<void> {
+    const session = this.session(id)
+    if (!this.state.accountModelRecovery[id]) throw new Error("Account model recovery is not required")
+    const revision = this.accountRevocations.get(id) ?? 0
+    let selected = model === null ? null : await this.resolveModel(model)
+    if (selected === null) {
+      // Ask the engine for its current native default; never hard-code a model or inherit a gateway.
+      const draft = await super.newSession(session.cwd, { draft: true })
+      try {
+        selected = selectedModel(this.session(draft).configOptions)
+        if (!selected || selected.startsWith("gateway:")) throw new Error("Native model is unavailable")
+      } finally {
+        await super.discardDraft(draft)
+      }
+    }
+    if ((this.accountRevocations.get(id) ?? 0) !== revision)
+      throw new Error("ALwith account changed during model selection")
+    this.accountRecoveries.set(id, revision)
+    try {
+      await this.replay(id, session.cwd, { meta: { alwith: { model: selected, accountModelSelection: true } } })
+    } finally {
+      this.accountRecoveries.delete(id)
+    }
+    if ((this.accountRevocations.get(id) ?? 0) !== revision)
+      throw new Error("ALwith account changed during model selection")
+    const resumed = this.session(id)
+    if (!resumed.attached || resumed.readOnly)
+      throw new Error(resumed.error?.error?.message ?? "Cannot resume this conversation")
+    this.accountRevocations.delete(id)
+    this.setApp((state) => {
+      const { [id]: _revoked, ...accountModelRecovery } = state.accountModelRecovery
+      return { accountModelRecovery }
+    })
+    this.confirmModel(this.state.sessionWindows[id] ?? "main", resumed)
   }
 
   override setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
@@ -299,10 +394,13 @@ export class CodexClient extends CodexAcpClient<AppState> {
   protected override onSessionDropped(id: string): void {
     super.onSessionDropped(id)
     this.gatewayModels.delete(id)
+    this.accountRevocations.delete(id)
+    this.accountRecoveries.delete(id)
     this.setApp((state) => {
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       const { [id]: _window, ...sessionWindows } = state.sessionWindows
-      return { draftSessions, sessionWindows }
+      const { [id]: _revoked, ...accountModelRecovery } = state.accountModelRecovery
+      return { draftSessions, sessionWindows, accountModelRecovery }
     })
   }
 
@@ -310,7 +408,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   /** `fork(id, cwd, lastTurnId)` forks at a native turn; the options form is the base client's. */
   override fork(id: string, cwd: string, lastTurnId?: string | ForkOptions): Promise<string> {
-    const options: ForkOptions = typeof lastTurnId === "object" ? lastTurnId : lastTurnId === undefined ? {} : { lastTurnId }
+    const options: ForkOptions =
+      typeof lastTurnId === "object" ? lastTurnId : lastTurnId === undefined ? {} : { lastTurnId }
     return super.fork(id, cwd, options)
   }
 
@@ -318,7 +417,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
   protected override async forkInternal(id: string, cwd: string, options: ForkOptions): Promise<string> {
     const indexes = await Promise.all([this.indexSessions(), this.indexSessions(undefined, true)])
     const known = [...indexes.flat(), ...this.state.sessionList, ...this.state.archivedSessions]
-    const sourceTitle = (this.holds(id) ? this.session(id).title : null) ?? known.find((item) => item.sessionId === id)?.title
+    const sourceTitle =
+      (this.holds(id) ? this.session(id).title : null) ?? known.find((item) => item.sessionId === id)?.title
     const forked = await super.forkInternal(id, cwd, {
       ...options,
       meta: mergeMeta(modelHint(this.gatewayModels.get(id) ?? null), options.meta)
@@ -342,6 +442,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   protected override onReplayed(id: string, response: acp.ResumeSessionResponse): void {
     super.onReplayed(id, response)
+    const revoked = this.accountRevocations.get(id)
+    if (revoked !== undefined && this.accountRecoveries.get(id) !== revoked) this.markAccountModelsUnavailable([id])
     this.noteModel(this.session(id))
   }
 
@@ -360,6 +462,15 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   protected override onSessionChanged(session: Session): void {
     super.onSessionChanged(session)
+    const revoked = this.accountRevocations.get(session.id)
+    if (
+      revoked !== undefined &&
+      this.accountRecoveries.get(session.id) !== revoked &&
+      (session.attached || !session.readOnly)
+    ) {
+      this.publishSession({ ...session, attached: false, readOnly: true })
+      return
+    }
     this.followModel("main", session)
     this.followModel("chat", session)
   }

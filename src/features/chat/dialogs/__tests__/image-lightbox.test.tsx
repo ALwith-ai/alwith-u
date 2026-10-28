@@ -16,7 +16,7 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await impo
 
 import { initI18n } from "@/lib/i18n"
 
-import { ImageLightbox, openImageLightbox } from "../image-lightbox"
+import { ImageLightbox, openImageGallery, openImageLightbox } from "../image-lightbox"
 
 await initI18n("en")
 const mounted: Array<ReturnType<typeof render>> = []
@@ -113,5 +113,70 @@ test("inline-only images disable local opening and reset zoom when another image
   act(() => openImageLightbox("data:image/png;base64,bmV4dA==", "Next"))
   expect(view.getByRole("button", { name: "Zoom" }).textContent).toContain("Fit")
   fireEvent.click(view.getByRole("button", { name: "Close" }))
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+})
+
+test("image editing stays scoped to the source session when another conversation is mounted", async () => {
+  const wrong = vi.fn().mockResolvedValue(undefined)
+  const owner = vi.fn().mockResolvedValue(undefined)
+  const view = render(
+    <>
+      <ImageLightbox sessionId="other" onSend={wrong} />
+      <ImageLightbox sessionId="source" onSend={owner} />
+    </>
+  )
+  mounted.push(view)
+  act(() => openImageLightbox("data:image/png;base64,b3JpZw==", "Original", undefined, "source"))
+  expect(view.getAllByRole("dialog")).toHaveLength(1)
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  await waitFor(() => expect(owner).toHaveBeenCalledOnce())
+  expect(wrong).not.toHaveBeenCalled()
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+})
+
+test("pending image edits block keyboard navigation and Escape until acceptance", async () => {
+  const pending = Promise.withResolvers<void>()
+  const send = vi.fn(() => pending.promise)
+  const view = render(<ImageLightbox sessionId="source" onSend={send} />)
+  mounted.push(view)
+  act(() =>
+    openImageGallery(
+      [
+        { src: "data:image/png;base64,b3JpZw==", alt: "First" },
+        { src: "data:image/png;base64,bmV4dA==", alt: "Second" }
+      ],
+      0,
+      "source"
+    )
+  )
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  const dialog = view.getByRole("dialog")
+  fireEvent.keyDown(dialog, { key: "ArrowRight" })
+  fireEvent.keyDown(dialog, { key: "Escape" })
+  expect(view.getByRole("img", { name: "First" })).toBeDefined()
+  act(() => openImageLightbox("data:image/png;base64,bmV4dA==", "Replacement", undefined, "source"))
+  expect(view.getByRole("img", { name: "First" })).toBeDefined()
+  pending.reject(new Error("Try again"))
+  await view.findByText("Try again")
+  expect(view.getByRole("button", { name: "Remove background" })).not.toBeDisabled()
+  fireEvent.keyDown(dialog, { key: "ArrowRight" })
+  expect(view.getByRole("img", { name: "Second" })).toBeDefined()
+  fireEvent.click(view.getByRole("button", { name: "Close" }))
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+})
+
+test("a pending edit remains locked after its source conversation is remounted", async () => {
+  const pending = Promise.withResolvers<void>()
+  const send = vi.fn(() => pending.promise)
+  const view = render(<ImageLightbox sessionId="source" onSend={send} />)
+  mounted.push(view)
+  act(() => openImageLightbox("data:image/png;base64,b3JpZw==", "Original", undefined, "source"))
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  view.rerender(<ImageLightbox sessionId="other" onSend={send} />)
+  view.rerender(<ImageLightbox sessionId="source" onSend={send} />)
+  expect(view.getByRole("button", { name: "Remove background" })).toBeDisabled()
+  expect(view.getByRole("button", { name: "Close" })).toBeDisabled()
+  expect(send).toHaveBeenCalledOnce()
+  await act(async () => pending.resolve())
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })

@@ -56,7 +56,6 @@ export function DraftModelSelect({
       modelGroups={catalog}
       header={{ name: t("chat.model.model"), action: <ModelSettingsAction /> }}
       compactCatalog
-      unavailableEffort={{ name: "Effort", label: t("chat.model.unsupported") }}
       booleanOptions={[
         {
           id: "fast-mode",

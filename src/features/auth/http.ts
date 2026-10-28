@@ -91,6 +91,29 @@ export function createAuthTransport(host: Host) {
   }
   return {
     request,
+    /** Native operations return only sanitized data; share account refresh and generation checks. */
+    async authenticated<T>(operation: (accessToken: string) => Promise<T>): Promise<T> {
+      const expected = revision
+      const token = await host.storage.tokenStorage.getAccess()
+      current(expected)
+      if (!token) throw new UnauthorizedError("Sign in before loading account providers")
+      try {
+        const result = await operation(token)
+        current(expected)
+        return result
+      } catch (error) {
+        current(expected)
+        const status = typeof error === "object" && error !== null && "status" in error ? error.status : null
+        if (status !== 401 && status !== 403) throw error
+        if ((await host.storage.tokenStorage.getAccess()) === token) await refresh(expected)
+        current(expected)
+        const next = await host.storage.tokenStorage.getAccess()
+        current(expected)
+        const result = await operation(next)
+        current(expected)
+        return result
+      }
+    },
     // Wait for an already-started save before replacing/clearing the account.
     async invalidate() {
       revision++

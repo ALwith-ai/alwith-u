@@ -349,6 +349,7 @@ test("unsupported fast mode stays visible and disabled", async () => {
   expect(controls.setConfig).not.toHaveBeenCalled()
   expect(view.getByRole("menuitemcheckbox", { name: "Fast mode" })).not.toBeChecked()
   expect(view.getByRole("menuitemradio", { name: "3.8 Flash" })).toBeVisible()
+  expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
 })
 
 test.each([true, false])(
@@ -391,6 +392,11 @@ test.each([true, false])(
     expect(slider).toHaveAttribute("aria-valuetext", "Medium")
     await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
     expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "effort", "high")
+    view.rerender(<ChatModelMenu sessionId="owner" options={options(providerModel)} disabled={false} />)
+    expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
+    expect(view.queryByRole("slider", { name: "Effort" })).not.toBeInTheDocument()
+    view.rerender(<ChatModelMenu sessionId="owner" options={config} disabled={false} />)
+    expect(view.getByRole("slider", { name: "Effort" })).toHaveAttribute("aria-valuetext", "Medium")
   }
 )
 
@@ -402,4 +408,25 @@ test("the more models footer opens provider configuration and reports opening fa
   expect(controls.openSettings).toHaveBeenCalledWith("provider")
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("Settings unavailable"))
   expect(controls.setConfig).not.toHaveBeenCalled()
+})
+
+test("source-configured ALwith names preserve identity and unknown account labels", () => {
+  const id = "gateway:litellm:deepseek-V4.1-flash"
+  const groups = [
+    {
+      id: "litellm",
+      name: "ALwith",
+      models: [
+        { api_id: id, label: "Account label" },
+        { api_id: "gateway:litellm:unknown", label: "New account model" }
+      ]
+    }
+  ]
+  const [group] = presentModelCatalog(groups)
+  expect(group.models[0].api_id).toBe(id)
+  expect(group.models[0].label).toBe("DeepSeek Flash")
+  expect(modelTriggerLabel(group.models[0])).toBe("Flash")
+  expect(group.models[1].label).toBe("New account model")
+  expect(modelTriggerLabel(group.models[1])).toBe("New account model")
+  expect(groups[0].models[0].label).toBe("Account label")
 })

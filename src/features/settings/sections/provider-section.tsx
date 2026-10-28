@@ -1,6 +1,7 @@
 // Model providers, reduced from ALwith Desktop's API tab: compact provider pills choose one
 // configuration panel. A saved key puts that provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
+import { CardSendIcon } from "@solar-icons/react/line-duotone/card-send"
 import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -22,6 +23,8 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
+import { openPlatformTopUp } from "@/features/auth/open-account"
+import { requestAccountProviderRefresh } from "@/features/auth/store"
 import { openExternal } from "@/lib/open"
 import type {
   CustomProvider,
@@ -169,6 +172,35 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-6">
       <CodexProviderSection />
+      <SettingGroup>
+        <div className="space-y-3 rounded-xl border p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-medium">ALwith</h3>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-primary hover:text-primary/80"
+              aria-label={t("provider.managed.topUp")}
+              title={t("provider.managed.topUp")}
+              onClick={() => {
+                void openPlatformTopUp().catch((error: unknown) => toast.error(describe(error)))
+              }}
+            >
+              <CardSendIcon className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("provider.managed.description")}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void requestAccountProviderRefresh().catch((error: unknown) => toast.error(describe(error)))
+            }}
+          >
+            {t("provider.managed.refresh")}
+          </Button>
+        </div>
+      </SettingGroup>
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
       {snapshot && snapshot.status !== "applied" && (

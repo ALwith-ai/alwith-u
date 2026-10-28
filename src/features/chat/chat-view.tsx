@@ -46,7 +46,7 @@ function Conversation({
   rootRef
 }: ChatViewProps & { rootRef: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation()
-  const host = useChatHost()
+  const host = useChatHost(session.id)
   const timeline = useTimelineSlots()
   const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
   return (
@@ -92,7 +92,16 @@ function Conversation({
       composer={<ChatComposer session={session} voiceResume={voiceResume} />}
     >
       <FilePreviewModal />
-      <ImageLightbox />
+      <ImageLightbox
+        sessionId={session.id}
+        onSend={async (prompt) => {
+          const current = client.state.sessions[session.id]
+          if (client.state.connection !== "ready" || !current?.attached || current.restoring || current.readOnly) {
+            throw new Error(t("chat.image.edit.notReady"))
+          }
+          await client.prompt(session.id, prompt)
+        }}
+      />
     </ConversationView>
   )
 }

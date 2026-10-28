@@ -36,8 +36,8 @@ function reportError(error: unknown) {
 }
 
 /** U's host for the package conversation: activity host, theme, tool labels, files and errors. */
-export function useChatHost(): ConversationHost {
-  const activity = useChatActivityHost()
+export function useChatHost(sessionId?: string): ConversationHost {
+  const activity = useChatActivityHost(sessionId)
   const { t } = useTranslation()
   const { resolvedTheme } = useTheme()
   return useMemo(
