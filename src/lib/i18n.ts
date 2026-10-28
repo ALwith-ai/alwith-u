@@ -76,7 +76,7 @@ export function initI18n(language: string | null): Promise<unknown> {
         translation: translations[code],
         gamepad: gamepadResources[code],
         alwithChat: chatLocales[code],
-        ...(code === "en" || code === "zh-CN" ? vibemonLocales[code] : {})
+        ...vibemonLocales[code]
       }
     ])
   )

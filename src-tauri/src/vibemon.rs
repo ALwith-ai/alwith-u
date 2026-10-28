@@ -16,6 +16,7 @@ pub struct BubblePresentation(Mutex<BubbleState>);
 struct BubbleState {
     requested: bool,
     ready: bool,
+    focus_requested: bool,
     generation: u64,
 }
 
@@ -23,6 +24,29 @@ impl BubbleState {
     fn visible(&self) -> bool {
         self.requested && self.ready
     }
+
+    fn request(&mut self, visible: bool, focus: bool) {
+        self.requested = visible;
+        self.focus_requested = visible && (self.focus_requested || focus);
+    }
+
+    fn take_focus(&mut self) -> bool {
+        if !self.visible() {
+            return false;
+        }
+        std::mem::take(&mut self.focus_requested)
+    }
+}
+
+async fn focus_requested_bubble(window: &WebviewWindow) -> Result<(), String> {
+    if !window.is_visible().map_err(|e| e.to_string())? {
+        return Ok(());
+    }
+    let focus = window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").take_focus();
+    if focus {
+        window_action(window, "focus", None, Value::Null).await?;
+    }
+    Ok(())
 }
 
 /// A WebView navigation drops React without running its effect cleanups. Remove the
@@ -32,6 +56,7 @@ pub fn reset_bubble_on_navigation(window: WebviewWindow) {
         let state = window.state::<BubblePresentation>();
         let mut state = state.0.lock().expect("bubble presentation lock");
         state.ready = false;
+        state.focus_requested = false;
         state.generation += 1;
     }
     tauri::async_runtime::spawn(async move {
@@ -98,6 +123,29 @@ mod resource_tests {
         bubble.requested = false;
         bubble.ready = true;
         assert!(!bubble.visible());
+    }
+
+    #[test]
+    fn user_focus_waits_for_readiness_and_is_consumed_once() {
+        let mut bubble = BubbleState::default();
+        bubble.request(true, true);
+        assert!(!bubble.take_focus());
+        bubble.request(true, false);
+        bubble.ready = true;
+        assert!(bubble.take_focus());
+        assert!(!bubble.take_focus());
+    }
+
+    #[test]
+    fn background_updates_and_closed_bubbles_do_not_take_focus() {
+        let mut bubble = BubbleState { ready: true, ..BubbleState::default() };
+        bubble.request(true, false);
+        assert!(!bubble.take_focus());
+        bubble.request(true, true);
+        bubble.request(false, false);
+        assert!(!bubble.take_focus());
+        bubble.request(true, false);
+        assert!(!bubble.take_focus());
     }
 
     #[test]
@@ -231,6 +279,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 .transparent(true)
                 .visible(false)
                 .focused(false)
+                .accept_first_mouse(true)
                 .resizable(false)
                 .always_on_top(true)
                 .skip_taskbar(true)
@@ -260,7 +309,12 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if window.label() != "vibemon" || !(32. ..=1024.).contains(&size) {
                 return Err("Invalid pet size".into());
             }
-            window.set_size(LogicalSize::new(size, size)).map_err(|e| e.to_string())?;
+            let bottom_inset =
+                payload.get("bottomInset").map_or(Ok(0.), |value| value.as_f64().ok_or("Invalid pet bottom inset"))?;
+            if !(0. ..=64.).contains(&bottom_inset) {
+                return Err("Invalid pet bottom inset".into());
+            }
+            window.set_size(LogicalSize::new(size, size + bottom_inset)).map_err(|e| e.to_string())?;
             Ok(Value::Null)
         }
         "move" => {
@@ -286,7 +340,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Invalid overlay caller".into());
             }
             if action == "hide" && window.label() == "bubble-menu-vibemon" {
-                window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
+                window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").request(false, false);
             }
             let parent = if action == "drag" { app.get_webview_window("bubble-menu-vibemon") } else { None };
             window_action(&window, &action, parent, Value::Null).await?;
@@ -299,6 +353,16 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             }
             Ok(Value::Null)
         }
+        "focus-bubble" => {
+            let bubble = app.get_webview_window("bubble-menu-vibemon").ok_or("Pet bubble unavailable")?;
+            {
+                let state = bubble.state::<BubblePresentation>();
+                let mut state = state.0.lock().expect("bubble presentation lock");
+                state.focus_requested = true;
+            }
+            focus_requested_bubble(&bubble).await?;
+            Ok(Value::Null)
+        }
         "bubble" => {
             if window.label() != "vibemon" {
                 return Err("Only pet controls the bubble".into());
@@ -307,14 +371,22 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 let visible = {
                     let state = window.state::<BubblePresentation>();
                     let mut state = state.0.lock().expect("bubble presentation lock");
-                    state.requested = payload["visible"].as_bool().ok_or("Missing visibility")?;
+                    let visible = payload["visible"].as_bool().ok_or("Missing visibility")?;
+                    let focus = match payload.get("focus") {
+                        None => false,
+                        Some(Value::Bool(value)) => *value,
+                        Some(_) => return Err("Invalid bubble focus intent".into()),
+                    };
+                    state.request(visible, focus);
                     state.visible()
                 };
-                if visible {
+                let shown = bubble.is_visible().map_err(|e| e.to_string())?;
+                if visible && !shown {
                     window_action(&bubble, "bubble", Some(window.clone()), Value::Null).await?;
-                } else {
+                } else if !visible && shown {
                     window_action(&bubble, "hide", None, Value::Null).await?;
                 }
+                focus_requested_bubble(&bubble).await?;
             }
             Ok(Value::Null)
         }
@@ -330,7 +402,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if window.is_visible().map_err(|e| e.to_string())? {
                 window_action(
                     &window,
-                    "bubble",
+                    "bubble-resize",
                     app.get_webview_window("vibemon"),
                     json!({"width":width,"height":height}),
                 )
@@ -346,7 +418,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             }
             let enabled = payload["enabled"].as_bool().ok_or("Missing pet blur state")?;
             let radius = payload["radius"].as_u64().ok_or("Missing pet blur radius")?;
-            if !(1..=20).contains(&radius) || enabled != payload["path"].is_array() {
+            if radius > 20 || enabled != payload["path"].is_array() {
                 return Err("Invalid pet backdrop".into());
             }
             let generation =
@@ -361,18 +433,20 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 state.ready = enabled;
                 state.visible()
             };
-            if visible {
+            let shown = window.is_visible().map_err(|e| e.to_string())?;
+            if visible && !shown {
                 window_action(&window, "bubble", app.get_webview_window("vibemon"), Value::Null).await?;
-            } else {
+            } else if !visible && shown {
                 window_action(&window, "hide", None, Value::Null).await?;
             }
+            focus_requested_bubble(&window).await?;
             Ok(Value::Null)
         }
         "bubble-close" => {
             if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon" | "main") {
                 return Err("Invalid bubble caller".into());
             }
-            window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").requested = false;
+            window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").request(false, false);
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 window_action(&bubble, "hide", None, Value::Null).await?;
             }

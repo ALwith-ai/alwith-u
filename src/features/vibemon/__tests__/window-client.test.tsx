@@ -33,7 +33,7 @@ test("native window moves reach the shared drag controller without pointer event
   expect(stop).toHaveBeenCalledTimes(1)
 })
 
-test("native context menus read the current language each time they open", async () => {
+test("native context menus use the dedicated return-to-lounge label in the current language", async () => {
   const requests: unknown[] = []
   mockIPC((command, args) => {
     expect(command).toBe("vibemon_window")

@@ -21,13 +21,26 @@ test("dots navigate actual screens and expose the selected page", () => {
   expect(buttons[0]).toHaveAttribute("aria-current", "page")
   expect(buttons[0]).toHaveFocus()
 })
-test("a single screen has no redundant navigation", () => {
+test("a single screen hides pagination", () => {
   const view = render(
     <CanvasDots
       count={1}
       selected={0}
       onSelect={() => {
         throw new Error("Unexpected navigation")
+      }}
+    />
+  )
+  expect(view.queryByRole("navigation")).toBeNull()
+})
+
+test("the leading screen hides pagination for the workspace screens", () => {
+  const view = render(
+    <CanvasDots
+      count={3}
+      selected={-1}
+      onSelect={() => {
+        throw new Error("Hidden navigation")
       }}
     />
   )

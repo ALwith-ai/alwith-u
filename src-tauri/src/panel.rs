@@ -133,6 +133,7 @@ pub fn restore(window: &WebviewWindow) -> Result<(), String> {
         window.app_handle().get_webview_panel(window.label()).expect("Overlay must be initialized before display");
     let is_pet = window.label() == "vibemon";
     let window = panel.as_panel();
+    window.setAcceptsMouseMovedEvents(true);
     {
         let first_responder = window.firstResponder();
         // Go through nspanel: a bare setStyleMask does not sync WindowServer's activation-prevention tag.

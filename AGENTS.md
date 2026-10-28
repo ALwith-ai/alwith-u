@@ -138,3 +138,8 @@ Windows and Linux distributions support x64 only; do not build, stage, or publis
 
 - Keep the shared dependencies updated by this migration on the `0.5.x` release line. Use patch updates only; do not publish `0.6`.
 - Origin: explicit user instruction (2026-10-28).
+
+## Vibémon context menu
+
+- The pet context menu must use `pet.recall`: "叫回休息室" / "Return to lounge". Keep this distinct from the account menu's show/hide labels; do not replace it with `pet.hide`.
+- Origin: explicit user instruction (2026-10-28).

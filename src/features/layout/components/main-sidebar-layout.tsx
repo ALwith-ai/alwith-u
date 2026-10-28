@@ -226,8 +226,8 @@ export function MainSidebarLayout({
       </CanvasContext.Provider>
       <footer className="main-window-statusbar">
         <CanvasDots
-          count={canvas.geometry.stops.length - 1}
-          selected={canvas.selected - 1}
+          count={canvas.geometry.regions.filter((region) => region === "chat" || region === "preview").length}
+          selected={Math.min(canvas.selected - 1, canvas.geometry.split ? 1 : 0)}
           onSelect={(index) => canvas.select(index + 1)}
         />
         {statusBar}

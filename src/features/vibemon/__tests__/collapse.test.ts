@@ -16,7 +16,6 @@ function fixture(overrides: Partial<PetCollapseHost> = {}) {
     hasPets: vi.fn(() => Promise.resolve(true)),
     showPet: step("show"),
     bindSession: step("bind"),
-    openBubble: step("bubble"),
     hideChat: step("hide"),
     restoreChat: step("restore"),
     ...overrides
@@ -27,7 +26,7 @@ function fixture(overrides: Partial<PetCollapseHost> = {}) {
 test("collapse only hides chat after the pet, binding and bubble are ready", async () => {
   const { host, calls } = fixture()
   expect(await collapseToPet(host)).toEqual({ type: "shown" })
-  expect(calls).toEqual(["show", "bind", "bubble", "hide"])
+  expect(calls).toEqual(["show", "bind", "hide"])
   expect(host.hasPets).not.toHaveBeenCalled()
 })
 
@@ -53,7 +52,7 @@ test("inventory errors remain errors and do not become an empty collection", asy
   expect(calls).toEqual([])
 })
 
-test.each(["showPet", "bindSession", "openBubble"] as const)("a %s failure keeps chat visible", async (key) => {
+test.each(["showPet", "bindSession"] as const)("a %s failure keeps chat visible", async (key) => {
   const { host } = fixture({
     [key]: () => {
       return Promise.try(() => {

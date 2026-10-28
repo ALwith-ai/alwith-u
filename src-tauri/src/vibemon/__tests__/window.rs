@@ -8,6 +8,8 @@ fn backdrop_rejects_invalid_radius_role_and_nonfinite_coordinates() {
         serde_json::json!({"action":"blur","handle":1,"role":"bubble","radius":20,"path":[{"kind":"move","x":0,"y":0},{"kind":"close"}]}),
     );
     assert!(validate(&backdrop).is_ok());
+    backdrop.radius = Some(0);
+    assert!(validate(&backdrop).is_ok());
     backdrop.radius = Some(21);
     assert!(validate(&backdrop).is_err());
     backdrop.radius = None;

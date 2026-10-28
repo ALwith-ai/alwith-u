@@ -1,32 +1,33 @@
+import { runStateSource } from "@alwith/api/client"
 import {
   configureVibemon,
   getVibemonState,
   initializeSettings,
   observeResourceSync,
   type PetBinding,
+  type PetPanelLevel,
   type PetWindowHost,
   refreshSettings,
   sameBinding,
   syncVibemonResources,
   updateVibemonState
 } from "@alwith/module-auth/pets/core"
+import { exportDraft } from "@alwith/module-chat/conversation"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { LogicalPosition, PhysicalPosition } from "@tauri-apps/api/window"
+import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { LogicalPosition, LogicalSize, PhysicalPosition } from "@tauri-apps/api/window"
 import { info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 
-import { runStateSource } from "@alwith/api/client"
 import { commands } from "@/bindings"
 import { openPlatformAccount } from "@/features/auth/open-account"
 import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
-import { exportDraft } from "@alwith/module-chat/conversation"
 import { logBackgroundError } from "@/lib/background-errors"
-import { openChatWindow, syncChatWindowSurface } from "@/lib/chat-window"
-import { client } from "@/lib/client"
+import { focusChatSession, openChatWindow, requestChatSurface, syncChatWindowSurface } from "@/lib/chat-window"
+import { client, markRead } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 import { collapseToPet } from "./collapse"
@@ -68,20 +69,44 @@ async function start() {
     prompt: async (id, content) => {
       await client.prompt(id, content)
     },
+    cancel: (id) => client.cancel(id),
+    markRead,
     respond: (token, answer) => client.respond(token, answer),
     async openChat(id, windowLabel) {
-      if (windowLabel === "main") {
-        await commands.showMainWindow()
-      } else if (id === null || (await WebviewWindow.getByLabel("chat")) !== null) await openChatWindow()
-      else {
+      if (id !== null) {
         const session = client.state.sessions[id]
-        if (session === undefined) throw new Error("Open this conversation from the thread list")
-        await openChatWindow({ sessionId: id, cwd: session.cwd, draft: await exportDraft(id) })
+        const run = client.state.runStates[id]
+        const cwd = session?.cwd ?? run?.cwd
+        if (cwd === undefined || cwd === null) throw new Error("Conversation directory unavailable")
+        if (windowLabel === "main") {
+          await requestChatSurface("main", {
+            type: "present",
+            transfer: { sessionId: id, cwd, draft: await exportDraft(id) }
+          })
+        } else if (await WebviewWindow.getByLabel("chat")) await focusChatSession(id)
+        else await openChatWindow({ sessionId: id, cwd, draft: await exportDraft(id) })
+      } else {
+        await openChatWindow()
+        const chat = await WebviewWindow.getByLabel("chat")
+        if (chat === null) throw new Error("Chat window unavailable")
+        await chat.setSize(new LogicalSize(560, 640))
       }
-      if (await WebviewWindow.getByLabel("vibemon")) await command("suspend", "")
+      if (windowLabel === "chat" && (await WebviewWindow.getByLabel("vibemon"))) await command("suspend", "")
     }
   })
   setMainSurface = (value) => owner.surface("main", value)
+  const mainWindow = getCurrentWebviewWindow()
+  let minimizedRevision = 0
+  const refreshMinimized = async () => {
+    const revision = ++minimizedRevision
+    const minimized = await mainWindow.isMinimized()
+    if (revision === minimizedRevision) await owner.minimized(minimized)
+  }
+  await Promise.all([
+    mainWindow.onResized(() => void refreshMinimized().catch(report)),
+    mainWindow.onFocusChanged(() => void refreshMinimized().catch(report))
+  ])
+  await refreshMinimized()
   let queue: Promise<unknown> = Promise.resolve()
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
     const result = queue.then(work)
@@ -241,6 +266,17 @@ async function start() {
       stop()
     }
   }
+  async function showPetWithoutChat(options: { trusted?: boolean; dropCenter?: { x: number; y: number } } = {}) {
+    const result = await ensurePet(options)
+    if (result === "shown") {
+      const chat = await WebviewWindow.getByLabel("chat")
+      if (chat !== null) {
+        await chat.hide()
+        await syncChatWindowSurface()
+      }
+    }
+    return result
+  }
   async function closePet() {
     if (await WebviewWindow.getByLabel("vibemon")) await command("close", (await getVibemonState()).pet)
     // Keep the suspended renderer for the next explicit presentation.
@@ -248,7 +284,7 @@ async function start() {
   }
   const windows: PetWindowHost = {
     ...createPetWindowClient(),
-    openPet: (options = {}) => serialize(() => ensurePet(options)),
+    openPet: (options = {}) => serialize(() => showPetWithoutChat(options)),
     closePet: () => serialize(closePet),
     openRecharge: openPlatformAccount
   }
@@ -289,6 +325,7 @@ async function start() {
       visible: boolean
       petId: string
       dropCenter?: { x: number; y: number }
+      level: PetPanelLevel
       trusted?: boolean
     }
     switch (request.action) {
@@ -298,9 +335,16 @@ async function start() {
       case "inspect":
         await owner.refresh()
         return owner.snapshot()
+      case "task-panel":
+        return owner.panel(payload.level)
+      case "cancel-task":
+        return owner.cancel(payload.binding, payload.requestId)
+      case "dismiss-task":
+        return owner.dismiss(payload.binding)
       case "send":
         return owner.send(payload.binding, payload.requestId, payload.text)
       case "answer":
+        await refreshMinimized()
         return owner.answer(payload.binding, payload.requestId, payload.token, payload.optionId)
       case "open-chat":
         return owner.openChat(payload.binding)
@@ -338,7 +382,7 @@ async function start() {
           const center = payload.dropCenter
           if (center !== undefined && (!Number.isFinite(center.x) || !Number.isFinite(center.y)))
             throw new Error("Invalid pet drop position")
-          return ensurePet({ trusted: true, dropCenter: center })
+          return showPetWithoutChat({ trusted: true, dropCenter: center })
         })
       case "open-pet":
         return windows.openPet({ trusted: payload.trusted === true })
@@ -349,6 +393,7 @@ async function start() {
       case "hide-pet":
         return serialize(async () => {
           if (await WebviewWindow.getByLabel("vibemon")) await command("suspend", "")
+          await updateVibemonState({ enabled: false })
         })
       case "restore-pet":
         return serialize(async () => {
@@ -376,11 +421,11 @@ async function start() {
                 throw new Error("Desktop pets are unavailable on this platform")
             },
             bindSession: () => owner.collapse(payload.sessionId),
-            openBubble: async () => command("bubble-open", (await getVibemonState()).pet),
             async hideChat() {
               await chat.hide()
               await syncChatWindowSurface()
               await owner.surface("chat", { sessionId: payload.sessionId, visible: false })
+              await petWindowCall("focus-bubble")
             },
             restoreChat: () => openChatWindow()
           })
@@ -408,7 +453,7 @@ async function start() {
     void serialize(async () => {
       const pet = await WebviewWindow.getByLabel("vibemon")
       if (pet !== null && (await pet.isVisible())) await closePet()
-      else await ensurePet()
+      else await showPetWithoutChat()
     })
       .catch(async (error) => {
         await commands.showMainWindow()
@@ -431,7 +476,7 @@ async function start() {
     let restored = false
     try {
       await restoreInBackground(async () => {
-        restored = await restorePetOnStartup(ensurePet, currentAccount)
+        restored = await restorePetOnStartup(showPetWithoutChat, currentAccount)
       })
     } finally {
       await commands.autostartComplete({ restored })

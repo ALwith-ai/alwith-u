@@ -14,7 +14,7 @@ export function CanvasDots({
 }) {
   const { t, i18n } = useTranslation()
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
-  if (count <= 1) return null
+  if (count <= 1 || selected < 0) return null
   return (
     <nav className="canvas-dots flex shrink-0 items-center justify-center" aria-label={t("canvas.navigation")}>
       {Array.from({ length: count }, (_, index) => (
