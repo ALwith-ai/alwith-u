@@ -57,21 +57,6 @@ function createHost(
   }
   const historyAbort = new AbortController()
   binding.own(() => historyAbort.abort())
-  const historyErrors = new Set<string>()
-  const readHistory = async <T>(read: () => Promise<T>): Promise<T> => {
-    try {
-      return await read()
-    } catch (error) {
-      if (!binding.cancellation.aborted) {
-        const message = error instanceof Error ? error.message : String(error)
-        if (!historyErrors.has(message)) {
-          historyErrors.add(message)
-          notices.show(`会话归档未完成：${message}`, 8000)
-        }
-      }
-      throw error
-    }
-  }
   return {
     ...(imported && id === "yup-kb"
       ? {
@@ -114,24 +99,17 @@ function createHost(
         : {}),
       history: primary
         ? {
-            list: () =>
-              readHistory(() => {
-                if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
-                return client.listHistorySessions(() => {
+            // Browsing history is independent of which service owns archival.
+            // The caller owns its error UI; background reads must not create global toasts.
+            list: () => client.listHistorySessions(() => binding.cancellation.throwIfAborted()),
+            read: (sessionId) =>
+              client.exportHistory(
+                sessionId,
+                () => {
                   binding.cancellation.throwIfAborted()
                   if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
-                })
-              }),
-            read: (sessionId) =>
-              readHistory(() =>
-                client.exportHistory(
-                  sessionId,
-                  () => {
-                    binding.cancellation.throwIfAborted()
-                    if (imported && id === "yup-kb") assertPluginSessionArchiveAllowed()
-                  },
-                  historyAbort.signal
-                )
+                },
+                historyAbort.signal
               ),
             check: () => binding.cancellation.throwIfAborted()
           }

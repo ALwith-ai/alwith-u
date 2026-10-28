@@ -16,7 +16,7 @@ afterEach(() => {
   clearMocks()
 })
 
-test("history failures surface once without a compatibility notice on opening or enabling", async () => {
+test("background history failures propagate without global archival notices", async () => {
   setDriveArchiveOwner(false)
   mockWindows("main")
   const scope = new ResourceScope()
@@ -60,7 +60,7 @@ test("history failures surface once without a compatibility notice on opening or
     const archivalNotices = [...view.container.querySelectorAll("[data-sonner-toast]")].filter((notice) =>
       notice.textContent?.includes("会话归档")
     )
-    expect(archivalNotices).toHaveLength(1)
+    expect(archivalNotices).toHaveLength(0)
     await act(async () => {
       showExtensionLimitations({ ...installation, enabled: false })
       showExtensionLimitations({ ...installation, source: "local" })
@@ -73,7 +73,7 @@ test("history failures surface once without a compatibility notice on opening or
       await new Promise<void>((resolve) => setTimeout(resolve, 20))
     })
     expect(view.queryByText(/会话归档同步用户消息/)).toBeNull()
-    expect(view.container.querySelectorAll("[data-sonner-toast]")).toHaveLength(1)
+    expect(view.container.querySelectorAll("[data-sonner-toast]")).toHaveLength(0)
   } finally {
     await scope.dispose()
   }

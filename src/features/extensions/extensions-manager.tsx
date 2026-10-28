@@ -123,7 +123,7 @@ export function ExtensionsManager({
             {t(installations.length === 0 ? "extensions.empty" : "extensions.noMatches")}
           </p>
         )}
-        <PanelList className="grid grid-cols-1 gap-x-4 gap-y-3 @2xl:grid-cols-2">
+        <PanelList className="gap-3 px-0">
           {matches.map(({ item, name, description }) => {
             // Imported metadata has a smaller icon vocabulary than entry contributions.
             const entryAction = sortContributions(

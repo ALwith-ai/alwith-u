@@ -197,9 +197,14 @@ export function ExtensionSettingsContent({
   const { t } = useTranslation()
   const view = views.find((item) => item.id === id && item.kind === "settingsPages")
   return (
-    <section className="space-y-4">
-      <h1 className="text-lg font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>
-      {view && renderView(view)}
-    </section>
+    <div>
+      {view ? (
+        renderView(view)
+      ) : (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t("extensions.unavailable")}
+        </p>
+      )}
+    </div>
   )
 }
