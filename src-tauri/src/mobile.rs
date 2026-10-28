@@ -3,7 +3,7 @@ use alwith_api::{RuntimeEvent, SessionRunState};
 pub use alwith_mobile::host::*;
 use serde_json::{Value, json};
 use std::{
-    collections::HashSet,
+    collections::HashMap,
     sync::{LazyLock, Mutex},
 };
 use tauri::{AppHandle, Manager};
@@ -11,22 +11,22 @@ mod history;
 
 #[derive(Default)]
 struct Projection {
-    drafts: HashSet<String>,
+    activity: Vec<String>,
     states: Vec<SessionRunState>,
 }
 static PROJECTION: LazyLock<Mutex<Projection>> = LazyLock::new(|| Mutex::new(Projection::default()));
 
 #[tauri3_specta::command]
-pub fn mobile_set_draft_sessions(session_ids: Vec<String>) {
+pub fn mobile_set_activity_sessions(session_ids: Vec<String>) {
     let mut projection = PROJECTION.lock().unwrap();
-    projection.drafts = session_ids.into_iter().collect();
-    publish_run_states(project_states(projection.states.clone(), &projection.drafts).to_string());
+    projection.activity = session_ids;
+    publish_run_states(project_states(projection.states.clone(), &projection.activity).to_string());
 }
 
 fn project_snapshot(states: Vec<SessionRunState>) -> Value {
     let mut projection = PROJECTION.lock().unwrap();
     projection.states = states;
-    project_states(projection.states.clone(), &projection.drafts)
+    project_states(projection.states.clone(), &projection.activity)
 }
 
 pub fn initialize(app: &AppHandle) -> Result<(), String> {
@@ -70,10 +70,10 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
         })
     })
 }
-fn project_states(states: Vec<SessionRunState>, drafts: &HashSet<String>) -> Value {
-    // Use the same draft membership as the Activity panel; Runtime attachment can outlive a UI draft.
-    let states: Vec<_> =
-        states.into_iter().filter(|state| !state.reusable_draft || drafts.contains(&state.session_id)).collect();
+fn project_states(states: Vec<SessionRunState>, activity: &[String]) -> Value {
+    // The UI supplies display membership and order; every session fact still comes from Runtime.
+    let mut by_id: HashMap<_, _> = states.into_iter().map(|state| (state.session_id.clone(), state)).collect();
+    let states: Vec<_> = activity.iter().filter_map(|id| by_id.remove(id)).collect();
     let mut states = serde_json::to_value(states).expect("serialize Runtime states");
     for state in states.as_array_mut().expect("Runtime state list") {
         state["windowLabel"] = state["owner"].clone();
@@ -83,9 +83,19 @@ fn project_states(states: Vec<SessionRunState>, drafts: &HashSet<String>) -> Val
 pub fn publish(event: &RuntimeEvent) {
     match event {
         RuntimeEvent::RunStates { sessions } => publish_run_states(project_snapshot(sessions.clone()).to_string()),
-        RuntimeEvent::Inbound { agent_id, lines } => publish_session_lines(agent_id.clone(), json!(lines).to_string()),
-        RuntimeEvent::Outbound { agent_id, line, .. } => {
-            publish_session_lines(agent_id.clone(), json!([line]).to_string())
+        // ACP notifications are the confirmed conversation stream. Publishing outbound prompts
+        // as well would display both the request and its user_message echo on the phone.
+        RuntimeEvent::AcpNotification { agent_id, method, params, .. }
+            if method == "session/update" && !params["update"]["_meta"]["replay"]["id"].is_string() =>
+        {
+            let line = json!({"jsonrpc":"2.0", "method":method, "params":params}).to_string();
+            publish_session_lines(agent_id.clone(), json!([line]).to_string());
+        }
+        RuntimeEvent::AcpAgentRequest { agent_id, id, method, params, .. }
+            if method == "session/request_permission" =>
+        {
+            let line = json!({"jsonrpc":"2.0", "id":id, "method":method, "params":params}).to_string();
+            publish_session_lines(agent_id.clone(), json!([line]).to_string());
         }
         _ => {}
     }
@@ -121,7 +131,7 @@ mod tests {
             "lastActivityAt": 42, "version": 7, "interruption": null
         });
         let state: SessionRunState = serde_json::from_value(source.clone()).unwrap();
-        let projected = project_states(vec![state], &HashSet::new());
+        let projected = project_states(vec![state], &["remote".into()]);
         assert_eq!(projected[0]["windowLabel"], "main");
         for (key, value) in source.as_object().unwrap() {
             assert_eq!(&projected[0][key], value, "Runtime field changed: {key}");
@@ -144,10 +154,11 @@ mod tests {
         unread.session_id = "unread".into();
         unread.reusable_draft = false;
         unread.state = alwith_api::RunState::Done;
-        let projected = project_states(vec![retired, active, unread], &HashSet::from(["active".into()]));
+        let projected =
+            project_states(vec![retired, active, unread], &["unread".into(), "active".into(), "missing".into()]);
         assert_eq!(projected.as_array().unwrap().len(), 2);
-        assert_eq!(projected[0]["sessionId"], "active");
-        assert_eq!(projected[1]["sessionId"], "unread");
-        assert_eq!(projected[1]["state"], "done");
+        assert_eq!(projected[0]["sessionId"], "unread");
+        assert_eq!(projected[1]["sessionId"], "active");
+        assert_eq!(projected[0]["state"], "done");
     }
 }

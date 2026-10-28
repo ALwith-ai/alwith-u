@@ -225,13 +225,21 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
-  mobileSetDraftSessions: (args: { sessionIds: string[] }): Promise<null> =>
-    __t3Invoke<null>("mobile_set_draft_sessions", args),
+  mobileSetActivitySessions: (args: { sessionIds: string[] }): Promise<null> =>
+    __t3Invoke<null>("mobile_set_activity_sessions", args),
   mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
   mobileBridgeStop: (): Promise<null> => __t3Invoke<null>("mobile_bridge_stop"),
   mobileBridgeStatus: (): Promise<MobileBridgeStatus> => __t3Invoke<MobileBridgeStatus>("mobile_bridge_status"),
   bridgeSetActiveSession: (args: { sessionId: string | null }): Promise<null> =>
     __t3Invoke<null>("bridge_set_active_session", args),
+  bridgePromptResult: (args: {
+    deviceId: string
+    sessionId: string
+    clientRequestId: string
+    status: string
+    messageId: string | null
+    error: string | null
+  }): Promise<null> => __t3Invoke<null>("bridge_prompt_result", args),
   bridgePairingStart: (): Promise<PairingInfo> => __t3Invoke<PairingInfo>("bridge_pairing_start"),
   bridgeIdentity: (): Promise<BridgeIdentity> => __t3Invoke<BridgeIdentity>("bridge_identity"),
   bridgeTrustedList: (): Promise<TrustedDevice_Serialize[]> =>
@@ -366,11 +374,12 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
-  mobileSetDraftSessions: never
+  mobileSetActivitySessions: never
   mobileBridgeStart: string
   mobileBridgeStop: string
   mobileBridgeStatus: never
   bridgeSetActiveSession: never
+  bridgePromptResult: string
   bridgePairingStart: string
   bridgeIdentity: string
   bridgeTrustedList: string

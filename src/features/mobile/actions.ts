@@ -3,7 +3,13 @@ import { isToolCallSubject } from "@alwith/api"
 
 import type { CodexClient } from "@/agent/client"
 
-export type MobilePrompt = { sessionId: string; text: string; files?: { url: string; mediaType?: string }[] }
+export type MobilePrompt = {
+  sessionId: string
+  text: string
+  files?: { url: string; mediaType?: string }[]
+  deviceId?: string
+  clientRequestId?: string
+}
 export type MobilePermission = {
   sessionId: string
   toolCallId: string
@@ -11,12 +17,19 @@ export type MobilePermission = {
 }
 type Client = Pick<CodexClient, "state" | "openRemote" | "prompt" | "cancel" | "respond">
 
-export async function sendMobilePrompt(client: Client, { sessionId, text, files = [] }: MobilePrompt): Promise<void> {
+export async function sendMobilePrompt(
+  client: Client,
+  { sessionId, text, files = [], deviceId, clientRequestId }: MobilePrompt
+): Promise<string> {
   const prompt: acp.ContentBlock[] = []
   if (text) prompt.push({ type: "text", text })
   for (const file of files) prompt.push({ type: "image", data: file.url, mimeType: file.mediaType ?? "image/jpeg" })
   await client.openRemote(sessionId)
-  await client.prompt(sessionId, prompt)
+  return client.prompt(
+    sessionId,
+    prompt,
+    clientRequestId ? { meta: { mobile: { deviceId, clientRequestId } } } : undefined
+  )
 }
 
 export function respondMobilePermission(client: Client, { sessionId, toolCallId, outcome }: MobilePermission): void {

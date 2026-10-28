@@ -119,14 +119,24 @@ dependencies = [
 
 [[package]]
 name = "alwith-mobile"
-version = "0.1.0"
+version = "0.5.1"
 dependencies = [
+ "alwith-mobile-protocol",
  "alwith-native-client",
  "serde",
  "serde_json",
  "specta",
  "tauri",
  "tauri3-specta",
+]
+
+[[package]]
+name = "alwith-mobile-protocol"
+version = "0.5.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
