@@ -1,5 +1,6 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { PermissionModeMenu } from "@alwith/module-chat/conversation"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -11,6 +12,7 @@ import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { ActionCard } from "../action-card"
+import { ChatTimelineHost } from "./timeline-host"
 
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.
 vi.stubGlobal("TransformStream", TransformStream)
@@ -26,6 +28,29 @@ afterEach(async () => {
       for (const client of clients.splice(0)) client.disconnect()
     })
   })
+})
+
+test("full access marks the current permission trigger as destructive", () => {
+  const view = render(
+    <ChatTimelineHost>
+      <PermissionModeMenu
+        sessionId="s"
+        disabled={false}
+        options={[
+          {
+            configId: "mode",
+            name: "Mode",
+            category: "mode",
+            type: "select",
+            currentValue: "agent-full-access",
+            options: [{ value: "agent-full-access", name: "Full access" }]
+          }
+        ]}
+      />
+    </ChatTimelineHost>
+  )
+  mounted.push(view)
+  expect(view.getByRole("button", { name: /Full access/ })).toHaveAttribute("data-permission-warning")
 })
 
 test.each(["Implement this plan?", "Review the implementation plan"])(

@@ -13,13 +13,17 @@ const controls = vi.hoisted(() => ({
   setConfig: vi.fn(),
   error: vi.fn(),
   openSettings: vi.fn(),
-  pending: false
+  pending: false,
+  runState: "idle" as "idle" | "running" | "requires_action"
 }))
 vi.mock("@/lib/client", () => ({
   client: {
     setConfig: controls.setConfig,
     store: {
-      getState: () => ({ configPending: controls.pending ? { "main-session": true } : {} }),
+      getState: () => ({
+        configPending: controls.pending ? { "main-session": true } : {},
+        sessions: { "main-session": { state: controls.runState } }
+      }),
       subscribe: () => () => {}
     }
   },
@@ -72,6 +76,7 @@ afterEach(() => {
   controls.setConfig.mockReset()
   controls.error.mockReset()
   controls.pending = false
+  controls.runState = "idle"
 })
 
 test("catalog-supplied short labels override local presentation without changing model identity or full names", () => {
@@ -182,6 +187,20 @@ test("the model picker is disabled during a provider change", () => {
   fireEvent.click(view.getByTestId("model-trigger"))
   expect(controls.setConfig).not.toHaveBeenCalled()
 })
+
+test.each(["running", "requires_action"] as const)(
+  "the model picker waits for a %s turn before allowing a provider switch",
+  (state) => {
+    controls.runState = state
+    const view = render(<ChatModelMenu sessionId="main-session" options={options(nativeModel)} disabled={false} />)
+    expect(view.getByTestId("model-trigger")).toBeDisabled()
+    fireEvent.click(view.getByTestId("model-trigger"))
+    expect(controls.setConfig).not.toHaveBeenCalled()
+    controls.runState = "idle"
+    view.rerender(<ChatModelMenu sessionId="main-session" options={options(nativeModel)} disabled={false} />)
+    expect(view.getByTestId("model-trigger")).toBeEnabled()
+  }
+)
 
 test("a rejected provider switch reports the failure and keeps the confirmed model label", async () => {
   controls.setConfig.mockRejectedValue(new Error("DeepSeek unavailable"))
