@@ -1,3 +1,4 @@
+import { RuntimeRequestError } from "@alwith/api"
 import type { CodexCapabilitiesClient } from "@nyssance/codex-acp-v2/client"
 import { expect, test, vi } from "vitest"
 
@@ -71,4 +72,20 @@ test("rejects invalid selection before making a request", async () => {
   await controller.dispatch({ action: "import", indices: [10] })
   expect(api.runImport).not.toHaveBeenCalled()
   expect(controller.state.phase).toBe("error")
+})
+
+test("failed history reads expose details and a successful refresh clears the previous error", async () => {
+  const { api, controller } = fixture()
+  api.importHistory.mockRejectedValueOnce(
+    new RuntimeRequestError("acpRequest", {
+      code: -32603,
+      message: "Internal error",
+      data: { details: "Import history cannot be read" }
+    })
+  )
+  await controller.dispatch({ action: "refresh" })
+  expect(controller.state.error).toBe("import/refresh: Import history cannot be read")
+  await controller.dispatch({ action: "refresh" })
+  expect(controller.state.phase).toBe("idle")
+  expect(controller.state.error).toBeNull()
 })

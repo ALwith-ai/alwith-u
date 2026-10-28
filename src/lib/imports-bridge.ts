@@ -8,6 +8,7 @@ import { emitTo, listen } from "@tauri-apps/api/event"
 import { useEffect, useState } from "react"
 
 import type { CodexClient } from "@/agent/client"
+import { explainRequestError } from "@/core/request-error"
 
 type History = Awaited<ReturnType<CodexCapabilitiesClient["importHistory"]>>["data"]
 export type ImportState = {
@@ -54,7 +55,8 @@ export class ImportController {
     try {
       if (action.action === "refresh") {
         const history = (await this.api().importHistory()).data
-        if (generation === this.generation) this.set({ history })
+        if (generation === this.generation)
+          this.set({ history, error: null, phase: this.state.phase === "error" ? "idle" : this.state.phase })
       } else if (action.action === "detect") {
         this.set({ phase: "detecting", source: action.source, items: [], results: [], error: null })
         const detected = await this.api().detectImports({
@@ -85,9 +87,10 @@ export class ImportController {
       }
     } catch (error) {
       if (generation !== this.generation) return
+      const explained = explainRequestError(error, `import/${action.action}`)
       this.set({
         phase: this.state.phase === "complete" ? "complete" : "error",
-        error: error instanceof Error ? error.message : String(error)
+        error: explained instanceof Error ? explained.message : String(explained)
       })
     }
   }

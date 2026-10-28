@@ -18,7 +18,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { type ImportAction, requestImportAction, useImportState } from "@/lib/imports-bridge"
 
-import { SettingGroup, SettingRow } from "./shared"
+import { SettingGroup, SettingLabel, SettingRow } from "./shared"
 
 const SOURCES = [
   { id: "claude-code", label: "Claude Code" },
@@ -43,20 +43,23 @@ export function ImportSection() {
   const successes = state?.results.flatMap((result) => result.successes) ?? []
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium">{t("imports.title")}</h2>
-        <Button variant="ghost" size="sm" disabled={busy || state === null} onClick={() => send({ action: "refresh" })}>
-          <RefreshCwIcon data-icon="inline-start" />
-          {t("imports.refresh")}
-        </Button>
-      </div>
-      <p className="text-sm text-muted-foreground">{t("imports.description")}</p>
-      {state?.error && (
-        <Alert variant="destructive">
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
-      )}
       <SettingGroup>
+        <SettingRow title={t("imports.title")} desc={t("imports.description")}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || state === null}
+            onClick={() => send({ action: "refresh" })}
+          >
+            <RefreshCwIcon data-icon="inline-start" />
+            {t("imports.refresh")}
+          </Button>
+        </SettingRow>
+        {state?.error && (
+          <Alert variant="destructive">
+            <AlertDescription>{state.error}</AlertDescription>
+          </Alert>
+        )}
         {SOURCES.map((entry) => (
           <SettingRow key={entry.id} title={entry.label}>
             <Button
@@ -83,8 +86,8 @@ export function ImportSection() {
           </Button>
         </div>
       )}
-      <section className="flex flex-col gap-3" aria-label={t("imports.history")}>
-        <h3 className="text-sm font-medium">{t("imports.history")}</h3>
+      <SettingGroup>
+        <SettingLabel>{t("imports.history")}</SettingLabel>
         {state === null ? (
           <Spinner />
         ) : state.history.length === 0 ? (
@@ -113,7 +116,7 @@ export function ImportSection() {
             </div>
           ))
         )}
-      </section>
+      </SettingGroup>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-xl">
           <DialogHeader>
