@@ -1,0 +1,12 @@
+{
+  "id": "alwith-managed-litellm",
+  "name": "ALwith",
+  "models": [
+    {
+      "id": "deepseek-V4.1-flash",
+      "label": "DeepSeek Flash"
+    }
+  ],
+  "catalog": "alwith/models.json",
+  "config": {}
+}
