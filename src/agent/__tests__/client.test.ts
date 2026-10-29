@@ -82,7 +82,7 @@ test.each(["new", "resume", "fork"] as const)(
   async (operation) => {
     const { client, fake } = await make()
     const source = await client.newSession("/tmp/commands-source")
-    const initial = [{ name: "status", description: "Show session status" }]
+    const initial = [{ type: "command" as const, name: "status", description: "Show session status" }]
     fake.sessionCommands.current = initial
     const id =
       operation === "new"
@@ -93,7 +93,7 @@ test.each(["new", "resume", "fork"] as const)(
     expect(client.session(id).commands).toEqual(initial)
     expect(client.session(source).commands).toEqual([])
 
-    const updated = [{ name: "compact", description: "Compact conversation" }]
+    const updated = [{ type: "command" as const, name: "compact", description: "Compact conversation" }]
     await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: updated })
     await vi.waitFor(() => expect(client.session(id).commands).toEqual(updated))
     expect(client.session(source).commands).toEqual([])
@@ -105,7 +105,7 @@ test.each([{ snapshot: undefined }, { snapshot: [] }])(
   async ({ snapshot }) => {
     const { client, fake } = await make()
     const id = await client.newSession("/tmp/commands")
-    const previous = [{ name: "status", description: "Show session status" }]
+    const previous = [{ type: "command" as const, name: "status", description: "Show session status" }]
     await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: previous })
     await vi.waitFor(() => expect(client.session(id).commands).toEqual(previous))
     await client.stopSession(id)
@@ -120,7 +120,7 @@ test.each([{ snapshot: undefined }, { snapshot: [] }])(
   async ({ snapshot }) => {
     const { client, fake } = await make()
     const source = await client.newSession("/tmp/commands")
-    const previous = [{ name: "status", description: "Show session status" }]
+    const previous = [{ type: "command" as const, name: "status", description: "Show session status" }]
     fake.replayUpdates.push({ sessionUpdate: "available_commands_update", availableCommands: previous })
     fake.sessionCommands.current = snapshot
     const id = await client.fork(source, "/tmp/commands")
