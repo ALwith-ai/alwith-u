@@ -109,7 +109,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                 <Button
                   size="icon-sm"
                   variant="ghost"
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  className="shrink-0 text-foreground"
                   aria-label={t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
                   title={t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
                   disabled={!!busy || unavailable}
@@ -118,7 +118,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   {busy ? (
                     <Spinner aria-hidden="true" />
                   ) : (
-                    <PlusIcon className="size-[18px]" strokeWidth={1.5} aria-hidden="true" />
+                    <PlusIcon className="size-5" strokeWidth={2} aria-hidden="true" />
                   )}
                 </Button>
               )}

@@ -79,7 +79,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
     <Button
       size="icon-sm"
       variant="ghost"
-      className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+      className="shrink-0 rounded-full text-foreground"
       disabled={installing || installed || unavailable}
       aria-label={label}
       title={unavailable ? t("plugins.disabledReason.unknown") : label}
@@ -88,7 +88,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
       {installing ? (
         <Spinner aria-hidden="true" />
       ) : (
-        <PlusIcon className="size-[18px]" strokeWidth={1.5} aria-hidden="true" />
+        <PlusIcon className="size-5" strokeWidth={2} aria-hidden="true" />
       )}
     </Button>
   )
@@ -130,7 +130,7 @@ function PluginRow({
         </ItemDescription>
         {meta && <ItemDescription data-toolbox-metadata="">{meta}</ItemDescription>}
       </ItemContent>
-      <ItemActions className="relative">{actions}</ItemActions>
+      <ItemActions className="relative w-8 shrink-0 justify-center">{actions}</ItemActions>
     </PanelItem>
   )
 }
