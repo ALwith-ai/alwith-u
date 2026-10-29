@@ -4,6 +4,34 @@ import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync
 import { homedir, tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 
+export function joinModelCatalogPaths(paths: string[], platform: NodeJS.Platform = process.platform): string {
+  if (platform !== "win32") return paths.join(":")
+  return paths
+    .map((path) => {
+      if (path.includes('"')) throw new Error("A Windows model catalog path cannot contain a quote")
+      return path.includes(";") ? `"${path}"` : path
+    })
+    .join(";")
+}
+
+export function splitModelCatalogPaths(raw: string, platform: NodeJS.Platform = process.platform): string[] {
+  if (platform !== "win32") return raw.split(":").filter(Boolean)
+  // Rust join_paths quotes Windows paths containing semicolons; separators inside quotes are literal.
+  const paths: string[] = []
+  let path = ""
+  let quoted = false
+  for (const character of raw) {
+    if (character === '"') quoted = !quoted
+    else if (character === ";" && !quoted) {
+      if (path) paths.push(path)
+      path = ""
+    } else path += character
+  }
+  if (quoted) throw new Error("Unclosed quote in the Windows model catalog path list")
+  if (path) paths.push(path)
+  return paths
+}
+
 export type CatalogRunner = {
   bundled: () => string
   configured: () => string
@@ -183,7 +211,18 @@ export function prepareModelCatalog(
   const directory = mkdtempSync(join(tmpdir(), "alwith-u-models-catalog-"))
   const path = join(directory, "models.json")
   try {
-    writeFileSync(path, JSON.stringify(base), { mode: 0o600 })
+    const models = [...base.models]
+    const slugs = new Set(models.map((model) => model.slug))
+    for (const file of splitModelCatalogPaths(raw)) {
+      const extra = parseCatalog(JSON.parse(readFileSync(file, "utf8")))
+      for (const model of extra.models) {
+        if (slugs.has(model.slug)) continue
+        // Metadata must be available to Codex without advertising unconfigured gateways as native models.
+        models.push({ ...model, visibility: "hide" })
+        slugs.add(model.slug)
+      }
+    }
+    writeFileSync(path, JSON.stringify({ ...base, models }), { mode: 0o600 })
   } catch (error) {
     rmSync(directory, { recursive: true, force: true })
     throw error
