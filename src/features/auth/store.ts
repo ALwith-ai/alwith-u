@@ -22,11 +22,11 @@ import { openStore } from "@/lib/store"
 import { createAuthTransport } from "./http"
 import { assertActiveLogin } from "./login-response"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
+import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
 
 export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
 const LOGOUT_EVENT = "alwith-auth-logout-request"
-const PROVIDERS_REFRESH_EVENT = "alwith-providers-refresh-request"
 const isMain = () => getCurrentWebviewWindow().label === "main"
 // 同一个 `appDataDir/<name>.json`,原 tauri-plugin-store 写下的登录态原样读回;每次 set 即原子落盘。
 const store = openStore(authStoreName(API_BASE_URL))
@@ -71,11 +71,15 @@ async function clearAccountProviders(): Promise<void> {
     toast.error(`ALwith model cleanup failed: ${String(error)}`)
   }
 }
+async function loadAccountProviders(): Promise<void> {
+  if (!isMain()) throw new Error("ALwith model refresh belongs to the main window")
+  const user = usePlatformAuth.getState().user
+  if (!user || user.user_uuid !== validatedAccount) throw new Error("ALwith account is not ready; retry shortly")
+  await managedProviders.refresh(user.user_uuid)
+}
 function refreshAccountProviders(): void {
   if (!isMain()) return
-  const user = usePlatformAuth.getState().user
-  if (!user || user.user_uuid !== validatedAccount) return
-  void managedProviders.refresh(user.user_uuid).catch((error: unknown) => {
+  void loadAccountProviders().catch((error: unknown) => {
     const message =
       error instanceof Error
         ? error.message
@@ -85,8 +89,10 @@ function refreshAccountProviders(): void {
     toast.error(message)
   })
 }
+let requestProviderRefresh: (() => Promise<void>) | undefined
 export function requestAccountProviderRefresh(): Promise<void> {
-  return emitTo("main", PROVIDERS_REFRESH_EVENT)
+  requestProviderRefresh ??= createProviderRefreshClient(getCurrentWebviewWindow().label)
+  return requestProviderRefresh()
 }
 export const platformApiRequest = transport.request
 export const authClient = createAuthClient({
@@ -154,7 +160,7 @@ export async function initPlatformAuth(): Promise<void> {
   await listen<AuthStateEvent>(STATE_EVENT, (event) => {
     for (const listener of stateListeners) listener(event.payload)
   })
-  if (isMain()) await listen(PROVIDERS_REFRESH_EVENT, refreshAccountProviders)
+  if (isMain()) await serveProviderRefresh(loadAccountProviders)
   if (isMain())
     await listen(LOGOUT_EVENT, () => {
       void logoutPlatform().catch(() => console.error("[auth] local logout failed"))

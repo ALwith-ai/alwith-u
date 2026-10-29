@@ -56,6 +56,74 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+/** Fetch on entry; failed network refreshes retry the fetch rather than cached configuration application. */
+export function ManagedProviderSection() {
+  const { t } = useTranslation()
+  const [attempt, setAttempt] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(true)
+  useEffect(() => {
+    // Settings closes by hiding, so returning to the mounted page must also refresh.
+    const refresh = (): void => setAttempt((value) => value + 1)
+    window.addEventListener("focus", refresh)
+    return () => window.removeEventListener("focus", refresh)
+  }, [])
+  useEffect(() => {
+    let active = true
+    setPending(true)
+    void requestAccountProviderRefresh().then(
+      () => {
+        if (active) {
+          setError(null)
+          setPending(false)
+        }
+      },
+      (cause: unknown) => {
+        if (active) {
+          setError(describe(cause))
+          setPending(false)
+        }
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [attempt])
+  return (
+    <SettingGroup>
+      <div className="space-y-3 rounded-xl border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-medium">ALwith</h3>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-primary hover:text-primary/80"
+            aria-label={t("provider.managed.topUp")}
+            title={t("provider.managed.topUp")}
+            onClick={() => {
+              void openPlatformTopUp().catch((error: unknown) => toast.error(describe(error)))
+            }}
+          >
+            <CardSendIcon className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("provider.managed.description")}</p>
+        {error !== null && (
+          <div className="space-y-2">
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+            <Button variant="outline" size="sm" disabled={pending} onClick={() => setAttempt((value) => value + 1)}>
+              {pending && <Spinner aria-hidden="true" />}
+              {t("actions.retry")}
+            </Button>
+          </div>
+        )}
+      </div>
+    </SettingGroup>
+  )
+}
+
 export function ProviderSection() {
   const { t } = useTranslation()
   const snapshot = useProviders()
@@ -172,35 +240,7 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-6">
       <CodexProviderSection />
-      <SettingGroup>
-        <div className="space-y-3 rounded-xl border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-medium">ALwith</h3>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-primary hover:text-primary/80"
-              aria-label={t("provider.managed.topUp")}
-              title={t("provider.managed.topUp")}
-              onClick={() => {
-                void openPlatformTopUp().catch((error: unknown) => toast.error(describe(error)))
-              }}
-            >
-              <CardSendIcon className="size-4" aria-hidden="true" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">{t("provider.managed.description")}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void requestAccountProviderRefresh().catch((error: unknown) => toast.error(describe(error)))
-            }}
-          >
-            {t("provider.managed.refresh")}
-          </Button>
-        </div>
-      </SettingGroup>
+      <ManagedProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
       {snapshot && snapshot.status !== "applied" && (
