@@ -392,5 +392,8 @@
     "realtimeStart": "Iniciar llamada de voz con Codex",
     "realtimeStop": "Finalizar llamada de voz",
     "realtimeCancel": "Cancelar conexión de voz"
+  },
+  "workbuddy": {
+    "headline": "Crea tu propio harness de escritorio"
   }
 }

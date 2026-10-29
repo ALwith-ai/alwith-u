@@ -1348,7 +1348,7 @@
     "identifierHelp": "使用 com.example.myapp 这样的反向域名标识符。本地构建可用任意合法标识符；Apple 签名需在开发者账号中注册对应 App ID。",
     "appleIdentifiers": "打开 Apple Identifiers",
     "creating": "正在创建…",
-    "headline": "让灵感，有自己的形状。",
+    "headline": "创建你的桌面 Harness",
     "edition": "选择你的起点",
     "accountEdition": "有个伴，一起创造",
     "bareEdition": "轻一点，自由开始",

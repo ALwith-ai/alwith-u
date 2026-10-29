@@ -408,5 +408,8 @@
     "realtimeStart": "Codex 音声通話を開始",
     "realtimeStop": "音声通話を終了",
     "realtimeCancel": "音声接続をキャンセル"
+  },
+  "workbuddy": {
+    "headline": "自分だけのデスクトップ Harness を作ろう"
   }
 }

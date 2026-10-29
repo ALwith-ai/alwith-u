@@ -1348,7 +1348,7 @@
     "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
     "appleIdentifiers": "Open Apple Identifiers",
     "creating": "Creating…",
-    "headline": "Give your ideas a place to live.",
+    "headline": "Build your own desktop harness",
     "edition": "Choose your starting point",
     "accountEdition": "Better with a companion",
     "bareEdition": "A little less. All yours.",

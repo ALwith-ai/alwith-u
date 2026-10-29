@@ -408,5 +408,8 @@
     "realtimeStart": "Начать голосовой звонок Codex",
     "realtimeStop": "Завершить голосовой звонок",
     "realtimeCancel": "Отменить голосовое подключение"
+  },
+  "workbuddy": {
+    "headline": "Создайте собственный Harness для рабочего стола"
   }
 }
