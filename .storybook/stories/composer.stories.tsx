@@ -13,7 +13,7 @@ import type { SettingsRequest } from "../../src/lib/settings-store"
 const session: Session = {
   ...createSession("composer-preview", "/Projects/alwith"),
   attached: true,
-  commands: [{ name: "plan", description: "Plan a task" }],
+  commands: [{ type: "command", name: "plan", description: "Plan a task" }],
   configOptions: [
     {
       configId: "model",
