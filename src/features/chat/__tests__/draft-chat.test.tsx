@@ -54,6 +54,7 @@ function environment(nativeWindow = false) {
     const invokeHost = core.invoke
     const mocks = [
       vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
+      vi.spyOn(client, "refreshProjectContext").mockImplementation((...args) => real.refreshProjectContext(...args)),
       vi.spyOn(client, "session").mockImplementation((id) => real.session(id)),
       vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
       vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),

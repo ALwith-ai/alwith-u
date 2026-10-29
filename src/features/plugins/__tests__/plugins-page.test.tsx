@@ -2,6 +2,7 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyss
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { projectContext } from "@/agent/__tests__/project-context"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
@@ -462,6 +463,12 @@ test("the skill catalog includes known projects beyond the current chat and excl
   const refresh = vi.fn().mockResolvedValue(undefined)
   pluginsStore.setState({ refresh })
   client.store.setState({
+    projectContext: {
+      ...fakeProjectContext,
+      homeDirectory: "/Users/example",
+      codexChatDirectory: "/Users/example/Documents/Codex",
+      chatDirectory: "/Users/example/Documents/ALwith"
+    },
     sessionList: [
       { sessionId: "quick", cwd: "/Users/example/Documents/Codex/task", title: null, updatedAt: null, archived: false },
       { sessionId: "desktop", cwd: "/work/alwith-desktop", title: "Desktop", updatedAt: null, archived: false },

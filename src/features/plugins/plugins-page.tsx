@@ -404,7 +404,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
       [
         ...new Set(
           state.sessionList
-            .map((sessionRow) => newChatDirectory(sessionRow.cwd))
+            .map((sessionRow) => newChatDirectory(sessionRow.cwd, state.projectContext))
             .filter((path): path is string => path !== null)
         )
       ].toSorted()
@@ -413,7 +413,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
   const directoriesKey = JSON.stringify(
     [
       ...new Set(
-        [newChatDirectory(cwd), ...(JSON.parse(knownDirectories) as string[])].filter(
+        [newChatDirectory(cwd, client.state.projectContext), ...(JSON.parse(knownDirectories) as string[])].filter(
           (path): path is string => path !== null
         )
       )

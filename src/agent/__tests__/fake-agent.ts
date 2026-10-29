@@ -3,6 +3,7 @@
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
 import { projectContext } from "./project-context"
+export const fakeProjectContext = projectContext()
 
 export type FakeAgent = {
   app: acp.AgentApp

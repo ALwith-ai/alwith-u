@@ -6,6 +6,7 @@ import { act, fireEvent, render as renderView, screen, waitFor } from "@testing-
 import { type ReactElement, StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Composer } from "@/features/chat/__tests__/timeline-host"
 import { DraftChat } from "@/features/chat/draft-chat"
@@ -335,6 +336,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
     })
   })
   vi.spyOn(client, "connect").mockResolvedValue()
+  vi.spyOn(client, "refreshProjectContext").mockResolvedValue(fakeProjectContext)
   vi.spyOn(client, "prepareDraft").mockResolvedValue("voice")
   vi.spyOn(client, "prompt").mockImplementation((id, content) => {
     return Promise.try(() => {

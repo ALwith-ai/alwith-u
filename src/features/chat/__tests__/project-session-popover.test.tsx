@@ -3,9 +3,9 @@ import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { projectContext } from "@/agent/__tests__/project-context"
 import type { SessionSummary } from "@/agent/client"
-import { commands } from "@/bindings"
 import * as collectionStore from "@/features/collection/store"
 import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { must } from "@/lib/__tests__/must"
@@ -23,7 +23,7 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({
 
 await initI18n("en")
 const connect = vi.spyOn(client, "connect").mockResolvedValue()
-const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith")
+const directory = vi.spyOn(client, "refreshProjectContext").mockResolvedValue(fakeProjectContext)
 const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
   apps: [],
   active: undefined,

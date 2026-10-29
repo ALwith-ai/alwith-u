@@ -1869,3 +1869,11 @@ test("writer conflicts still open browsable history and retry without claiming a
   await client.open("locked", "/tmp/locked")
   expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
 })
+
+test("selecting the default folder explicitly does not reuse a projectless draft", async () => {
+  const { client, fake } = await make()
+  const quick = await client.prepareDraft("main", undefined)
+  const explicit = await client.prepareDraft("main", client.session(quick).cwd)
+  expect(explicit).not.toBe(quick)
+  expect(fake.deleted.has(quick)).toBe(true)
+})

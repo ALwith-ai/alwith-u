@@ -11,7 +11,6 @@ import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { SessionSummary } from "@/agent/client"
-import { commands } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -20,6 +19,7 @@ import { CollectionPicker } from "@/features/collection/collection-menu"
 import { ProjectPathAction } from "@/features/sessions/project-path-action"
 import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
+import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { cn } from "@/lib/utils"
 
@@ -38,7 +38,8 @@ type DirectoryState =
 
 /** Quick chats share the sidebar group; the host's default workspace is only the folder action. */
 export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?: ReactElement }) {
-  const project = newChatDirectory(cwd)
+  const context = useApp((state) => state.projectContext)
+  const project = newChatDirectory(cwd, context)
   const [directory, setDirectory] = useState<DirectoryState>({ status: "loading" })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
@@ -47,19 +48,22 @@ export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?
     void attempt
     let active = true
     setDirectory({ status: "loading" })
-    void commands.draftDirectory({ cwd: null }).then(
-      (cwd) => {
-        if (active) setDirectory({ status: "ready", cwd })
-      },
-      (error) => {
-        if (active)
-          setDirectory({
-            status: "failed",
-            error: error instanceof Error ? error.message : String(error),
-            retry: () => setAttempt((value) => value + 1)
-          })
-      }
-    )
+    void client
+      .refreshProjectContext(true)
+      .then((context) => context.chatDirectory)
+      .then(
+        (cwd) => {
+          if (active) setDirectory({ status: "ready", cwd })
+        },
+        (error) => {
+          if (active)
+            setDirectory({
+              status: "failed",
+              error: error instanceof Error ? error.message : String(error),
+              retry: () => setAttempt((value) => value + 1)
+            })
+        }
+      )
     return () => {
       active = false
     }

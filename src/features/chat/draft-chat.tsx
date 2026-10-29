@@ -50,7 +50,7 @@ export function DraftChat({
 }: {
   owner: DraftOwner
   cwd: string | null
-  onCwdChange: (cwd: string) => void
+  onCwdChange: (cwd: string | null) => void
   /** Bind the precreated session to this surface without materializing a history entry. */
   onCreated: (sessionId: string) => void
   collectionId?: string
@@ -115,8 +115,11 @@ export function DraftChat({
     setPreparing(true)
     setError(null)
     const pending = (async (): Promise<string | null> => {
-      const directory = await invoke<string>("draft_directory", { cwd })
       await client.connect()
+      const directory =
+        cwd === null
+          ? (await client.refreshProjectContext(true)).chatDirectory
+          : await invoke<string>("draft_directory", { cwd })
       await applyProvidersWhenIdle()
       if (!active) return null
       const current = currentId.current
@@ -124,7 +127,7 @@ export function DraftChat({
       // prompt has materialized its session. Keep that conversation selected.
       if (current !== null && client.state.sessions[current]?.cwd === directory && !client.state.draftSessions[current])
         return current
-      const next = await client.prepareDraft(owner, directory, model)
+      const next = await client.prepareDraft(owner, cwd === null ? undefined : directory, model)
       const previous = currentId.current
       if (previous !== next) {
         const input = drafts.get(previous ?? DRAFT_SESSION_ID)
@@ -138,7 +141,7 @@ export function DraftChat({
       if (!mounted.current) return next
       setId(next)
       callbacks.current.onCreated(next)
-      if (active && cwd !== directory) callbacks.current.onCwdChange(directory)
+      if (active && cwd !== null && cwd !== directory) callbacks.current.onCwdChange(directory)
       if (active && model !== null) setModel(null)
       return next
     })()
@@ -192,7 +195,7 @@ export function DraftChat({
   }
   const picker = (
     <DraftProjectPicker
-      cwd={session?.cwd ?? cwd}
+      cwd={cwd === null ? null : (session?.cwd ?? cwd)}
       recentProjects={recentProjects}
       onChange={onCwdChange}
       preparing={preparing}
@@ -206,7 +209,7 @@ export function DraftChat({
             surface={headerTarget === undefined ? "main" : "floating"}
             onOpenWindow={session && !preparing ? onOpenWindow : undefined}
             onReturnToMain={preparing ? undefined : onReturnToMain}
-            cwd={session?.cwd ?? cwd}
+            cwd={cwd}
             onNewChat={onNewChat}
             onNewProject={onNewProject}
           />

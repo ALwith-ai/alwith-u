@@ -1422,7 +1422,7 @@ mod managed_tests {
         apply_managed_model_overrides(&mut models);
         assert_eq!(models.as_array().unwrap().len(), 2);
         assert_eq!(models[0]["id"], "deepseek-V4.1-flash");
-        assert_eq!(models[0]["label"], "DeepSeek Flash");
+        assert_eq!(models[0]["label"], "DeepSeek-Flash");
         assert_eq!(models[0]["contextWindow"], 1048576);
         assert_eq!(models[1], json!({"id":"unknown","label":"Account-only model","contextWindow":456}));
         let mut unissued = json!([]);

@@ -1,8 +1,7 @@
 // ALwith Desktop's DraftProjectPicker reduced: the empty draft's project capsule. Shows the
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
 // dialog. The host prepares the default workspace when no previous project was selected.
-import { isQuickChatDirectory } from "@alwith/module-chat/session-list"
-import { invoke } from "@tauri-apps/api/core"
+import { QUICK_CHATS_GROUP, sessionGroup } from "@nyssance/codex-acp-v2/client"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -21,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { useApp } from "@/lib/client"
+import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { cn } from "@/lib/utils"
 
@@ -38,33 +37,37 @@ export function DraftProjectPicker({
 }: {
   cwd: string | null
   recentProjects: string[]
-  onChange: (cwd: string) => void
+  onChange: (cwd: string | null) => void
   preparing?: boolean
 }) {
   const { t } = useTranslation()
-  const projectContext = useApp((state) => state.projectContext)
+  const context = useApp((state) => state.projectContext)
   const [defaultCwd, setDefaultCwd] = useState<string | null>(null)
   useEffect(() => {
     let active = true
-    void invoke<string>("draft_directory", { cwd: null }).then(
-      (path) => {
-        if (active) setDefaultCwd(path)
-      },
-      (error) => {
-        if (active) toast.error(String(error))
-      }
-    )
+    void client
+      .connect()
+      .then(() => client.refreshProjectContext(true))
+      .then((context) => context.chatDirectory)
+      .then(
+        (path) => {
+          if (active) setDefaultCwd(path)
+        },
+        (error) => {
+          if (active) toast.error(String(error))
+        }
+      )
     return () => {
       active = false
     }
   }, [])
   const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
-    (path) => path !== defaultCwd && (projectContext === null || !isQuickChatDirectory(path, projectContext))
+    (path) => path !== defaultCwd && (!context || sessionGroup(context, { cwd: path }).id !== QUICK_CHATS_GROUP)
   )
   const hasProject = cwd !== null && cwd !== defaultCwd
   const workOutsideProject = (): void => {
     if (defaultCwd === null) throw new Error("The default draft directory is not ready")
-    onChange(defaultCwd)
+    onChange(null)
   }
   return (
     <DropdownMenu>

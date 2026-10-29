@@ -1,9 +1,9 @@
 // Read the verification credential from stdin; never save it in app preferences or evidence.
-import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises"
+import { cp, mkdtemp, realpath, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-import { ProcessRuntimeClient } from "@alwith/api/node"
+import { ProcessRuntimeClient, startTestRuntime } from "@alwith/api/node"
 import { isGroupedSelect, isSelectOption } from "@nyssance/codex-acp-v2/client"
 
 import { CodexClient } from "../src/agent/client"
@@ -13,33 +13,56 @@ const key = (await Bun.stdin.text()).trim()
 if (!key) throw new Error("Provide a verification credential on stdin")
 const isolated = process.argv.includes("--no-chatgpt")
 const cwd = await realpath(await mkdtemp(join(tmpdir(), "alwith-provider-routing-")))
-await mkdir(join(cwd, "codex"))
+const authFrom = process.argv.find((value) => value.startsWith("--auth-from="))?.slice("--auth-from=".length)
+if (!isolated && !authFrom) throw new Error("Pass --auth-from=<Codex home> explicitly or use --no-chatgpt")
+const savedHome = join(cwd, "restart-home")
 const gateway = "gateway:deepseek:deepseek-flash"
 const evidence: { phase: string; model: string | null; stopReason: string | null }[] = []
 const ids: string[] = []
-function createClient() {
-  const port = new ProcessRuntimeClient({
+async function createClient(resume = false) {
+  const runtime = await startTestRuntime({
     binary: staged("alwith-runtime"),
     engines: { codex: stagedCodexEngine() },
-    journalRoot: join(cwd, "journal"),
-    env: { ALWITH_RUNTIME_ATTENTION: join(cwd, "attention") }
+    authFrom: isolated ? undefined : authFrom
   })
+  const port = runtime.client
+  if (!(port instanceof ProcessRuntimeClient)) {
+    await runtime.dispose()
+    throw new Error("Expected stdio Runtime")
+  }
+  let resolveExit!: () => void
+  const exited = new Promise<void>((done) => {
+    resolveExit = done
+  })
+  port.onProcessExit(() => resolveExit())
+  if (resume) {
+    try {
+      await cp(savedHome, runtime.codexHome, { recursive: true })
+    } catch (error) {
+      await runtime.dispose()
+      throw error
+    }
+  }
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: {
       engine: "codex",
-      env: { INITIAL_AGENT_MODE: "workspace-write", ...(isolated ? { CODEX_HOME: join(cwd, "codex") } : {}) }
+      env: { INITIAL_AGENT_MODE: "workspace-write" }
     }
   })
   client.setModelSelections({ main: gateway, chat: gateway })
-  return { port, client }
+  return { port, client, runtime, exited }
 }
-let { port, client } = createClient()
-async function stop() {
+let { port, client, runtime, exited } = await createClient()
+async function stop(preserve = false) {
   client.disconnect()
-  const exited = new Promise<void>((done) => port.onProcessExit(() => done()))
-  port.close()
-  await exited
+  try {
+    port.close()
+    await exited
+    if (preserve) await cp(runtime.codexHome, savedHome, { recursive: true })
+  } finally {
+    await runtime.dispose()
+  }
 }
 async function configure() {
   await client.connect()
@@ -95,8 +118,8 @@ try {
       await reply(id, `Switch ${index + 1}`)
     }
   }
-  await stop()
-  ;({ port, client } = createClient())
+  await stop(true)
+  ;({ port, client, runtime, exited } = await createClient(true))
   await configure()
   await client.open(first, cwd)
   await reply(first, "DeepSeek after Runtime restart")
@@ -110,6 +133,10 @@ try {
   try {
     for (const id of ids) await client.delete(id)
   } finally {
-    await stop()
+    try {
+      await stop()
+    } finally {
+      await rm(savedHome, { recursive: true, force: true })
+    }
   }
 }

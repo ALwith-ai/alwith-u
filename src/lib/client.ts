@@ -1,3 +1,4 @@
+import { observeRunStates } from "@alwith/api"
 import type { Session } from "@nyssance/codex-acp-v2/client"
 // The app-wide CodexClient instance and the React bindings to its store.
 import { isTauri } from "@tauri-apps/api/core"
@@ -41,18 +42,19 @@ export async function watchRunStates(): Promise<() => void> {
   const stopRevoked = await events["providers:managed-revoked"].listen((event) =>
     client.markAccountModelsUnavailable(event.payload.sessionIds)
   )
-  const port = await runtimeClient()
-  let revision = 0
-  const stop = await port.onRunStates((sessions) => {
-    revision++
-    client.applyRunStates(sessions)
-  })
-  const baseline = revision
-  const snapshot = await port.runStates()
-  if (revision === baseline) client.applyRunStates(snapshot, "snapshot")
-  return () => {
-    stop()
+  try {
+    const port = await runtimeClient()
+    const watcher = observeRunStates(port, (sessions, source) =>
+      client.applyRunStates(sessions, source === "snapshot" ? "snapshot" : undefined)
+    )
+    await watcher.ready
+    return () => {
+      watcher.dispose()
+      stopRevoked()
+    }
+  } catch (error) {
     stopRevoked()
+    throw error
   }
 }
 

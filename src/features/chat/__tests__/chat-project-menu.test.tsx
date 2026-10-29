@@ -1,9 +1,9 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { projectContext } from "@/agent/__tests__/project-context"
 import type { SessionSummary } from "@/agent/client"
-import { commands } from "@/bindings"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { useSessionsUiStore } from "@/features/sessions/store"
@@ -22,12 +22,12 @@ const originalChatSurface = useChatWindowSurface.getState()
 const originalMainSurface = useMainWindowSurface.getState()
 const defaultCwd = "/Volumes/Work/Documents/ALwith"
 const openDirectory = vi.fn(async (_cwd: string | null) => {})
-const resolveDirectory = vi.spyOn(commands, "draftDirectory")
+const resolveDirectory = vi.spyOn(client, "refreshProjectContext")
 afterAll(() => resolveDirectory.mockRestore())
 
 beforeEach(async () => {
   await initI18n("en")
-  resolveDirectory.mockReset().mockResolvedValue(defaultCwd)
+  resolveDirectory.mockReset().mockResolvedValue({ ...fakeProjectContext, chatDirectory: defaultCwd })
   openDirectory.mockClear()
   vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
     apps: [],
@@ -132,7 +132,7 @@ test("quick chats update their empty state as windows hide and keep the current 
 })
 
 test("quick chats use the sidebar grouping and ordering before the default directory resolves", async () => {
-  const pending = Promise.withResolvers<string>()
+  const pending = Promise.withResolvers<typeof fakeProjectContext>()
   resolveDirectory.mockReturnValueOnce(pending.promise)
   const select = vi.fn()
   const entries = [
@@ -164,8 +164,8 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   expect(view.queryByRole("button", { name: "Nested project" })).toBeNull()
   expect(view.queryByRole("button", { name: "Resolved directory chat" })).toBeNull()
   expect(view.getByRole("status")).toBeVisible()
-  await act(() => Promise.try(() => pending.resolve(defaultCwd)))
-  expect(resolveDirectory).toHaveBeenCalledWith({ cwd: null })
+  await act(() => Promise.try(() => pending.resolve({ ...fakeProjectContext, chatDirectory: defaultCwd })))
+  expect(resolveDirectory).toHaveBeenCalledWith(true)
   expect(view.getByRole("button", { name: "Quick chats" })).toBe(folder)
   expect(folder).toHaveAttribute("title", "Quick chats")
   expect(view.getByText(defaultCwd)).toBeVisible()
@@ -208,11 +208,11 @@ test.each([
 })
 
 test("a delayed default-directory result cannot replace a newly selected project", async () => {
-  const pending = Promise.withResolvers<string>()
+  const pending = Promise.withResolvers<typeof fakeProjectContext>()
   resolveDirectory.mockReturnValueOnce(pending.promise)
   const view = render(<ChatProjectMenu cwd={null} onSelect={() => {}} onNewChat={() => {}} />)
   view.rerender(<ChatProjectMenu cwd="/tmp/project" onSelect={() => {}} onNewChat={() => {}} />)
-  await act(() => Promise.try(() => pending.resolve(defaultCwd)))
+  await act(() => Promise.try(() => pending.resolve({ ...fakeProjectContext, chatDirectory: defaultCwd })))
   expect(view.getByRole("button", { name: "project" })).toHaveAttribute("title", "/tmp/project")
   expect(view.queryByRole("button", { name: "Quick chats" })).toBeNull()
 })

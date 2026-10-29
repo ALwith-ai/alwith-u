@@ -16,6 +16,8 @@
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     "@alwith/module-mobile",
+    // Consumed by the native host through Cargo, with product-specific menus.
+    "@alwith/module-desktop-shell",
     // only imported by the unused registry component ui/message-scroller
     "@shadcn/react",
     // invoked as `bun ts7-lint` by the fabfile.py check gate
