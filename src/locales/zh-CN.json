@@ -1334,6 +1334,9 @@
     }
   },
   "workbuddy": {
+    "auth": "集成 ALwith 账号",
+    "authEnabled": "包含登录、宠物等账号能力。",
+    "authDisabled": "不集成 ALwith 账号服务。模型认证单独设置。",
     "create": "创建你的 ALwith",
     "description": "创建自己的桌面应用，然后在项目聊天中定制。",
     "productName": "应用名称",
@@ -1344,6 +1347,14 @@
     "identifier": "应用标识符",
     "identifierHelp": "使用 com.example.myapp 这样的反向域名标识符。本地构建可用任意合法标识符；Apple 签名需在开发者账号中注册对应 App ID。",
     "appleIdentifiers": "打开 Apple Identifiers",
-    "creating": "正在创建…"
+    "creating": "正在创建…",
+    "headline": "创建你的桌面 Harness",
+    "edition": "选择你的起点",
+    "accountEdition": "集成 ALwith 账号",
+    "bareEdition": "不集成 ALwith 账号",
+    "accountCaption": "登录、桌面宠物与 ALwith 账号服务。",
+    "bareCaption": "无需 ALwith 账号，独立使用与定制。",
+    "location": "项目位置",
+    "chooseLocation": "选择新项目路径"
   }
 }

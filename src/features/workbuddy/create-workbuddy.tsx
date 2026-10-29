@@ -1,6 +1,5 @@
 import { NavigationItemButton } from "@alwith/module-chat/session-list"
-import { openUrl } from "@tauri-apps/plugin-opener"
-import { AppWindowIcon, FolderIcon } from "lucide-react"
+import { AppWindowIcon, CheckIcon, FolderIcon } from "lucide-react"
 import { type FormEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -15,10 +14,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
-import { chooseFolder } from "@/features/chat/draft-project-picker"
+import "./create-workbuddy.css"
+import { save } from "@tauri-apps/plugin-dialog"
 
 export function CreateWorkBuddy({
   onCreated,
@@ -33,10 +34,10 @@ export function CreateWorkBuddy({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
-  const [parent, setParent] = useState("")
-  const [name, setName] = useState("")
+  const [projectPath, setProjectPath] = useState("")
   const [productName, setProductName] = useState("")
   const [identifier, setIdentifier] = useState("")
+  const [withAuth, setWithAuth] = useState(true)
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +51,17 @@ export function CreateWorkBuddy({
     setError(null)
     let directory: string
     try {
-      directory = await commands.workbuddyCreate({ parent, name, productName, identifier })
+      const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "")
+      const separator = normalizedPath.lastIndexOf("/")
+      const parent = normalizedPath.slice(0, separator + 1)
+      const name = normalizedPath.slice(separator + 1)
+      directory = await commands.workbuddyCreate({
+        parent,
+        name,
+        productName,
+        identifier,
+        auth: withAuth ? "alwith" : "none"
+      })
     } catch (cause) {
       report(cause)
       return
@@ -59,7 +70,7 @@ export function CreateWorkBuddy({
       setBusy(false)
     }
     setOpen(false)
-    setName("")
+    setProjectPath("")
     setProductName("")
     setIdentifier("")
     onCreated(directory)
@@ -81,18 +92,47 @@ export function CreateWorkBuddy({
           <span>{t("workbuddy.create")}</span>
         </DialogTrigger>
       )}
-      <DialogContent>
+      <DialogContent className="workbuddy-studio">
         <form
           onSubmit={(event) => {
             void create(event)
           }}
-          className="flex flex-col gap-4"
+          className="workbuddy-studio-form"
         >
-          <DialogHeader>
-            <DialogTitle>{t("workbuddy.create")}</DialogTitle>
-            <DialogDescription>{t("workbuddy.description")}</DialogDescription>
+          <DialogHeader className="workbuddy-studio-header">
+            <span className="workbuddy-studio-eyebrow">ALwith</span>
+            <DialogTitle className="workbuddy-studio-title">{t("workbuddy.headline")}</DialogTitle>
+            <DialogDescription className="sr-only">{t("workbuddy.description")}</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
+          <RadioGroup
+            className="workbuddy-editions"
+            aria-label={t("workbuddy.edition")}
+            value={withAuth ? "alwith" : "none"}
+            onValueChange={(value) => setWithAuth(value === "alwith")}
+            disabled={busy}
+          >
+            {(["alwith", "none"] as const).map((mode) => (
+              <label key={mode} className="workbuddy-edition" data-selected={withAuth === (mode === "alwith")}>
+                <RadioGroupItem
+                  className="sr-only"
+                  value={mode}
+                  aria-label={t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                />
+                <span className="workbuddy-edition-top">
+                  <span className="workbuddy-edition-title">
+                    {t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                  </span>
+                  <span className="workbuddy-edition-check" aria-hidden="true">
+                    <CheckIcon />
+                  </span>
+                </span>
+                <span className="workbuddy-edition-description">
+                  {t(mode === "alwith" ? "workbuddy.accountCaption" : "workbuddy.bareCaption")}
+                </span>
+              </label>
+            ))}
+          </RadioGroup>
+          <FieldGroup className="workbuddy-details">
             <Field>
               <FieldLabel htmlFor="workbuddy-product">{t("workbuddy.productName")}</FieldLabel>
               <Input
@@ -102,40 +142,6 @@ export function CreateWorkBuddy({
                 disabled={busy}
                 onChange={(event) => setProductName(event.target.value)}
               />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="workbuddy-name">{t("workbuddy.packageName")}</FieldLabel>
-              <Input
-                id="workbuddy-name"
-                required
-                pattern="[a-z][a-z0-9\-]{0,213}"
-                value={name}
-                disabled={busy}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <FieldDescription>{t("workbuddy.nameHelp")}</FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="workbuddy-parent">{t("workbuddy.parent")}</FieldLabel>
-              <div className="flex items-center gap-2">
-                <Input id="workbuddy-parent" required value={parent} readOnly />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={busy}
-                  aria-label={t("workbuddy.chooseFolder")}
-                  onClick={() => {
-                    void chooseFolder(parent || null)
-                      .then((value) => {
-                        if (value) setParent(value)
-                      })
-                      .catch(report)
-                  }}
-                >
-                  <FolderIcon />
-                </Button>
-              </div>
             </Field>
             <Field>
               <FieldLabel htmlFor="workbuddy-identifier">{t("workbuddy.identifier")}</FieldLabel>
@@ -148,26 +154,49 @@ export function CreateWorkBuddy({
                 disabled={busy}
                 onChange={(event) => setIdentifier(event.target.value)}
               />
-              <FieldDescription>{t("workbuddy.identifierHelp")}</FieldDescription>
-              <Button
-                type="button"
-                variant="link"
-                className="w-fit px-0"
-                disabled={busy}
-                onClick={() => {
-                  void openUrl("https://developer.apple.com/account/resources/identifiers/list").catch(report)
-                }}
-              >
-                {t("workbuddy.appleIdentifiers")}
-              </Button>
+            </Field>
+            <Field className="workbuddy-location">
+              <FieldLabel htmlFor="workbuddy-location">{t("workbuddy.location")}</FieldLabel>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="workbuddy-location"
+                  required
+                  value={projectPath}
+                  disabled={busy}
+                  onChange={(event) => setProjectPath(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={busy}
+                  aria-label={t("workbuddy.chooseLocation")}
+                  onClick={() => {
+                    const suggested = productName
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, "")
+                    void save({
+                      title: t("workbuddy.chooseLocation"),
+                      defaultPath: projectPath || (/^[a-z]/.test(suggested) ? suggested : "my-alwith")
+                    })
+                      .then((value) => {
+                        if (value) setProjectPath(value)
+                      })
+                      .catch(report)
+                  }}
+                >
+                  <FolderIcon />
+                </Button>
+              </div>
             </Field>
           </FieldGroup>
           {error && <FieldError>{error}</FieldError>}
-          <DialogFooter>
+          <DialogFooter className="workbuddy-studio-footer">
             <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               {t("actions.cancel")}
             </Button>
-            <Button type="submit" disabled={busy || !parent}>
+            <Button type="submit" disabled={busy || !projectPath}>
               {busy && <Spinner data-icon="inline-start" />}
               {t(busy ? "workbuddy.creating" : "workbuddy.create")}
             </Button>

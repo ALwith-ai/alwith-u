@@ -3,7 +3,7 @@ import { dirname, join } from "node:path"
 
 /** Bundle the generator with its immutable template and registry, without host node_modules. */
 export async function stageWorkBuddy(root: string, resources: string): Promise<void> {
-  const source = join(root, "node_modules/create-alwith")
+  const source = process.env.CREATE_ALWITH_PATH ?? join(root, "node_modules/create-alwith")
   const destination = join(resources, "create-alwith")
   const manifest = JSON.parse(await readFile(join(source, "package.json"), "utf8"))
   await mkdir(join(destination, "src"), { recursive: true })
@@ -12,6 +12,7 @@ export async function stageWorkBuddy(root: string, resources: string): Promise<v
   await writeFile(join(destination, "src/cli.js"), await result.outputs[0].text())
   for (const entry of [
     "template",
+    ...(manifest.files.includes("locks") ? ["locks"] : []),
     "registry/built",
     "alwith.app.schema.json",
     "LICENSE",

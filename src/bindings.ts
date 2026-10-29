@@ -60,8 +60,13 @@ export const commands = {
   extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
-  workbuddyCreate: (args: { parent: string; name: string; productName: string; identifier: string }): Promise<string> =>
-    __t3Invoke<string>("workbuddy_create", args),
+  workbuddyCreate: (args: {
+    parent: string
+    name: string
+    productName: string
+    identifier: string
+    auth: string
+  }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>
     __t3Invoke<null>("voice_start", args),
   voiceControl: (args: { action: string; recordingId: string }): Promise<null> =>

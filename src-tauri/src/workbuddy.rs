@@ -43,8 +43,11 @@ fn generation_result(stdout: &[u8], expected: &Path) -> Result<String, String> {
 
 #[tauri3_specta::command]
 pub async fn workbuddy_create(
-    app: tauri::AppHandle, parent: PathBuf, name: String, product_name: String, identifier: String,
+    app: tauri::AppHandle, parent: PathBuf, name: String, product_name: String, identifier: String, auth: String,
 ) -> Result<String, String> {
+    if !["alwith", "none"].contains(&auth.as_str()) {
+        return Err("Choose ALwith account or bare chat".into());
+    }
     let output_directory = destination(&parent, &name)?;
     #[cfg(debug_assertions)]
     let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
@@ -67,6 +70,8 @@ pub async fn workbuddy_create(
             &product_name,
             "--identifier",
             &identifier,
+            "--auth",
+            &auth,
             "--preset",
             "chat",
             "--yes",

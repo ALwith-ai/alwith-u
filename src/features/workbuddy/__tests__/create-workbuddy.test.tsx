@@ -1,18 +1,18 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, expect, test, vi } from "vitest"
 
-const { invoke, chooseFolder } = vi.hoisted(() => ({ invoke: vi.fn(), chooseFolder: vi.fn() }))
+const { invoke, save } = vi.hoisted(() => ({ invoke: vi.fn(), save: vi.fn() }))
 vi.mock("@/bindings", () => ({ commands: { workbuddyCreate: invoke } }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }))
-vi.mock("@/features/chat/draft-project-picker", () => ({ chooseFolder }))
+vi.mock("@tauri-apps/plugin-dialog", () => ({ save }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
 import { CreateWorkBuddy } from "../create-workbuddy"
 
 beforeEach(() => {
   invoke.mockReset()
-  chooseFolder.mockReset()
-  chooseFolder.mockResolvedValue("/projects")
+  save.mockReset()
+  save.mockResolvedValue("/projects/my-buddy")
 })
 
 async function fill(onCreated = vi.fn()) {
@@ -21,10 +21,9 @@ async function fill(onCreated = vi.fn()) {
   const dialog = await screen.findByRole("dialog")
   const view = within(dialog)
   fireEvent.change(view.getByLabelText("workbuddy.productName"), { target: { value: "My Buddy" } })
-  fireEvent.change(view.getByLabelText("workbuddy.packageName"), { target: { value: "my-buddy" } })
   fireEvent.change(view.getByLabelText("workbuddy.identifier"), { target: { value: "com.example.buddy" } })
-  fireEvent.click(view.getByRole("button", { name: "workbuddy.chooseFolder" }))
-  await waitFor(() => expect(view.getByLabelText("workbuddy.parent")).toHaveValue("/projects"))
+  fireEvent.click(view.getByRole("button", { name: "workbuddy.chooseLocation" }))
+  await waitFor(() => expect(view.getByLabelText("workbuddy.location")).toHaveValue("/projects/my-buddy"))
   return { form: dialog.querySelector("form")!, onCreated }
 }
 
@@ -40,10 +39,11 @@ test("one submission opens exactly the generated project and does not duplicate 
   fireEvent.submit(form)
   expect(invoke).toHaveBeenCalledTimes(1)
   expect(invoke).toHaveBeenCalledWith({
-    parent: "/projects",
+    parent: "/projects/",
     name: "my-buddy",
     productName: "My Buddy",
-    identifier: "com.example.buddy"
+    identifier: "com.example.buddy",
+    auth: "alwith"
   })
   await act(async () => complete("/projects/my-buddy"))
   expect(onCreated).toHaveBeenCalledExactlyOnceWith("/projects/my-buddy")
@@ -57,4 +57,13 @@ test("a generation error is displayed without another invocation or opening a pr
   expect(invoke).toHaveBeenCalledTimes(1)
   expect(onCreated).not.toHaveBeenCalled()
   expect(screen.queryByRole("button", { name: /retry/i })).toBeNull()
+})
+
+test("bare chat explicitly disables ALwith integration", async () => {
+  invoke.mockResolvedValue("/projects/my-buddy")
+  const { form, onCreated } = await fill()
+  fireEvent.click(screen.getByRole("radio", { name: "workbuddy.bareEdition" }))
+  fireEvent.submit(form)
+  await waitFor(() => expect(onCreated).toHaveBeenCalledOnce())
+  expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ auth: "none" }))
 })

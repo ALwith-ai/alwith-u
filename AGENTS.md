@@ -153,6 +153,14 @@ state. Default tests use mocks; only an explicitly authorized live test supplies
 or await `dispose()` in `finally`. Existing server protocol fixtures that already
 create isolated homes remain valid; they must never fall back to the real home.
 
+## Desktop debugging
+
+Prefer Hasgard for desktop debugging and UI verification: inspect the running application's snapshots, elements, interactions and logs. Use other tools when Hasgard is unavailable or unsuitable for the issue.
+
+## Release only after completion
+
+Develop, debug and validate with local candidate packages in isolated environments. Publish only after the complete implementation meets the final delivery standard and quality and compatibility checks pass. Never publish merely to unblock debugging or release repeatedly during development. Keep local candidate paths out of production manifests and lockfiles.
+
 ## Act on corrections
 
 - When the user points out an omission or a mismatch with an agreed requirement, fix it in the current task. Do not stop at apologizing, explaining, or promising a later change.

@@ -1334,6 +1334,9 @@
     }
   },
   "workbuddy": {
+    "auth": "Include ALwith account",
+    "authEnabled": "Login, pets and account features.",
+    "authDisabled": "No ALwith account services. Model provider authentication is separate.",
     "create": "Create your ALwith",
     "description": "Create your own desktop app, then customize it in a project chat.",
     "productName": "Application name",
@@ -1344,6 +1347,14 @@
     "identifier": "Application identifier",
     "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
     "appleIdentifiers": "Open Apple Identifiers",
-    "creating": "Creating…"
+    "creating": "Creating…",
+    "headline": "Build your own desktop harness",
+    "edition": "Choose your starting point",
+    "accountEdition": "With an ALwith account",
+    "bareEdition": "Without an ALwith account",
+    "accountCaption": "Sign-in, desktop pets and ALwith account services.",
+    "bareCaption": "Use and customize your app independently, without an ALwith account.",
+    "location": "Project location",
+    "chooseLocation": "Choose a new project path"
   }
 }

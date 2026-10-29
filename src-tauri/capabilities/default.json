@@ -58,6 +58,7 @@
     "window-state:default",
     "core:window:allow-start-resize-dragging",
     "alwith-module-store:default",
-    "alwith-auth-client:default"
+    "alwith-auth-client:default",
+    "dialog:allow-save"
   ]
 }
