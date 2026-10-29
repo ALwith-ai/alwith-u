@@ -20,9 +20,19 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 
-export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) => void }) {
+export function CreateWorkBuddy({
+  onCreated,
+  open: controlledOpen,
+  onOpenChange
+}: {
+  onCreated: (directory: string) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [parent, setParent] = useState("")
   const [name, setName] = useState("")
   const [productName, setProductName] = useState("")
@@ -65,10 +75,12 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
         }
       }}
     >
-      <DialogTrigger render={<NavigationItemButton className="h-8 gap-2 px-2" />}>
-        <AppWindowIcon />
-        <span>{t("workbuddy.create")}</span>
-      </DialogTrigger>
+      {controlledOpen === undefined && (
+        <DialogTrigger render={<NavigationItemButton className="h-8 gap-2 px-2" />}>
+          <AppWindowIcon />
+          <span>{t("workbuddy.create")}</span>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <form
           onSubmit={(event) => {

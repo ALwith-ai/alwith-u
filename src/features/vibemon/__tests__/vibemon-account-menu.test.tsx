@@ -91,7 +91,7 @@ function fixture(enabled: boolean, failure?: Error) {
 }
 
 async function openMenu() {
-  const view = render(<SidebarAccountMenu onOpenSettings={() => {}} />)
+  const view = render(<SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   return view
 }
@@ -104,7 +104,9 @@ test("the account menu groups settings and language above tools and sign out", a
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
   expect(view.getAllByRole("menuitem")).toEqual(
-    ["Settings", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) => view.getByRole("menuitem", { name }))
+    ["Create your ALwith", "Settings", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) =>
+      view.getByRole("menuitem", { name })
+    )
   )
   expect(view.getByRole("menuitem", { name: "Settings" }).parentElement).toBe(
     view.getByRole("menuitem", { name: "Language" }).parentElement
@@ -188,4 +190,14 @@ test("the language submenu marks the current language and saves a new selection"
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemradio", { name: "简体中文" }))))
   expect(i18n.language).toBe("zh-CN")
   expect(savePreference).toHaveBeenCalledWith("language", "zh-CN")
+})
+
+test("creation stays open after the account menu closes", async () => {
+  await initI18n("en")
+  fixture(false)
+  const view = await openMenu()
+  fireEvent.click(view.getByRole("menuitem", { name: "Create your ALwith" }))
+  await waitFor(() => expect(view.getByRole("dialog")).toBeVisible())
+  await waitFor(() => expect(view.queryByRole("menu")).toBeNull())
+  expect(view.getByRole("dialog")).toBeVisible()
 })
