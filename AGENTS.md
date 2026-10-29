@@ -152,3 +152,8 @@ state. Default tests use mocks; only an explicitly authorized live test supplies
 `authFrom` to copy auth.json into the helper's temporary home. Use `await using`
 or await `dispose()` in `finally`. Existing server protocol fixtures that already
 create isolated homes remain valid; they must never fall back to the real home.
+
+## Act on corrections
+
+- When the user points out an omission or a mismatch with an agreed requirement, fix it in the current task. Do not stop at apologizing, explaining, or promising a later change.
+- A design or mockup is not an implementation. Apply accepted UI decisions to the actual running application and verify them before claiming completion.
