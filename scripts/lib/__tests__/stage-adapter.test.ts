@@ -88,6 +88,11 @@ test("the staged toolchain runs with explicit resources outside the executable d
     const resources = join(directory, "staged resources")
     mkdirSync(binaries)
     mkdirSync(join(resources, "adapter"), { recursive: true })
+    mkdirSync(join(resources, "custom"), { recursive: true })
+    copyFileSync(
+      join(import.meta.dir, "../../../src-tauri/resources/custom/models.json"),
+      join(resources, "custom/models.json")
+    )
     for (const provider of providers) {
       const source = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)
       const target = join(resources, provider.catalog)
@@ -137,6 +142,8 @@ test("the staged toolchain runs with explicit resources outside the executable d
 
     const packagedResources = process.platform === "darwin" ? join(directory, "Resources") : binaries
     mkdirSync(join(packagedResources, "adapter"), { recursive: true })
+    mkdirSync(join(packagedResources, "custom"), { recursive: true })
+    copyFileSync(join(resources, "custom/models.json"), join(packagedResources, "custom/models.json"))
     for (const provider of providers) {
       const target = join(packagedResources, provider.catalog)
       mkdirSync(dirname(target), { recursive: true })

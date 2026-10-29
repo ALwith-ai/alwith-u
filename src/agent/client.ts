@@ -7,6 +7,7 @@ import {
   type ClientOptions as BaseClientOptions,
   CodexClient as CodexAcpClient,
   type CodexClientState,
+  configRevisionOf,
   type ForkOptions,
   type ForkOrigin,
   isBooleanOption,
@@ -22,6 +23,7 @@ import {
   type SessionSummary
 } from "@nyssance/codex-acp-v2/client"
 
+import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
 
 export type { ForkOrigin, PendingAction }
@@ -87,6 +89,10 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private readonly configOwners = new Map<string, DraftOwner>()
   /** Which slot is opening a session, so its replay resolves that slot's model once the replay has started. */
   private readonly openingOwners = new Map<string, DraftOwner>()
+  /** Identify config enqueue calls without forcing a repair of the model the user is leaving. */
+  private readonly schedulingConfig = new Set<string>()
+  /** Public writes wait for the entire replay, including its effort repair. */
+  private readonly replayRepairs = new Map<string, { cwd: string; promise: Promise<void> }>()
   private readonly accountRevocations = new Map<string, number>()
   private readonly accountRecoveries = new Map<string, number>()
   private readonly resolveModelOption: ClientOptions["resolveModel"]
@@ -103,6 +109,155 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   private setApp(partial: StateSetter<AppState>): void {
     this.store.setState(partial)
+  }
+
+  /** Keep a model change and its default effort in the existing admission transaction. */
+  protected override enqueueSession<T>(
+    id: string,
+    operation: () => Promise<T>,
+    continueAfterFailure = true
+  ): Promise<T> {
+    const repairBefore = !continueAfterFailure && !this.schedulingConfig.has(id)
+    return super.enqueueSession(
+      id,
+      () => {
+        const run = () => {
+          const previous = this.holds(id) ? selectedModel(this.session(id).configOptions) : null
+          return operation().then(async (result) => {
+            if (this.holds(id) && selectedModel(this.session(id).configOptions) !== previous)
+              await this.normalizeCustomEffort(id, true)
+            return result
+          })
+        }
+        // Prompt admission is already cancellable here. Cleanup operations must remain available after a failed repair.
+        const prepare = () => {
+          const repair = repairBefore ? this.normalizeCustomEffort(id, false) : undefined
+          return repair ? repair.then(run) : run()
+        }
+        const replay = continueAfterFailure ? undefined : this.replayRepairs.get(id)?.promise
+        return replay ? replay.then(prepare) : prepare()
+      },
+      continueAfterFailure
+    )
+  }
+
+  private customEffortChange(
+    id: string,
+    useDefault: boolean,
+    resetHidden = false,
+    previousEffort?: string
+  ): { configId: string; value: string } | undefined {
+    if (!this.holds(id)) return
+    const session = this.session(id)
+    if (!session.attached || session.readOnly) return
+    const model = selectedModel(session.configOptions)
+    const defaults = customModelEffort(model)
+    if (!defaults) return
+    const effort = session.configOptions.find((option) => option.category === "thought_level" && isSelectOption(option))
+    let configId: string
+    let value: string
+    if (effort && isSelectOption(effort)) {
+      const choices = isGroupedSelect(effort.options)
+        ? effort.options.flatMap((group) => group.options)
+        : effort.options
+      if (
+        effort.currentValue === defaults.value ||
+        (!useDefault && choices.some((choice) => choice.value === effort.currentValue))
+      )
+        return
+      if (!choices.some((choice) => choice.value === defaults.value))
+        throw new Error(`The model does not advertise its default effort: ${model}`)
+      configId = effort.configId
+      value =
+        !useDefault && previousEffort !== undefined && choices.some((choice) => choice.value === previousEffort)
+          ? previousEffort
+          : defaults.value
+    } else {
+      // Re-selecting a model with no graded efforts makes the adapter apply its transport default.
+      if (!defaults.hidden || !resetHidden || model === null) return
+      const option = session.configOptions.find((entry) => entry.category === "model")
+      if (!option) throw new Error("The custom model has no model option")
+      configId = option.configId
+      value = model
+    }
+    return { configId, value }
+  }
+
+  /** Called inside admission; another setConfig here would enqueue behind itself. */
+  private normalizeCustomEffort(
+    id: string,
+    useDefault: boolean,
+    resetHidden = false,
+    previousEffort?: string
+  ): Promise<void> | undefined {
+    const change = this.customEffortChange(id, useDefault, resetHidden, previousEffort)
+    return change ? this.writeCustomEffort(id, change.configId, change.value) : undefined
+  }
+
+  private async writeCustomEffort(id: string, configId: string, value: string): Promise<void> {
+    const agent = this.live()
+    const generation = this.lifecycle.capture(id)
+    const response = await agent.request("session/set_config_option", {
+      sessionId: id,
+      configId,
+      type: "id",
+      value
+    })
+    if (agent !== this.agent || !this.lifecycle.isCurrent(generation))
+      throw new Error("Effort configuration belongs to a retired session")
+    this.publishSession({
+      ...this.session(id),
+      configOptions: response.configOptions,
+      configRevision: configRevisionOf(response) ?? this.session(id).configRevision
+    })
+  }
+
+  protected override async afterSessionCreated(id: string): Promise<void> {
+    await super.afterSessionCreated(id)
+    try {
+      await super.enqueueSession(id, async () => this.normalizeCustomEffort(id, true, true), false)
+    } catch (error) {
+      try {
+        await this.delete(id)
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the custom model session")
+      }
+      throw error
+    }
+  }
+
+  protected override replay(id: string, cwd: string, options?: SessionRequestOptions): Promise<void> {
+    const existing = this.replayRepairs.get(id)
+    if (existing?.cwd === cwd) return existing.promise
+    const pending = this.replayWithEffort(id, cwd, options)
+    this.replayRepairs.set(id, { cwd, promise: pending })
+    const clear = () => {
+      if (this.replayRepairs.get(id)?.promise === pending) this.replayRepairs.delete(id)
+    }
+    void pending.then(clear, clear)
+    return pending
+  }
+
+  private async replayWithEffort(id: string, cwd: string, options?: SessionRequestOptions): Promise<void> {
+    const previous = this.holds(id) ? this.session(id).configOptions : []
+    const effort = previous.find((option) => option.category === "thought_level")?.currentValue
+    await super.replay(id, cwd, options)
+    // Tool preflight can resume inside prompt admission; do not enqueue behind that same prompt.
+    const generation = this.lifecycle.capture(id)
+    try {
+      await this.normalizeCustomEffort(
+        id,
+        false,
+        true,
+        selectedModel(previous) === selectedModel(this.session(id).configOptions) && typeof effort === "string"
+          ? effort
+          : undefined
+      )
+    } catch (error) {
+      if (this.holds(id) && this.lifecycle.isCurrent(generation))
+        this.publishSession({ ...this.session(id), attached: false, restoring: false })
+      throw error
+    }
   }
 
   override async connect(): Promise<void> {
@@ -162,7 +317,13 @@ export class CodexClient extends CodexAcpClient<AppState> {
     const existing = this.holds(id) ? this.session(id) : undefined
     // A replay in flight already carries this open. A read-only attach (another client holds the
     // writer) is resumed again: the writer may have let go since.
-    if (existing?.attached && !existing.restoring && !existing.readOnly && !this.lifecycle.operations.busy(id)) {
+    if (
+      existing?.attached &&
+      !existing.restoring &&
+      !existing.readOnly &&
+      !this.lifecycle.operations.busy(id) &&
+      !this.replayRepairs.has(id)
+    ) {
       this.followModel(owner, existing)
       return
     }
@@ -286,7 +447,12 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   override setConfig(id: string, configId: string, value: string | boolean, owner: DraftOwner = "main"): Promise<void> {
     this.configOwners.set(`${id}:${configId}`, owner)
-    return super.setConfig(id, configId, value)
+    this.schedulingConfig.add(id)
+    try {
+      return super.setConfig(id, configId, value)
+    } finally {
+      this.schedulingConfig.delete(id)
+    }
   }
 
   protected override onConfigChanged(id: string, configId: string, response: acp.SetSessionConfigOptionResponse): void {
@@ -345,6 +511,12 @@ export class CodexClient extends CodexAcpClient<AppState> {
         if (existing && this.session(existing).cwd === directory) {
           for (const option of this.session(existing).configOptions) {
             if (option.category === "model") continue
+            if (
+              option.category === "thought_level" &&
+              selectedModel(this.session(existing).configOptions) !== selectedModel(this.session(id).configOptions) &&
+              customModelEffort(selectedModel(this.session(id).configOptions)) !== null
+            )
+              continue
             const target = this.session(id).configOptions.find((entry) => entry.configId === option.configId)
             if (!target || target.currentValue === option.currentValue) continue
             if (isBooleanOption(option) && isBooleanOption(target)) {
@@ -440,6 +612,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
       ...options,
       meta: mergeMeta(modelHint(this.gatewayModels.get(id) ?? null), options.meta)
     })
+    await super.enqueueSession(forked, async () => this.normalizeCustomEffort(forked, false, true), false)
     const title = sourceTitle ?? this.session(forked).title
     if (title)
       await this.renameSession(

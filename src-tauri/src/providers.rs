@@ -212,13 +212,13 @@ impl Inner {
         }
     }
 }
-/// Bundled Codex model catalogs of the built-in providers (their `catalog` resource paths). The adapter
-/// merges them into Codex's own table at app-server start (`CODEX_ACP_MODEL_CATALOGS`), the only point
-/// where Codex reads model metadata.
+/// Provider metadata loaded by U's bootstrap before Codex starts. Gateway entries remain hidden in
+/// the native catalog; the adapter advertises only the models registered by configured providers.
 pub fn bundled_model_catalogs(resources: &std::path::Path) -> Result<Vec<std::path::PathBuf>, String> {
     catalog()
         .iter()
         .filter_map(|provider| provider["catalog"].as_str())
+        .chain(std::iter::once("custom/models.json"))
         .map(|relative| {
             let path = resources.join(relative);
             if path.is_file() { Ok(path) } else { Err(format!("Model catalog missing at {}", path.display())) }
@@ -252,6 +252,14 @@ fn apply_managed_model_overrides(models: &mut Value) {
             model["contextWindow"] = entry["context_window"].clone();
         }
     }
+}
+
+fn has_custom_model_metadata(provider: &CustomProvider) -> bool {
+    let catalog: Value =
+        serde_json::from_str(include_str!("../resources/custom/models.json")).expect("bundled custom model catalog");
+    provider.models.iter().any(|model| {
+        catalog["models"].as_array().expect("catalog models").iter().any(|entry| entry["slug"] == model.api_id)
+    })
 }
 
 fn definition(id: &str) -> Result<Value, String> {
@@ -672,7 +680,9 @@ async fn reconcile_target(
                     };
                     (provider["name"].clone(), key.base_url.clone().map(Value::String).unwrap_or(default_url), key.api_key.clone(), provider["models"].clone(), provider.get("config").cloned().unwrap_or(json!({})), provider["catalog"].as_str().map(str::to_string))
                 }
-                AppliedProvider::Custom(provider) => (
+                AppliedProvider::Custom(provider) => {
+                    let known = has_custom_model_metadata(provider);
+                    (
                     Value::String(provider.name.clone()),
                     Value::String(provider.base_url.clone()),
                     provider.api_key.clone(),
@@ -682,9 +692,9 @@ async fn reconcile_target(
                         "description": model.description,
                         "contextWindow": model.context_window,
                     })).collect()),
-                    json!({}),
-                    None,
-                ),
+                    if known { json!({"web_search": "disabled", "model_reasoning_summary": "none"}) } else { json!({}) },
+                    known.then(|| "custom/models.json".to_string()),
+                )},
             };
             let bundled_catalog = if id == managed::ID {
                 let definition = managed_definition();
@@ -1357,6 +1367,7 @@ mod tests {
             assert_eq!(runtime_id, "custom-637573746f6d5f70726976617465");
             assert_eq!(params["baseUrl"], "https://gateway.example.test/v1");
             assert_eq!(params["_meta"]["codex"]["name"], "Private gateway");
+            assert_eq!(params["_meta"]["codex"]["config"], json!({}));
             assert_eq!(
                 params["_meta"]["alwith"]["models"],
                 json!([{
@@ -1371,6 +1382,37 @@ mod tests {
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         let calls = calls.lock().unwrap();
         assert_eq!(calls[1]["params"]["params"]["_meta"]["codex"]["id"], "custom-637573746f6d5f70726976617465");
+    }
+
+    #[tokio::test]
+    async fn recognized_custom_models_receive_their_catalog_without_changing_routing() {
+        let provider = CustomProvider {
+            id: "custom_profile".into(),
+            name: "Zhipu".into(),
+            base_url: "https://open.bigmodel.cn/api/v1".into(),
+            api_key: "private-test-secret".into(),
+            models: vec![CustomModel {
+                label: "My GLM".into(),
+                api_id: "glm-5.3".into(),
+                context_window: None,
+                description: None,
+            }],
+        };
+        let saved = Saved { custom_providers: BTreeMap::from([(provider.id.clone(), provider)]), ..Saved::default() };
+        let (client, calls) = fake_runtime(
+            Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        );
+        let mut inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        let calls = calls.lock().unwrap();
+        let params = &calls[0]["params"]["params"];
+        assert_eq!(params["baseUrl"], "https://open.bigmodel.cn/api/v1");
+        assert_eq!(params["_meta"]["alwith"]["models"][0]["id"], "glm-5.3");
+        assert_eq!(params["_meta"]["alwith"]["models"][0]["label"], "My GLM");
+        assert_eq!(params["_meta"]["codex"]["config"]["model_catalog_json"], "/resources/custom/models.json");
+        assert_eq!(params["_meta"]["codex"]["config"]["web_search"], "disabled");
     }
 
     #[test]
