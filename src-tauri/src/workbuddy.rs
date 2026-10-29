@@ -44,10 +44,13 @@ fn generation_result(stdout: &[u8], expected: &Path) -> Result<String, String> {
 #[tauri3_specta::command]
 pub async fn workbuddy_create(
     app: tauri::AppHandle, parent: PathBuf, name: String, product_name: String, identifier: String, auth: String,
+    github: Option<String>,
 ) -> Result<String, String> {
     if !["alwith", "none"].contains(&auth.as_str()) {
         return Err("Choose ALwith account or bare chat".into());
     }
+    // The generator validates the repository and writes the updater key to ~/.tauri; blank means no updates.
+    let github = github.map(|value| value.trim().to_owned()).filter(|value| !value.is_empty());
     let output_directory = destination(&parent, &name)?;
     #[cfg(debug_assertions)]
     let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
@@ -77,6 +80,7 @@ pub async fn workbuddy_create(
             "--yes",
             "--json",
         ])
+        .args(github.iter().flat_map(|repository| ["--github", repository.as_str()]))
         .kill_on_drop(true)
         .hide_console();
     let output = command.output().await.map_err(|error| error.to_string())?;

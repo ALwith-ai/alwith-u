@@ -66,6 +66,7 @@ export const commands = {
     productName: string
     identifier: string
     auth: string
+    github: string | null
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
   prepareCursorImport: (args: { cwds: string[] }): Promise<null> => __t3Invoke<null>("prepare_cursor_import", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>

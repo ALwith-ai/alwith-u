@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
@@ -37,6 +37,7 @@ export function CreateWorkBuddy({
   const [projectPath, setProjectPath] = useState("")
   const [productName, setProductName] = useState("")
   const [identifier, setIdentifier] = useState("")
+  const [github, setGithub] = useState("")
   const [withAuth, setWithAuth] = useState(true)
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
@@ -60,7 +61,8 @@ export function CreateWorkBuddy({
         name,
         productName,
         identifier,
-        auth: withAuth ? "alwith" : "none"
+        auth: withAuth ? "alwith" : "none",
+        github: github.trim() || null
       })
     } catch (cause) {
       report(cause)
@@ -73,6 +75,7 @@ export function CreateWorkBuddy({
     setProjectPath("")
     setProductName("")
     setIdentifier("")
+    setGithub("")
     onCreated(directory)
   }
 
@@ -154,6 +157,18 @@ export function CreateWorkBuddy({
                 disabled={busy}
                 onChange={(event) => setIdentifier(event.target.value)}
               />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="workbuddy-github">{t("workbuddy.github")}</FieldLabel>
+              <Input
+                id="workbuddy-github"
+                pattern="[A-Za-z0-9]([A-Za-z0-9\-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.\-]{1,100}"
+                placeholder="owner/repo"
+                value={github}
+                disabled={busy}
+                onChange={(event) => setGithub(event.target.value)}
+              />
+              <FieldDescription>{t("workbuddy.githubHelp")}</FieldDescription>
             </Field>
             <Field className="workbuddy-location">
               <FieldLabel htmlFor="workbuddy-location">{t("workbuddy.location")}</FieldLabel>

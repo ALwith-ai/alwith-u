@@ -1348,6 +1348,8 @@
     "chooseFolder": "选择父目录",
     "identifier": "应用标识符",
     "identifierHelp": "使用 com.example.myapp 这样的反向域名标识符。本地构建可用任意合法标识符；Apple 签名需在开发者账号中注册对应 App ID。",
+    "github": "发布用的 GitHub 仓库（可选）",
+    "githubHelp": "应用自己的仓库 owner/repo。填写后带签名自动更新：密钥对写到 ~/.tauri，项目的发布流程发到该仓库。",
     "appleIdentifiers": "打开 Apple Identifiers",
     "creating": "正在创建…",
     "headline": "创建你的桌面 Harness",

@@ -1348,6 +1348,8 @@
     "chooseFolder": "Choose parent folder",
     "identifier": "Application identifier",
     "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
+    "github": "GitHub repository for releases (optional)",
+    "githubHelp": "owner/repo of the app's own public repository. Adds signed auto update: a key pair is written to ~/.tauri and the project's release workflow publishes there.",
     "appleIdentifiers": "Open Apple Identifiers",
     "creating": "Creating…",
     "headline": "Build your own desktop harness",
