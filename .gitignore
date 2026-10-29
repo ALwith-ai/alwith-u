@@ -25,3 +25,5 @@ src-tauri/resources/computer/
 src-tauri/resources/licenses/alwith-native-*/
 
 src-tauri/resources/chrome-bridge/
+
+src-tauri/resources/create-alwith/

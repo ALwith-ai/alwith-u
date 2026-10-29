@@ -32,6 +32,7 @@ import manifest from "../package.json"
 import { stageComputer } from "./lib/computer-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
+import { stageWorkBuddy } from "./lib/workbuddy-artifact"
 
 const root = resolve(import.meta.dirname, "..")
 const binaries = join(root, "src-tauri/binaries")
@@ -264,3 +265,5 @@ for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
 console.log(`licences -> ${licenses}`)
 
 await stageChromeBridge(join(root, "src-tauri/resources/chrome-bridge"))
+
+await stageWorkBuddy(root, join(root, "src-tauri/resources"))

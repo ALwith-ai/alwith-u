@@ -55,6 +55,7 @@
         "class-variance-authority": "^0.7.1",
         "cmdk": "^1.1.1",
         "cn": "^0.5.0",
+        "create-alwith": "^0.1.0",
         "date-fns": "^4.4.0",
         "diff2html": "^3.4.56",
         "docx-preview": "^0.4.1",
@@ -1194,6 +1195,8 @@
     "cors": ["cors@2.8.6", "https://registry.npmmirror.com/cors/-/cors-2.8.6.tgz", { "dependencies": { "object-assign": "^4", "vary": "^1" } }, "sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw=="],
 
     "cose-base": ["cose-base@1.0.3", "https://registry.npmmirror.com/cose-base/-/cose-base-1.0.3.tgz", { "dependencies": { "layout-base": "^1.0.0" } }, "sha512-s9whTXInMSgAp/NVXVNuVxVKzGH2qck3aQlVHxDCdAEPgtMKwc4Wq6/QKhgdEdgbLSi9rBTAcPoRa6JpiG4ksg=="],
+
+    "create-alwith": ["create-alwith@0.1.0", "https://registry.npmmirror.com/create-alwith/-/create-alwith-0.1.0.tgz", { "dependencies": { "@alwith/module-desktop-shell": "^0.5.0" }, "bin": { "create-alwith": "src/cli.ts" } }, "sha512-CHTfSR+obud93KsBlIX/O2xJj5/yXlq6A1HuPQ1xjp8vD1g2FpuMMgxxC8j4JdRLhzsJ1h8xQ8oLDDGfl3XPgw=="],
 
     "cross-spawn": ["cross-spawn@7.0.6", "https://registry.npmmirror.com/cross-spawn/-/cross-spawn-7.0.6.tgz", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 

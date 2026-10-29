@@ -33,6 +33,7 @@
     "@alwith/module-chat": "~0.5.10",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",
+    "@alwith/module-desktop-shell": "^0.5.0",
     "@alwith/module-drive": "^0.1.4",
     "@alwith/module-editor": "^0.1.0-rc.15",
     "@alwith/module-extension": "^0.1.0-rc.19",
@@ -75,6 +76,7 @@
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.5.0",
+    "create-alwith": "^0.1.0",
     "date-fns": "^4.4.0",
     "diff2html": "^3.4.56",
     "docx-preview": "^0.4.1",
@@ -110,8 +112,7 @@
     "y-protocols": "^1.0.7",
     "y-websocket": "^3.1.0",
     "yjs": "^13.6.33",
-    "zustand": "^5.0.16",
-    "@alwith/module-desktop-shell": "^0.5.0"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.1.2",

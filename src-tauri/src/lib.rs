@@ -44,6 +44,7 @@ mod voice_credentials;
 mod window;
 #[cfg(target_os = "windows")]
 mod windows_frame;
+mod workbuddy;
 mod workspace;
 mod workspace_move;
 
@@ -321,6 +322,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
+                workbuddy::workbuddy_create,
                 voice::voice_start,
                 voice::voice_control,
                 voice::voice_profiles,

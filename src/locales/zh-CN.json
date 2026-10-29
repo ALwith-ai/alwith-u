@@ -1332,5 +1332,18 @@
       "MEMORY": "记忆",
       "SESSIONS": "聊天"
     }
+  },
+  "workbuddy": {
+    "create": "新建 WorkBuddy",
+    "description": "创建自己的桌面应用，然后在项目聊天中定制。",
+    "productName": "应用名称",
+    "packageName": "项目目录名",
+    "nameHelp": "使用小写字母、数字和连字符。在所选目录内新建项目文件夹。",
+    "parent": "保存位置",
+    "chooseFolder": "选择父目录",
+    "identifier": "应用标识符",
+    "identifierHelp": "使用 com.example.myapp 这样的反向域名标识符。本地构建可用任意合法标识符；Apple 签名需在开发者账号中注册对应 App ID。",
+    "appleIdentifiers": "打开 Apple Identifiers",
+    "creating": "正在创建…"
   }
 }

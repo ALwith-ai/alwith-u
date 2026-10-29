@@ -1332,5 +1332,18 @@
       "MEMORY": "Memory",
       "SESSIONS": "Chats"
     }
+  },
+  "workbuddy": {
+    "create": "New WorkBuddy",
+    "description": "Create your own desktop app, then customize it in a project chat.",
+    "productName": "Application name",
+    "packageName": "Project folder name",
+    "nameHelp": "Lowercase letters, digits and hyphens. A new folder will be created inside the selected directory.",
+    "parent": "Save in",
+    "chooseFolder": "Choose parent folder",
+    "identifier": "Application identifier",
+    "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
+    "appleIdentifiers": "Open Apple Identifiers",
+    "creating": "Creating…"
   }
 }

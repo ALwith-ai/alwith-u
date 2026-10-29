@@ -11,14 +11,6 @@ import {
 } from "@tauri-apps/api/event"
 
 export const commands = {
-  storeEntries: (args: { scope: StoreScope; store: string }): Promise<Value> =>
-    __t3Invoke<Value>("store_entries", args),
-  storeSet: (args: { scope: StoreScope; store: string; key: string; value: Value }): Promise<null> =>
-    __t3Invoke<null>("store_set", args),
-  storeDelete: (args: { scope: StoreScope; store: string; key: string }): Promise<null> =>
-    __t3Invoke<null>("store_delete", args),
-  storeClear: (args: { scope: StoreScope; store: string }): Promise<null> => __t3Invoke<null>("store_clear", args),
-  storeReload: (args: { scope: StoreScope; store: string }): Promise<null> => __t3Invoke<null>("store_reload", args),
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
   computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
   computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
@@ -68,6 +60,8 @@ export const commands = {
   extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  workbuddyCreate: (args: { parent: string; name: string; productName: string; identifier: string }): Promise<string> =>
+    __t3Invoke<string>("workbuddy_create", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>
     __t3Invoke<null>("voice_start", args),
   voiceControl: (args: { action: string; recordingId: string }): Promise<null> =>
@@ -203,8 +197,6 @@ export const commands = {
     } | null>("wallpaper_import", args),
   wallpaperRemove: (args: { id: string; locale: string | null }): Promise<boolean> =>
     __t3Invoke<boolean>("wallpaper_remove", args),
-  refreshTokens: (args: { apiBaseUrl: string; refreshToken: string }): Promise<RefreshedTokens> =>
-    __t3Invoke<RefreshedTokens>("refresh_tokens", args),
   vibemonWindow: (args: { action: string; payload: Value }): Promise<Value> =>
     __t3Invoke<Value>("vibemon_window", args),
   vibemonResource: (args: {
@@ -292,11 +284,6 @@ export const commands = {
 
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
-  storeEntries: string
-  storeSet: string
-  storeDelete: string
-  storeClear: string
-  storeReload: string
   autostartStatus: string
   computerStatus: string
   computerStart: string
@@ -323,6 +310,7 @@ export type CommandErrors = {
   extensionInboxComplete: string
   extensionInboxFailed: string
   draftDirectory: string
+  workbuddyCreate: string
   voiceStart: string
   voiceControl: string
   voiceProfiles: string
@@ -369,7 +357,6 @@ export type CommandErrors = {
   wallpaperList: string
   wallpaperImport: string
   wallpaperRemove: string
-  refreshTokens: Value
   vibemonWindow: string
   vibemonResource: string
   vibemonDownload: string
@@ -1007,11 +994,6 @@ export type PublicCustomProvider_Serialize = {
   models: CustomModel_Serialize[]
 }
 
-export type RefreshedTokens = {
-  access_token: string
-  refresh_token: string
-}
-
 export type ReopenTab = null
 
 export type ReplaceInFile = null
@@ -1136,12 +1118,6 @@ export type State_Serialize =
   | { type: "downloading"; update: UpdateInfo_Serialize; downloadedBytes: number | null; totalBytes: number | null }
   | { type: "ready"; update: UpdateInfo_Serialize }
   | { type: "restarting"; update: UpdateInfo_Serialize }
-
-/**
- *  Storage domain. data = follows app data (settings, sign-in state and other things to keep);
- *  cache = run detail (execution logs etc.), deletable any time and reclaimed by "Settings → Cache → Clear".
- */
-export type StoreScope = "data" | "cache"
 
 export type Target = {
   pid: number
