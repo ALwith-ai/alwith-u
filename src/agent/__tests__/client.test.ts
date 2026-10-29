@@ -77,6 +77,39 @@ async function make(
   return { client, fake, port }
 }
 
+test("shell acceptance materializes only the owning draft and failure preserves an unsent draft", async () => {
+  const { client } = await make()
+  const main = await client.prepareDraft("main", "/tmp/main-shell")
+  const floating = await client.prepareDraft("chat", "/tmp/floating-shell")
+  const execute = vi.spyOn(client.codexCapabilities, "executeShell").mockRejectedValueOnce(new Error("Disconnected"))
+  try {
+    await expect(client.executeShell(main, "pwd")).rejects.toThrow("Disconnected")
+    expect(client.state.draftSessions[main]).toBe("main")
+    execute.mockResolvedValue({})
+    await client.executeShell(main, "pwd")
+    expect(execute).toHaveBeenLastCalledWith(main, "pwd")
+    expect(client.state.draftSessions[main]).toBeUndefined()
+    expect(client.state.draftSessions[floating]).toBe("chat")
+  } finally {
+    execute.mockRestore()
+  }
+})
+
+test("new sessions resolve the configured default before asking the agent to create them", async () => {
+  const resolve = vi.fn(async (model: string | null) => model ?? "configured-default")
+  const { client, fake } = await make(undefined, undefined, resolve)
+  const id = await client.newSession("/tmp/configured-default")
+  expect(resolve).toHaveBeenCalledWith(null)
+  expect(fake.modelHints.get(id)).toBe("configured-default")
+})
+
+test("opening historical conversations does not replace their model with another slot's preference", async () => {
+  const { client, fake } = await make()
+  client.setModelSelections({ main: "other-main-model", chat: "other-floating-model" })
+  await client.open("h1", "/tmp/one")
+  expect(fake.modelHints.get("h1")).toBeNull()
+})
+
 test.each(["new", "resume", "fork"] as const)(
   "%s sessions initialize commands from the response",
   async (operation) => {
@@ -979,17 +1012,17 @@ test("host configured gateway models are identified from the session catalog and
     alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }] }
   })
 
-  // Every restored thread uses the latest confirmed model, not its historical binding.
+  // Restoring history does not apply another conversation's model preference.
   const seen: Array<[string, string, boolean]> = []
   client.onSessionModel((sessionId, modelId, isGateway) => seen.push([sessionId, modelId, isGateway]))
   client.setModelSelections({ main: "deepseek-flash", chat: null })
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two")
-  expect(fake.modelHints.get("h1")).toBe("deepseek-flash")
-  expect(fake.modelHints.get("h2")).toBe("deepseek-flash")
+  expect(fake.modelHints.get("h1")).toBeNull()
+  expect(fake.modelHints.get("h2")).toBeNull()
   expect(seen).toEqual([
-    ["h1", "deepseek-flash", true],
-    ["h2", "deepseek-flash", true]
+    ["h1", "gpt-6.1-sol", false],
+    ["h2", "gpt-6.1-sol", false]
   ])
 
   // New chats start native; a gateway model can be asked for explicitly.
@@ -1002,13 +1035,13 @@ test("host configured gateway models are identified from the session catalog and
   expect(fake.gateway.current).toBeNull()
 })
 
-test("restore uses each slot's current choice without creating a probe session", async () => {
+test("restore leaves each conversation's model to the agent without creating a probe session", async () => {
   const { client, fake } = await make()
   client.setModelSelections({ main: "main-model", chat: "chat-model" })
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two", "chat")
-  expect(fake.modelHints.get("h1")).toBe("main-model")
-  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  expect(fake.modelHints.get("h1")).toBeNull()
+  expect(fake.modelHints.get("h2")).toBeNull()
   expect(fake.modelHints.size).toBe(2)
   expect(fake.deleted.size).toBe(0)
 })
@@ -1021,7 +1054,7 @@ test("attached session reuse follows its runtime model without rewriting slot me
   client.onConfirmedModel((...args) => seen.push(args))
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two")
-  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  expect(fake.modelHints.get("h2")).toBeNull()
   const draft = await client.prepareDraft("main", "/tmp/draft")
   expect(fake.modelHints.get(draft)).toBe("main-model")
   expect(seen).toEqual([])
@@ -1066,7 +1099,7 @@ test("a late restore cannot replace the model of the slot's newer target", async
   await opening
   delay = false
   await client.open("h3", "/tmp/three")
-  expect(fake.modelHints.get("h3")).toBe("chat-model")
+  expect(fake.modelHints.get("h3")).toBeNull()
 })
 
 test("a handed-off session no longer changes the previous slot's model", async () => {
@@ -1087,7 +1120,7 @@ test("restore waits for the host's applied provider selection", async () => {
   expect(fake.modelHints.size).toBe(0)
   ready.resolve("configured-default")
   await opening
-  expect(fake.modelHints.get("h1")).toBe("configured-default")
+  expect(fake.modelHints.get("h1")).toBeNull()
   expect(fake.modelHints.size).toBe(1)
 })
 

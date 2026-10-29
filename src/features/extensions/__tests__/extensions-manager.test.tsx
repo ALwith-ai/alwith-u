@@ -306,12 +306,12 @@ test("search includes optional description and author", async (): Promise<void> 
   }
 })
 
-test("extension rows share panel hover styling without metadata tooltips", async (): Promise<void> => {
+test("extension rows stay flat on hover without metadata tooltips", async (): Promise<void> => {
   const snapshot = state()
   snapshot.native.installations = [installation("alpha", "Alpha Notes")]
   const view = setup(snapshot)
   const row = view.getByRole("region", { name: "Alpha Notes" })
-  expect(row.querySelector('[data-slot="item"]')).toHaveClass("chrome-hover", "hover:bg-foreground/8")
+  expect(row.querySelector('[data-slot="item"]')).not.toHaveClass("chrome-hover", "hover:bg-foreground/8")
   fireEvent.mouseEnter(view.getByText("Alpha Notes"))
   fireEvent.mouseMove(view.getByText("Alpha Notes"))
   await act(async () => {

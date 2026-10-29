@@ -197,7 +197,9 @@
     "trackpad": "トラックパッド",
     "trackpadEnabled": "トラックパッドのジェスチャを有効にする",
     "threeFingerSwipeDesc": "3本指で横にスワイプしてキャンバスを移動",
-    "import": "インポート"
+    "import": "インポート",
+    "explorer": "エクスプローラー",
+    "explorerHiddenDescription": "名前がドット（.）で始まる隠しファイルとディレクトリを表示"
   },
   "usage": {
     "usage": "使用量",
@@ -372,7 +374,8 @@
     "source": "ソース",
     "newTab": "新しいタブ",
     "emptyNewTab": "新しいタブ",
-    "more": "その他の操作"
+    "more": "その他の操作",
+    "ignored": "Git で無視されたファイルを表示"
   },
   "pet": {
     "retry": "再試行",

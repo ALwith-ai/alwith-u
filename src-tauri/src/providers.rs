@@ -625,6 +625,37 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
     outcome
 }
 
+fn custom_model_catalog(models: &[CustomModel]) -> Result<PathBuf, String> {
+    use sha2::{Digest, Sha256};
+    // Reuse the app's generic coding instructions, with explicit custom endpoint capabilities.
+    let template: Value =
+        serde_json::from_str(include_str!("../resources/qwen/models.json")).map_err(|e| e.to_string())?;
+    let entries: Vec<Value> = models
+        .iter()
+        .map(|model| {
+            json!({
+                "slug": model.api_id, "display_name": model.label, "description": model.description,
+                "base_instructions": template["models"][0]["base_instructions"],
+                "supported_reasoning_levels": [], "shell_type": "shell_command",
+                "visibility": "list", "supported_in_api": true, "priority": 0,
+                "support_verbosity": false, "supports_reasoning_summary_parameter": false,
+                "truncation_policy": {"mode": "bytes", "limit": 10000},
+                "experimental_supported_tools": [], "input_modalities": ["text"],
+                "context_window": model.context_window, "max_context_window": model.context_window,
+                "apply_patch_tool_type": "freeform", "tool_mode": "direct",
+                "include_apps_usage_instructions": false
+            })
+        })
+        .collect();
+    let bytes = serde_json::to_vec(&json!({"models": entries})).map_err(|e| e.to_string())?;
+    let path =
+        std::env::temp_dir().join(format!("alwith-u-model-catalog-{}.json", hex::encode(Sha256::digest(&bytes))));
+    let mut file = tempfile::NamedTempFile::new_in(std::env::temp_dir()).map_err(|e| e.to_string())?;
+    file.write_all(&bytes).map_err(|e| e.to_string())?;
+    file.persist(&path).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
 async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path) -> Result<(), String> {
     reconcile_target(inner, client, resource_dir, "codex").await
 }
@@ -692,7 +723,8 @@ async fn reconcile_target(
                         "description": model.description,
                         "contextWindow": model.context_window,
                     })).collect()),
-                    if known { json!({"web_search": "disabled", "model_reasoning_summary": "none"}) } else { json!({}) },
+                    // Uncatalogued Responses endpoints use direct tools; catalogued models keep their declared capabilities.
+                    if known { json!({"web_search": "disabled", "model_reasoning_summary": "none"}) } else { json!({"features": {"code_mode": false, "code_mode_only": false}}) },
                     known.then(|| "custom/models.json".to_string()),
                 )},
             };
@@ -706,6 +738,8 @@ async fn reconcile_target(
             };
             if let Some(catalog) = bundled_catalog {
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
+            } else if let AppliedProvider::Custom(provider) = selected {
+                config["model_catalog_json"] = json!(custom_model_catalog(&provider.models)?);
             }
             let result = client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
                 "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
@@ -1133,6 +1167,42 @@ mod tests {
         .unwrap();
         Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
     }
+
+    #[tokio::test]
+    async fn custom_provider_routes_direct_tools_without_changing_built_in_catalogs() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)));
+        let mut inner = pending_provider();
+        inner.saved.custom_providers.insert(
+            "custom_test".into(),
+            CustomProvider {
+                id: "custom_test".into(),
+                name: "Custom".into(),
+                base_url: "https://example.com/v1".into(),
+                api_key: "private-test-secret".into(),
+                models: vec![CustomModel {
+                    label: "Model".into(),
+                    api_id: "model".into(),
+                    context_window: None,
+                    description: None,
+                }],
+            },
+        );
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        let calls = calls.lock().unwrap();
+        let custom = calls.iter().find(|call| call["params"]["params"]["_meta"]["codex"]["name"] == "Custom").unwrap();
+        assert_eq!(
+            custom["params"]["params"]["_meta"]["codex"]["config"]["features"],
+            json!({"code_mode": false, "code_mode_only": false})
+        );
+        let catalog_path =
+            custom["params"]["params"]["_meta"]["codex"]["config"]["model_catalog_json"].as_str().unwrap();
+        let catalog: Value = serde_json::from_slice(&std::fs::read(catalog_path).unwrap()).unwrap();
+        assert_eq!(catalog["models"][0]["slug"], "model");
+        assert_eq!(catalog["models"][0]["tool_mode"], "direct");
+        let built_in = calls.iter().find(|call| call["params"]["params"]["_meta"]["codex"]["id"] == "qwen").unwrap();
+        assert!(built_in["params"]["params"]["_meta"]["codex"]["config"]["features"].is_null());
+    }
     fn fake_runtime(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
     ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
@@ -1367,7 +1437,13 @@ mod tests {
             assert_eq!(runtime_id, "custom-637573746f6d5f70726976617465");
             assert_eq!(params["baseUrl"], "https://gateway.example.test/v1");
             assert_eq!(params["_meta"]["codex"]["name"], "Private gateway");
-            assert_eq!(params["_meta"]["codex"]["config"], json!({}));
+            let config = &params["_meta"]["codex"]["config"];
+            assert_eq!(config["features"], json!({"code_mode": false, "code_mode_only": false}));
+            let catalog: Value =
+                serde_json::from_slice(&std::fs::read(config["model_catalog_json"].as_str().unwrap()).unwrap())
+                    .unwrap();
+            assert_eq!(catalog["models"][0]["slug"], "model-a");
+            assert_eq!(catalog["models"][0]["context_window"], 128000);
             assert_eq!(
                 params["_meta"]["alwith"]["models"],
                 json!([{

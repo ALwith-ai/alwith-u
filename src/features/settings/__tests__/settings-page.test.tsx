@@ -56,3 +56,10 @@ test("mobile connections are reachable from settings navigation", () => {
   fireEvent.click(screen.getByRole("button", { name: "Mobile connection" }))
   expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
 })
+
+test("explorer settings expose the global hidden-file switch", () => {
+  render(<SettingsPage />)
+  fireEvent.click(screen.getByRole("button", { name: "Explorer" }))
+  expect(screen.getByRole("region", { name: "Explorer" })).toBeVisible()
+  expect(screen.getByRole("switch", { name: "Show hidden files" })).toBeVisible()
+})

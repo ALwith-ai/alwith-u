@@ -13,7 +13,6 @@ import {
   ItemContent,
   ItemDescription,
   ItemMedia,
-  PanelItem,
   PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
@@ -22,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Item } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { openExternal } from "@/lib/open"
@@ -34,6 +34,7 @@ import { extensionActions } from "./policy"
 export type ExtensionInstallPhase = "preparing" | "installing"
 
 interface ExtensionsManagerProps {
+  settings?: boolean
   state: RuntimeSnapshot
   host: HostSnapshot
   busy: boolean
@@ -59,7 +60,8 @@ export function ExtensionsManager({
   onReload,
   onRetry,
   onOpenSurface,
-  renderSettings
+  renderSettings,
+  settings = false
 }: ExtensionsManagerProps) {
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
@@ -76,16 +78,35 @@ export function ExtensionsManager({
     )
   const unavailable = busy || state.native === null
   return (
-    <div className="@container flex min-w-0 flex-col gap-8">
-      <CatalogHeader
-        title={t("sidebar.extensions")}
-        badge={<Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>}
-      >
-        <Button variant="outline" size="sm" className="h-9" disabled={unavailable} onClick={() => onInstall()}>
-          {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
-          {t("extensions.install")}
-        </Button>
-      </CatalogHeader>
+    <div className="toolbox-surface @container flex min-w-0 flex-col gap-6">
+      {settings ? (
+        <div className="flex h-[30px] items-center justify-end">
+          <Button variant="outline" size="sm" className="h-[30px]" disabled={unavailable} onClick={() => onInstall()}>
+            {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
+            {t("extensions.install")}
+          </Button>
+        </div>
+      ) : (
+        <CatalogHeader
+          title={t("sidebar.extensions")}
+          badge={<Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>}
+        >
+          <div className="toolbox-toolbar flex min-w-0 flex-wrap items-center gap-2">
+            <Input
+              type="search"
+              className="h-9 w-52 max-w-full rounded-full"
+              aria-label={t("extensions.search")}
+              placeholder={t("extensions.search")}
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+            />
+            <Button variant="outline" size="sm" className="h-9" disabled={unavailable} onClick={() => onInstall()}>
+              {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
+              {t("extensions.install")}
+            </Button>
+          </div>
+        </CatalogHeader>
+      )}
       {installPhase && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden="true" />
@@ -105,13 +126,6 @@ export function ExtensionsManager({
         </Alert>
       )}
       <div className="space-y-4">
-        <Input
-          type="search"
-          aria-label={t("extensions.search")}
-          placeholder={t("extensions.search")}
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-        />
         {state.native === null && !state.errors.service && (
           <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <Spinner />
@@ -123,7 +137,7 @@ export function ExtensionsManager({
             {t(installations.length === 0 ? "extensions.empty" : "extensions.noMatches")}
           </p>
         )}
-        <PanelList className="gap-3 px-0">
+        <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
           {matches.map(({ item, name, description }) => {
             // Imported metadata has a smaller icon vocabulary than entry contributions.
             const entryAction = sortContributions(
@@ -147,9 +161,9 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <PanelItem className="group/extension items-center gap-3 rounded-md border-0 p-4">
+                <Item size="xs" className="toolbox-row group/extension items-center">
                   <ItemMedia className="translate-none! self-center!">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
                       <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>
@@ -158,7 +172,7 @@ export function ExtensionsManager({
                     {description && (
                       <ItemDescription className="line-clamp-1 text-xs leading-5">{description}</ItemDescription>
                     )}
-                    <ItemDescription className="truncate text-xs leading-5">
+                    <ItemDescription data-toolbox-metadata="" className="truncate">
                       {item.manifest.author && (
                         <>
                           {item.manifest.authorUrl ? (
@@ -256,7 +270,7 @@ export function ExtensionsManager({
                       </DropdownMenu>
                     )}
                   </ItemActions>
-                </PanelItem>
+                </Item>
                 {item.source === LEGACY_SOURCE &&
                   findLegacyProfile(item.id)?.limitations.map((message) => {
                     const key = JSON.stringify([item.installationId, item.packageRevision, message])
@@ -299,7 +313,7 @@ export function ExtensionsManager({
                 {host.views
                   .filter((view) => view.extensionId === item.id && view.kind === "settings")
                   .map((view) => (
-                    <div key={view.id} className="px-3 pt-2 pb-4">
+                    <div key={view.id} className="toolbox-extension-settings py-4">
                       {renderSettings(view)}
                     </div>
                   ))}

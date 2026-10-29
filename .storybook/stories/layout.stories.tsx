@@ -73,7 +73,6 @@ export const LeadingApps: Story = {
                 onOpenVibemon={() => setActive(null)}
                 onOpenPlugins={() => setActive(null)}
                 onOpenArchives={() => setActive(null)}
-                onOpenExtensions={() => setActive(null)}
               >
                 <ExtensionNavigation
                   host={extensionHost}
@@ -104,7 +103,7 @@ export const LeadingApps: Story = {
     await expect(canvas.getByRole("heading")).toHaveTextContent("app-19/page")
     await expect(fixed.getBoundingClientRect().top).toBe(top)
     await expect(canvas.getByRole("button", { name: "App 20" })).toHaveAttribute("aria-current", "page")
-    await expect(canvas.getByRole("button", { name: "Extensions" })).not.toHaveAttribute("aria-current")
+    await expect(canvas.getByRole("button", { name: "Toolbox" })).not.toHaveAttribute("aria-current")
   }
 }
 
@@ -123,7 +122,6 @@ export const LeadingFeatures: Story = {
                 activePage={page}
                 onOpenVibemon={() => setPage("vibemon")}
                 onOpenPlugins={() => setPage("plugins")}
-                onOpenExtensions={() => setPage("extensions")}
                 onOpenArchives={() => setPage("archives")}
               />
               <SidebarInset className="main-chat-surface p-8">

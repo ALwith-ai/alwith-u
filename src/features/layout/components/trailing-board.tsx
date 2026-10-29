@@ -113,7 +113,7 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
   return (
     <div
       ref={pane}
-      className="relative flex h-full min-h-0 flex-col select-none [&_[data-testid=pet-lounge-drop]]:border-white [&_[data-testid=pet-lounge-drop]]:bg-white/10"
+      className="pet-lounge relative flex h-full min-h-0 flex-col select-none"
       aria-label={t("pet.lounge")}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-48">

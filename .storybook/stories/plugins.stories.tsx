@@ -178,7 +178,6 @@ function CatalogPreview() {
         activePage="plugins"
         onOpenVibemon={() => {}}
         onOpenPlugins={() => {}}
-        onOpenExtensions={() => {}}
         onOpenArchives={() => {}}
       />
       <div className="min-w-0 flex-1">
@@ -207,7 +206,7 @@ export const CatalogLayout: Story = {
     await expect(sideHeader.getBoundingClientRect().top - sidebar.getBoundingClientRect().top).toBeCloseTo(12, 0)
     const left = catalogHeading.getBoundingClientRect().left
     await expect(left - sidebar.getBoundingClientRect().right).toBeCloseTo(40, 0)
-    const customize = within(sidebar).getByRole("heading", { name: "Customize" })
+    const customize = within(sidebar).getByRole("heading", { name: "Toolbox" })
     const railIcon = canvasElement.querySelector(".leading-navigation button svg")!
     await expect(center(customize)).toBeCloseTo(center(railIcon), 0)
     const skillsButton = within(ui.getByRole("navigation", { name: "Manage extensions" })).getByRole("button", {

@@ -35,7 +35,6 @@ function showSidebar() {
         onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
-        onOpenExtensions={() => {}}
         onSwitchScreen={() => {}}
       />
     </SidebarProvider>
@@ -48,7 +47,11 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   const quick = view.getByRole("button", { name: "Quick chats" })
   expect(quick).toHaveAttribute("aria-expanded", "false")
   expect(quick.closest('[data-slot="popover-trigger"]')).not.toBeNull()
-  expect(view.getAllByRole("button").find((button) => button.hasAttribute("aria-expanded") && button.closest(".session-list-content"))).toBe(quick)
+  expect(
+    view
+      .getAllByRole("button")
+      .find((button) => button.hasAttribute("aria-expanded") && button.closest(".session-list-content"))
+  ).toBe(quick)
 })
 
 test("double clicking Chats collapses groups and restores quick chats plus five projects", () => {

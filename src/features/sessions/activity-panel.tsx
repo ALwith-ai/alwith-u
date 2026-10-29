@@ -29,7 +29,6 @@ import { toast } from "sonner"
 
 import type { SessionSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
-import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { Kbd } from "@/components/ui/kbd"
 import { useCmdHeld } from "@/hooks/use-cmd-held"
 import { focusChatSession } from "@/lib/chat-window"
@@ -161,7 +160,6 @@ export function ActivityPanel({
         onOpen={() => openRow(row.sessionRow)}
         windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
         onReturnToMain={() => onSelect(row.sessionRow)}
-        shortcut={index < 9 ? `CommandOrControl+${index + 1}` : undefined}
         hint={index < 9 && cmdHeld ? <Kbd>{displayShortcut(`CommandOrControl+${index + 1}`)}</Kbd> : undefined}
       />
     )
@@ -206,8 +204,7 @@ function ActivityRow({
   windowLabel,
   onReturnToMain,
   onOpen,
-  hint,
-  shortcut
+  hint
 }: {
   sessionRow: SessionSummary
   state: RunState
@@ -220,7 +217,6 @@ function ActivityRow({
   onReturnToMain: () => void
   onOpen: () => void
   hint?: React.ReactNode
-  shortcut?: string
 }) {
   const { t } = useTranslation()
   const title = sessionRow.title ?? t("sidebar.untitled")
@@ -235,7 +231,6 @@ function ActivityRow({
         hoverCard={
           <SessionInfoCard
             sessionRow={sessionRow}
-            shortcut={shortcut && <ShortcutKey className="shrink-0" shortcut={shortcut} aria-hidden="false" />}
             actions={
               windowLabel === "chat" ? (
                 <HoverInfoAction

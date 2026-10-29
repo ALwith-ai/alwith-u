@@ -438,7 +438,7 @@ test("draft handoff keeps its model and only the new owner can discard it", asyn
 const codexModel = "gpt-6-astra"
 const deepseekModel = "gateway:deepseek:deepseek-flash"
 
-test("floating model selection and restore use only the floating slot", async () => {
+test("floating model selection does not override restored sessions", async () => {
   const f = await providerWindows()
   try {
     f.owner.setModelSelections({ main: codexModel, chat: codexModel })
@@ -448,8 +448,8 @@ test("floating model selection and restore use only the floating slot", async ()
     await f.remote.setConfig(draft, "model", deepseekModel)
     await f.owner.open("h1", "/tmp/main-restore")
     await f.remote.open("h2", "/tmp/floating-restore")
-    expect(f.fake.modelHints.get("h1")).toBe(codexModel)
-    expect(f.fake.modelHints.get("h2")).toBe(deepseekModel)
+    expect(f.fake.modelHints.get("h1")).toBeNull()
+    expect(f.fake.modelHints.get("h2")).toBeNull()
     expect(choices).toEqual([["chat", deepseekModel]])
   } finally {
     f.dispose()
@@ -693,6 +693,25 @@ test("floating realtime forwards SDP before start acknowledgement and releases i
     expect(end).toHaveBeenCalledTimes(1)
     expect(unsubscribe).toHaveBeenCalledTimes(1)
     unlisten()
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
+test("floating shell commands execute on the main owner with an explicit session id", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const execute = vi.spyOn(owner, "executeShell").mockResolvedValue(undefined)
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    await remote.executeShell("target-session", "printf shell-result")
+    expect(execute).toHaveBeenCalledExactlyOnceWith("target-session", "printf shell-result")
   } finally {
     remote.disconnect()
     stop()

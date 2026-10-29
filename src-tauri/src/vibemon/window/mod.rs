@@ -103,10 +103,14 @@ fn validate(action: &WindowAction) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn allows_action(label: &str, action: &str) -> bool {
+    matches!(label, "vibemon" | "bubble-menu-vibemon") || (action == "sound" && matches!(label, "main" | "chat"))
+}
+
 pub async fn perform(
     window: &WebviewWindow, action: &str, parent: Option<WebviewWindow>, extra: Value,
 ) -> Result<Value, String> {
-    if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon") {
+    if !allows_action(window.label(), action) {
         return Err("Invalid pet window".into());
     }
     let host = window.clone();

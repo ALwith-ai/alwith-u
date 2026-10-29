@@ -24,6 +24,7 @@ export function CollectionPicker({
   sessionId,
   trigger,
   favorite = false,
+  hoverBackground = favorite ? "none" : undefined,
   allowRemove = true,
   submenu = false,
   className,
@@ -32,6 +33,7 @@ export function CollectionPicker({
   sessionId: string
   trigger?: ReactElement
   favorite?: boolean
+  hoverBackground?: "none" | "control"
   allowRemove?: boolean
   submenu?: boolean
   className?: string
@@ -78,7 +80,7 @@ export function CollectionPicker({
     >
       <DropdownMenuTrigger
         disabled={busy}
-        data-hover-background={favorite ? "none" : undefined}
+        data-hover-background={hoverBackground}
         openOnHover={favorite || submenu}
         aria-label={t(favorite && selected !== undefined ? "collection.removeFromAll" : "collection.addTo")}
         onMouseDown={(event) => {

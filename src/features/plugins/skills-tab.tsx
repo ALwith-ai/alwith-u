@@ -14,6 +14,7 @@ import {
   PanelItem,
   PanelList
 } from "@/components/alwith-ui/panel-item"
+import { toolboxContentClassName, toolboxDialogClassName } from "@/components/alwith-ui/toolbox-layout"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -38,7 +39,7 @@ function SkillIcon({ skill }: { skill: SkillMetadata }) {
   const local = skill.interface?.iconSmall
   const src = local ? convertFileSrc(local) : skill.interface?.iconSmallUrl
   return (
-    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
       {src && !failed ? (
         <img src={src} alt="" onError={() => setFailed(true)} className="size-6 rounded object-contain" />
       ) : (
@@ -137,11 +138,11 @@ export function SkillsTab({
   const groupSkills = currentGroup ? sorted.filter((skill) => currentGroup.paths.has(skill.path)) : []
   const summary = expanded || q ? sorted : sorted.slice(0, 6)
   const renderSkills = (entries: SkillMetadata[]) => (
-    <PanelList className="grid grid-cols-1 gap-x-6 gap-y-3 @min-[700px]:grid-cols-2">
+    <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
       {entries.map((skill) => (
         <PanelItem
           key={skill.path}
-          className="relative rounded-lg py-4 [contain-intrinsic-size:auto_80px] [content-visibility:auto]"
+          className="toolbox-row relative [contain-intrinsic-size:auto_80px] [content-visibility:auto]"
         >
           <Button
             variant="ghost"
@@ -174,8 +175,8 @@ export function SkillsTab({
   )
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <Pane nativeScroll viewportClassName="pe-2">
-        <div className="space-y-6">
+      <Pane className="pe-0" viewportClassName="pe-0">
+        <div className={`${toolboxContentClassName} space-y-8 pt-6`}>
           {errors.map((error) => (
             <p key={error.path} role="alert" className="text-xs break-words text-destructive">
               {error.path}: {error.message}
@@ -186,8 +187,8 @@ export function SkillsTab({
           ) : (
             <>
               <section aria-label={t("plugins.skills.installed")}>
-                <div className="mb-4 flex items-center justify-between border-b px-2 pb-4">
-                  <h2 className="text-base font-semibold">{t("plugins.skills.installed")}</h2>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="text-base font-medium">{t("plugins.skills.installed")}</h2>
                   <span role="status" className="text-xs text-muted-foreground">
                     {t("plugins.catalog.skillCount", { count: sorted.length })}
                   </span>
@@ -229,7 +230,7 @@ export function SkillsTab({
                         key={group.id}
                         value={group.id}
                         title={group.path ?? group.label}
-                        className="flex-none rounded-md px-4 py-2 shadow-none! after:hidden data-active:bg-muted! dark:data-active:border-transparent"
+                        className="h-8 flex-none rounded-lg px-3 text-[13px] font-medium shadow-none! after:hidden data-active:bg-muted! dark:data-active:border-transparent"
                       >
                         {group.label}
                       </TabsTrigger>
@@ -257,7 +258,7 @@ export function SkillsTab({
           if (!open) setSelectedPath(null)
         }}
       >
-        <DialogContent showCloseButton={false} className="max-h-[85dvh] overflow-y-auto rounded-xl sm:max-w-3xl">
+        <DialogContent showCloseButton={false} className={toolboxDialogClassName}>
           {selected && (
             <>
               <SkillDocument
@@ -276,7 +277,7 @@ export function SkillsTab({
                       </div>
                     </div>
                     <DialogHeader className="gap-3">
-                      <DialogTitle className="text-xl leading-tight break-words">
+                      <DialogTitle className="text-2xl leading-8 font-semibold break-words">
                         {selected.interface?.displayName ?? selected.name}
                       </DialogTitle>
                       <DialogDescription className="text-sm leading-6 break-words whitespace-pre-wrap">

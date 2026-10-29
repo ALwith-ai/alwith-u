@@ -58,7 +58,7 @@ export function DraftModelSelect({
       compactCatalog
       booleanOptions={[
         {
-          id: "fast-mode",
+          id: "fast_mode",
           name: t("chat.model.fastMode"),
           currentValue: false,
           disabled: true,

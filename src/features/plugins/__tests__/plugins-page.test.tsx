@@ -1,5 +1,6 @@
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
+import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
@@ -99,7 +100,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByRole("button", { name: "Plugins" })).toHaveAttribute("aria-current", "page")
   expect(view.getByPlaceholderText("Search plugins")).toBeDefined()
-  expect(view.getByRole("button", { name: "Installed" })).toBeDefined()
+  expect(view.getByLabelText("Installed", { selector: "svg" })).toBeDefined()
   expect(view.getByRole("button", { name: "Installing" })).toBeDefined()
 
   await act(async () => {
@@ -112,7 +113,7 @@ test("plugin controls and skill scopes follow a language change without remounti
   expect(view.getByRole("button", { name: "升级" })).toBeDefined()
   expect(view.getByRole("button", { name: "添加插件市场" })).toBeDefined()
   expect(view.getAllByRole("button", { name: "安装" })).toHaveLength(2)
-  expect(view.getByRole("button", { name: "已安装" })).toBeDefined()
+  expect(view.getByLabelText("已安装", { selector: "svg" })).toBeDefined()
   expect(view.getByRole("button", { name: "正在安装" })).toBeDefined()
   expect(view.getByTitle("不可用").hasAttribute("disabled")).toBe(true)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "页面操作" }))))
@@ -541,7 +542,7 @@ test("installed sidebar lists only installed plugins and switches right-hand det
     readPlugin: read
   })
   const view = render(<PluginsPage cwd={null} active />)
-  const sidebar = view.getByRole("complementary", { name: "Customization navigation" })
+  const sidebar = view.getByRole("complementary", { name: "Toolbox navigation" })
   const installed = within(view.getByRole("navigation", { name: "Installed" }))
   expect(installed.getAllByRole("button").map((button) => button.textContent)).toEqual([
     "Installed alpha",
@@ -561,4 +562,32 @@ test("installed sidebar lists only installed plugins and switches right-hand det
   )
   expect(view.getByRole("heading", { name: "Skills", level: 1 })).toBeVisible()
   expect(sidebar).toBeVisible()
+})
+
+test("customization keeps extension management beside plugins and skills and returns to the selected catalog", async () => {
+  function Customize() {
+    const [extensionActive, setExtensionActive] = useState(false)
+    return (
+      <PluginsPage
+        cwd={null}
+        active={!extensionActive}
+        onOpenCatalog={() => setExtensionActive(false)}
+        extensions={{
+          active: extensionActive,
+          onOpen: () => setExtensionActive(true),
+          content: <section aria-label="Extension management">Manage installed app extensions</section>
+        }}
+      />
+    )
+  }
+  const view = render(<Customize />)
+  const tabs = within(view.getByRole("navigation", { name: "Manage extensions" }))
+  expect(tabs.getAllByRole("button").map((button) => button.textContent)).toEqual(["Extensions", "Plugins", "Skills"])
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByRole("button", { name: "Extensions" }))))
+  expect(view.getByRole("region", { name: "Extension management" })).toBeVisible()
+  expect(tabs.getByRole("button", { name: "Extensions" })).toHaveAttribute("aria-current", "page")
+  expect(view.queryByRole("textbox", { name: "Search plugins" })).toBeNull()
+  await act(() => Promise.try(() => fireEvent.click(tabs.getByRole("button", { name: "Skills" }))))
+  expect(view.queryByRole("region", { name: "Extension management" })).toBeNull()
+  expect(tabs.getByRole("button", { name: "Skills" })).toHaveAttribute("aria-current", "page")
 })

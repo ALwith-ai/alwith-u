@@ -189,7 +189,9 @@
     "trackpad": "Trackpad",
     "trackpadEnabled": "Trackpad-Gesten aktivieren",
     "threeFingerSwipeDesc": "Mit drei Fingern horizontal über die Arbeitsfläche wischen",
-    "import": "Importieren"
+    "import": "Importieren",
+    "explorer": "Explorer",
+    "explorerHiddenDescription": "Versteckte Dateien und Ordner anzeigen, deren Namen mit einem Punkt (.) beginnen"
   },
   "usage": {
     "usage": "Nutzung",
@@ -342,7 +344,8 @@
     "source": "Quelle",
     "newTab": "Neuer Tab",
     "emptyNewTab": "Neuer Tab",
-    "more": "Weitere Aktionen"
+    "more": "Weitere Aktionen",
+    "ignored": "Von Git ignorierte Dateien anzeigen"
   },
   "pet": {
     "retry": "Wiederholen",

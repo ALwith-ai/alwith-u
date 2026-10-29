@@ -331,3 +331,14 @@ test("reply previews follow their own session's latest assistant upsert and pres
   expect(view.getByText("Updated streaming response")).toHaveClass("line-clamp-2")
   expect(view.getByText("Second response")).toBeInTheDocument()
 })
+
+test("an unread completion renders a blue dot until Runtime confirms it was read", async () => {
+  client.applyRunStates([record("unread", false, "done")])
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
+  const row = () => view.container.querySelector('[data-session-id="unread"]')!
+  expect(row().querySelector(".bg-blue-500")).not.toBeNull()
+  expect(row().querySelector(".bg-green-500")).toBeNull()
+  await act(() => Promise.try(() => client.applyRunStates([record("unread", false, "idle")])))
+  expect(row().querySelector(".bg-blue-500")).toBeNull()
+  expect(row().querySelector(".bg-green-500")).not.toBeNull()
+})

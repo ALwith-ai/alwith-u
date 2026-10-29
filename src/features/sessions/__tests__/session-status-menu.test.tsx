@@ -54,3 +54,9 @@ test("the workspace toolbar renders without a session list host and navigates Ru
     archived: false
   })
 })
+
+test("the workspace status menu renders outside the sidebar session list provider", () => {
+  const view = render(<SessionStatusMenu onSelect={() => {}} />)
+  expect(view.getByRole("group", { name: "Session status" })).toBeInTheDocument()
+  expect(view.getAllByRole("button")).toHaveLength(4)
+})

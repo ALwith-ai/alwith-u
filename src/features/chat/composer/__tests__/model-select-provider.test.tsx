@@ -371,14 +371,19 @@ test("unsupported fast mode stays visible and disabled", async () => {
   expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
 })
 
-test.each([true, false])(
-  "supported fast mode (%s) and explicit effort levels target the owning session",
-  async (enabled) => {
+test.each([
+  [true, "fast_mode"],
+  [false, "fast_mode"],
+  [true, "fast-mode"],
+  [false, "fast-mode"]
+] as const)(
+  "supported fast mode (%s, %s) and explicit effort levels target the owning session",
+  async (enabled, configId) => {
     controls.setConfig.mockResolvedValue(undefined)
     const config: acp.SessionConfigOption[] = [
       ...catalogOptions("First"),
       {
-        configId: "fast-mode",
+        configId,
         category: "model_config",
         name: "Fast mode",
         type: "boolean",
@@ -406,7 +411,7 @@ test.each([true, false])(
     expect(fastToggle.querySelector(".lucide-zap")).not.toBeNull()
     expect(fastToggle).toHaveAttribute("aria-checked", String(enabled))
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemcheckbox", { name: "Fast mode" }))))
-    expect(controls.setConfig).toHaveBeenLastCalledWith("owner", "fast-mode", !enabled)
+    expect(controls.setConfig).toHaveBeenLastCalledWith("owner", configId, !enabled)
     const slider = view.getByRole("slider", { name: "Effort" })
     expect(slider).toHaveAttribute("aria-valuetext", "Medium")
     await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
@@ -448,4 +453,42 @@ test("source-configured ALwith names preserve identity and unknown account label
   expect(group.models[1].label).toBe("New account model")
   expect(modelTriggerLabel(group.models[1])).toBe("New account model")
   expect(groups[0].models[0].label).toBe("Account label")
+})
+
+test("changing effort keeps the model trigger and menu stable until the confirmed value arrives", async () => {
+  let finish!: () => void
+  controls.setConfig.mockReturnValue(
+    new Promise<void>((resolve) => {
+      finish = resolve
+    })
+  )
+  const config: acp.SessionConfigOption[] = [
+    ...options(nativeModel),
+    {
+      configId: "effort",
+      category: "thought_level",
+      name: "Reasoning effort",
+      type: "select",
+      currentValue: "medium",
+      options: [
+        { value: "low", name: "Low" },
+        { value: "medium", name: "Medium" },
+        { value: "high", name: "High" }
+      ]
+    }
+  ]
+  const view = render(<ChatModelMenu sessionId="main-session" options={config} disabled={false} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+  const slider = view.getByRole("slider", { name: "Effort" })
+  expect(slider).toHaveStyle({ width: "100px" })
+  await act(() => Promise.try(() => fireEvent.keyDown(slider, { key: "ArrowRight" })))
+  controls.pending = true
+  view.rerender(<ChatModelMenu sessionId="main-session" options={config} disabled={false} />)
+  expect(view.getByTestId("model-trigger")).toBeEnabled()
+  expect(view.getByTestId("model-trigger")).toHaveAttribute("aria-busy", "false")
+  expect(view.queryByTestId("model-switch-loading")).not.toBeInTheDocument()
+  expect(view.getByRole("slider", { name: "Effort" })).toHaveAttribute("aria-valuetext", "High")
+  await act(() => {
+    finish()
+  })
 })

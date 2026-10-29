@@ -57,7 +57,6 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
             onOpenWindow={() => {}}
             onOpenSettings={() => {}}
             onOpenPlugins={() => setScreen("leading")}
-            onOpenExtensions={() => {}}
             onSwitchScreen={() => setScreen(screen === "main" ? "leading" : "main")}
           />
         }
@@ -65,7 +64,7 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
     )
   }
   const view = render(<Harness />)
-  const plugins = view.getByRole("button", { name: "Plugins" })
+  const plugins = view.getByRole("button", { name: "Toolbox" })
   const arrow = view.getByRole("button", { name: "Open -1 screen" })
   const updateCard = view.getByRole("button", { name: /Relaunch to update/ })
   expect(updateCard.closest('[data-slot="sidebar-footer"]')).toBe(arrow.closest('[data-slot="sidebar-footer"]'))
@@ -92,7 +91,7 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
   expect(plugins.hasAttribute("aria-current")).toBe(false)
 })
 
-test("extensions sit below plugins, select their own leading page and remain available without Codex plugins", async () => {
+test("customization replaces the standalone extension entry and remains available without Codex", async () => {
   client.store.setState({
     agent: {
       info: { name: "test", version: "1" },
@@ -124,10 +123,6 @@ test("extensions sit below plugins, select their own leading page and remain ava
               setLeadingPage("plugins")
               setScreen("leading")
             }}
-            onOpenExtensions={() => {
-              setLeadingPage("extensions")
-              setScreen("leading")
-            }}
             onSwitchScreen={() => setScreen(screen === "main" ? "leading" : "main")}
           />
         }
@@ -135,28 +130,16 @@ test("extensions sit below plugins, select their own leading page and remain ava
     )
   }
   const view = render(<Harness />)
-  const plugins = view.getByRole("button", { name: "Plugins" })
-  const extensions = view.getByRole("button", { name: "Extensions" })
-  expect(plugins.nextElementSibling).toBe(extensions)
-  expect(extensions.hasAttribute("aria-current")).toBe(false)
-  await act(() => Promise.try(() => fireEvent.click(extensions)))
-  expect(extensions.getAttribute("aria-current")).toBe("page")
-  expect(plugins.hasAttribute("aria-current")).toBe(false)
-  expect(view.getByText("Extension management")).toBeTruthy()
-  expect(view.container.querySelector('[data-screen-panel="main"]')?.getAttribute("aria-hidden")).toBe("true")
+  const customize = view.getByRole("button", { name: "Toolbox" })
+  expect(view.queryByRole("button", { name: "Extensions" })).toBeNull()
+  await act(() => Promise.try(() => fireEvent.click(customize)))
+  expect(customize).toHaveAttribute("aria-current", "page")
+  expect(view.getByText("Plugin content")).toBeTruthy()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Back to main screen" }))))
-  expect(extensions.hasAttribute("aria-current")).toBe(false)
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Open -1 screen" }))))
-  expect(extensions.getAttribute("aria-current")).toBe("page")
-  await act(() => Promise.try(() => fireEvent.click(plugins)))
-  expect(plugins.getAttribute("aria-current")).toBe("page")
-  expect(extensions.hasAttribute("aria-current")).toBe(false)
+  expect(customize.hasAttribute("aria-current")).toBe(false)
   await act(() => Promise.try(() => client.store.setState({ agent: null })))
-  // main keeps both navigation entries visible while the agent is disconnected.
-  expect(view.getByRole("button", { name: "Plugins" })).toBe(plugins)
-  expect(view.getByRole("button", { name: "Extensions" })).toBeTruthy()
-  await act(() => Promise.try(() => fireEvent.click(extensions)))
-  expect(extensions.getAttribute("aria-current")).toBe("page")
+  expect(view.getByRole("button", { name: "Toolbox" })).toBe(customize)
+  expect(view.queryByRole("button", { name: "Extensions" })).toBeNull()
 })
 
 test("Drive mounts on first visit and retains input across tab switches until access is lost", async () => {
@@ -183,7 +166,6 @@ test("Drive mounts on first visit and retains input across tab switches until ac
           onOpenWindow={() => {}}
           onOpenSettings={() => {}}
           onOpenPlugins={() => {}}
-          onOpenExtensions={() => {}}
           onSwitchScreen={() => {}}
           drivePanel={<input aria-label="Drive filter" defaultValue="" />}
         />
@@ -236,7 +218,6 @@ test("project counts show only the number of sessions", () => {
           onOpenWindow={() => {}}
           onOpenSettings={() => {}}
           onOpenPlugins={() => {}}
-          onOpenExtensions={() => {}}
           onSwitchScreen={() => {}}
         />
       }
@@ -247,7 +228,7 @@ test("project counts show only the number of sessions", () => {
   expect(view.queryByRole("button", { name: "Load more" })).toBeNull()
 })
 
-test("Vibemon sits below extensions and selects its own leading page without an agent connection", async () => {
+test("Vibemon sits below customization and selects its own leading page without an agent connection", async () => {
   client.store.setState({ connection: "disconnected", agent: null })
   function Harness() {
     const [screen, setScreen] = useState<MainScreen>("main")
@@ -274,7 +255,6 @@ test("Vibemon sits below extensions and selects its own leading page without an 
             onOpenWindow={() => {}}
             onOpenSettings={() => {}}
             onOpenPlugins={() => open("plugins")}
-            onOpenExtensions={() => open("extensions")}
             onOpenVibemon={() => open("vibemon")}
             onSwitchScreen={() => setScreen(screen === "main" ? "leading" : "main")}
           />
@@ -284,12 +264,12 @@ test("Vibemon sits below extensions and selects its own leading page without an 
   }
   const view = render(<Harness />)
   const vibemon = view.getByRole("button", { name: "Vibémon" })
-  const extensions = view.getByRole("button", { name: "Extensions" })
-  expect(extensions.nextElementSibling).toBe(vibemon)
+  const customize = view.getByRole("button", { name: "Toolbox" })
+  expect(customize.nextElementSibling).toBe(vibemon)
   expect(vibemon.closest('[data-slot="sidebar-header"]')).not.toBeNull()
   await act(() => Promise.try(() => fireEvent.click(vibemon)))
   expect(vibemon.getAttribute("aria-current")).toBe("page")
-  expect(extensions.hasAttribute("aria-current")).toBe(false)
+  expect(customize.hasAttribute("aria-current")).toBe(false)
   expect(view.container.querySelector('[data-screen-panel="main"]')?.getAttribute("aria-hidden")).toBe("true")
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Back to main screen" }))))
   expect(vibemon.hasAttribute("aria-current")).toBe(false)

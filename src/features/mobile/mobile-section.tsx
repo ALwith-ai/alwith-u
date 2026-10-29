@@ -97,7 +97,7 @@ export function MobileSection({ onOpenAccount }: { onOpenAccount?: () => void })
   }
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">{t("mobile.intro")}</p>
+      <p className="pt-1 text-sm text-muted-foreground">{t("mobile.intro")}</p>
       {onOpenAccount && (
         <Button variant="link" className="h-auto rounded-sm p-0" onClick={onOpenAccount}>
           {t("mobile.openAccount")}

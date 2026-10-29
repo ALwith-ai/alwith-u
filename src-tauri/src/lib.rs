@@ -22,6 +22,7 @@ mod extension_wire;
 mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
+mod imports;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
@@ -323,6 +324,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
+                imports::prepare_cursor_import,
                 voice::voice_start,
                 voice::voice_control,
                 voice::voice_profiles,

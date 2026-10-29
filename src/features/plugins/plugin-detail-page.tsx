@@ -1,12 +1,17 @@
 import type { PluginDetail } from "@nyssance/codex-acp-v2/client"
 import { convertFileSrc } from "@tauri-apps/api/core"
-import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react"
+import { ExternalLinkIcon, PlusIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
 import { Pane } from "@/components/alwith-ui/pane"
+import {
+  toolboxContentClassName,
+  toolboxDialogClassName,
+  ToolboxPageHeader
+} from "@/components/alwith-ui/toolbox-layout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -15,12 +20,11 @@ import { Switch } from "@/components/ui/switch"
 import { openExternal } from "@/lib/open"
 
 import { pluginsStore } from "./instance"
-import { pluginContentClassName, PluginPageHeader } from "./page-layout"
 import { PluginIcon } from "./plugin-icon"
 import { SkillDocument } from "./skill-document"
 import type { PluginEntry } from "./store"
 
-/** Desktop's breadcrumb, hero, information strip and capability lists, fed by Codex's source catalog. */
+/** Plugin header, information strip and capability lists, fed by Codex's source catalog. */
 export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack: () => void }) {
   const { t } = useTranslation()
   const read = useStore(pluginsStore, (state) => state.readPlugin)
@@ -62,40 +66,33 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
     ...(info?.screenshotUrls ?? [])
   ]
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <PluginPageHeader>
-        <nav aria-label={t("plugins.detail.root")} className="flex h-8 items-center gap-1 text-sm">
-          <Button variant="link" className="h-auto p-0 text-muted-foreground" onClick={onBack}>
-            {t("plugins.detail.root")}
-          </Button>
-          <ChevronRightIcon className="size-3.5 text-muted-foreground rtl:-scale-x-100" />
-          <span aria-current="page" className="truncate">
-            {title}
-          </span>
-        </nav>
-      </PluginPageHeader>
-      <Pane className="pe-0" viewportClassName="pe-0">
-        <div className={pluginContentClassName}>
-          <div className="flex items-start gap-4">
-            <PluginIcon name={summary.name} className="size-14 shrink-0 rounded-xl" />
-            <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h1 className="text-2xl leading-8 font-semibold">{title}</h1>
-                {info?.shortDescription && (
-                  <p className="mt-1 text-sm leading-8 text-muted-foreground">{info.shortDescription}</p>
-                )}
-                {summary.keywords.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {[...new Set(summary.keywords)].map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px] font-normal">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
+    <div className="toolbox-surface flex min-h-0 flex-1 flex-col overflow-hidden">
+      <ToolboxPageHeader>
+        <header className="flex min-w-0 flex-col gap-4">
+          <nav aria-label={t("plugins.detail.root")} className="flex min-w-0 items-center gap-2 text-[13px]">
+            <Button
+              variant="link"
+              size="sm"
+              className="px-2 text-muted-foreground hover:text-foreground hover:no-underline"
+              onClick={onBack}
+            >
+              {t("plugins.detail.root")}
+            </Button>
+            <span aria-hidden="true" className="text-sm text-muted-foreground/50">
+              /
+            </span>
+            <span aria-current="page" className="truncate">
+              {title}
+            </span>
+          </nav>
+          <div className="flex min-h-9 flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <PluginIcon name={summary.name} className="size-9 shrink-0 rounded-lg" />
+              <h1 className="min-w-0 text-2xl leading-8 font-semibold break-words">{title}</h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
               {installed ? (
-                <div className="flex shrink-0 items-center gap-3">
+                <>
                   <Switch
                     checked={current.enabled}
                     disabled={!!busy || unavailable}
@@ -104,21 +101,43 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                     })}
                     onCheckedChange={(enabled) => void toggle(current, enabled)}
                   />
-                  <Button variant="outline" disabled={!!busy} onClick={() => void uninstall(current)}>
+                  <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void uninstall(current)}>
                     {busy ? <Spinner /> : t("plugins.detail.uninstall")}
                   </Button>
-                </div>
+                </>
               ) : (
                 <Button
-                  className="shrink-0 rounded-md"
+                  size="icon-sm"
+                  variant="ghost"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  aria-label={t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
+                  title={t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
                   disabled={!!busy || unavailable}
                   onClick={() => void install({ ...entry, plugin: summary }).catch(() => {})}
                 >
-                  {busy ? <Spinner /> : t(unavailable ? "plugins.detail.unavailable" : "plugins.detail.install")}
+                  {busy ? (
+                    <Spinner aria-hidden="true" />
+                  ) : (
+                    <PlusIcon className="size-[18px]" strokeWidth={1.5} aria-hidden="true" />
+                  )}
                 </Button>
               )}
             </div>
           </div>
+        </header>
+      </ToolboxPageHeader>
+      <Pane className="pe-0" viewportClassName="pe-0">
+        <div className={`${toolboxContentClassName} pt-2`}>
+          {info?.shortDescription && <p className="text-sm leading-6 text-muted-foreground">{info.shortDescription}</p>}
+          {summary.keywords.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[...new Set(summary.keywords)].map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs font-normal">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
           <div className="mt-6 flex items-stretch overflow-x-auto border-y py-4">
             {info?.developerName && <InfoCell label={t("plugins.detail.developer")}>{info.developerName}</InfoCell>}
             {info?.category && <InfoCell label={t("plugins.detail.category")}>{info.category}</InfoCell>}
@@ -189,13 +208,13 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                 <Button
                   key={item.path ?? item.name}
                   variant="ghost"
-                  className="h-auto w-full justify-start gap-3 rounded-xl bg-muted/50 px-4 py-3 text-start whitespace-normal hover:bg-muted"
+                  className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start whitespace-normal"
                   onClick={() => setSkill(item)}
                 >
                   <PluginIcon name={item.name} className="size-8" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">{item.interface?.displayName ?? item.name}</span>
-                    <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">
+                    <span className="mt-1 block truncate text-[13px] leading-5 font-normal text-muted-foreground">
                       {item.interface?.shortDescription ?? item.shortDescription ?? item.description}
                     </span>
                   </span>
@@ -206,9 +225,11 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           {detail && detail.apps.length > 0 && (
             <DetailSection label={t("plugins.detail.apps")} count={detail.apps.length}>
               {detail.apps.map((app) => (
-                <div key={app.id} className="rounded-xl bg-muted/50 px-4 py-3">
+                <div key={app.id} className="rounded-xl px-3 py-3">
                   <div className="text-sm font-medium">{app.name}</div>
-                  {app.description && <p className="mt-1 text-xs text-muted-foreground">{app.description}</p>}
+                  {app.description && (
+                    <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{app.description}</p>
+                  )}
                   {app.installUrl && <SourceLink url={app.installUrl} label={t("plugins.installModal.connect")} />}
                 </div>
               ))}
@@ -241,15 +262,15 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           if (!open) setSkill(null)
         }}
       >
-        <DialogContent className="flex max-h-[85dvh] flex-col gap-4 overflow-hidden rounded-xl sm:max-w-3xl">
+        <DialogContent className={toolboxDialogClassName}>
           {skill && (
             <>
               <div className="shrink-0 pr-8">
-                <PluginIcon name={skill.name} className="size-12" />
+                <PluginIcon name={skill.name} className="size-10" />
               </div>
-              <div className="min-h-0 overflow-y-auto overscroll-contain">
+              <div className="min-h-0 space-y-6 overflow-y-auto overscroll-contain">
                 <DialogHeader className="gap-3">
-                  <DialogTitle className="text-xl leading-tight break-words">
+                  <DialogTitle className="text-2xl leading-8 font-semibold break-words">
                     {skill.interface?.displayName ?? skill.name}
                   </DialogTitle>
                   <DialogDescription className="text-sm leading-6 break-words whitespace-pre-wrap">
@@ -269,15 +290,15 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
 function InfoCell({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex min-w-28 shrink-0 flex-col items-center justify-between gap-1.5 border-e px-6 first:ps-2 last:border-e-0">
-      <span className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</span>
-      <span className="flex items-center text-sm font-medium">{children}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="flex items-center text-sm font-normal">{children}</span>
     </div>
   )
 }
 function DetailSection({ label, count, children }: { label: string; count: number; children: ReactNode }) {
   return (
-    <section className="mt-10">
-      <h2 className="text-sm font-semibold">
+    <section className="mt-8">
+      <h2 className="text-base font-medium">
         {label} <span className="font-normal text-muted-foreground">{count}</span>
       </h2>
       <div className="mt-3 flex flex-col gap-2">{children}</div>

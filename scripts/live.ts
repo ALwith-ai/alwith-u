@@ -111,6 +111,7 @@ async function check(transport: "stdio" | "ws") {
   try {
     await client.connect()
     console.log(`agent: ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
+    await verifyShell(client, directory)
 
     const draft = await client.prepareDraft("main", directory)
     if (!client.session(draft).configOptions.some((option) => option.category === "model"))
@@ -562,6 +563,45 @@ async function verifyAsyncUserInput(client: CodexClient, directory: string): Pro
     if (client.state.actions.some((action) => action.sessionId === id))
       throw new Error("History replay reopened a question")
     console.log("async question: non-blocking metadata, correlated steering answer and history replay")
+  } finally {
+    await client.delete(id)
+  }
+}
+
+async function verifyShell(client: CodexClient, directory: string): Promise<void> {
+  const id = await client.newSession(directory)
+  const marker = `SHELL_${crypto.randomUUID()}`
+  const output = () => JSON.stringify({ items: client.session(id).items, terminals: client.session(id).terminals })
+  const hasUserShellSource = () =>
+    client.session(id).items.some((item) => {
+      const meta = item._meta?.codex
+      return (
+        item.kind === "tool" &&
+        typeof meta === "object" &&
+        meta !== null &&
+        "commandSource" in meta &&
+        meta.commandSource === "userShell"
+      )
+    })
+  try {
+    await client.executeShell(id, `printf '${marker}:%s\\n' "$PWD" | cat`)
+    await until(
+      () => client.session(id).state === "idle" && output().includes(`${marker}:${directory}`) && hasUserShellSource(),
+      30_000,
+      "user shell output and completion"
+    )
+    await client.close(id)
+    await client.open(id, directory)
+    await until(
+      () => output().includes(`${marker}:${directory}`) && hasUserShellSource(),
+      10_000,
+      "user shell history replay"
+    )
+    await client.executeShell(id, "sleep 30")
+    await until(() => client.session(id).state === "running", 10_000, "user shell running state")
+    await client.cancel(id)
+    await until(() => client.session(id).state === "idle", 10_000, "user shell interruption")
+    console.log("shell: command syntax, session directory, output, completion, replay and interruption")
   } finally {
     await client.delete(id)
   }

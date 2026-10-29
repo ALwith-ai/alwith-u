@@ -13,6 +13,7 @@ export type SettingsSection =
   | "trackpad"
   | "general"
   | "editor"
+  | "explorer"
   | "appearance"
   | "account"
   | "provider"
@@ -28,6 +29,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "provider",
   "appearance",
   "editor",
+  "explorer",
   "drive",
   "voice",
   "trackpad",

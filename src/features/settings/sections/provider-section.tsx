@@ -2,7 +2,7 @@
 // configuration panel. A saved key puts that provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
 import { CardSendIcon } from "@solar-icons/react/line-duotone/card-send"
-import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
+import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -433,13 +433,8 @@ function ProviderActions({
       {onTest && <p className="text-xs leading-relaxed text-muted-foreground">{t("provider.testDescription")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {onRemove && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            disabled={busy}
-            onClick={onRemove}
-          >
+          <Button size="sm" variant="destructive" className="font-normal" disabled={busy} onClick={onRemove}>
+            <Trash2Icon className="size-4" />
             {t("provider.remove")}
           </Button>
         )}
@@ -704,7 +699,13 @@ export function CustomProviderEditor({
       models,
       ...(apiKey.trim() === "" ? {} : { apiKey: apiKey.trim() })
     })
-    if (saved) onSaved(id)
+    if (saved) {
+      setName((current) => (current === name ? name.trim() : current))
+      setBaseUrl((current) => (current === baseUrl ? baseUrl.trim() : current))
+      setApiKey((current) => (current === apiKey ? "" : current))
+      setModelsJson((current) => (current === modelsJson ? JSON.stringify(models, null, 2) : current))
+      onSaved(id)
+    }
   }
 
   return (

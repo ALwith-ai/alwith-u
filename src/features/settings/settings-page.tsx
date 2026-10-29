@@ -12,6 +12,7 @@ import {
   ContrastIcon,
   CpuIcon,
   DownloadIcon,
+  FolderTreeIcon,
   InfoIcon,
   MicIcon,
   MonitorIcon,
@@ -40,6 +41,7 @@ import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
+import { ExplorerSection } from "./sections/explorer-section"
 import { GeneralSection } from "./sections/general-section"
 import { ImportSection } from "./sections/import-section"
 import { ProviderSection } from "./sections/provider-section"
@@ -55,6 +57,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   general: SlidersHorizontalIcon,
   trackpad: TouchpadIcon,
   editor: Code2Icon,
+  explorer: FolderTreeIcon,
   appearance: ContrastIcon,
   provider: CpuIcon,
   voice: MicIcon,
@@ -117,6 +120,8 @@ export function SettingsPage() {
             return <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "editor":
             return <EditorSettingsSection />
+          case "explorer":
+            return <ExplorerSection />
           case "mobile":
             return <MobileSection onOpenAccount={() => setSection("account")} />
           case "computer":
@@ -136,7 +141,7 @@ export function SettingsPage() {
           case "about":
             return <AboutSection />
           case "extensions":
-            return <ExtensionsSection />
+            return <ExtensionsSection settings />
         }
       })()
     )
@@ -179,10 +184,10 @@ export function SettingsPage() {
   return (
     <AuxWindowShell
       sidebar={sidebar}
-      sidebarClassName="w-60 [--navigation-row-height:36px]"
+      sidebarClassName="w-60 [--navigation-row-height:30px]"
       className="settings-window"
     >
-      <Pane viewportClassName="px-6 pt-5 pb-10">
+      <Pane className="pe-0" viewportClassName="px-6 pt-5 pb-10">
         <section
           className="settings-content mx-auto w-full max-w-3xl"
           aria-label={

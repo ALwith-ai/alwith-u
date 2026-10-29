@@ -280,7 +280,6 @@ test("the sidebar quick-chat hover shares the header list and default folder whi
         onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
-        onOpenExtensions={() => {}}
         onSwitchScreen={() => {}}
       />
     </SidebarProvider>

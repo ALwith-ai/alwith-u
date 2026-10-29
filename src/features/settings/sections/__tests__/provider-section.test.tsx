@@ -361,3 +361,33 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.getByText("Not signed in")).toBeTruthy()
   expect(view.queryByText("Unable to read account status")).toBeNull()
 })
+
+test("saving an existing custom provider clears its saved draft and enables connection testing", async () => {
+  const next = { ...customProvider, models: [{ label: "KIMI", api_id: "kimi-test" }] }
+  const testConnection = vi.fn()
+  const saved = vi.fn()
+  const save = vi.fn(() => Promise.resolve(true))
+  const editor = (provider: typeof customProvider, revision: number) => (
+    <CustomProviderEditor
+      provider={provider}
+      revision={revision}
+      busy={false}
+      onSave={save}
+      onSaved={saved}
+      onTest={testConnection}
+    />
+  )
+  const view = render(editor(customProvider, 1))
+  await enterText(view.getByLabelText("API key"), "replacement-key")
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Edit JSON" }))))
+  await enterText(view.getByLabelText("Models (JSON)"), JSON.stringify(next.models))
+  expect(view.getByRole("button", { name: "Test connection" })).toBeDisabled()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Save" }))))
+  view.rerender(editor(next, 2))
+  expect(view.getByLabelText("API key")).toHaveValue("")
+  expect(view.getByLabelText("Models (JSON)")).toHaveValue(JSON.stringify(next.models, null, 2))
+  expect(view.getByRole("button", { name: "Save" })).toBeDisabled()
+  expect(view.getByRole("button", { name: "Test connection" })).toBeEnabled()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Test connection" }))))
+  expect(testConnection).toHaveBeenCalledOnce()
+})

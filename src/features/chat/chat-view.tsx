@@ -63,7 +63,12 @@ function Conversation({
             title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
             project={projectMenu}
           >
-            <CollectionPicker sessionId={session.id} favorite />
+            <CollectionPicker
+              sessionId={session.id}
+              favorite
+              hoverBackground="control"
+              className="transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
+            />
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}

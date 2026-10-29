@@ -1,4 +1,17 @@
 use super::{BackdropPathCommand, WindowAction, validate};
+
+#[test]
+fn lounge_can_play_the_handoff_sound_without_overlay_window_controls() {
+    for label in ["main", "chat"] {
+        assert!(super::allows_action(label, "sound"));
+        for action in ["present", "hide", "drag", "focus"] {
+            assert!(!super::allows_action(label, action));
+        }
+    }
+    assert!(!super::allows_action("settings", "sound"));
+    assert!(super::allows_action("vibemon", "sound"));
+}
+
 fn action(value: serde_json::Value) -> WindowAction {
     serde_json::from_value(value).unwrap()
 }

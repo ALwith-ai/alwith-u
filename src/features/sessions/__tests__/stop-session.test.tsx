@@ -80,7 +80,6 @@ test.each(
         onOpenWindow={() => {}}
         onOpenSettings={() => {}}
         onOpenPlugins={() => {}}
-        onOpenExtensions={() => {}}
         onSwitchScreen={() => {}}
       />
     </SidebarProvider>

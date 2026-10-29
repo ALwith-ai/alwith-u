@@ -100,7 +100,7 @@ test("an accepted turn shows inline thinking while history restoration keeps its
       <ChatBody session={running} />
     </ThemeProvider>
   )
-  expect(view.getByRole("status").textContent).toBe("Thinking")
+  expect(view.getByRole("status").textContent).toBe("Working")
   expect(view.container.querySelector(".codex-pending-message .codex-activity-running")).not.toBeNull()
   expect(view.container.querySelector(".animate-spin")).toBeNull()
   const time = view.container.querySelector(".codex-user-actions .codex-user-time")
@@ -131,7 +131,7 @@ test("an interrupted prompt keeps its notice after another turn starts", async (
     </ThemeProvider>
   )
   expect(view.getAllByText("Stopped")).toHaveLength(1)
-  expect(view.getByText("Thinking")).toBeInTheDocument()
+  expect(view.getByText("Working")).toBeInTheDocument()
   view.unmount()
   await act(async () => {})
 })

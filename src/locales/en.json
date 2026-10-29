@@ -493,7 +493,9 @@
     "mobile": "Mobile connection",
     "preventSleep": "Prevent sleep while tasks are running",
     "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off.",
-    "import": "Import"
+    "import": "Import",
+    "explorer": "Explorer",
+    "explorerHiddenDescription": "Show hidden files and directories whose names start with a dot (.)"
   },
   "usage": {
     "title": "Plan usage limits",
@@ -605,8 +607,8 @@
   },
   "plugins": {
     "catalog": {
-      "navigation": "Customization navigation",
-      "customize": "Customize",
+      "navigation": "Toolbox navigation",
+      "customize": "Toolbox",
       "content": "Plugin and skill content",
       "pluginViews": "Plugin views",
       "personal": "Personal",
@@ -1006,7 +1008,7 @@
     "search": "Search files",
     "collapse": "Collapse all",
     "more": "More actions",
-    "ignored": "Show ignored files",
+    "ignored": "Show Git-ignored files",
     "newMarkdown": "New Markdown",
     "copyPath": "Copy path",
     "copyRelativePath": "Copy relative path",

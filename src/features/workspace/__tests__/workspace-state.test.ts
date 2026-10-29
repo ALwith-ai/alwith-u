@@ -10,7 +10,6 @@ test("restores project tabs and tree preferences without persisting document bod
     tabs: [{ path: "/a/one.md", pinned: true }],
     activePath: "/a/one.md",
     expanded: ["/a", "/a/docs"],
-    showHidden: true,
     showIgnored: false,
     iconTheme: "material-icon-theme"
   })
@@ -18,7 +17,6 @@ test("restores project tabs and tree preferences without persisting document bod
     tabs: [{ path: "/a/one.md", pinned: true }],
     activePath: "/a/one.md",
     expanded: ["/a", "/a/docs"],
-    showHidden: true,
     showIgnored: false,
     iconTheme: "material-icon-theme"
   })
@@ -31,6 +29,21 @@ test("rejects stored paths outside the project and malformed preferences", async
   await expect(createWorkspaceStateStore().load("/a")).rejects.toThrow()
 })
 
+test("retired per-project hidden visibility cannot override the global preference", async () => {
+  localStorage.setItem(
+    "workspace:/a",
+    JSON.stringify({
+      tabs: [],
+      activePath: null,
+      expanded: ["/a"],
+      showHidden: true,
+      showIgnored: false,
+      iconTheme: "vscode-icons"
+    })
+  )
+  expect(await createWorkspaceStateStore().load("/a")).not.toHaveProperty("showHidden")
+})
+
 test("propagates failed persistence and allows a later save", async () => {
   const write = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
     throw new Error("disk full")
@@ -40,7 +53,6 @@ test("propagates failed persistence and allows a later save", async () => {
     tabs: [],
     activePath: null,
     expanded: ["/a"],
-    showHidden: false,
     showIgnored: false,
     iconTheme: "vscode-icons" as const
   }
@@ -55,7 +67,6 @@ test("rejects malformed mixed-tab state and paths escaping the workspace", async
     tabs: [],
     activePath: null,
     expanded: ["/a"],
-    showHidden: false,
     showIgnored: false,
     iconTheme: "vscode-icons"
   }

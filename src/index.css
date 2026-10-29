@@ -49,21 +49,54 @@ pre,
   color: var(--muted-foreground);
 }
 
+form[data-shell-mode="true"] .codex-composer-surface {
+  border-color: var(--destructive) !important;
+}
+
 .permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] svg {
   width: 14px;
   height: 14px;
 }
 
 .permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] {
-  inset-block-end: 0.25rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
   height: 1rem;
+}
+
+/* Match Desktop's lounge nest and keep native button states off the sprite. */
+.pet-lounge button[aria-label="Vibémon"] {
+  background-image: none;
+  box-shadow: none;
+}
+.pet-lounge .vibemon-lounge-pet {
+  background-color: transparent;
+}
+.pet-lounge button[aria-label="Vibémon"]:not(.vibemon-lounge-pet) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-color: var(--pet-lounge-nest);
+  background-color: color-mix(in oklab, var(--pet-lounge-nest) 10%, transparent);
+  color: var(--pet-lounge-nest);
+}
+.pet-lounge button[aria-label="Vibémon"]:not(.vibemon-lounge-pet) svg {
+  stroke-width: 2.5;
+}
+.pet-lounge [data-testid="pet-lounge-drop"] {
+  border-color: var(--pet-lounge-nest);
+  background-color: color-mix(in oklab, var(--pet-lounge-nest) 30%, transparent);
 }
 
 button[data-permission-warning],
 button[data-permission-warning] svg,
 .permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]),
 .permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]) * {
-  color: var(--destructive);
+  color: var(--permission-warning);
+}
+
+:root {
+  --permission-warning: oklch(0.65 0.2 40);
 }
 
 @theme inline {
@@ -111,6 +144,7 @@ button[data-permission-warning] svg,
 }
 
 :root {
+  --pet-lounge-nest: oklch(1 0 0);
   --canvas-page-indicator: oklch(0.985 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -475,6 +509,7 @@ html[data-window-backdrop="acrylic"]
         .chat-project-picker *,
         .vibemon-content *,
         .vibemon-lounge-pet,
+        .pet-lounge button[aria-label="Vibémon"],
         .window-card-hit,
         .canvas-dots *
       )
@@ -767,6 +802,8 @@ body,
   ):not(
     :where(
       .canvas-dots *,
+      .main-sidebar-panel [role="tablist"] [role="tab"],
+      .pet-lounge button[aria-label="Vibémon"],
       .codex-assistant-turn [data-codex-disclosure],
       .codex-assistant-turn .codex-edited-files-more
     )
@@ -796,4 +833,19 @@ body,
 
 [data-model-menu-list] {
   margin-inline-end: -6px;
+}
+
+/* Let Drive reach the same outer scroll gutter as the conversation list. */
+.sidebar-drive {
+  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
+}
+.sidebar-drive .alwith-drive-launcher {
+  padding-inline-end: 0;
+}
+.sidebar-drive .alwith-drive-navigation {
+  margin-inline-end: 0;
+  padding-inline-end: 8px;
+}
+.sidebar-drive :is(.alwith-drive-toolbar, .alwith-drive-search) {
+  padding-inline-end: 8px;
 }

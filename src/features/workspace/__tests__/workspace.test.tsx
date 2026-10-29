@@ -3,7 +3,7 @@ import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module
 import type { NativeRequest } from "@alwith/module-fs/tauri"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { StrictMode, useState } from "react"
+import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
@@ -12,7 +12,7 @@ import { openGuideWindow } from "@/features/guide/guide-window"
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 import { initI18n } from "@/lib/i18n"
 
-import { WorkspaceHeaderContext } from "../context"
+import { useWorkspace, WorkspaceHeaderContext } from "../context"
 import { FileWorkspace } from "../file-workspace"
 
 vi.mock("@/features/guide/guide-window", () => ({ openGuideWindow: vi.fn() }))
@@ -156,7 +156,15 @@ test("Windows moves only the workspace toggle into the title bar and preserves i
     target.remove()
   }
 })
-function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealRequest?: number }) {
+function Surface({
+  cwd,
+  chatRevealRequest = 0,
+  children
+}: {
+  cwd: string
+  chatRevealRequest?: number
+  children?: ReactNode
+}) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   return (
     <WorkspaceHeaderContext.Provider value={toolbar}>
@@ -166,6 +174,7 @@ function Surface({ cwd, chatRevealRequest = 0 }: { cwd: string; chatRevealReques
           {null}
         </ChatHeader>
         <div>Chat {cwd}</div>
+        {children}
       </FileWorkspace>
     </WorkspaceHeaderContext.Provider>
   )
@@ -560,6 +569,27 @@ test("Desktop root context menu omits rename, copy and delete", async () => {
   fireEvent.contextMenu(await screen.findByRole("treeitem", { name: "a" }))
   await screen.findByRole("menu")
   for (const name of ["Rename", "Copy", "Delete"]) expect(screen.queryByRole("menuitem", { name })).toBeNull()
+})
+
+test("double-click references a file in the registered conversation while single-click still previews", async () => {
+  const add = vi.fn()
+  function ComposerTarget() {
+    const register = useWorkspace()?.registerFileReference
+    useLayoutEffect(() => register?.({ sessionId: "current-chat", add }), [register])
+    return null
+  }
+  render(
+    <Surface cwd="/a">
+      <ComposerTarget />
+    </Surface>
+  )
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  const row = await screen.findByRole("treeitem", { name: "one.txt" })
+  fireEvent.click(row)
+  await screen.findByRole("tab", { name: "one.txt" })
+  expect(add).not.toHaveBeenCalled()
+  fireEvent.doubleClick(row)
+  expect(add).toHaveBeenCalledExactlyOnceWith("/a/one.txt")
 })
 
 test("single-click replaces a clean preview, double-click pins it, and editing pins it", async () => {

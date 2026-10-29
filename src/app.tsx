@@ -13,6 +13,8 @@ import { useShallow } from "zustand/react/shallow"
 import type { SessionSummary } from "@/agent/client"
 import { watchSessionList } from "@/agent/session-list-refresh"
 import { commands, events } from "@/bindings"
+import { Pane } from "@/components/alwith-ui/pane"
+import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
@@ -27,7 +29,6 @@ import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } f
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
 import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
-import { ExtensionEntryMenu } from "@/features/extensions/extension-entry-menu"
 import { ExtensionNavigation } from "@/features/extensions/extension-navigation"
 import { ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
@@ -114,7 +115,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "archives" | "story" | "extension">(
     "chat"
   )
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("plugins")
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("extensions")
   const leading =
     view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension" || view === "archives"
   const [extensionView, setExtensionView] = useState<string | null>(null)
@@ -142,6 +143,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("plugins")
   }, [])
   const openExtensions = useCallback(() => {
+    setPluginsVisited(true)
     setLeadingPage("extensions")
     setView("extensions")
   }, [])
@@ -630,18 +632,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onOpenWindow={() => void openChatWindow().catch((error) => toast.error(describe(error)))}
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
-              onOpenPlugins={openPlugins}
-              onOpenExtensions={openExtensions}
-              renderExtensionEntry={(trigger) => (
-                <ExtensionEntryMenu
-                  host={extensions}
-                  manifests={extensionState.native?.installations.map((item) => item.manifest) ?? []}
-                  trigger={trigger}
-                  onManage={openExtensions}
-                  onOpenSurface={openExtension}
-                  onError={reportExtensionError}
-                />
-              )}
+              onOpenPlugins={openExtensions}
               drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               onSwitchScreen={() => {
                 if (leading) setView("chat")
@@ -655,8 +646,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 activePage={view === "extension" ? null : leadingPage}
                 onOpenVibemon={openVibemon}
                 onOpenArchives={openArchives}
-                onOpenPlugins={openPlugins}
-                onOpenExtensions={openExtensions}
+                onOpenPlugins={openExtensions}
               >
                 <ExtensionNavigation
                   host={extensions}
@@ -670,8 +660,29 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 {leading && actionCards}
                 {view === "archives" && <ArchivedChatsPage />}
                 {pluginsVisited && (
-                  <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                    <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
+                  <div
+                    className={
+                      (leadingPage === "plugins" || leadingPage === "extensions") && view !== "extension"
+                        ? "flex min-h-0 flex-1 flex-col"
+                        : "hidden"
+                    }
+                  >
+                    <PluginsPage
+                      cwd={session?.cwd ?? lastDirectory}
+                      active={view === "plugins"}
+                      onOpenCatalog={openPlugins}
+                      extensions={{
+                        active: leadingPage === "extensions",
+                        onOpen: openExtensions,
+                        content: (
+                          <Pane className="pe-0" viewportClassName="pe-0">
+                            <div className={`${toolboxContentClassName} pt-8`}>
+                              <ExtensionsSection onOpenSurface={openExtension} />
+                            </div>
+                          </Pane>
+                        )
+                      }}
+                    />
                   </div>
                 )}
                 {vibemonVisited && (
@@ -681,12 +692,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 )}
                 {view === "extension" && extensionView !== null ? (
                   <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
-                ) : leadingPage === "extensions" ? (
-                  <div className="min-h-0 flex-1 overflow-auto">
-                    <div className="mx-auto w-full max-w-5xl px-6 py-8">
-                      <ExtensionsSection onOpenSurface={openExtension} />
-                    </div>
-                  </div>
                 ) : null}
               </SidebarInset>
             </>

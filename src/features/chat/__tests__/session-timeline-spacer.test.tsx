@@ -20,7 +20,7 @@ afterEach(async () => {
   if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight)
 })
 
-test("a steer preserves one thinking indicator while commentary continues streaming", async () => {
+test("a steer preserves streaming commentary without a thinking placeholder", async () => {
   let session = applyUpdate(createSession("steering-display", "/tmp"), {
     sessionUpdate: "user_message",
     messageId: "first",
@@ -42,7 +42,7 @@ test("a steer preserves one thinking indicator while commentary continues stream
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Also check this")).toBeInTheDocument())
-  expect(view.getAllByText("Thinking")).toHaveLength(1)
+  expect(view.queryAllByText("Thinking")).toHaveLength(0)
   expect(view.container.querySelector('[data-codex-turn="turn:user:steer"] .codex-pending-message')).toBeNull()
   session = applyUpdate(session, output("Still working and updating") as never)
   view.rerender(
@@ -51,7 +51,7 @@ test("a steer preserves one thinking indicator while commentary continues stream
     </ThemeProvider>
   )
   await waitFor(() => expect(view.getByText("Still working and updating")).toBeInTheDocument())
-  expect(view.getAllByText("Thinking")).toHaveLength(1)
+  expect(view.queryAllByText("Thinking")).toHaveLength(0)
 })
 
 test("steering bubbles remain visible when a native turn has no assistant output", async () => {

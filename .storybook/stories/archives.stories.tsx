@@ -78,7 +78,6 @@ const meta = {
               activePage="archives"
               onOpenVibemon={() => {}}
               onOpenPlugins={() => {}}
-              onOpenExtensions={() => {}}
               onOpenArchives={() => {}}
             />
             <SidebarInset className="main-chat-surface flex min-h-0 flex-col">

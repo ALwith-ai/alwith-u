@@ -8,6 +8,7 @@ import { emitTo, listen } from "@tauri-apps/api/event"
 import { useEffect, useState } from "react"
 
 import type { CodexClient } from "@/agent/client"
+import { commands } from "@/bindings"
 import { explainRequestError } from "@/core/request-error"
 
 type History = Awaited<ReturnType<CodexCapabilitiesClient["importHistory"]>>["data"]
@@ -39,10 +40,19 @@ export class ImportController {
   private readonly api: () => CodexCapabilitiesClient
   private readonly cwds: () => string[]
   private readonly publish: (state: ImportState) => void
-  constructor(api: () => CodexCapabilitiesClient, cwds: () => string[], publish: (state: ImportState) => void) {
+  private readonly prepareCursor: (cwds: string[]) => Promise<void>
+  constructor(
+    api: () => CodexCapabilitiesClient,
+    cwds: () => string[],
+    publish: (state: ImportState) => void,
+    prepareCursor: (cwds: string[]) => Promise<void> = async (cwds) => {
+      await commands.prepareCursorImport({ cwds })
+    }
+  ) {
     this.api = api
     this.cwds = cwds
     this.publish = publish
+    this.prepareCursor = prepareCursor
   }
   private set(change: Partial<ImportState>) {
     this.state = { ...this.state, ...change }
@@ -59,10 +69,12 @@ export class ImportController {
           this.set({ history, error: null, phase: this.state.phase === "error" ? "idle" : this.state.phase })
       } else if (action.action === "detect") {
         this.set({ phase: "detecting", source: action.source, items: [], results: [], error: null })
+        const cwds = this.cwds()
+        if (action.source === "cursor") await this.prepareCursor(cwds)
         const detected = await this.api().detectImports({
           migrationSource: action.source,
           includeHome: true,
-          cwds: this.cwds()
+          cwds
         })
         this.set({ phase: "selecting", items: detected.items })
       } else {

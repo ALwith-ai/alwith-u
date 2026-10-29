@@ -336,7 +336,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             Ok(Value::Null)
         }
         "present" | "hide" | "drag" | "sound" | "focus" => {
-            if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon") {
+            if !window::allows_action(window.label(), &action) {
                 return Err("Invalid overlay caller".into());
             }
             if action == "hide" && window.label() == "bubble-menu-vibemon" {

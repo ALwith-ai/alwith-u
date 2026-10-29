@@ -493,7 +493,9 @@
     "mobile": "移动端连接",
     "preventSleep": "任务运行时防止休眠",
     "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。",
-    "import": "导入"
+    "import": "导入",
+    "explorer": "资源管理器",
+    "explorerHiddenDescription": "显示以 . 开头的隐藏文件和目录"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -605,8 +607,8 @@
   },
   "plugins": {
     "catalog": {
-      "navigation": "自定义导航",
-      "customize": "自定义",
+      "navigation": "工具箱导航",
+      "customize": "工具箱",
       "content": "插件与技能内容",
       "pluginViews": "插件视图",
       "personal": "个人",
@@ -1006,7 +1008,7 @@
     "search": "搜索文件",
     "collapse": "全部折叠",
     "more": "更多操作",
-    "ignored": "显示被忽略的文件",
+    "ignored": "显示 Git 忽略的文件",
     "newMarkdown": "新建 Markdown",
     "copyPath": "复制路径",
     "copyRelativePath": "复制相对路径",

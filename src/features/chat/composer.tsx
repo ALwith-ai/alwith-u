@@ -3,13 +3,16 @@
  * model catalog and prediction preference.
  */
 import { Composer, type ComposerProps, useComposer } from "@alwith/module-chat/conversation"
-import { useCallback, useState } from "react"
+import { isSelectOption } from "@nyssance/codex-acp-v2/client"
+import { useCallback, useLayoutEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
 import { observeVoiceTurn } from "@/core/voice-turn"
 import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { VoiceButton } from "@/features/voice/voice-button"
+import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
 
 import { AccountModelRecovery } from "./composer/account-model-recovery"
@@ -51,7 +54,7 @@ function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
       <VoiceButton
         draft={composer.draft}
         cwd={session.cwd}
-        enabled={composer.ready && !realtimeActive}
+        enabled={composer.ready && !realtimeActive && !composer.shellMode}
         cancelRef={composer.interruptRef}
         waitForTurn={waitForTurn}
         supportsHandsfree={composer.handsFree}
@@ -60,7 +63,7 @@ function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
       <RealtimeVoiceButton
         key={session.id}
         sessionId={session.id}
-        enabled={composer.ready}
+        enabled={composer.ready && !composer.shellMode}
         beforeStart={() => composer.interruptRef.current?.()}
         onActive={setRealtimeActive}
       />
@@ -70,10 +73,34 @@ function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
 
 function ComposerFileDrop() {
   const composer = useComposer()
+  const register = useWorkspace()?.registerFileReference
+  const { t } = useTranslation()
+  useLayoutEffect(
+    () =>
+      register?.({
+        sessionId: composer.session.id,
+        add: (path) => {
+          if (!composer.inputReady || composer.sending || composer.shellMode)
+            throw new Error(t("chat.input.dropUnavailable"))
+          composer.addMention(path)
+          composer.textareaRef.current?.focus()
+        }
+      }),
+    [
+      register,
+      composer.session.id,
+      composer.inputReady,
+      composer.sending,
+      composer.shellMode,
+      composer.addMention,
+      composer.textareaRef,
+      t
+    ]
+  )
   return (
     <NativeFileDrop
       sessionId={composer.session.id}
-      enabled={composer.inputReady && !composer.sending}
+      enabled={composer.inputReady && !composer.sending && !composer.shellMode}
       onMention={composer.addMention}
       onBusyChange={composer.setAdding}
     />
@@ -85,6 +112,12 @@ export function ChatComposer({
   ...props
 }: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions"> & { voiceResume?: VoiceResume }) {
   const predictions = useStore(predictionPreference, (state) => state.enabled)
+  const predictionUnavailable = props.session.configOptions.some(
+    (option) =>
+      isSelectOption(option) &&
+      (((option.category === "model" || option.configId === "model") && option.currentValue.startsWith("gateway:")) ||
+        (option.configId === "collaboration_mode" && option.currentValue === "plan"))
+  )
   const accountRecovery = useStore(client.store, (state) => state.accountModelRecovery?.[props.session.id] ?? false)
   return (
     <>
@@ -92,8 +125,9 @@ export function ChatComposer({
       <Composer
         modelMenu={chatModelMenu}
         {...props}
-        predictions={predictions}
+        predictions={predictions && !predictionUnavailable}
         attachmentPolicy={nativeAttachmentPolicy}
+        onShellCommand={(command) => client.executeShell(props.session.id, command)}
         actions={<ComposerVoice voiceResume={voiceResume} />}
       >
         <ComposerFileDrop />

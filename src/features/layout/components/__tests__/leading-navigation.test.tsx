@@ -28,7 +28,6 @@ test("leading navigation switches pages and is inaccessible on the main screen",
               activePage={page}
               onOpenVibemon={() => setPage("vibemon")}
               onOpenPlugins={() => setPage("plugins")}
-              onOpenExtensions={() => setPage("extensions")}
               onOpenArchives={() => setPage("archives")}
             />
             <main aria-label="Current page">{page}</main>
@@ -39,11 +38,10 @@ test("leading navigation switches pages and is inaccessible on the main screen",
     )
   }
   const view = render(<Screen />)
-  expect(view.getByRole("button", { name: "Plugins" })).toHaveAttribute("aria-current", "page")
+  expect(view.getByRole("button", { name: "Toolbox" })).toHaveAttribute("aria-current", "page")
   for (const [name, page] of [
     ["Vibémon", "vibemon"],
-    ["Extensions", "extensions"],
-    ["Plugins", "plugins"],
+    ["Toolbox", "plugins"],
     ["Archived chats", "archives"]
   ] as const) {
     fireEvent.click(view.getByRole("button", { name }))
@@ -56,6 +54,6 @@ test("leading navigation switches pages and is inaccessible on the main screen",
     ).toHaveLength(1)
   }
   fireEvent.click(view.getByRole("button", { name: "Return to chat" }))
-  expect(view.queryByRole("button", { name: "Plugins" })).not.toBeInTheDocument()
+  expect(view.queryByRole("button", { name: "Toolbox" })).not.toBeInTheDocument()
   expect(view.getByRole("main")).toHaveTextContent("Chat")
 })

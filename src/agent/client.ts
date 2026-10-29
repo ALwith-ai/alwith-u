@@ -75,6 +75,13 @@ function selectedModel(options: acp.SessionConfigOption[]): string | null {
 }
 
 export class CodexClient extends CodexAcpClient<AppState> {
+  async executeShell(sessionId: string, command: string): Promise<void> {
+    const session = this.session(sessionId)
+    if (!session.attached || session.restoring || session.readOnly || session.state !== "idle")
+      throw new Error("The session is not ready for a shell command")
+    await this.codexCapabilities.executeShell(sessionId, command)
+    this.materializeDraft(sessionId)
+  }
   private readonly modelListeners = new Set<SessionModelListener>()
   private readonly confirmedModelListeners = new Set<(owner: DraftOwner, model: string) => void>()
   private savedModels: Record<DraftOwner, string | null> = { main: null, chat: null }
@@ -287,7 +294,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
   ): Promise<string> {
     if (model !== null && typeof model === "object") return super.newSession(cwd, model)
     const version = ++this.slotVersions[owner]
-    const id = await this.createNativeSession(cwd, model, null)
+    const id = await this.createNativeSession(cwd, await this.resolveModel(model), null)
     this.activateSlot(owner, id, version)
     return id
   }
@@ -355,12 +362,11 @@ export class CodexClient extends CodexAcpClient<AppState> {
     )
       return super.requestContext(cwd, operation, options)
     const id = operation.sessionId
-    const owner = this.openingOwners.get(id)
     const session = this.holds(id) ? this.session(id) : undefined
-    const model =
-      owner !== undefined
-        ? await this.resolveModel(this.slotModels[owner])
-        : ((session ? selectedModel(session.configOptions) : null) ?? this.gatewayModels.get(id) ?? null)
+    const knownModel = (session ? selectedModel(session.configOptions) : null) ?? this.gatewayModels.get(id) ?? null
+    // Reopening a conversation preserves its own route. Slot defaults belong only to new drafts.
+    const resolved = await this.resolveModel(knownModel)
+    const model = knownModel === null ? null : resolved
     return super.requestContext(cwd, operation, { ...options, meta: mergeMeta(modelHint(model), options.meta) })
   }
 

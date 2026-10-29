@@ -72,7 +72,8 @@ import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
-import { type FilePosition, WorkspaceContext, WorkspaceHeaderContext } from "./context"
+import { type FilePosition, WorkspaceContext, type WorkspaceFileReference, WorkspaceHeaderContext } from "./context"
+import { connectExplorerSettings } from "./explorer-settings"
 import { useHostDialog } from "./host-dialog"
 import type { PanelControls } from "./panel-controls-context"
 import { PreviewSurface } from "./preview-surface"
@@ -118,6 +119,14 @@ export function FileWorkspace({
   chatRevealRequest?: number
 }) {
   const windowsControls = useContext(WindowsWorkspaceControlsContext)
+  const fileReference = useRef<WorkspaceFileReference | null>(null)
+  const registerFileReference = useCallback((target: WorkspaceFileReference) => {
+    if (fileReference.current !== null) throw new Error("The workspace already has a composer")
+    fileReference.current = target
+    return () => {
+      if (fileReference.current === target) fileReference.current = null
+    }
+  }, [])
   const { resolvedTheme } = useTheme()
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
@@ -373,29 +382,31 @@ export function FileWorkspace({
         // assigned below once the editor exists; earlier tree callbacks skip persistence
         const late: { persistState?: () => void } = {}
         const tree = yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            createFileTreeController({
-              fs,
-              root,
-              reportError: report,
-              expanded,
-              onExpandedChange: (paths) => {
-                expanded = [...paths]
-                late.persistState?.()
-              },
-              confirmReplace: async (paths) =>
-                (await ask({
-                  title: t("workspace.replace"),
-                  detail: paths.join("\n"),
-                  choices: [{ label: t("workspace.replace"), value: "replace" }]
-                })) === "replace"
-            })
+          workspaceTask(() =>
+            connectExplorerSettings(
+              createFileTreeController({
+                fs,
+                root,
+                reportError: report,
+                expanded,
+                onExpandedChange: (paths) => {
+                  expanded = [...paths]
+                  late.persistState?.()
+                },
+                confirmReplace: async (paths) =>
+                  (await ask({
+                    title: t("workspace.replace"),
+                    detail: paths.join("\n"),
+                    choices: [{ label: t("workspace.replace"), value: "replace" }]
+                  })) === "replace"
+              }),
+              report
+            )
           ),
           (tree) => Effect.sync(() => tree.dispose())
         )
         yield* workspaceTask(() => tree.refresh())
         signal.throwIfAborted()
-        if (saved?.showHidden) yield* workspaceTask(() => tree.setShowHidden(true))
         if (saved?.showIgnored) yield* workspaceTask(() => tree.setShowIgnored(true))
         for (const tab of saved?.tabs ?? []) {
           signal.throwIfAborted()
@@ -465,7 +476,6 @@ export function FileWorkspace({
             tabs: snapshot.documents.map((doc) => ({ path: doc.path, pinned: doc.pinned })),
             activePath: snapshot.documents.find((doc) => doc.id === snapshot.activeId)?.path ?? null,
             expanded,
-            showHidden: treeSnapshot.showHidden,
             showIgnored: treeSnapshot.showIgnored,
             iconTheme: created.iconTheme,
             tabLayout: created.tabs.serialize()
@@ -777,8 +787,8 @@ export function FileWorkspace({
     [ensure]
   )
   const context = useMemo(
-    () => ({ visible, viewMode, toggle, openFile, openProject, revealEntry }),
-    [visible, viewMode, toggle, openFile, openProject, revealEntry]
+    () => ({ visible, viewMode, toggle, openFile, openProject, revealEntry, registerFileReference }),
+    [visible, viewMode, toggle, openFile, openProject, revealEntry, registerFileReference]
   )
   const treeLabels: FileTreeLabels = {
     files: t("workspace.files"),
@@ -932,7 +942,11 @@ export function FileWorkspace({
                       locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
                     />
                   )}
-                  onPinFile={(path) => workspace.treeOpener.open(path, true)}
+                  onPinFile={(path) => {
+                    const target = fileReference.current
+                    if (target !== null) target.add(path)
+                    else return workspace.treeOpener.open(path, true)
+                  }}
                   onOpenExternal={openExternal}
                   onReveal={(path) => revealItemsInDir(path)}
                   onCopyPath={writeText}

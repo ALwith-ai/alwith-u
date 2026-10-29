@@ -184,7 +184,9 @@
     "trackpad": "Trackpad",
     "trackpadEnabled": "Aktifkan gestur trackpad",
     "threeFingerSwipeDesc": "Geser horizontal dengan tiga jari untuk menggeser kanvas",
-    "import": "Impor"
+    "import": "Impor",
+    "explorer": "Penjelajah",
+    "explorerHiddenDescription": "Tampilkan file dan direktori tersembunyi yang namanya diawali titik (.)"
   },
   "usage": {
     "usage": "Penggunaan",
@@ -358,7 +360,8 @@
     "source": "Sumber",
     "newTab": "Tab baru",
     "emptyNewTab": "Tab baru",
-    "more": "Tindakan lainnya"
+    "more": "Tindakan lainnya",
+    "ignored": "Tampilkan file yang diabaikan Git"
   },
   "pet": {
     "retry": "Coba lagi",

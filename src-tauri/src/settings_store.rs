@@ -318,6 +318,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         | "system.preventSleep"
         | "computer.enabled"
         | "chat.composerPredictions"
+        | "explorer.showHidden"
         | "voice.enabled"
         | "voice.smooth"
         | "appearance.sidebarPinned"

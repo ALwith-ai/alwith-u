@@ -3,6 +3,8 @@ import { ExtensionView, useHostSnapshot } from "@alwith/module-extension/react"
 import { type ReactElement, useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { CatalogHeader } from "@/components/alwith-ui/catalog-header"
+import { toolboxContentClassName, ToolboxPageHeader } from "@/components/alwith-ui/toolbox-layout"
 import { Button } from "@/components/ui/button"
 
 import { ExtensionSettingsControls } from "./extension-settings-controls"
@@ -68,14 +70,17 @@ export function ExtensionPage({ id, onClose }: { id: string; onClose: () => void
   const { host } = useExtensions()
   const view = host.views.find((item) => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
   return (
-    <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 overflow-hidden px-6 pt-8 pb-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>
-        <Button variant="outline" onClick={onClose}>
-          {t("extensions.back")}
-        </Button>
+    <section className="toolbox-extension-page toolbox-surface @container flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <ToolboxPageHeader>
+        <CatalogHeader title={view?.title ?? t("extensions.unavailable")}>
+          <Button variant="outline" size="sm" className="h-9" onClick={onClose}>
+            {t("extensions.back")}
+          </Button>
+        </CatalogHeader>
+      </ToolboxPageHeader>
+      <div className={`${toolboxContentClassName} toolbox-extension-surface flex min-h-0 flex-1 flex-col pt-6`}>
+        {view && <ExtensionMount key={id} id={id} />}
       </div>
-      {view && <ExtensionMount key={id} id={id} />}
     </section>
   )
 }

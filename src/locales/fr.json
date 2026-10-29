@@ -190,7 +190,9 @@
     "trackpad": "Pavé tactile",
     "trackpadEnabled": "Activer les gestes du pavé tactile",
     "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas",
-    "import": "Importer"
+    "import": "Importer",
+    "explorer": "Explorateur",
+    "explorerHiddenDescription": "Afficher les fichiers et dossiers cachés dont le nom commence par un point (.)"
   },
   "usage": {
     "usage": "Utilisation",
@@ -351,7 +353,8 @@
     "confirm": "Confirmer",
     "newTab": "Nouvel onglet",
     "emptyNewTab": "Nouvel onglet",
-    "more": "Plus d’actions"
+    "more": "Plus d’actions",
+    "ignored": "Afficher les fichiers ignorés par Git"
   },
   "pet": {
     "retry": "Réessayer",

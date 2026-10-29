@@ -5,15 +5,17 @@ import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 import {
   BlocksIcon,
   BookOpenIcon,
+  CheckIcon,
   CircleArrowUpIcon,
   MoreVerticalIcon,
   PlusIcon,
+  PuzzleIcon,
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
   XIcon
 } from "lucide-react"
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react"
+import { memo, type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
@@ -28,6 +30,7 @@ import {
   PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
+import { toolboxContentClassName, ToolboxPageHeader } from "@/components/alwith-ui/toolbox-layout"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +49,6 @@ import { client, useApp } from "@/lib/client"
 
 import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
-import { pluginContentClassName, PluginPageHeader } from "./page-layout"
 import { PluginDetailPage } from "./plugin-detail-page"
 import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
 import { SkillsTab } from "./skills-tab"
@@ -60,37 +62,34 @@ function pluginDescription(plugin: PluginSummary): string {
   return plugin.interface?.shortDescription ?? ""
 }
 
-/** Install / installing spinner / installed (disabled), as Desktop's MarketplaceActionButton. */
+/** Install action, installing spinner, or installed status matching the skills catalog. */
 function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; marketplace: PluginMarketplaceEntry }) {
   const { t } = useTranslation()
   const installing = useStore(pluginsStore, (state) => plugin.id in state.busyIds)
   const installed = useStore(pluginsStore, (state) => state.installed.some((entry) => entry.plugin.id === plugin.id))
   const install = useStore(pluginsStore, (state) => state.install)
   const unavailable = plugin.availability !== "AVAILABLE" || plugin.installPolicy === "NOT_AVAILABLE"
-  if (installing) {
-    return (
-      <Button size="sm" variant="outline" disabled className="w-20" aria-label={t("plugins.card.installing")}>
-        <Spinner />
-      </Button>
-    )
-  }
-  if (installed) {
-    return (
-      <Button size="sm" variant="outline" disabled className="w-20">
-        {t("plugins.sections.installed")}
-      </Button>
-    )
+  const label = t(
+    installing ? "plugins.card.installing" : installed ? "plugins.sections.installed" : "plugins.card.install"
+  )
+  if (installed && !installing) {
+    return <CheckIcon className="size-4 shrink-0 text-muted-foreground" aria-label={label} />
   }
   return (
     <Button
-      size="sm"
-      variant="outline"
-      className="w-20"
-      disabled={unavailable}
-      title={unavailable ? t("plugins.disabledReason.unknown") : undefined}
+      size="icon-sm"
+      variant="ghost"
+      className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+      disabled={installing || installed || unavailable}
+      aria-label={label}
+      title={unavailable ? t("plugins.disabledReason.unknown") : label}
       onClick={() => void install({ plugin, marketplace }).catch(() => {})}
     >
-      {t("plugins.card.install")}
+      {installing ? (
+        <Spinner aria-hidden="true" />
+      ) : (
+        <PlusIcon className="size-[18px]" strokeWidth={1.5} aria-hidden="true" />
+      )}
     </Button>
   )
 }
@@ -111,7 +110,7 @@ function PluginRow({
   const version = plugin.localVersion ?? plugin.version
   const meta = [developer, version ? `v${version}` : null].filter(Boolean).join(" · ")
   return (
-    <PanelItem className="relative rounded-md">
+    <PanelItem className="toolbox-row relative">
       <Button
         variant="ghost"
         className="absolute inset-0 z-0 size-full"
@@ -120,7 +119,7 @@ function PluginRow({
         onClick={() => onOpen({ plugin, marketplace })}
       />
       <ItemMedia className="pointer-events-none relative translate-none! self-center!">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-muted">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
           <PluginIcon name={plugin.name} />
         </div>
       </ItemMedia>
@@ -129,7 +128,7 @@ function PluginRow({
         <ItemDescription className="line-clamp-1" title={description}>
           {description || marketplace.interface?.displayName || marketplace.name}
         </ItemDescription>
-        {meta && <ItemDescription className="-mt-0.5">{meta}</ItemDescription>}
+        {meta && <ItemDescription data-toolbox-metadata="">{meta}</ItemDescription>}
       </ItemContent>
       <ItemActions className="relative">{actions}</ItemActions>
     </PanelItem>
@@ -159,11 +158,9 @@ function MarketplaceSection({
   const page = Math.min(selectedPage, Math.max(0, Math.ceil(plugins.length / PAGE_SIZE) - 1))
   if (plugins.length === 0) return null
   return (
-    <section key={marketplace.name} className="flex flex-col gap-1">
+    <section key={marketplace.name} className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <h2 className="text-xs font-medium text-muted-foreground">
-          {marketplace.interface?.displayName ?? marketplace.name}
-        </h2>
+        <h2 className="text-base font-medium">{marketplace.interface?.displayName ?? marketplace.name}</h2>
         <span className="text-xs text-muted-foreground">{plugins.length}</span>
         {marketplace.path !== null && (
           <DropdownMenu>
@@ -171,24 +168,24 @@ function MarketplaceSection({
               render={
                 <Button
                   variant="ghost"
-                  size="icon-xs"
-                  className="ms-auto h-9 text-muted-foreground"
+                  size="icon-sm"
+                  className="ms-auto text-muted-foreground"
                   aria-label={t("plugins.pageActions")}
                 />
               }
             >
               <MoreVerticalIcon />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[140px]">
+            <DropdownMenuContent align="end" className="w-max min-w-[140px] whitespace-nowrap">
               <DropdownMenuItem className="text-destructive" onClick={() => void removeMarketplace(marketplace.name)}>
-                <Trash2Icon className="me-2 size-3.5" />
+                <Trash2Icon className="size-3.5" />
                 {t("plugins.marketplace.remove")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
-      <PanelList className="grid grid-cols-1 gap-2 px-0 @min-[700px]:grid-cols-2">
+      <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
         {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
           <PluginRow
             onOpen={onOpen}
@@ -377,7 +374,7 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
   const q = useDeferredValue(query.trim().toLowerCase())
   return (
     <Pane className="pe-0" viewportClassName="pe-0">
-      <div className="flex flex-col gap-4">
+      <div className={`${toolboxContentClassName} flex flex-col gap-8`}>
         {loadErrors.map((error) => (
           <p key={error.marketplacePath} className="px-2 text-xs text-destructive">
             {error.marketplacePath}: {error.message}
@@ -390,7 +387,21 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
 }
 
 /** Catalogs cover the selected project and known conversation projects. */
-export function PluginsPage({ cwd, active }: { cwd: string | null; active: boolean }) {
+export function PluginsPage({
+  cwd,
+  active,
+  extensions,
+  onOpenCatalog
+}: {
+  cwd: string | null
+  active: boolean
+  onOpenCatalog?: () => void
+  extensions?: {
+    active: boolean
+    onOpen: () => void
+    content: ReactNode
+  }
+}) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, (state) => state.refresh)
   const loading = useStore(pluginsStore, (state) => state.loading)
@@ -436,10 +447,12 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
   }, [ready, refresh])
 
   const openPlugin = (entry: PluginEntry) => {
+    onOpenCatalog?.()
     setKind("plugins")
     setSelected(entry)
   }
   const showCatalog = (value: string) => {
+    onOpenCatalog?.()
     setKind(value)
     setSelected(null)
   }
@@ -457,14 +470,24 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
           </div>
         </div>
         <nav aria-label={t("plugins.manageTabs.aria")} className="flex shrink-0 flex-col gap-1 px-2 pb-1">
+          {extensions && (
+            <NavigationItemButton
+              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
+              active={extensions.active}
+              onClick={extensions.onOpen}
+            >
+              <BlocksIcon className="size-4" />
+              <span>{t("sidebar.extensions")}</span>
+            </NavigationItemButton>
+          )}
           {(["plugins", "skills"] as const).map((value) => (
             <NavigationItemButton
               key={value}
               className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
-              active={kind === value && selected === null}
+              active={!extensions?.active && kind === value && selected === null}
               onClick={() => showCatalog(value)}
             >
-              {value === "plugins" ? <BlocksIcon className="size-4" /> : <BookOpenIcon className="size-4" />}
+              {value === "plugins" ? <PuzzleIcon className="size-4" /> : <BookOpenIcon className="size-4" />}
               <span>{t(`plugins.headings.${value}`)}</span>
             </NavigationItemButton>
           ))}
@@ -488,7 +511,7 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
                     key={entry.plugin.id}
                     title={pluginTitle(entry.plugin)}
                     className={`${MENU_HIGHLIGHT} gap-2 px-2`}
-                    active={selected?.plugin.id === entry.plugin.id}
+                    active={!extensions?.active && selected?.plugin.id === entry.plugin.id}
                     onClick={() => openPlugin(entry)}
                   >
                     <PluginIcon name={entry.plugin.name} className="size-4 shrink-0" />
@@ -500,85 +523,102 @@ export function PluginsPage({ cwd, active }: { cwd: string | null; active: boole
           </nav>
         </Pane>
       </aside>
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t("plugins.catalog.content")}>
-        {selected && (
-          <PluginDetailPage
-            key={JSON.stringify([selected.marketplace.name, selected.marketplace.path, selected.plugin.id, cwd])}
-            entry={selected}
-            onBack={() => showCatalog("plugins")}
-          />
-        )}
-        <div hidden={selected !== null} className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
-          <PluginPageHeader>
-            <CatalogHeader title={t(`plugins.headings.${kind}`)}>
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <div className="relative w-52 max-w-full">
-                  <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="h-9 rounded-full ps-9 pe-9"
-                    aria-label={searchLabel}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={searchLabel}
-                  />
-                  {query && (
+      <main
+        className="toolbox-surface @container flex min-h-0 min-w-0 flex-1 flex-col"
+        aria-label={t("plugins.catalog.content")}
+      >
+        {extensions?.active ? (
+          extensions.content
+        ) : (
+          <>
+            {selected && (
+              <PluginDetailPage
+                key={JSON.stringify([selected.marketplace.name, selected.marketplace.path, selected.plugin.id, cwd])}
+                entry={selected}
+                onBack={() => showCatalog("plugins")}
+              />
+            )}
+            <div hidden={selected !== null} className={selected ? "hidden" : "flex min-h-0 flex-1 flex-col"}>
+              <ToolboxPageHeader>
+                <CatalogHeader title={t(`plugins.headings.${kind}`)}>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <div className="relative w-52 max-w-full">
+                      <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="h-9 rounded-full ps-9 pe-9"
+                        aria-label={searchLabel}
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder={searchLabel}
+                      />
+                      {query && (
+                        <Button
+                          className="toolbox-search-clear absolute end-1 top-1/2 -translate-y-1/2"
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label={t("plugins.catalog.clearSearch")}
+                          onClick={() => setQuery("")}
+                        >
+                          <XIcon />
+                        </Button>
+                      )}
+                    </div>
                     <Button
-                      className="absolute end-1 top-1/2 -translate-y-1/2"
                       variant="ghost"
-                      size="icon-xs"
-                      aria-label={t("plugins.catalog.clearSearch")}
-                      onClick={() => setQuery("")}
+                      size="icon-sm"
+                      className="text-muted-foreground"
+                      aria-label={t("plugins.skills.refresh")}
+                      disabled={!ready || loading}
+                      onClick={() => void refresh(undefined, { forceRefetch: true })}
                     >
-                      <XIcon />
+                      {loading ? <Spinner /> : <RefreshCwIcon />}
                     </Button>
+                    {kind === "plugins" && <PluginToolbar />}
+                  </div>
+                </CatalogHeader>
+              </ToolboxPageHeader>
+              {(kind === "plugins" || error) && (
+                <div className="toolbox-content flex shrink-0 flex-col gap-4 pt-2 pb-6">
+                  {kind === "plugins" && (
+                    <>
+                      <p className="text-sm text-muted-foreground">{t("plugins.catalog.description")}</p>
+                    </>
+                  )}
+                  {error && (
+                    <div role="alert" className="flex items-center justify-between gap-2 text-sm text-destructive">
+                      <p>
+                        {t("plugins.loadError.title")}: {error}
+                      </p>
+                      <Button
+                        size="sm"
+                        className="h-9"
+                        variant="outline"
+                        disabled={loading || !ready}
+                        onClick={() => void refresh()}
+                      >
+                        {t("plugins.loadError.retry")}
+                      </Button>
+                    </div>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="h-9"
-                  aria-label={t("plugins.skills.refresh")}
-                  disabled={!ready || loading}
-                  onClick={() => void refresh(undefined, { forceRefetch: true })}
+              )}
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div
+                  hidden={kind !== "plugins"}
+                  className={kind === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
                 >
-                  {loading ? <Spinner /> : <RefreshCwIcon />}
-                </Button>
-                {kind === "plugins" && <PluginToolbar />}
-              </div>
-            </CatalogHeader>
-          </PluginPageHeader>
-          <div className={`${pluginContentClassName} flex shrink-0 flex-col gap-4 pt-2`}>
-            {kind === "plugins" && (
-              <>
-                <p className="text-sm text-muted-foreground">{t("plugins.catalog.description")}</p>
-              </>
-            )}
-            {error && (
-              <div role="alert" className="flex items-center justify-between gap-2 text-sm text-destructive">
-                <p>
-                  {t("plugins.loadError.title")}: {error}
-                </p>
-                <Button
-                  size="sm"
-                  className="h-9"
-                  variant="outline"
-                  disabled={loading || !ready}
-                  onClick={() => void refresh()}
+                  <MarketplaceTab query={queries.plugins} onOpen={openPlugin} />
+                </div>
+                <div
+                  hidden={kind !== "skills"}
+                  className={kind === "skills" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
                 >
-                  {t("plugins.loadError.retry")}
-                </Button>
+                  <SkillsTab query={queries.skills} ready={ready} onOpenPlugin={openPlugin} />
+                </div>
               </div>
-            )}
-          </div>
-          <div className={`${pluginContentClassName} flex min-h-0 flex-1 flex-col`}>
-            <div hidden={kind !== "plugins"} className={kind === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-              <MarketplaceTab query={queries.plugins} onOpen={openPlugin} />
             </div>
-            <div hidden={kind !== "skills"} className={kind === "skills" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-              <SkillsTab query={queries.skills} ready={ready} onOpenPlugin={openPlugin} />
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </main>
     </div>
   )

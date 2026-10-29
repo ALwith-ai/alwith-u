@@ -67,6 +67,7 @@ export const commands = {
     identifier: string
     auth: string
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
+  prepareCursorImport: (args: { cwds: string[] }): Promise<null> => __t3Invoke<null>("prepare_cursor_import", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>
     __t3Invoke<null>("voice_start", args),
   voiceControl: (args: { action: string; recordingId: string }): Promise<null> =>
@@ -316,6 +317,7 @@ export type CommandErrors = {
   extensionInboxFailed: string
   draftDirectory: string
   workbuddyCreate: string
+  prepareCursorImport: string
   voiceStart: string
   voiceControl: string
   voiceProfiles: string

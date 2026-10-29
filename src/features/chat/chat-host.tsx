@@ -75,7 +75,7 @@ function PaneViewport({ viewportRef, viewportProps, children }: TimelineViewport
     <Pane
       nativeScroll
       viewportRef={viewportRef}
-      viewportClassName="me-[var(--app-scrollbar-edge-gap)] overflow-x-hidden overscroll-none"
+      viewportClassName="overflow-x-hidden overscroll-none"
       viewportProps={viewportProps}
     >
       {children}

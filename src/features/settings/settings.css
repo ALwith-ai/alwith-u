@@ -6,7 +6,7 @@
   --settings-control-width: min(18rem, 60%);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 8px;
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -20,11 +20,11 @@
 .settings-row {
   display: flex;
   min-width: 0;
-  min-height: 4.5rem;
+  min-height: 30px;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-  padding-block: 1rem;
+  gap: 8px;
+  padding-block: 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -38,12 +38,12 @@
 
 .settings-row-label > :first-child {
   display: flex;
-  min-height: 36px;
+  min-height: 30px;
   align-items: center;
 }
 
 .settings-row-control {
-  min-height: 36px;
+  min-height: 30px;
 }
 
 .settings-content .settings-group:first-child > .settings-row:first-child {
@@ -54,7 +54,7 @@
 .settings-content > :first-child > :first-child:is(h1, h2, h3),
 .settings-content > :first-child > :first-child > :first-child:is(h1, h2, h3) {
   display: flex;
-  min-height: 36px;
+  min-height: 30px;
   align-items: center;
 }
 
@@ -103,9 +103,9 @@
 
 .settings-content .alwith-drive-setting,
 .settings-content .alwith-legacy .setting-item {
-  min-height: 4.5rem;
-  gap: 1.5rem;
-  padding-block: 1rem;
+  min-height: 30px;
+  gap: 8px;
+  padding-block: 12px;
   border-color: var(--border);
 }
 
@@ -192,7 +192,7 @@
   font-weight: 400;
 }
 .settings-content .alwith-legacy .setting-item-control > input:not([type="checkbox"]) {
-  height: 36px;
+  height: 30px;
   padding: 4px 10px;
   border: 1px solid var(--input);
   border-radius: var(--radius-md);
@@ -203,4 +203,44 @@
 .settings-content .alwith-legacy .setting-item-control > input:not([type="checkbox"]):focus-visible {
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+.settings-content
+  :is(
+    [data-slot="button"],
+    [data-slot="input"],
+    [data-slot="input-group"],
+    [data-slot="select-trigger"],
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select
+  ) {
+  height: 30px;
+  min-height: 30px;
+}
+.settings-content :is([class~="space-y-6"], [class~="space-y-4"], [class~="space-y-3"]) > :not(:last-child) {
+  margin-block-end: 8px;
+}
+.settings-content .alwith-drive-settings > header {
+  display: none;
+}
+.settings-content .alwith-drive-setting:first-of-type,
+.settings-content .alwith-legacy .setting-item:first-child {
+  padding-block-start: 0;
+}
+.settings-content .alwith-drive-setting h3,
+.settings-content .alwith-legacy .setting-item-name {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+}
+.settings-content > :first-child {
+  margin-block-start: 0;
+}
+
+/* Extension headings share the first navigation row's 30px baseline box. */
+.settings-content .legacy-settings :is(h1, h2, h3):first-child {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  margin-block-start: 0;
 }

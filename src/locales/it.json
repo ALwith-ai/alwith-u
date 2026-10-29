@@ -191,7 +191,9 @@
     "trackpad": "Trackpad",
     "trackpadEnabled": "Abilita gesti del trackpad",
     "threeFingerSwipeDesc": "Scorri orizzontalmente con tre dita per spostare l’area di lavoro",
-    "import": "Importa"
+    "import": "Importa",
+    "explorer": "Esplora file",
+    "explorerHiddenDescription": "Mostra file e cartelle nascosti il cui nome inizia con un punto (.)"
   },
   "usage": {
     "usage": "Utilizzo",
@@ -361,7 +363,8 @@
     "source": "Sorgente",
     "newTab": "Nuova scheda",
     "emptyNewTab": "Nuova scheda",
-    "more": "Altre azioni"
+    "more": "Altre azioni",
+    "ignored": "Mostra file ignorati da Git"
   },
   "pet": {
     "retry": "Riprova",

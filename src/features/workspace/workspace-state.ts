@@ -8,7 +8,6 @@ export interface WorkspaceState {
   tabs: { path: string; pinned: boolean }[]
   activePath: string | null
   expanded: string[]
-  showHidden: boolean
   showIgnored: boolean
   iconTheme: IconTheme
 }
@@ -38,7 +37,6 @@ function decodeState(root: string, raw: string): WorkspaceState {
     !Array.isArray(state.expanded) ||
     !state.expanded.every(validPath) ||
     (state.activePath !== null && !validPath(state.activePath)) ||
-    typeof state.showHidden !== "boolean" ||
     typeof state.showIgnored !== "boolean" ||
     !iconThemes.includes(state.iconTheme as IconTheme)
   )
@@ -64,6 +62,8 @@ function decodeState(root: string, raw: string): WorkspaceState {
     const paths = layout.tabs.filter((tab) => tab.kind === "file").map((tab) => tab.path)
     if (new Set(paths).size !== paths.length) throw new Error("Duplicate workspace tabs")
   }
+  // Hidden-file visibility is now global; discard the retired per-project preference.
+  delete state.showHidden
   return state as unknown as WorkspaceState
 }
 

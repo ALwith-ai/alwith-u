@@ -36,6 +36,7 @@ const METHODS = [
   "previewHistoryTurn",
   "loadHistoryTurn",
   "prompt",
+  "executeShell",
   "retrySession",
   "cancel",
   "close",
@@ -412,6 +413,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
     return this.request("prompt", args)
+  }
+  override executeShell(...args: Parameters<CodexClient["executeShell"]>): ReturnType<CodexClient["executeShell"]> {
+    return this.request("executeShell", args)
   }
   override retrySession(...args: Parameters<CodexClient["retrySession"]>): Promise<void> {
     return this.request("retrySession", args)

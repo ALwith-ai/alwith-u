@@ -12,13 +12,33 @@ function fixture() {
     runImport: vi.fn().mockResolvedValue({ importId: "1", itemTypeResults: [] })
   }
   const publish = vi.fn()
+  const prepareCursor = vi.fn().mockResolvedValue(undefined)
   const controller = new ImportController(
     () => api as unknown as CodexCapabilitiesClient,
     () => ["/project"],
-    publish
+    publish,
+    prepareCursor
   )
-  return { api, controller, publish }
+  return { api, controller, publish, prepareCursor }
 }
+test("prepares empty Cursor MCP files before detection but leaves Claude Code alone", async () => {
+  const { api, controller, prepareCursor } = fixture()
+  await controller.dispatch({ action: "detect", source: "cursor" })
+  expect(prepareCursor).toHaveBeenCalledWith(["/project"])
+  expect(prepareCursor.mock.invocationCallOrder[0]).toBeLessThan(api.detectImports.mock.invocationCallOrder[0]!)
+  prepareCursor.mockClear()
+  await controller.dispatch({ action: "detect", source: "claude-code" })
+  expect(prepareCursor).not.toHaveBeenCalled()
+})
+
+test("a failed Cursor preparation keeps the path and prevents detection", async () => {
+  const { api, controller, prepareCursor } = fixture()
+  prepareCursor.mockRejectedValueOnce(new Error("/project/.cursor/mcp.json: Permission denied"))
+  await controller.dispatch({ action: "detect", source: "cursor" })
+  expect(api.detectImports).not.toHaveBeenCalled()
+  expect(controller.state.phase).toBe("error")
+  expect(controller.state.error).toBe("/project/.cursor/mcp.json: Permission denied")
+})
 test("imports only explicitly selected items from the detected source", async () => {
   const { api, controller } = fixture()
   await controller.dispatch({ action: "detect", source: "cursor" })

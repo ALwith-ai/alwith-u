@@ -72,10 +72,7 @@ export function ComputerPreviewCard({
   const queued = preview.activity.phase === "queued"
   const title = preview.frame?.appName || t("computer.preview.active")
   return (
-    <section
-      aria-label={t("computer.preview.title")}
-      className="computer-preview ml-auto w-full max-w-72 shrink-0 px-3 py-2"
-    >
+    <section aria-label={t("computer.preview.title")} className="computer-preview ml-auto w-full max-w-72 shrink-0 p-1">
       <div className="group/preview relative ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
         <div
           className={cn(

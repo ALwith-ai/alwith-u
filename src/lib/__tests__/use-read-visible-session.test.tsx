@@ -1,4 +1,5 @@
 import type { SessionRunState } from "@alwith/api"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
@@ -13,6 +14,21 @@ let runtime: FakeHubPort
 let mark: MockInstance<typeof clientModule.markRead>
 type VisibleSession = { sessionId: string | null; visible: boolean }
 beforeEach(() => {
+  clientModule.client.store.setState({
+    sessions: Object.fromEntries(
+      ["selected", "first", "second", "running", "action"].map((id) => [
+        id,
+        {
+          ...applyUpdate(createSession(id, "/tmp"), {
+            sessionUpdate: "agent_message",
+            messageId: "reply",
+            content: [{ type: "text", text: "Visible response" }]
+          }),
+          attached: true
+        }
+      ])
+    )
+  })
   runtime = new FakeHubPort(() => createFakeAgent().app)
   mark = vi
     .spyOn(clientModule, "markRead")
@@ -72,4 +88,19 @@ test("drafts, running chats and action requests are never marked read; routing u
   expect(runtime.marked).toEqual([])
   await act(() => Promise.try(() => view.rerender({ sessionId: "second", visible: true })))
   expect(runtime.marked).toEqual(["second"])
+})
+
+test("an unread session stays unread while replaying and becomes readable only after its content is attached", async () => {
+  const loaded = clientModule.client.state.sessions.selected!
+  clientModule.client.store.setState({ sessions: { selected: { ...loaded, restoring: true, attached: false } } })
+  clientModule.client.applyRunStates([runState("selected", "done")])
+  renderHook(() => useReadVisibleSession("selected", true))
+  expect(runtime.marked).toEqual([])
+  expect(clientModule.client.state.runStates.selected?.state).toBe("done")
+  await act(() =>
+    Promise.try(() =>
+      clientModule.client.store.setState({ sessions: { selected: { ...loaded, attached: true, restoring: false } } })
+    )
+  )
+  expect(runtime.marked).toEqual(["selected"])
 })

@@ -57,7 +57,6 @@ test.each(["done", "requires_action", "running", "idle"] as const)(
           onOpenWindow={() => {}}
           onOpenSettings={() => {}}
           onOpenPlugins={() => {}}
-          onOpenExtensions={() => {}}
           onSwitchScreen={() => {}}
         />
       </SidebarProvider>

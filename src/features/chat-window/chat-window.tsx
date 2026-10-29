@@ -276,11 +276,13 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     }
   }, [selectedId, ready])
 
+  const readable =
+    session !== null && !session.restoring && (session.attached || session.readOnly) && session.items.length > 0
   useEffect(() => {
-    if (focused && selectedId !== null && runState === "done") {
+    if (focused && readable && selectedId !== null && runState === "done") {
       void requestChatSurface("main", { type: "markRead", sessionId: selectedId }).catch(report)
     }
-  }, [focused, selectedId, runState])
+  }, [focused, readable, selectedId, runState])
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent): void => {

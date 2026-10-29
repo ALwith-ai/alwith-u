@@ -18,19 +18,18 @@ import {
   ActivityIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  BlocksIcon,
   CloudIcon,
   FolderIcon,
   FolderMinusIcon,
+  LayoutGridIcon,
   PawPrintIcon,
   PictureInPicture2Icon,
   PlusIcon,
-  PuzzleIcon,
   SearchIcon,
   StarIcon
 } from "lucide-react"
 import { motion } from "motion/react"
-import type { ReactElement, ReactNode } from "react"
+import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -92,10 +91,8 @@ type SessionSidebarProps = {
   onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
-  renderExtensionEntry?: (entry: ReactElement<{ onClick?: () => void }>) => ReactNode
   extensionNavigation?: ReactNode
   drivePanel?: ReactNode
-  onOpenExtensions: () => void
   onSwitchScreen: () => void
 }
 
@@ -119,9 +116,7 @@ function SidebarPanels({
   onOpenVibemon,
   onOpenSettings,
   onOpenPlugins,
-  onOpenExtensions,
   extensionNavigation,
-  renderExtensionEntry = (entry) => entry,
   drivePanel,
   onSwitchScreen
 }: SessionSidebarProps) {
@@ -250,23 +245,13 @@ function SidebarPanels({
         </div>
         <div className="flex flex-col gap-1">
           <NavigationItemButton
-            active={screen === "leading" && leadingPage === "plugins"}
+            active={screen === "leading" && (leadingPage === "plugins" || leadingPage === "extensions")}
             className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
             onClick={onOpenPlugins}
           >
-            <PuzzleIcon />
-            <span>{t("sidebar.plugins")}</span>
+            <LayoutGridIcon />
+            <span>{t("plugins.catalog.customize")}</span>
           </NavigationItemButton>
-          {renderExtensionEntry(
-            <NavigationItemButton
-              active={screen === "leading" && leadingPage === "extensions"}
-              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2 data-popup-open:bg-foreground/5`}
-              onClick={onOpenExtensions}
-            >
-              <BlocksIcon />
-              <span>{t("sidebar.extensions")}</span>
-            </NavigationItemButton>
-          )}
           {onOpenVibemon && (
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}
@@ -347,7 +332,7 @@ function SidebarPanels({
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
-            className={cn("mx-2 min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
+            className={cn("sidebar-drive ms-2 min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
           >
             {drivePanel}
           </div>

@@ -15,7 +15,13 @@ import { reportExtensionError } from "./runtime"
 import { refreshExtensions, updateAndReloadExtension } from "./startup-import-control"
 import { useExtensions } from "./use-extensions"
 
-export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: string) => void }) {
+export function ExtensionsSection({
+  onOpenSurface,
+  settings = false
+}: {
+  onOpenSurface?: (id: string) => void
+  settings?: boolean
+}) {
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)
@@ -49,6 +55,7 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: stri
   }
   return (
     <ExtensionsManager
+      settings={settings}
       state={state}
       host={host}
       busy={busy}

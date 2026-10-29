@@ -299,3 +299,50 @@ test.each(["idle", "running"] as const)(
     }
   }
 )
+
+test.each([
+  ["model", "gateway:deepseek:deepseek-flash", "gpt-6-astra"],
+  ["collaboration_mode", "plan", "default"]
+])(
+  "%s changes stop unsupported prediction requests and hide stale suggestions",
+  async (configId, unavailable, native) => {
+    const session = completed()
+    const configured = (value: string): Session => ({
+      ...session,
+      configOptions: [
+        {
+          configId,
+          name: configId,
+          type: "select",
+          currentValue: value,
+          options: [
+            { value: unavailable, name: unavailable },
+            { value: native, name: native }
+          ]
+        }
+      ]
+    })
+    const view = render(<Composer session={configured(unavailable)} />)
+    expect(mockOf(client, "requestPrediction")).not.toHaveBeenCalled()
+    view.rerender(<Composer session={configured(native)} />)
+    await waitFor(() => expect(mockOf(client, "requestPrediction")).toHaveBeenCalledOnce())
+    view.rerender(<Composer session={predicted(configured(native))} />)
+    expect(view.getByRole("textbox")).toHaveAttribute("placeholder", "Run the tests")
+    view.rerender(<Composer session={predicted(configured(unavailable))} />)
+    expect(view.getByRole("textbox")).not.toHaveAttribute("placeholder", "Run the tests")
+    expect(mockOf(client, "requestPrediction")).toHaveBeenCalledOnce()
+  }
+)
+
+test("prediction failures stay silent and leave the composer usable", async () => {
+  mockOf(client, "requestPrediction").mockRejectedValueOnce(new Error("Prediction backend unavailable"))
+  const view = render(<Composer session={completed()} />)
+  await waitFor(() => expect(mockOf(client, "requestPrediction")).toHaveBeenCalledOnce())
+  await act(async () => {
+    await Promise.resolve()
+  })
+  expect(view.queryByText("Input suggestion unavailable")).not.toBeInTheDocument()
+  expect(view.queryByTitle("Prediction backend unavailable")).not.toBeInTheDocument()
+  fireEvent.change(view.getByRole("textbox"), { target: { value: "Continue manually" } })
+  expect(view.getByRole("button", { name: "Send" })).toBeEnabled()
+})

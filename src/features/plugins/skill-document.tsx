@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { Pane } from "@/components/alwith-ui/pane"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -91,11 +92,10 @@ export function SkillDocument({
   return (
     <>
       {renderHeader ? renderHeader(actions) : <div className="flex justify-end">{actions}</div>}
-      <div
-        className="skill-document h-[45dvh] min-h-32 min-w-0 shrink-0 overflow-y-auto overscroll-contain rounded-xl bg-muted/50 p-5 text-sm leading-6"
-        role="region"
-        tabIndex={0}
-        aria-label={t("plugins.skills.document.content")}
+      <Pane
+        className="skill-document h-[45dvh] min-h-32 min-w-0 flex-none rounded-xl bg-muted/50 pe-0"
+        viewportClassName="overscroll-contain p-5 text-sm leading-6"
+        viewportProps={{ role: "region", tabIndex: 0, "aria-label": t("plugins.skills.document.content") }}
       >
         {error ? (
           <div role="alert" className="space-y-3">
@@ -130,7 +130,7 @@ export function SkillDocument({
             }}
           />
         )}
-      </div>
+      </Pane>
     </>
   )
 }

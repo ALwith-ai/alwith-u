@@ -34,6 +34,16 @@ fn ordinary_updates_reject_secrets_unknown_keys_and_stale_forms() {
     assert!(s.update(changes(json!({"voice.provider":"vui"})), Some(revision)).is_err());
     assert_eq!(s.values["voice.enabled"], false);
 }
+
+#[test]
+fn explorer_visibility_survives_restart_and_rejects_invalid_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    store.update(changes(json!({"explorer.showHidden":true})), None).unwrap();
+    assert!(store.update(changes(json!({"explorer.showHidden":"yes"})), None).is_err());
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.values["explorer.showHidden"], true);
+}
 #[test]
 fn voice_configuration_and_secret_survive_restart_together() {
     let dir = tempfile::tempdir().unwrap();

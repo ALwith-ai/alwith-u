@@ -191,7 +191,9 @@
     "trackpad": "Panel táctil",
     "trackpadEnabled": "Activar gestos del panel táctil",
     "threeFingerSwipeDesc": "Desliza tres dedos horizontalmente para desplazar el lienzo",
-    "import": "Importar"
+    "import": "Importar",
+    "explorer": "Explorador",
+    "explorerHiddenDescription": "Mostrar archivos y carpetas ocultos cuyos nombres comienzan con un punto (.)"
   },
   "usage": {
     "usage": "Uso",
@@ -356,7 +358,8 @@
     "source": "Fuente",
     "newTab": "Nueva pestaña",
     "emptyNewTab": "Nueva pestaña",
-    "more": "Más acciones"
+    "more": "Más acciones",
+    "ignored": "Mostrar archivos ignorados por Git"
   },
   "pet": {
     "retry": "Reintentar",
