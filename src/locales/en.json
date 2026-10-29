@@ -1334,7 +1334,7 @@
     }
   },
   "workbuddy": {
-    "create": "New WorkBuddy",
+    "create": "Create your ALwith",
     "description": "Create your own desktop app, then customize it in a project chat.",
     "productName": "Application name",
     "packageName": "Project folder name",

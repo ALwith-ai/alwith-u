@@ -408,5 +408,8 @@
     "realtimeStart": "Начать голосовой звонок Codex",
     "realtimeStop": "Завершить голосовой звонок",
     "realtimeCancel": "Отменить голосовое подключение"
+  },
+  "workbuddy": {
+    "create": "Создайте свой ALwith"
   }
 }

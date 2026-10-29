@@ -408,5 +408,8 @@
     "realtimeStart": "Codex 音声通話を開始",
     "realtimeStop": "音声通話を終了",
     "realtimeCancel": "音声接続をキャンセル"
+  },
+  "workbuddy": {
+    "create": "自分だけの ALwith を作成"
   }
 }

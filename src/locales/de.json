@@ -378,5 +378,8 @@
     "realtimeStart": "Codex-Sprachanruf starten",
     "realtimeStop": "Sprachanruf beenden",
     "realtimeCancel": "Sprachverbindung abbrechen"
+  },
+  "workbuddy": {
+    "create": "Erstelle dein eigenes ALwith"
   }
 }

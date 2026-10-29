@@ -387,5 +387,8 @@
     "realtimeStart": "Démarrer un appel vocal Codex",
     "realtimeStop": "Terminer l’appel vocal",
     "realtimeCancel": "Annuler la connexion vocale"
+  },
+  "workbuddy": {
+    "create": "Créez votre ALwith"
   }
 }

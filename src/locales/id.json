@@ -394,5 +394,8 @@
     "realtimeStart": "Mulai panggilan suara Codex",
     "realtimeStop": "Akhiri panggilan suara",
     "realtimeCancel": "Batalkan koneksi suara"
+  },
+  "workbuddy": {
+    "create": "Buat ALwith Anda sendiri"
   }
 }

@@ -403,5 +403,8 @@
     "realtimeStart": "Avvia chiamata vocale Codex",
     "realtimeStop": "Termina chiamata vocale",
     "realtimeCancel": "Annulla connessione vocale"
+  },
+  "workbuddy": {
+    "create": "Crea il tuo ALwith"
   }
 }

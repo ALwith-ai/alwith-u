@@ -406,5 +406,8 @@
     "realtimeStart": "Codex वॉइस कॉल शुरू करें",
     "realtimeStop": "वॉइस कॉल समाप्त करें",
     "realtimeCancel": "वॉइस कनेक्शन रद्द करें"
+  },
+  "workbuddy": {
+    "create": "अपना ALwith बनाएँ"
   }
 }

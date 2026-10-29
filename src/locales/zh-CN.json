@@ -1334,7 +1334,7 @@
     }
   },
   "workbuddy": {
-    "create": "新建 WorkBuddy",
+    "create": "创建你的 ALwith",
     "description": "创建自己的桌面应用，然后在项目聊天中定制。",
     "productName": "应用名称",
     "packageName": "项目目录名",

@@ -506,5 +506,8 @@
     "realtimeStart": "بدء مكالمة صوتية مع Codex",
     "realtimeStop": "إنهاء المكالمة الصوتية",
     "realtimeCancel": "إلغاء الاتصال الصوتي"
+  },
+  "workbuddy": {
+    "create": "أنشئ ALwith الخاص بك"
   }
 }
