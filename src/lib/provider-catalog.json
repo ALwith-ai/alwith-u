@@ -6,7 +6,7 @@
     "models": [
       {
         "id": "deepseek-V4.1-flash",
-        "label": "DeepSeek Flash"
+        "label": "DeepSeek-Flash"
       }
     ],
     "catalog": "alwith/models.json",

@@ -1,11 +1,4 @@
 {
-  "gpt-6.1-sol": { "shortLabel": "6.1-Sol" },
-  "gpt-6-astra": { "shortLabel": "6-Astra" },
-  "gpt-6-sol": { "shortLabel": "6-Sol" },
-  "gpt-6-luna": { "shortLabel": "6-Luna" },
-  "gpt-5.6-sol": { "shortLabel": "5.6-Sol" },
-  "gpt-5.6-terra": { "shortLabel": "5.6-Terra" },
-  "gpt-5.6-luna": { "shortLabel": "5.6-Luna" },
   "gateway:deepseek:deepseek-flash": { "shortLabel": "Flash" },
   "gateway:litellm:deepseek-V4.1-flash": { "shortLabel": "Flash" }
 }

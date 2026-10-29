@@ -139,7 +139,7 @@ test("models without a short label keep the catalog name in the trigger and menu
   expect(view.getByRole("menuitemradio", { name: "GPT Future Model" })).toHaveAttribute("aria-checked", "true")
 })
 
-test("the composer uses the configured short label while the menu preserves the full name", async () => {
+test("the composer preserves the full name when no short label is configured", async () => {
   const view = render(
     <ChatModelMenu
       sessionId="short-label"
@@ -156,7 +156,7 @@ test("the composer uses the configured short label while the menu preserves the 
       ]}
     />
   )
-  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6-Sol$/)
+  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6-Sol$/)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.getByRole("menuitemradio", { name: "GPT-6-Sol" })).toHaveAttribute("aria-checked", "true")
   expect(controls.setConfig).not.toHaveBeenCalled()
@@ -171,7 +171,7 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
   await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", providerModel)
   // Only the confirmed session configuration changes the selected label.
-  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6-Astra$/)
+  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6-Astra$/)
   view.rerender(<ChatModelMenu sessionId="floating-session" options={options(providerModel)} disabled={false} />)
   expect(within(view.getByTestId("model-trigger")).getByText("Flash", { exact: true })).toBeVisible()
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
@@ -208,7 +208,7 @@ test("a rejected provider switch reports the failure and keeps the confirmed mod
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("DeepSeek unavailable"))
-  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6-Astra$/)
+  expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6-Astra$/)
 })
 
 test("unsent draft provider changes go through replacement instead of changing the existing session", async () => {
@@ -443,7 +443,7 @@ test("source-configured ALwith names preserve identity and unknown account label
   ]
   const [group] = presentModelCatalog(groups)
   expect(group.models[0].api_id).toBe(id)
-  expect(group.models[0].label).toBe("DeepSeek Flash")
+  expect(group.models[0].label).toBe("DeepSeek-Flash")
   expect(modelTriggerLabel(group.models[0])).toBe("Flash")
   expect(group.models[1].label).toBe("New account model")
   expect(modelTriggerLabel(group.models[1])).toBe("New account model")

@@ -525,7 +525,7 @@ test("the composer stays visible while initial providers and the native draft ar
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect(view.getByRole("textbox")).toBe(input)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("saved input")
-    expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6.1-Sol$/)
+    expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6.1 Sol$/)
     expect(view.container.querySelector(".chat-project-picker")).toHaveAttribute("aria-busy", "false")
     expect(view.container.querySelector(".chat-project-picker .lucide-loader-circle")).toBeNull()
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
@@ -601,7 +601,7 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     </StrictMode>
   )
   try {
-    await waitFor(() => expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6.1-Sol$/))
+    await waitFor(() => expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6.1 Sol$/))
     await waitFor(() => expect(view.getByRole("textbox").hasAttribute("disabled")).toBe(false))
     expect(selected).not.toBeNull()
     expect(fake.modelHints.size).toBe(1)
