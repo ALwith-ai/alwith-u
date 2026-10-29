@@ -1347,6 +1347,12 @@
     "identifier": "Application identifier",
     "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
     "appleIdentifiers": "Open Apple Identifiers",
-    "creating": "Creating…"
+    "creating": "Creating…",
+    "headline": "Give your ideas a place to live.",
+    "edition": "Choose your starting point",
+    "accountEdition": "Better with a companion",
+    "bareEdition": "A little less. All yours.",
+    "accountCaption": "ALwith account · Desktop pets · Chat",
+    "bareCaption": "Just chat · Your model login · Your design"
   }
 }

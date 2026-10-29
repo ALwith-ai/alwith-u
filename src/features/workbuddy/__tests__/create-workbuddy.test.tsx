@@ -63,7 +63,7 @@ test("a generation error is displayed without another invocation or opening a pr
 test("bare chat explicitly disables ALwith integration", async () => {
   invoke.mockResolvedValue("/projects/my-buddy")
   const { form, onCreated } = await fill()
-  fireEvent.click(screen.getByRole("switch", { name: "workbuddy.auth" }))
+  fireEvent.click(screen.getByRole("radio", { name: "workbuddy.bareEdition" }))
   fireEvent.submit(form)
   await waitFor(() => expect(onCreated).toHaveBeenCalledOnce())
   expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ auth: "none" }))

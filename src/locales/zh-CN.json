@@ -1347,6 +1347,12 @@
     "identifier": "应用标识符",
     "identifierHelp": "使用 com.example.myapp 这样的反向域名标识符。本地构建可用任意合法标识符；Apple 签名需在开发者账号中注册对应 App ID。",
     "appleIdentifiers": "打开 Apple Identifiers",
-    "creating": "正在创建…"
+    "creating": "正在创建…",
+    "headline": "让灵感，有自己的形状。",
+    "edition": "选择你的起点",
+    "accountEdition": "有个伴，一起创造",
+    "bareEdition": "轻一点，自由开始",
+    "accountCaption": "ALwith 账号 · 桌面宠物 · 完整聊天",
+    "bareCaption": "纯粹聊天 · 独立模型认证 · 自由定制"
   }
 }

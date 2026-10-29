@@ -88,7 +88,7 @@ async function fill(canvasElement: HTMLElement, bare: boolean) {
   await userEvent.type(dialog.getByLabelText("项目目录名"), bare ? "my-chat" : "my-buddy")
   await userEvent.type(dialog.getByLabelText("应用标识符"), bare ? "com.example.mychat" : "com.example.mybuddy")
   await userEvent.click(dialog.getByRole("button", { name: "选择父目录" }))
-  if (bare) await userEvent.click(dialog.getByRole("switch", { name: "集成 ALwith 账号" }))
+  if (bare) await userEvent.click(dialog.getByRole("radio", { name: "轻一点，自由开始" }))
   await expect(dialog.getByLabelText("保存位置")).toHaveValue("/Users/demo/Projects")
   return { page, dialog }
 }

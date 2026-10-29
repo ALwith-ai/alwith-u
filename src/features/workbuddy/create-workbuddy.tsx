@@ -1,5 +1,4 @@
 import { NavigationItemButton } from "@alwith/module-chat/session-list"
-import { openUrl } from "@tauri-apps/plugin-opener"
 import { AppWindowIcon, FolderIcon } from "lucide-react"
 import { type FormEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -15,10 +14,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
-import { Switch } from "@/components/ui/switch"
+import "./create-workbuddy.css"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 
 export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) => void }) {
@@ -77,25 +77,65 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
         <AppWindowIcon />
         <span>{t("workbuddy.create")}</span>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="workbuddy-studio">
         <form
           onSubmit={(event) => {
             void create(event)
           }}
-          className="flex flex-col gap-4"
+          className="workbuddy-studio-form"
         >
-          <DialogHeader>
-            <DialogTitle>{t("workbuddy.create")}</DialogTitle>
+          <DialogHeader className="workbuddy-studio-header">
+            <span className="workbuddy-studio-eyebrow">WORKBUDDY / STUDIO</span>
+            <DialogTitle className="workbuddy-studio-title">{t("workbuddy.headline")}</DialogTitle>
             <DialogDescription>{t("workbuddy.description")}</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
-            <Field data-disabled={busy}>
-              <div className="flex items-center justify-between gap-4">
-                <FieldLabel htmlFor="workbuddy-auth">{t("workbuddy.auth")}</FieldLabel>
-                <Switch id="workbuddy-auth" checked={withAuth} onCheckedChange={setWithAuth} disabled={busy} />
-              </div>
-              <FieldDescription>{t(withAuth ? "workbuddy.authEnabled" : "workbuddy.authDisabled")}</FieldDescription>
-            </Field>
+          <RadioGroup
+            className="workbuddy-editions"
+            aria-label={t("workbuddy.edition")}
+            value={withAuth ? "alwith" : "none"}
+            onValueChange={(value) => setWithAuth(value === "alwith")}
+            disabled={busy}
+          >
+            {(["alwith", "none"] as const).map((mode, index) => (
+              <label key={mode} className="workbuddy-edition" data-selected={withAuth === (mode === "alwith")}>
+                <span className="workbuddy-edition-top">
+                  <span>
+                    0{index + 1} / {mode === "alwith" ? "COMPANION" : "ESSENTIAL"}
+                  </span>
+                  <RadioGroupItem
+                    value={mode}
+                    aria-label={t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                  />
+                </span>
+                <span className="workbuddy-art" aria-hidden="true">
+                  {mode === "alwith" ? (
+                    <svg viewBox="0 0 320 140" className="workbuddy-art-svg">
+                      <ellipse cx="160" cy="123" rx="77" ry="7" className="art-shadow" />
+                      <path d="M101 105V70a59 59 0 0 1 118 0v35h-25V70a34 34 0 0 0-68 0v35z" className="art-arch" />
+                      <circle cx="160" cy="91" r="29" className="art-orb" />
+                      <circle cx="235" cy="30" r="10" className="art-small" />
+                      <path d="M70 39h18m-9-9v18" className="art-line" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 320 140" className="workbuddy-art-svg">
+                      <ellipse cx="160" cy="123" rx="77" ry="7" className="art-shadow" />
+                      <path d="m109 92 52-70 55 74-53 29z" className="art-fold" />
+                      <path d="m161 22 2 103 53-29z" className="art-orb" />
+                      <circle cx="87" cy="32" r="14" className="art-small" />
+                      <path d="M231 56h18m-9-9v18" className="art-line" />
+                    </svg>
+                  )}
+                </span>
+                <span className="workbuddy-edition-title">
+                  {t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                </span>
+                <span className="workbuddy-edition-description">
+                  {t(mode === "alwith" ? "workbuddy.accountCaption" : "workbuddy.bareCaption")}
+                </span>
+              </label>
+            ))}
+          </RadioGroup>
+          <FieldGroup className="workbuddy-details">
             <Field>
               <FieldLabel htmlFor="workbuddy-product">{t("workbuddy.productName")}</FieldLabel>
               <Input
@@ -116,7 +156,6 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
                 disabled={busy}
                 onChange={(event) => setName(event.target.value)}
               />
-              <FieldDescription>{t("workbuddy.nameHelp")}</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="workbuddy-parent">{t("workbuddy.parent")}</FieldLabel>
@@ -151,22 +190,10 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
                 disabled={busy}
                 onChange={(event) => setIdentifier(event.target.value)}
               />
-              <FieldDescription>{t("workbuddy.identifierHelp")}</FieldDescription>
-              <Button
-                type="button"
-                variant="link"
-                className="w-fit px-0"
-                disabled={busy}
-                onClick={() => {
-                  void openUrl("https://developer.apple.com/account/resources/identifiers/list").catch(report)
-                }}
-              >
-                {t("workbuddy.appleIdentifiers")}
-              </Button>
             </Field>
           </FieldGroup>
           {error && <FieldError>{error}</FieldError>}
-          <DialogFooter>
+          <DialogFooter className="workbuddy-studio-footer">
             <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               {t("actions.cancel")}
             </Button>
