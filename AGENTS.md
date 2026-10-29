@@ -143,3 +143,12 @@ Windows and Linux distributions support x64 only; do not build, stage, or publis
 
 - The pet context menu must use `pet.recall`: "叫回休息室" / "Return to lounge". Keep this distinct from the account menu's show/hide labels; do not replace it with `pet.hide`.
 - Origin: explicit user instruction (2026-10-28).
+
+## Test Runtime isolation
+
+Scripts that start Runtime/engine sessions, including temporary probes, must use
+`startTestRuntime` from `@alwith/api/node`. Never use the real Codex home as test
+state. Default tests use mocks; only an explicitly authorized live test supplies
+`authFrom` to copy auth.json into the helper's temporary home. Use `await using`
+or await `dispose()` in `finally`. Existing server protocol fixtures that already
+create isolated homes remain valid; they must never fall back to the real home.

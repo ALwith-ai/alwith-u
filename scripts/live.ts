@@ -1,19 +1,12 @@
 #!/usr/bin/env bun
-// Live check against a real Codex login: two read-only conversations run
+// Live check with an isolated copy of the existing Codex login: two read-only conversations run
 // concurrently and stay isolated; attach and a fresh agent both replay the original history.
-import { mkdtemp, realpath, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { writeFile } from "node:fs/promises"
+import { homedir } from "node:os"
 import { join } from "node:path"
 
-import {
-  isBooleanOption,
-  isFormElicitation,
-  isStringProperty,
-  isText,
-  type Session,
-  WebSocketRuntimeClient
-} from "@alwith/api"
-import { ProcessRuntimeClient } from "@alwith/api/node"
+import { isBooleanOption, isFormElicitation, isStringProperty, isText, type Session } from "@nyssance/codex-acp-v2/client";
+import { startTestRuntime } from "@alwith/api/node"
 import {
   asyncQuestionId,
   asyncQuestions,
@@ -24,7 +17,7 @@ import { codexTurnId, codexTurnStartedAt, composerPrediction } from "@nyssance/c
 
 import { CodexClient } from "../src/agent/client"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
-import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
+import { staged, stagedCodexEngine } from "./lib/runtime"
 
 function isNotice(item: Session["items"][number]): boolean {
   if (item.kind !== "assistant") return false
@@ -92,20 +85,16 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
 }
 
 async function check(transport: "stdio" | "ws") {
-  const directory = await realpath(await mkdtemp(join(tmpdir(), `alwith-u-live-${transport}-`)))
+  await using runtime = await startTestRuntime({
+    binary: staged("alwith-runtime"),
+    engines: { codex: stagedCodexEngine() },
+    transport,
+    authFrom: process.env.CODEX_HOME ?? join(homedir(), ".codex")
+  })
+  const directory = runtime.workspace
   await writeFile(join(directory, "README.md"), "# live check\n")
-  console.log(`project: ${directory}`)
-
-  const runtime = transport === "ws" ? await startRuntime(join(directory, "journal")) : null
-  const port = runtime
-    ? new WebSocketRuntimeClient(runtime.url, runtime.token)
-    : new ProcessRuntimeClient({
-        binary: staged("alwith-runtime"),
-        engines: { codex: stagedCodexEngine() },
-        journalRoot: join(directory, "journal"),
-        env: { ALWITH_RUNTIME_ATTENTION: join(directory, "attention") }
-      })
-  console.log(`runtime: ${runtime?.url ?? "stdio"}`)
+  console.log(`isolated project: ${directory}; transport: ${transport}`)
+  const port = runtime.client
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
@@ -469,15 +458,6 @@ async function check(transport: "stdio" | "ws") {
   } finally {
     client.disconnect()
     second?.disconnect()
-    const exited =
-      port instanceof ProcessRuntimeClient
-        ? new Promise<void>((resolve) => port.onProcessExit(() => resolve()))
-        : runtime
-          ? new Promise<void>((resolve) => runtime.process.once("exit", () => resolve()))
-          : Promise.resolve()
-    port.close()
-    runtime?.stop()
-    await exited
   }
 }
 

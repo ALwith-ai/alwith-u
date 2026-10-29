@@ -2,6 +2,8 @@
 // async prompts, steering, permissions, cancellation, replay and archive.
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
+export const fakeProjectContext = {homeDirectory: "/Users/mac", codexChatDirectory: "/Users/mac/Documents/Codex", chatDirectory: "/Users/mac/Documents/ALwith", projects: []};
+
 export type FakeAgent = {
   app: acp.AgentApp
   archived: Set<string>
@@ -172,6 +174,7 @@ export function createFakeAgent(): FakeAgent {
       return {}
     }
   )
+  app.onRequest("_codex/project_context", () => ({}), () => fakeProjectContext)
   app.onRequest(
     "_codex/account_read",
     () => ({}),

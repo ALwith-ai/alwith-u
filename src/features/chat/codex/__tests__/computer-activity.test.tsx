@@ -1,4 +1,4 @@
-import type { ToolItem } from "@alwith/api"
+import type { ToolItem } from "@nyssance/codex-acp-v2/client";
 import { cleanup, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))

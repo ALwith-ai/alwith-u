@@ -1,10 +1,10 @@
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { NavigationGroup, SessionInfoCard } from "@alwith/module-chat/session-list"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 
 import type { SessionSummary } from "@/agent/client"
-import { commands } from "@/bindings"
 import * as collectionStore from "@/features/collection/store"
 import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { must } from "@/lib/__tests__/must"
@@ -22,7 +22,7 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({
 
 await initI18n("en")
 const connect = vi.spyOn(client, "connect").mockResolvedValue()
-const directory = vi.spyOn(commands, "draftDirectory").mockResolvedValue("/Users/mac/Documents/ALwith")
+const directory = vi.spyOn(client, "refreshProjectContext").mockResolvedValue(fakeProjectContext)
 const apps = vi.spyOn(projectApps, "useProjectApps").mockImplementation((cwd) => ({
   apps: [],
   active: undefined,
@@ -37,7 +37,7 @@ afterAll(() => {
   apps.mockRestore()
 })
 beforeEach(() =>
-  client.store.setState({ sessionList: [], archivedSessions: [], sessionListLoaded: true, sessionListError: null })
+  client.store.setState({ sessionList: [], archivedSessions: [], projectContext: fakeProjectContext, sessionListLoaded: true, sessionListError: null })
 )
 
 function sessionRows(cwd = "/tmp/project"): SessionSummary[] {
@@ -107,7 +107,7 @@ test("loading and failure expose shared list state, and retry refreshes the shar
     expect(view.getByRole("alert").textContent).toBe("Unavailable")
     list.mockImplementation(() => {
       return Promise.try(() => {
-        client.store.setState({ sessionListLoaded: true, sessionListError: null })
+        client.store.setState({ projectContext: fakeProjectContext, sessionListLoaded: true, sessionListError: null })
       })
     })
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))

@@ -1,3 +1,4 @@
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
@@ -210,7 +211,7 @@ test("Drive mounts on first visit and retains input across tab switches until ac
 test("project counts show only the number of sessions", () => {
   useSessionsUiStore.setState({ view: "sessions" })
   client.store.setState({
-    sessionListLoaded: true,
+    projectContext: fakeProjectContext, sessionListLoaded: true,
     sessionList: [
       { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
       { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }

@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isText, isToolCallSubject } from "@alwith/api"
+import { isText, isToolCallSubject } from "@nyssance/codex-acp-v2/client";
 import {
   type PetBinding,
   type PetObservation,

@@ -1,3 +1,4 @@
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
@@ -54,7 +55,7 @@ test.each(
     executionRole: null
   }))
   client.store.setState({
-    sessionListLoaded: true,
+    projectContext: fakeProjectContext, sessionListLoaded: true,
     sessionList: records.map((record) => ({
       sessionId: record.sessionId,
       cwd: record.cwd,

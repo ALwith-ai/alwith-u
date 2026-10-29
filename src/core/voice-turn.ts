@@ -1,4 +1,4 @@
-import type { Session } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client";
 
 import { asError } from "@/lib/text"
 /** Observes retained protocol facts for one receipt; never derives completion from busy transitions. */

@@ -1,4 +1,4 @@
-import type { ToolItem } from "@alwith/api"
+import type { ToolItem } from "@nyssance/codex-acp-v2/client";
 import * as core from "@tauri-apps/api/core"
 import { cleanup, fireEvent, waitFor, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"

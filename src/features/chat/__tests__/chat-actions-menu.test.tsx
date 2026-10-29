@@ -1,4 +1,4 @@
-import { applyUpdate, createSession } from "@alwith/api"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client";
 import { timelineRegistry } from "@alwith/module-chat/timeline-registry"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import * as opener from "@tauri-apps/plugin-opener"

@@ -1,3 +1,4 @@
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -42,7 +43,7 @@ function showSidebar() {
 }
 
 test("empty quick chats stays first and collapsed with a project hover card", () => {
-  client.store.setState({ sessionListLoaded: true, sessionList: [] })
+  client.store.setState({ projectContext: fakeProjectContext, sessionListLoaded: true, sessionList: [] })
   const view = showSidebar()
   const quick = view.getByRole("button", { name: "Quick chats" })
   expect(quick).toHaveAttribute("aria-expanded", "false")
@@ -54,7 +55,7 @@ test("double clicking Chats collapses groups and restores quick chats plus five 
   const originalUi = useSessionsUiStore.getState()
   try {
     client.store.setState({
-      sessionListLoaded: true,
+      projectContext: fakeProjectContext, sessionListLoaded: true,
       sessionList: Array.from({ length: 8 }, (_, index) => ({
         sessionId: `project-chat-${index}`,
         cwd: `/tmp/project-${index}`,
@@ -114,7 +115,7 @@ test("group expansion, load more and collapse update the scrollbar without scrol
   try {
     useSessionsUiStore.setState({ projectOpen: new Map(), revealed: new Map() })
     client.store.setState({
-      sessionListLoaded: true,
+      projectContext: fakeProjectContext, sessionListLoaded: true,
       sessionListError: null,
       sessionList: Array.from({ length: 205 }, (_, index) => ({
         sessionId: String(index),

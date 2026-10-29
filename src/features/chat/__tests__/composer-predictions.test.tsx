@@ -1,4 +1,4 @@
-import { createSession, type Session } from "@alwith/api"
+import { createSession, type Session } from "@nyssance/codex-acp-v2/client";
 import { drafts, useComposerPrediction } from "@alwith/module-chat/conversation"
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"

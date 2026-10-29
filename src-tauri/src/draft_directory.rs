@@ -1,15 +1,7 @@
-use std::path::{Path, PathBuf};
-use tauri::Manager;
+use std::path::PathBuf;
 
-fn resolve_directory(cwd: Option<PathBuf>, documents: &Path) -> Result<PathBuf, String> {
-    let directory = match cwd {
-        Some(directory) => directory,
-        None => {
-            let directory = documents.join("ALwith");
-            std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-            directory
-        }
-    };
+fn resolve_directory(cwd: Option<PathBuf>) -> Result<PathBuf, String> {
+    let directory = cwd.ok_or("A project directory is required; the adapter owns the default chat directory")?;
     if !directory.is_absolute() || !directory.is_dir() {
         return Err(format!("Project directory is unavailable: {}", directory.display()));
     }
@@ -17,10 +9,9 @@ fn resolve_directory(cwd: Option<PathBuf>, documents: &Path) -> Result<PathBuf, 
 }
 
 #[tauri3_specta::command]
-pub async fn draft_directory(app: tauri::AppHandle, cwd: Option<PathBuf>) -> Result<String, String> {
-    let documents = app.path().document_dir().map_err(|error| error.to_string())?;
+pub async fn draft_directory(cwd: Option<PathBuf>) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        resolve_directory(cwd, &documents)?
+        resolve_directory(cwd)?
             .into_os_string()
             .into_string()
             .map_err(|_| "Project directory is not valid UTF-8".to_string())
@@ -34,15 +25,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn first_use_creates_a_workspace_but_never_recreates_a_missing_project() {
+    fn validates_explicit_projects_without_creating_directories() {
         let root = tempfile::tempdir().unwrap();
-        let default = resolve_directory(None, root.path()).unwrap();
-        assert!(default.is_dir());
-        assert_eq!(default, root.path().join("ALwith"));
-        assert_eq!(resolve_directory(None, root.path()).unwrap(), default);
+        assert!(resolve_directory(None).is_err());
         let missing = root.path().join("removed-project");
-        assert!(resolve_directory(Some(missing.clone()), root.path()).is_err());
+        assert!(resolve_directory(Some(missing.clone())).is_err());
         assert!(!missing.exists());
-        assert_eq!(resolve_directory(Some(root.path().to_owned()), root.path()).unwrap(), root.path());
+        assert_eq!(resolve_directory(Some(root.path().to_owned())).unwrap(), root.path());
     }
 }

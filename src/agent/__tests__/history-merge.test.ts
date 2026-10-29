@@ -1,4 +1,4 @@
-import { createSession, SessionStore, textOf } from "@alwith/api"
+import { createSession, SessionStore, textOf } from "@nyssance/codex-acp-v2/client";
 import { type BrowseHistoryRequest, prependHistory, readHistoryPage } from "@nyssance/codex-acp-v2/client"
 import { expect, test, vi } from "vitest"
 

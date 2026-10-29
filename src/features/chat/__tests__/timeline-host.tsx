@@ -1,4 +1,4 @@
-import { createSession, type Session } from "@alwith/api"
+import { createSession, type Session } from "@nyssance/codex-acp-v2/client";
 import { ConversationBody } from "@alwith/module-chat/conversation"
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
 import { render } from "@testing-library/react"

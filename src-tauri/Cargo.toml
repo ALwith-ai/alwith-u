@@ -17,11 +17,13 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+tauri-plugin-alwith-desktop-shell = { path = "../node_modules/@alwith/module-desktop-shell/rust" }
 keepawake = "0.6"
 alwith-browser = { path = "../node_modules/@alwith/module-browser/rust" }
 alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
-alwith-module-store = { version = "0.1", features = ["specta"] }
+alwith-module-store = { path = "../node_modules/@alwith/module-store/rust", features = ["tauri"] }
+alwith-auth-client = { path = "../node_modules/@alwith/module-auth/rust", features = ["tauri"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }

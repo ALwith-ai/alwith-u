@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 
-import { assertActiveLogin } from "../login-response"
+import { assertActiveLogin } from "@alwith/module-auth"
 
 const response = {
   user_uuid: "user",

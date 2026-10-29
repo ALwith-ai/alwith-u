@@ -8,7 +8,6 @@ mod power;
 mod dropped_file_url_tests;
 
 mod appearance;
-mod auth;
 mod autostart;
 mod bundled_extensions;
 mod chat_files;
@@ -27,7 +26,6 @@ mod installed_apps;
 mod legacy_extensions;
 mod menu;
 mod mobile;
-mod named_store;
 mod native;
 #[cfg(target_os = "macos")]
 mod panel;
@@ -71,6 +69,8 @@ pub fn run() {
     }
 
     let builder = tauri::Builder::default()
+        .plugin(alwith_module_store::tauri::init())
+        .plugin(alwith_auth_client::tauri::init(native::development_directory()))
         .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
@@ -174,31 +174,16 @@ pub fn run() {
             }
             app.manage(native::Native::load(app.handle())?);
             mobile::initialize(app.handle())?;
-            named_store::init(app.handle())?;
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
-            trackpad::install(app.handle())?;
+            tauri_plugin_alwith_desktop_shell::install_native(app.handle())?;
             computer::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
-            // Native materials paint behind the transparent page. Panels that must stay
-            // opaque paint their own background in CSS.
-            #[cfg(target_os = "macos")]
-            {
-                use tauri::window::{Effect, EffectsBuilder};
-                app.get_webview_window("main")
-                    .expect("main window exists at setup")
-                    .set_effects(EffectsBuilder::new().effect(Effect::UnderWindowBackground).build())?;
-            }
             #[cfg(target_os = "windows")]
-            {
-                use tauri::window::{Effect, EffectsBuilder};
-                let window = app.get_webview_window("main").expect("main window exists at setup");
-                window.hide()?;
-                window.set_effects(EffectsBuilder::new().effect(Effect::Acrylic).build())?;
-            }
+            app.get_webview_window("main").expect("main window exists at setup").hide()?;
             // Windows draws no app-level menu (it would surface on every window); macOS wants
             // one NSApp menu and Linux a per-window one. Built here, not in `Builder::menu`,
             // because the locale lookup needs the path resolver, which exists only after build.
@@ -310,11 +295,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
         ($($platform:path),* $(,)?) => {
             tauri3_specta::commands![
                 $($platform,)*
-                named_store::store_entries,
-                named_store::store_set,
-                named_store::store_delete,
-                named_store::store_clear,
-                named_store::store_reload,
                 autostart::autostart_status,
                 computer::computer_status,
                 computer::computer_start,
@@ -387,7 +367,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 appearance::wallpaper::wallpaper_list,
                 appearance::wallpaper::wallpaper_import,
                 appearance::wallpaper::wallpaper_remove,
-                auth::refresh_tokens,
                 vibemon::vibemon_window,
                 vibemon::vibemon_resource,
                 vibemon::vibemon_download,

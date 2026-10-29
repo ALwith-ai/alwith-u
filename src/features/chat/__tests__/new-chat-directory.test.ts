@@ -1,14 +1,16 @@
 import { expect, test } from "vitest"
 
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
+
 import { newChatDirectory } from "../new-chat-directory"
 
 test.each([
   null,
   "/Users/mac/Documents/Codex/project",
   "/Users/mac/Documents/ALwith",
-  String.raw`C:\Users\Alice\Documents\Codex\project`
+  "/Users/mac"
 ])("new chat from %s requests the host's default workspace", (cwd) => {
-  expect(newChatDirectory(cwd)).toBeNull()
+  expect(newChatDirectory(cwd, fakeProjectContext)).toBeNull()
 })
 
 test.each([
@@ -24,5 +26,9 @@ test.each([
   String.raw`C:\Windows\Temp\project`,
   String.raw`D:\Scratch\project`
 ])("new chat retains the project directory %s, including temporary workspaces", (cwd) => {
-  expect(newChatDirectory(cwd)).toBe(cwd)
+  expect(newChatDirectory(cwd, fakeProjectContext)).toBe(cwd)
+})
+
+test("does not guess remote paths before the project context arrives", () => {
+  expect(newChatDirectory("/Users/mac/Documents/ALwith", null)).toBe("/Users/mac/Documents/ALwith")
 })

@@ -1,4 +1,5 @@
-import { createSession } from "@alwith/api"
+import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
+import { createSession } from "@nyssance/codex-acp-v2/client";
 import { drafts } from "@alwith/module-chat/conversation"
 import type { VoiceEvent } from "@alwith/module-voice"
 import * as core from "@tauri-apps/api/core"
@@ -335,6 +336,7 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
     })
   })
   vi.spyOn(client, "connect").mockResolvedValue()
+  vi.spyOn(client, "refreshProjectContext").mockResolvedValue(fakeProjectContext)
   vi.spyOn(client, "prepareDraft").mockResolvedValue("voice")
   vi.spyOn(client, "prompt").mockImplementation((id, content) => {
     return Promise.try(() => {

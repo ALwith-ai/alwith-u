@@ -1,4 +1,4 @@
-import { isContentEntry, isText, type Session } from "@alwith/api"
+import { isContentEntry, isText, type Session } from "@nyssance/codex-acp-v2/client";
 import { isMcpStartup } from "@alwith/module-chat/turns"
 import { PlugIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"

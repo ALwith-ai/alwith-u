@@ -1,4 +1,4 @@
-import type { Session } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client";
 import { ConversationView } from "@alwith/module-chat/conversation"
 import { nativeTurnId } from "@nyssance/codex-acp-v2/client"
 import { type ReactNode, type RefObject, useCallback, useRef } from "react"

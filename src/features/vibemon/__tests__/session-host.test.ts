@@ -1,7 +1,8 @@
 // @vitest-environment node
 
-import { isText, type SessionRunState } from "@alwith/api"
-import { runStateSource } from "@alwith/api/client"
+import { type SessionRunState } from "@alwith/api";
+import { isText } from "@nyssance/codex-acp-v2/client";
+import { runStateSource } from "@nyssance/codex-acp-v2/client";
 import type { PetObservation } from "@alwith/module-auth/pets/core"
 import { afterEach, expect, test, vi } from "vitest"
 

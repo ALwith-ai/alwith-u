@@ -1,4 +1,4 @@
-import type { Session } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client";
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
 
 import { useChatHost, useTimelineSlots } from "../../src/features/chat/chat-host"

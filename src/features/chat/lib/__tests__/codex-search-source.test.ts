@@ -1,4 +1,4 @@
-import { createSession, type Item, type MessageItem, type ToolItem } from "@alwith/api"
+import { createSession, type Item, type MessageItem, type ToolItem } from "@nyssance/codex-acp-v2/client";
 import { groupTurns } from "@alwith/module-chat/turns"
 import { describe, expect, test } from "vitest"
 

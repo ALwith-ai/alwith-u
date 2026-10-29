@@ -1,4 +1,4 @@
-import { applyUpdate, createSession } from "@alwith/api"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client";
 import { act, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
@@ -56,7 +56,7 @@ test("retains an interrupted historical prompt without claiming its response was
 })
 
 test.each(["error", "cancelled"] as const)("shows %s before the first assistant token", async (reason) => {
-  const { addPrompt } = await import("@alwith/api")
+  const { addPrompt } = await import("@nyssance/codex-acp-v2/client")
   const session = {
     ...addPrompt(
       createSession(`early-${reason}`, "/tmp/project"),
@@ -83,7 +83,7 @@ test.each(["error", "cancelled"] as const)("shows %s before the first assistant 
 })
 
 test("an accepted turn shows inline thinking while history restoration keeps its loader", async () => {
-  const { addPrompt } = await import("@alwith/api")
+  const { addPrompt } = await import("@nyssance/codex-acp-v2/client")
   const initial = { ...createSession("thinking", "/tmp/project"), attached: true }
   const view = render(
     <ThemeProvider>

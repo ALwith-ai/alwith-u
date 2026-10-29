@@ -8,6 +8,8 @@ import {
   createTokenStorage,
   type LoginResponse
 } from "@alwith/module-auth"
+import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
+import { invoke } from "@tauri-apps/api/core"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -19,8 +21,8 @@ import { commands } from "@/bindings"
 import { appEnv } from "@/lib/app-env"
 import { openStore } from "@/lib/store"
 
-import { createAuthTransport } from "./http"
-import { assertActiveLogin } from "./login-response"
+import { createAuthTransport } from "@alwith/module-auth/transport"
+import { assertActiveLogin } from "@alwith/module-auth"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 
 export const API_BASE_URL = appEnv.apiBaseUrl
@@ -37,11 +39,12 @@ const storage = createTokenStorage({
 })
 const expiredListeners = new Set<() => void>()
 const stateListeners = new Set<(event: AuthStateEvent) => void>()
+const refreshTokens = createTauriAuthRefresh(invoke)
 const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
   fetch,
   storage,
-  refresh: (refreshToken) => commands.refreshTokens({ apiBaseUrl: API_BASE_URL, refreshToken }),
+  refresh: (refreshToken) => refreshTokens(API_BASE_URL, refreshToken),
   expired: async () => {
     if (!isMain()) {
       await emitTo("main", LOGOUT_EVENT)

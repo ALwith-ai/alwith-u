@@ -1,4 +1,4 @@
-import { createSession } from "@alwith/api"
+import { createSession } from "@nyssance/codex-acp-v2/client";
 import { drafts, exportDraft, importDraft, isPastedTextAttachment } from "@alwith/module-chat/conversation"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"

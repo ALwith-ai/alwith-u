@@ -1,6 +1,6 @@
-import { isQuickChatDirectory } from "@alwith/module-chat/session-list"
+import { sessionGroup, QUICK_CHATS_GROUP, type ProjectContext } from "@nyssance/codex-acp-v2/client"
 
-/** Null lets the host prepare the default workspace instead of inheriting a quick-chat directory. */
-export function newChatDirectory(cwd: string | null): string | null {
-  return cwd !== null && isQuickChatDirectory(cwd) ? null : cwd
+/** Preserve directory intent until the server's project context is available. */
+export function newChatDirectory(cwd: string | null, context: ProjectContext | null): string | null {
+  return cwd !== null && context && sessionGroup(context, {cwd}).id === QUICK_CHATS_GROUP ? null : cwd
 }

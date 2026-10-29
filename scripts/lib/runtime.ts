@@ -1,8 +1,6 @@
-// Runs the staged alwith-runtime over WebSocket for scripts and live checks (Bun only).
-import { type ChildProcess, spawn } from "node:child_process"
+// Resolve the staged Runtime and engine files; test process ownership lives in @alwith/api/node.
 import { existsSync } from "node:fs"
 import { delimiter, resolve } from "node:path"
-import { createInterface } from "node:readline"
 
 import providerCatalog from "../../src/lib/provider-catalog.json"
 
@@ -19,8 +17,6 @@ export function staged(name: string): string {
   if (!existsSync(binary)) throw new Error(`No staged ${name} binary at ${binary}; run \`bun run stage\``)
   return binary
 }
-
-export type RunningRuntime = { url: string; token: string; process: ChildProcess; stop: () => void }
 
 export function stagedCodexEngine(): {
   command: string
@@ -40,43 +36,6 @@ export function stagedCodexEngine(): {
       CODEX_PATH: staged("alwith-codex-launcher"),
       ALWITH_U_CODEX_PATH: staged("codex"),
       CODEX_ACP_MODEL_CATALOGS: catalogs.join(delimiter)
-    }
-  }
-}
-
-/** Starts alwith-runtime (ws mode) with the staged Codex sidecars as its only engine and waits for `ready`. */
-export async function startRuntime(journalRoot: string): Promise<RunningRuntime> {
-  const token = crypto.randomUUID()
-  const engines = { codex: stagedCodexEngine() }
-  const child = spawn(staged("alwith-runtime"), ["--listen", "ws://"], {
-    stdio: ["ignore", "pipe", "inherit"],
-    env: {
-      ...process.env,
-      ALWITH_RUNTIME_TOKEN: token,
-      ALWITH_RUNTIME_ENGINES: JSON.stringify(engines),
-      ALWITH_RUNTIME_JOURNAL: journalRoot,
-      ALWITH_RUNTIME_ATTENTION: resolve(journalRoot, "attention"),
-      ALWITH_RUNTIME_PARENT_PID: String(process.pid)
-    }
-  })
-  const lines = createInterface({ input: child.stdout })
-  const url = await new Promise<string>((resolveUrl, reject) => {
-    child.once("exit", (code) => reject(new Error(`alwith-runtime exited before ready (code ${code})`)))
-    lines.on("line", (line) => {
-      try {
-        const value = JSON.parse(line) as { type?: string; url?: string }
-        if (value.type === "ready" && typeof value.url === "string") resolveUrl(value.url)
-      } catch {
-        // only JSON on stdout in ws mode, but stay tolerant.
-      }
-    })
-  })
-  return {
-    url,
-    token,
-    process: child,
-    stop() {
-      child.kill("SIGTERM")
     }
   }
 }

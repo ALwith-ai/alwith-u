@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isFormElicitation, isToolCallSubject } from "@alwith/api"
+import { isFormElicitation, isToolCallSubject } from "@nyssance/codex-acp-v2/client";
 import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import {
   elicitationFields,

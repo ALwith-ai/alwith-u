@@ -107,7 +107,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     if (operation.busy) return
     void operation
       .run(async () => {
-        const directory = newChatDirectory(current.current.cwd)
+        const directory = newChatDirectory(current.current.cwd, client.state.projectContext)
         await client.discardDraft("chat")
         setCwd(directory)
         setSelectedId(null)

@@ -1,4 +1,4 @@
-import { addPrompt, createSession, type ToolItem } from "@alwith/api"
+import { addPrompt, createSession, type ToolItem } from "@nyssance/codex-acp-v2/client";
 import { formatMentionUri } from "@alwith/module-chat/conversation"
 import { ResourceContent } from "@alwith/module-chat/resource-content"
 import * as core from "@tauri-apps/api/core"

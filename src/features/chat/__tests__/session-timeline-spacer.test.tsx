@@ -1,4 +1,4 @@
-import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@nyssance/codex-acp-v2/client";
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 

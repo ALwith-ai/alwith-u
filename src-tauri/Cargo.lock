@@ -51,6 +51,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-auth-client"
+version = "0.5.4"
+dependencies = [
+ "alwith-native-client",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-browser"
 version = "0.0.1"
 dependencies = [
@@ -142,12 +154,11 @@ dependencies = [
 [[package]]
 name = "alwith-module-store"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f915f9497f47b51571d51b7573942edced3de5aa1d7e296cd2b2579bbd85fa75"
 dependencies = [
  "serde",
  "serde_json",
- "specta",
+ "tauri",
+ "tauri-plugin",
  "tempfile",
  "tokio",
 ]
@@ -167,6 +178,7 @@ name = "alwith-u"
 version = "0.2.22"
 dependencies = [
  "alwith-api",
+ "alwith-auth-client",
  "alwith-browser",
  "alwith-computer",
  "alwith-drive",
@@ -203,6 +215,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
+ "tauri-plugin-alwith-desktop-shell",
  "tauri-plugin-autostart",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-decoration",
@@ -5117,6 +5130,17 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-alwith-desktop-shell"
+version = "0.5.0"
+dependencies = [
+ "atlas-tauri",
+ "log",
+ "serde",
+ "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

@@ -1,23 +1,9 @@
+// U owns product policy; the adapter owns ACP projection and extension handling.
+import { type RuntimeClient } from "@alwith/api";
+import { isBooleanOption, isGroupedSelect, isSelectOption, type Session } from "@nyssance/codex-acp-v2/client";
+import { type StateSetter } from "@alwith/api/client";
+import { type ClientOptions as BaseClientOptions, mergeMeta, type NewSessionOptions, type PendingAction, type ReplayScope, type SessionOperation, type SessionRequestOptions, type SessionSummary } from "@nyssance/codex-acp-v2/client";
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-// U's Codex client: `@nyssance/codex-acp-v2/client`'s CodexClient (which is `@alwith/api/client`'s
-// SessionClient plus the adapter's `_codex/*` extensions) with what only this product does: two chat
-// slots (main window and floating chat) that each hold a draft and remember a model, gateway model
-// hints, project grouping of the list, and fork titles.
-//
-// 2026-10-27 chat-layer extraction: the engine-neutral orchestration moved to `@alwith/api/client`,
-// the Codex extensions (history, skills, plugins, rate limits, file search, lineage) to the adapter.
-import { isBooleanOption, isGroupedSelect, isSelectOption, type RuntimeClient, type Session } from "@alwith/api"
-import {
-  type ClientOptions as BaseClientOptions,
-  mergeMeta,
-  type NewSessionOptions,
-  type PendingAction,
-  type ReplayScope,
-  type SessionOperation,
-  type SessionRequestOptions,
-  type SessionSummary,
-  type StateSetter
-} from "@alwith/api/client"
 import {
   CodexClient as CodexAcpClient,
   type CodexClientState,
@@ -43,7 +29,7 @@ export type GatewayModel = { id: string; label?: string; description?: string }
 /** Fires when a session's selected model is known; `isGateway` tells whose model it is. */
 export type SessionModelListener = (sessionId: string, modelId: string, isGateway: boolean) => void
 
-export type { SessionSummary } from "@alwith/api/client"
+export type { SessionSummary } from "@nyssance/codex-acp-v2/client"
 
 /** What the Runtime starts the agent with: the engine, plus whatever the engine table takes (env, args…). */
 export type Launch = { engine: string; [key: string]: unknown }
@@ -82,6 +68,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private slotModels: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotTargets: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotVersions: Record<DraftOwner, number> = { main: 0, chat: 0 }
+  private readonly draftDirectoryIntents = new Map<string, string | undefined>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
@@ -113,14 +100,15 @@ export class CodexClient extends CodexAcpClient<AppState> {
   async listProjectSessions(cwd: string): Promise<SessionSummary[]> {
     await this.listSessions()
     const project = this.projectPath(cwd)
-    return this.state.sessionList.filter((item) => item.cwd === project)
+    const group = this.sessionGroup({cwd: project}).id
+    return this.state.sessionList.filter((item) => this.sessionGroup(item).id === group)
   }
 
   // ── Slots: create, open, configure ──
 
   /** `newSession(cwd, model, owner)` creates a listed chat in a slot; the options form is the base client's. */
   override async newSession(
-    cwd: string,
+    cwd?: string,
     model: string | null | NewSessionOptions = null,
     owner: DraftOwner = "main"
   ): Promise<string> {
@@ -131,12 +119,15 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return id
   }
 
-  private async createNativeSession(cwd: string, model: string | null, owner: DraftOwner | null): Promise<string> {
+  private async createNativeSession(cwd: string | undefined, model: string | null, owner: DraftOwner | null): Promise<string> {
     const id = await super.newSession(cwd, {
       draft: owner !== null,
       meta: mergeMeta(modelHint(model), owner === null ? undefined : { alwith: { draft: true } })
     })
-    if (owner !== null) this.setApp((state) => ({ draftSessions: { ...state.draftSessions, [id]: owner } }))
+    if (owner !== null) {
+      this.draftDirectoryIntents.set(id, cwd)
+      this.setApp((state) => ({ draftSessions: { ...state.draftSessions, [id]: owner } }))
+    }
     this.noteModel(this.session(id))
     return id
   }
@@ -296,18 +287,20 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return next
   }
 
-  prepareDraft(owner: DraftOwner, cwd: string, model: string | null = null): Promise<string> {
+  prepareDraft(owner: DraftOwner, cwd: string | undefined, model: string | null = null): Promise<string> {
     const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
+      const directory = cwd ?? (await this.refreshProjectContext(true)).chatDirectory
       const existing = Object.keys(this.state.draftSessions).find((id) => this.state.draftSessions[id] === owner)
       if (existing) await this.lifecycle.admission.pending(existing)
       if (
         existing &&
-        this.session(existing).cwd === cwd &&
+        this.session(existing).cwd === directory &&
+        (!this.draftDirectoryIntents.has(existing) || this.draftDirectoryIntents.get(existing) === cwd) &&
         (model === null || selectedModel(this.session(existing).configOptions) === model)
       ) {
         this.activateSlot(owner, existing, version)
-        if (!this.session(existing).attached) await this.replayForOwner(existing, cwd, owner)
+        if (!this.session(existing).attached) await this.replayForOwner(existing, directory, owner)
         if (model !== null) this.confirmModel(owner, this.session(existing))
         return existing
       }
@@ -327,7 +320,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
       try {
         // An unsent model change starts directly on the target provider. Resuming
         // the default-model thread creates a misleading model-change warning.
-        if (existing && this.session(existing).cwd === cwd) {
+        if (existing && this.session(existing).cwd === directory) {
           for (const option of this.session(existing).configOptions) {
             if (option.category === "model") continue
             const target = this.session(id).configOptions.find((entry) => entry.configId === option.configId)
@@ -384,6 +377,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   protected override onDraftMaterialized(id: string): void {
     super.onDraftMaterialized(id)
+    this.draftDirectoryIntents.delete(id)
     this.setApp((state) => {
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       return { draftSessions }
@@ -393,6 +387,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   protected override onSessionDropped(id: string): void {
     super.onSessionDropped(id)
+    this.draftDirectoryIntents.delete(id)
     this.gatewayModels.delete(id)
     this.accountRevocations.delete(id)
     this.accountRecoveries.delete(id)

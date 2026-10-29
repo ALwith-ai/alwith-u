@@ -1,4 +1,4 @@
-import { isText } from "@alwith/api"
+import { isText } from "@nyssance/codex-acp-v2/client";
 import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/module-gamepad/ai"
 import type { GamepadHost } from "@alwith/module-gamepad/react"
 import { invoke } from "@tauri-apps/api/core"
@@ -14,7 +14,7 @@ import { asError } from "@/lib/text"
 type GenerateConfig = NonNullable<GamepadHost["generateConfig"]>
 export type GamepadAiContext = {
   client: CodexClient
-  cwd: string
+  cwd: string | undefined
   model: string | null
   platform: GamepadHost["platform"]
   prepare?: () => Promise<void>
@@ -23,7 +23,7 @@ export type GamepadAiContext = {
 
 async function openContext(): Promise<GamepadAiContext> {
   const [preferences, providers, port] = await Promise.all([loadPreferences(), loadProviders(), runtimeClient()])
-  const cwd = await commands.draftDirectory({ cwd: preferences.lastProjectDirectory })
+  const cwd = preferences.lastProjectDirectory === null ? undefined : await commands.draftDirectory({ cwd: preferences.lastProjectDirectory })
   const agentId = `gamepad-config-${crypto.randomUUID()}`
   const client = new CodexClient(() => Promise.resolve(port), { agentId, launch: { engine: "codex" } })
   const os = platform()

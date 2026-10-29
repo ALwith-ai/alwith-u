@@ -1,4 +1,4 @@
-import { createSession, type Session } from "@alwith/api"
+import { createSession, type Session } from "@nyssance/codex-acp-v2/client";
 import { drafts } from "@alwith/module-chat/conversation"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"

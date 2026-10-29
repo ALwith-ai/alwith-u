@@ -8,7 +8,6 @@ use tauri::Manager;
 #[derive(Clone)]
 pub struct NativeLibrary(alwith_native_client::Library);
 pub struct Native {
-    pub auth: NativeLibrary,
     pub installed_apps: NativeLibrary,
 }
 pub fn development_directory() -> Option<PathBuf> {
@@ -33,7 +32,6 @@ impl Native {
             alwith_native_client::Library::module(module)?;
         }
         Ok(Self {
-            auth: NativeLibrary(alwith_native_client::Library::module("auth")?),
             installed_apps: NativeLibrary(alwith_native_client::Library::module("installed-apps")?),
         })
     }
