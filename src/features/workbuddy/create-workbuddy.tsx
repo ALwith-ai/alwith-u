@@ -18,6 +18,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { Switch } from "@/components/ui/switch"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 
 export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) => void }) {
@@ -27,6 +28,7 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
   const [name, setName] = useState("")
   const [productName, setProductName] = useState("")
   const [identifier, setIdentifier] = useState("")
+  const [withAuth, setWithAuth] = useState(true)
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +42,13 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
     setError(null)
     let directory: string
     try {
-      directory = await commands.workbuddyCreate({ parent, name, productName, identifier })
+      directory = await commands.workbuddyCreate({
+        parent,
+        name,
+        productName,
+        identifier,
+        auth: withAuth ? "alwith" : "none"
+      })
     } catch (cause) {
       report(cause)
       return
@@ -81,6 +89,13 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
             <DialogDescription>{t("workbuddy.description")}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
+            <Field data-disabled={busy}>
+              <div className="flex items-center justify-between gap-4">
+                <FieldLabel htmlFor="workbuddy-auth">{t("workbuddy.auth")}</FieldLabel>
+                <Switch id="workbuddy-auth" checked={withAuth} onCheckedChange={setWithAuth} disabled={busy} />
+              </div>
+              <FieldDescription>{t(withAuth ? "workbuddy.authEnabled" : "workbuddy.authDisabled")}</FieldDescription>
+            </Field>
             <Field>
               <FieldLabel htmlFor="workbuddy-product">{t("workbuddy.productName")}</FieldLabel>
               <Input

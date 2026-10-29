@@ -43,7 +43,8 @@ test("one submission opens exactly the generated project and does not duplicate 
     parent: "/projects",
     name: "my-buddy",
     productName: "My Buddy",
-    identifier: "com.example.buddy"
+    identifier: "com.example.buddy",
+    auth: "alwith"
   })
   await act(async () => complete("/projects/my-buddy"))
   expect(onCreated).toHaveBeenCalledExactlyOnceWith("/projects/my-buddy")
@@ -57,4 +58,13 @@ test("a generation error is displayed without another invocation or opening a pr
   expect(invoke).toHaveBeenCalledTimes(1)
   expect(onCreated).not.toHaveBeenCalled()
   expect(screen.queryByRole("button", { name: /retry/i })).toBeNull()
+})
+
+test("bare chat explicitly disables ALwith integration", async () => {
+  invoke.mockResolvedValue("/projects/my-buddy")
+  const { form, onCreated } = await fill()
+  fireEvent.click(screen.getByRole("switch", { name: "workbuddy.auth" }))
+  fireEvent.submit(form)
+  await waitFor(() => expect(onCreated).toHaveBeenCalledOnce())
+  expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ auth: "none" }))
 })

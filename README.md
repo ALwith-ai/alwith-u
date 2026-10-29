@@ -36,3 +36,16 @@ bun tauri build
 
 Installers are generated in `src-tauri/target/release/bundle/`.
 On macOS, open the `.dmg` and drag ALwith U into Applications. On Windows, run the generated installer.
+
+## Test a local generator candidate
+
+Set `CREATE_ALWITH_PATH` to an absolute checkout path to bundle a local
+`create-alwith` candidate during desktop development or script tests:
+
+```sh
+CREATE_ALWITH_PATH=/absolute/path/to/create-alwith bun run dev:tauri
+CREATE_ALWITH_PATH=/absolute/path/to/create-alwith bun run test:scripts
+```
+
+Install the candidate's dependencies first. This development override does not
+change U's production dependency manifest or lockfile.
