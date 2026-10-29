@@ -410,6 +410,7 @@
     "realtimeCancel": "音声接続をキャンセル"
   },
   "workbuddy": {
-    "headline": "自分だけのデスクトップ Harness を作ろう"
+    "headline": "自分だけのデスクトップ Harness を作ろう",
+    "create": "自分だけの ALwith を作成"
   }
 }

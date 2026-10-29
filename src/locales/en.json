@@ -1337,7 +1337,7 @@
     "auth": "Include ALwith account",
     "authEnabled": "Login, pets and account features.",
     "authDisabled": "Bare chat without ALwith login or pets. Model provider authentication is separate.",
-    "create": "New WorkBuddy",
+    "create": "Create your ALwith",
     "description": "Create your own desktop app, then customize it in a project chat.",
     "productName": "Application name",
     "packageName": "Project folder name",

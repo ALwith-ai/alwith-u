@@ -21,9 +21,19 @@ import { Spinner } from "@/components/ui/spinner"
 import "./create-workbuddy.css"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 
-export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) => void }) {
+export function CreateWorkBuddy({
+  onCreated,
+  open: controlledOpen,
+  onOpenChange
+}: {
+  onCreated: (directory: string) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [parent, setParent] = useState("")
   const [name, setName] = useState("")
   const [productName, setProductName] = useState("")
@@ -73,10 +83,12 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
         }
       }}
     >
-      <DialogTrigger render={<NavigationItemButton className="h-8 gap-2 px-2" />}>
-        <AppWindowIcon />
-        <span>{t("workbuddy.create")}</span>
-      </DialogTrigger>
+      {controlledOpen === undefined && (
+        <DialogTrigger render={<NavigationItemButton className="h-8 gap-2 px-2" />}>
+          <AppWindowIcon />
+          <span>{t("workbuddy.create")}</span>
+        </DialogTrigger>
+      )}
       <DialogContent className="workbuddy-studio">
         <form
           onSubmit={(event) => {
@@ -85,7 +97,7 @@ export function CreateWorkBuddy({ onCreated }: { onCreated: (directory: string) 
           className="workbuddy-studio-form"
         >
           <DialogHeader className="workbuddy-studio-header">
-            <span className="workbuddy-studio-eyebrow">WORKBUDDY / STUDIO</span>
+            <span className="workbuddy-studio-eyebrow">ALwith</span>
             <DialogTitle className="workbuddy-studio-title">{t("workbuddy.headline")}</DialogTitle>
             <DialogDescription>{t("workbuddy.description")}</DialogDescription>
           </DialogHeader>

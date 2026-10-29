@@ -1337,7 +1337,7 @@
     "auth": "集成 ALwith 账号",
     "authEnabled": "包含登录、宠物等账号能力。",
     "authDisabled": "裸聊天，不含 ALwith 登录和宠物。模型认证单独设置。",
-    "create": "新建 WorkBuddy",
+    "create": "创建你的 ALwith",
     "description": "创建自己的桌面应用，然后在项目聊天中定制。",
     "productName": "应用名称",
     "packageName": "项目目录名",

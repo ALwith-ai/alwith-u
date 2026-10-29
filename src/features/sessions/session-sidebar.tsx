@@ -51,7 +51,6 @@ import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
 import { NavigationAds } from "@/features/layout/components/navigation-ads"
 import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
-import { CreateWorkBuddy } from "@/features/workbuddy/create-workbuddy"
 import { useApp } from "@/lib/client"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
@@ -250,7 +249,6 @@ function SidebarPanels({
           </Tooltip>
         </div>
         <div className="flex flex-col gap-1">
-          <CreateWorkBuddy onCreated={(directory) => onNewProjectChat(directory)} />
           <NavigationItemButton
             active={screen === "leading" && leadingPage === "plugins"}
             className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
@@ -402,7 +400,7 @@ function SidebarPanels({
         </div>
         <div className="flex h-8 items-center gap-1">
           <div className="min-w-0 flex-1">
-            <SidebarAccountMenu onOpenSettings={onOpenSettings} />
+            <SidebarAccountMenu onOpenSettings={onOpenSettings} onCreated={onNewProjectChat} />
           </div>
           <GuideButton />
         </div>

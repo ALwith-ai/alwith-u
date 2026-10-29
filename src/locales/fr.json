@@ -389,6 +389,7 @@
     "realtimeCancel": "Annuler la connexion vocale"
   },
   "workbuddy": {
-    "headline": "Créez votre propre harness de bureau"
+    "headline": "Créez votre propre harness de bureau",
+    "create": "Créez votre ALwith"
   }
 }
