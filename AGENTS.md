@@ -160,3 +160,8 @@ Prefer Hasgard for desktop debugging and UI verification: inspect the running ap
 ## Release only after completion
 
 Develop, debug and validate with local candidate packages in isolated environments. Publish only after the complete implementation meets the final delivery standard and quality and compatibility checks pass. Never publish merely to unblock debugging or release repeatedly during development. Keep local candidate paths out of production manifests and lockfiles.
+
+## Act on corrections
+
+- When the user points out an omission or a mismatch with an agreed requirement, fix it in the current task. Do not stop at apologizing, explaining, or promising a later change.
+- A design or mockup is not an implementation. Apply accepted UI decisions to the actual running application and verify them before claiming completion.

@@ -13,7 +13,7 @@ function CreationFlow() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <header className="flex items-center justify-between gap-4">
-        <h1>创建自己的 WorkBuddy</h1>
+        <h1>创建自己的 ALwith</h1>
         <span className="text-sm text-muted-foreground">交互演示 · 不写入文件</span>
       </header>
       <p>填写应用名称和项目位置，选择是否集成账号，然后创建项目。</p>
@@ -34,7 +34,7 @@ function CreationFlow() {
             <dd>
               {result.auth === "alwith"
                 ? "聊天、ALwith 登录、账号设置、宠物中心与桌面宠物"
-                : "裸聊天；模型认证单独设置"}
+                : "独立使用；模型认证单独设置"}
             </dd>
           </dl>
           <h2>在自己的电脑运行</h2>
@@ -63,7 +63,7 @@ const meta = {
     mockIPC((command, payload) => {
       if (command === "plugin:log|log" || command === "plugin:event|unlisten") return
       if (command === "plugin:event|listen") return 1
-      if (command === "plugin:dialog|open") return "/Users/demo/Projects"
+      if (command === "plugin:dialog|save") return "/Users/demo/Projects/my-alwith"
       if (command === "workbuddy_create") {
         submitted = payload as Request
         return `${submitted.parent}/${submitted.name}`
@@ -82,14 +82,13 @@ type Story = StoryObj<typeof meta>
 
 async function fill(canvasElement: HTMLElement, bare: boolean) {
   const page = within(canvasElement.ownerDocument.body)
-  await userEvent.click(page.getByRole("button", { name: "新建 WorkBuddy" }))
+  await userEvent.click(page.getByRole("button", { name: "创建你的 ALwith" }))
   const dialog = within(await page.findByRole("dialog"))
   await userEvent.type(dialog.getByLabelText("应用名称"), bare ? "我的聊天" : "我的工作伙伴")
-  await userEvent.type(dialog.getByLabelText("项目目录名"), bare ? "my-chat" : "my-buddy")
   await userEvent.type(dialog.getByLabelText("应用标识符"), bare ? "com.example.mychat" : "com.example.mybuddy")
-  await userEvent.click(dialog.getByRole("button", { name: "选择父目录" }))
-  if (bare) await userEvent.click(dialog.getByRole("radio", { name: "轻一点，自由开始" }))
-  await expect(dialog.getByLabelText("保存位置")).toHaveValue("/Users/demo/Projects")
+  await userEvent.click(dialog.getByRole("button", { name: "选择新项目路径" }))
+  if (bare) await userEvent.click(dialog.getByRole("radio", { name: "不集成 ALwith 账号" }))
+  await expect(dialog.getByLabelText("项目位置")).toHaveValue("/Users/demo/Projects/my-alwith")
   return { page, dialog }
 }
 
@@ -101,7 +100,7 @@ export const WithAccount: Story = {
   }
 }
 export const BareChat: Story = {
-  name: "裸聊天",
+  name: "不集成账号",
   play: async ({ canvasElement }) => {
     await fill(canvasElement, true)
   }
@@ -110,16 +109,16 @@ export const AccountComplete: Story = {
   name: "带账号：完整创建流程",
   play: async ({ canvasElement }) => {
     const { page, dialog } = await fill(canvasElement, false)
-    await userEvent.click(dialog.getByRole("button", { name: "新建 WorkBuddy" }))
+    await userEvent.click(dialog.getByRole("button", { name: "创建你的 ALwith" }))
     await expect(await page.findByRole("status")).toHaveTextContent("模拟创建完成")
     await expect(submitted?.auth).toBe("alwith")
   }
 }
 export const BareComplete: Story = {
-  name: "裸聊天：完整创建流程",
+  name: "不集成账号：完整创建流程",
   play: async ({ canvasElement }) => {
     const { page, dialog } = await fill(canvasElement, true)
-    await userEvent.click(dialog.getByRole("button", { name: "新建 WorkBuddy" }))
+    await userEvent.click(dialog.getByRole("button", { name: "创建你的 ALwith" }))
     await expect(await page.findByRole("status")).toHaveTextContent("模拟创建完成")
     await expect(submitted?.auth).toBe("none")
   }

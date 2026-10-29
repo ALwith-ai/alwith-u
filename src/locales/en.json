@@ -1336,7 +1336,7 @@
   "workbuddy": {
     "auth": "Include ALwith account",
     "authEnabled": "Login, pets and account features.",
-    "authDisabled": "Bare chat without ALwith login or pets. Model provider authentication is separate.",
+    "authDisabled": "No ALwith account services. Model provider authentication is separate.",
     "create": "Create your ALwith",
     "description": "Create your own desktop app, then customize it in a project chat.",
     "productName": "Application name",
@@ -1350,9 +1350,11 @@
     "creating": "Creating…",
     "headline": "Build your own desktop harness",
     "edition": "Choose your starting point",
-    "accountEdition": "Better with a companion",
-    "bareEdition": "A little less. All yours.",
-    "accountCaption": "ALwith account · Desktop pets · Chat",
-    "bareCaption": "Just chat · Your model login · Your design"
+    "accountEdition": "With an ALwith account",
+    "bareEdition": "Without an ALwith account",
+    "accountCaption": "Sign-in, desktop pets and ALwith account services.",
+    "bareCaption": "Use and customize your app independently, without an ALwith account.",
+    "location": "Project location",
+    "chooseLocation": "Choose a new project path"
   }
 }

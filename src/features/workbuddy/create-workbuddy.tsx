@@ -1,5 +1,5 @@
 import { NavigationItemButton } from "@alwith/module-chat/session-list"
-import { AppWindowIcon, FolderIcon } from "lucide-react"
+import { AppWindowIcon, CheckIcon, FolderIcon } from "lucide-react"
 import { type FormEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 import "./create-workbuddy.css"
-import { chooseFolder } from "@/features/chat/draft-project-picker"
+import { save } from "@tauri-apps/plugin-dialog"
 
 export function CreateWorkBuddy({
   onCreated,
@@ -34,8 +34,7 @@ export function CreateWorkBuddy({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
-  const [parent, setParent] = useState("")
-  const [name, setName] = useState("")
+  const [projectPath, setProjectPath] = useState("")
   const [productName, setProductName] = useState("")
   const [identifier, setIdentifier] = useState("")
   const [withAuth, setWithAuth] = useState(true)
@@ -52,6 +51,10 @@ export function CreateWorkBuddy({
     setError(null)
     let directory: string
     try {
+      const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "")
+      const separator = normalizedPath.lastIndexOf("/")
+      const parent = normalizedPath.slice(0, separator + 1)
+      const name = normalizedPath.slice(separator + 1)
       directory = await commands.workbuddyCreate({
         parent,
         name,
@@ -67,7 +70,7 @@ export function CreateWorkBuddy({
       setBusy(false)
     }
     setOpen(false)
-    setName("")
+    setProjectPath("")
     setProductName("")
     setIdentifier("")
     onCreated(directory)
@@ -99,7 +102,7 @@ export function CreateWorkBuddy({
           <DialogHeader className="workbuddy-studio-header">
             <span className="workbuddy-studio-eyebrow">ALwith</span>
             <DialogTitle className="workbuddy-studio-title">{t("workbuddy.headline")}</DialogTitle>
-            <DialogDescription>{t("workbuddy.description")}</DialogDescription>
+            <DialogDescription className="sr-only">{t("workbuddy.description")}</DialogDescription>
           </DialogHeader>
           <RadioGroup
             className="workbuddy-editions"
@@ -108,38 +111,20 @@ export function CreateWorkBuddy({
             onValueChange={(value) => setWithAuth(value === "alwith")}
             disabled={busy}
           >
-            {(["alwith", "none"] as const).map((mode, index) => (
+            {(["alwith", "none"] as const).map((mode) => (
               <label key={mode} className="workbuddy-edition" data-selected={withAuth === (mode === "alwith")}>
+                <RadioGroupItem
+                  className="sr-only"
+                  value={mode}
+                  aria-label={t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                />
                 <span className="workbuddy-edition-top">
-                  <span>
-                    0{index + 1} / {mode === "alwith" ? "COMPANION" : "ESSENTIAL"}
+                  <span className="workbuddy-edition-title">
+                    {t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
                   </span>
-                  <RadioGroupItem
-                    value={mode}
-                    aria-label={t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
-                  />
-                </span>
-                <span className="workbuddy-art" aria-hidden="true">
-                  {mode === "alwith" ? (
-                    <svg viewBox="0 0 320 140" className="workbuddy-art-svg">
-                      <ellipse cx="160" cy="123" rx="77" ry="7" className="art-shadow" />
-                      <path d="M101 105V70a59 59 0 0 1 118 0v35h-25V70a34 34 0 0 0-68 0v35z" className="art-arch" />
-                      <circle cx="160" cy="91" r="29" className="art-orb" />
-                      <circle cx="235" cy="30" r="10" className="art-small" />
-                      <path d="M70 39h18m-9-9v18" className="art-line" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 320 140" className="workbuddy-art-svg">
-                      <ellipse cx="160" cy="123" rx="77" ry="7" className="art-shadow" />
-                      <path d="m109 92 52-70 55 74-53 29z" className="art-fold" />
-                      <path d="m161 22 2 103 53-29z" className="art-orb" />
-                      <circle cx="87" cy="32" r="14" className="art-small" />
-                      <path d="M231 56h18m-9-9v18" className="art-line" />
-                    </svg>
-                  )}
-                </span>
-                <span className="workbuddy-edition-title">
-                  {t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                  <span className="workbuddy-edition-check" aria-hidden="true">
+                    <CheckIcon />
+                  </span>
                 </span>
                 <span className="workbuddy-edition-description">
                   {t(mode === "alwith" ? "workbuddy.accountCaption" : "workbuddy.bareCaption")}
@@ -159,39 +144,6 @@ export function CreateWorkBuddy({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="workbuddy-name">{t("workbuddy.packageName")}</FieldLabel>
-              <Input
-                id="workbuddy-name"
-                required
-                pattern="[a-z][a-z0-9\-]{0,213}"
-                value={name}
-                disabled={busy}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="workbuddy-parent">{t("workbuddy.parent")}</FieldLabel>
-              <div className="flex items-center gap-2">
-                <Input id="workbuddy-parent" required value={parent} readOnly />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={busy}
-                  aria-label={t("workbuddy.chooseFolder")}
-                  onClick={() => {
-                    void chooseFolder(parent || null)
-                      .then((value) => {
-                        if (value) setParent(value)
-                      })
-                      .catch(report)
-                  }}
-                >
-                  <FolderIcon />
-                </Button>
-              </div>
-            </Field>
-            <Field>
               <FieldLabel htmlFor="workbuddy-identifier">{t("workbuddy.identifier")}</FieldLabel>
               <Input
                 id="workbuddy-identifier"
@@ -203,13 +155,48 @@ export function CreateWorkBuddy({
                 onChange={(event) => setIdentifier(event.target.value)}
               />
             </Field>
+            <Field className="workbuddy-location">
+              <FieldLabel htmlFor="workbuddy-location">{t("workbuddy.location")}</FieldLabel>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="workbuddy-location"
+                  required
+                  value={projectPath}
+                  disabled={busy}
+                  onChange={(event) => setProjectPath(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={busy}
+                  aria-label={t("workbuddy.chooseLocation")}
+                  onClick={() => {
+                    const suggested = productName
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, "")
+                    void save({
+                      title: t("workbuddy.chooseLocation"),
+                      defaultPath: projectPath || (/^[a-z]/.test(suggested) ? suggested : "my-alwith")
+                    })
+                      .then((value) => {
+                        if (value) setProjectPath(value)
+                      })
+                      .catch(report)
+                  }}
+                >
+                  <FolderIcon />
+                </Button>
+              </div>
+            </Field>
           </FieldGroup>
           {error && <FieldError>{error}</FieldError>}
           <DialogFooter className="workbuddy-studio-footer">
             <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               {t("actions.cancel")}
             </Button>
-            <Button type="submit" disabled={busy || !parent}>
+            <Button type="submit" disabled={busy || !projectPath}>
               {busy && <Spinner data-icon="inline-start" />}
               {t(busy ? "workbuddy.creating" : "workbuddy.create")}
             </Button>
