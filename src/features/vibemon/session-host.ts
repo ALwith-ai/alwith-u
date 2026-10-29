@@ -1,5 +1,4 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isText, isToolCallSubject } from "@alwith/api"
 import {
   type PetBinding,
   type PetObservation,
@@ -8,6 +7,7 @@ import {
   type PetSurface,
   sameBinding
 } from "@alwith/module-auth/pets/core"
+import { isText, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
 
 import type { AppState } from "@/agent/client"
 

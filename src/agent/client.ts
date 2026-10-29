@@ -1,28 +1,25 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-// U's Codex client: `@nyssance/codex-acp-v2/client`'s CodexClient (which is `@alwith/api/client`'s
-// SessionClient plus the adapter's `_codex/*` extensions) with what only this product does: two chat
-// slots (main window and floating chat) that each hold a draft and remember a model, gateway model
-// hints, project grouping of the list, and fork titles.
-//
-// 2026-10-27 chat-layer extraction: the engine-neutral orchestration moved to `@alwith/api/client`,
-// the Codex extensions (history, skills, plugins, rate limits, file search, lineage) to the adapter.
-import { isBooleanOption, isGroupedSelect, isSelectOption, type RuntimeClient, type Session } from "@alwith/api"
+import { type RuntimeClient } from "@alwith/api"
+import { type StateSetter } from "@alwith/api/client"
+// U's Codex client extends the adapter-owned ACP client with two chat slots, gateway
+// model hints, and fork titles. Runtime transport and run states remain in @alwith/api.
 import {
   type ClientOptions as BaseClientOptions,
+  CodexClient as CodexAcpClient,
+  type CodexClientState,
+  type ForkOptions,
+  type ForkOrigin,
+  isBooleanOption,
+  isGroupedSelect,
+  isSelectOption,
   mergeMeta,
   type NewSessionOptions,
   type PendingAction,
   type ReplayScope,
+  type Session,
   type SessionOperation,
   type SessionRequestOptions,
-  type SessionSummary,
-  type StateSetter
-} from "@alwith/api/client"
-import {
-  CodexClient as CodexAcpClient,
-  type CodexClientState,
-  type ForkOptions,
-  type ForkOrigin
+  type SessionSummary
 } from "@nyssance/codex-acp-v2/client"
 
 import { forkTitle } from "./fork-title"
@@ -43,7 +40,7 @@ export type GatewayModel = { id: string; label?: string; description?: string }
 /** Fires when a session's selected model is known; `isGateway` tells whose model it is. */
 export type SessionModelListener = (sessionId: string, modelId: string, isGateway: boolean) => void
 
-export type { SessionSummary } from "@alwith/api/client"
+export type { SessionSummary } from "@nyssance/codex-acp-v2/client"
 
 /** What the Runtime starts the agent with: the engine, plus whatever the engine table takes (env, args…). */
 export type Launch = { engine: string; [key: string]: unknown }
@@ -105,6 +102,13 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   private setApp(partial: StateSetter<AppState>): void {
     this.store.setState(partial)
+  }
+
+  override async connect(): Promise<void> {
+    await super.connect()
+    // Draft and floating-window actions need the adapter's directory classification
+    // before the sidebar has requested the session list.
+    if (this.state.projectContext === null) await this.refreshProjectContext()
   }
 
   // ── List by project ──

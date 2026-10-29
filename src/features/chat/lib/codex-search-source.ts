@@ -3,10 +3,10 @@
 // the turn and the occurrence index inside it; the DOM pass then locates the exact range
 // after the turn is revealed.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import type { Item, Terminal } from "@alwith/api"
-import { isText, terminalOf } from "@alwith/api"
 import { findTextSourceMatches, type SearchSourceMatch } from "@alwith/module-chat/search-source"
 import type { Turn } from "@alwith/module-chat/turns"
+import type { Item, Terminal } from "@nyssance/codex-acp-v2/client"
+import { isText, terminalOf } from "@nyssance/codex-acp-v2/client"
 
 function stringsInValue(value: unknown): string[] {
   if (typeof value === "string") return [value]

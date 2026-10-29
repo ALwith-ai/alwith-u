@@ -1,5 +1,4 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isFormElicitation, isToolCallSubject } from "@alwith/api"
 import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import {
   elicitationFields,
@@ -7,6 +6,7 @@ import {
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
+import { isFormElicitation, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
 
 import type { PendingAction } from "@/agent/client"
 

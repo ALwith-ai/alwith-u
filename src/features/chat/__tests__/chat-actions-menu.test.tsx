@@ -1,5 +1,5 @@
-import { applyUpdate, createSession } from "@alwith/api"
 import { timelineRegistry } from "@alwith/module-chat/timeline-registry"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"

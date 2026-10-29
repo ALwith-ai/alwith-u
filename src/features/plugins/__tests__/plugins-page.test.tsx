@@ -2,6 +2,7 @@ import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyss
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -457,6 +458,7 @@ test("catalogs and installed sidebar show loading until connected", () => {
 })
 
 test("the skill catalog includes known projects beyond the current chat and excludes quick chats", async () => {
+  client.store.setState({ projectContext: projectContext("/Users/example") })
   const refresh = vi.fn().mockResolvedValue(undefined)
   pluginsStore.setState({ refresh })
   client.store.setState({

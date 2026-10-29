@@ -1,8 +1,7 @@
 // Only main owns the ACP connection. The chat window receives projections and forwards
 // a fixed set of actions; it never attaches an agent or persists another conversation.
 
-import type { Session } from "@alwith/api"
-import type { RateLimitSnapshot, RealtimeEvent } from "@nyssance/codex-acp-v2/client"
+import type { RateLimitSnapshot, RealtimeEvent, Session } from "@nyssance/codex-acp-v2/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
 import { type AppState, CodexClient } from "@/agent/client"

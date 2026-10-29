@@ -2,6 +2,8 @@
 // async prompts, steering, permissions, cancellation, replay and archive.
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
+import { projectContext } from "./project-context"
+
 export type FakeAgent = {
   app: acp.AgentApp
   archived: Set<string>
@@ -264,6 +266,11 @@ export function createFakeAgent(): FakeAgent {
     }
   }
   app.onRequest("session/list", ({ params }) => list(params))
+  app.onRequest(
+    "_codex/project_context",
+    (params) => params,
+    () => projectContext()
+  )
   app.onRequest(
     "_codex/session_list",
     (value) => {

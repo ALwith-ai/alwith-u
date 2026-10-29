@@ -3,16 +3,23 @@ import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
+import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { DraftProjectPicker } from "../draft-project-picker"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
+vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()), invoke: vi.fn() }))
 vi.mock("@tauri-apps/plugin-dialog", async (importOriginal) => ({ ...(await importOriginal<object>()), open: vi.fn() }))
 
 await initI18n("en")
-beforeEach(() => vi.mocked(invoke).mockResolvedValue("/Users/mac/Documents/ALwith"))
+const originalContext = client.state.projectContext
+beforeEach(() => {
+  vi.mocked(invoke).mockResolvedValue("/Users/mac/Documents/ALwith")
+  client.store.setState({ projectContext: projectContext() })
+})
+afterEach(() => client.store.setState({ projectContext: originalContext }))
 afterEach(() => vi.clearAllMocks())
 
 test("project preparation keeps the folder and hover-clear icons without a spinner", async () => {
@@ -135,7 +142,6 @@ test("project choices exclude quick-chat directories but retain temporary worksp
         "/Users/mac/Documents/Codex/project",
         "/Users/mac/Documents/ALwith",
         "/var/folders/example/T/project",
-        String.raw`C:\Users\Alice\Documents\Codex\project`,
         String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
         String.raw`C:\Windows\Temp\project`,
         String.raw`D:\Scratch\project`,

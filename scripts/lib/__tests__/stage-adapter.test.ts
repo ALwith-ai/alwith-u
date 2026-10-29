@@ -27,6 +27,12 @@ test("the staged toolchain runs with explicit resources outside the executable d
     readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/dist/index.js"))
   )
 
+  expect(
+    readFileSync(join(import.meta.dir, "../../../src-tauri/resources/licenses/codex-acp-v2-protocol.txt"))
+  ).toEqual(
+    readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/licenses/alwith-protocol.txt"))
+  )
+
   const suffix = process.platform === "win32" ? ".exe" : ""
   const features = Bun.spawnSync(
     [join(import.meta.dir, `../../../src-tauri/binaries/alwith-codex-launcher-${triple}${suffix}`), "features", "list"],

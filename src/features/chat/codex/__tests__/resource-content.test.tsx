@@ -1,6 +1,6 @@
-import { addPrompt, createSession, type ToolItem } from "@alwith/api"
 import { formatMentionUri } from "@alwith/module-chat/conversation"
 import { ResourceContent } from "@alwith/module-chat/resource-content"
+import { addPrompt, createSession, type ToolItem } from "@nyssance/codex-acp-v2/client"
 import * as core from "@tauri-apps/api/core"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"

@@ -1,5 +1,11 @@
-import { createSession, SessionStore, textOf } from "@alwith/api"
-import { type BrowseHistoryRequest, prependHistory, readHistoryPage } from "@nyssance/codex-acp-v2/client"
+import {
+  type BrowseHistoryRequest,
+  createSession,
+  prependHistory,
+  readHistoryPage,
+  SessionStore,
+  textOf
+} from "@nyssance/codex-acp-v2/client"
 import { expect, test, vi } from "vitest"
 
 const turn = (id: string, text = id) => ({

@@ -1,5 +1,5 @@
-import type { Session } from "@alwith/api"
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
+import type { Session } from "@nyssance/codex-acp-v2/client"
 
 import { useChatHost, useTimelineSlots } from "../../src/features/chat/chat-host"
 import { ChatDirectoryContext } from "../../src/features/chat/file-actions"

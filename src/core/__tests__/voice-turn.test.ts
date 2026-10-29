@@ -1,4 +1,4 @@
-import { createSession, type Session } from "@alwith/api"
+import { createSession, type Session } from "@nyssance/codex-acp-v2/client"
 import { expect, test } from "vitest"
 
 import { observeVoiceTurn } from "../voice-turn"

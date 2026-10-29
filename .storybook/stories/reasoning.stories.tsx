@@ -1,4 +1,4 @@
-import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"

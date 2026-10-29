@@ -1,6 +1,6 @@
-import { isText } from "@alwith/api"
 import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/module-gamepad/ai"
 import type { GamepadHost } from "@alwith/module-gamepad/react"
+import { isText } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
 import { platform } from "@tauri-apps/plugin-os"
 

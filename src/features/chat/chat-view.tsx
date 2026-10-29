@@ -1,5 +1,5 @@
-import type { Session } from "@alwith/api"
 import { ConversationView } from "@alwith/module-chat/conversation"
+import type { Session } from "@nyssance/codex-acp-v2/client"
 import { nativeTurnId } from "@nyssance/codex-acp-v2/client"
 import { type ReactNode, type RefObject, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"

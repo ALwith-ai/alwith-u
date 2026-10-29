@@ -9,6 +9,7 @@ import { expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
+import { projectContext } from "@/agent/__tests__/project-context"
 import { CodexClient } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
@@ -46,6 +47,7 @@ function environment(nativeWindow = false) {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const real = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    real.store.setState({ projectContext: projectContext() })
     const previous = client.state
     client.store.setState(real.state)
     const unsubscribe = real.store.subscribe((state) => client.store.setState(state))
@@ -175,6 +177,7 @@ test("floating project menus switch from a draft to another conversation and exc
     await act(() => {
       env.real.store.setState({
         sessionListLoaded: true,
+        projectContext: projectContext(),
         sessionList: [
           { sessionId: draft, cwd: "/tmp/window-original", title: "Current draft", updatedAt: null, archived: false },
           {

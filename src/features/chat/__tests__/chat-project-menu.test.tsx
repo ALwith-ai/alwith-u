@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import type { SessionSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import { SidebarProvider } from "@/components/ui/sidebar"
@@ -35,7 +36,13 @@ beforeEach(async () => {
     refresh: () => {},
     openPreferred: () => openDirectory(cwd)
   }))
-  client.store.setState({ connection: "ready", sessionList: [], sessionListLoaded: true, sessionListError: null })
+  client.store.setState({
+    connection: "ready",
+    sessionList: [],
+    sessionListLoaded: true,
+    projectContext: projectContext(),
+    sessionListError: null
+  })
 })
 afterEach(() => {
   cleanup()
@@ -131,7 +138,7 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   const entries = [
     sessionRow("ALwith chat", "/Users/mac/Documents/ALwith"),
     { ...sessionRow("Codex chat", "/Users/mac/Documents/Codex/nested"), updatedAt: "2026-10-14T01:00:00Z" },
-    { ...sessionRow("Windows chat", String.raw`C:\Users\Alice\Documents\Codex`), updatedAt: "2026-10-14T02:00:00Z" },
+    { ...sessionRow("Home chat", "/Users/mac"), updatedAt: "2026-10-14T02:00:00Z" },
     sessionRow("Other project", "/tmp/project"),
     sessionRow("Nested project", "/Users/mac/Documents/ALwith/project"),
     sessionRow("Resolved directory chat", defaultCwd)
@@ -148,10 +155,8 @@ test("quick chats use the sidebar grouping and ordering before the default direc
   expect(view.getByRole("dialog", { name: "Quick chats" })).toBeVisible()
   expect(view.getByText("Quick chats")).toBeVisible()
   expect(view.getByText("3 chats")).toBeVisible()
-  expect(
-    view.getAllByRole("button", { name: /^(ALwith|Codex|Windows) chat$/ }).map((item) => item.textContent)
-  ).toEqual([
-    expect.stringContaining("Windows chat"),
+  expect(view.getAllByRole("button", { name: /^(ALwith|Codex|Home) chat$/ }).map((item) => item.textContent)).toEqual([
+    expect.stringContaining("Home chat"),
     expect.stringContaining("Codex chat"),
     expect.stringContaining("ALwith chat")
   ])
@@ -175,6 +180,7 @@ test.each([
   "/Users/mac/Documents/Codex/nested",
   String.raw`C:\Users\Alice\Documents\ALwith`
 ])("quick-chat directory %s keeps the default-folder and new-chat actions", async (cwd) => {
+  client.store.setState({ projectContext: projectContext(cwd.startsWith("C:") ? "C:/Users/Alice" : "/Users/mac") })
   const newChat = vi.fn()
   const view = render(<ChatProjectMenu cwd={cwd} onSelect={() => {}} onNewChat={newChat} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Quick chats" }))))

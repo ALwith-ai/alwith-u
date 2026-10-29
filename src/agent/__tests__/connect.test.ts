@@ -37,6 +37,7 @@ test("a Runtime that already runs the agent is attached, not restarted, and pend
   const port = new FakeHubPort(() => createFakeAgent().app)
   // Boot once so the fake Runtime has a live agent, exactly as after a webview reload.
   await port.start("codex", { engine: "codex" })
+  await port.initialize("codex")
   const permission = {
     id: 41,
     method: "session/request_permission",

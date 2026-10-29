@@ -1,4 +1,4 @@
-import type { Session } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client"
 // The app-wide CodexClient instance and the React bindings to its store.
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"

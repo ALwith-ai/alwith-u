@@ -3,6 +3,7 @@ import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterAll, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import type { SessionSummary } from "@/agent/client"
 import { commands } from "@/bindings"
 import * as collectionStore from "@/features/collection/store"
@@ -37,7 +38,13 @@ afterAll(() => {
   apps.mockRestore()
 })
 beforeEach(() =>
-  client.store.setState({ sessionList: [], archivedSessions: [], sessionListLoaded: true, sessionListError: null })
+  client.store.setState({
+    sessionList: [],
+    archivedSessions: [],
+    sessionListLoaded: true,
+    projectContext: projectContext(),
+    sessionListError: null
+  })
 )
 
 function sessionRows(cwd = "/tmp/project"): SessionSummary[] {
@@ -107,7 +114,7 @@ test("loading and failure expose shared list state, and retry refreshes the shar
     expect(view.getByRole("alert").textContent).toBe("Unavailable")
     list.mockImplementation(() => {
       return Promise.try(() => {
-        client.store.setState({ sessionListLoaded: true, sessionListError: null })
+        client.store.setState({ sessionListLoaded: true, projectContext: projectContext(), sessionListError: null })
       })
     })
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Retry" }))))

@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import { usePlatformAuth } from "@/features/auth/store"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { useUpdaterStore } from "@/features/updater/store"
@@ -211,6 +212,7 @@ test("project counts show only the number of sessions", () => {
   useSessionsUiStore.setState({ view: "sessions" })
   client.store.setState({
     sessionListLoaded: true,
+    projectContext: projectContext(),
     sessionList: [
       { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
       { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }

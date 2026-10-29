@@ -1,5 +1,11 @@
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
+import {
+  type BooleanOption,
+  isSelectOption,
+  type SelectOption,
+  type Session,
+  textOf
+} from "@nyssance/codex-acp-v2/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { must } from "@/lib/__tests__/must"
@@ -412,9 +418,13 @@ test("a newly forked attached chat remains selectable before Codex lists it", as
   const child = await client.fork(root, "/tmp/fork", "turn-1")
   await client.listSessions({ reset: true })
   expect(client.state.sessionList.some((sessionRow) => sessionRow.sessionId === child)).toBe(true)
-  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(true)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(
+    true
+  )
   await client.delete(child)
-  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(false)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(
+    false
+  )
 })
 
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
@@ -850,7 +860,13 @@ test("a pending refresh preserves a newly selected project chat", async () => {
     })
   const pending = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
-  client.includeSession({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
+  client.includeSession({
+    sessionId: "older",
+    cwd: "/tmp/project",
+    title: "Selected",
+    updatedAt: null,
+    archived: false
+  })
   answer({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
   await pending
   expect(client.state.sessionList.filter((sessionRow) => sessionRow.sessionId === "older")).toHaveLength(1)
@@ -1485,7 +1501,9 @@ test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo 
   expect(client.state.sessionList.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual(
     action === "rename" ? [["h1", "New title"]] : []
   )
-  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(
+    action === "archive" ? ["h1"] : []
+  )
 })
 
 test("a pending archived list cannot undo restore", async () => {

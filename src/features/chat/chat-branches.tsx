@@ -1,5 +1,5 @@
-import type { Item, Session } from "@alwith/api"
 import type { Turn } from "@alwith/module-chat/turns"
+import type { Item, Session } from "@nyssance/codex-acp-v2/client"
 import { codexExtensionCapabilities, codexTurnId } from "@nyssance/codex-acp-v2/client"
 import { SplitIcon } from "lucide-react"
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react"

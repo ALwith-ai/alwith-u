@@ -1,6 +1,12 @@
-import { expect, test } from "vitest"
+import { afterEach, expect, test } from "vitest"
+
+import { projectContext } from "@/agent/__tests__/project-context"
+import { client } from "@/lib/client"
 
 import { newChatDirectory } from "../new-chat-directory"
+
+const originalContext = client.state.projectContext
+afterEach(() => client.store.setState({ projectContext: originalContext }))
 
 test.each([
   null,
@@ -8,6 +14,7 @@ test.each([
   "/Users/mac/Documents/ALwith",
   String.raw`C:\Users\Alice\Documents\Codex\project`
 ])("new chat from %s requests the host's default workspace", (cwd) => {
+  client.store.setState({ projectContext: projectContext(cwd?.startsWith("C:") ? "C:/Users/Alice" : "/Users/mac") })
   expect(newChatDirectory(cwd)).toBeNull()
 })
 
@@ -24,5 +31,6 @@ test.each([
   String.raw`C:\Windows\Temp\project`,
   String.raw`D:\Scratch\project`
 ])("new chat retains the project directory %s, including temporary workspaces", (cwd) => {
+  client.store.setState({ projectContext: projectContext(cwd?.startsWith("C:") ? "C:/Users/Alice" : "/Users/mac") })
   expect(newChatDirectory(cwd)).toBe(cwd)
 })

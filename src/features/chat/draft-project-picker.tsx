@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+import { useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { cn } from "@/lib/utils"
 
@@ -41,6 +42,7 @@ export function DraftProjectPicker({
   preparing?: boolean
 }) {
   const { t } = useTranslation()
+  const projectContext = useApp((state) => state.projectContext)
   const [defaultCwd, setDefaultCwd] = useState<string | null>(null)
   useEffect(() => {
     let active = true
@@ -57,7 +59,7 @@ export function DraftProjectPicker({
     }
   }, [])
   const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
-    (path) => path !== defaultCwd && !isQuickChatDirectory(path)
+    (path) => path !== defaultCwd && (projectContext === null || !isQuickChatDirectory(path, projectContext))
   )
   const hasProject = cwd !== null && cwd !== defaultCwd
   const workOutsideProject = (): void => {

@@ -188,3 +188,11 @@
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
+
+
+Additional component notice
+---------------------------
+The migrated src/client/protocol component retains the ALwith Developer and
+Redistribution License, Version 1.0, reproduced in licenses/alwith-protocol.txt.
+The Apache License above continues to apply to the original adapter code.
+Migration does not relicense either component.

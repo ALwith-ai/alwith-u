@@ -1,6 +1,6 @@
-import { createSession } from "@alwith/api"
 import { drafts } from "@alwith/module-chat/conversation"
 import type { VoiceEvent } from "@alwith/module-voice"
+import { createSession } from "@nyssance/codex-acp-v2/client"
 import * as core from "@tauri-apps/api/core"
 import { act, fireEvent, render as renderView, screen, waitFor } from "@testing-library/react"
 import { type ReactElement, StrictMode, useState } from "react"

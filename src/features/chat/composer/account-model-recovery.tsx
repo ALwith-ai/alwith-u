@@ -1,4 +1,4 @@
-import type { Session } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"

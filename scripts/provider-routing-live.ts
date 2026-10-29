@@ -3,8 +3,8 @@ import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-import { isGroupedSelect, isSelectOption } from "@alwith/api"
 import { ProcessRuntimeClient } from "@alwith/api/node"
+import { isGroupedSelect, isSelectOption } from "@nyssance/codex-acp-v2/client"
 
 import { CodexClient } from "../src/agent/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
