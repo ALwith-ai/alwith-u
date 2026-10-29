@@ -60,6 +60,7 @@
       "resources/qwen": "qwen",
       "resources/openrouter": "openrouter",
       "resources/xai": "xai",
+      "resources/custom": "custom",
       "resources/extensions": "extensions"
     },
     "icon": [

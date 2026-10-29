@@ -3,7 +3,31 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { type CatalogRunner, prepareModelCatalog as prepare } from "../model-catalog"
+import {
+  type CatalogRunner,
+  joinModelCatalogPaths,
+  prepareModelCatalog as prepare,
+  splitModelCatalogPaths
+} from "../model-catalog"
+
+test("Windows catalog lists preserve quoted paths containing semicolons", () => {
+  expect(splitModelCatalogPaths('"C:\\Users\\A;B\\models.json";D:\\app\\custom.json', "win32")).toEqual([
+    "C:\\Users\\A;B\\models.json",
+    "D:\\app\\custom.json"
+  ])
+  expect(splitModelCatalogPaths("/Users/A;B/models.json:/tmp/custom.json", "darwin")).toEqual([
+    "/Users/A;B/models.json",
+    "/tmp/custom.json"
+  ])
+})
+
+test("script catalog lists use the same Windows quoting as the native host", () => {
+  const paths = ["C:\\Users\\A;B\\models.json", "D:\\app\\custom.json"]
+  const joined = joinModelCatalogPaths(paths, "win32")
+  expect(joined).toBe('"C:\\Users\\A;B\\models.json";D:\\app\\custom.json')
+  expect(splitModelCatalogPaths(joined, "win32")).toEqual(paths)
+  expect(() => joinModelCatalogPaths(['C:\\bad"name.json'], "win32")).toThrow("cannot contain a quote")
+})
 
 const catalogs: ReturnType<typeof prepare>[] = []
 function prepareModelCatalog(...args: Parameters<typeof prepare>): ReturnType<typeof prepare> {
@@ -47,7 +71,10 @@ test("startup does not wait for refresh and never changes the active catalog", a
   const pending = Promise.withResolvers<string>()
   runner.refresh = () => pending.promise
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  expect(models(catalog.path)).toEqual([{ slug: "bundled", visibility: "list", context_window: 100 }])
+  expect(models(catalog.path)).toEqual([
+    { slug: "bundled", visibility: "list", context_window: 100 },
+    { slug: "gateway", visibility: "hide" }
+  ])
   pending.resolve(refreshed)
   await catalog.refresh
   expect(models(catalog.path)[0]?.slug).toBe("bundled")
@@ -137,7 +164,7 @@ test("invalid refresh data cannot replace a previously valid cache", async () =>
   expect(models(catalog.path)[0]?.slug).toBe("bundled")
 })
 
-test("the U snapshot contains only native metadata; gateway merging belongs to the adapter", async () => {
+test("the startup snapshot merges gateway metadata without overriding the native account catalog", async () => {
   const { env, runner } = fixture()
   await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
   writeFileSync(
@@ -145,7 +172,10 @@ test("the U snapshot contains only native metadata; gateway merging belongs to t
     JSON.stringify({ models: [{ slug: "new-model", context_window: 1 }, { slug: "second-gateway" }] })
   )
   const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  expect(models(catalog.path)).toEqual([{ slug: "new-model", visibility: "list", context_window: 200 }])
+  expect(models(catalog.path)).toEqual([
+    { slug: "new-model", visibility: "list", context_window: 200 },
+    { slug: "second-gateway", visibility: "hide" }
+  ])
   await catalog.refresh
 })
 

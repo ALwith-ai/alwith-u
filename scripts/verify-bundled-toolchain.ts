@@ -2,12 +2,13 @@
 import { spawnSync } from "node:child_process"
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { delimiter, join, resolve } from "node:path"
+import { join, resolve } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
 
 import manifest from "../package.json"
 import providers from "../src/lib/provider-catalog.json"
+import { joinModelCatalogPaths } from "./lib/model-catalog"
 import { assertVersion, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
 
@@ -90,7 +91,10 @@ async function checkInitialize(adapter: string): Promise<void> {
         env: {
           CODEX_PATH: join(directory, `alwith-codex-launcher${suffix}`),
           ALWITH_U_CODEX_PATH: join(directory, `codex${suffix}`),
-          CODEX_ACP_MODEL_CATALOGS: providers.map((provider) => join(resources, provider.catalog)).join(delimiter),
+          CODEX_ACP_MODEL_CATALOGS: joinModelCatalogPaths([
+            ...providers.map((provider) => join(resources, provider.catalog)),
+            join(resources, "custom/models.json")
+          ]),
           TMPDIR: codexHome,
           TEMP: codexHome,
           TMP: codexHome

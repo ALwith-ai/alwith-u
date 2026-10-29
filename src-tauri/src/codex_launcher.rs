@@ -14,6 +14,28 @@ fn write_catalog(path: &Path, output: &mut impl Write) -> io::Result<()> {
     output.flush()
 }
 
+fn app_server_catalog_arg(args: &[OsString], catalog: Option<OsString>) -> Option<OsString> {
+    if args.first().is_none_or(|arg| arg != "app-server") {
+        return None;
+    }
+    catalog.map(|path| {
+        let path = path.to_str().expect("prepared catalog path must be UTF-8");
+        let mut quoted = String::from("model_catalog_json=\"");
+        for character in path.chars() {
+            match character {
+                '\\' | '"' => {
+                    quoted.push('\\');
+                    quoted.push(character);
+                }
+                c if c.is_control() => quoted.push_str(&format!("\\u{:04x}", c as u32)),
+                c => quoted.push(c),
+            }
+        }
+        quoted.push('"');
+        OsString::from(quoted)
+    })
+}
+
 #[cfg(not(test))]
 fn main() {
     if let Err(error) = run() {
@@ -40,6 +62,10 @@ fn run() -> io::Result<()> {
     command.args(["--enable", "default_mode_request_user_input"]);
     // Suppress the experimental-feature banner only for U's Codex process.
     command.args(["-c", "suppress_unstable_features_warning=true"]);
+    // ModelInfo is loaded at process startup, not from a thread's provider overrides.
+    if let Some(catalog) = app_server_catalog_arg(&args, std::env::var_os("ALWITH_U_CODEX_CATALOG")) {
+        command.arg("-c").arg(catalog);
+    }
     command.args(args);
     #[cfg(unix)]
     {
@@ -179,6 +205,29 @@ mod windows_job {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn catalog_metadata_reaches_the_app_server_at_startup_only() {
+        let path = OsString::from("/private cache/目录.json");
+        let args = |values: &[&str]| values.iter().map(OsString::from).collect::<Vec<_>>();
+        assert_eq!(
+            app_server_catalog_arg(&args(&["app-server"]), Some(path.clone())),
+            Some(OsString::from("model_catalog_json=\"/private cache/目录.json\""))
+        );
+        assert_eq!(app_server_catalog_arg(&args(&["--version"]), Some(path)), None);
+        assert_eq!(app_server_catalog_arg(&args(&["app-server"]), None), None);
+    }
+    #[test]
+    fn catalog_paths_escape_windows_separators_quotes_and_control_characters() {
+        for (path, expected) in [
+            (r#"C:\Users\A "B"\models.json"#, r#"model_catalog_json="C:\\Users\\A \"B\"\\models.json""#),
+            ("/tmp/\n\t\u{0001}.json", r#"model_catalog_json="/tmp/\u000a\u0009\u0001.json""#),
+        ] {
+            assert_eq!(
+                app_server_catalog_arg(&[OsString::from("app-server")], Some(OsString::from(path))),
+                Some(OsString::from(expected))
+            );
+        }
+    }
     #[test]
     fn only_the_exact_catalog_lookup_is_intercepted() {
         let path = OsString::from("/private cache/目录.json");
