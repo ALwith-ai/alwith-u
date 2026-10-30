@@ -391,7 +391,8 @@
   },
   "canvas": {
     "navigation": "ページナビゲーション",
-    "page": "ページ {{number}}"
+    "page": "ページ {{number}}",
+    "overview": "概要"
   },
   "computer": {
     "connection": "接続",

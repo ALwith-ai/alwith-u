@@ -181,7 +181,7 @@ html[data-window-backdrop="acrylic"]
   flex: none;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: var(--atlas-inset-bottom);
   padding-inline: 12px 4px;
   -webkit-app-region: no-drag;
 }
@@ -372,7 +372,7 @@ html[data-window-backdrop="acrylic"]
         .vibemon-lounge-pet,
         .pet-lounge button[aria-label="Vibémon"],
         .window-card-hit,
-        .canvas-dots *
+        [data-atlas-footer-navigation] *
       )
     ):hover {
     background-image: linear-gradient(
@@ -428,7 +428,7 @@ html[data-window-backdrop="acrylic"]
 .main-extension-toolbar button:hover,
 .windows-extension-controls button:hover,
 .main-workspace-toolbar .file-workspace-toolbar button:hover,
-.main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
+.main-window-statusbar button:not([data-atlas-footer-navigation] button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
 
@@ -627,15 +627,6 @@ body,
 .main-window-statusbar {
   position: relative;
 }
-.canvas-dots {
-  position: absolute;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-}
-.canvas-dots:dir(rtl) {
-  transform: translateX(50%);
-}
 
 .main-screen-track {
   will-change: transform;
@@ -662,7 +653,7 @@ body,
     [data-disabled]
   ):not(
     :where(
-      .canvas-dots *,
+      [data-atlas-footer-navigation] *,
       .main-sidebar-panel [role="tablist"] [role="tab"],
       .pet-lounge button[aria-label="Vibémon"],
       .codex-assistant-turn [data-codex-disclosure],

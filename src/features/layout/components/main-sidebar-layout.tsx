@@ -21,7 +21,6 @@ import { zoomStore } from "@/lib/zoom"
 
 import { CanvasContext } from "../lib/canvas-context"
 import { useMainCanvas } from "../lib/use-main-canvas"
-import { CanvasDots } from "./canvas-dots"
 
 export type MainScreen = "main" | "leading"
 
@@ -144,6 +143,7 @@ export function MainSidebarLayout({
           "--main-surface-radius": `${desktopDefaults.surfaceRadius}px`,
           "--main-surface-gutter": `${desktopDefaults.gutter}px`,
           "--main-titlebar-height": `${desktopDefaults.insetTop}px`,
+          "--atlas-inset-bottom": `${desktopDefaults.insetBottom}px`,
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--canvas-sidebar-offset": `${Math.max(0, (canvas.geometry.stops[canvas.selected] ?? 0) - canvas.geometry.leading)}px`,
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
@@ -180,6 +180,7 @@ export function MainSidebarLayout({
                   className="canvas-snap"
                   data-atlas-region={canvas.geometry.regions[index]}
                   data-atlas-leading={index === 0 ? "" : undefined}
+                  data-atlas-trailing={canvas.geometry.regions[index] === "trailing" ? "" : undefined}
                   aria-hidden="true"
                   style={{ insetInlineStart: offset, width: canvas.width }}
                 />
@@ -187,6 +188,7 @@ export function MainSidebarLayout({
               <div
                 className="main-screen-leading"
                 data-screen-panel="leading"
+                data-atlas-overview-region="leading"
                 inert={mainActive}
                 aria-hidden={mainActive}
               >
@@ -218,6 +220,7 @@ export function MainSidebarLayout({
                 <aside
                   className="main-screen-trailing"
                   data-screen-panel="trailing"
+                  data-atlas-overview-region="trailing"
                   inert={canvas.geometry.regions[canvas.selected] !== "trailing" && !canvas.moving}
                 >
                   {trailing}
@@ -227,14 +230,7 @@ export function MainSidebarLayout({
           </div>
         </div>
       </CanvasContext.Provider>
-      <footer className="main-window-statusbar">
-        <CanvasDots
-          count={canvas.geometry.regions.filter((region) => region === "chat" || region === "preview").length}
-          selected={Math.min(canvas.selected - 1, canvas.geometry.split ? 1 : 0)}
-          onSelect={(index) => canvas.select(index + 1)}
-        />
-        {statusBar}
-      </footer>
+      <footer className="main-window-statusbar">{statusBar}</footer>
       {children}
     </SidebarProvider>
   )

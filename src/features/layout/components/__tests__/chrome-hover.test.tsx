@@ -13,7 +13,7 @@ afterEach(cleanup)
 test("status bar hover styling excludes canvas pagination buttons", () => {
   const view = render(
     <footer className="main-window-statusbar">
-      <nav className="canvas-dots">
+      <nav data-atlas-footer-navigation>
         <Button variant="ghost">Page 1</Button>
       </nav>
       <Button variant="ghost">Status</Button>

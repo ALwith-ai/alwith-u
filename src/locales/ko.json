@@ -393,7 +393,8 @@
   },
   "canvas": {
     "navigation": "페이지 탐색",
-    "page": "{{number}} 페이지"
+    "page": "{{number}} 페이지",
+    "overview": "개요"
   },
   "computer": {
     "connection": "연결",

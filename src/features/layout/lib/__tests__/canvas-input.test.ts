@@ -101,6 +101,8 @@ function harness() {
   const listeners = new Map<string, Set<() => void>>()
   const api = {
     rootNode: () => root,
+    slideNodes: () => [...root.querySelectorAll<HTMLElement>("[data-atlas-region]")],
+    scrollProgress: () => location / -2000,
     selectedScrollSnap: () => selected,
     scrollSnapList: () => snaps,
     internalEngine: () => ({

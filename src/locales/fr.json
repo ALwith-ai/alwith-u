@@ -370,7 +370,8 @@
   },
   "canvas": {
     "navigation": "Navigation entre les pages",
-    "page": "Page {{number}}"
+    "page": "Page {{number}}",
+    "overview": "Vue d’ensemble"
   },
   "computer": {
     "connection": "Connexion",

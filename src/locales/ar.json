@@ -489,7 +489,8 @@
   },
   "canvas": {
     "navigation": "التنقل بين الصفحات",
-    "page": "الصفحة {{number}}"
+    "page": "الصفحة {{number}}",
+    "overview": "نظرة عامة"
   },
   "computer": {
     "connection": "الاتصال",

@@ -1212,7 +1212,8 @@
   },
   "canvas": {
     "navigation": "页面导航",
-    "page": "第 {{number}} 页"
+    "page": "第 {{number}} 页",
+    "overview": "缩略图总览"
   },
   "collection": {
     "defaultFavorites": "收藏夹",

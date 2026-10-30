@@ -1212,7 +1212,8 @@
   },
   "canvas": {
     "navigation": "Page navigation",
-    "page": "Page {{number}}"
+    "page": "Page {{number}}",
+    "overview": "Overview"
   },
   "collection": {
     "defaultFavorites": "Favorites",

@@ -391,7 +391,8 @@
   },
   "canvas": {
     "navigation": "Навигация по страницам",
-    "page": "Страница {{number}}"
+    "page": "Страница {{number}}",
+    "overview": "Обзор"
   },
   "computer": {
     "connection": "Подключение",

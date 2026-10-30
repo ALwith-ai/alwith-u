@@ -81,6 +81,17 @@ export function useMainCanvas(
   const geometryKey = `${geometry.stops.join(":")}:${geometry.content}:${direction}`
   const { ref: atlasRef, atlas: api } = useAtlas({
     regions: ".canvas-snap",
+    pagination: {
+      container: () =>
+        viewport.current?.closest("[data-main-screen]")?.querySelector<HTMLElement>(".main-window-statusbar") ?? null,
+      label: i18n.t("canvas.navigation"),
+      pageLabel: (index) => i18n.t("canvas.page", { number: index + 1 }),
+      overviewLabel: i18n.t("canvas.overview")
+    },
+    overview: {
+      label: i18n.t("canvas.overview"),
+      regions: "[data-atlas-overview-region], [data-atlas-navigation], .file-workspace-slide"
+    },
     direction: initialDirection,
     contain: false,
     groupRegions: false,

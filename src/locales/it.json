@@ -386,7 +386,8 @@
   },
   "canvas": {
     "navigation": "Navigazione delle pagine",
-    "page": "Pagina {{number}}"
+    "page": "Pagina {{number}}",
+    "overview": "Panoramica"
   },
   "computer": {
     "connection": "Connessione",

@@ -361,7 +361,8 @@
   },
   "canvas": {
     "navigation": "Seitennavigation",
-    "page": "Seite {{number}}"
+    "page": "Seite {{number}}",
+    "overview": "Übersicht"
   },
   "computer": {
     "connection": "Verbindung",

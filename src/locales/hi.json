@@ -389,7 +389,8 @@
   },
   "canvas": {
     "navigation": "पेज नेविगेशन",
-    "page": "पेज {{number}}"
+    "page": "पेज {{number}}",
+    "overview": "अवलोकन"
   },
   "computer": {
     "connection": "कनेक्शन",
