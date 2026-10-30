@@ -81,13 +81,19 @@ File operations and edits write to `fixtures/filesystem.ts` in memory. Login, mo
 
 Monaco uses Chromium EditContext. Automated editing dispatches its OS text-update event to the real editor; source save and close handlers still perform the operation. Error toasts stay visible for checkpoint inspection and are cleared between examples. Pet flow tests complete the source video's `ended` event to reach the actual result UI without waiting for the entire clip.
 
-## Integration verification (2026-10-30)
+## CI recovery (2026-10-30)
+
+The frozen lockfile now includes the native mobile Linux and gamepad Windows optional artifacts at their existing versions. A script test checks that every native wrapper's platform dependency is represented in the lockfile. Native-artifact tests resolve fixture paths with `fileURLToPath`, including workspace paths containing spaces or Chinese characters. The aggregate source test run passes 90 script tests and 1,482 frontend/engine tests.
+
+Browser tests run in batches of eight files with one worker and a fresh Chromium process per batch. Page assertions run for every page story; workflow assertions replay each complete source journey once. A separate player check verifies the rendered diagrams, isolated checkpoints, navigation geometry, pan/zoom, long settings flows, theme, and narrow viewports. Workflow playback keeps its checkpoint behavior outside the test runner.
+
+## Baseline integration verification (2fd356d, 2026-10-30)
 
 The catalog is integrated with `main` at `a94ded5`. It retains Chinese page/feature navigation, complete source page states, 144 workflow diagrams, and shared theme/language controls. New upstream browser bridge, mobile settings, extension controls, plugin catalog, subagent, and app-creation examples are included in the page groups. The current index contains **369 page/component examples + 144 workflow diagrams = 513 sidebar stories**, with 492 embedded workflow checkpoints across 246 generated story files.
 
 The integration adapts adapter-owned session types and list state, shared chat components and drafts, project grouping, host fixtures, the settings-backed theme, and newer drive/pet contracts. Production source, dependencies, and application configuration match the main branch. The synthetic user-agent fixture includes Chromium brand metadata required by the accessibility matcher.
 
-Current verification:
+Results recorded at the baseline commit, before the CI recovery above:
 
 - Storybook and application type checks, both static builds, knip, and scoped formatting pass.
 - All 1,482 source frontend/engine tests pass across 239 files.
@@ -102,13 +108,13 @@ Verified on 2026-10-26: all 374 page/component cases passed across the page-suit
 
 Catalog: **369 page/component examples + 144 workflow diagrams = 513 sidebar stories**, across 183 story files. The workflow diagrams contain 610 embedded checkpoints. Page/component examples are catalog entries, not a count of distinct product screens. The five standalone patch and computer-preview detail examples were removed at the user's request after the verification run above. Product source tests remain unchanged; their results must be reported separately from Storybook results.
 
+## Verification commands
+
 - `bun run storybook:check`: Storybook and all imported source type checks.
-- `bun run storybook:test`: Chromium rendering and interaction checks for every catalog story. Start the development Storybook server first; workflow tests embed checkpoints from `127.0.0.1:6007`.
+- `bun run storybook:test`: batched Chromium checks for every generated page and workflow journey, followed by the player checks. Run `bun run storybook:build` first; the runner starts and cleans up a static preview on `127.0.0.1:6007` if no preview is already running. Optional path filters, such as `bun run storybook:test page-boards`, limit the browser suite for local diagnosis.
 - `bun .storybook/verify-player.mjs`: action labels, 1100px page sizing, a single horizontal row, separate labels, blank-canvas and image dragging, inactive page clicks, a zoom-only toolbar, an unchanged source viewport, stable initial scroll position, source checkpoints, menu/dialog isolation, failure recovery, long flows, narrow viewports, and dark theme. This is a targeted check; it does not run the complete 144-flow batch.
 - `bun run storybook:build`: standalone static export in ignored `storybook-static/`.
 - `bun run typecheck`, `bun run knip`, `bun run build`: application gates.
 - `bun x --no-install vitest run`: source frontend and engine tests.
 
 The accessibility addon remains available. Full-page fixtures and the existing computer waiting preview report source accessibility findings as TODOs rather than altering source visuals to satisfy the catalog. A passing interaction run is not an accessibility certification.
-
-In this workspace, the existing aggregate `bun run test` stops at three native-artifact script tests because their fixture path uses an encoded file URL inside a Chinese/space-containing directory. The frontend/engine tests can be run independently. The installed Bun versions do not implement the repository's `bun lint` command; the script recursively invokes itself and must be stopped. These toolchain issues are outside the preview changes.

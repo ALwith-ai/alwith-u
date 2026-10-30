@@ -144,6 +144,6 @@ export const SkillError: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "project-review" }))
     await userEvent.click((await within(document.body).findAllByRole("switch", { name: /^禁用技能:/ }))[0]!)
     await within(canvasElement.ownerDocument.body).findByText(/模拟技能启停失败/)
-    await expect(pluginsStore.getState().skills[0]?.enabled).toBe(true)
+    await expect(pluginsStore.getState().skills.find((skill) => skill.name === "project-review")?.enabled).toBe(true)
   }
 }

@@ -62,7 +62,9 @@ export const SkillToggle: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "project-review" }))
     const switches = await within(document.body).findAllByRole("switch", { name: /^禁用技能:/ })
     await userEvent.click(switches[0]!)
-    await waitFor(() => expect(pluginsStore.getState().skills[0]?.enabled).toBe(false))
+    await waitFor(() =>
+      expect(pluginsStore.getState().skills.find((skill) => skill.name === "project-review")?.enabled).toBe(false)
+    )
   }
 }
 export const Search: Story = {
