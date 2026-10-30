@@ -58,7 +58,7 @@
     "@milkdown/preset-gfm": "^7.23.0",
     "@milkdown/prose": "^7.23.0",
     "@milkdown/utils": "^7.23.0",
-    "@nyssance/atlas": "^0.1.6",
+    "@nyssance/atlas": "^0.1.7",
     "@shadcn/react": "^0.3.1",
     "@solar-icons/react": "^2.3.3",
     "@tauri-apps/api": "^3.0.0-alpha.3",

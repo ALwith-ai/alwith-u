@@ -1,3 +1,4 @@
+import { openExternal } from "@/lib/open"
 import { useAtlas } from "@nyssance/atlas/react"
 import { isTauri } from "@tauri-apps/api/core"
 import {
@@ -88,6 +89,8 @@ export function useMainCanvas(
       pageLabel: (index) => i18n.t("canvas.page", { number: index + 1 })
     },
     overview: {
+      footer: () => viewport.current?.closest("[data-main-screen]")?.querySelector<HTMLElement>(".main-window-statusbar") ?? null,
+      openLink: (url) => { void openExternal(url) },
       label: i18n.t("canvas.overview"),
       regions: "[data-atlas-overview-region], [data-atlas-navigation], .file-workspace-slide"
     },

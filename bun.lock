@@ -37,7 +37,7 @@
         "@milkdown/preset-gfm": "^7.23.0",
         "@milkdown/prose": "^7.23.0",
         "@milkdown/utils": "^7.23.0",
-        "@nyssance/atlas": "^0.1.6",
+        "@nyssance/atlas": "^0.1.7",
         "@shadcn/react": "^0.3.1",
         "@solar-icons/react": "^2.3.3",
         "@tauri-apps/api": "^3.0.0-alpha.3",
@@ -540,7 +540,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/atlas": ["@nyssance/atlas@0.1.6", "", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.6.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "sha512-C+eNyOqP6mD/ulV1boULrOgCiufogUj4HyLYR5Gf572BsKouGt3lm0fsEQ6IZgKMVxLlqzFdObmQghJ0oEF/+Q=="],
+    "@nyssance/atlas": ["@nyssance/atlas@0.1.7", "", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.6.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "sha512-YN6XACrpS5d3LI0WXZxjMNL/2PgtXPd3f5Z/mvCEpi7zT2xuLOaDZiwoZHM3XB858G1BHf3KxdDtY8/WRpwfQg=="],
 
     "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.48", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.1.0", "@openai/codex": "^0.166.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.0", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-dsZ7MIlB1XIaYXvlHgTdxfuaXG5Gy/mGmVWhcQvLM/Spa0RGAI9uy1hJf4yAF8i2fpOq81egkUECB6bHUA9j+Q=="],
 
