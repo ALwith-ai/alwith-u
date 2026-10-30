@@ -1,16 +1,15 @@
 import { expect, test } from "bun:test"
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
 import providers from "../../../src/lib/provider-catalog.json"
+import { codexSidecars } from "../toolchain"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
   "darwin-arm64": "aarch64-apple-darwin",
   "linux-x64": "x86_64-unknown-linux-gnu",
-  "linux-arm64": "aarch64-unknown-linux-gnu",
-  "win32-x64": "x86_64-pc-windows-msvc",
-  "win32-arm64": "aarch64-pc-windows-msvc"
+  "win32-x64": "x86_64-pc-windows-msvc"
 }
 
 test("the staged toolchain runs with explicit resources outside the executable directory", () => {
@@ -26,6 +25,12 @@ test("the staged toolchain runs with explicit resources outside the executable d
   expect(stage.exitCode, stage.stderr.toString()).toBe(0)
   expect(readFileSync(join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-acp-v2.mjs"))).toEqual(
     readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/dist/index.js"))
+  )
+
+  expect(
+    readFileSync(join(import.meta.dir, "../../../src-tauri/resources/licenses/codex-acp-v2-protocol.txt"))
+  ).toEqual(
+    readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/licenses/alwith-protocol.txt"))
   )
 
   const suffix = process.platform === "win32" ? ".exe" : ""
@@ -83,6 +88,11 @@ test("the staged toolchain runs with explicit resources outside the executable d
     const resources = join(directory, "staged resources")
     mkdirSync(binaries)
     mkdirSync(join(resources, "adapter"), { recursive: true })
+    mkdirSync(join(resources, "custom"), { recursive: true })
+    copyFileSync(
+      join(import.meta.dir, "../../../src-tauri/resources/custom/models.json"),
+      join(resources, "custom/models.json")
+    )
     for (const provider of providers) {
       const source = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)
       const target = join(resources, provider.catalog)
@@ -94,23 +104,46 @@ test("the staged toolchain runs with explicit resources outside the executable d
       join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-bootstrap.mjs"),
       join(resources, "adapter/codex-bootstrap.mjs")
     )
-    for (const name of ["bun", "codex", "codex-code-mode-host", "alwith-runtime", "alwith-codex-launcher"]) {
+    for (const name of [
+      "bun",
+      ...codexSidecars(process.platform === "win32"),
+      "alwith-runtime",
+      "alwith-codex-launcher"
+    ]) {
       copyFileSync(
         join(import.meta.dir, `../../../src-tauri/binaries/${name}-${triple}${suffix}`),
         join(binaries, `${name}${suffix}`)
       )
     }
+    if (process.platform === "win32") {
+      for (const name of ["codex-windows-sandbox-setup", "codex-command-runner"]) {
+        const helper = join(binaries, `${name}.exe`)
+        renameSync(helper, `${helper}.hidden`)
+        try {
+          const missingHelper = Bun.spawnSync(
+            [process.execPath, "scripts/verify-bundled-toolchain.ts", binaries, resources],
+            { stdout: "pipe", stderr: "pipe", timeout: 15_000 }
+          )
+          expect(missingHelper.exitCode).not.toBe(0)
+          expect(missingHelper.stderr.toString()).toContain(`Packaged sidecar missing: ${name}`)
+        } finally {
+          renameSync(`${helper}.hidden`, helper)
+        }
+      }
+    }
     const verification = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries, resources], {
       cwd: join(import.meta.dir, "../../.."),
       stdout: "pipe",
       stderr: "pipe",
-      timeout: 90_000
+      timeout: 180_000
     })
     expect(verification.exitCode, verification.stderr.toString()).toBe(0)
     expect(verification.stdout.toString()).toContain("ACP initialized")
 
     const packagedResources = process.platform === "darwin" ? join(directory, "Resources") : binaries
     mkdirSync(join(packagedResources, "adapter"), { recursive: true })
+    mkdirSync(join(packagedResources, "custom"), { recursive: true })
+    copyFileSync(join(resources, "custom/models.json"), join(packagedResources, "custom/models.json"))
     for (const provider of providers) {
       const target = join(packagedResources, provider.catalog)
       mkdirSync(dirname(target), { recursive: true })
@@ -122,7 +155,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
       cwd: join(import.meta.dir, "../../.."),
       stdout: "pipe",
       stderr: "pipe",
-      timeout: 90_000
+      timeout: 180_000
     })
     expect(packaged.exitCode, packaged.stderr.toString()).toBe(0)
     expect(packaged.stdout.toString()).toContain("ACP initialized")
@@ -139,4 +172,4 @@ test("the staged toolchain runs with explicit resources outside the executable d
     rmSync(directory, { recursive: true, force: true })
   }
   // Staging includes native version probes and macOS signature checks.
-}, 240_000)
+}, 420_000)

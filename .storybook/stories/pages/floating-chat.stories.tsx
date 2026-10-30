@@ -35,19 +35,16 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const FloatingDraft: Story = {
-  parameters: { __id: "页面-辅助窗口--floating-draft" },
   name: "浮动聊天 · 新建",
   args: { page: "floating", chatCase: "welcome" }
 }
 
 export const FloatingConversation: Story = {
-  parameters: { __id: "页面-辅助窗口--floating-conversation" },
   name: "浮动聊天 · 对话",
   args: { page: "floating", chatCase: "conversation" }
 }
 
 export const FloatingPermission: Story = {
-  parameters: { __id: "页面-辅助窗口--floating-permission" },
   name: "浮动聊天 · 待确认",
   args: { page: "floating", chatCase: "permission" }
 }

@@ -80,7 +80,7 @@ export function Pane({
         onPointerUpCapture={() => setDragging(false)}
         onPointerCancelCapture={() => setDragging(false)}
         onLostPointerCapture={() => setDragging(false)}
-        className="flex h-full w-[var(--app-scrollbar-track-size)] touch-none px-[2px] select-none"
+        className="flex h-full w-[var(--app-scrollbar-track-size)] touch-none px-[var(--app-scrollbar-edge-gap)] select-none"
       >
         <ScrollAreaPrimitive.Thumb data-slot="scroll-area-thumb" className="relative flex-1 rounded-full bg-border" />
       </ScrollAreaPrimitive.Scrollbar>

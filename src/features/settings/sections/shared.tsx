@@ -31,8 +31,8 @@ export function SettingRow({
       aria-describedby={desc ? `${id}-description` : undefined}
       className={cn("settings-row", aligned && "settings-row-aligned")}
     >
-      <div className="min-w-0">
-        <div id={`${id}-title`} className="text-sm font-medium leading-5">
+      <div className="settings-row-label min-w-0">
+        <div id={`${id}-title`} className="text-sm leading-5 font-medium">
           {title}
         </div>
         {desc && (

@@ -1,7 +1,7 @@
+import { openDiffModal } from "@alwith/module-chat/conversation"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { within } from "storybook/test"
 
-import { openDiffModal } from "../../../src/features/chat/dialogs/diff-modal"
 import { openFilePreview } from "../../../src/features/chat/dialogs/file-preview-modal"
 import { PROJECT_DIRECTORY } from "../../fixtures/catalog"
 import { preparePreview } from "../../fixtures/prepare"

@@ -1,4 +1,4 @@
-import type { AttachmentPolicy } from "@alwith/module-chat/composer-context"
+import { type AttachmentPolicy, usePromptInputAttachments } from "@alwith/module-chat/composer-context"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebview } from "@tauri-apps/api/webview"
 import { useEffect, useLayoutEffect, useRef } from "react"
@@ -8,8 +8,6 @@ import { toast } from "sonner"
 
 import { commands } from "@/bindings"
 import { basename } from "@/lib/path"
-
-import { usePromptInputAttachments } from "./prompt-input"
 
 const sourcePaths = new WeakMap<File, string>()
 export const nativeAttachmentPolicy: AttachmentPolicy = {

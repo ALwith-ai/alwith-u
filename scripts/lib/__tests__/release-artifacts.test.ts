@@ -6,13 +6,7 @@ import { join } from "node:path"
 import { registerRelease, releaseArtifacts, releaseVersion } from "../release-artifacts"
 
 const directories: string[] = []
-const names = [
-  "macos_aarch64.dmg",
-  "macos_aarch64.app.tar.gz",
-  "windows_x64-setup.exe",
-  "windows_arm64-setup.exe",
-  "windows_arm64.msi"
-]
+const names = ["macos_aarch64.dmg", "macos_aarch64.app.tar.gz", "windows_x64-setup.exe", "windows_x64.msi"]
 
 function fixture(assetNames: string[] = names, version = "26.9.24"): string {
   const directory = mkdtempSync(join(tmpdir(), "alwith-u-release-test-"))
@@ -30,10 +24,7 @@ afterEach(() => {
 })
 
 test("registers the actual v0.1.2 Tauri asset names without rewriting download URLs", async () => {
-  const directory = fixture(
-    ["darwin_aarch64.dmg", "darwin_aarch64.app.tar.gz", "windows_x64-setup.exe", "windows_arm64-setup.exe"],
-    "0.1.2"
-  )
+  const directory = fixture(["darwin_aarch64.dmg", "darwin_aarch64.app.tar.gz", "windows_x64-setup.exe"], "0.1.2")
   const posted: unknown[] = []
   const request: typeof fetch = Object.assign(
     (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
@@ -44,7 +35,7 @@ test("registers the actual v0.1.2 Tauri asset names without rewriting download U
     },
     { preconnect: fetch.preconnect }
   )
-  expect(await registerRelease(directory, "v0.1.2", "https://api.alwith.ai/management", "test-token", request)).toBe(4)
+  expect(await registerRelease(directory, "v0.1.2", "https://api.alwith.ai/management", "test-token", request)).toBe(3)
   expect(posted).toEqual([
     {
       download_url: "https://static.alwith.ai/alwith-u/release/v0.1.2/alwith-u_0.1.2_darwin_aarch64.app.tar.gz",
@@ -61,14 +52,6 @@ test("registers the actual v0.1.2 Tauri asset names without rewriting download U
       format: "dmg",
       label: "Apple Silicon",
       signature_text: ""
-    },
-    {
-      download_url: "https://static.alwith.ai/alwith-u/release/v0.1.2/alwith-u_0.1.2_windows_arm64-setup.exe",
-      target: "windows",
-      arch: "windows-aarch64",
-      format: "nsis",
-      label: "ARM64",
-      signature_text: "signed"
     },
     {
       download_url: "https://static.alwith.ai/alwith-u/release/v0.1.2/alwith-u_0.1.2_windows_x64-setup.exe",
@@ -94,7 +77,7 @@ test("rejects installer formats belonging to the wrong platform including darwin
 
 test("maps installers and signed updater packages to the admin contract and public TOS URLs", () => {
   const artifacts = releaseArtifacts(fixture(), "v26.9.24")
-  expect(artifacts).toHaveLength(5)
+  expect(artifacts).toHaveLength(4)
   expect(artifacts.find((artifact) => artifact.format === "dmg")).toMatchObject({
     target: "darwin",
     arch: "darwin-aarch64",
@@ -110,9 +93,9 @@ test("maps installers and signed updater packages to the admin contract and publ
       .filter((artifact) => artifact.format === "nsis")
       .map((artifact) => artifact.arch)
       .toSorted()
-  ).toEqual(["windows-aarch64", "windows-x86_64"])
+  ).toEqual(["windows-x86_64"])
   expect(artifacts.find((artifact) => artifact.format === "msi")).toMatchObject({
-    arch: "windows-aarch64",
+    arch: "windows-x86_64",
     signature_text: "signed"
   })
 })
@@ -160,16 +143,22 @@ test("posts authenticated JSON to the version endpoint and stops on HTTP failure
           "/alwith-u/release/v26.9.24/"
         )
         expect(init?.redirect).toBe("error")
-        return new Response("{}", { status: calls > 5 ? 401 : 201 })
+        return new Response("{}", { status: calls > 4 ? 401 : 201 })
       })
     },
     { preconnect: fetch.preconnect }
   )
   expect(await registerRelease(directory, "v26.9.24", "https://api.alwith.ai/management/", "test-token", request)).toBe(
-    5
+    4
   )
   await expect(registerRelease(directory, "v26.9.24", "https://api.alwith.ai", "test-token", request)).rejects.toThrow(
     "HTTP 401"
   )
-  expect(calls).toBe(6)
+  expect(calls).toBe(5)
+})
+
+test("rejects Windows ARM64 release assets", () => {
+  expect(() => releaseArtifacts(fixture(["windows_arm64-setup.exe"]), "v26.9.24")).toThrow(
+    "Unsupported release architecture"
+  )
 })

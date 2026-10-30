@@ -4,12 +4,12 @@
 // two windows talk over events, as ALwith Desktop's windows do.
 
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import type { AccountReadResponse, RateLimitSnapshot } from "@nyssance/codex-acp-v2/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import * as React from "react"
 import { toast } from "sonner"
 
 import type { PendingAction } from "@/agent/client"
-import type { AccountReadResponse, RateLimitSnapshot } from "@/agent/codex-extensions"
 
 export type SettingsEvents = { listen: typeof listen; emitTo: typeof emitTo }
 const nativeEvents: SettingsEvents = { listen, emitTo }
@@ -125,18 +125,25 @@ export function serveSettingsBridge(
 }
 
 /** Settings window: the main window's account + rate limits, `undefined` until the first answer. */
+let cachedAccount: SettingsAccount | undefined
+
 export function useSettingsAccount(): SettingsAccount | undefined {
-  const [account, setAccount] = React.useState<SettingsAccount | undefined>(undefined)
+  const [account, setAccount] = React.useState<SettingsAccount | undefined>(() => cachedAccount)
   React.useEffect(() => {
     let disposed = false
     const stops = Promise.all([
       listen<SettingsAccount>(ACCOUNT, (event) => {
-        if (!disposed) setAccount(event.payload)
+        if (!disposed) {
+          cachedAccount = event.payload
+          setAccount(event.payload)
+        }
       }),
       listen<string>(ACCOUNT_ERROR, (event) => {
         if (disposed) return
-        setAccount(null)
-        toast.error(event.payload)
+        // A failed refresh must not discard an identity and limits already read successfully.
+        if (cachedAccount === undefined) setAccount(null)
+        else console.error("Account refresh failed", event.payload)
+        if (cachedAccount === undefined) toast.error(event.payload)
       })
     ])
     void stops.then(() => {

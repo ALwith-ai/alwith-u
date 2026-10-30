@@ -3,13 +3,20 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
-vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
-  getCurrentWebviewWindow: () => ({ onCloseRequested: async () => () => {}, hide: async () => {} })
+  getCurrentWebviewWindow: () => ({
+    onCloseRequested: () => Promise.resolve(() => {}),
+    hide: () => {
+      return Promise.resolve()
+    }
+  })
 }))
+vi.mock("@/features/mobile/mobile-section", () => ({ MobileSection: () => null }))
 vi.mock("@/features/drive/drive", () => ({ DriveSettings: () => null }))
 vi.mock("@/features/drive/use-drive-visible", () => ({ useDriveVisible: () => true }))
-vi.mock("@/features/extensions/runtime", () => ({
+vi.mock("@/features/extensions/runtime", () => ({ reportExtensionError: vi.fn() }))
+vi.mock("@/features/extensions/use-extensions", () => ({
   useExtensions: () => ({ host: { views: [] }, state: { native: null } })
 }))
 vi.mock("@/features/extensions/extensions-section", () => ({ ExtensionsSection: () => null }))
@@ -42,4 +49,17 @@ test("changing settings sections updates the accessible content label and curren
   expect(screen.getByRole("button", { name: "Appearance" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByRole("button", { name: "General" })).not.toHaveAttribute("aria-current")
   expect(screen.getAllByText("Appearance")).toHaveLength(1)
+})
+
+test("mobile connections are reachable from settings navigation", () => {
+  render(<SettingsPage />)
+  fireEvent.click(screen.getByRole("button", { name: "Mobile connection" }))
+  expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
+})
+
+test("explorer settings expose the global hidden-file switch", () => {
+  render(<SettingsPage />)
+  fireEvent.click(screen.getByRole("button", { name: "Explorer" }))
+  expect(screen.getByRole("region", { name: "Explorer" })).toBeVisible()
+  expect(screen.getByRole("switch", { name: "Show hidden files" })).toBeVisible()
 })

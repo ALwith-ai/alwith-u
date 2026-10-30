@@ -64,7 +64,9 @@ export const ExtensionNavigation: Story = {
   args: { page: "extensions", extensionCase: "content" },
   play: async ({ canvas, userEvent }) => {
     await canvas.findByText("项目工具已就绪")
-    await userEvent.click(await canvas.findByRole("button", { name: "项目工具" }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "功能导航" })).getByRole("button", { name: "项目工具" })
+    )
     await canvas.findByRole("navigation", { name: "Guide chapters" })
   }
 }

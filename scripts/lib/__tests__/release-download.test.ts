@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -53,7 +53,7 @@ function download(scenario: string, releaseId = "") {
     return {
       code: result.exitCode,
       error: result.stderr.toString(),
-      files: readdirSync(join(directory, "tos-release")).sort()
+      files: readdirSync(join(directory, "tos-release")).toSorted()
     }
   } finally {
     rmSync(directory, { recursive: true, force: true })

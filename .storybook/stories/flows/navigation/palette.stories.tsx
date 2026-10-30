@@ -5,7 +5,7 @@ import base, { Palette as source } from "../../flow-definitions/navigation"
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 搜索入口", "点击 · 搜索聊天…", "输入 · 搜索框"]
+const labels = ["初始页面 · 搜索入口", "点击 · 搜索聊天", "输入 · 搜索框"]
 const config = { labels, id: "workflow-navigation-palette" }
 const meta = {
   ...base,

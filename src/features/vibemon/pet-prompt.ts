@@ -1,5 +1,4 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isFormElicitation } from "@alwith/api"
 import type { PetPrompt } from "@alwith/module-auth/pets/core"
 import {
   elicitationFields,
@@ -7,6 +6,7 @@ import {
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
+import { isFormElicitation, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
 
 import type { PendingAction } from "@/agent/client"
 
@@ -14,23 +14,42 @@ import type { PendingAction } from "@/agent/client"
 export function petPrompt(action: PendingAction | undefined, rawInput?: unknown): PetPrompt | null {
   if (action === undefined) return null
   if (action.kind === "permission") {
+    const subject = action.params.subject
+    const input = rawInput ?? (subject != null && isToolCallSubject(subject) ? subject.toolCall.rawInput : undefined)
+    const record = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : undefined
+    const command = record?.command
+    const commandText =
+      typeof command === "string"
+        ? command
+        : Array.isArray(command) && command.every((part) => typeof part === "string")
+          ? command.join(" ")
+          : undefined
     return {
       kind: "permission",
       token: action.id,
       title: action.params.title,
       detail: [
         action.params.description,
-        rawInput === undefined
-          ? action.params.subject == null
-            ? ""
-            : JSON.stringify(action.params.subject, null, 2)
-          : JSON.stringify(rawInput, null, 2)
+        commandText !== undefined
+          ? ""
+          : rawInput === undefined
+            ? action.params.subject == null
+              ? ""
+              : JSON.stringify(action.params.subject, null, 2)
+            : JSON.stringify(rawInput, null, 2)
       ]
         .filter(Boolean)
         .join("\n"),
+      ...(commandText === undefined
+        ? {}
+        : { command: { text: commandText, ...(typeof record?.cwd === "string" ? { cwd: record.cwd } : {}) } }),
       options: action.params.options
         .filter((option) => option.kind === "allow_once" || option.kind === "reject_once")
-        .map((option) => ({ id: option.optionId, label: option.name }))
+        .map((option) => ({
+          id: option.optionId,
+          label: option.name,
+          decision: option.kind === "allow_once" ? ("allow" as const) : ("reject" as const)
+        }))
     }
   }
   if (!isFormElicitation(action.params))

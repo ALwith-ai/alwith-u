@@ -64,3 +64,5 @@ export const initPlatformAuth = async () => {}
 export async function platformApiRequest<T>(): Promise<T> {
   throw new Error("Live platform requests are disabled in Storybook")
 }
+
+export async function requestAccountProviderRefresh(): Promise<void> {}

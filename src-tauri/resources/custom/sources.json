@@ -1,0 +1,168 @@
+{
+  "checkedAt": "2026-10-29",
+  "scope": "First-party Responses endpoints; canonical model IDs only.",
+  "sources": {
+    "baseline": "https://models.dev/models.json",
+    "glm-thinking": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking",
+    "glm-responses": "https://docs.bigmodel.cn/cn/guide/develop/responses/introduction",
+    "minimax-chat": "https://platform.minimax.io/docs/api-reference/text-openai-api",
+    "minimax-responses": "https://platform.minimax.io/docs/api-reference/responses-create",
+    "minimax-effort": "https://platform.minimax.io/docs/guides/text-generation",
+    "minimax-status": "https://platform.minimax.io/docs/faq/models",
+    "doubao-models": "https://docs.volcengine.com/docs/ark/model-list?lang=en",
+    "doubao-thinking": "https://docs.volcengine.com/docs/ark/deep-thinking?lang=zh",
+    "kimi-models": "https://platform.kimi.com/docs/models",
+    "kimi-parameters": "https://platform.kimi.com/docs/api/models-overview",
+    "kimi-responses": "https://platform.kimi.com/docs/api/responses",
+    "mimo-models": "https://mimo.mi.com/static/docs/quick-start/summary/model.md",
+    "mimo-chat": "https://mimo.mi.com/static/docs/api/chat/openai-api.md",
+    "mimo-responses": "https://mimo.mi.com/static/docs/api/chat/responses.md",
+    "doubao-coding-plan": "https://console.volcengine.com/ark/region%3Acn-beijing/docs/coding-plan-personal-ai-other-tools",
+    "doubao-agent-plan": "https://docs.volcengine.com/docs/ark/agent-plan-personal-zcode?lang=en"
+  },
+  "models": [
+    {
+      "slug": "glm-5.3",
+      "researchModelId": "glm-5.3",
+      "sources": [
+        "glm-thinking",
+        "glm-responses",
+        "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3"
+      ]
+    },
+    {
+      "slug": "glm-5.3-flash",
+      "researchModelId": "glm-5.3-flash",
+      "sources": [
+        "glm-thinking",
+        "glm-responses",
+        "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash"
+      ]
+    },
+    {
+      "slug": "glm-5.2",
+      "researchModelId": "glm-5.2",
+      "sources": [
+        "glm-thinking",
+        "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      ]
+    },
+    {
+      "slug": "glm-5.1",
+      "researchModelId": "glm-5.1",
+      "sources": [
+        "glm-thinking",
+        "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.1"
+      ]
+    },
+    {
+      "slug": "MiniMax-M3.1-Flash",
+      "researchModelId": "MiniMax-M3.1-Flash",
+      "sources": [
+        "minimax-chat",
+        "minimax-responses",
+        "minimax-effort"
+      ]
+    },
+    {
+      "slug": "MiniMax-M3",
+      "researchModelId": "MiniMax-M3",
+      "sources": [
+        "minimax-chat",
+        "minimax-responses"
+      ]
+    },
+    {
+      "slug": "doubao-seed-evolving",
+      "researchModelId": "doubao-seed-evolving",
+      "sources": [
+        "doubao-models",
+        "doubao-thinking"
+      ]
+    },
+    {
+      "slug": "doubao-seed-2-1-pro-260915",
+      "researchModelId": "doubao-seed-2-1-pro-260915",
+      "sources": [
+        "doubao-models",
+        "doubao-thinking"
+      ]
+    },
+    {
+      "slug": "doubao-seed-2-1-lite-260915",
+      "researchModelId": "doubao-seed-2-1-lite-260915",
+      "sources": [
+        "doubao-models",
+        "doubao-thinking"
+      ]
+    },
+    {
+      "slug": "kimi-k3.1-pro",
+      "researchModelId": "kimi-k3.1-pro",
+      "sources": [
+        "kimi-models",
+        "kimi-parameters",
+        "kimi-responses"
+      ]
+    },
+    {
+      "slug": "kimi-k3",
+      "researchModelId": "kimi-k3",
+      "sources": [
+        "kimi-models",
+        "kimi-parameters",
+        "kimi-responses"
+      ]
+    },
+    {
+      "slug": "kimi-k2.7-code",
+      "researchModelId": "kimi-k2.7-code",
+      "sources": [
+        "kimi-models",
+        "kimi-parameters",
+        "https://platform.kimi.com/docs/guide/kimi-k2-7-code-quickstart"
+      ]
+    },
+    {
+      "slug": "mimo-v2.6-pro",
+      "researchModelId": "mimo-v2.6-pro",
+      "sources": [
+        "mimo-models",
+        "mimo-chat",
+        "mimo-responses"
+      ]
+    },
+    {
+      "slug": "mimo-v2.6-flash",
+      "researchModelId": "mimo-v2.6-flash",
+      "sources": [
+        "mimo-models",
+        "mimo-chat",
+        "mimo-responses"
+      ]
+    },
+    {
+      "slug": "doubao-seed-2.1-pro",
+      "sources": [
+        "doubao-coding-plan",
+        "doubao-thinking",
+        "doubao-agent-plan"
+      ]
+    },
+    {
+      "slug": "doubao-seed-2.1-lite",
+      "sources": [
+        "doubao-coding-plan",
+        "doubao-thinking",
+        "doubao-agent-plan"
+      ]
+    }
+  ],
+  "compatibilityNotes": [
+    "No graded effort is exposed for toggle-only or always-thinking models. Their high transport default prevents the published adapter from inheriting none after switching models.",
+    "Only text and image are exposed because these are the host-supported inputs.",
+    "Unknown verbosity and reasoning summary parameters are not sent.",
+    "Gateway metadata is preloaded but hidden from the native model list; only configured providers advertise gateway selections.",
+    "Ark Coding Plan uses /api/coding/v3 and undated doubao-seed-2.1-pro/lite IDs. The pay-as-you-go endpoint uses /api/v3 and dated IDs. Do not silently change endpoints or billing modes."
+  ]
+}

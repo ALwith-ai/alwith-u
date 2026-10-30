@@ -1,22 +1,50 @@
-import { invoke } from "@tauri-apps/api/core"
 import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
+import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { DraftProjectPicker } from "../draft-project-picker"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
 vi.mock("@tauri-apps/plugin-dialog", async (importOriginal) => ({ ...(await importOriginal<object>()), open: vi.fn() }))
 
 await initI18n("en")
-beforeEach(() => vi.mocked(invoke).mockResolvedValue("/tmp/ALwith U"))
-afterEach(() => vi.clearAllMocks())
+const originalContext = client.state.projectContext
+const refreshProjectContext = vi.fn(() => Promise.resolve(projectContext()))
+beforeEach(() => {
+  vi.spyOn(client, "connect").mockResolvedValue()
+  vi.spyOn(client, "refreshProjectContext").mockImplementation(refreshProjectContext)
+  refreshProjectContext.mockClear()
+  client.store.setState({ projectContext: projectContext() })
+})
+afterEach(() => client.store.setState({ projectContext: originalContext }))
+afterEach(() => vi.restoreAllMocks())
+
+test("project preparation keeps the folder and hover-clear icons without a spinner", async () => {
+  const onChange = vi.fn()
+  const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} preparing />)
+  const picker = view.container.querySelector(".chat-project-picker")
+  expect(picker).toHaveAttribute("aria-busy", "true")
+  expect(picker?.querySelector(".lucide-loader-circle")).toBeNull()
+  expect(picker?.querySelector(".lucide-folder-closed")).toBeVisible()
+  expect(picker?.querySelector(".lucide-x")).not.toBeNull()
+  await waitFor(() => expect(view.getByRole("button", { name: "Work outside a project" })).toBeEnabled())
+  expect(view.getByRole("button", { name: "current" })).toBeEnabled()
+  view.rerender(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
+  expect(picker).toHaveAttribute("aria-busy", "false")
+  expect(picker?.querySelector(".lucide-loader-circle")).toBeNull()
+  expect(picker?.querySelector(".lucide-folder-closed")).toBeVisible()
+  view.rerender(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={onChange} preparing />)
+  expect(picker?.querySelector(".lucide-loader-circle")).toBeNull()
+  expect(picker?.querySelector(".lucide-folder-closed")).toBeVisible()
+  expect(onChange).not.toHaveBeenCalled()
+})
 
 test("project picker pins the current directory once, marks it selected and reports a new choice", async () => {
-  const chosen: string[] = []
+  const chosen: Array<string | null> = []
   const view = render(
     <DraftProjectPicker
       cwd="/tmp/current"
@@ -36,7 +64,7 @@ test("project picker pins the current directory once, marks it selected and repo
 
 test("canceling the directory dialog keeps a draft without a project", async () => {
   const open = vi.spyOn(dialog, "open").mockResolvedValue(null)
-  const chosen: string[] = []
+  const chosen: Array<string | null> = []
   try {
     const view = render(<DraftProjectPicker cwd={null} recentProjects={[]} onChange={(cwd) => chosen.push(cwd)} />)
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Select project" }))))
@@ -53,15 +81,25 @@ test("canceling the directory dialog keeps a draft without a project", async () 
 test("outside-project selection resolves to the host default and hides it from recent projects", async () => {
   const onChange = vi.fn()
   const view = render(
-    <DraftProjectPicker cwd="/tmp/current" recentProjects={["/tmp/ALwith U", "/tmp/recent"]} onChange={onChange} />
+    <DraftProjectPicker
+      cwd="/tmp/current"
+      recentProjects={["/Users/mac/Documents/ALwith", "/tmp/recent"]}
+      onChange={onChange}
+    />
   )
   await act(async () => {})
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
   expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["current", "recent"])
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" }))))
-  expect(onChange).toHaveBeenCalledWith("/tmp/ALwith U")
-  expect(invoke).toHaveBeenCalledWith("draft_directory", { cwd: null })
-  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={["/tmp/ALwith U"]} onChange={onChange} />)
+  expect(onChange).toHaveBeenCalledWith(null)
+  expect(refreshProjectContext).toHaveBeenCalledWith(true)
+  view.rerender(
+    <DraftProjectPicker
+      cwd="/Users/mac/Documents/ALwith"
+      recentProjects={["/Users/mac/Documents/ALwith"]}
+      onChange={onChange}
+    />
+  )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Select project" }))))
   expect(view.queryAllByRole("menuitemradio")).toHaveLength(0)
   expect(view.queryByRole("menuitem", { name: "Work outside a project" })).toBeNull()
@@ -73,27 +111,27 @@ test("the project icon exits directly without opening the project menu", async (
   const clear = view.getByRole("button", { name: "Work outside a project" })
   await waitFor(() => expect(clear).toBeEnabled())
   fireEvent.click(clear)
-  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+  expect(onChange).toHaveBeenCalledExactlyOnceWith(null)
   expect(view.queryByRole("menu")).toBeNull()
   expect(view.container.querySelector("button button")).toBeNull()
-  view.rerender(<DraftProjectPicker cwd="/tmp/ALwith U" recentProjects={[]} onChange={onChange} />)
+  view.rerender(<DraftProjectPicker cwd="/Users/mac/Documents/ALwith" recentProjects={[]} onChange={onChange} />)
   expect(view.queryByRole("button", { name: "Work outside a project" })).toBeNull()
   expect(view.getByRole("button", { name: "Select project" })).toBeVisible()
 })
 
 test("the project icon waits for the host default before allowing an exit", async () => {
-  const directory = Promise.withResolvers<string>()
-  vi.mocked(invoke).mockReturnValue(directory.promise)
+  const directory = Promise.withResolvers<ReturnType<typeof projectContext>>()
+  refreshProjectContext.mockReturnValueOnce(directory.promise)
   const onChange = vi.fn()
   const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
   const clear = view.getByRole("button", { name: "Work outside a project" })
   expect(clear).toBeDisabled()
   fireEvent.click(clear)
   expect(onChange).not.toHaveBeenCalled()
-  await act(async () => directory.resolve("/tmp/ALwith U"))
+  await act(() => Promise.resolve(directory.resolve(projectContext())))
   expect(clear).toBeEnabled()
   fireEvent.click(clear)
-  expect(onChange).toHaveBeenCalledExactlyOnceWith("/tmp/ALwith U")
+  expect(onChange).toHaveBeenCalledExactlyOnceWith(null)
 })
 
 test("project choices exclude quick-chat directories but retain temporary workspaces", async () => {
@@ -103,14 +141,14 @@ test("project choices exclude quick-chat directories but retain temporary worksp
       cwd="/private/var/folders/example/T/current"
       recentProjects={[
         "/Users/mac/Documents/Codex/project",
-        "/Users/mac/Documents/ALwith U",
+        "/Users/mac/Documents/ALwith",
         "/var/folders/example/T/project",
-        String.raw`C:\Users\Alice\Documents\Codex\project`,
         String.raw`C:\Users\Alice\AppData\Local\Temp\project`,
         String.raw`C:\Windows\Temp\project`,
         String.raw`D:\Scratch\project`,
         "/work/recent",
-        "/Users/mac/Documents/ALwith U/real-project",
+        "/Users/mac/Documents/ALwith U",
+        "/Users/mac/Documents/ALwith/real-project",
         "/var/folders-other/ordinary"
       ]}
       onChange={onChange}
@@ -125,6 +163,7 @@ test("project choices exclude quick-chat directories but retain temporary worksp
       "project",
       "project",
       "recent",
+      "ALwith U",
       "real-project",
       "ordinary"
     ])

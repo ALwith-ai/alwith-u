@@ -15,6 +15,7 @@
     "pending": "Pendente"
   },
   "actions": {
+    "confirm": "Confirmar",
     "copy": "Copiar",
     "copied": "Copiado",
     "cancel": "Cancelar",
@@ -47,7 +48,6 @@
     "background": "Fundo",
     "newChat": "Novo chat",
     "untitled": "Novo chat",
-    "unarchive": "Restaurar",
     "delete": "Excluir",
     "rename": "Renomear",
     "search": "Pesquisar chats…",
@@ -59,10 +59,7 @@
     "showRight": "Mostrar barra lateral direita",
     "hideRight": "Ocultar barra lateral direita",
     "backToMain": "Voltar à tela principal",
-    "archived": "Arquivadas",
-    "archive": "Arquivar",
     "loadMore": "Carregar mais",
-    "fork": "Criar ramificação",
     "deleteTitle": "Excluir esta conversa?",
     "deleteDescription": "Esta conversa será excluída permanentemente. Esta ação não pode ser desfeita.",
     "noResults": "Nenhuma conversa encontrada"
@@ -110,16 +107,20 @@
     "steerPlaceholder": "Adicione uma orientação à rodada atual",
     "permissionModes": {
       "readOnly": {
+        "name": "Somente leitura",
+        "description": "Leia arquivos da área de trabalho; alterações e acesso à internet exigem aprovação"
+      },
+      "workspaceAccess": {
         "name": "Solicitar aprovação",
-        "description": "Sempre perguntar antes de editar arquivos externos ou usar a internet"
+        "description": "Leia e edite arquivos da área de trabalho e execute comandos; acesso à internet e alterações fora da área de trabalho exigem aprovação"
       },
       "agent": {
         "name": "Aprovar por mim",
-        "description": "Perguntar apenas sobre ações detectadas como potencialmente inseguras"
+        "description": "Pergunte apenas sobre ações identificadas como potencialmente inseguras"
       },
       "fullAccess": {
         "name": "Acesso completo",
-        "description": "Acesso irrestrito à internet e a qualquer arquivo do computador"
+        "description": "Use com cuidado: o Codex pode editar arquivos fora desta área de trabalho e acessar a internet sem aprovação"
       },
       "heading": "Como aprovar as ações do ALwith U?"
     }
@@ -186,7 +187,13 @@
       "mac": "Alterne entre páginas com três dedos. Os gestos do Mission Control ou App Exposé do macOS podem interromper o movimento; ajuste-os nos Ajustes do Sistema.",
       "windows": "Alterne entre páginas com três dedos em um touchpad de precisão. Gestos do sistema também podem ser acionados; selecione Nada para gestos de três dedos em Configurações do Windows > Bluetooth e dispositivos > Touchpad.",
       "unsupported": "Não disponível no Linux. Use os botões de navegação ou arraste com o botão do meio do mouse."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Ativar gestos do trackpad",
+    "threeFingerSwipeDesc": "Deslize horizontalmente com três dedos para mover a tela",
+    "import": "Importar",
+    "explorer": "Explorador",
+    "explorerHiddenDescription": "Mostrar arquivos e pastas ocultos cujos nomes começam com um ponto (.)"
   },
   "usage": {
     "usage": "Uso",
@@ -346,10 +353,13 @@
     "source": "Código-fonte",
     "newTab": "Nova aba",
     "emptyNewTab": "Nova aba",
-    "more": "Mais ações"
+    "more": "Mais ações",
+    "ignored": "Mostrar arquivos ignorados pelo Git"
   },
   "pet": {
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "lounge": "Sala de descanso Vibémon",
+    "recall": "Voltar à sala de descanso"
   },
   "app": {
     "name": "ALwith U"
@@ -361,5 +371,28 @@
   "canvas": {
     "navigation": "Navegação de páginas",
     "page": "Página {{number}}"
+  },
+  "computer": {
+    "connection": "Conexão",
+    "reconnect": "Reconectar",
+    "verifying": "Verificando…",
+    "reconnectHint": "A reconexão interrompe as ações e verifica a captura e a acessibilidade. As ações não são repetidas. Envie sua mensagem novamente após conectar.",
+    "diagnostics": "Diagnóstico (sessão atual)",
+    "phases": {
+      "disabled": "Desativado",
+      "verifying": "Verificando acesso",
+      "ready": "Pronto",
+      "stopping": "Parando",
+      "failed": "Precisa de recuperação"
+    }
+  },
+  "voice": {
+    "realtimeStart": "Iniciar chamada de voz com Codex",
+    "realtimeStop": "Encerrar chamada de voz",
+    "realtimeCancel": "Cancelar conexão de voz"
+  },
+  "workbuddy": {
+    "headline": "Crie seu próprio harness de desktop",
+    "create": "Crie seu ALwith"
   }
 }

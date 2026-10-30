@@ -1,7 +1,7 @@
 import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
-import { ProjectPathAction } from "@/features/threads/project-path-action"
+import { ProjectPathAction } from "@/features/sessions/project-path-action"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as openWithApp from "@/lib/open-with-app"

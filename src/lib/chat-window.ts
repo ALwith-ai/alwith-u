@@ -1,8 +1,8 @@
+import type { ComposerDraft } from "@alwith/module-chat/conversation"
 import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 
 import { commands } from "@/bindings"
-import type { ComposerDraft } from "@/features/chat/composer/drafts"
 
 import { type ChatWindowSurface, useChatWindowSurface, useMainWindowSurface } from "./chat-window-state"
 import { client } from "./client"

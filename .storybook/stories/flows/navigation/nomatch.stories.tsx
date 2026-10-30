@@ -5,7 +5,7 @@ import base, { NoMatch as source } from "../../flow-definitions/navigation"
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 搜索入口", "点击 · 搜索聊天…", "输入 · 搜索框", "关闭弹窗"]
+const labels = ["初始页面 · 搜索入口", "点击 · 搜索聊天", "输入 · 搜索框", "关闭弹窗"]
 const config = { labels, id: "workflow-navigation-nomatch" }
 const meta = {
   ...base,

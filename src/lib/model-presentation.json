@@ -1,0 +1,4 @@
+{
+  "gateway:deepseek:deepseek-flash": { "shortLabel": "Flash" },
+  "gateway:litellm:deepseek-V4.1-flash": { "shortLabel": "Flash" }
+}

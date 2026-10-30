@@ -2,6 +2,7 @@
 // section on the right. The initial section comes from `?tab=`, later switches from the
 // `settings-change-tab` event; closing the window hides it so reopening is instant.
 
+import { MENU_HIGHLIGHT, NavigationItemButton, NavigationStack } from "@alwith/module-chat/session-list"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import {
@@ -10,10 +11,14 @@ import {
   Code2Icon,
   ContrastIcon,
   CpuIcon,
+  DownloadIcon,
+  FolderTreeIcon,
   InfoIcon,
   MicIcon,
   MonitorIcon,
   SlidersHorizontalIcon,
+  SmartphoneIcon,
+  TouchpadIcon,
   UserIcon
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -22,15 +27,13 @@ import { toast } from "sonner"
 
 import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
-import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { DriveSettings } from "@/features/drive/drive"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { ExtensionSettingsContent, ExtensionSettingsNavigation } from "@/features/extensions/extension-outlets"
 import { ExtensionMount } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
-import { useExtensions } from "@/features/extensions/runtime"
-import { NavigationItemButton } from "@/features/layout/components/navigation/navigation-item"
-import { NavigationStack } from "@/features/layout/components/navigation/navigation-stack"
+import { useExtensions } from "@/features/extensions/use-extensions"
+import { MobileSection } from "@/features/mobile/mobile-section"
 import { EditorSettingsSection } from "@/features/workspace/editor-settings-dialog"
 import { SETTINGS_CHANGE_TAB, SETTINGS_SECTIONS, type SettingsSection } from "@/lib/window-manager"
 
@@ -38,21 +41,28 @@ import { AboutSection } from "./sections/about-section"
 import { AccountSection } from "./sections/account-section"
 import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
+import { ExplorerSection } from "./sections/explorer-section"
 import { GeneralSection } from "./sections/general-section"
+import { ImportSection } from "./sections/import-section"
 import { ProviderSection } from "./sections/provider-section"
+import { TrackpadRow } from "./sections/trackpad-row"
 import { VoiceSection } from "./sections/voice-section"
 import "./settings.css"
 
 const ICONS: Record<SettingsSection, typeof InfoIcon> = {
+  mobile: SmartphoneIcon,
   account: UserIcon,
   computer: MonitorIcon,
   drive: CloudIcon,
   general: SlidersHorizontalIcon,
+  trackpad: TouchpadIcon,
   editor: Code2Icon,
+  explorer: FolderTreeIcon,
   appearance: ContrastIcon,
   provider: CpuIcon,
   voice: MicIcon,
   extensions: BlocksIcon,
+  import: DownloadIcon,
   about: InfoIcon
 }
 
@@ -105,13 +115,19 @@ export function SettingsPage() {
       (() => {
         switch (section) {
           case "drive":
-            return driveVisible ? <DriveSettings /> : <AccountSection />
+            return driveVisible ? <DriveSettings /> : <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "account":
-            return <AccountSection />
+            return <AccountSection onOpenMobile={() => setSection("mobile")} />
           case "editor":
             return <EditorSettingsSection />
+          case "explorer":
+            return <ExplorerSection />
+          case "mobile":
+            return <MobileSection onOpenAccount={() => setSection("account")} />
           case "computer":
             return <ComputerSection />
+          case "trackpad":
+            return <TrackpadRow />
           case "general":
             return <GeneralSection />
           case "appearance":
@@ -120,10 +136,12 @@ export function SettingsPage() {
             return <VoiceSection />
           case "provider":
             return <ProviderSection />
+          case "import":
+            return <ImportSection />
           case "about":
             return <AboutSection />
           case "extensions":
-            return <ExtensionsSection />
+            return <ExtensionsSection settings />
         }
       })()
     )
@@ -166,10 +184,10 @@ export function SettingsPage() {
   return (
     <AuxWindowShell
       sidebar={sidebar}
-      sidebarClassName="w-60 [--navigation-row-height:36px]"
+      sidebarClassName="w-60 [--navigation-row-height:30px]"
       className="settings-window"
     >
-      <Pane viewportClassName="px-6 pt-5 pb-10">
+      <Pane className="pe-0" viewportClassName="px-6 pt-5 pb-10">
         <section
           className="settings-content mx-auto w-full max-w-3xl"
           aria-label={

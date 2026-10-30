@@ -9,6 +9,30 @@ pub struct AppInfo {
 }
 
 #[tauri3_specta::command]
+pub async fn default_browser(state: tauri::State<'_, crate::native::Native>) -> Result<String, serde_json::Value> {
+    let value = state.installed_apps.call("installed_apps.default_browser", serde_json::json!({})).await?;
+    serde_json::from_value(value)
+        .map_err(|error| serde_json::json!({"kind": "invalid_response", "message": error.to_string()}))
+}
+
+#[tauri3_specta::command]
+pub async fn is_app_running(
+    state: tauri::State<'_, crate::native::Native>, bundle_id: String,
+) -> Result<bool, serde_json::Value> {
+    let value =
+        state.installed_apps.call("installed_apps.running", serde_json::json!({"bundle_id": bundle_id})).await?;
+    serde_json::from_value(value)
+        .map_err(|error| serde_json::json!({"kind": "invalid_response", "message": error.to_string()}))
+}
+
+#[tauri3_specta::command]
+pub async fn open_app_by_id(
+    state: tauri::State<'_, crate::native::Native>, bundle_id: String,
+) -> Result<(), serde_json::Value> {
+    state.installed_apps.call("installed_apps.open", serde_json::json!({"bundle_id": bundle_id})).await.map(|_| ())
+}
+
+#[tauri3_specta::command]
 pub async fn read_apps_info(
     state: tauri::State<'_, crate::native::Native>, names: Vec<String>, with_icons: bool,
 ) -> Result<Vec<AppInfo>, serde_json::Value> {

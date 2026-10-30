@@ -30,6 +30,9 @@
       "identifier": "http:default",
       "allow": [
         {
+          "url": "http://localhost:12306/ping"
+        },
+        {
           "url": "https://api.alwith.ai/service/**"
         },
         {
@@ -51,9 +54,11 @@
       ]
     },
     "process:allow-restart",
-    "store:default",
     "updater:default",
     "window-state:default",
-    "core:window:allow-start-resize-dragging"
+    "core:window:allow-start-resize-dragging",
+    "alwith-module-store:default",
+    "alwith-auth-client:default",
+    "dialog:allow-save"
   ]
 }

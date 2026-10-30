@@ -1,3 +1,4 @@
+import { SidebarOverlayContext } from "@alwith/module-chat/session-list"
 import "@nyssance/atlas/styles.css"
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import { PanelLeftDashedIcon, PanelLeftIcon } from "lucide-react"
@@ -7,7 +8,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import { SidebarOverlayContext } from "@/components/alwith-ui/sidebar-overlay-context"
 import {
   WindowsTitleBarContext,
   WindowsWorkspaceControlsContext
@@ -32,6 +32,7 @@ export function MainSidebarLayout({
   sidebar,
   leading,
   main,
+  trailing,
   toolbar,
   statusBar,
   children
@@ -42,6 +43,7 @@ export function MainSidebarLayout({
   sidebar: ReactNode
   leading: ReactNode
   main: ReactNode
+  trailing?: ReactNode
   toolbar?: ReactNode
   statusBar?: ReactNode
   children?: ReactNode
@@ -53,11 +55,11 @@ export function MainSidebarLayout({
   const fullscreen = useWindowFullscreen()
   const [pinned, setPinned] = useState(initialPinned)
   const [presentation, setPresentation] = useState<"docked" | "floating">(initialPinned ? "docked" : "floating")
-  const canvas = useMainCanvas(screen, pinned, onScreenChange)
+  const canvas = useMainCanvas(screen, pinned, onScreenChange, trailing !== undefined)
   const navigate = canvas.context.navigate
   const mainActive = screen === "main"
   const showMainControls = mainActive && canvas.selected === 1
-  const pinnedOnScreen = pinned && canvas.selected !== 2
+  const pinnedOnScreen = pinned && canvas.selected === 1
   const docked = !mainActive || pinnedOnScreen
   const visible = docked || canvas.navigationPeeking
   const panelId = useId()
@@ -79,7 +81,7 @@ export function MainSidebarLayout({
   const changePinned = useCallback(
     (next: boolean) => {
       if (!mainActive) return
-      if (next && canvas.selected === 2) navigate("chat")
+      if (next && canvas.selected > 1) navigate("chat")
       setPresentation("docked")
       setPinned(next)
       // Serialize writes so rapid toggles cannot restore an older choice on restart.
@@ -139,6 +141,9 @@ export function MainSidebarLayout({
       style={
         {
           "--sidebar-width": `${desktopDefaults.navigationWidth}px`,
+          "--main-surface-radius": `${desktopDefaults.surfaceRadius}px`,
+          "--main-surface-gutter": `${desktopDefaults.gutter}px`,
+          "--main-titlebar-height": `${desktopDefaults.insetTop}px`,
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--canvas-sidebar-offset": `${Math.max(0, (canvas.geometry.stops[canvas.selected] ?? 0) - canvas.geometry.leading)}px`,
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
@@ -173,7 +178,7 @@ export function MainSidebarLayout({
                 <div
                   key={index}
                   className="canvas-snap"
-                  data-atlas-region={index === 0 ? "leading" : index === 1 ? "chat" : "preview"}
+                  data-atlas-region={canvas.geometry.regions[index]}
                   data-atlas-leading={index === 0 ? "" : undefined}
                   aria-hidden="true"
                   style={{ insetInlineStart: offset, width: canvas.width }}
@@ -209,12 +214,25 @@ export function MainSidebarLayout({
               >
                 {main}
               </div>
+              {trailing !== undefined && (
+                <aside
+                  className="main-screen-trailing"
+                  data-screen-panel="trailing"
+                  inert={canvas.geometry.regions[canvas.selected] !== "trailing" && !canvas.moving}
+                >
+                  {trailing}
+                </aside>
+              )}
             </div>
           </div>
         </div>
       </CanvasContext.Provider>
       <footer className="main-window-statusbar">
-        <CanvasDots count={canvas.geometry.stops.length} selected={canvas.selected} onSelect={canvas.select} />
+        <CanvasDots
+          count={canvas.geometry.regions.filter((region) => region === "chat" || region === "preview").length}
+          selected={Math.min(canvas.selected - 1, canvas.geometry.split ? 1 : 0)}
+          onSelect={(index) => canvas.select(index + 1)}
+        />
         {statusBar}
       </footer>
       {children}

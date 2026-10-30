@@ -4,11 +4,15 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
 
+import { loadAppEnv } from "./scripts/lib/app-env.ts"
+import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
+
 const host = process.env.TAURI_DEV_HOST
 const debug = process.env.TAURI_ENV_DEBUG === "true"
 
-export const config = (): UserConfig => ({
-  plugins: [react(), tailwindcss()],
+export const config = (mode = "development"): UserConfig => ({
+  define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
+  plugins: [react(), tailwindcss(), productionJsxGuard()],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"],
     alias: {
@@ -45,9 +49,11 @@ export const config = (): UserConfig => ({
   },
   clearScreen: false,
   server: {
+    // WebKit stack frames can omit URLs, which crashes Vite's console-forwarding parser.
+    forwardConsole: false,
     port: 1430,
     strictPort: true,
-    host: host ?? false,
+    host: host ?? "127.0.0.1",
     hmr: host ? { protocol: "ws", host, port: 1431 } : undefined,
     watch: {
       ignored: ["**/src-tauri/**"]
@@ -55,6 +61,7 @@ export const config = (): UserConfig => ({
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],
   build: {
+    license: { fileName: "THIRD_PARTY_LICENSES.txt" },
     target: "esnext",
     rolldownOptions: {
       input: {
@@ -72,4 +79,4 @@ export const config = (): UserConfig => ({
   }
 })
 
-export default defineConfig(config)
+export default defineConfig(({ mode }) => config(mode))

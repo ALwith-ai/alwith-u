@@ -34,7 +34,10 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
   private readonly acpNotificationHandlers = new Set<(notification: RuntimeAcpNotification) => void>()
   private readonly acpAgentRequestHandlers = new Set<(request: RuntimeAcpAgentRequest) => void>()
   /** Requests this fake Runtime issued itself (`rt-<n>`), like the real one. */
-  private readonly pendingAcp = new Map<string | number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
+  private readonly pendingAcp = new Map<
+    string | number,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >()
   private nextAcpId = 1
   private states: SessionRunState[] = []
   private pending: Record<string, RuntimeAttachInfo> = {}
@@ -101,7 +104,9 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
             // Like the real Runtime: answers to its own requests never reach `inbound`; notifications and
             // agent requests are split out as events alongside the raw line.
             const waiter =
-              value.method === undefined && (typeof value.id === "string" || typeof value.id === "number") ? this.pendingAcp.get(value.id) : undefined
+              value.method === undefined && (typeof value.id === "string" || typeof value.id === "number")
+                ? this.pendingAcp.get(value.id)
+                : undefined
             if (waiter !== undefined) {
               this.pendingAcp.delete(value.id as string | number)
               if (value.error !== undefined && value.error !== null)
@@ -189,7 +194,12 @@ export class FakeHubPort implements RuntimeClient<{ engine: string }> {
 
   // ---- the ACP layer, mirroring the real Runtime ----
 
-  async acpRequest<Result = unknown>(agentId: string, method: string, params?: unknown, options?: { id?: string | number }): Promise<Result> {
+  async acpRequest<Result = unknown>(
+    agentId: string,
+    method: string,
+    params?: unknown,
+    options?: { id?: string | number }
+  ): Promise<Result> {
     if (method === "initialize" && this.initializeSnapshot !== null) return this.initializeSnapshot as Result
     const id = options?.id ?? `rt-${this.nextAcpId++}`
     const answer = new Promise<unknown>((resolve, reject) => this.pendingAcp.set(id, { resolve, reject }))

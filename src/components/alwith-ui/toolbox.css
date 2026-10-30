@@ -1,0 +1,124 @@
+.toolbox-content {
+  width: 100%;
+  max-width: 1152px;
+  margin-inline: auto;
+  padding-inline: 48px;
+}
+
+.toolbox-surface,
+.toolbox-detail {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  --app-scrollbar-edge-gap: 2px;
+}
+
+.toolbox-surface h1,
+.toolbox-detail [data-slot="dialog-title"] {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.toolbox-surface h2 {
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.toolbox-row {
+  min-height: 80px;
+  flex-wrap: nowrap;
+  gap: 12px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.toolbox-row [data-slot="item-content"] {
+  gap: 4px;
+}
+
+.toolbox-row [data-slot="item-title"] {
+  margin-block: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.toolbox-row [data-slot="item-description"] {
+  margin-block: 0;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.toolbox-row [data-toolbox-metadata] {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.toolbox-row [data-slot="item-media"] {
+  align-self: center;
+  transform: none;
+}
+
+.toolbox-toolbar [data-slot="button"] {
+  height: 32px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.toolbox-toolbar [data-slot="input"] {
+  height: 32px;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.toolbox-toolbar .toolbox-search-clear {
+  width: 24px;
+  height: 24px;
+}
+
+.toolbox-detail [data-slot="dialog-description"] {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.toolbox-extension-settings {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.toolbox-extension-settings :is(h1, h2, h3) {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+@container (width < 640px) {
+  .toolbox-content {
+    padding-inline: 32px;
+  }
+}
+
+@container (width < 480px) {
+  .toolbox-content {
+    padding-inline: 24px;
+  }
+}
+
+.toolbox-extension-surface .alwith-legacy.legacy-settings {
+  padding: 0;
+}
+.toolbox-extension-surface .alwith-legacy > :first-child {
+  margin-top: 0;
+}
+
+.toolbox-extension-page .toolbox-content {
+  max-width: none;
+}

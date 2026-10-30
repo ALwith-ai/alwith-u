@@ -1,14 +1,13 @@
-import { createSession } from "@alwith/api"
+import { drafts, exportDraft, importDraft, isPastedTextAttachment } from "@alwith/module-chat/conversation"
+import { createSession } from "@nyssance/codex-acp-v2/client"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { commands } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
 
-import { Composer } from "../../composer"
+import { Composer } from "../../__tests__/timeline-host"
 import * as preview from "../../dialogs/file-preview-modal"
-import { drafts, exportDraft, importDraft } from "../drafts"
-import { isPastedTextAttachment } from "../long-text"
 
 await initI18n("en")
 const session = (id = "paste-session") => ({ ...createSession(id, "/tmp"), attached: true })

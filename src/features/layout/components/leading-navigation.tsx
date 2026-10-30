@@ -1,4 +1,4 @@
-import { ArchiveIcon, BlocksIcon, PawPrintIcon, PuzzleIcon } from "lucide-react"
+import { ArchiveIcon, LayoutGridIcon, PawPrintIcon } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -9,7 +9,6 @@ export function LeadingNavigation({
   activePage,
   onOpenVibemon,
   onOpenPlugins,
-  onOpenExtensions,
   onOpenArchives,
   children
 }: {
@@ -17,14 +16,12 @@ export function LeadingNavigation({
   children?: ReactNode
   onOpenVibemon: () => void
   onOpenPlugins: () => void
-  onOpenExtensions: () => void
   onOpenArchives: () => void
 }): ReactElement {
   const { t } = useTranslation()
   const items = [
     { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
-    { id: "plugins", label: t("sidebar.plugins"), icon: PuzzleIcon, onClick: onOpenPlugins },
-    { id: "extensions", label: t("sidebar.extensions"), icon: BlocksIcon, onClick: onOpenExtensions },
+    { id: "plugins", label: t("plugins.catalog.customize"), icon: LayoutGridIcon, onClick: onOpenPlugins },
     { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
   ] as const
 
@@ -36,7 +33,7 @@ export function LeadingNavigation({
             variant="ghost"
             size="icon"
             aria-label={label}
-            aria-current={activePage === id ? "page" : undefined}
+            aria-current={activePage === id || (id === "plugins" && activePage === "extensions") ? "page" : undefined}
             onClick={onClick}
             className="size-9 rounded-[10px] text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground motion-reduce:transition-none"
           >

@@ -52,7 +52,9 @@ export const Toggling: Story = {
   name: "启停处理中",
   args: { pluginOperation: "toggling" },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
     await userEvent.click(await canvas.findByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await waitFor(() => expect(Object.values(pluginsStore.getState().busyIds)).toContain("toggling"))
   }
@@ -62,7 +64,9 @@ export const ToggleError: Story = {
   name: "启停失败 · 回滚状态",
   args: { pluginOperation: "toggleError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
     await userEvent.click(await canvas.findByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await expect(
@@ -74,9 +78,10 @@ export const Uninstalling: Story = {
   name: "卸载处理中",
   args: { pluginOperation: "uninstalling" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
-    await userEvent.click((await canvas.findAllByRole("button", { name: "更多操作" }))[0]!)
-    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: /卸载/ }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("button", { name: /卸载/ }))
     await waitFor(() => expect(Object.values(pluginsStore.getState().busyIds)).toContain("uninstalling"))
   }
 }
@@ -85,9 +90,10 @@ export const UninstallError: Story = {
   name: "卸载失败 · 保留插件",
   args: { pluginOperation: "uninstallError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
-    await userEvent.click((await canvas.findAllByRole("button", { name: "更多操作" }))[0]!)
-    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: /卸载/ }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("button", { name: /卸载/ }))
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await expect(pluginsStore.getState().installed).toHaveLength(2)
   }
@@ -97,10 +103,8 @@ export const UninstallRetry: Story = {
   name: "卸载失败 → 重试成功",
   play: async (context) => {
     await UninstallError.play!(context)
-    const canvas = within(context.canvasElement)
-    await context.userEvent.click(canvas.getAllByRole("button", { name: "更多操作" })[0]!)
     await context.userEvent.click(
-      await within(context.canvasElement.ownerDocument.body).findByRole("menuitem", { name: /卸载/ })
+      await within(context.canvasElement.ownerDocument.body).findByRole("button", { name: /卸载/ })
     )
     await waitFor(() => expect(pluginsStore.getState().installed).toHaveLength(1))
   }
@@ -136,8 +140,9 @@ export const SkillError: Story = {
   name: "技能启停失败",
   args: { pluginOperation: "skillError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
-    await userEvent.click((await canvas.findAllByRole("switch", { name: "禁用技能" }))[0]!)
+    await userEvent.click(canvas.getByRole("button", { name: "技能" }))
+    await userEvent.click(await canvas.findByRole("button", { name: "project-review" }))
+    await userEvent.click((await within(document.body).findAllByRole("switch", { name: /^禁用技能:/ }))[0]!)
     await within(canvasElement.ownerDocument.body).findByText(/模拟技能启停失败/)
     await expect(pluginsStore.getState().skills[0]?.enabled).toBe(true)
   }

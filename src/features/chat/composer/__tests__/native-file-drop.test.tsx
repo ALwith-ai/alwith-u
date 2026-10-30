@@ -1,3 +1,5 @@
+import { PromptInput } from "@alwith/module-chat/composer"
+import { PromptInputProvider, usePromptInputAttachments } from "@alwith/module-chat/composer-context"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest"
@@ -8,7 +10,6 @@ import { basename } from "@/lib/path"
 import { mockOf } from "@/test/mock-of"
 
 import { nativeAttachmentPolicy, NativeFileDrop } from "../native-file-drop"
-import { PromptInput, PromptInputProvider, usePromptInputAttachments } from "../prompt-input"
 
 type Drop = { payload: { type: "drop"; paths: string[]; position: { x: number; y: number } } }
 const host = vi.hoisted(() => ({
@@ -40,7 +41,7 @@ function Harness({ sessionId = "main-session", enabled = true }: { sessionId?: s
   return (
     <div data-chat-drop-zone>
       <PromptInputProvider attachmentPolicy={nativeAttachmentPolicy}>
-        <PromptInput accept="image/png" onError={host.error} onSubmit={() => {}}>
+        <PromptInput accept="image/png" onError={host.error} onSubmit={() => {}} onSubmitError={host.error}>
           <NativeFileDrop
             sessionId={sessionId}
             enabled={enabled}

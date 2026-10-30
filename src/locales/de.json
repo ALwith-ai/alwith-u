@@ -15,6 +15,7 @@
     "pending": "Ausstehend"
   },
   "actions": {
+    "confirm": "Bestätigen",
     "copy": "Kopieren",
     "copied": "Kopiert",
     "cancel": "Abbrechen",
@@ -47,7 +48,6 @@
     "background": "Hintergrund",
     "newChat": "Neuer Chat",
     "untitled": "Neuer Chat",
-    "unarchive": "Wiederherstellen",
     "delete": "Löschen",
     "rename": "Umbenennen",
     "search": "Chats suchen",
@@ -59,10 +59,7 @@
     "showRight": "Rechte Seitenleiste anzeigen",
     "hideRight": "Rechte Seitenleiste ausblenden",
     "backToMain": "Zurück zum Hauptbildschirm",
-    "archived": "Archiviert",
-    "archive": "Archivieren",
     "loadMore": "Mehr laden",
-    "fork": "Verzweigen",
     "deleteTitle": "Diesen Chat löschen?",
     "deleteDescription": "Dieser Chat wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
     "noResults": "Keine Chats gefunden"
@@ -111,8 +108,12 @@
     "steerPlaceholder": "Eine Anweisung zum aktuellen Durchlauf hinzufügen",
     "permissionModes": {
       "readOnly": {
+        "name": "Nur lesen",
+        "description": "Dateien im Arbeitsbereich lesen; Änderungen und Internetzugriff erfordern eine Genehmigung"
+      },
+      "workspaceAccess": {
         "name": "Genehmigung anfordern",
-        "description": "Vor dem Bearbeiten externer Dateien und der Internetnutzung immer nachfragen"
+        "description": "Dateien im Arbeitsbereich lesen und bearbeiten sowie Befehle ausführen; Internetzugriff und Änderungen außerhalb des Arbeitsbereichs erfordern eine Genehmigung"
       },
       "agent": {
         "name": "Für mich genehmigen",
@@ -120,7 +121,7 @@
       },
       "fullAccess": {
         "name": "Vollzugriff",
-        "description": "Uneingeschränkter Zugriff auf das Internet und alle Dateien auf deinem Computer"
+        "description": "Mit Vorsicht verwenden: Codex kann ohne Genehmigung Dateien außerhalb dieses Arbeitsbereichs bearbeiten und auf das Internet zugreifen"
       },
       "heading": "Wie sollen ALwith U-Aktionen genehmigt werden?"
     }
@@ -184,7 +185,13 @@
       "mac": "Wechseln Sie Seiten mit drei Fingern. Mission Control oder App Exposé unter macOS können das Wischen unterbrechen; passen Sie die Gesten in den Systemeinstellungen an.",
       "windows": "Wechseln Sie Seiten mit drei Fingern auf einem Präzisionstouchpad. Systemgesten können ebenfalls ausgelöst werden; wählen Sie unter Windows-Einstellungen > Bluetooth und Geräte > Touchpad für Drei-Finger-Wischgesten „Nichts“.",
       "unsupported": "Unter Linux nicht unterstützt. Verwenden Sie die Navigationstasten oder ziehen Sie mit der mittleren Maustaste."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Trackpad-Gesten aktivieren",
+    "threeFingerSwipeDesc": "Mit drei Fingern horizontal über die Arbeitsfläche wischen",
+    "import": "Importieren",
+    "explorer": "Explorer",
+    "explorerHiddenDescription": "Versteckte Dateien und Ordner anzeigen, deren Namen mit einem Punkt (.) beginnen"
   },
   "usage": {
     "usage": "Nutzung",
@@ -337,10 +344,13 @@
     "source": "Quelle",
     "newTab": "Neuer Tab",
     "emptyNewTab": "Neuer Tab",
-    "more": "Weitere Aktionen"
+    "more": "Weitere Aktionen",
+    "ignored": "Von Git ignorierte Dateien anzeigen"
   },
   "pet": {
-    "retry": "Wiederholen"
+    "retry": "Wiederholen",
+    "lounge": "Vibémon-Lounge",
+    "recall": "Zurück in den Aufenthaltsraum"
   },
   "app": {
     "name": "ALwith U"
@@ -352,5 +362,28 @@
   "canvas": {
     "navigation": "Seitennavigation",
     "page": "Seite {{number}}"
+  },
+  "computer": {
+    "connection": "Verbindung",
+    "reconnect": "Neu verbinden",
+    "verifying": "Wird geprüft…",
+    "reconnectHint": "Die Neuverbindung stoppt Computeraktionen und prüft Bildschirmaufnahme und Bedienungshilfen. Aktionen werden nicht wiederholt. Senden Sie danach Ihre Nachricht erneut.",
+    "diagnostics": "Diagnose (aktuelle App-Sitzung)",
+    "phases": {
+      "disabled": "Aus",
+      "verifying": "Zugriff wird geprüft",
+      "ready": "Bereit",
+      "stopping": "Wird gestoppt",
+      "failed": "Wiederherstellung nötig"
+    }
+  },
+  "voice": {
+    "realtimeStart": "Codex-Sprachanruf starten",
+    "realtimeStop": "Sprachanruf beenden",
+    "realtimeCancel": "Sprachverbindung abbrechen"
+  },
+  "workbuddy": {
+    "headline": "Erstelle deinen eigenen Desktop-Harness",
+    "create": "Erstelle dein eigenes ALwith"
   }
 }

@@ -1,41 +1,64 @@
+import type { ModelMenuProps } from "@alwith/module-chat/conversation"
 import type { ChatModelOption } from "@alwith/module-chat/model-select"
 import { Bot } from "lucide-react"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import openaiLogo from "@/components/icons/openai-logo.svg"
-import { PROVIDERS } from "@/lib/providers"
+import modelPresentation from "@/lib/model-presentation.json"
+import providerCatalog from "@/lib/provider-catalog.json"
+import { gatewayModelId, PROVIDERS } from "@/lib/providers"
 
-type ModelGroup = { id: string; name: string; models: ChatModelOption[] }
+import alwithLogo from "../../../../src-tauri/icons/32x32.png"
+import { ModelSettingsAction } from "./model-settings-action"
 
-/** Compact composer labels without changing the full catalog names. */
-export function modelTriggerLabel(label: string): string {
-  if (/^deepseek[- ]flash$/i.test(label)) return "flash"
-  return label.replace(/^GPT[- ](?=\d)/i, "")
+type ModelOption = ChatModelOption & { shortLabel?: string }
+type ModelGroup = { id: string; name: string; models: ModelOption[] }
+
+const managedLabels = new Map(
+  providerCatalog
+    .filter((provider) => provider.source === "account")
+    .flatMap((provider) =>
+      provider.models.map((model) => [gatewayModelId(provider.id, model.id), model.label] as const)
+    )
+)
+
+const presentation: Record<string, { shortLabel: string } | undefined> = modelPresentation
+
+/** Short labels affect only the selected trigger; catalog labels remain authoritative. */
+export function modelTriggerLabel(model: ModelOption): string {
+  return model.shortLabel ?? model.label
 }
 
-/** Preserve catalog order and reserve the last primary slot for the active model. */
-export function presentModelCatalog(groups: ModelGroup[], selected: string): ModelGroup[] {
-  const hasGateways = groups.some((group) => group.id !== NATIVE_MODEL_GROUP.id && group.models.length > 0)
-  return groups.map((group) => {
+/** Put the subscription provider first while preserving provider and model order. */
+export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
+  const ordered = [
+    ...groups.filter((group) => group.id === NATIVE_MODEL_GROUP.id),
+    ...groups.filter((group) => group.id !== NATIVE_MODEL_GROUP.id)
+  ]
+  return ordered.map((group) => {
     const native = group.id === NATIVE_MODEL_GROUP.id
-    const limit = native ? (hasGateways ? 3 : 4) : 1
-    const primary = group.models.slice(0, limit).map((model) => model.api_id)
-    if (group.models.some((model) => model.api_id === selected) && !primary.includes(selected)) {
-      primary[primary.length - 1] = selected
-    }
     const Logo = PROVIDERS.find((provider) => provider.id === group.id)?.logo ?? Bot
     return {
       ...group,
       models: group.models.map((model) => ({
         ...model,
-        label: group.id === "qwen" && !/^qwen\b/i.test(model.label) ? `Qwen ${model.label}` : model.label,
+        label: managedLabels.get(model.api_id) ?? model.label,
+        shortLabel: model.shortLabel ?? presentation[model.api_id]?.shortLabel,
         icon: native ? (
           <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
+        ) : group.id === "litellm" ? (
+          <img src={alwithLogo} alt="" className="size-4 shrink-0" />
         ) : (
           <Logo aria-hidden="true" className="size-4 shrink-0" />
-        ),
-        more: !primary.includes(model.api_id)
+        )
       }))
     }
   })
+}
+
+/** U's model menu policy: subscription models first, provider logos, short labels, settings action. */
+export const chatModelMenu: Pick<ModelMenuProps, "catalog" | "defaultGroup" | "headerAction"> = {
+  defaultGroup: NATIVE_MODEL_GROUP,
+  catalog: presentModelCatalog,
+  headerAction: <ModelSettingsAction />
 }

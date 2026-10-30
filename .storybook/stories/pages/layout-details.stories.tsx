@@ -36,7 +36,7 @@ const extensionManifests: ExtensionManifest[] = Array.from({ length: 20 }, (_, i
   manifestVersion: 3,
   entry: "main.js",
   dataSchemaVersion: 1,
-  dependencies: { "@alwith/module-extension": "^0.1.0" },
+  dependencies: { "@alwith/module-extension": "^0.5.0" },
   hosts: {}
 }))
 const extensionHost: HostSnapshot = {
@@ -76,7 +76,6 @@ export const LeadingApps: Story = {
                 onOpenVibemon={() => setActive(null)}
                 onOpenPlugins={() => setActive(null)}
                 onOpenArchives={() => setActive(null)}
-                onOpenExtensions={() => setActive(null)}
               >
                 <ExtensionNavigation
                   host={extensionHost}
@@ -107,7 +106,7 @@ export const LeadingApps: Story = {
     await expect(canvas.getByRole("heading")).toHaveTextContent("app-19/page")
     await expect(fixed.getBoundingClientRect().top).toBe(top)
     await expect(canvas.getByRole("button", { name: "App 20" })).toHaveAttribute("aria-current", "page")
-    await expect(canvas.getByRole("button", { name: "Extensions" })).not.toHaveAttribute("aria-current")
+    await expect(canvas.getByRole("button", { name: "Toolbox" })).not.toHaveAttribute("aria-current")
   }
 }
 
@@ -127,7 +126,6 @@ export const LeadingFeatures: Story = {
                 activePage={page}
                 onOpenVibemon={() => setPage("vibemon")}
                 onOpenPlugins={() => setPage("plugins")}
-                onOpenExtensions={() => setPage("extensions")}
                 onOpenArchives={() => setPage("archives")}
               />
               <SidebarInset className="main-chat-surface p-8">
@@ -140,9 +138,9 @@ export const LeadingFeatures: Story = {
     )
   },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "插件" }))
+    await userEvent.click(canvas.getByRole("button", { name: "工具箱" }))
     await expect(canvas.getByRole("heading")).toHaveTextContent("plugins")
-    await expect(canvas.getByRole("button", { name: "插件" })).toHaveAttribute("aria-current", "page")
+    await expect(canvas.getByRole("button", { name: "工具箱" })).toHaveAttribute("aria-current", "page")
   }
 }
 
@@ -196,12 +194,12 @@ export const ArabicFloatingSidebar: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
     await userEvent.hover(toggle)
-    await waitFor(() => {
+    await waitFor(async () => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 4, 0)
-      void expect(getComputedStyle(sidebar).visibility).toBe("visible")
+      await expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      await expect(sidebar.getBoundingClientRect().right).toBeCloseTo(viewport.getBoundingClientRect().right - 8, 0)
+      await expect(getComputedStyle(sidebar).visibility).toBe("visible")
     })
   }
 }
@@ -246,19 +244,21 @@ export const EnglishFloatingSidebar: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const toggle = canvasElement.querySelector<HTMLButtonElement>(".main-sidebar-toggle button")!
     await userEvent.hover(toggle)
-    await waitFor(() => {
+    await waitFor(async () => {
       const sidebar = canvasElement.querySelector(".main-sidebar-panel")!
       const viewport = canvasElement.querySelector('[data-slot="sidebar-wrapper"]')!
-      void expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
-      void expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 4, 0)
-      const style = getComputedStyle(sidebar)
-      void expect([
+      await expect(viewport.getAttribute("data-sidebar-mode")).toBe("floating")
+      await expect(sidebar.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const surface = canvasElement.querySelector(".main-sidebar-viewport")!
+      await expect(surface.getBoundingClientRect().left).toBeCloseTo(viewport.getBoundingClientRect().left + 8, 0)
+      const style = getComputedStyle(surface)
+      await expect([
         style.borderTopLeftRadius,
         style.borderTopRightRadius,
         style.borderBottomLeftRadius,
         style.borderBottomRightRadius
       ]).toEqual(["14px", "14px", "14px", "14px"])
-      void expect(style.visibility).toBe("visible")
+      await expect(style.visibility).toBe("visible")
     })
   }
 }

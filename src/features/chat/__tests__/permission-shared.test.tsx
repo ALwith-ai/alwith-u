@@ -1,15 +1,18 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { PermissionModeMenu } from "@alwith/module-chat/conversation"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient, type PendingAction } from "@/agent/client"
+import { ThemeProvider } from "@/components/theme-provider"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { ActionCard } from "../action-card"
+import { ChatTimelineHost } from "./timeline-host"
 
 // happy-dom's TransformStream lacks getWriter; the in-process ACP peer needs real Web Streams.
 vi.stubGlobal("TransformStream", TransformStream)
@@ -25,6 +28,29 @@ afterEach(async () => {
       for (const client of clients.splice(0)) client.disconnect()
     })
   })
+})
+
+test("full access marks the current permission trigger as destructive", () => {
+  const view = render(
+    <ChatTimelineHost>
+      <PermissionModeMenu
+        sessionId="s"
+        disabled={false}
+        options={[
+          {
+            configId: "mode",
+            name: "Mode",
+            category: "mode",
+            type: "select",
+            currentValue: "agent-full-access",
+            options: [{ value: "agent-full-access", name: "Full access" }]
+          }
+        ]}
+      />
+    </ChatTimelineHost>
+  )
+  mounted.push(view)
+  expect(view.getByRole("button", { name: /Full access/ })).toHaveAttribute("data-permission-warning")
 })
 
 test.each(["Implement this plan?", "Review the implementation plan"])(
@@ -55,7 +81,7 @@ test.each(["Implement this plan?", "Review the implementation plan"])(
       }
     }
     const onRespond = vi.fn()
-    const view = render(<ActionCard action={action} onRespond={onRespond} />)
+    const view = render(<ActionCard action={action} onRespond={onRespond} />, { wrapper: ThemeProvider })
     mounted.push(view)
 
     expect(view.getAllByText(title)).toHaveLength(1)
@@ -82,7 +108,7 @@ test("U shared approval answers the exact pending request through the real ACP c
   const action = client.state.actions[0]
   const respond = vi.spyOn(applicationClient, "respond").mockImplementation((id, answer) => client.respond(id, answer))
   try {
-    const view = render(<ActionCard action={action} />)
+    const view = render(<ActionCard action={action} />, { wrapper: ThemeProvider })
     mounted.push(view)
     const list = view.getByRole("listbox")
     fireEvent.keyDown(list, { key: "1" })

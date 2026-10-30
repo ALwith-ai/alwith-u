@@ -23,7 +23,7 @@ test("cross-target builds never take the native host Runtime artifact", () => {
   expect(runtimeBuildArtifact("runtime", "x86_64-pc-windows-msvc", host)).toBe(
     join("runtime", "target", "x86_64-pc-windows-msvc", "release", "alwith-runtime.exe")
   )
-  expect(runtimeBuildArtifact("runtime", "aarch64-unknown-linux-gnu", host)).toBe(
-    join("runtime", "target", "aarch64-unknown-linux-gnu", "release", "alwith-runtime")
+  expect(runtimeBuildArtifact("runtime", "x86_64-unknown-linux-gnu", host)).toBe(
+    join("runtime", "target", "x86_64-unknown-linux-gnu", "release", "alwith-runtime")
   )
 })

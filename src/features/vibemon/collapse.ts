@@ -6,7 +6,6 @@ export interface PetCollapseHost {
   hasPets: () => Promise<boolean>
   showPet: () => Promise<void>
   bindSession: () => Promise<void>
-  openBubble: () => Promise<void>
   hideChat: () => Promise<void>
   restoreChat: () => Promise<void>
 }
@@ -24,7 +23,6 @@ export async function collapseToPet(host: PetCollapseHost): Promise<PetCollapseR
   await host.showPet()
   host.validate()
   await host.bindSession()
-  await host.openBubble()
   host.validate()
   try {
     await host.hideChat()

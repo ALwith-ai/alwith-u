@@ -1,11 +1,10 @@
 // Only main owns the ACP connection. The chat window receives projections and forwards
 // a fixed set of actions; it never attaches an agent or persists another conversation.
 
-import type { Session } from "@alwith/api"
+import type { RateLimitSnapshot, RealtimeEvent, Session } from "@nyssance/codex-acp-v2/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
 import { type AppState, CodexClient } from "@/agent/client"
-import type { RateLimitSnapshot } from "@/agent/codex-extensions"
 import { macProjectPaths } from "@/agent/project-path"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
@@ -17,15 +16,19 @@ const RESPONSE = "chat:client-response"
 const STATE = "chat:client-state"
 const LIMITS = "chat:client-limits"
 const CLOSED = "chat:client-closed"
+const REALTIME = "chat:client-realtime"
 const METHODS = [
   "connect",
+  "startRealtime",
+  "stopRealtime",
   "newSession",
   "prepareDraft",
   "discardDraft",
   "transferDraft",
   "fork",
-  "readThreadSummary",
-  "listThreads",
+  "readSessionSummary",
+  "listSessions",
+  "listArchived",
   "open",
   "loadOlderHistory",
   "activityReply",
@@ -33,12 +36,13 @@ const METHODS = [
   "previewHistoryTurn",
   "loadHistoryTurn",
   "prompt",
-  "promptReceipt",
+  "executeShell",
   "retrySession",
   "cancel",
   "close",
   "stopSession",
   "setConfig",
+  "resumeAccountModel",
   "respond",
   "readRateLimits",
   "requestPrediction",
@@ -63,6 +67,7 @@ export async function serveChatClient(
   transport: ChatEvents = events,
   onError: (error: unknown) => void = console.error
 ): Promise<() => void> {
+  const realtime = new Map<string, () => void>()
   let connectionId: string | null = null
   let disposed = false
   let revision = 0
@@ -121,12 +126,38 @@ export async function serveChatClient(
     ({ payload: request }) =>
       void (async () => {
         if (disposed) return
+        let startedSession: string | undefined
         try {
           if (!METHODS.includes(request.method) || !Array.isArray(request.args)) throw new Error("Invalid chat action")
           if (request.method === "connect") {
+            if (connectionId !== null && connectionId !== request.connectionId) {
+              for (const [sessionId, unsubscribe] of realtime) {
+                unsubscribe()
+                await owner.stopRealtime(sessionId)
+              }
+              realtime.clear()
+            }
             connectionId = request.connectionId
             previous = null
           } else if (request.connectionId !== connectionId) throw new Error("Chat window connection expired")
+          if (request.method === "startRealtime") {
+            const sessionId = request.args[0]
+            if (typeof sessionId !== "string") throw new Error("Invalid voice session")
+            if (realtime.has(sessionId)) throw new Error("A voice call already owns this session")
+            const identity = connectionId
+            startedSession = sessionId
+            realtime.set(
+              sessionId,
+              owner.onRealtime(sessionId, (event) => {
+                if (disposed || identity !== connectionId) return
+                void transport.emitTo("chat", REALTIME, { connectionId: identity, event }).catch(onError)
+                if (event.event === "closed" || event.event === "disconnected") {
+                  realtime.get(sessionId)?.()
+                  realtime.delete(sessionId)
+                }
+              })
+            )
+          }
           const action = Reflect.get(owner, request.method) as (...args: unknown[]) => unknown
           const result = await action.apply(owner, request.args)
           if (disposed || connectionId !== request.connectionId) return
@@ -134,6 +165,10 @@ export async function serveChatClient(
           await transport.emitTo("chat", RESPONSE, { connectionId, id: request.id, result } satisfies Response)
         } catch (error) {
           if (disposed) return
+          if (startedSession !== undefined) {
+            realtime.get(startedSession)?.()
+            realtime.delete(startedSession)
+          }
           const code =
             typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
               ? error.code
@@ -160,6 +195,11 @@ export async function serveChatClient(
     stop()
     stopState()
     stopLimits()
+    for (const [id, unsubscribe] of realtime) {
+      unsubscribe()
+      void owner.stopRealtime(id).catch(onError)
+    }
+    realtime.clear()
     void transport.emitTo("chat", CLOSED, { connectionId })
   }
 }
@@ -170,6 +210,7 @@ export class RemoteChatClient extends CodexClient {
   private ready: Promise<void> | null = null
   private stopListeners: (() => void)[] = []
   private revision = 0
+  private readonly realtimeListeners = new Map<string, Set<(event: RealtimeEvent) => void>>()
   private readonly limitsListeners = new Set<(limits: RateLimitSnapshot) => void>()
   private readonly pending = new Map<
     string,
@@ -208,6 +249,11 @@ export class RemoteChatClient extends CodexClient {
         clearTimeout(pending.timer)
         if (payload.error) pending.reject(Object.assign(new Error(payload.error.message), { code: payload.error.code }))
         else pending.resolve(payload.result)
+      }),
+      this.transport.listen<{ connectionId: string; event: RealtimeEvent }>(REALTIME, ({ payload }) => {
+        if (payload.connectionId !== this.connectionId) return
+        const listeners = this.realtimeListeners.get(payload.event.sessionId)
+        if (listeners !== undefined) for (const receive of listeners) receive(payload.event)
       }),
       this.transport.listen<Projection>(STATE, ({ payload }) => {
         if (payload.connectionId !== this.connectionId || payload.revision <= this.revision) return
@@ -256,6 +302,11 @@ export class RemoteChatClient extends CodexClient {
   }
 
   override disconnect(): void {
+    for (const [sessionId, listeners] of this.realtimeListeners) {
+      void this.request("stopRealtime", [sessionId]).catch((error) => console.error(error))
+      for (const receive of listeners) receive({ sessionId, event: "disconnected", data: {} })
+    }
+    this.realtimeListeners.clear()
     this.connectionId = crypto.randomUUID()
     for (const stop of this.stopListeners.splice(0)) stop()
     for (const pending of this.pending.values()) {
@@ -275,8 +326,17 @@ export class RemoteChatClient extends CodexClient {
       runStates: {},
       draftSessions: {},
       sessionWindows: {},
+      accountModelRecovery: {},
       configPending: {},
-      threads: []
+      drafts: {},
+      sessionList: [],
+      sessionListLoaded: false,
+      sessionListLoading: false,
+      sessionListError: null,
+      archivedSessions: [],
+      archivedCursor: null,
+      archivedLoaded: false,
+      forkOrigins: {}
     })
   }
 
@@ -285,8 +345,26 @@ export class RemoteChatClient extends CodexClient {
     if (!session) throw new Error(`Unknown session: ${id}`)
     return session
   }
-  override listThreads(...args: Parameters<CodexClient["listThreads"]>): Promise<void> {
-    return this.request("listThreads", args)
+  override startRealtime(...args: Parameters<CodexClient["startRealtime"]>) {
+    return this.request("startRealtime", args)
+  }
+  override stopRealtime(...args: Parameters<CodexClient["stopRealtime"]>) {
+    return this.request("stopRealtime", args)
+  }
+  override onRealtime(sessionId: string, receive: (event: RealtimeEvent) => void): () => void {
+    let listeners = this.realtimeListeners.get(sessionId)
+    if (listeners === undefined) {
+      listeners = new Set()
+      this.realtimeListeners.set(sessionId, listeners)
+    }
+    listeners.add(receive)
+    return () => {
+      listeners.delete(receive)
+      if (listeners.size === 0) this.realtimeListeners.delete(sessionId)
+    }
+  }
+  override listSessions(...args: Parameters<CodexClient["listSessions"]>): Promise<void> {
+    return this.request("listSessions", args)
   }
   override prepareDraft(...args: Parameters<CodexClient["prepareDraft"]>): Promise<string> {
     return this.request("prepareDraft", args)
@@ -300,10 +378,10 @@ export class RemoteChatClient extends CodexClient {
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", [args[0], args[1] ?? null, "chat"])
   }
-  override readThreadSummary(
-    ...args: Parameters<CodexClient["readThreadSummary"]>
-  ): ReturnType<CodexClient["readThreadSummary"]> {
-    return this.request("readThreadSummary", args)
+  override readSessionSummary(
+    ...args: Parameters<CodexClient["readSessionSummary"]>
+  ): ReturnType<CodexClient["readSessionSummary"]> {
+    return this.request("readSessionSummary", args)
   }
 
   override fork(...args: Parameters<CodexClient["fork"]>): Promise<string> {
@@ -333,11 +411,11 @@ export class RemoteChatClient extends CodexClient {
   override delete(...args: Parameters<CodexClient["delete"]>): Promise<void> {
     return this.request("delete", args)
   }
-  override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<void> {
+  override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
     return this.request("prompt", args)
   }
-  override promptReceipt(...args: Parameters<CodexClient["promptReceipt"]>): Promise<string> {
-    return this.request("promptReceipt", args)
+  override executeShell(...args: Parameters<CodexClient["executeShell"]>): ReturnType<CodexClient["executeShell"]> {
+    return this.request("executeShell", args)
   }
   override retrySession(...args: Parameters<CodexClient["retrySession"]>): Promise<void> {
     return this.request("retrySession", args)
@@ -352,6 +430,10 @@ export class RemoteChatClient extends CodexClient {
   override stopSession(...args: Parameters<CodexClient["stopSession"]>): Promise<void> {
     return this.request("stopSession", args)
   }
+  override resumeAccountModel(...args: Parameters<CodexClient["resumeAccountModel"]>): Promise<void> {
+    return this.request("resumeAccountModel", args)
+  }
+
   override setConfig(...args: Parameters<CodexClient["setConfig"]>): Promise<void> {
     return this.request("setConfig", [args[0], args[1], args[2], "chat"])
   }

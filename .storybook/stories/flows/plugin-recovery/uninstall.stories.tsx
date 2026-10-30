@@ -5,14 +5,7 @@ import base, { Uninstall as source } from "../../flow-definitions/plugin-recover
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = [
-  "初始页面 · 卸载插件",
-  "点击 · 已安装",
-  "点击 · 更多操作",
-  "点击 · 卸载",
-  "点击 · 更多操作",
-  "点击 · 卸载"
-]
+const labels = ["初始页面 · 卸载插件", "点击 · Spreadsheets", "点击 · 卸载", "点击 · 卸载"]
 const config = { labels, id: "workflow-plugin-recovery-uninstall" }
 const meta = {
   ...base,

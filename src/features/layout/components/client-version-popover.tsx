@@ -52,12 +52,16 @@ export function ClientVersionPopover() {
         side="top"
         align="end"
         sideOffset={4}
-        className="w-auto min-w-48 gap-2"
+        className="w-auto gap-1 p-3"
         aria-label={t("settings.about")}
       >
-        <div className="grid gap-1 text-xs text-muted-foreground">
-          <span>{t("settings.version", { version: clientVersion === null ? "—" : `v${clientVersion}` })}</span>
-          <span>{t("settings.codexVersion", { version: cliVersion ?? "—" })}</span>
+        <div className="grid grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span aria-hidden className="size-1.5 rounded-full bg-success" />
+          <span>ALwith U</span>
+          <span className="text-right tabular-nums">{clientVersion === null ? "—" : `v${clientVersion}`}</span>
+          <span aria-hidden className="size-1.5 rounded-full bg-success" />
+          <span>Codex CLI</span>
+          <span className="text-right tabular-nums">{cliVersion ?? "—"}</span>
         </div>
       </PopoverContent>
     </Popover>

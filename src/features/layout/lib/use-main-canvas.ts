@@ -1,4 +1,3 @@
-import { resolveSplitGeometry } from "@nyssance/atlas/layout"
 import { useAtlas } from "@nyssance/atlas/react"
 import { isTauri } from "@tauri-apps/api/core"
 import {
@@ -19,15 +18,17 @@ import { events } from "@/bindings"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
 
 import type { CanvasContext, CanvasWorkspace } from "./canvas-context"
+import { resolveMainCanvasGeometry } from "./canvas-geometry"
 
 export function useMainCanvas(
   screen: "main" | "leading",
   pinned: boolean,
-  onScreenChange?: (screen: "main" | "leading") => void
+  onScreenChange?: (screen: "main" | "leading") => void,
+  trailing = false
 ): {
   ref: RefCallback<HTMLDivElement>
   navigationRef: RefCallback<HTMLDivElement>
-  geometry: ReturnType<typeof resolveSplitGeometry>
+  geometry: ReturnType<typeof resolveMainCanvasGeometry>
   context: NonNullable<ContextType<typeof CanvasContext>>
   selected: number
   moving: boolean
@@ -44,16 +45,28 @@ export function useMainCanvas(
   const viewport = useRef<HTMLDivElement>(null)
   const navigation = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ viewport: 0, navigation: 0 })
-  const [workspace, setWorkspace] = useState<CanvasWorkspace>({ chat: 0, preview: 0, visible: false, maximized: false })
+  const [workspace, setWorkspace] = useState<CanvasWorkspace>({
+    chat: 0,
+    preview: 0,
+    visible: false,
+    maximized: false
+  })
   const [selected, setSelected] = useState(screen === "leading" ? 0 : 1)
   const [moving, setMoving] = useState(false)
+  const settledSelection = useRef(selected)
+  useLayoutEffect(() => {
+    if (!moving) settledSelection.current = selected
+  }, [moving, selected])
   const [navigationPeeking, setNavigationPeeking] = useState(false)
   const divider = useRef(false)
   const [dividerDragging, setDividerState] = useState(false)
   const appliedGeometry = useRef<string | null>(null)
-  const [request, setRequest] = useState<{ region: "chat" | "preview"; revision: number } | null>(null)
+  const [request, setRequest] = useState<{
+    region: "chat" | "preview" | "trailing"
+    revision: number
+  } | null>(null)
   const appliedRequest = useRef<number | null>(null)
-  const region = useRef<"leading" | "chat" | "preview">(screen === "leading" ? "leading" : "chat")
+  const region = useRef<"leading" | "chat" | "preview" | "trailing">(screen === "leading" ? "leading" : "chat")
   const rebuilding = useRef(false)
   const previousScreen = useRef(screen)
   const [initialIndex] = useState(screen === "leading" ? 0 : 1)
@@ -61,7 +74,10 @@ export function useMainCanvas(
   useLayoutEffect(() => {
     callbacks.current = { onScreenChange, screen }
   }, [onScreenChange, screen])
-  const geometry = resolveSplitGeometry({ ...size, pinned, chat: workspace.chat, preview: workspace.preview })
+  const geometry = useMemo(
+    () => resolveMainCanvasGeometry({ ...size, pinned, chat: workspace.chat, preview: workspace.preview }, trailing),
+    [size, pinned, workspace.chat, workspace.preview, trailing]
+  )
   const geometryKey = `${geometry.stops.join(":")}:${geometry.content}:${direction}`
   const { ref: atlasRef, atlas: api } = useAtlas({
     regions: ".canvas-snap",
@@ -72,7 +88,8 @@ export function useMainCanvas(
     watchResize: false,
     watchRegions: false,
     manageInert: false,
-    navigationPinned: screen === "leading" || (pinned && selected !== 2),
+    // Changing this option rebuilds Atlas. Defer docking until motion settles.
+    navigationPinned: pinned && (moving ? settledSelection.current : selected) === 1,
     navigationWidth: size.navigation || 248,
     onNavigationChange: setNavigationPeeking,
     trackpadEnabled: enabled,
@@ -113,7 +130,7 @@ export function useMainCanvas(
     previousScreen.current = next
     if (next !== callbacks.current.screen) callbacks.current.onScreenChange?.(next)
   }, [])
-  const navigate = useCallback((region: "chat" | "preview"): void => {
+  const navigate = useCallback((region: "chat" | "preview" | "trailing"): void => {
     setRequest((current) => ({ region, revision: (current?.revision ?? 0) + 1 }))
   }, [])
   const setDividerDragging = useCallback(
@@ -138,8 +155,7 @@ export function useMainCanvas(
     }
     if (requested) region.current = request.region
     if (region.current === "preview" && !workspace.visible) region.current = "chat"
-    const desired =
-      region.current === "leading" ? 0 : region.current === "preview" ? Math.min(2, geometry.stops.length - 1) : 1
+    const desired = region.current === "preview" && !geometry.split ? 1 : geometry.regions.indexOf(region.current)
     appliedRequest.current = request?.revision ?? null
     const animating = requested && !reduced() && api.getGeometry().selected !== desired
     api.goToSnap(desired, { instant: !animating })
@@ -152,6 +168,8 @@ export function useMainCanvas(
     direction,
     geometryKey,
     geometry.stops.length,
+    geometry.regions,
+    geometry.split,
     workspace.visible,
     size.viewport,
     request,
@@ -182,9 +200,12 @@ export function useMainCanvas(
       const index = api.getGeometry().selected
       setSelected(index)
       if (!rebuilding.current) {
-        if (index === 0) region.current = "leading"
-        else if (index === 2) region.current = "preview"
-        else if (api.getGeometry().snaps.length > 2 || region.current !== "preview") region.current = "chat"
+        const selectedRegion = geometry.regions[index]
+        if (
+          selectedRegion !== undefined &&
+          !(selectedRegion === "chat" && region.current === "preview" && !geometry.split)
+        )
+          region.current = selectedRegion
       }
     }
     const stop = api.subscribe((state) => setMoving(state.moving))
@@ -198,7 +219,7 @@ export function useMainCanvas(
       stop()
       api.off("select", select).off("settle", settle)
     }
-  }, [api, commitScreen])
+  }, [api, commitScreen, geometry.regions, geometry.split])
 
   useEffect(() => {
     if (!api) return
@@ -225,8 +246,11 @@ export function useMainCanvas(
   }, [api, enabled])
 
   const select = (index: number): void => {
+    if (api?.getGeometry().selected === index) return
     api?.cancelInput()
-    region.current = index === 0 ? "leading" : index === 2 ? "preview" : "chat"
+    const target = geometry.regions[index]
+    if (target === undefined) throw new Error("Unknown canvas region")
+    region.current = target
     const animating =
       size.viewport > 0 &&
       !!api &&
@@ -242,13 +266,14 @@ export function useMainCanvas(
       viewportWidth: size.viewport,
       budget: Math.max(0, size.viewport - (pinned ? size.navigation : 0)),
       selected,
-      split: geometry.stops.length > 2,
+      trailingActive: geometry.regions[selected] === "trailing",
+      split: geometry.split,
       moving,
       setWorkspace,
       navigate,
       setDividerDragging
     }),
-    [size, pinned, selected, geometry.stops.length, moving, navigate, setDividerDragging]
+    [size, pinned, selected, geometry.split, geometry.regions, moving, navigate, setDividerDragging]
   )
   return {
     ref,

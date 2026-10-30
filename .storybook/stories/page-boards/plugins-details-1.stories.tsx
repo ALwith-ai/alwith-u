@@ -9,3 +9,4 @@ const meta = {
 export default meta
 
 export const SourceDetails = { ...source.SourceDetails, name: "插件来源详情" }
+export const SkillMarkdown = { ...source.SkillMarkdown, name: "技能文档预览" }

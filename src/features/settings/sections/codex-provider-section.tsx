@@ -1,3 +1,4 @@
+import type { RateLimitWindow } from "@nyssance/codex-acp-v2/client"
 // Account: who is signed in and how much of the plan's rate limits is used, ALwith
 // Desktop's usage section reduced to what Codex reports (`account/read`,
 // `account/rateLimits/read`). The settings window gets the data from the main window's
@@ -8,7 +9,6 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { RateLimitWindow } from "@/agent/codex-extensions"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ActionCard } from "@/features/chat/action-card"
@@ -24,10 +24,10 @@ import {
 
 import { SettingGroup, SettingLabel } from "./shared"
 
-/** Desktop's `UsageLimitRow`: label, a long bar, "n% used", then the reset time under it. */
+/** Desktop's `UsageLimitRow`: label, a long bar, "n% remaining", then the reset time under it. */
 function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
   const { t } = useTranslation()
-  const percent = window ? Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
+  const percent = window ? 100 - Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
   const resets =
     window && window.resetsAt !== null
       ? t("usage.resetsAt", { time: format(new Date(window.resetsAt * 1000), "yyyy/MM/dd HH:mm") })
@@ -55,7 +55,9 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
           <Skeleton className="h-2 rounded-full motion-reduce:animate-none" />
         )}
         {window ? (
-          <span className="text-end text-xs text-muted-foreground tabular-nums">{t("usage.used", { percent })}</span>
+          <span className="text-end text-xs text-muted-foreground tabular-nums">
+            {t("usage.remaining", { percent })}
+          </span>
         ) : (
           <Skeleton className="h-4 w-14 justify-self-end motion-reduce:animate-none" />
         )}
@@ -68,7 +70,7 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
 }
 
 /** The window label: "5 hours" / "Weekly" from the window length Codex reports. */
-export function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
+function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
   const minutes = window.windowDurationMins
   if (minutes === null) return t("usage.usage")
   if (minutes % (24 * 60) === 0) return t("usage.windowDays", { count: minutes / (24 * 60) })

@@ -44,6 +44,9 @@
     "completed": "Started"
   },
   "actions": {
+    "decreaseValue": "Decrease {{name}}",
+    "increaseValue": "Increase {{name}}",
+    "confirm": "Confirm",
     "more": "More actions",
     "openFolder": "Open project folder",
     "openProjectWith": "Open project with {{app}}",
@@ -81,28 +84,7 @@
     "apiKeyTitle": "API key"
   },
   "archives": {
-    "title": "Archived chats",
-    "deleteAll": "Delete all",
-    "search": "Search archived chats",
-    "chatType": "Chat type",
-    "allChats": "All chats",
-    "quickChats": "Quick chats",
-    "projectChats": "Project chats",
-    "project": "Project",
-    "allProjects": "All projects",
-    "noProject": "No project",
-    "count": "{{count}} chats",
-    "updatedAt": "Last updated",
-    "connecting": "Connect to Codex to view archived chats.",
-    "loading": "Loading archived chats…",
-    "retry": "Retry",
-    "empty": "No archived chats",
-    "noResults": "No matching archived chats",
-    "deleteTitle": "Delete archived chats?",
-    "deleteAllDescription": "Permanently delete these {{count}} archived chats? This cannot be undone. Deleting all includes chats hidden by the current filters.",
-    "deleteDescription": "Permanently delete this archived chat? This cannot be undone.",
-    "unarchive": "Unarchive",
-    "confirmDelete": "Delete permanently"
+    "title": "Archived chats"
   },
   "sidebar": {
     "pets": "Vibémon",
@@ -125,14 +107,9 @@
     "background": "Background",
     "newChat": "New chat",
     "chats": "Chats",
-    "archived": "Archived",
-    "showAll": "Show all",
     "loadMore": "Load more",
     "untitled": "New chat",
-    "archive": "Archive",
-    "unarchive": "Restore",
     "delete": "Delete",
-    "fork": "Fork",
     "rename": "Rename",
     "deleteTitle": "Delete this chat?",
     "deleteDescription": "This chat will be permanently deleted. This cannot be undone.",
@@ -155,6 +132,7 @@
     },
     "stopped": "Session stopped",
     "branches": {
+      "creating": "Creating chat branch…",
       "create": "Create chat branch",
       "continuedFrom": "Continue from original chat",
       "sourceUnavailable": "Original chat unavailable"
@@ -171,16 +149,17 @@
       "configureProvider": "Configure provider"
     },
     "openIn": "Open in",
-    "thread": "Conversation",
+    "timeline": "Conversation",
     "scrollToBottom": "Scroll to bottom",
     "placeholder": "Send a message",
     "steerPlaceholder": "Add a direction to the current turn",
     "restoring": "Restoring conversation",
     "reopen": "Open this chat",
     "readOnly": {
-      "title": "Open in another client",
-      "description": "This chat is being written by another client (the ChatGPT app or the CLI). You can read it here; close it there to continue.",
-      "retry": "Try again"
+      "title": "Open in another app",
+      "description": "Close the conversation there before continuing here.",
+      "retry": "Retry",
+      "fork": "Branch chat"
     },
     "detached": "This chat is not open. Open it to continue your previous conversation.",
     "working": "Working",
@@ -189,7 +168,6 @@
     "thinking": "Thinking",
     "thought": "Thought",
     "thoughtFor": "Thought for {{duration}}",
-    "historyInterrupted": "Stopped. Codex history may not contain the unfinished response.",
     "interrupted": "Stopped",
     "contextCompacted": "Context compacted",
     "compacting": "Compacting context",
@@ -238,10 +216,62 @@
       "next": "Next match"
     },
     "image": {
+      "edit": {
+        "tools": "Edit image",
+        "annotate": "Annotate",
+        "background": "Remove background",
+        "erase": "Erase",
+        "resize": "Resize",
+        "cancel": "Cancel editing",
+        "selection": "Image selection",
+        "pen": "Brush",
+        "rectangle": "Rectangle",
+        "arrow": "Arrow",
+        "brushSize": "Brush size",
+        "undo": "Undo",
+        "eraseHint": "Paint over the area to remove",
+        "instructions": "Edit instructions",
+        "notReady": "This chat is not ready. Reconnect and try again.",
+        "redo": "Redo",
+        "addDescription": "Add a description…",
+        "ratios": {
+          "square": "Square",
+          "portrait": "Portrait",
+          "story": "Story",
+          "landscape": "Landscape",
+          "widescreen": "Widescreen"
+        },
+        "prompts": {
+          "annotate": "Edit the first image according to the user's instructions. The second image is an annotated reference showing the relevant areas. Do not include the annotation marks in the result.",
+          "background": "Remove the background from this image. Preserve all foreground subjects and fine details, and return a PNG with a transparent background.",
+          "erase": "Remove the area marked in white in the second image from the first image. The second image is a mask: white marks the area to remove; black marks the area to preserve. Reconstruct the removed area naturally, keeping the rest unchanged.",
+          "resize": "Set the aspect ratio of this image to {{ratio}}. Preserve the subject proportions; extend or recompose the surrounding area as needed without stretching the subject. Return the edited image."
+        },
+        "color": "Annotation color",
+        "colors": {
+          "red": "Red",
+          "orange": "Orange",
+          "yellow": "Yellow",
+          "green": "Green",
+          "blue": "Blue",
+          "purple": "Purple",
+          "black": "Black",
+          "white": "White"
+        }
+      },
+      "tools": "Image tools",
+      "zoom": "Zoom",
+      "fit": "Fit",
+      "openWith": "Open with",
+      "openSidePanel": "Open in side panel",
+      "localRequired": "This image has no local file. Download it first.",
+      "appsUnavailable": "Could not load applications",
       "view": "View image",
       "previous": "Previous image",
       "next": "Next image",
-      "unavailable": "Image unavailable"
+      "unavailable": "Image unavailable",
+      "generating": "Generating image",
+      "stopped": "Image generation stopped"
     },
     "content": {
       "download": "Download {{name}}",
@@ -355,8 +385,12 @@
     "navigationRetry": "Retry",
     "permissionModes": {
       "readOnly": {
+        "name": "Read-only",
+        "description": "Read workspace files, with approval required for edits or internet access"
+      },
+      "workspaceAccess": {
         "name": "Ask for approval",
-        "description": "Always ask to edit external files and use the internet"
+        "description": "Read and edit workspace files and run commands, with approval required for internet access or edits outside the workspace"
       },
       "agent": {
         "name": "Approve for me",
@@ -364,7 +398,7 @@
       },
       "fullAccess": {
         "name": "Full access",
-        "description": "Unrestricted access to the internet and any file on your computer"
+        "description": "Use with caution: Codex can edit files outside this workspace and access the internet without approval"
       },
       "heading": "How should ALwith U actions be approved?"
     }
@@ -439,7 +473,7 @@
     "externalEditor": "Open projects with",
     "externalEditorDesc": "The app used by \"Open in\" on a chat's project folder.",
     "account": "Account",
-    "provider": "Model provider",
+    "provider": "Models",
     "about": "About",
     "version": "Version {{version}}",
     "codexVersion": "Codex CLI {{version}}",
@@ -452,11 +486,21 @@
       "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
       "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",
       "unsupported": "Not supported on Linux. Use navigation buttons or middle-mouse dragging."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Enable trackpad gestures",
+    "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
+    "mobile": "Mobile connection",
+    "preventSleep": "Prevent sleep while tasks are running",
+    "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off.",
+    "import": "Import",
+    "explorer": "Explorer",
+    "explorerHiddenDescription": "Show hidden files and directories whose names start with a dot (.)"
   },
   "usage": {
     "title": "Plan usage limits",
     "usage": "Usage",
+    "remaining": "{{percent}}% remaining",
     "used": "{{percent}}% used",
     "resetsAt": "Resets {{time}}",
     "windowHours": "{{count}}-hour",
@@ -487,8 +531,17 @@
     }
   },
   "provider": {
-    "pending": "Settings saved. Changes apply when active chats finish.",
-    "label": "Model providers",
+    "managed": {
+      "aliases": "Model aliases",
+      "aliasHint": "Choose display names for account models. Their original identities stay unchanged.",
+      "saveAlias": "Save",
+      "resume": "Continue with selected model",
+      "reselect": "Select a model to continue. History remains available.",
+      "description": "Models supplied by your signed-in ALwith account.",
+      "topUp": "Top up"
+    },
+    "pending": "Settings saved. Remaining changes apply when chats using the affected providers finish.",
+    "label": "Other models",
     "active": "{{count}} models available. Select them in each chat's model picker.",
     "configured": "Configured",
     "connectionSettings": "Connection settings",
@@ -539,6 +592,7 @@
     "note": "Keys stay in this app's preferences and only route chats whose model picker is set to that provider's model. Nothing in ~/.codex changes."
   },
   "updater": {
+    "installing": "Installing update… The app will restart automatically.",
     "readyDesc": "Version {{version}} is downloaded and ready to install.",
     "upToDate": "Up to date",
     "checking": "Checking for updates",
@@ -552,6 +606,25 @@
     "install": "Relaunch to update"
   },
   "plugins": {
+    "catalog": {
+      "navigation": "Toolbox navigation",
+      "customize": "Toolbox",
+      "content": "Plugin and skill content",
+      "pluginViews": "Plugin views",
+      "personal": "Personal",
+      "showMore": "Show {{count}} more",
+      "title": "Plugins",
+      "description": "Discover plugins and manage skills and tools.",
+      "search": "Search plugins and skills",
+      "clearSearch": "Clear search",
+      "sourceHelp": "Add a GitHub repository, Git URL, or local folder.",
+      "scope": "Skill scope",
+      "allScopes": "All scopes",
+      "skillCount": "{{count}} skills",
+      "location": "Location",
+      "fromPlugin": "From plugin",
+      "toggleNotApplied": "The skill state did not match the requested change."
+    },
     "title": "Plugins",
     "beta": "BETA",
     "subtitle": "Work with Codex across your favorite tools",
@@ -676,6 +749,13 @@
       "marketplace": "Marketplace"
     },
     "skills": {
+      "document": {
+        "open": "Open",
+        "reveal": "Show in file manager",
+        "copy": "Copy Markdown",
+        "content": "Skill instructions",
+        "error": "Could not read SKILL.md"
+      },
       "search": "Search skills",
       "scope": {
         "user": "User",
@@ -928,7 +1008,7 @@
     "search": "Search files",
     "collapse": "Collapse all",
     "more": "More actions",
-    "ignored": "Show ignored files",
+    "ignored": "Show Git-ignored files",
     "newMarkdown": "New Markdown",
     "copyPath": "Copy path",
     "copyRelativePath": "Copy relative path",
@@ -984,6 +1064,15 @@
     "nextSheet": "Next sheet",
     "source": "Source",
     "viewMode": "View mode",
+    "recentSessions": "Recent sessions",
+    "publishTo": "Publish to…",
+    "publish": "Publish",
+    "publishDialogTitle": "Publish {{count}} items",
+    "publishWarning": "The source stays in place. The destination follows it through a mirror, including future additions to a folder.",
+    "publishSourceMissing": "The source no longer exists. Refresh and try again.",
+    "publishNotUploaded": "Finish uploading the source before publishing it.",
+    "publishPartialFailure": "Published {{count}} items; the remaining items failed: {{message}}",
+    "publishDone": "Published {{count}} items",
     "moveDialogTitle": "Move {{count}} item(s)",
     "move": "Move",
     "moveTargetNotSynced": "Not synced to this device",
@@ -1006,9 +1095,11 @@
     "enable": "Show Vibémon",
     "disable": "Hide Vibémon",
     "show": "Show Vibémon",
-    "hide": "Hide Vibémon",
+    "hide": "Close Vibémon",
     "selectFirst": "Select a pet from the equip page first",
-    "unavailable": "Desktop pets are supported on macOS and Windows"
+    "unavailable": "Desktop pets are supported on macOS and Windows",
+    "lounge": "Vibémon lounge",
+    "recall": "Return to lounge"
   },
   "voice": {
     "configureKey": "Please configure an API Key",
@@ -1054,7 +1145,10 @@
     "resourceIdHint": "Use the resource enabled for your account.",
     "shortcut": "Voice shortcut",
     "shortcutKey": "Option / Alt",
-    "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only."
+    "shortcutHint": "Double-tap Option/Alt within 500 ms to start; tap once to finish. Active chat window only.",
+    "realtimeStart": "Voice call",
+    "realtimeStop": "End voice call",
+    "realtimeCancel": "Cancel voice connection"
   },
   "computer": {
     "actions": {
@@ -1102,10 +1196,169 @@
       "frame": "Live view of {{title}}",
       "unavailable": "Window preview is temporarily unavailable",
       "waiting": "Waiting for target window"
+    },
+    "connection": "Connection",
+    "reconnect": "Reconnect",
+    "verifying": "Verifying…",
+    "reconnectHint": "Reconnect stops current computer actions and verifies screen capture and accessibility. Actions are never replayed. After reconnecting, send your message again.",
+    "diagnostics": "Diagnostics (current app session)",
+    "phases": {
+      "disabled": "Off",
+      "verifying": "Verifying access",
+      "ready": "Ready",
+      "stopping": "Stopping",
+      "failed": "Needs recovery"
     }
   },
   "canvas": {
     "navigation": "Page navigation",
     "page": "Page {{number}}"
+  },
+  "collection": {
+    "defaultFavorites": "Favorites",
+    "addTo": "Favorite",
+    "addToNamedCollection": "Save to {{name}}",
+    "collectionName": "Collection name",
+    "clearCollection": "Clear collection",
+    "deleteCollection": "Delete collection",
+    "confirmCollectionChange": "Remove the records in “{{name}}”? Conversation content and records in other collections will be kept.",
+    "favorite": "Add to default collection",
+    "removeFromAll": "Remove from all collections",
+    "newCollection": "Create Collection",
+    "defaultName": "New collection",
+    "closeChat": "Close chat",
+    "remove": "Remove",
+    "addToCollection": "Favorite",
+    "moveTo": "Move to",
+    "removeFromGroup": "Remove from group",
+    "openSideBySide": "Open side by side",
+    "newChat": "New chat",
+    "defaultChatTitle": "New chat",
+    "title": "Collections",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "emoji": "Emoji",
+    "more": "More actions for {{name}}",
+    "unavailable": "Chat unavailable",
+    "retry": "Retry"
+  },
+  "mobile": {
+    "enable": "Allow phones to connect to this U",
+    "description": "Paired phones can view chats, send messages and respond to permissions. Turning this off pauses connections and keeps paired devices. Keep U running to connect.",
+    "pair": "Pair with this ALwith U",
+    "connected": "Ready. Show the pairing QR code and scan it from the pairing screen on your phone.",
+    "connecting": "Connecting to the service. A pairing QR code will be available when connected…",
+    "generate": "Show pairing QR code",
+    "expires": "Expires in {{count}} seconds",
+    "unpair": "Unpair",
+    "login": {
+      "action": "Sign in on phone",
+      "title": "Sign in to ALwith on your phone",
+      "subtitle": "Sign in to your current ALwith account on your phone. Skip this step if already signed in.",
+      "expires": "Expires in {{seconds}}s",
+      "expired": "The QR code has expired.",
+      "refresh": "Refresh QR code",
+      "scannedHint": "Confirm only if this is your phone.",
+      "confirm": "Confirm sign-in",
+      "confirmed": "Phone sign-in approved",
+      "again": "Sign in another phone",
+      "retry": "Retry",
+      "back": "Close sign-in QR code",
+      "scanHint": "On the ALwith Pocket sign-in screen, choose “Sign in with ALwith QR code”, scan, then confirm here.",
+      "nextHint": "Finish signing in on your phone. To view this U’s chats, pair your phone next.",
+      "continue": "Continue to pair with this U"
+    },
+    "intro": "Pair this U with ALwith Pocket after signing in to view and manage chats on your phone.",
+    "refresh": "Refresh pairing QR code",
+    "scanHint": "In ALwith Pocket, open the pairing screen after signing in and choose “Scan Pairing QR Code”.",
+    "expired": "This pairing QR code has expired. Refresh it and scan again.",
+    "paired": "Phone paired. You can now view this U’s chats on your phone.",
+    "devices": "Paired phones",
+    "devicesHint": "Phones authorized to connect to this U appear here. Account sign-in and device pairing are managed separately.",
+    "loading": "Loading paired phones…",
+    "loadFailed": "Could not load paired phones. Retrying.",
+    "empty": "No phones paired yet. Phones will appear here after pairing.",
+    "phone": "Phone",
+    "pairedAt": "Paired {{date}}",
+    "revokeTitle": "Unpair “{{name}}”?",
+    "revokeHint": "This phone will lose access to this U. Scan a new pairing QR code to reconnect. Its ALwith account will stay signed in.",
+    "cancel": "Cancel",
+    "unpaired": "Phone unpaired. It can no longer access this U.",
+    "reconnect": "Retry connection",
+    "openAccount": "Not signed in on your phone? Open Account to sign in"
+  },
+  "chromeBridge": {
+    "connectedBody": "The ALwith extension is connected. Ask the AI to open tabs, read pages, click, or fill forms.",
+    "installedBody": "Extension installed. Turn on browser control to register the bridge.",
+    "restartBody": "Bridge registered. Reload the extension or restart the browser, then check again.",
+    "noneBody": "Install the ALwith browser extension to let the AI operate this browser.",
+    "extOn": "Extension installed",
+    "extOff": "Extension not installed",
+    "bridgeOn": "Bridge connected",
+    "bridgeOff": "Bridge not connected",
+    "install": "Install extension",
+    "enableBridge": "Enable browser control",
+    "recheck": "Check",
+    "bringToFront": "Browser"
+  },
+  "imports": {
+    "title": "Import from other AI apps",
+    "description": "Bring over your setup, projects, and chats.",
+    "refresh": "Check again",
+    "import": "Import",
+    "from": "Import from {{source}}",
+    "chooseDescription": "Choose what to bring over. Your existing setup won’t be affected.",
+    "detecting": "Checking for imports",
+    "importing": "Importing",
+    "details": "View details",
+    "history": "Import history",
+    "noHistory": "No imports yet",
+    "summary": "{{success}} imported · {{failed}} failed",
+    "empty": "No importable setup found",
+    "setup": "Tools & setup",
+    "projects": "Projects",
+    "chats": "Chat sessions",
+    "background": "Do it in background",
+    "close": "Close",
+    "selected": "Import selected ({{count}})",
+    "retry": "Try again",
+    "types": {
+      "AGENTS_MD": "Instructions",
+      "CONFIG": "Settings",
+      "SKILLS": "Skills",
+      "PLUGINS": "Plugins",
+      "MCP_SERVER_CONFIG": "MCP servers",
+      "SUBAGENTS": "Agents",
+      "HOOKS": "Hooks",
+      "COMMANDS": "Commands",
+      "MEMORY": "Memory",
+      "SESSIONS": "Chats"
+    }
+  },
+  "workbuddy": {
+    "auth": "Include ALwith account",
+    "authEnabled": "Login, pets and account features.",
+    "authDisabled": "No ALwith account services. Model provider authentication is separate.",
+    "create": "Create your ALwith",
+    "description": "Create your own desktop app, then customize it in a project chat.",
+    "productName": "Application name",
+    "packageName": "Project folder name",
+    "nameHelp": "Lowercase letters, digits and hyphens. A new folder will be created inside the selected directory.",
+    "parent": "Save in",
+    "chooseFolder": "Choose parent folder",
+    "identifier": "Application identifier",
+    "identifierHelp": "Use a reverse-domain identifier such as com.example.myapp. Local builds accept any valid identifier. For Apple signing, register the matching App ID in your developer account.",
+    "github": "GitHub repository for releases (optional)",
+    "githubHelp": "owner/repo of the app's own public repository. Adds signed auto update: a key pair is written to ~/.tauri and the project's release workflow publishes there.",
+    "appleIdentifiers": "Open Apple Identifiers",
+    "creating": "Creating…",
+    "headline": "Build your own desktop harness",
+    "edition": "Choose your starting point",
+    "accountEdition": "With an ALwith account",
+    "bareEdition": "Without an ALwith account",
+    "accountCaption": "Sign-in, desktop pets and ALwith account services.",
+    "bareCaption": "Use and customize your app independently, without an ALwith account.",
+    "location": "Project location",
+    "chooseLocation": "Choose a new project path"
   }
 }

@@ -1,18 +1,20 @@
-import { createSession, type Session } from "@alwith/api"
+import { drafts } from "@alwith/module-chat/conversation"
+import { createSession, type Session } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
-import { type ReactNode, useState } from "react"
+import { type ComponentProps, type ReactNode, useState } from "react"
 import { expect, fn, waitFor } from "storybook/test"
 
-import { Composer } from "../../../src/features/chat/composer"
-import { drafts } from "../../../src/features/chat/composer/drafts"
+import { ChatHostProvider } from "../../../src/features/chat/chat-host"
+import { ChatComposer } from "../../../src/features/chat/composer"
 import { DraftProjectPicker } from "../../../src/features/chat/draft-project-picker"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
+import { handleNativeRequest } from "../../fixtures/native"
 
 const session: Session = {
   ...createSession("composer-preview", "/Projects/alwith"),
   attached: true,
-  commands: [{ name: "plan", description: "Plan a task" }],
+  commands: [{ type: "command", name: "plan", description: "Plan a task" }],
   configOptions: [
     {
       configId: "model",
@@ -41,6 +43,15 @@ const session: Session = {
   ]
 }
 
+/** U's composer with U's host, as the conversation view mounts it. */
+function Composer(props: ComponentProps<typeof ChatComposer>) {
+  return (
+    <ChatHostProvider>
+      <ChatComposer {...props} />
+    </ChatHostProvider>
+  )
+}
+
 const meta = {
   id: "页面-聊天-输入框细节",
   title: "页面/主窗聊天/输入框细节",
@@ -64,13 +75,13 @@ const meta = {
         values = { ...values, ...input.changes }
         return { revision: ++revision, values, browserMigrated: true }
       }
-      throw new Error(`Unexpected composer preview IPC command: ${command}`)
+      return handleNativeRequest(command, payload)
     })
     return () => {
       drafts.delete(session.id)
-      mockIPC((command) => {
+      mockIPC((command, payload) => {
         if (command === "plugin:log|log") return
-        throw new Error(`Unexpected Storybook IPC command: ${command}`)
+        return handleNativeRequest(command, payload)
       })
     }
   }
@@ -84,19 +95,19 @@ export const Project: Story = {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
     const textarea = canvas.getByRole("textbox")
     const project = canvasElement.querySelector<HTMLElement>(".chat-project-picker")!
-    expect(getComputedStyle(project).backgroundColor).toBe("rgba(0, 0, 0, 0)")
-    await waitFor(() => expect(surface.getBoundingClientRect().height).toBe(100))
+    await expect(getComputedStyle(project).backgroundColor).toBe("rgba(0, 0, 0, 0)")
+    await waitFor(async () => expect(surface.getBoundingClientRect().height).toBe(100))
     const toolbar = canvasElement.querySelector<HTMLElement>(".chat-composer-toolbar")!
-    expect(toolbar.getBoundingClientRect().bottom).toBeLessThan(surface.getBoundingClientRect().bottom)
+    await expect(toolbar.getBoundingClientRect().bottom).toBeLessThan(surface.getBoundingClientRect().bottom)
     await userEvent.type(textarea, "/")
     const list = await canvas.findByRole("listbox")
-    expect(list.getBoundingClientRect().left).toBe(surface.getBoundingClientRect().left)
-    expect(list.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
+    await expect(list.getBoundingClientRect().left).toBe(surface.getBoundingClientRect().left)
+    await expect(list.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
     await userEvent.click(canvas.getByRole("option"))
-    expect(textarea).toHaveValue("/plan ")
+    await expect(textarea).toHaveValue("/plan ")
     await userEvent.click(canvas.getByRole("button", { name: "发送" }))
-    await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
-    await waitFor(() => expect(textarea).toHaveValue(""))
+    await waitFor(async () => expect(args.onSubmit).toHaveBeenCalled())
+    await waitFor(async () => expect(textarea).toHaveValue(""))
   }
 }
 
@@ -117,8 +128,8 @@ export const Narrow: Story = {
   play: async ({ canvasElement, canvas }) => {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
     for (const button of canvas.getAllByRole("button")) {
-      expect(button.getBoundingClientRect().left).toBeGreaterThanOrEqual(surface.getBoundingClientRect().left)
-      expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(surface.getBoundingClientRect().right)
+      await expect(button.getBoundingClientRect().left).toBeGreaterThanOrEqual(surface.getBoundingClientRect().left)
+      await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(surface.getBoundingClientRect().right)
     }
   }
 }
@@ -127,15 +138,15 @@ export const LongDraft: Story = {
   name: "长草稿",
   play: async ({ canvasElement, canvas, userEvent }) => {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
-    const textarea = canvas.getByRole("textbox") as HTMLTextAreaElement
+    const textarea = canvas.getByRole<HTMLTextAreaElement>("textbox")
     await userEvent.click(textarea)
     await userEvent.paste(Array.from({ length: 40 }, (_, index) => `Line ${index + 1}`).join("\n"))
-    await waitFor(() => expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight))
-    expect(getComputedStyle(surface).overflowY).toBe("clip")
-    expect(getComputedStyle(textarea).scrollbarWidth).toBe("none")
+    await waitFor(async () => expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight))
+    await expect(getComputedStyle(surface).overflowY).toBe("clip")
+    await expect(getComputedStyle(textarea).scrollbarWidth).toBe("none")
     textarea.scrollTop = textarea.scrollHeight
-    expect(textarea.scrollTop).toBeGreaterThan(0)
-    expect(canvas.getByRole("button", { name: "发送" })).toBeVisible()
+    await expect(textarea.scrollTop).toBeGreaterThan(0)
+    await expect(canvas.getByRole("button", { name: "发送" })).toBeVisible()
   }
 }
 
@@ -148,10 +159,10 @@ export const ExitProject: Story = {
   name: "退出项目",
   play: async ({ canvas, userEvent }) => {
     const clear = canvas.getByRole("button", { name: "不在项目中工作" })
-    await waitFor(() => expect(clear).toBeEnabled())
+    await waitFor(async () => expect(clear).toBeEnabled())
     await userEvent.click(clear)
-    expect(canvas.queryByRole("button", { name: "不在项目中工作" })).toBeNull()
-    expect(canvas.getByRole("button", { name: "选择项目" })).toBeVisible()
-    expect(canvas.queryByRole("menu")).toBeNull()
+    await expect(canvas.queryByRole("button", { name: "不在项目中工作" })).toBeNull()
+    await expect(canvas.getByRole("button", { name: "选择项目" })).toBeVisible()
+    await expect(canvas.queryByRole("menu")).toBeNull()
   }
 }

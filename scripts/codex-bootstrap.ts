@@ -2,9 +2,11 @@
 import { spawnSync } from "node:child_process"
 import { isAbsolute } from "node:path"
 
+import { interactiveSessionConfig } from "./lib/codex-session-config"
 import { prepareModelCatalog } from "./lib/model-catalog"
 
 async function start(): Promise<void> {
+  process.env.CODEX_CONFIG = interactiveSessionConfig(process.env.CODEX_CONFIG)
   const command = process.env.ALWITH_U_CODEX_PATH
   if (!command || !isAbsolute(command)) throw new Error("ALWITH_U_CODEX_PATH must name the bundled Codex executable")
   const probe = spawnSync(command, ["--version"], { encoding: "utf8", timeout: 10_000 })

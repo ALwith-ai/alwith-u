@@ -14,7 +14,8 @@
     "core:window:allow-is-visible",
     "log:default",
     "os:default",
-    "store:default",
+    "alwith-module-store:default",
+    "alwith-auth-client:default",
     {
       "identifier": "http:default",
       "allow": [

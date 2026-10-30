@@ -46,6 +46,9 @@ export async function createPetSessionClient(): Promise<PetSessionHost & { dispo
         listeners.delete(listener)
       }
     },
+    panel: (level) => requestPet("task-panel", { level }),
+    cancel: (binding, requestId) => requestPet("cancel-task", { binding, requestId }),
+    dismiss: (binding) => requestPet("dismiss-task", { binding }),
     send: (binding, requestId, text) => requestPet("send", { binding, requestId, text }),
     answer: (binding, requestId, token, optionId) => requestPet("answer", { binding, requestId, token, optionId }),
     openChat: (binding) => requestPet("open-chat", { binding }),

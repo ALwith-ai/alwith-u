@@ -45,31 +45,31 @@ const meta = {
     const root = canvasElement.querySelector<HTMLElement>('[data-slot="scroll-area"]')!
     const viewport = canvasElement.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')!
     const tail = canvasElement.querySelector<HTMLElement>("[data-scroll-tail]")!
-    await waitFor(() => {
+    await waitFor(async () => {
       const track = canvasElement.querySelector<HTMLElement>('[data-slot="scroll-area-scrollbar"]')!
       const thumb = canvasElement.querySelector<HTMLElement>('[data-slot="scroll-area-thumb"]')!
-      expect(track.getBoundingClientRect().width).toBe(10)
-      expect(thumb.getBoundingClientRect().width).toBe(6)
+      await expect(track.getBoundingClientRect().width).toBe(10)
+      await expect(thumb.getBoundingClientRect().width).toBe(6)
       const rtl = getComputedStyle(root).direction === "rtl"
       const edge = rtl ? "left" : "right"
-      expect(track.getBoundingClientRect()[edge]).toBe(root.getBoundingClientRect()[edge])
-      expect(Math.abs(thumb.getBoundingClientRect()[edge] - root.getBoundingClientRect()[edge])).toBe(2)
+      await expect(track.getBoundingClientRect()[edge]).toBe(root.getBoundingClientRect()[edge])
+      await expect(Math.abs(thumb.getBoundingClientRect()[edge] - root.getBoundingClientRect()[edge])).toBe(2)
       const clearance = rtl
         ? tail.getBoundingClientRect().left - thumb.getBoundingClientRect().right
         : thumb.getBoundingClientRect().left - tail.getBoundingClientRect().right
-      expect(clearance).toBeGreaterThanOrEqual(8)
+      await expect(clearance).toBeGreaterThanOrEqual(8)
     })
     viewport.focus()
-    await waitFor(() => {
+    await waitFor(async () => {
       const track = canvasElement.querySelector<HTMLElement>('[data-slot="scroll-area-scrollbar"]')!
-      expect(getComputedStyle(track).opacity).toBe("1")
+      await expect(getComputedStyle(track).opacity).toBe("1")
     })
     const width = viewport.getBoundingClientRect().width
     const tailPosition = tail.getBoundingClientRect().x
     await userEvent.click(canvas.getByRole("button", { name: "Toggle overflow" }))
-    await waitFor(() => expect(canvasElement.querySelector('[data-slot="scroll-area-scrollbar"]')).toBeNull())
-    expect(viewport.getBoundingClientRect().width).toBe(width)
-    expect(tail.getBoundingClientRect().x).toBe(tailPosition)
+    await waitFor(async () => expect(canvasElement.querySelector('[data-slot="scroll-area-scrollbar"]')).toBeNull())
+    await expect(viewport.getBoundingClientRect().width).toBe(width)
+    await expect(tail.getBoundingClientRect().x).toBe(tailPosition)
   }
 } satisfies Meta<typeof ScrollAreaExample>
 

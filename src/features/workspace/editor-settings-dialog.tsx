@@ -2,8 +2,8 @@ import { type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { NumberInput } from "@/components/alwith-ui/number-input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/alwith-ui/select"
 import { Switch } from "@/components/ui/switch"
 import { SettingGroup, SettingRow } from "@/features/settings/sections/shared"
 
@@ -20,7 +20,7 @@ export function EditorSettingsSection(): ReactNode {
   return (
     <SettingGroup>
       <SettingRow title={t("workspace.fontSize")} aligned>
-        <Input
+        <NumberInput
           aria-label={t("workspace.fontSize")}
           type="number"
           min={8}

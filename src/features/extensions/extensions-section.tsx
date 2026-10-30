@@ -11,10 +11,17 @@ import { executePreparedInstall } from "./install-service"
 import { showExtensionLimitations } from "./legacy/limitations"
 import { LEGACY_SOURCE } from "./legacy/profiles"
 import { waitForLegacyUninstall } from "./legacy/uninstall"
-import { reportExtensionError, useExtensions } from "./runtime"
-import { updateAndReloadExtension } from "./startup-import-control"
+import { reportExtensionError } from "./runtime"
+import { refreshExtensions, updateAndReloadExtension } from "./startup-import-control"
+import { useExtensions } from "./use-extensions"
 
-export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: string) => void }) {
+export function ExtensionsSection({
+  onOpenSurface,
+  settings = false
+}: {
+  onOpenSurface?: (id: string) => void
+  settings?: boolean
+}) {
   const { t } = useTranslation()
   const { runtime, state, host } = useExtensions()
   const [operation, setOperation] = useState(false)
@@ -48,12 +55,14 @@ export function ExtensionsSection({ onOpenSurface }: { onOpenSurface?: (id: stri
   }
   return (
     <ExtensionsManager
+      settings={settings}
       state={state}
       host={host}
       busy={busy}
       installPhase={installPhase}
       onOpenSurface={onOpenSurface}
       onInstall={(id) => run(() => install(id))}
+      onRetry={() => run(refreshExtensions)}
       onRequest={(request) =>
         run(async () => {
           await runtime.request(request)

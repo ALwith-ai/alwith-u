@@ -2,12 +2,10 @@
 export const BUN_PACKAGES: Record<string, string> = {
   "aarch64-apple-darwin": "@oven/bun-darwin-aarch64",
   "x86_64-unknown-linux-gnu": "@oven/bun-linux-x64-baseline",
-  "aarch64-unknown-linux-gnu": "@oven/bun-linux-aarch64",
-  "x86_64-pc-windows-msvc": "@oven/bun-windows-x64-baseline",
-  "aarch64-pc-windows-msvc": "@oven/bun-windows-aarch64"
+  "x86_64-pc-windows-msvc": "@oven/bun-windows-x64-baseline"
 }
 
-const CODEX_PLATFORMS = ["darwin-arm64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"]
+const CODEX_PLATFORMS = ["darwin-arm64", "linux-x64", "win32-x64"]
 
 type Manifest = {
   packageManager: string
@@ -44,4 +42,11 @@ export function toolchainVersions(manifest: Manifest): { buildBun: string; bun: 
 
 export function assertVersion(name: string, actual: string | undefined, expected: string): void {
   if (actual !== expected) throw new Error(`${name}: expected ${expected}, got ${actual ?? "missing"}`)
+}
+
+/** Windows sandbox executables shipped in the pinned Codex platform package. */
+export const CODEX_WINDOWS_HELPERS = ["codex-windows-sandbox-setup", "codex-command-runner"] as const
+
+export function codexSidecars(windows: boolean): string[] {
+  return ["codex", "codex-code-mode-host", ...(windows ? CODEX_WINDOWS_HELPERS : [])]
 }

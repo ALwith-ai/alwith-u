@@ -9,6 +9,4 @@ const meta = {
 export default meta
 
 export const DirectoryListing = { ...source.DirectoryListing, name: "目录列表" }
-export const RetainedTurnErrors = { ...source.RetainedTurnErrors, name: "保留历史轮次错误" }
-export const ShortRepliesAfterSend = { ...source.ShortRepliesAfterSend, name: "发送后的短回复" }
-export const FirstMessageAfterSend = { ...source.FirstMessageAfterSend, name: "首次发送后的消息布局" }
+export const RetainedTurnErrors = { ...source.RetainedTurnErrors, name: "Reopen history" }

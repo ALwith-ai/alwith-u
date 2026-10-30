@@ -40,7 +40,7 @@ export function DraftModelSelect({
       }))
     }))
   ]
-  const catalog = presentModelCatalog(groups, model ?? "")
+  const catalog = presentModelCatalog(groups)
   const models = catalog.flatMap((group) => group.models)
   const selected =
     model === null
@@ -51,12 +51,11 @@ export function DraftModelSelect({
         })
   return (
     <ModelSelect
-      value={{ ...selected, label: modelTriggerLabel(selected.label) }}
+      value={{ ...selected, label: modelTriggerLabel(selected) }}
       models={models}
       modelGroups={catalog}
       header={{ name: t("chat.model.model"), action: <ModelSettingsAction /> }}
       compactCatalog
-      unavailableEffort={{ name: "Effort", label: t("chat.model.unsupported") }}
       booleanOptions={[
         {
           id: "fast_mode",

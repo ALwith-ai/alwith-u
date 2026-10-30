@@ -34,7 +34,7 @@ try {
     "Checkpoint focus scrolled away from the first row"
   )
   assert.equal(await page.locator("[data-workflow-action]").count(), 5)
-  assert.equal(await page.locator('[data-workflow-action="1"]').innerText(), "点击 · 插件")
+  assert.equal(await page.locator('[data-workflow-action="1"]').innerText(), "点击 · 工具箱")
   assert.equal(await page.locator("[data-workflow-page-title]").count(), 0)
   for (const width of [1440, 2200]) {
     await page.setViewportSize({ width, height: 1000 })

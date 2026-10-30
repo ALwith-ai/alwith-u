@@ -1,11 +1,13 @@
-import { isFormElicitation } from "@alwith/api"
 import { PetQuickReply, PetWindow } from "@alwith/module-auth/pets/react"
+import { exportDraft } from "@alwith/module-chat/conversation"
+import type { FormAction } from "@alwith/module-chat/conversation"
+import { isFormElicitation } from "@nyssance/codex-acp-v2/client"
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast, Toaster } from "sonner"
 
-import type { ThreadSummary } from "../../src/agent/client"
+import type { SessionSummary } from "../../src/agent/client"
 import { WindowsMainWindowShell } from "../../src/components/alwith-ui/windows-main-window-shell"
 import { Alert, AlertDescription, AlertTitle } from "../../src/components/ui/alert"
 import { Button } from "../../src/components/ui/button"
@@ -14,14 +16,11 @@ import { WallpaperBackground } from "../../src/features/appearance/wallpaper/bac
 import { ZoomFeedback } from "../../src/features/appearance/zoom-feedback"
 import { AuthGate } from "../../src/features/auth/auth-gate"
 import { ChatWindow } from "../../src/features/chat-window/chat-window"
-import { ActionCard } from "../../src/features/chat/action-card"
+import { ActionCard, ElicitationFormDialog } from "../../src/features/chat/action-card"
 import { ChatView } from "../../src/features/chat/chat-view"
-import { exportDraft } from "../../src/features/chat/composer/drafts"
-import { ElicitationFormDialog, type FormAction } from "../../src/features/chat/dialogs/elicitation-form-dialog"
 import { DRAFT_SESSION_ID, DraftChat } from "../../src/features/chat/draft-chat"
 import { ChatProjectMenu } from "../../src/features/chat/project-session-popover"
 import { DriveDeleteConfirmation, DrivePage, DriveStatus } from "../../src/features/drive/drive"
-import { ExtensionEntryMenu } from "../../src/features/extensions/extension-entry-menu"
 import { ExtensionNavigation } from "../../src/features/extensions/extension-navigation"
 import { ExtensionStatusBar } from "../../src/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "../../src/features/extensions/extension-view"
@@ -35,10 +34,10 @@ import { CommandPalette } from "../../src/features/palette/command-palette"
 import { PluginDetailPage } from "../../src/features/plugins/plugin-detail-page"
 import { PluginIconDefinitions } from "../../src/features/plugins/plugin-icon"
 import { PluginsPage } from "../../src/features/plugins/plugins-page"
+import { ArchivedChatsPage } from "../../src/features/sessions/archived-chats-page"
+import { SessionSidebar } from "../../src/features/sessions/session-sidebar"
 import { HotkeysDialog } from "../../src/features/settings/hotkeys-dialog"
 import { SettingsPage } from "../../src/features/settings/settings-page"
-import { ArchivedChatsPage } from "../../src/features/threads/archived-chats-page"
-import { ThreadSidebar } from "../../src/features/threads/thread-sidebar"
 import { VibemonCenter } from "../../src/features/vibemon/pet-center"
 import { useWorkspace, WorkspaceHeaderContext } from "../../src/features/workspace/context"
 import { FileWorkspace } from "../../src/features/workspace/file-workspace"
@@ -163,7 +162,7 @@ export function ProductPreview({
     url.searchParams.set("tab", settingsSection)
     history.replaceState(null, "", url)
   }, [initialPage, settingsSection])
-  const select = (thread: ThreadSummary) => {
+  const select = (thread: SessionSummary) => {
     void (async () => {
       if (thread.archived) await client.unarchive(thread.sessionId)
       await client.open(thread.sessionId, thread.cwd)
@@ -201,7 +200,7 @@ export function ProductPreview({
         key={session.id}
         session={session}
         projectMenu={projectMenu}
-        onSelectThread={select}
+        onSelectSession={select}
         onOpenWindow={moveToWindow}
         onReturnToMain={page === "floating" ? () => setPage("chat") : undefined}
         onNewChat={() => newChat()}
@@ -285,7 +284,7 @@ export function ProductPreview({
                 </>
               }
               sidebar={
-                <ThreadSidebar
+                <SessionSidebar
                   screen={leading ? "leading" : "main"}
                   leadingPage={leadingPage}
                   selectedId={selectedId}
@@ -297,17 +296,15 @@ export function ProductPreview({
                   onOpenSettings={() => setPage("settings")}
                   onOpenVibemon={() => setPage("vibemon")}
                   onOpenPlugins={() => setPage("plugins")}
-                  onOpenExtensions={() => setPage("extensions")}
-                  renderExtensionEntry={(trigger) => (
-                    <ExtensionEntryMenu
+                  extensionNavigation={
+                    <ExtensionNavigation
                       host={extensions}
                       manifests={extensionState.native?.installations.map((item) => item.manifest) ?? []}
-                      trigger={trigger}
-                      onManage={() => setPage("extensions")}
+                      activeView={surfaceId}
                       onOpenSurface={openExtension}
                       onError={reportError}
                     />
-                  )}
+                  }
                   drivePanel={<div ref={setDriveTarget} className="min-h-0 flex-1 overflow-auto" />}
                   onSwitchScreen={() => setPage(leading ? "chat" : "plugins")}
                 />
@@ -319,7 +316,6 @@ export function ProductPreview({
                     onOpenVibemon={() => setPage("vibemon")}
                     onOpenPlugins={() => setPage("plugins")}
                     onOpenArchives={() => setPage("archives")}
-                    onOpenExtensions={() => setPage("extensions")}
                   >
                     <ExtensionNavigation
                       host={extensions}

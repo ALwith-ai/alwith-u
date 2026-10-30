@@ -1,6 +1,8 @@
 //! Application-owned provider credentials. Webviews receive only configured/region metadata.
-//! A persisted revision becomes active only at an idle boundary under Runtime admission.
-use alwith_api::{RunState, RuntimeClient};
+//! Independent provider changes apply under Runtime admission; busy session routing stays pinned.
+pub(crate) mod managed;
+
+use alwith_api::{ResponseError, RuntimeClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -48,6 +50,8 @@ struct Saved {
     credentials: BTreeMap<String, Credential>,
     #[serde(default)]
     custom_providers: BTreeMap<String, CustomProvider>,
+    #[serde(default)]
+    managed: Option<managed::Cache>,
 }
 #[derive(Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +62,8 @@ pub struct Snapshot {
     applied_revision: Option<u64>,
     providers: BTreeMap<String, Metadata>,
     custom_providers: Vec<PublicCustomProvider>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    managed_providers: Vec<PublicCustomProvider>,
     status: &'static str,
     error: Option<String>,
 }
@@ -76,12 +82,15 @@ pub struct PublicCustomProvider {
     models: Vec<CustomModel>,
 }
 struct Inner {
+    managed_active: bool,
     saved: Saved,
     applied: BTreeMap<String, AppliedProvider>,
     applied_revision: Option<u64>,
     error: Option<String>,
 }
 pub struct Providers {
+    managed: managed::State,
+    auxiliary: tokio::sync::Mutex<BTreeMap<String, Inner>>,
     path: PathBuf,
     inner: tokio::sync::Mutex<Inner>,
 }
@@ -130,8 +139,11 @@ impl Providers {
             Err(error) => return Err(error.into()),
         };
         Ok(Self {
+            managed: managed::State::default(),
+            auxiliary: tokio::sync::Mutex::new(BTreeMap::new()),
             path,
             inner: tokio::sync::Mutex::new(Inner {
+                managed_active: false,
                 saved,
                 applied: BTreeMap::new(),
                 applied_revision: None,
@@ -140,6 +152,7 @@ impl Providers {
         })
     }
     pub async fn reset(&self) {
+        self.managed.gate.lock().unwrap().targets.remove("codex");
         let mut inner = self.inner.lock().await;
         inner.applied.clear();
         inner.applied_revision = None;
@@ -173,6 +186,21 @@ impl Inner {
                     models: provider.models.clone(),
                 })
                 .collect(),
+            managed_providers: self
+                .saved
+                .managed
+                .as_ref()
+                .filter(|_| self.managed_active)
+                .and_then(|cache| cache.provider.as_ref())
+                .map(|provider| {
+                    vec![PublicCustomProvider {
+                        id: provider.id.clone(),
+                        name: provider.name.clone(),
+                        base_url: provider.base_url.clone(),
+                        models: provider.models.clone(),
+                    }]
+                })
+                .unwrap_or_default(),
             status: if self.error.is_some() {
                 "failed"
             } else if self.applied_revision == Some(self.saved.revision) {
@@ -184,13 +212,13 @@ impl Inner {
         }
     }
 }
-/// Bundled Codex model catalogs of the built-in providers (their `catalog` resource paths). The adapter
-/// merges them into Codex's own table at app-server start (`CODEX_ACP_MODEL_CATALOGS`), the only point
-/// where Codex reads model metadata.
+/// Provider metadata loaded by U's bootstrap before Codex starts. Gateway entries remain hidden in
+/// the native catalog; the adapter advertises only the models registered by configured providers.
 pub fn bundled_model_catalogs(resources: &std::path::Path) -> Result<Vec<std::path::PathBuf>, String> {
     catalog()
         .iter()
         .filter_map(|provider| provider["catalog"].as_str())
+        .chain(std::iter::once("custom/models.json"))
         .map(|relative| {
             let path = resources.join(relative);
             if path.is_file() { Ok(path) } else { Err(format!("Model catalog missing at {}", path.display())) }
@@ -201,8 +229,41 @@ pub fn bundled_model_catalogs(resources: &std::path::Path) -> Result<Vec<std::pa
 fn catalog() -> Vec<Value> {
     serde_json::from_str(include_str!("../../src/lib/provider-catalog.json")).expect("bundled provider catalog")
 }
+fn managed_definition() -> Value {
+    catalog()
+        .into_iter()
+        .find(|provider| provider["id"] == managed::ID && provider["source"] == "account")
+        .expect("bundled ALwith account configuration")
+}
+
+fn apply_managed_model_overrides(models: &mut Value) {
+    let definition = managed_definition();
+    let catalog: Value =
+        serde_json::from_str(include_str!("../resources/alwith/models.json")).expect("bundled ALwith model catalog");
+    for model in models.as_array_mut().expect("provider models") {
+        if let Some(configured) =
+            definition["models"].as_array().expect("configured models").iter().find(|entry| entry["id"] == model["id"])
+        {
+            model["label"] = configured["label"].clone();
+        }
+        if let Some(entry) =
+            catalog["models"].as_array().expect("catalog models").iter().find(|entry| entry["slug"] == model["id"])
+        {
+            model["contextWindow"] = entry["context_window"].clone();
+        }
+    }
+}
+
+fn has_custom_model_metadata(provider: &CustomProvider) -> bool {
+    let catalog: Value =
+        serde_json::from_str(include_str!("../resources/custom/models.json")).expect("bundled custom model catalog");
+    provider.models.iter().any(|model| {
+        catalog["models"].as_array().expect("catalog models").iter().any(|entry| entry["slug"] == model.api_id)
+    })
+}
+
 fn definition(id: &str) -> Result<Value, String> {
-    catalog().into_iter().find(|v| v["id"] == id).ok_or("Unknown provider".into())
+    catalog().into_iter().find(|v| v["id"] == id && v["source"] != "account").ok_or("Unknown provider".into())
 }
 fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u64) -> Result<Saved, String> {
     if saved.revision != expected_revision {
@@ -235,6 +296,7 @@ fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u6
         credentials.remove(&id);
     }
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials,
         custom_providers: saved.custom_providers.clone(),
@@ -300,6 +362,7 @@ fn update_custom(saved: &Saved, input: CustomInput, expected_revision: u64) -> R
         CustomProvider { id, name: name.to_string(), base_url: normalize_base_url(&input.base_url)?, models, api_key },
     );
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials: saved.credentials.clone(),
         custom_providers,
@@ -315,6 +378,7 @@ fn remove_custom(saved: &Saved, id: &str, expected_revision: u64) -> Result<Save
         return Err("Unknown custom provider".into());
     }
     Ok(Saved {
+        managed: saved.managed.clone(),
         revision: saved.revision.checked_add(1).ok_or("Provider revision exhausted")?,
         credentials: saved.credentials.clone(),
         custom_providers,
@@ -343,15 +407,17 @@ fn classify_response_failure(status: u16, body: &str, secret: &str) -> TestResul
 }
 
 fn classify_success_response(status: u16, body: &str, latency_ms: u128) -> TestResult {
-    let valid = serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| value.get("object").and_then(Value::as_str).map(str::to_string))
-        .is_some_and(|object| object == "response");
+    let parsed = serde_json::from_str::<Value>(body).ok();
+    let valid = parsed.as_ref().is_some_and(|value| {
+        value["object"] == "response"
+            && matches!(value["status"].as_str(), Some("completed" | "incomplete"))
+            && value.get("error").is_none_or(Value::is_null)
+    });
     if !valid {
         return TestResult {
             ok: false,
             code: "invalid_response",
-            message: "The endpoint returned success without a Responses API object".into(),
+            message: "The endpoint did not return a successful Responses API result".into(),
             status: Some(status),
             latency_ms: Some(latency_ms),
         };
@@ -450,11 +516,17 @@ pub async fn providers_test(state: State<'_, Providers>, provider_id: String) ->
 #[tauri3_specta::command]
 pub async fn providers_apply(app: AppHandle) -> Result<Snapshot, String> {
     let runtime = app.state::<crate::runtime::RuntimeState>();
-    let _admission = runtime.admission.lock().await;
+    // Draft preparation can use the applied catalog while another admission is pending.
+    // The admission owner schedules reconciliation when it releases the lock.
+    let _admission = try_apply_admission(&runtime.admission)?;
     let client = runtime.current()?;
     apply_locked(&app, &client).await?;
     Ok(app.state::<Providers>().inner.lock().await.snapshot())
 }
+fn try_apply_admission(admission: &tokio::sync::Mutex<()>) -> Result<tokio::sync::MutexGuard<'_, ()>, String> {
+    admission.try_lock().map_err(|_| PROVIDERS_PENDING.to_owned())
+}
+
 /// Configure only a newly created Gamepad agent; credentials never leave the native host.
 #[tauri3_specta::command]
 pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) -> Result<(), String> {
@@ -472,19 +544,47 @@ pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) 
     if !client.agents().await.map_err(crate::runtime::request_error)?.iter().any(|agent| agent["agentId"] == agent_id) {
         return Err("Gamepad AI agent is not running".into());
     }
-    let saved = app.state::<Providers>().inner.lock().await.saved.clone();
-    let mut ephemeral = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+    let providers = app.state::<Providers>();
+    let inner = providers.inner.lock().await;
+    let saved = inner.saved.clone();
+    let managed_active = inner.managed_active && providers.managed.gate.lock().unwrap().account.is_some();
+    if managed_active {
+        providers.managed.gate.lock().unwrap().targets.insert(agent_id.clone());
+    }
+    drop(inner);
+    let mut auxiliary = providers.auxiliary.lock().await;
+    let ephemeral = auxiliary.entry(agent_id.clone()).or_insert_with(|| Inner {
+        managed_active,
+        saved: saved.clone(),
+        applied: BTreeMap::new(),
+        applied_revision: None,
+        error: None,
+    });
+    ephemeral.saved = saved;
+    if ephemeral.managed_active != managed_active {
+        ephemeral.applied_revision = None;
+    }
+    ephemeral.managed_active = managed_active;
     let resource_dir = app.path().resource_dir().map_err(|error| error.to_string())?;
-    reconcile_target(&mut ephemeral, &client, &resource_dir, &agent_id, false).await
+    reconcile_target(ephemeral, &client, &resource_dir, &agent_id).await
 }
 
 pub fn schedule_apply(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let runtime = app.state::<crate::runtime::RuntimeState>();
-        let Ok(_admission) = runtime.admission.try_lock() else {
+        let providers = app.state::<Providers>();
+        if let Ok(_transition) = providers.managed.transition.try_lock()
+            && let Err(error) = managed::cleanup(&app).await
+        {
+            let mut inner = providers.inner.lock().await;
+            inner.error = Some(error);
+            let _ = inner.snapshot().emit(&app);
             return;
-        };
+        }
+        let runtime = app.state::<crate::runtime::RuntimeState>();
+        // The last idle notification may arrive while another admission still owns
+        // the lock. Queue the retry so a saved revision cannot remain pending forever.
+        let _admission = runtime.admission.lock().await;
         if let Ok(client) = runtime.current() {
             let _ = apply_locked(&app, &client).await;
         }
@@ -493,32 +593,83 @@ pub fn schedule_apply(app: &AppHandle) {
 pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Result<(), String> {
     let state = app.state::<Providers>();
     let mut inner = state.inner.lock().await;
+    if state.managed.gate.lock().unwrap().account.is_none() && inner.managed_active {
+        inner.managed_active = false;
+        inner.applied_revision = None;
+    }
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    if inner.managed_active && inner.saved.managed.as_ref().is_some_and(|cache| cache.provider.is_some()) {
+        state.managed.gate.lock().unwrap().targets.insert("codex".into());
+    }
     let outcome = reconcile(&mut inner, client, &resource_dir).await;
     let _ = inner.snapshot().emit(app);
+    let saved = inner.saved.clone();
+    let active = inner.managed_active;
+    drop(inner);
+    let mut auxiliary = state.auxiliary.lock().await;
+    if !auxiliary.is_empty() {
+        let live = client.agents().await.map_err(crate::runtime::request_error)?;
+        auxiliary.retain(|id, _| live.iter().any(|agent| agent["agentId"] == *id));
+        for (id, target) in auxiliary.iter_mut() {
+            target.saved = saved.clone();
+            if target.managed_active != active {
+                target.applied_revision = None;
+            }
+            target.managed_active = active;
+            if active {
+                state.managed.gate.lock().unwrap().targets.insert(id.clone());
+            }
+            reconcile_target(target, client, &resource_dir, id).await?;
+        }
+    }
     outcome
 }
 
+fn custom_model_catalog(models: &[CustomModel]) -> Result<PathBuf, String> {
+    use sha2::{Digest, Sha256};
+    // Reuse the app's generic coding instructions, with explicit custom endpoint capabilities.
+    let template: Value =
+        serde_json::from_str(include_str!("../resources/qwen/models.json")).map_err(|e| e.to_string())?;
+    let entries: Vec<Value> = models
+        .iter()
+        .map(|model| {
+            json!({
+                "slug": model.api_id, "display_name": model.label, "description": model.description,
+                "base_instructions": template["models"][0]["base_instructions"],
+                "supported_reasoning_levels": [], "shell_type": "shell_command",
+                "visibility": "list", "supported_in_api": true, "priority": 0,
+                "support_verbosity": false, "supports_reasoning_summary_parameter": false,
+                "truncation_policy": {"mode": "bytes", "limit": 10000},
+                "experimental_supported_tools": [], "input_modalities": ["text"],
+                "context_window": model.context_window, "max_context_window": model.context_window,
+                "apply_patch_tool_type": "freeform", "tool_mode": "direct",
+                "include_apps_usage_instructions": false
+            })
+        })
+        .collect();
+    let bytes = serde_json::to_vec(&json!({"models": entries})).map_err(|e| e.to_string())?;
+    let path =
+        std::env::temp_dir().join(format!("alwith-u-model-catalog-{}.json", hex::encode(Sha256::digest(&bytes))));
+    let mut file = tempfile::NamedTempFile::new_in(std::env::temp_dir()).map_err(|e| e.to_string())?;
+    file.write_all(&bytes).map_err(|e| e.to_string())?;
+    file.persist(&path).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
 async fn reconcile(inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path) -> Result<(), String> {
-    reconcile_target(inner, client, resource_dir, "codex", true).await
+    reconcile_target(inner, client, resource_dir, "codex").await
 }
 
 async fn reconcile_target(
-    inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str, require_idle: bool,
+    inner: &mut Inner, client: &RuntimeClient, resource_dir: &std::path::Path, agent_id: &str,
 ) -> Result<(), String> {
     if inner.applied_revision == Some(inner.saved.revision) {
         return Ok(());
     }
-    if require_idle
-        && client
-            .run_states()
-            .await
-            .map_err(crate::runtime::request_error)?
-            .iter()
-            .any(|s| matches!(s.state, RunState::Running | RunState::RequiresAction))
-    {
-        return Err("Provider settings are pending; finish or stop active turns before starting another turn".into());
-    }
+    // The adapter owns session routing and rejects only changes affecting busy sessions.
+    // A global Runtime idle check would also block unrelated provider additions.
+    let mut pending = false;
+    let mut failures = Vec::new();
     let desired: BTreeMap<String, AppliedProvider> = inner
         .saved
         .credentials
@@ -531,12 +682,27 @@ async fn reconcile_target(
                 .iter()
                 .map(|(id, provider)| (id.clone(), AppliedProvider::Custom(provider.clone()))),
         )
+        .chain(
+            inner
+                .saved
+                .managed
+                .as_ref()
+                .filter(|_| inner.managed_active)
+                .and_then(|cache| cache.provider.as_ref())
+                .map(|provider| (managed::ID.to_string(), AppliedProvider::Custom(provider.clone()))),
+        )
         .collect();
+    // A revision without catalog changes does not need an idle boundary.
+    if inner.applied == desired {
+        inner.applied_revision = Some(inner.saved.revision);
+        inner.error = None;
+        return Ok(());
+    }
     let outcome: Result<(), String> = async {
         for (id, selected) in &desired {
             if inner.applied.get(id) == Some(selected) { continue; }
             let runtime_id = runtime_provider_id(id);
-            let (name, base_url, bearer_token, models, mut config, bundled_catalog) = match selected {
+            let (name, base_url, bearer_token, mut models, mut config, bundled_catalog) = match selected {
                 AppliedProvider::BuiltIn(key) => {
                     let provider = definition(id)?;
                     let default_url = match key.region.as_deref() {
@@ -545,7 +711,9 @@ async fn reconcile_target(
                     };
                     (provider["name"].clone(), key.base_url.clone().map(Value::String).unwrap_or(default_url), key.api_key.clone(), provider["models"].clone(), provider.get("config").cloned().unwrap_or(json!({})), provider["catalog"].as_str().map(str::to_string))
                 }
-                AppliedProvider::Custom(provider) => (
+                AppliedProvider::Custom(provider) => {
+                    let known = has_custom_model_metadata(provider);
+                    (
                     Value::String(provider.name.clone()),
                     Value::String(provider.base_url.clone()),
                     provider.api_key.clone(),
@@ -555,31 +723,86 @@ async fn reconcile_target(
                         "description": model.description,
                         "contextWindow": model.context_window,
                     })).collect()),
-                    json!({}),
-                    None,
-                ),
+                    // Uncatalogued Responses endpoints use direct tools; catalogued models keep their declared capabilities.
+                    if known { json!({"web_search": "disabled", "model_reasoning_summary": "none"}) } else { json!({"features": {"code_mode": false, "code_mode_only": false}}) },
+                    known.then(|| "custom/models.json".to_string()),
+                )},
+            };
+            let bundled_catalog = if id == managed::ID {
+                let definition = managed_definition();
+                apply_managed_model_overrides(&mut models);
+                config = definition["config"].clone();
+                definition["catalog"].as_str().map(str::to_string)
+            } else {
+                bundled_catalog
             };
             if let Some(catalog) = bundled_catalog {
                 config["model_catalog_json"] = json!(resource_dir.join(catalog));
+            } else if let AppliedProvider::Custom(provider) = selected {
+                config["model_catalog_json"] = json!(custom_model_catalog(&provider.models)?);
             }
-            client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
+            let result = client.acp_request(agent_id, "providers/set", json!({"providerId":"openai", "apiType":"openai", "baseUrl":base_url,
                 "_meta":{"codex":{"id":runtime_id,"name":name,"mode":"catalog","bearerToken":bearer_token,"config":config}, "alwith":{"models":models}}}), None, None)
-                .await.map_err(|e| format!("Provider {id} could not be applied ({}); retry at an idle boundary", e.code))?;
+                ;
+            let result = tokio::time::timeout(std::time::Duration::from_secs(10), result).await
+                .unwrap_or_else(|_| Err(ResponseError::runtime("Provider configuration timed out")));
+            if let Err(error) = result {
+                record_application_error(id, "apply", &error, &mut pending, &mut failures);
+                continue;
+            }
             inner.applied.insert(id.clone(), selected.clone());
         }
         let removed: Vec<_> = inner.applied.keys().filter(|id| !desired.contains_key(*id)).cloned().collect();
         for id in removed {
-            client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
-                .await.map_err(|e| format!("Provider {id} could not be removed ({}); retry at an idle boundary", e.code))?;
+            let result = client.acp_request(agent_id, "providers/disable", json!({"providerId":"openai","_meta":{"codex":{"id":runtime_provider_id(&id)}}}), None, None)
+                ;
+            let result = tokio::time::timeout(std::time::Duration::from_secs(10), result).await
+                .unwrap_or_else(|_| Err(ResponseError::runtime("Provider configuration timed out")));
+            if let Err(error) = result {
+                record_application_error(&id, "remove", &error, &mut pending, &mut failures);
+                continue;
+            }
             inner.applied.remove(&id);
         }
         Ok(())
     }.await;
-    inner.error = outcome.as_ref().err().cloned();
-    if outcome.is_ok() {
+    inner.error = outcome.err().or_else(|| (!failures.is_empty()).then(|| failures.join("; ")));
+    if inner.error.is_none() && !pending {
         inner.applied_revision = Some(inner.saved.revision);
     }
-    outcome
+    log::info!(
+        "Provider catalog: agent={agent_id} saved_revision={} applied_revision={:?} status={} pending_affected_sessions={pending}",
+        inner.saved.revision,
+        inner.applied_revision,
+        inner.snapshot().status
+    );
+    if let Some(error) = &inner.error {
+        Err(error.clone())
+    } else if pending {
+        Err(PROVIDERS_PENDING.into())
+    } else {
+        Ok(())
+    }
+}
+
+const PROVIDERS_PENDING: &str = "Provider settings are pending; waiting for affected sessions to finish";
+
+pub(crate) fn application_pending(error: &str) -> bool {
+    error == PROVIDERS_PENDING
+}
+
+fn record_application_error(
+    id: &str, operation: &str, error: &ResponseError, pending: &mut bool, failures: &mut Vec<String>,
+) {
+    // Match the installed adapter's busy response exactly; other invalid requests are failures.
+    let busy = error.code == -32600
+        && error.message == "Invalid request: Wait for affected sessions to finish before changing their provider";
+    log::warn!("Provider catalog: provider={id} operation={operation} code={} waiting_for_sessions={busy}", error.code);
+    if busy {
+        *pending = true;
+    } else {
+        failures.push(format!("Provider {id} could not {operation} ({}); retry to apply saved settings", error.code));
+    }
 }
 
 /// Preserve saved IDs while encoding custom IDs without collisions for the adapter's [a-z0-9-]+ grammar.
@@ -716,7 +939,8 @@ mod tests {
                 .unwrap();
         assert_eq!(saved.credentials["qwen"].api_key, "private-test-secret");
         assert_eq!(saved.credentials["qwen"].region.as_deref(), Some("cn"));
-        let inner = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        let inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
         let public = serde_json::to_string(&inner.snapshot()).unwrap();
         assert!(!public.contains("private-test-secret"));
         assert!(!public.contains("apiKey"));
@@ -786,7 +1010,8 @@ mod tests {
         assert_eq!(saved.credentials["deepseek"].base_url.as_deref(), Some("https://gateway.example.test/v1"));
         assert!(
             !serde_json::to_string(
-                &Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }.snapshot()
+                &Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+                    .snapshot()
             )
             .unwrap()
             .contains("private-test-secret")
@@ -813,7 +1038,8 @@ mod tests {
         assert_eq!(provider.models[0].api_id, "model-a");
         assert!(
             !serde_json::to_string(
-                &Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }.snapshot()
+                &Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+                    .snapshot()
             )
             .unwrap()
             .contains("private-test-secret")
@@ -889,6 +1115,48 @@ mod tests {
         assert_eq!(result.status, Some(200));
     }
 
+    #[test]
+    fn failed_or_pending_responses_are_not_reported_as_connected() {
+        for body in [
+            r#"{"object":"response","status":"failed","error":{"message":"Invalid API key"}}"#,
+            r#"{"object":"response","status":"completed","error":{"message":"Upstream failed"}}"#,
+            r#"{"object":"response","status":"in_progress"}"#,
+            r#"{"object":"response"}"#,
+        ] {
+            assert!(!classify_success_response(200, body, 12).ok);
+        }
+        for status in ["completed", "incomplete"] {
+            let body = json!({"object":"response","status":status,"error":null}).to_string();
+            assert!(classify_success_response(200, &body, 12).ok);
+        }
+    }
+
+    #[tokio::test]
+    async fn unchanged_catalog_acknowledges_revision_while_another_turn_runs() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
+        let mut inner = Inner {
+            managed_active: false,
+            saved: Saved::default(),
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        assert!(calls.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn draft_catalog_read_does_not_wait_for_another_sessions_admission() {
+        let admission = tokio::sync::Mutex::new(());
+        let sending = admission.lock().await;
+        let error = try_apply_admission(&admission).unwrap_err();
+        assert!(application_pending(&error));
+        drop(sending);
+        assert!(try_apply_admission(&admission).is_ok());
+    }
+
     fn pending_provider() -> Inner {
         let saved = update(
             &Saved::default(),
@@ -897,10 +1165,64 @@ mod tests {
             0,
         )
         .unwrap();
-        Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+        Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None }
+    }
+
+    #[tokio::test]
+    async fn custom_provider_routes_direct_tools_without_changing_built_in_catalogs() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)));
+        let mut inner = pending_provider();
+        inner.saved.custom_providers.insert(
+            "custom_test".into(),
+            CustomProvider {
+                id: "custom_test".into(),
+                name: "Custom".into(),
+                base_url: "https://example.com/v1".into(),
+                api_key: "private-test-secret".into(),
+                models: vec![CustomModel {
+                    label: "Model".into(),
+                    api_id: "model".into(),
+                    context_window: None,
+                    description: None,
+                }],
+            },
+        );
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        let calls = calls.lock().unwrap();
+        let custom = calls.iter().find(|call| call["params"]["params"]["_meta"]["codex"]["name"] == "Custom").unwrap();
+        assert_eq!(
+            custom["params"]["params"]["_meta"]["codex"]["config"]["features"],
+            json!({"code_mode": false, "code_mode_only": false})
+        );
+        let catalog_path =
+            custom["params"]["params"]["_meta"]["codex"]["config"]["model_catalog_json"].as_str().unwrap();
+        let catalog: Value = serde_json::from_slice(&std::fs::read(catalog_path).unwrap()).unwrap();
+        assert_eq!(catalog["models"][0]["slug"], "model");
+        assert_eq!(catalog["models"][0]["tool_mode"], "direct");
+        let built_in = calls.iter().find(|call| call["params"]["params"]["_meta"]["codex"]["id"] == "qwen").unwrap();
+        assert!(built_in["params"]["params"]["_meta"]["codex"]["config"]["features"].is_null());
     }
     fn fake_runtime(
         active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_with_busy(active, fail, Arc::new(std::sync::atomic::AtomicBool::new(false)))
+    }
+    fn fake_runtime_with_busy(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        busy: Arc<std::sync::atomic::AtomicBool>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_state(active, fail, busy, None)
+    }
+    fn fake_runtime_with_interruption(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        interruption: Option<&'static str>,
+    ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
+        fake_runtime_state(active, fail, Arc::new(std::sync::atomic::AtomicBool::new(false)), interruption)
+    }
+    fn fake_runtime_state(
+        active: Arc<std::sync::atomic::AtomicBool>, fail: Arc<std::sync::atomic::AtomicBool>,
+        busy: Arc<std::sync::atomic::AtomicBool>, interruption: Option<&'static str>,
     ) -> (RuntimeClient, Arc<std::sync::Mutex<Vec<Value>>>) {
         use std::sync::atomic::Ordering;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
@@ -917,7 +1239,7 @@ mod tests {
                 let (result, error) = if frame["method"] == "runStates" {
                     (
                         if active.load(Ordering::SeqCst) {
-                            json!([{"sessionId":"active","state":"running","reusableDraft":false,"owner":"u","cwd":"/tmp","title":"","since":0,"tasks":[],"listeningPorts":[],"executionId":null,"executionRole":null,"lastActivityAt":0}])
+                            json!([{"sessionId":"active","state":if interruption.is_some() { "requires_action" } else { "running" },"version":1,"interruption":interruption,"reusableDraft":false,"owner":"u","cwd":"/tmp","title":"","since":0,"tasks":[],"listeningPorts":[],"executionId":null,"executionRole":null,"lastActivityAt":0}])
                         } else {
                             json!([])
                         },
@@ -925,7 +1247,12 @@ mod tests {
                     )
                 } else {
                     recorded.lock().unwrap().push(frame.clone());
-                    if fail.load(Ordering::SeqCst) {
+                    if busy.load(Ordering::SeqCst) && frame["params"]["params"]["_meta"]["codex"]["id"] == "qwen" {
+                        (
+                            Value::Null,
+                            json!({"code":-32600,"message":"Invalid request: Wait for affected sessions to finish before changing their provider"}),
+                        )
+                    } else if fail.load(Ordering::SeqCst) {
                         (Value::Null, json!({"code":-32000,"message":"private-test-secret upstream failure"}))
                     } else {
                         (json!({}), Value::Null)
@@ -940,14 +1267,33 @@ mod tests {
         (client, calls)
     }
     #[tokio::test]
+    async fn restored_interrupted_session_allows_saved_provider_application() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime_with_interruption(
+            Arc::new(AtomicBool::new(true)),
+            Arc::new(AtomicBool::new(false)),
+            Some("runtime_stopped"),
+        );
+        let mut inner = pending_provider();
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        assert_eq!(calls.lock().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
     async fn gamepad_catalog_targets_only_ephemeral_agent_while_main_turn_runs() {
         use std::sync::atomic::AtomicBool;
         let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
         let main = pending_provider();
         let before = serde_json::to_value(main.snapshot()).unwrap();
-        let mut ephemeral =
-            Inner { saved: main.saved.clone(), applied: BTreeMap::new(), applied_revision: None, error: None };
-        reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test", false)
+        let mut ephemeral = Inner {
+            managed_active: false,
+            saved: main.saved.clone(),
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
+        reconcile_target(&mut ephemeral, &client, std::path::Path::new("/resources"), "gamepad-config-test")
             .await
             .unwrap();
         assert_eq!(serde_json::to_value(main.snapshot()).unwrap(), before);
@@ -960,30 +1306,83 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn active_turn_pins_old_revision_until_idle_then_applies_latest_once() {
-        use std::sync::atomic::{AtomicBool, Ordering};
-        let active = Arc::new(AtomicBool::new(true));
-        let (client, calls) = fake_runtime(active.clone(), Arc::new(AtomicBool::new(false)));
+    async fn unrelated_active_turn_does_not_block_new_provider() {
+        use std::sync::atomic::AtomicBool;
+        let (client, calls) = fake_runtime(Arc::new(AtomicBool::new(true)), Arc::new(AtomicBool::new(false)));
         let mut inner = pending_provider();
-        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
-        assert!(calls.lock().unwrap().is_empty());
-        assert_eq!(inner.snapshot().status, "pending");
-        inner.saved = update(
-            &inner.saved,
-            "qwen".into(),
-            Some(Input { api_key: None, region: Some("intl".into()), base_url: None }),
-            1,
-        )
-        .unwrap();
-        active.store(false, Ordering::SeqCst);
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
-        assert_eq!(inner.applied_revision, Some(2));
-        let calls = calls.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0]["params"]["params"]["baseUrl"], "https://dashscope-intl.aliyuncs.com/compatible-mode/v1");
-        assert_eq!(calls[0]["params"]["params"]["_meta"]["codex"]["bearerToken"], "private-test-secret");
+        assert_eq!(inner.snapshot().status, "applied");
+        assert_eq!(inner.applied_revision, Some(1));
+        assert_eq!(calls.lock().unwrap().len(), 1);
     }
+
+    #[tokio::test]
+    async fn busy_provider_does_not_block_independent_changes_and_retries_only_pending() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let busy = Arc::new(AtomicBool::new(true));
+        let (client, calls) =
+            fake_runtime_with_busy(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)), busy.clone());
+        let mut inner = pending_provider();
+        let mut key = inner.saved.credentials["qwen"].clone();
+        key.region = None;
+        inner.saved.credentials.insert("xai".into(), key);
+        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
+        assert_eq!(inner.snapshot().status, "pending");
+        assert!(inner.error.is_none());
+        assert!(inner.applied.contains_key("xai"));
+        assert!(!inner.applied.contains_key("qwen"));
+        busy.store(false, Ordering::SeqCst);
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert_eq!(inner.snapshot().status, "applied");
+        let calls = calls.lock().unwrap();
+        let ids: Vec<_> =
+            calls.iter().map(|call| call["params"]["params"]["_meta"]["codex"]["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["qwen", "xai", "qwen"]);
+    }
+    #[tokio::test]
+    async fn busy_removal_keeps_routing_while_other_removals_apply() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let busy = Arc::new(AtomicBool::new(true));
+        let (client, calls) =
+            fake_runtime_with_busy(Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)), busy.clone());
+        let mut inner = pending_provider();
+        let old = AppliedProvider::BuiltIn(inner.saved.credentials["qwen"].clone());
+        inner.applied.insert("qwen".into(), old.clone());
+        inner.applied.insert("xai".into(), old);
+        inner.applied_revision = Some(0);
+        inner.saved.credentials.clear();
+        assert!(reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.is_err());
+        assert_eq!(inner.snapshot().status, "pending");
+        assert!(inner.applied.contains_key("qwen"));
+        assert!(!inner.applied.contains_key("xai"));
+        busy.store(false, Ordering::SeqCst);
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        assert!(inner.applied.is_empty());
+        assert_eq!(inner.snapshot().status, "applied");
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 3);
+        assert!(calls.iter().all(|call| call["params"]["method"] == "providers/disable"));
+    }
+
+    #[test]
+    fn only_the_adapter_busy_response_is_pending_and_raw_errors_stay_private() {
+        let mut pending = false;
+        let mut failures = Vec::new();
+        record_application_error(
+            "qwen",
+            "apply",
+            &ResponseError::new(-32600, "private-test-secret"),
+            &mut pending,
+            &mut failures,
+        );
+        assert!(!pending);
+        assert_eq!(failures.len(), 1);
+        assert!(!failures[0].contains("private-test-secret"));
+        assert!(application_pending(PROVIDERS_PENDING));
+        assert!(!application_pending(&failures[0]));
+    }
+
     #[tokio::test]
     async fn failed_apply_is_not_acknowledged_and_can_retry_without_exposing_private_error() {
         use std::sync::atomic::{AtomicBool, Ordering};
@@ -1027,7 +1426,8 @@ mod tests {
             Arc::new(std::sync::atomic::AtomicBool::new(false)),
             Arc::new(std::sync::atomic::AtomicBool::new(false)),
         );
-        let mut inner = Inner { saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        let mut inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         {
             let recorded = calls.lock().unwrap();
@@ -1037,6 +1437,13 @@ mod tests {
             assert_eq!(runtime_id, "custom-637573746f6d5f70726976617465");
             assert_eq!(params["baseUrl"], "https://gateway.example.test/v1");
             assert_eq!(params["_meta"]["codex"]["name"], "Private gateway");
+            let config = &params["_meta"]["codex"]["config"];
+            assert_eq!(config["features"], json!({"code_mode": false, "code_mode_only": false}));
+            let catalog: Value =
+                serde_json::from_slice(&std::fs::read(config["model_catalog_json"].as_str().unwrap()).unwrap())
+                    .unwrap();
+            assert_eq!(catalog["models"][0]["slug"], "model-a");
+            assert_eq!(catalog["models"][0]["context_window"], 128000);
             assert_eq!(
                 params["_meta"]["alwith"]["models"],
                 json!([{
@@ -1051,6 +1458,37 @@ mod tests {
         reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
         let calls = calls.lock().unwrap();
         assert_eq!(calls[1]["params"]["params"]["_meta"]["codex"]["id"], "custom-637573746f6d5f70726976617465");
+    }
+
+    #[tokio::test]
+    async fn recognized_custom_models_receive_their_catalog_without_changing_routing() {
+        let provider = CustomProvider {
+            id: "custom_profile".into(),
+            name: "Zhipu".into(),
+            base_url: "https://open.bigmodel.cn/api/v1".into(),
+            api_key: "private-test-secret".into(),
+            models: vec![CustomModel {
+                label: "My GLM".into(),
+                api_id: "glm-5.3".into(),
+                context_window: None,
+                description: None,
+            }],
+        };
+        let saved = Saved { custom_providers: BTreeMap::from([(provider.id.clone(), provider)]), ..Saved::default() };
+        let (client, calls) = fake_runtime(
+            Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        );
+        let mut inner =
+            Inner { managed_active: false, saved, applied: BTreeMap::new(), applied_revision: None, error: None };
+        reconcile(&mut inner, &client, std::path::Path::new("/resources")).await.unwrap();
+        let calls = calls.lock().unwrap();
+        let params = &calls[0]["params"]["params"];
+        assert_eq!(params["baseUrl"], "https://open.bigmodel.cn/api/v1");
+        assert_eq!(params["_meta"]["alwith"]["models"][0]["id"], "glm-5.3");
+        assert_eq!(params["_meta"]["alwith"]["models"][0]["label"], "My GLM");
+        assert_eq!(params["_meta"]["codex"]["config"]["model_catalog_json"], "/resources/custom/models.json");
+        assert_eq!(params["_meta"]["codex"]["config"]["web_search"], "disabled");
     }
 
     #[test]
@@ -1071,5 +1509,100 @@ mod tests {
         let body = request.body().and_then(reqwest::Body::as_bytes).unwrap();
         let body: Value = serde_json::from_slice(body).unwrap();
         assert_eq!(body, json!({"model":"model-a","input":"Reply with OK.","max_output_tokens":16,"store":false}));
+    }
+}
+
+#[cfg(test)]
+mod managed_tests {
+    use super::*;
+
+    #[test]
+    fn account_provider_cannot_be_configured_with_a_manual_key() {
+        assert_eq!(managed_definition()["source"], "account");
+        assert!(definition(managed::ID).is_err());
+        assert!(
+            update(
+                &Saved::default(),
+                managed::ID.into(),
+                Some(Input { api_key: Some("manual-key".into()), region: None, base_url: None }),
+                0
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn source_metadata_only_overrides_issued_models() {
+        let mut models = json!([
+            {"id":"deepseek-V4.1-flash","label":"Account name","contextWindow":123},
+            {"id":"unknown","label":"Account-only model","contextWindow":456}
+        ]);
+        apply_managed_model_overrides(&mut models);
+        assert_eq!(models.as_array().unwrap().len(), 2);
+        assert_eq!(models[0]["id"], "deepseek-V4.1-flash");
+        assert_eq!(models[0]["label"], "DeepSeek-Flash");
+        assert_eq!(models[0]["contextWindow"], 1048576);
+        assert_eq!(models[1], json!({"id":"unknown","label":"Account-only model","contextWindow":456}));
+        let mut unissued = json!([]);
+        apply_managed_model_overrides(&mut unissued);
+        assert_eq!(unissued, json!([]));
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources");
+        assert!(bundled_model_catalogs(&root).unwrap().contains(&root.join("alwith/models.json")));
+    }
+
+    #[test]
+    fn managed_catalog_filters_unissued_hidden_and_other_protocols() {
+        let body = json!([
+            {"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"secret-key","hidden":false,"models":[{"api_id":"ds-pro","label":"DS Pro","context_window":1000000}]},
+            {"provider_id":"openrouter","api_key":"other-secret"}
+        ]);
+        let provider = managed::parse_catalog(&body.to_string()).unwrap().unwrap();
+        assert_eq!(provider.id, "litellm");
+        assert_eq!(provider.models[0].context_window, Some(1000000));
+        let mut hidden = body.clone();
+        hidden[0]["hidden"] = json!(true);
+        assert!(managed::parse_catalog(&hidden.to_string()).unwrap().is_none());
+        hidden[0]["hidden"] = json!(false);
+        hidden[0]["api_key"] = json!("  ");
+        assert!(managed::parse_catalog(&hidden.to_string()).unwrap().is_none());
+    }
+
+    #[test]
+    fn managed_cache_stays_private_and_user_edits_preserve_it() {
+        let saved = Saved { managed: Some(managed::Cache {
+            account: managed::Account { api_base_url: "https://api.alwith.ai/service".into(), user_uuid: "account-a".into() },
+            provider: managed::parse_catalog(&json!([{"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"private-model-key","hidden":false,"models":[{"api_id":"m","label":"Model"}]}]).to_string()).unwrap(),
+        }), ..Saved::default() };
+        let edited = update(
+            &saved,
+            "deepseek".into(),
+            Some(Input { api_key: Some("user-key".into()), region: None, base_url: None }),
+            0,
+        )
+        .unwrap();
+        assert_eq!(edited.managed.as_ref().unwrap().account.user_uuid, "account-a");
+        let mut inner = Inner {
+            managed_active: false,
+            saved: edited,
+            applied: BTreeMap::new(),
+            applied_revision: None,
+            error: None,
+        };
+        assert!(inner.snapshot().managed_providers.is_empty());
+        inner.managed_active = true;
+        assert_eq!(inner.snapshot().managed_providers[0].models[0].api_id, "m");
+        let snapshot = serde_json::to_string(&inner.snapshot()).unwrap();
+        assert!(!snapshot.contains("private-model-key"));
+        assert!(!snapshot.contains("user-key"));
+        let legacy: Saved = serde_json::from_str(r#"{"revision":0,"credentials":{}}"#).unwrap();
+        assert!(legacy.managed.is_none());
+    }
+
+    #[test]
+    fn malformed_managed_catalog_never_echoes_keys_and_rejects_duplicate_models() {
+        let body = json!([{"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"private-secret","hidden":false,"models":[{"api_id":"same","label":"One"},{"api_id":"same","label":"Two"}]}]);
+        let error = managed::parse_catalog(&body.to_string()).unwrap_err();
+        assert!(!error.contains("private-secret"));
+        assert!(managed::parse_catalog("not-json").is_err());
     }
 }

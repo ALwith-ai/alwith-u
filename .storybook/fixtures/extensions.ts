@@ -212,3 +212,7 @@ export function reportExtensionError(error: unknown): void {
   // Expected fixture failures are surfaced by the source view and its retry control.
   if (!(error instanceof Error && error.message === "模拟扩展内容渲染失败")) console.error(error)
 }
+
+export function getRuntime() {
+  return runtime
+}

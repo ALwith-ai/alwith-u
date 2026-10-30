@@ -19,20 +19,20 @@ type Story = StoryObj<typeof meta>
 export const Restore: Story = {
   name: "归档列表 → 恢复聊天 → 返回列表",
   play: async ({ canvas, userEvent }) => {
-    const count = client.state.archivedThreads.length
+    const count = client.state.archivedSessions.length
     await userEvent.click((await canvas.findAllByRole("button", { name: "取消归档" }))[0]!)
-    await waitFor(() => expect(client.state.archivedThreads).toHaveLength(count - 1))
+    await waitFor(() => expect(client.state.archivedSessions).toHaveLength(count - 1))
   }
 }
 export const DeleteOne: Story = {
   name: "归档列表 → 删除单条 → 确认",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    const count = client.state.archivedThreads.length
+    const count = client.state.archivedSessions.length
     await userEvent.click((await body.findAllByRole("button", { name: "删除" }))[0]!)
     const dialog = within(await body.findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: "永久删除" }))
-    await waitFor(() => expect(client.state.archivedThreads).toHaveLength(count - 1))
+    await waitFor(() => expect(client.state.archivedSessions).toHaveLength(count - 1))
   }
 }
 export const DeleteAll: Story = {
@@ -42,18 +42,18 @@ export const DeleteAll: Story = {
     await userEvent.click(await body.findByRole("button", { name: "全部删除" }))
     const dialog = within(await body.findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: "永久删除" }))
-    await waitFor(() => expect(client.state.archivedThreads).toHaveLength(0))
+    await waitFor(() => expect(client.state.archivedSessions).toHaveLength(0))
   }
 }
 export const CancelDelete: Story = {
   name: "归档列表 → 全部删除 → 取消",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    const count = client.state.archivedThreads.length
+    const count = client.state.archivedSessions.length
     await userEvent.click(await body.findByRole("button", { name: "全部删除" }))
     const dialog = within(await body.findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: "取消" }))
-    await expect(client.state.archivedThreads).toHaveLength(count)
+    await expect(client.state.archivedSessions).toHaveLength(count)
   }
 }
 export const Search: Story = {

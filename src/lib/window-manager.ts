@@ -9,17 +9,34 @@ import i18n from "@/lib/i18n"
 import { isMac } from "@/lib/platform"
 
 export type SettingsSection =
-  "general" | "editor" | "appearance" | "account" | "provider" | "voice" | "computer" | "extensions" | "drive" | "about"
+  | "mobile"
+  | "trackpad"
+  | "general"
+  | "editor"
+  | "explorer"
+  | "appearance"
+  | "account"
+  | "provider"
+  | "voice"
+  | "computer"
+  | "extensions"
+  | "drive"
+  | "import"
+  | "about"
 export const SETTINGS_SECTIONS: SettingsSection[] = [
+  "account",
   "general",
+  "provider",
   "appearance",
   "editor",
-  "account",
-  "provider",
-  "voice",
-  "computer",
-  "extensions",
+  "explorer",
   "drive",
+  "voice",
+  "trackpad",
+  "computer",
+  "mobile",
+  "extensions",
+  "import",
   "about"
 ]
 export const SETTINGS_CHANGE_TAB = "settings-change-tab"

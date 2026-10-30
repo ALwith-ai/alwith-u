@@ -1,30 +1,31 @@
 #!/usr/bin/env bun
-// Live check against a real Codex login: two read-only conversations run
+// Live check with an isolated copy of the existing Codex login: two read-only conversations run
 // concurrently and stay isolated; attach and a fresh agent both replay the original history.
-import { mkdtemp, realpath, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { writeFile } from "node:fs/promises"
+import { homedir } from "node:os"
 import { join } from "node:path"
 
-import {
-  isBooleanOption,
-  isFormElicitation,
-  isStringProperty,
-  isText,
-  type Session,
-  WebSocketRuntimeClient
-} from "@alwith/api"
-import { ProcessRuntimeClient } from "@alwith/api/node"
+import { startTestRuntime } from "@alwith/api/node"
 import {
   asyncQuestionId,
   asyncQuestions,
   questionReplies,
   questionReplyEnvelope
 } from "@alwith/module-chat/async-question-card"
+import {
+  codexTurnId,
+  codexTurnStartedAt,
+  composerPrediction,
+  isBooleanOption,
+  isFormElicitation,
+  isStringProperty,
+  isText,
+  type Session
+} from "@nyssance/codex-acp-v2/client"
 
 import { CodexClient } from "../src/agent/client"
-import { codexTurnId, codexTurnStartedAt } from "../src/agent/codex-extensions"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
-import { staged, stagedCodexEngine, startRuntime } from "./lib/runtime"
+import { staged, stagedCodexEngine } from "./lib/runtime"
 
 function isNotice(item: Session["items"][number]): boolean {
   if (item.kind !== "assistant") return false
@@ -51,9 +52,9 @@ async function until(predicate: () => boolean | Promise<boolean>, timeoutMs: num
 }
 
 async function verifyHistory(client: CodexClient, directory: string, replies: Map<string, string>): Promise<void> {
-  await client.listThreads({ reset: true })
-  const projectThreads = await client.listProjectThreads(directory)
-  if (projectThreads.some((thread) => thread.cwd !== directory))
+  await client.listSessions({ reset: true })
+  const projectThreads = await client.listProjectSessions(directory)
+  if (projectThreads.some((sessionRow) => sessionRow.cwd !== directory))
     throw new Error("Project list includes another directory")
   for (const [id, original] of replies) {
     const exported = await client.exportHistory(id, () => {})
@@ -68,11 +69,13 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
       .join("")
     if (exportedText.trim() !== original.trim() || messages.filter((message) => message.type === "user").length !== 1)
       throw new Error(`Read-only export of ${id} differs from the live transcript`)
-    if (!projectThreads.some((thread) => thread.sessionId === id))
+    if (!projectThreads.some((sessionRow) => sessionRow.sessionId === id))
       throw new Error(`Thread ${id} missing from project list`)
-    if (!client.state.threads.some((thread) => thread.sessionId === id))
+    if (!client.state.sessionList.some((sessionRow) => sessionRow.sessionId === id))
       throw new Error(`Thread ${id} missing from session/list`)
     await client.open(id, directory)
+    if (!client.session(id).commands.some((command) => command.name === "status"))
+      throw new Error("Resumed session has no status command")
     // WebSocket history notifications can arrive after open resolves, in separate batches.
     await until(
       () =>
@@ -90,20 +93,16 @@ async function verifyHistory(client: CodexClient, directory: string, replies: Ma
 }
 
 async function check(transport: "stdio" | "ws") {
-  const directory = await realpath(await mkdtemp(join(tmpdir(), `alwith-u-live-${transport}-`)))
+  await using runtime = await startTestRuntime({
+    binary: staged("alwith-runtime"),
+    engines: { codex: stagedCodexEngine() },
+    transport,
+    authFrom: process.env.CODEX_HOME ?? join(homedir(), ".codex")
+  })
+  const directory = runtime.workspace
   await writeFile(join(directory, "README.md"), "# live check\n")
-  console.log(`project: ${directory}`)
-
-  const runtime = transport === "ws" ? await startRuntime(join(directory, "journal")) : null
-  const port = runtime
-    ? new WebSocketRuntimeClient(runtime.url, runtime.token)
-    : new ProcessRuntimeClient({
-        binary: staged("alwith-runtime"),
-        engines: { codex: stagedCodexEngine() },
-        journalRoot: join(directory, "journal"),
-        env: { ALWITH_RUNTIME_ATTENTION: join(directory, "attention") }
-      })
-  console.log(`runtime: ${runtime?.url ?? "stdio"}`)
+  console.log(`isolated project: ${directory}; transport: ${transport}`)
+  const port = runtime.client
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
@@ -112,22 +111,25 @@ async function check(transport: "stdio" | "ws") {
   try {
     await client.connect()
     console.log(`agent: ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
+    await verifyShell(client, directory)
 
     const draft = await client.prepareDraft("main", directory)
     if (!client.session(draft).configOptions.some((option) => option.category === "model"))
       throw new Error("Precreated draft has no model selector")
-    if ((await client.listProjectThreads(directory)).some((thread) => thread.sessionId === draft))
+    if (!client.session(draft).commands.some((command) => command.name === "status"))
+      throw new Error("Precreated draft has no status command")
+    if ((await client.listProjectSessions(directory)).some((sessionRow) => sessionRow.sessionId === draft))
       throw new Error("Precreated draft leaked into the project index")
     await client.discardDraft("main")
     if (client.state.sessions[draft]) throw new Error("Discarded draft is still attached")
     console.log("draft: real model options before sending; empty session cleaned up")
 
     const [a, b] = await Promise.all([client.prepareDraft("main", directory), client.prepareDraft("chat", directory)])
-    const fast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    const fast = client.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!fast || !isBooleanOption(fast)) throw new Error("Native model did not expose fast mode")
     if (fast.currentValue) throw new Error("New native session enabled fast mode by default")
-    await client.setConfig(a, "fast_mode", true)
-    const enabledFast = client.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    await client.setConfig(a, "fast-mode", true)
+    const enabledFast = client.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!enabledFast || !isBooleanOption(enabledFast) || !enabledFast.currentValue)
       throw new Error("Fast mode did not become enabled")
     await Promise.all([
@@ -162,6 +164,106 @@ async function check(transport: "stdio" | "ws") {
     if (!replyB.includes("BRAVO") || replyB.includes("ALPHA"))
       throw new Error("Session B did not receive its own reply")
 
+    // Check the installed adapter, not only fake frames: these facts drive chat UI.
+    const liveUser = client.session(a).items.findLast((item) => item.kind === "user")
+    const liveAnswer = client.session(a).items.findLast((item) => item.kind === "assistant" && !isNotice(item))
+    const liveTurnId = codexTurnId(liveUser?._meta)
+    const liveAnswerMeta = liveAnswer?._meta?.codex
+    if (liveTurnId === null || codexTurnId(liveAnswer?._meta) !== liveTurnId)
+      throw new Error("Live user and answer are missing their shared native turn id")
+    if (
+      typeof liveAnswerMeta !== "object" ||
+      liveAnswerMeta === null ||
+      !("messageCompleted" in liveAnswerMeta && liveAnswerMeta.messageCompleted === true)
+    )
+      throw new Error("Live answer is missing its completion marker")
+    if (
+      !("turnDurationMs" in liveAnswerMeta) ||
+      typeof liveAnswerMeta.turnDurationMs !== "number" ||
+      liveAnswerMeta.turnDurationMs < 0 ||
+      !("workDurationMs" in liveAnswerMeta) ||
+      typeof liveAnswerMeta.workDurationMs !== "number" ||
+      liveAnswerMeta.workDurationMs < 0 ||
+      liveAnswerMeta.workDurationMs > liveAnswerMeta.turnDurationMs
+    )
+      throw new Error("Live answer is missing bounded native turn and work durations")
+    const answerFrames = (await port.sessionEvents(a)).flatMap((frame) => {
+      const message = JSON.parse(frame.line) as {
+        method?: string
+        params?: {
+          update?: {
+            sessionUpdate: string
+            messageId?: string
+            _meta?: { codex?: { phase?: string; messageCompleted?: boolean } }
+          }
+        }
+      }
+      const update = message.params?.update
+      return message.method === "session/update" && update !== undefined && update.messageId === liveAnswer?.id
+        ? [update]
+        : []
+    })
+    const startedAnswer = answerFrames[0]
+    if (startedAnswer?.sessionUpdate !== "agent_message" || startedAnswer._meta?.codex?.messageCompleted === true)
+      throw new Error("Live assistant message did not reserve its position before streaming")
+    const answerPhase = startedAnswer._meta?.codex?.phase
+    if (!answerPhase || answerFrames.some((update) => update._meta?.codex?.phase !== answerPhase))
+      throw new Error("Live assistant message changed phase between start, streaming and completion")
+    console.log("chat ordering: native start reserves the message position; streamed and completed phases agree")
+    await client.requestPrediction(a, liveTurnId)
+    await until(
+      () => {
+        const meta = client.session(a)._meta?.codex
+        return typeof meta === "object" && meta !== null && "prediction" in meta
+      },
+      75_000,
+      "composer prediction result"
+    )
+    const prediction = composerPrediction(client.session(a)._meta)
+    if (prediction?.sourceTurnId !== liveTurnId || prediction.result.type !== "completed")
+      throw new Error("Composer prediction did not complete for the live native turn")
+    console.log("chat facts: live native ids, message completion and composer prediction result verified")
+    if (process.env.ALWITH_LIVE_FOCUS === "chat") return
+
+    if (process.env.ALWITH_LIVE_FOCUS === "steer") {
+      const previousItems = new Set(client.session(a).items.map((item) => item.id))
+      const first = await client.prompt(a, [
+        {
+          type: "text",
+          text: "Steering regression: run sleep 20 with exec_command and wait for that same process. After it ends, list all STEER_ markers received during this turn. Do not modify files."
+        }
+      ])
+      await until(
+        () =>
+          client
+            .session(a)
+            .items.some((item) => item.kind === "tool" && item.status === "in_progress" && !previousItems.has(item.id)),
+        45_000,
+        "steering target command"
+      )
+      const firstTurn = codexTurnId(client.session(a).items.find((item) => item.id === first)?._meta)
+      const steered = []
+      for (const marker of ["STEER_ALPHA", "STEER_BRAVO"]) {
+        steered.push(
+          await client.prompt(a, [
+            { type: "text", text: `Also include ${marker}. Continue waiting for the original process.` }
+          ])
+        )
+        if (client.session(a).state === "idle") throw new Error("Steering receipt waited for foreground completion")
+      }
+      await until(() => client.session(a).state === "idle", 90_000, "steered turn completion")
+      for (const messageId of steered) {
+        const item = client.session(a).items.find((entry) => entry.id === messageId)
+        if (item?.kind !== "user" || codexTurnId(item._meta) !== firstTurn)
+          throw new Error("Steering was queued into a different native turn")
+      }
+      const reply = assistantText(client.session(a))
+      if (!reply.includes("STEER_ALPHA") || !reply.includes("STEER_BRAVO"))
+        throw new Error("Steering markers did not reach the active turn")
+      console.log("steering: repeated acceptance receipts and native turn identity verified")
+      return
+    }
+
     // A second client on the same Runtime attaches to the running agent instead of restarting it,
     // and replays the initialize response without a second handshake.
     second = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
@@ -186,12 +288,12 @@ async function check(transport: "stdio" | "ws") {
     })
     await second.connect()
     await verifyHistory(second, directory, replies)
-    const restoredFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    const restoredFast = second.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!restoredFast || !isBooleanOption(restoredFast))
       throw new Error("Resumed native model did not expose fast mode")
-    await second.setConfig(a, "fast_mode", true)
-    await second.setConfig(a, "fast_mode", false)
-    const disabledFast = second.session(a).configOptions.find((option) => option.configId === "fast_mode")
+    await second.setConfig(a, "fast-mode", true)
+    await second.setConfig(a, "fast-mode", false)
+    const disabledFast = second.session(a).configOptions.find((option) => option.configId === "fast-mode")
     if (!disabledFast || !isBooleanOption(disabledFast) || disabledFast.currentValue)
       throw new Error("Fast mode did not become disabled")
     console.log("fresh agent: native history matches live transcripts; fast mode remains available and can be disabled")
@@ -210,6 +312,8 @@ async function check(transport: "stdio" | "ws") {
     await second.renameSession(a, sourceTitle)
     const forked = await second.fork(a, directory, turnId)
     try {
+      if (!second.session(forked).commands.some((command) => command.name === "status"))
+        throw new Error("Forked session has no status command")
       await until(
         () =>
           second!.session(forked).items.some((item) => item.kind === "user") &&
@@ -233,10 +337,10 @@ async function check(transport: "stdio" | "ws") {
         assistantText(forkSession).trim() !== replyA.trim()
       )
         throw new Error("Fork did not stop at the selected answer")
-      const branches = await second.listProjectThreads(directory)
-      if (![a, forked].every((id) => branches.some((thread) => thread.sessionId === id)))
+      const branches = await second.listProjectSessions(directory)
+      if (![a, forked].every((id) => branches.some((sessionRow) => sessionRow.sessionId === id)))
         throw new Error("Native branch index is missing the source or fork")
-      if (branches.find((thread) => thread.sessionId === forked)?.forkedFromId !== a)
+      if (branches.find((sessionRow) => sessionRow.sessionId === forked)?.forkedFromId !== a)
         throw new Error("Fork lineage does not point to the source")
       await second.close(forked)
       // A fork must survive a full agent restart before the user sends anything in it.
@@ -252,7 +356,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      const immediatelySaved = await second.readThreadSummary(forked)
+      const immediatelySaved = await second.readSessionSummary(forked)
       if (immediatelySaved?.title !== `${sourceTitle} (2)`)
         throw new Error("Fork or title was not saved before the first child prompt")
       await second.open(forked, directory)
@@ -282,7 +386,7 @@ async function check(transport: "stdio" | "ws") {
         launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
       })
       await second.connect()
-      if (!(await second.listProjectThreads(directory)).some((thread) => thread.sessionId === forked))
+      if (!(await second.listProjectSessions(directory)).some((sessionRow) => sessionRow.sessionId === forked))
         throw new Error("Continued fork is missing from the persisted native list")
       await second.open(forked, directory)
       await until(
@@ -309,6 +413,7 @@ async function check(transport: "stdio" | "ws") {
     } finally {
       await second.delete(forked)
     }
+    if (process.env.ALWITH_LIVE_FOCUS === "fork") return
     const events = await port.sessionEvents(a)
     if (events.length === 0) throw new Error("the Runtime journal has no frames for session A")
     console.log(`journal: ${events.length} frames for A, last sequence ${events.at(-1)!.sequence}`)
@@ -356,20 +461,12 @@ async function check(transport: "stdio" | "ws") {
     await second.close(closeTarget)
     await second.close(survivor)
     console.log("close: idle and running sessions retire independently; sibling completes and closed history reopens")
+    if (process.env.ALWITH_LIVE_FOCUS === "lifecycle") return
     await verifyUserInput(second, directory)
     await verifyAsyncUserInput(second, directory)
   } finally {
     client.disconnect()
     second?.disconnect()
-    const exited =
-      port instanceof ProcessRuntimeClient
-        ? new Promise<void>((resolve) => port.onProcessExit(() => resolve()))
-        : runtime
-          ? new Promise<void>((resolve) => runtime.process.once("exit", () => resolve()))
-          : Promise.resolve()
-    port.close()
-    runtime?.stop()
-    await exited
   }
 }
 
@@ -466,6 +563,45 @@ async function verifyAsyncUserInput(client: CodexClient, directory: string): Pro
     if (client.state.actions.some((action) => action.sessionId === id))
       throw new Error("History replay reopened a question")
     console.log("async question: non-blocking metadata, correlated steering answer and history replay")
+  } finally {
+    await client.delete(id)
+  }
+}
+
+async function verifyShell(client: CodexClient, directory: string): Promise<void> {
+  const id = await client.newSession(directory)
+  const marker = `SHELL_${crypto.randomUUID()}`
+  const output = () => JSON.stringify({ items: client.session(id).items, terminals: client.session(id).terminals })
+  const hasUserShellSource = () =>
+    client.session(id).items.some((item) => {
+      const meta = item._meta?.codex
+      return (
+        item.kind === "tool" &&
+        typeof meta === "object" &&
+        meta !== null &&
+        "commandSource" in meta &&
+        meta.commandSource === "userShell"
+      )
+    })
+  try {
+    await client.executeShell(id, `printf '${marker}:%s\\n' "$PWD" | cat`)
+    await until(
+      () => client.session(id).state === "idle" && output().includes(`${marker}:${directory}`) && hasUserShellSource(),
+      30_000,
+      "user shell output and completion"
+    )
+    await client.close(id)
+    await client.open(id, directory)
+    await until(
+      () => output().includes(`${marker}:${directory}`) && hasUserShellSource(),
+      10_000,
+      "user shell history replay"
+    )
+    await client.executeShell(id, "sleep 30")
+    await until(() => client.session(id).state === "running", 10_000, "user shell running state")
+    await client.cancel(id)
+    await until(() => client.session(id).state === "idle", 10_000, "user shell interruption")
+    console.log("shell: command syntax, session directory, output, completion, replay and interruption")
   } finally {
     await client.delete(id)
   }

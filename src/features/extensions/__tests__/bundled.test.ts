@@ -9,7 +9,7 @@ const manifest = parseManifest({
   id: "host-notes",
   name: "Test extension",
   version: "1.0.0",
-  dependencies: { "@alwith/module-extension": "^0.1.0" }
+  dependencies: { "@alwith/module-extension": "^0.5.0" }
 })
 
 const bundle = { id: manifest.id, version: manifest.version, source: "bundled:alwith-u", path: "/bundled/host-notes" }

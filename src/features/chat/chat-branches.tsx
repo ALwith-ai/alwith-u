@@ -1,16 +1,16 @@
-import type { Item, Session } from "@alwith/api"
+import type { Turn } from "@alwith/module-chat/turns"
+import type { Item, Session } from "@nyssance/codex-acp-v2/client"
+import { codexExtensionCapabilities, codexTurnId } from "@nyssance/codex-acp-v2/client"
 import { SplitIcon } from "lucide-react"
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ForkOrigin, ThreadSummary } from "@/agent/client"
-import { codexExtensionCapabilities, codexTurnId } from "@/agent/codex-extensions"
+import type { ForkOrigin, SessionSummary } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { client, useApp } from "@/lib/client"
-
-import type { Turn } from "./turns"
 
 type BranchActions = {
   canFork: boolean
@@ -30,7 +30,7 @@ export function ChatBranchProvider({
   children
 }: {
   session: Session
-  onSelect?: (thread: ThreadSummary) => void
+  onSelect?: (sessionRow: SessionSummary) => void
   children: ReactNode
 }) {
   const agent = useApp((state) => state.agent)
@@ -65,11 +65,11 @@ export function ChatBranchProvider({
     sourceBusy.current = true
     setOpeningSource(true)
     void client
-      .readThreadSummary(origin.sourceId)
-      .then((thread) => {
+      .readSessionSummary(origin.sourceId)
+      .then((sessionRow) => {
         if (!mounted.current) return
-        if (!thread) throw new Error(t("chat.branches.sourceUnavailable"))
-        onSelect(thread)
+        if (!sessionRow) throw new Error(t("chat.branches.sourceUnavailable"))
+        onSelect(sessionRow)
       })
       .catch((error: unknown) => {
         if (mounted.current) toast.error(error instanceof Error ? error.message : String(error))
@@ -86,9 +86,9 @@ export function ChatBranchProvider({
     void client
       .fork(session.id, session.cwd, turnId)
       .then((id) => {
-        const thread = client.state.threads.find((entry) => entry.sessionId === id)
-        if (!thread) throw new Error("Forked chat is missing from the session list")
-        if (mounted.current) onSelect?.(thread)
+        const sessionRow = client.state.sessionList.find((entry) => entry.sessionId === id)
+        if (!sessionRow) throw new Error("Forked chat is missing from the session list")
+        if (mounted.current) onSelect?.(sessionRow)
       })
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
       .finally(() => {
@@ -112,21 +112,46 @@ export function ChatBranchProvider({
   return <BranchContext value={value}>{children}</BranchContext>
 }
 
-export function ForkTurnButton({ turnId }: { turnId: string | null }) {
+/** Progress belongs to the source conversation until the child can be selected. */
+export function ForkProgress() {
   const actions = useContext(BranchContext)
   const { t } = useTranslation()
+  if (!actions?.pending) return null
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-fork-progress=""
+      className="flex shrink-0 items-center gap-2 border-b px-6 py-3 text-sm text-muted-foreground"
+    >
+      <Spinner className="size-4" role="presentation" aria-hidden="true" />
+      {t("chat.branches.creating")}
+    </div>
+  )
+}
+
+export function ForkTurnButton({ turnId, labelled = false }: { turnId: string | null; labelled?: boolean }) {
+  const actions = useContext(BranchContext)
+  const { t } = useTranslation()
+  const label = t(labelled ? "chat.readOnly.fork" : "chat.branches.create")
   if (!actions?.atTurn || turnId === null) return null
   return (
     <Button
-      variant="ghost"
-      size="icon"
-      className="codex-message-action focus-visible:ring-0 active:translate-y-0"
-      aria-label={t("chat.branches.create")}
-      title={t("chat.branches.create")}
+      variant={labelled ? "outline" : "ghost"}
+      size={labelled ? "sm" : "icon"}
+      className={
+        labelled
+          ? "cursor-pointer text-foreground focus-visible:ring-0 active:translate-y-0 disabled:cursor-not-allowed"
+          : "codex-message-action focus-visible:ring-0 active:translate-y-0"
+      }
+      aria-label={label}
+      title={label}
       disabled={!actions.canFork || actions.pending}
       onClick={() => actions.fork(turnId)}
     >
-      <SplitIcon className="rotate-90" />
+      {!labelled && <SplitIcon className="rotate-90" />}
+      {labelled && label}
     </Button>
   )
 }

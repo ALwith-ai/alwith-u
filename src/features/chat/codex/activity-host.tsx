@@ -3,6 +3,9 @@ import { TerminalOutput } from "@alwith/module-chat/terminal-output"
 import { invoke } from "@tauri-apps/api/core"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
+
+import { copyText } from "@/lib/clipboard"
 
 import { openImageGallery, openImageLightbox } from "../dialogs/image-lightbox"
 import { ChatDirectoryContext, ChatOpenSessionContext, useOpenChatLink } from "../file-actions"
@@ -23,7 +26,7 @@ function imageFilePath(path: string, cwd: string | null): string {
   return `${cwd.replace(/[\\/]$/, "")}/${path}`
 }
 
-export function useChatActivityHost(): ActivityHost {
+export function useChatActivityHost(sessionId?: string): ActivityHost {
   const openLink = useOpenChatLink()
   const cwd = useContext(ChatDirectoryContext)
   const openSession = useContext(ChatOpenSessionContext)
@@ -35,11 +38,13 @@ export function useChatActivityHost(): ActivityHost {
         t: (key, values) => i18n.t(key, { ...values, ns: "alwithChat" }),
         i18n: { language },
         openLink,
+        copyText,
+        onCopyError: (error) => toast.error(error instanceof Error ? error.message : String(error)),
         Markdown: CodexMarkdownRenderer,
         Output: TerminalOutput,
         Patch: PatchView,
-        openImage: openImageLightbox,
-        openImageGallery,
+        openImage: (src) => openImageLightbox(src, "", undefined, sessionId),
+        openImageGallery: (images, index) => openImageGallery(images, index, sessionId),
         loadImage: async (path) => {
           const preview = await invoke<
             { kind: "image"; data: string; mimeType: string } | { kind: "text"; text: string } | { kind: "unsupported" }
@@ -54,9 +59,10 @@ export function useChatActivityHost(): ActivityHost {
           if (block.status === "cancelled" || block.status === "interrupted") return t("chat.tool.stopped")
           if (block.exitCode !== undefined && block.exitCode !== 0)
             return t("chat.tool.exitCode", { code: block.exitCode })
+          if (block.status === "completed" && block.exitCode === undefined) return undefined
           return t(block.status === "failed" ? "chat.tool.failed" : "chat.tool.success")
         }
       }) satisfies ActivityHost,
-    [i18n, language, t, openLink, openSession, cwd]
+    [i18n, language, t, openLink, openSession, cwd, sessionId]
   )
 }

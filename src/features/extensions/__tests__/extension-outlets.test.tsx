@@ -141,7 +141,7 @@ test("settings navigation uses the owning extension icon rather than its setting
     manifestVersion: 3,
     entry: "main.js",
     dataSchemaVersion: 1,
-    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     icon: "lucide:chart"
   }
@@ -220,3 +220,15 @@ test("business ribbon entries render distinct Lucide icons on the left", () => {
     expect(button.querySelector(`svg.${svgClass}`)).not.toBeNull()
   }
 })
+
+test.each(["bi-metrics", "etms-strategy-review", "yup-kb"])(
+  "%s settings omit the host title and preserve the extension content heading",
+  (id) => {
+    const page = { ...view(`${id}/settings`, "settingsPages"), title: `${id} settings` }
+    const ui = render(
+      <ExtensionSettingsContent id={page.id} views={[page]} renderView={() => <h2>Configuration</h2>} />
+    )
+    expect(ui.queryByRole("heading", { name: page.title })).toBeNull()
+    expect(ui.getByRole("heading", { name: "Configuration", level: 2 })).toBeVisible()
+  }
+)

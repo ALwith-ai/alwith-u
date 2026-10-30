@@ -2,12 +2,12 @@ import { expect, test, vi } from "vitest"
 
 import { createSessionFiles } from "../session-files"
 
-const threads = [
+const sessionRows = [
   { sessionId: "one", cwd: "/work", title: "First", updatedAt: "2026-10-09T00:00:00Z", archived: false },
   { sessionId: "two", cwd: "/other", title: "Second", updatedAt: null, archived: true }
 ]
 const source = () => ({
-  list: vi.fn(() => Promise.resolve(threads)),
+  list: vi.fn(() => Promise.resolve(sessionRows)),
   read: vi.fn((id: string) =>
     Promise.try(() => `${JSON.stringify({ type: "user", sessionId: id, message: { content: "Hello" } })}\n`)
   ),
@@ -56,8 +56,8 @@ test("does not cache transcripts, and propagates running/changed/unavailable his
 test("rejects ambiguous Desktop project encodings instead of linking another workspace", async () => {
   const deps = source()
   deps.list.mockResolvedValueOnce([
-    { ...threads[0], cwd: "/work-a" },
-    { ...threads[1], cwd: "/work/a" }
+    { ...sessionRows[0], cwd: "/work-a" },
+    { ...sessionRows[1], cwd: "/work/a" }
   ])
   await expect(createSessionFiles("/virtual", deps).listSessions("/virtual")).rejects.toThrow("编码冲突")
 })
@@ -70,8 +70,8 @@ test("rejects ambiguous projects during archive directory scanning and direct re
   ] as const) {
     const deps = source()
     deps.list.mockResolvedValueOnce([
-      { ...threads[0], cwd: "/work-a" },
-      { ...threads[1], cwd: "/work/a" }
+      { ...sessionRows[0], cwd: "/work-a" },
+      { ...sessionRows[1], cwd: "/work/a" }
     ])
     const files = createSessionFiles("/virtual", deps)
     await expect(files.file(operation, path)).rejects.toThrow("编码冲突")

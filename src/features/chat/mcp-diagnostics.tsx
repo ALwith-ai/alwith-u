@@ -1,4 +1,5 @@
-import { isContentEntry, isText, type Session } from "@alwith/api"
+import { isMcpStartup } from "@alwith/module-chat/turns"
+import { isContentEntry, isText, type Session } from "@nyssance/codex-acp-v2/client"
 import { PlugIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,8 +8,6 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-
-import { isMcpStartup } from "./turns"
 
 /** Read diagnostics directly from the displayed Runtime session, including replayed items. */
 export function McpDiagnostics({ session }: { session: Session }): ReactNode {

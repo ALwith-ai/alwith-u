@@ -1,5 +1,5 @@
-import type { ToolItem } from "@alwith/api"
-import { cleanup, render, screen } from "@testing-library/react"
+import type { ToolItem } from "@nyssance/codex-acp-v2/client"
+import { cleanup, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock("../activity-host", () => ({
@@ -14,7 +14,7 @@ vi.mock("../activity-host", () => ({
     openImage: vi.fn()
   })
 }))
-import { ActivityGroup } from "../activity-group"
+import { renderTimeline, runningSession } from "../../__tests__/timeline-host"
 afterEach(cleanup)
 test("private computer actions have a readable summary even when ACP classifies them as execute", () => {
   const item: ToolItem = {
@@ -33,7 +33,7 @@ test("private computer actions have a readable summary even when ACP classifies 
     rawInput: { x: 20, y: 30 },
     rawOutput: null
   }
-  render(<ActivityGroup items={[item]} terminals={{}} streamingThoughtId={null} />)
+  renderTimeline(runningSession("computer-activity", "/tmp", [item]))
   expect(screen.getByText("computer.actions.click")).toBeInTheDocument()
   expect(screen.queryByText(/alwith_computer/)).not.toBeInTheDocument()
   expect(item.rawInput).toEqual({ x: 20, y: 30 })

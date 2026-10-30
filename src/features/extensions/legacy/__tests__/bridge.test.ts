@@ -29,7 +29,7 @@ function setup(
         name: extensionId,
         version: "1.0.0",
         entry: "main.js",
-        dependencies: { "@alwith/module-extension": "^0.1.5" },
+        dependencies: { "@alwith/module-extension": "^0.5.0" },
         hosts: {},
         dataSchemaVersion: 1
       },

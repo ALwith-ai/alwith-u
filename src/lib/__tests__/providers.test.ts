@@ -2,8 +2,10 @@ import { expect, test } from "vitest"
 
 import {
   gatewayModelId,
+  isAccountModel,
   parseCustomModels,
   providerGroups,
+  PROVIDERS,
   type ProviderSnapshot,
   resolveSessionModel
 } from "../providers"
@@ -74,4 +76,61 @@ test("configured custom providers become independent model groups", () => {
       models: [{ id: "model-a", label: "Model A" }]
     }
   ])
+})
+
+test("an explicitly selected unavailable account model never falls back to another provider", () => {
+  const snapshot: ProviderSnapshot = {
+    revision: 0,
+    appliedRevision: 0,
+    providers: {},
+    customProviders: [],
+    status: "applied",
+    error: null
+  }
+  expect(() => resolveSessionModel("gateway:litellm:account-model", snapshot)).toThrow(/unavailable/i)
+})
+
+test("account-managed models keep their own group and can be selected explicitly", () => {
+  const snapshot: ProviderSnapshot = {
+    revision: 1,
+    appliedRevision: 1,
+    status: "applied",
+    error: null,
+    providers: {},
+    customProviders: [],
+    managedProviders: [
+      {
+        id: "litellm",
+        name: "ALwith",
+        baseUrl: "https://gateway.test/v1",
+        models: [{ api_id: "ds/pro", label: "DS Pro" }]
+      }
+    ]
+  }
+  expect(providerGroups(snapshot)).toEqual([
+    { id: "litellm", name: "ALwith", models: [{ id: "ds/pro", label: "DS Pro" }] }
+  ])
+  expect(resolveSessionModel("gateway:litellm:ds%2Fpro", snapshot)).toBe("gateway:litellm:ds%2Fpro")
+})
+
+test("account-sourced providers are excluded from manual key configuration", () => {
+  expect(PROVIDERS.map((provider) => provider.id)).toEqual(["deepseek", "openrouter", "qwen", "xai"])
+  expect(
+    providerGroups({
+      revision: 0,
+      appliedRevision: 0,
+      status: "applied",
+      error: null,
+      providers: {},
+      customProviders: []
+    })
+  ).toEqual([])
+})
+
+test("account model classification follows the catalog source and exact provider ID", () => {
+  expect(isAccountModel("gateway:litellm:model")).toBe(true)
+  expect(isAccountModel("gateway:litellm-other:model")).toBe(false)
+  expect(isAccountModel("gateway:deepseek:deepseek-flash")).toBe(false)
+  expect(isAccountModel("gpt-6-sol")).toBe(false)
+  expect(isAccountModel(null)).toBe(false)
 })

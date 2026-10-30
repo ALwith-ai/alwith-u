@@ -1,5 +1,5 @@
 import { PROJECT_DIRECTORY } from "./catalog"
-import { client } from "./client"
+import { actionsTaken, client } from "./client"
 
 export type ComposerCase =
   "ready" | "textPending" | "textError" | "mentionEmpty" | "mentionError" | "prediction" | "predictionError"
@@ -30,6 +30,7 @@ export function resetComposer(kind: ComposerCase = "ready"): void {
     }
   }
   client.requestPrediction = async (id, sourceTurnId) => {
+    actionsTaken.push({ type: "prediction", id })
     if (kind === "predictionError") throw new Error("模拟输入预测服务不可用")
     if (kind !== "prediction") return
     const session = client.session(id)

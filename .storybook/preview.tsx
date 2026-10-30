@@ -1,21 +1,16 @@
 import "./fixtures/native"
+import { resetNative } from "./fixtures/native"
 import { disposePlaybackClock } from "./fixtures/playback-clock"
 import "../src/index.css"
 import { withThemeByClassName } from "@storybook/addon-themes"
 import type { Preview } from "@storybook/react-vite"
-import { type ReactNode, useEffect } from "react"
 import { I18nextProvider } from "react-i18next"
 import { configure } from "storybook/test"
 
 import { AppDirectionProvider } from "../src/components/alwith-ui/app-direction-provider"
-import { ThemeProvider, useTheme } from "../src/components/theme-provider"
+import { ThemeProvider } from "../src/components/theme-provider"
 import i18n, { initI18n } from "../src/lib/i18n"
-
-function ThemeSync({ theme, children }: { theme: "light" | "dark"; children: ReactNode }) {
-  const { setTheme } = useTheme()
-  useEffect(() => setTheme(theme), [theme, setTheme])
-  return children
-}
+import { settingsStore } from "../src/lib/settings-store"
 
 configure({ asyncUtilTimeout: 5000 })
 
@@ -37,6 +32,8 @@ const preview: Preview = {
   loaders: [
     async ({ globals }) => {
       disposePlaybackClock()
+      resetNative(undefined, undefined, globals.theme === "dark" ? "dark" : "light")
+      await settingsStore.read()
       const locale = globals.locale as string
       if (!i18n.isInitialized) await initI18n(locale)
       else await i18n.changeLanguage(locale)
@@ -48,18 +45,18 @@ const preview: Preview = {
       <I18nextProvider i18n={i18n}>
         <AppDirectionProvider>
           <ThemeProvider>
-            <ThemeSync theme={context.globals.theme === "dark" ? "dark" : "light"}>
-              <div
-                className={
-                  context.parameters.productPage
-                    ? "h-dvh w-full overflow-hidden bg-sidebar text-foreground"
+            <div
+              className={
+                context.parameters.productPage
+                  ? "h-dvh w-full overflow-hidden bg-sidebar text-foreground"
+                  : context.parameters.layout === "fullscreen"
+                    ? "bg-background text-foreground"
                     : "mx-auto max-w-3xl bg-background p-4 text-foreground"
-                }
-                data-stream-style="codexUI"
-              >
-                <Story key={JSON.stringify([context.id, context.args, context.globals])} />
-              </div>
-            </ThemeSync>
+              }
+              data-stream-style="codexUI"
+            >
+              <Story key={JSON.stringify([context.id, context.args, context.globals])} />
+            </div>
           </ThemeProvider>
         </AppDirectionProvider>
       </I18nextProvider>

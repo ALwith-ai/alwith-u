@@ -1,5 +1,10 @@
 import { createPetAssets, type PetAssetsHost } from "@alwith/module-auth/pets"
-import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/pets/core"
+import {
+  configureVibemon,
+  initializeSettings,
+  type PetObservation,
+  type VibemonHost
+} from "@alwith/module-auth/pets/core"
 import { PetWindow } from "@alwith/module-auth/pets/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
@@ -15,7 +20,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-test("the packaged pet plays successive drag frames until native release and reverses without restarting", async () => {
+test("the packaged pet preserves drag animation and resumes its renderer after closing", async () => {
   vi.useFakeTimers()
   const images: { onload: (() => void) | null }[] = []
   vi.stubGlobal(
@@ -96,22 +101,39 @@ test("the packaged pet plays successive drag frames until native release and rev
   const moved: { listener: ((position: { x: number; y: number }) => void) | null } = { listener: null }
   const stop = vi.fn()
   const errors = vi.fn()
+  let onCommand: Parameters<VibemonHost["windows"]["commands"]>[0] | undefined
+  const nativeActions: string[] = []
+  const bubbleVisibility: boolean[] = []
+  const bubbleFocus: boolean[] = []
+  let observation: PetObservation | null = null
+  let observe: ((value: PetObservation | null) => void) | undefined
   const host: VibemonHost = {
     account: () => account,
     assets: createPetAssets(assetsHost),
     storage,
     subscribeStorage: () => () => {},
     sessions: {
-      snapshot: () => null,
-      subscribe: () => () => {},
+      snapshot: () => observation,
+      subscribe: (listener) => {
+        observe = listener
+        return () => {
+          observe = undefined
+        }
+      },
       send: vi.fn(),
       answer: vi.fn(),
       openChat: vi.fn(),
       activate: vi.fn(),
-      select: vi.fn()
+      select: vi.fn(),
+      panel: vi.fn(async () => {})
     },
     windows: {
-      async call<T>(action: string): Promise<T> {
+      async call<T>(action: string, payload?: Record<string, unknown>): Promise<T> {
+        nativeActions.push(action)
+        if (action === "bubble") {
+          bubbleVisibility.push(payload?.visible === true)
+          bubbleFocus.push(payload?.focus === true)
+        }
         if (action === "drag") {
           started.resolve()
           await release.promise
@@ -128,7 +150,12 @@ test("the packaged pet plays successive drag frames until native release and rev
         moved.listener = listener
         return Promise.resolve(stop)
       },
-      commands: () => () => {},
+      commands: (listener) => {
+        onCommand = listener
+        return () => {
+          onCommand = undefined
+        }
+      },
       geometry: () => Promise.resolve(() => {}),
       openPet: () => Promise.resolve("shown"),
       closePet: vi.fn(),
@@ -144,6 +171,10 @@ test("the packaged pet plays successive drag frames until native release and rev
   await act(() => Promise.try(() => images[0].onload?.()))
   const canvas = view.container.querySelector("canvas")
   if (canvas === null) throw new Error("The pet canvas did not render")
+  const sprite = canvas.parentElement
+  if (sprite === null) throw new Error("The pet sprite container is missing")
+  const initialTransform = sprite.style.transform
+  expect(initialTransform).toBe("translateY(-36px)")
   drawImage.mockClear()
   fireEvent.pointerDown(canvas, { button: 0, screenX: 100, screenY: 100 })
   await act(async () => {
@@ -166,4 +197,87 @@ test("the packaged pet plays successive drag frames until native release and rev
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 0])
   expect(stop).toHaveBeenCalledOnce()
   expect(errors).not.toHaveBeenCalled()
+  if (onCommand === undefined) throw new Error("Pet command listener missing")
+  const command = onCommand
+  let closed!: Promise<void>
+  await act(async () => {
+    closed = command({ type: "close", petId: "pet", requestId: "close" })
+    await vi.advanceTimersByTimeAsync(500)
+    await closed
+  })
+  expect(nativeActions).toContain("hide")
+  const framesWhileHidden = drawImage.mock.calls.length
+  await act(() => Promise.try(() => vi.advanceTimersByTime(500)))
+  expect(drawImage).toHaveBeenCalledTimes(framesWhileHidden)
+  let presented!: Promise<void>
+  await act(async () => {
+    presented = command({ type: "present", petId: "pet", requestId: "present" })
+    await Promise.resolve()
+  })
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(100)
+    await presented
+  })
+  expect(nativeActions).toContain("present")
+  expect(images).toHaveLength(1)
+  expect(drawImage.mock.calls.length).toBeGreaterThan(framesWhileHidden)
+  expect(errors).not.toHaveBeenCalled()
+  const task: PetObservation = {
+    binding: { connectionEpoch: "epoch", agentId: "codex", sessionId: "one", incarnation: "one", bindingRevision: 1 },
+    source: "event",
+    revision: 1,
+    state: "done",
+    since: 0,
+    title: "Task",
+    cwd: "/project",
+    windowLabel: "main",
+    candidates: [],
+    owner: "owner",
+    executionId: null,
+    executionRole: null,
+    access: "writable",
+    surfaceVisible: false,
+    error: null,
+    reply: null,
+    userMessage: null,
+    prompt: null
+  }
+  const publish = async (panel: "expanded" | "hidden") => {
+    observation = { ...task, taskFeed: { tasks: [task], panel, mainMinimized: false } }
+    await act(async () => {
+      observe?.(observation)
+    })
+    expect(sprite.style.transform).toBe(initialTransform)
+  }
+  await publish("expanded")
+  expect(bubbleVisibility.at(-1)).toBe(true)
+  expect(bubbleFocus.at(-1)).toBe(false)
+  await publish("expanded")
+  expect(bubbleFocus.at(-1)).toBe(false)
+  await publish("hidden")
+  expect(bubbleVisibility.at(-1)).toBe(true)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(120)
+  })
+  await publish("expanded")
+  expect(bubbleFocus.at(-1)).toBe(true)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300)
+  })
+  expect(bubbleVisibility.at(-1)).toBe(true)
+  await publish("hidden")
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(240)
+  })
+  expect(bubbleVisibility.at(-1)).toBe(false)
+  for (const value of [
+    { ...task, taskFeed: { tasks: [{ ...task, hidden: true }], panel: "expanded" as const, mainMinimized: false } },
+    { ...task, taskFeed: { tasks: [], panel: "hidden" as const, mainMinimized: false } },
+    null
+  ]) {
+    observation = value
+    await act(async () => observe?.(observation))
+    expect(sprite.style.transform).toBe(initialTransform)
+    expect(view.queryByRole("button", { name: /tasks/i })).toBeNull()
+  }
 })

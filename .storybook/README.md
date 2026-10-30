@@ -15,7 +15,7 @@ After adding, renaming, or reordering a page case, run `bun .storybook/generate-
 
 ## Individual workflows
 
-There are **144 individual journeys** with **610 embedded intermediate/final checkpoints**. A workflow folder contains only the pages and actions belonging to that journey.
+There are **144 individual journeys** with **492 embedded intermediate/final checkpoints**. A workflow folder contains only the pages and actions belonging to that journey.
 
 - Open **完整流程图** for a single horizontal canvas with 1100px-wide pages, action labels above the arrows, and separate numbered step names above each page image. Drag either blank canvas or a page image to pan. Pages have no click action; the toolbar only offers zoom out, the current scale, and zoom in. Browser layout zoom preserves text rendering.
 - Every step renders in an isolated iframe and replays source interactions to its checkpoint. Preparation runs in order because sibling frames share keyboard focus; completed pages remain visible while later steps load. These are live source components, not screenshots.
@@ -81,7 +81,22 @@ File operations and edits write to `fixtures/filesystem.ts` in memory. Login, mo
 
 Monaco uses Chromium EditContext. Automated editing dispatches its OS text-update event to the real editor; source save and close handlers still perform the operation. Error toasts stay visible for checkpoint inspection and are cleared between examples. Pet flow tests complete the source video's `ended` event to reach the actual result UI without waiting for the entire clip.
 
-## Verification
+## Integration verification (2026-10-30)
+
+The catalog is integrated with `main` at `a94ded5`. It retains Chinese page/feature navigation, complete source page states, 144 workflow diagrams, and shared theme/language controls. New upstream browser bridge, mobile settings, extension controls, plugin catalog, subagent, and app-creation examples are included in the page groups. The current index contains **369 page/component examples + 144 workflow diagrams = 513 sidebar stories**, with 492 embedded workflow checkpoints across 246 generated story files.
+
+The integration adapts adapter-owned session types and list state, shared chat components and drafts, project grouping, host fixtures, the settings-backed theme, and newer drive/pet contracts. Production source, dependencies, and application configuration match the main branch. The synthetic user-agent fixture includes Chromium brand metadata required by the accessibility matcher.
+
+Current verification:
+
+- Storybook and application type checks, both static builds, knip, and scoped formatting pass.
+- All 1,482 source frontend/engine tests pass across 239 files.
+- A browser smoke check passes for 13 representative page families in both light and dark modes (26 checks), including chat, settings, archives, plugins, files, extensions, pets, gamepad, floating chat, mobile settings, browser bridge, and subagents.
+- All 38 targeted interaction checks pass across eight generated story files, covering the migrated model menu, app creation, plugin operations, composer recovery, plugin details, image preview, gamepad, and floating chat. Existing contrast findings in the open model menu and app-creation choices are explicit accessibility TODOs; product colors are unchanged.
+- The broader page run is not a passing full-catalog result: it encountered browser connection closure and stale canvas/layout assertions against the newer Atlas geometry. The targeted workflow verifier passes navigation geometry/panning/zoom, plugin installation, Guide navigation, and plugin failure recovery, but times out on the later all-settings checkpoint batch. These remaining checks need follow-up before claiming full interaction coverage.
+- The aggregate application test command stops at three native-artifact fixture failures caused by encoded Chinese/space path segments (86 script tests pass). This Bun installation has no `lint` command. Neither limitation was fixed as part of the Storybook integration.
+
+## Historical verification
 
 Verified on 2026-10-26: all 374 page/component cases passed across the page-suite run and an isolated-cache rerun of the 16 file-preview cases. The first page-suite run passed 369 cases; five media cases hit concurrent dependency-cache invalidation and passed in the isolated rerun. Storybook type checks, knip, and static build passed. The final static export used a separate temporary output directory to avoid concurrent build writes; its catalog matches the live preview. Product source/configuration fingerprints match the pre-change baseline outside `.storybook/`. Embedded workflow checkpoints are counted separately from sidebar stories.
 

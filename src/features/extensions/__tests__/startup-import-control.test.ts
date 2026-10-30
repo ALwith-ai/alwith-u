@@ -3,6 +3,8 @@ import { beforeEach, expect, test, vi } from "vitest"
 
 const fixture = vi.hoisted(() => ({
   label: "settings",
+  start: vi.fn(),
+  subscriptions: 0,
   handler: undefined as undefined | ((id: string) => Promise<string>),
   runtime: {
     refresh: vi.fn(),
@@ -19,10 +21,11 @@ const fixture = vi.hoisted(() => ({
   startupTasks: [] as string[]
 }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: fixture.label }) }))
-vi.mock("../runtime", () => ({ startExtensionRuntime: () => Promise.resolve(fixture.runtime) }))
+vi.mock("../runtime", () => ({ startExtensionRuntime: fixture.start }))
 vi.mock("../reload-window", () => ({
   requestMainReload: fixture.request,
   serveMainReload: (handler: (id: string) => Promise<string>) => {
+    fixture.subscriptions++
     fixture.handler = handler
     return Promise.resolve(() => {})
   }
@@ -50,6 +53,22 @@ beforeEach(() => {
   vi.clearAllMocks()
   fixture.label = "settings"
   fixture.startupTasks = []
+  fixture.subscriptions = 0
+  fixture.start.mockResolvedValue(fixture.runtime)
+})
+
+test("startup imports recover after service startup fails without duplicating the reload listener", async () => {
+  fixture.label = "main"
+  fixture.startupTasks = ["task"]
+  fixture.install.mockResolvedValue({ error: null })
+  fixture.start.mockRejectedValueOnce(new Error("Directory locked"))
+  const { startStartupImports } = await import("../startup-import-control")
+  await expect(startStartupImports()).rejects.toThrow("Directory locked")
+  expect(fixture.install).not.toHaveBeenCalled()
+  await Promise.all([startStartupImports(), startStartupImports()])
+  expect(fixture.subscriptions).toBe(1)
+  expect(fixture.install).toHaveBeenCalledOnce()
+  expect(fixture.complete).toHaveBeenCalledWith({ taskId: "task", operationId: "startup" })
 })
 
 test("settings never installs locally and returns only the main result", async () => {
@@ -59,6 +78,32 @@ test("settings never installs locally and returns only the main result", async (
   expect(fixture.request).toHaveBeenCalledWith("notes")
   expect(fixture.scan).not.toHaveBeenCalled()
   expect(fixture.install).not.toHaveBeenCalled()
+})
+
+test("focus recovery completes failed startup imports before refreshing", async () => {
+  fixture.label = "main"
+  fixture.startupTasks = ["task"]
+  fixture.install.mockResolvedValue({ error: null })
+  fixture.start.mockRejectedValueOnce(new Error("Directory locked"))
+  const { startStartupImports, refreshExtensions } = await import("../startup-import-control")
+  await expect(startStartupImports()).rejects.toThrow("Directory locked")
+  fixture.runtime.refresh.mockImplementation((): Promise<void> => {
+    expect(fixture.complete).toHaveBeenCalledWith({ taskId: "task", operationId: "startup" })
+
+    return Promise.resolve()
+  })
+  await refreshExtensions()
+  expect(fixture.subscriptions).toBe(1)
+  expect(fixture.install).toHaveBeenCalledOnce()
+  expect(fixture.runtime.refresh).toHaveBeenCalledOnce()
+  fixture.runtime.refresh.mockReset()
+})
+
+test("focus recovery does not refresh when startup is still unavailable", async () => {
+  fixture.start.mockRejectedValueOnce(new Error("Subscription unavailable"))
+  const { refreshExtensions } = await import("../startup-import-control")
+  await expect(refreshExtensions()).rejects.toThrow("Subscription unavailable")
+  expect(fixture.runtime.refresh).not.toHaveBeenCalled()
 })
 
 test("main activation failure retains the input and reports failure to settings", async () => {

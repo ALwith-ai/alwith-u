@@ -17,8 +17,17 @@ const listeners = new Set<() => void>()
 let state: DriveState = { connected: true, snapshot: null, error: null }
 let mode: DriveCase = "ready"
 let generation = 0
-let grantList: GrantList = {}
-let currentJob: Job = { id: 1, status: "PENDING" }
+let grantList: GrantList = { grants: [], implicit: [], callerLevel: "MANAGE" }
+let currentJob: Job = {
+  id: 1,
+  status: "PENDING",
+  type: "CONDENSE",
+  projectId: 1,
+  progress: 0,
+  message: null,
+  error: null,
+  result: null
+}
 const failures: FailedUpload[] = [
   {
     projectId: 1,
@@ -65,6 +74,10 @@ export function resetDrive(kind: DriveCase = "ready"): void {
         subjectId: "demo-colleague",
         subjectDisplay: "周宁",
         level: "EDIT",
+        actions: [],
+        source: "FOLDER",
+        sourceResourceId: null,
+        sourceDisplay: null,
         inherited: false,
         editable: true
       },
@@ -73,6 +86,8 @@ export function resetDrive(kind: DriveCase = "ready"): void {
         subjectId: 1,
         subjectDisplay: "产品与研发",
         level: "VIEW",
+        actions: [],
+        sourceResourceId: 1,
         source: "SPACE",
         sourceDisplay: "团队空间",
         inherited: true,
@@ -244,12 +259,23 @@ export const drive: DriveController = {
       return {
         type: "templates",
         data: [
-          { id: 1, name: "项目资料库", kind: "MATERIAL", builtin: true },
-          { id: 2, name: "知识库", kind: "KNOWLEDGE", builtin: true }
+          {
+            id: 1,
+            name: "项目资料库",
+            kind: "MATERIAL",
+            builtin: true,
+            code: "material",
+            description: null,
+            icon: null
+          },
+          { id: 2, name: "知识库", kind: "KNOWLEDGE", builtin: true, code: "knowledge", description: null, icon: null }
         ]
       }
     if (request.type === "departments" || request.type === "searchDepartments")
-      return { type: "departments", data: [{ id: 1, name: "产品与研发", code: "PRODUCT", parentId: null }] }
+      return {
+        type: "departments",
+        data: [{ id: 1, name: "产品与研发", code: "PRODUCT", parentId: null, type: "DEPARTMENT", path: "/PRODUCT" }]
+      }
     if (request.type === "cloudFolders") return { type: "cloudFolders", data: [] }
     if (request.type === "failedUploads")
       return { type: "failedUploads", data: mode === "failedUploads" ? failures : [] }
@@ -283,6 +309,11 @@ export const drive: DriveController = {
             subjectId: input.subjectId,
             level: input.level,
             subjectDisplay: input.subjectId === "demo-reviewer" ? "陈晓" : "周宁",
+            actions: [],
+            source: "FOLDER",
+            sourceResourceId: null,
+            sourceDisplay: null,
+            inherited: false,
             editable: true
           }
         ]

@@ -1,5 +1,11 @@
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/api"
+import {
+  type BooleanOption,
+  isSelectOption,
+  type SelectOption,
+  type Session,
+  textOf
+} from "@nyssance/codex-acp-v2/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { must } from "@/lib/__tests__/must"
@@ -71,11 +77,95 @@ async function make(
   return { client, fake, port }
 }
 
+test("shell acceptance materializes only the owning draft and failure preserves an unsent draft", async () => {
+  const { client } = await make()
+  const main = await client.prepareDraft("main", "/tmp/main-shell")
+  const floating = await client.prepareDraft("chat", "/tmp/floating-shell")
+  const execute = vi.spyOn(client.codexCapabilities, "executeShell").mockRejectedValueOnce(new Error("Disconnected"))
+  try {
+    await expect(client.executeShell(main, "pwd")).rejects.toThrow("Disconnected")
+    expect(client.state.draftSessions[main]).toBe("main")
+    execute.mockResolvedValue({})
+    await client.executeShell(main, "pwd")
+    expect(execute).toHaveBeenLastCalledWith(main, "pwd")
+    expect(client.state.draftSessions[main]).toBeUndefined()
+    expect(client.state.draftSessions[floating]).toBe("chat")
+  } finally {
+    execute.mockRestore()
+  }
+})
+
+test("new sessions resolve the configured default before asking the agent to create them", async () => {
+  const resolve = vi.fn(async (model: string | null) => model ?? "configured-default")
+  const { client, fake } = await make(undefined, undefined, resolve)
+  const id = await client.newSession("/tmp/configured-default")
+  expect(resolve).toHaveBeenCalledWith(null)
+  expect(fake.modelHints.get(id)).toBe("configured-default")
+})
+
+test("opening historical conversations does not replace their model with another slot's preference", async () => {
+  const { client, fake } = await make()
+  client.setModelSelections({ main: "other-main-model", chat: "other-floating-model" })
+  await client.open("h1", "/tmp/one")
+  expect(fake.modelHints.get("h1")).toBeNull()
+})
+
+test.each(["new", "resume", "fork"] as const)(
+  "%s sessions initialize commands from the response",
+  async (operation) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands-source")
+    const initial = [{ type: "command" as const, name: "status", description: "Show session status" }]
+    fake.sessionCommands.current = initial
+    const id =
+      operation === "new"
+        ? await client.newSession("/tmp/commands")
+        : operation === "fork"
+          ? await client.fork(source, "/tmp/commands-source")
+          : await client.open("h1", "/tmp/one").then(() => "h1")
+    expect(client.session(id).commands).toEqual(initial)
+    expect(client.session(source).commands).toEqual([])
+
+    const updated = [{ type: "command" as const, name: "compact", description: "Compact conversation" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: updated })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(updated))
+    expect(client.session(source).commands).toEqual([])
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "resume command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const id = await client.newSession("/tmp/commands")
+    const previous = [{ type: "command" as const, name: "status", description: "Show session status" }]
+    await fake.pushUpdate(id, { sessionUpdate: "available_commands_update", availableCommands: previous })
+    await vi.waitFor(() => expect(client.session(id).commands).toEqual(previous))
+    await client.stopSession(id)
+    fake.sessionCommands.current = snapshot
+    await client.open(id, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
+test.each([{ snapshot: undefined }, { snapshot: [] }])(
+  "fork command snapshots distinguish omitted and empty lists: $snapshot",
+  async ({ snapshot }) => {
+    const { client, fake } = await make()
+    const source = await client.newSession("/tmp/commands")
+    const previous = [{ type: "command" as const, name: "status", description: "Show session status" }]
+    fake.replayUpdates.push({ sessionUpdate: "available_commands_update", availableCommands: previous })
+    fake.sessionCommands.current = snapshot
+    const id = await client.fork(source, "/tmp/commands")
+    expect(client.session(id).commands).toEqual(snapshot ?? previous)
+  }
+)
+
 test.each([true, false])(
   "new sessions start with Fast disabled when the agent default is %s",
   async (inheritedFast) => {
     const option: BooleanOption = {
-      configId: "fast_mode",
+      configId: "fast-mode",
       category: "model_config",
       name: "Fast",
       type: "boolean",
@@ -86,7 +176,7 @@ test.each([true, false])(
       fake.sessionOptions.current = () => [{ ...option }]
       fake.configResponse.current = (request) => {
         writes.push(request)
-        expect(request.configId).toBe("fast_mode")
+        expect(request.configId).toBe("fast-mode")
         expect(request.type).toBe("boolean")
         option.currentValue = request.value as boolean
         return { configOptions: [{ ...option }] }
@@ -95,7 +185,7 @@ test.each([true, false])(
     const id = await client.prepareDraft("main", "/tmp/default-fast")
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: false }])
     expect(writes).toHaveLength(inheritedFast ? 1 : 0)
-    await client.setConfig(id, "fast_mode", true)
+    await client.setConfig(id, "fast-mode", true)
     expect(client.session(id).configOptions).toEqual([{ ...option, currentValue: true }])
     expect(await client.prepareDraft("main", "/tmp/default-fast")).toBe(id)
     expect(client.session(id).configOptions[0]?.currentValue).toBe(true)
@@ -105,7 +195,7 @@ test.each([true, false])(
 test("a failed Fast default update does not expose a ready draft", async () => {
   const { client, fake } = await make((fake) => {
     fake.sessionOptions.current = () => [
-      { configId: "fast_mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
+      { configId: "fast-mode", category: "model_config", name: "Fast", type: "boolean", currentValue: true }
     ]
     fake.configResponse.current = () => {
       throw RequestError.invalidRequest({}, "Cannot disable Fast")
@@ -229,7 +319,7 @@ test("history enumeration and export leave sidebar, selection and attachments un
     )
   )
   const before = client.state
-  expect((await client.listHistorySessions(() => {})).map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
+  expect((await client.listHistorySessions(() => {})).map((sessionRow) => sessionRow.sessionId)).toEqual(["h1", "h2"])
   expect(await client.exportHistory("h2", () => {})).toBe("")
   expect(client.state).toBe(before)
   expect(port.attached).toEqual([])
@@ -284,7 +374,7 @@ test("fork sends the real turn boundary, keeps model hints and preserves replaye
     sessionId: source,
     _meta: { codex: { lastTurnId: "turn-1" }, alwith: { model: "custom-model" } }
   })
-  expect(client.state.threads.find((thread) => thread.sessionId === forked)).toMatchObject({
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === forked)).toMatchObject({
     title: "Original title (2)",
     nativeSessionId: forked,
     forkedFromId: source
@@ -326,7 +416,7 @@ test("source lookup reads every page across projects and archived chats and reje
     cwd,
     _meta: { codex: { nativeSessionId: id, forkedFromId: parent, archived } }
   })
-  const before = client.state.threads
+  const before = client.state.sessionList
   const requests: unknown[] = []
   fake.listSessions.current = (request) => {
     requests.push(request)
@@ -338,13 +428,13 @@ test("source lookup reads every page across projects and archived chats and reje
         }
       : { sessions: [entry("root", null, "/project"), entry("unrelated", null, "/project")], nextCursor: "next" }
   }
-  expect((await client.readThreadSummary("branch"))?.cwd).toBe("/other")
+  expect((await client.readSessionSummary("branch"))?.cwd).toBe("/other")
   expect(requests).toContainEqual({ _meta: { codex: { archived: true } } })
   expect(requests).toContainEqual({ cursor: "next" })
-  expect((await client.readThreadSummary("archived-parent"))?.archived).toBe(true)
-  expect(client.state.threads).toBe(before)
+  expect((await client.readSessionSummary("archived-parent"))?.archived).toBe(true)
+  expect(client.state.sessionList).toBe(before)
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "cycle" })
-  await expect(client.readThreadSummary("root")).rejects.toThrow("repeated cursor")
+  await expect(client.readSessionSummary("root")).rejects.toThrow("repeated cursor")
 })
 
 test("a newly forked attached chat remains selectable before Codex lists it", async () => {
@@ -359,11 +449,15 @@ test("a newly forked attached chat remains selectable before Codex lists it", as
           ]
         }
   const child = await client.fork(root, "/tmp/fork", "turn-1")
-  await client.listThreads({ reset: true })
-  expect(client.state.threads.some((thread) => thread.sessionId === child)).toBe(true)
-  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(true)
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList.some((sessionRow) => sessionRow.sessionId === child)).toBe(true)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(
+    true
+  )
   await client.delete(child)
-  expect((await client.listProjectThreads("/tmp/fork")).some((thread) => thread.sessionId === child)).toBe(false)
+  expect((await client.listProjectSessions("/tmp/fork")).some((sessionRow) => sessionRow.sessionId === child)).toBe(
+    false
+  )
 })
 
 test("stream bursts preserve every chunk across sessions with bounded UI notifications", async () => {
@@ -698,18 +792,18 @@ test("terminal output is decoded across chunk boundaries", async () => {
 
 test("threads come from the agent and open() replays history", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
-  await client.listThreads({ archived: true })
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h2"])
+  await client.listSessions()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
+  await client.listArchived()
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(["h2"])
   await client.open("h1", "/tmp/one")
   const session = client.session("h1")
   expect(session.attached).toBe(true)
   expect(session.items.map((item) => item.kind)).toEqual(["user", "assistant"])
   await client.archive("h1")
   expect(fake.archived.has("h1")).toBe(true)
-  expect(client.state.threads).toHaveLength(0)
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(["h1", "h2"])
+  expect(client.state.sessionList).toHaveLength(0)
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1", "h2"])
   expect(client.state.sessions.h1).toBeUndefined()
 })
 
@@ -746,7 +840,22 @@ test("opening an attached read-only session retries resume until the writer is r
   expect(attempts).toBe(3)
 })
 
-test("project views share one no-params full list, deduplicate IDs and reuse memory", async () => {
+test("startup sends an object for the full list through a null-normalizing transport", async () => {
+  const { client, port } = await make()
+  const send = port.acpRequest.bind(port)
+  vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    const wireParams = params ?? null
+    if (method === "_codex/session_list" && wireParams === null)
+      return Promise.reject(RequestError.invalidParams(undefined, "Expected an object"))
+    return send(agentId, method, wireParams, options)
+  })
+  await client.listSessions()
+  expect(client.state.sessionListLoaded).toBe(true)
+  expect(client.state.sessionListError).toBeNull()
+  expect(client.state.sessionList.length).toBeGreaterThan(0)
+})
+
+test("project views share one full list with empty object params, deduplicate IDs and reuse memory", async () => {
   const { client, fake } = await make()
   fake.listSessions.current = () => ({
     sessions: [
@@ -756,56 +865,62 @@ test("project views share one no-params full list, deduplicate IDs and reuse mem
       { sessionId: "archive", cwd: "/tmp/project", _meta: { codex: { archived: true } } }
     ]
   })
-  const [project] = await Promise.all([client.listProjectThreads("/tmp/project"), client.listThreads()])
-  expect(project.map((thread) => [thread.sessionId, thread.title])).toEqual([["p1", "Renamed"]])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["p1", "other"])
-  await client.listProjectThreads("/tmp/other")
-  expect(fake.fullListRequests).toEqual([undefined])
+  const [project] = await Promise.all([client.listProjectSessions("/tmp/project"), client.listSessions()])
+  expect(project.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual([["p1", "Renamed"]])
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["p1", "other"])
+  await client.listProjectSessions("/tmp/other")
+  expect(fake.fullListRequests).toEqual([{}])
 })
 
 test("explicitly selected history entries join the shared list only once", async () => {
   const { client } = await make()
-  await client.listThreads()
+  await client.listSessions()
   const selected = { sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false }
-  client.includeThread(selected)
+  client.includeSession(selected)
   const state = client.state
-  client.includeThread({ ...selected, title: "Stale" })
+  client.includeSession({ ...selected, title: "Stale" })
   expect(client.state).toBe(state)
-  expect(await client.listProjectThreads("/tmp/project")).toEqual([selected])
+  expect(await client.listProjectSessions("/tmp/project")).toEqual([selected])
 })
 
 test("a pending refresh preserves a newly selected project chat", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   let answer!: (value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void
   fake.listSessions.current = () =>
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ reset: true })
+  const pending = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
-  client.includeThread({ sessionId: "older", cwd: "/tmp/project", title: "Selected", updatedAt: null, archived: false })
+  client.includeSession({
+    sessionId: "older",
+    cwd: "/tmp/project",
+    title: "Selected",
+    updatedAt: null,
+    archived: false
+  })
   answer({ sessions: [{ sessionId: "older", cwd: "/tmp/project", title: "Stale" }] })
   await pending
-  expect(client.state.threads.filter((thread) => thread.sessionId === "older")).toHaveLength(1)
-  expect(client.state.threads.find((thread) => thread.sessionId === "older")?.title).toBe("Selected")
+  expect(client.state.sessionList.filter((sessionRow) => sessionRow.sessionId === "older")).toHaveLength(1)
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === "older")?.title).toBe("Selected")
 })
 
 test("refresh replaces the complete list and preserves the last snapshot on failure", async () => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   fake.listSessions.current = () => {
     throw new Error("Unavailable")
   }
-  await expect(client.listThreads({ reset: true })).rejects.toThrow()
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h1"])
-  expect(client.state.threadsLoaded).toBe(true)
+  await expect(client.listSessions({ reset: true })).rejects.toThrow()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
+  expect(client.state.sessionListLoaded).toBe(true)
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "external", cwd: "/tmp/other" }] })
-  await client.listThreads({ reset: true })
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
   fake.listSessions.current = () => ({ sessions: [], nextCursor: "unexpected" })
-  await expect(client.listThreads({ reset: true })).rejects.toThrow("Full session list returned a cursor")
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["external"])
+  await expect(client.listSessions({ reset: true })).rejects.toThrow("Full session list returned a cursor")
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
 })
 
 test("thread loading reports failure and clears it after retry", async () => {
@@ -820,22 +935,22 @@ test("thread loading reports failure and clears it after retry", async () => {
     })
   }
 
-  await expect(client.listThreads({ reset: true })).rejects.toThrow("Internal error")
-  expect(client.state.threadsLoaded).toBe(false)
-  expect(client.state.threadsLoading).toBe(false)
-  expect(client.state.threadsError).toContain("Internal error")
+  await expect(client.listSessions({ reset: true })).rejects.toThrow("Internal error")
+  expect(client.state.sessionListLoaded).toBe(false)
+  expect(client.state.sessionListLoading).toBe(false)
+  expect(client.state.sessionListError).toContain("Internal error")
 
-  const retry = client.listThreads({ reset: true })
-  expect(client.state.threadsLoading).toBe(true)
-  expect(client.state.threadsError).toBeNull()
+  const retry = client.listSessions({ reset: true })
+  expect(client.state.sessionListLoading).toBe(true)
+  expect(client.state.sessionListError).toBeNull()
   await until(() => answer !== null)
   const respond = answer as ((value: { sessions: [] }) => void) | null
   if (respond === null) throw new Error("The retry did not reach the agent")
   respond({ sessions: [] })
   await retry
-  expect(client.state.threadsLoaded).toBe(true)
-  expect(client.state.threadsLoading).toBe(false)
-  expect(client.state.threads).toEqual([])
+  expect(client.state.sessionListLoaded).toBe(true)
+  expect(client.state.sessionListLoading).toBe(false)
+  expect(client.state.sessionList).toEqual([])
 })
 
 test("a gap the client could not refill replays the whole session from the engine's record", async () => {
@@ -897,17 +1012,17 @@ test("host configured gateway models are identified from the session catalog and
     alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek-Flash" }] }
   })
 
-  // Every restored thread uses the latest confirmed model, not its historical binding.
+  // Restoring history does not apply another conversation's model preference.
   const seen: Array<[string, string, boolean]> = []
   client.onSessionModel((sessionId, modelId, isGateway) => seen.push([sessionId, modelId, isGateway]))
   client.setModelSelections({ main: "deepseek-flash", chat: null })
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two")
-  expect(fake.modelHints.get("h1")).toBe("deepseek-flash")
-  expect(fake.modelHints.get("h2")).toBe("deepseek-flash")
+  expect(fake.modelHints.get("h1")).toBeNull()
+  expect(fake.modelHints.get("h2")).toBeNull()
   expect(seen).toEqual([
-    ["h1", "deepseek-flash", true],
-    ["h2", "deepseek-flash", true]
+    ["h1", "gpt-6.1-sol", false],
+    ["h2", "gpt-6.1-sol", false]
   ])
 
   // New chats start native; a gateway model can be asked for explicitly.
@@ -920,13 +1035,13 @@ test("host configured gateway models are identified from the session catalog and
   expect(fake.gateway.current).toBeNull()
 })
 
-test("restore uses each slot's current choice without creating a probe session", async () => {
+test("restore leaves each conversation's model to the agent without creating a probe session", async () => {
   const { client, fake } = await make()
   client.setModelSelections({ main: "main-model", chat: "chat-model" })
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two", "chat")
-  expect(fake.modelHints.get("h1")).toBe("main-model")
-  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  expect(fake.modelHints.get("h1")).toBeNull()
+  expect(fake.modelHints.get("h2")).toBeNull()
   expect(fake.modelHints.size).toBe(2)
   expect(fake.deleted.size).toBe(0)
 })
@@ -939,7 +1054,7 @@ test("attached session reuse follows its runtime model without rewriting slot me
   client.onConfirmedModel((...args) => seen.push(args))
   await client.open("h1", "/tmp/one")
   await client.open("h2", "/tmp/two")
-  expect(fake.modelHints.get("h2")).toBe("chat-model")
+  expect(fake.modelHints.get("h2")).toBeNull()
   const draft = await client.prepareDraft("main", "/tmp/draft")
   expect(fake.modelHints.get(draft)).toBe("main-model")
   expect(seen).toEqual([])
@@ -984,7 +1099,7 @@ test("a late restore cannot replace the model of the slot's newer target", async
   await opening
   delay = false
   await client.open("h3", "/tmp/three")
-  expect(fake.modelHints.get("h3")).toBe("chat-model")
+  expect(fake.modelHints.get("h3")).toBeNull()
 })
 
 test("a handed-off session no longer changes the previous slot's model", async () => {
@@ -1005,7 +1120,7 @@ test("restore waits for the host's applied provider selection", async () => {
   expect(fake.modelHints.size).toBe(0)
   ready.resolve("configured-default")
   await opening
-  expect(fake.modelHints.get("h1")).toBe("configured-default")
+  expect(fake.modelHints.get("h1")).toBeNull()
   expect(fake.modelHints.size).toBe(1)
 })
 
@@ -1101,10 +1216,10 @@ test("several gateways register under their own ids and can be removed one at a 
 
 test("rename, account, rate limits and file search pass through the adapter's _codex methods", async () => {
   const { client, fake } = await make()
-  await client.listThreads({ reset: true })
+  await client.listSessions({ reset: true })
   await client.renameSession("h1", "Renamed")
   expect(fake.renamed.get("h1")).toBe("Renamed")
-  expect(client.state.threads.find((thread) => thread.sessionId === "h1")?.title).toBe("Renamed")
+  expect(client.state.sessionList.find((sessionRow) => sessionRow.sessionId === "h1")?.title).toBe("Renamed")
 
   const account = await client.readAccount()
   expect(account.account).toEqual({ type: "chatgpt", email: "ny@example.com", planType: "plus" })
@@ -1164,12 +1279,12 @@ test("precreated drafts expose real models without entering thread indexes", asy
   expect(client.session(first).configOptions[0]?.currentValue).toBe("gpt-6.1-sol")
   expect(client.state.draftSessions[first]).toBe("main")
   fake.listSessions.current = () => ({ sessions: [{ sessionId: first, cwd: "/tmp/draft" }] })
-  await client.listThreads({ reset: true })
-  expect(client.state.threads).toEqual([])
-  expect(await client.listProjectThreads("/tmp/draft")).toEqual([])
+  await client.listSessions({ reset: true })
+  expect(client.state.sessionList).toEqual([])
+  expect(await client.listProjectSessions("/tmp/draft")).toEqual([])
   await client.prompt(first, [{ type: "text", text: "hello" }])
   expect(client.state.draftSessions[first]).toBeUndefined()
-  expect(client.state.threads.some((thread) => thread.sessionId === first)).toBe(true)
+  expect(client.state.sessionList.some((sessionRow) => sessionRow.sessionId === first)).toBe(true)
   await client.discardDraft("main")
   expect(fake.deleted.has(first)).toBe(false)
 })
@@ -1201,7 +1316,7 @@ test("changing an empty draft's model creates it on that model without resuming 
   expect(fake.deleted.has(first)).toBe(true)
   expect(client.state.draftSessions[replacement]).toBe("main")
   expect(await client.prepareDraft("main", "/tmp/model-draft", "deepseek-flash")).toBe(replacement)
-  expect(client.state.threads).toEqual([])
+  expect(client.state.sessionList).toEqual([])
   await client.prompt(replacement, [{ type: "text", text: "hello" }])
   expect(client.session(replacement).items.some((item) => item.kind === "user")).toBe(true)
 })
@@ -1404,27 +1519,29 @@ test("prompt waits for the model transaction and a failed switch rejects its wai
 
 test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo %s", async (action) => {
   const { client, fake } = await make()
-  await client.listThreads()
+  await client.listSessions()
   let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; title: string }> }) => void) | undefined
   fake.listSessions.current = () =>
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ reset: true })
+  const pending = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
   if (action === "rename") await client.renameSession("h1", "New title")
   else await client[action]("h1")
   must(answer, "pending list response")({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", title: "Old title" }] })
   await pending
-  expect(client.state.threads.map((thread) => [thread.sessionId, thread.title])).toEqual(
+  expect(client.state.sessionList.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual(
     action === "rename" ? [["h1", "New title"]] : []
   )
-  expect(client.state.archivedThreads.map((thread) => thread.sessionId)).toEqual(action === "archive" ? ["h1"] : [])
+  expect(client.state.archivedSessions.map((sessionRow) => sessionRow.sessionId)).toEqual(
+    action === "archive" ? ["h1"] : []
+  )
 })
 
 test("a pending archived list cannot undo restore", async () => {
   const { client, fake } = await make()
-  await client.listThreads({ archived: true })
+  await client.listArchived()
   let answer:
     | ((value: {
         sessions: Array<{ sessionId: string; cwd: string; _meta: { codex: { archived: boolean } } }>
@@ -1434,7 +1551,7 @@ test("a pending archived list cannot undo restore", async () => {
     new Promise((resolve) => {
       answer = resolve
     })
-  const pending = client.listThreads({ archived: true, reset: true })
+  const pending = client.listArchived({ reset: true })
   await until(() => answer !== undefined)
   await client.unarchive("h2")
   must(
@@ -1442,8 +1559,8 @@ test("a pending archived list cannot undo restore", async () => {
     "pending list response"
   )({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", _meta: { codex: { archived: true } } }] })
   await pending
-  expect(client.state.archivedThreads).toEqual([])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["h2"])
+  expect(client.state.archivedSessions).toEqual([])
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h2"])
 })
 
 test("concurrent refreshes share one request and loading state", async () => {
@@ -1453,16 +1570,16 @@ test("concurrent refreshes share one request and loading state", async () => {
     new Promise((resolve) => {
       answer = resolve
     })
-  const first = client.listThreads({ reset: true })
+  const first = client.listSessions({ reset: true })
   await until(() => answer !== undefined)
-  const second = client.listThreads({ reset: true })
+  const second = client.listSessions({ reset: true })
   expect(first).toBe(second)
-  expect(client.state.threadsLoading).toBe(true)
+  expect(client.state.sessionListLoading).toBe(true)
   expect(fake.fullListRequests).toHaveLength(1)
   answer({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }] })
   await Promise.all([first, second])
-  expect(client.state.threads.map((thread) => thread.sessionId)).toEqual(["new"])
-  expect(client.state.threadsLoading).toBe(false)
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["new"])
+  expect(client.state.sessionListLoading).toBe(false)
 })
 
 test("live user messages refresh recency, while history replay and older turns do not", async () => {
@@ -1470,9 +1587,9 @@ test("live user messages refresh recency, while history replay and older turns d
   const original = "2026-01-01T00:00:00.000Z"
   const current = "2026-10-10T10:00:00.000Z"
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "h1", cwd: "/tmp/one", updatedAt: original }] })
-  await client.listThreads()
+  await client.listSessions()
   await client.open("h1", "/tmp/one")
-  expect(client.state.threads[0]?.updatedAt).toBe(original)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(original)
   await fake.pushUpdate("h1", {
     sessionUpdate: "user_message",
     messageId: "live",
@@ -1480,7 +1597,7 @@ test("live user messages refresh recency, while history replay and older turns d
     _meta: { codex: { turnStartedAt: Date.parse(current) } }
   })
   await until(() => client.session("h1").items.some((item) => item.id === "live"))
-  expect(client.state.threads[0]?.updatedAt).toBe(current)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(current)
   await fake.pushUpdate("h1", {
     sessionUpdate: "user_message",
     messageId: "older",
@@ -1488,7 +1605,7 @@ test("live user messages refresh recency, while history replay and older turns d
     _meta: { codex: { turnStartedAt: Date.parse(original) } }
   })
   await until(() => client.session("h1").items.some((item) => item.id === "older"))
-  expect(client.state.threads[0]?.updatedAt).toBe(current)
+  expect(client.state.sessionList[0]?.updatedAt).toBe(current)
 })
 
 test("deleted-project aliases share the same complete memory list", async () => {
@@ -1501,11 +1618,11 @@ test("deleted-project aliases share the same complete memory list", async () => 
       { sessionId: "two", cwd: canonical }
     ]
   })
-  await client.listThreads()
+  await client.listSessions()
   const before = client.state
-  const result = await client.listProjectThreads(canonical)
-  expect(result.map((thread) => thread.cwd)).toEqual([canonical, canonical])
-  expect(await client.listProjectThreads(`${alias}/`)).toEqual(result)
+  const result = await client.listProjectSessions(canonical)
+  expect(result.map((sessionRow) => sessionRow.cwd)).toEqual([canonical, canonical])
+  expect(await client.listProjectSessions(`${alias}/`)).toEqual(result)
   expect(client.state).toBe(before)
   expect(fake.fullListRequests).toHaveLength(1)
 })
@@ -1513,14 +1630,14 @@ test("deleted-project aliases share the same complete memory list", async () => 
 test("new and explicitly included chats use the same project key as history", async () => {
   const { client } = await make(undefined, macProjectPaths)
   await client.newSession("/var/new-project")
-  client.includeThread({
+  client.includeSession({
     sessionId: "historical",
     cwd: "/var/new-project",
     title: "Old",
     updatedAt: null,
     archived: false
   })
-  expect(client.state.threads.map((thread) => thread.cwd)).toEqual([
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.cwd)).toEqual([
     "/private/var/new-project",
     "/private/var/new-project"
   ])
@@ -1534,9 +1651,9 @@ test("hosts without macOS aliases preserve distinct private and non-private dire
       { sessionId: "two", cwd: "/private/var/project" }
     ]
   })
-  await client.listThreads()
-  expect(client.state.threads.map((thread) => thread.cwd)).toEqual(["/var/project", "/private/var/project"])
-  expect((await client.listProjectThreads("/var/project")).map((thread) => thread.sessionId)).toEqual(["one"])
+  await client.listSessions()
+  expect(client.state.sessionList.map((sessionRow) => sessionRow.cwd)).toEqual(["/var/project", "/private/var/project"])
+  expect((await client.listProjectSessions("/var/project")).map((sessionRow) => sessionRow.sessionId)).toEqual(["one"])
 })
 
 test("plugin enablement uses the adapter extension with an explicit plugin ID", async () => {
@@ -1566,7 +1683,7 @@ test("plugin enablement uses the adapter extension with an explicit plugin ID", 
 test("tracked prompt receipt names the retained authoritative turn", async () => {
   const { client } = await make()
   const id = await client.newSession("/tmp/voice-receipt")
-  const messageId = await client.promptReceipt(id, [{ type: "text", text: "voice" }])
+  const messageId = await client.prompt(id, [{ type: "text", text: "voice" }])
   const prompt = must(client.state.sessions[id], "receipt session").items.find((item) => item.id === messageId)
   expect(prompt?.kind).toBe("user")
   expect(["acknowledged", "adopted"]).toContain(prompt && "echo" in prompt ? prompt.echo : null)
@@ -1662,4 +1779,134 @@ test("concurrent opens await the same replay and close cancels its request befor
   expect(await second).toMatchObject({ name: "AbortError" })
   await closing
   expect(client.state.sessions.h1).toBeUndefined()
+})
+
+test("a pending receipt does not hold admission and cannot write into a reopened session", async () => {
+  const { client, port } = await make()
+  const id = await client.newSession("/tmp/receipt-lifetime")
+  const original = port.acpRequest.bind(port)
+  let respond!: (response: { messageId: string }) => void
+  const request = vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    if (method === "session/prompt")
+      return new Promise((resolve) => {
+        respond = resolve
+      })
+    return original(agentId, method, params, options)
+  })
+  const sending = client.prompt(id, [{ type: "text", text: "pending receipt" }])
+  const outcome = sending.then(
+    () => "accepted",
+    (error: unknown) => error
+  )
+  await until(() => respond !== undefined)
+  await client.setConfig(id, "model", "chosen-model")
+  expect(client.session(id).configOptions[0]?.currentValue).toBe("chosen-model")
+  await client.cancel(id)
+  await client.close(id)
+  await client.open(id, "/tmp/receipt-lifetime")
+  const reopened = client.session(id)
+  respond({ messageId: "late-receipt" })
+  expect(await outcome).toMatchObject({ name: "AgentGoneError" })
+  expect(client.session(id)).toBe(reopened)
+  request.mockRestore()
+})
+
+test("stopping while retaining the transcript retires its pending receipt", async () => {
+  const { client, port } = await make()
+  const id = await client.newSession("/tmp/stopped-receipt")
+  const original = port.acpRequest.bind(port)
+  const receipt = Promise.withResolvers<{ messageId: string }>()
+  let sent = false
+  const request = vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
+    if (method === "session/prompt") {
+      sent = true
+      return receipt.promise
+    }
+    return original(agentId, method, params, options)
+  })
+  try {
+    const result = client.prompt(id, [{ type: "text", text: "retained" }]).catch((error: unknown) => error)
+    await until(() => sent)
+    await client.stopSession(id)
+    const stopped = client.session(id)
+    expect(stopped.items.some((item) => item.kind === "user")).toBe(true)
+    receipt.resolve({ messageId: "retired-receipt" })
+    expect(await result).toMatchObject({ name: "AgentGoneError" })
+    expect(client.session(id)).toBe(stopped)
+  } finally {
+    request.mockRestore()
+  }
+})
+
+test("reconnect releases each Runtime gap subscription", async () => {
+  const { client, port } = await make()
+  client.disconnect()
+  const subscribe = port.onGap.bind(port)
+  const releases: ReturnType<typeof vi.fn>[] = []
+  const spy = vi.spyOn(port, "onGap").mockImplementation((listener) => {
+    const release = vi.fn(subscribe(listener))
+    releases.push(release)
+    return release
+  })
+  try {
+    await client.connect()
+    client.disconnect()
+    expect(releases[0]).toHaveBeenCalledTimes(1)
+    await client.connect()
+    client.disconnect()
+    expect(releases[0]).toHaveBeenCalledTimes(1)
+    expect(releases[1]).toHaveBeenCalledTimes(1)
+  } finally {
+    spy.mockRestore()
+  }
+})
+
+test("writer conflicts still open browsable history and retry without claiming an attachment", async () => {
+  let locked = true
+  const { client, fake } = await make((fake) => {
+    fake.historyResponse.current = () => ({
+      sessionId: "locked",
+      consistency: "live",
+      revision: null,
+      nextCursor: null,
+      complete: true,
+      turns: [
+        {
+          turnId: "stored",
+          itemsView: "full",
+          updates: [
+            {
+              sessionUpdate: "user_message",
+              messageId: "stored-user",
+              content: [{ type: "text", text: "Readable history" }]
+            }
+          ]
+        }
+      ]
+    })
+    fake.resumeResponse.current = () => {
+      if (locked)
+        return Promise.reject(
+          RequestError.invalidRequest({ reason: "thread_active_writer", threadId: "locked" }, "Session in use")
+        )
+      return Promise.resolve({})
+    }
+  })
+  await client.open("locked", "/tmp/locked")
+  expect(client.session("locked")).toMatchObject({ attached: false, readOnly: true, restoring: false, error: null })
+  expect(
+    client.session("locked").items.some((item) => item.kind === "user" && textOf(item.content) === "Readable history")
+  ).toBe(true)
+  expect(fake.historyRequests).toHaveLength(1)
+  locked = false
+  await client.open("locked", "/tmp/locked")
+  expect(client.session("locked")).toMatchObject({ attached: true, readOnly: false, restoring: false })
+})
+
+test("selecting the default folder explicitly does not reuse a projectless draft", async () => {
+  const { client, fake } = await make()
+  const quick = await client.prepareDraft("main", undefined)
+  const explicit = await client.prepareDraft("main", client.session(quick).cwd)
+  expect(explicit).not.toBe(quick)
+  expect(fake.deleted.has(quick)).toBe(true)
 })

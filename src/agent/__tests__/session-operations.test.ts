@@ -1,6 +1,5 @@
+import { SessionOperations } from "@nyssance/codex-acp-v2/client"
 import { describe, expect, it } from "vitest"
-
-import { SessionOperations } from "../session-operations"
 
 function gate<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void } {
   let resolve!: (value: T) => void

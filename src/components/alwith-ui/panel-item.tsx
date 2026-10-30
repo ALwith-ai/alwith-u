@@ -9,10 +9,9 @@
  * Compose special titles, such as a search file header with name and directory on one line, with ItemTitle; use PanelItemTitle for standard truncation.
  */
 
+import { OverflowMarquee, ROW_HIGHLIGHT } from "@alwith/module-chat/session-list"
 import type { ComponentProps } from "react"
 
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
-import { ROW_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { cn } from "@/lib/utils"
 

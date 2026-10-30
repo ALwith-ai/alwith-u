@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next"
 import type { ComputerPreview_Serialize } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import { computerActionKey } from "./action-label"
@@ -71,61 +72,83 @@ export function ComputerPreviewCard({
   const queued = preview.activity.phase === "queued"
   const title = preview.frame?.appName || t("computer.preview.active")
   return (
-    <section
-      aria-label={t("computer.preview.title")}
-      className="computer-preview ml-auto w-full max-w-72 shrink-0 px-3 py-2"
-    >
+    <section aria-label={t("computer.preview.title")} className="computer-preview ml-auto w-full max-w-72 shrink-0 p-1">
       <div className="group/preview relative ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
         <div
           className={cn(
-            "z-20 flex items-center gap-1 bg-card/65 px-2 py-1.5 backdrop-blur-xl transition-opacity motion-reduce:transition-none",
+            "z-20 flex h-7 items-center gap-0.5 bg-card/65 px-1.5 py-0.5 backdrop-blur-xl transition-opacity motion-reduce:transition-none",
             !queued &&
               !collapsed &&
               preview.frame &&
               "absolute inset-x-0 top-0 opacity-0 group-focus-within/preview:opacity-100 group-hover/preview:opacity-100 hover:opacity-100 [@media(hover:none)]:opacity-100"
           )}
         >
-          <MonitorIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <span role="status" className="min-w-0 flex-1 truncate text-xs">
+          <MonitorIcon className="size-3 shrink-0 text-muted-foreground" />
+          <span role="status" className="min-w-0 flex-1 truncate text-[11px]">
             {queued ? t("computer.preview.queued", { position: preview.activity.queuePosition }) : title}
           </span>
           {!queued && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t(collapsed ? "computer.preview.expand" : "computer.preview.collapse")}
-              aria-expanded={!collapsed}
-              onClick={() => setCollapsed((v) => !v)}
-            >
-              {collapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t(collapsed ? "computer.preview.expand" : "computer.preview.collapse")}
+                    aria-expanded={!collapsed}
+                    onClick={() => setCollapsed((v) => !v)}
+                  >
+                    {collapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
+                  </Button>
+                }
+              />
+              <TooltipContent>{t(collapsed ? "computer.preview.expand" : "computer.preview.collapse")}</TooltipContent>
+            </Tooltip>
           )}
           {!queued && preview.frame && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("computer.preview.enlarge")}
-              onClick={() => setExpanded(true)}
-            >
-              <ArrowUpRightIcon />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("computer.preview.enlarge")}
+                    onClick={() => setExpanded(true)}
+                  >
+                    <ArrowUpRightIcon />
+                  </Button>
+                }
+              />
+              <TooltipContent>{t("computer.preview.enlarge")}</TooltipContent>
+            </Tooltip>
           )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={stopping}
-            onClick={onStop}
-            aria-label={t(queued ? "computer.preview.cancelQueue" : "computer.preview.stop")}
-          >
-            {stopping ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <SquareIcon />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  disabled={stopping}
+                  onClick={onStop}
+                  aria-label={t(queued ? "computer.preview.cancelQueue" : "computer.preview.stop")}
+                >
+                  {stopping ? <LoaderCircleIcon className="motion-safe:animate-spin" /> : <SquareIcon />}
+                </Button>
+              }
+            />
+            <TooltipContent>{t(queued ? "computer.preview.cancelQueue" : "computer.preview.stop")}</TooltipContent>
+          </Tooltip>
         </div>
         {!queued && !collapsed && (
           <Button
             variant="ghost"
             className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 hover:bg-muted/40 [&_img]:max-h-44"
             disabled={!preview.frame || !preview.activity.target}
-            aria-label={t("computer.preview.focus", { app: title })}
+            aria-label={
+              preview.frame
+                ? t("computer.preview.focus", { app: title })
+                : t(preview.error ? "computer.preview.unavailable" : "computer.preview.waiting")
+            }
             title={t("computer.preview.focus", { app: title })}
             onClick={onFocus}
           >
@@ -143,7 +166,11 @@ export function ComputerPreviewCard({
             variant="ghost"
             className="h-auto overflow-hidden rounded-xl border bg-muted/30 p-0"
             onClick={onFocus}
-            aria-label={t("computer.preview.focus", { app: title })}
+            aria-label={
+              preview.frame
+                ? t("computer.preview.focus", { app: title })
+                : t(preview.error ? "computer.preview.unavailable" : "computer.preview.waiting")
+            }
           >
             <WindowFrame preview={preview} />
           </Button>

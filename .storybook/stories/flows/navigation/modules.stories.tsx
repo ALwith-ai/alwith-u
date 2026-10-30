@@ -5,7 +5,14 @@ import base, { Modules as source } from "../../flow-definitions/navigation"
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 聊天", "点击 · 插件", "点击 · 扩展", "点击 · Vibémon", "点击 · 返回主屏", "完成 · 返回聊天"]
+const labels = [
+  "初始页面 · 聊天",
+  "点击 · 工具箱",
+  "点击 · 项目工具",
+  "点击 · Vibémon",
+  "点击 · 返回主屏",
+  "完成 · 返回聊天"
+]
 const config = { labels, id: "workflow-navigation-modules" }
 const meta = {
   ...base,

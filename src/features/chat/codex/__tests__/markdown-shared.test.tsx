@@ -1,8 +1,11 @@
 import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
-import { cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 describe("Desktop Markdown through the shared chat package", () => {
   const host: MarkdownHost = { theme: "light", copyLabel: "Copy", openLink: () => {} }
@@ -48,4 +51,29 @@ Price $10 and $20. Code: ${"`\\(literal\\)`"}`}
   expect(view.container.querySelectorAll(".katex-display")).toHaveLength(2)
   expect(view.container.querySelector(".codex-markdown-inline-code")?.textContent).toBe(String.raw`\(literal\)`)
   expect(view.container.textContent).toContain("Price $10 and $20")
+})
+
+test("code-block copy waits for the host clipboard and reports failures without confirming success", async () => {
+  vi.stubGlobal("IntersectionObserver", undefined)
+  let finish!: () => void
+  const copyText = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      })
+  )
+  const onCopyError = vi.fn()
+  const host: MarkdownHost = { theme: "light", copyLabel: "Copy code", openLink: () => {}, copyText, onCopyError }
+  const view = render(<CodexMarkdownRenderer text={"```js\nconst value = 42\n```"} host={host} />)
+  const button = await view.findByRole("button", { name: "Copy code" })
+  fireEvent.click(button)
+  await waitFor(() => expect(copyText).toHaveBeenCalledWith("const value = 42"))
+  expect(button.querySelector(".lucide-check")).toBeNull()
+  await act(() => Promise.try(() => finish()))
+  expect(button.querySelector(".lucide-check")).not.toBeNull()
+  const failure = new Error("Native clipboard unavailable")
+  copyText.mockRejectedValueOnce(failure)
+  fireEvent.click(button)
+  await waitFor(() => expect(onCopyError).toHaveBeenCalledWith(failure))
+  expect(button.querySelector(".lucide-check")).toBeNull()
 })

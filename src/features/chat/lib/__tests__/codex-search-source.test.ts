@@ -1,7 +1,7 @@
-import { createSession, type Item, type MessageItem, type ToolItem } from "@alwith/api"
+import { groupTurns } from "@alwith/module-chat/turns"
+import { createSession, type Item, type MessageItem, type ToolItem } from "@nyssance/codex-acp-v2/client"
 import { describe, expect, test } from "vitest"
 
-import { groupTurns } from "../../turns"
 import { findCodexSearchSourceMatches } from "../codex-search-source"
 
 function message(id: string, kind: MessageItem["kind"], text: string, at: number): MessageItem {
@@ -58,6 +58,17 @@ describe("Codex search source", () => {
         "  "
       )
     ).toEqual([])
+  })
+
+  test("terminal output is searched instead of a stale tool payload", () => {
+    const command = tool("shell", 2, "stale output")
+    command.content = [{ type: "terminal", terminalId: "terminal" }]
+    const session = { ...createSession("s", "/"), items: [message("u", "user", "run", 1), command] }
+    const terminals = {
+      terminal: { id: "terminal", command: "ls", cwd: "/", output: "needle", exitStatus: { exitCode: 0 }, _meta: null }
+    }
+    expect(findCodexSearchSourceMatches(groupTurns(session), "needle", terminals)).toHaveLength(1)
+    expect(findCodexSearchSourceMatches(groupTurns(session), "stale", terminals)).toEqual([])
   })
 
   test("an empty query never reads tool payloads", () => {

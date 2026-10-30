@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@alwith/module-desktop-shell/styles.css";
+@import "@alwith/module-desktop-shell/theme.css";
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
 @import "@alwith/module-auth/pets/styles.css";
@@ -9,12 +11,7 @@
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
 
-/* Match Desktop: mirror submenu navigation, but isolate technical notation. */
-:dir(rtl) [data-slot="dropdown-menu-sub-trigger"] > .lucide-chevron-right,
-:dir(rtl) [data-slot="context-menu-sub-trigger"] > .lucide-chevron-right {
-  scale: -1 1;
-}
-
+/* Isolate technical notation from the interface direction. */
 [data-slot="kbd"],
 [data-slot="kbd-group"],
 pre,
@@ -23,50 +20,10 @@ pre,
   unicode-bidi: isolate;
 }
 
-/* Keep diff metadata readable in both themes, including upstream diff2html styles. */
-[data-stream-style="codexUI"] .d2h-wrapper .d2h-info,
-[data-stream-style="codexUI"] .d2h-wrapper .d2h-tag {
-  color: var(--foreground);
-}
-
-[data-stream-style="codexUI"] .codex-markdown-link-label {
-  color: var(--link);
-  text-decoration: underline;
-}
-
-.codex-markdown-link,
-.codex-markdown-link .codex-markdown-link-mention {
-  color: var(--link);
-  cursor: pointer;
-}
-
-.codex-markdown-link:is(:hover, :focus-visible) .codex-markdown-link-label {
-  color: var(--link);
-  background-color: color-mix(in oklab, var(--link) 14%, transparent);
-  text-decoration: underline;
-}
-@source "../node_modules/@alwith/module-auth/dist/pets";
+/* Published pet components also live in shared chunks at the dist root. */
+@source "../node_modules/@alwith/module-auth/dist";
 
 @custom-variant dark (&:is(.dark *));
-
-.permission-mode-menu [role="menuitemradio"] > svg {
-  color: var(--muted-foreground);
-}
-
-.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] svg {
-  width: 14px;
-  height: 14px;
-}
-
-.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] {
-  inset-block-end: 0.25rem;
-  height: 1rem;
-}
-
-.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]),
-.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]) * {
-  color: var(--permission-warning);
-}
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -96,6 +53,7 @@ pre,
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-success: var(--success);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -113,82 +71,18 @@ pre,
 
 :root {
   --canvas-page-indicator: oklch(0.985 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --success: var(--color-green-500);
   --link: oklch(0.42 0.17 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --permission-warning: #e25508;
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: #f5f6f7;
-  --sidebar-foreground: #1a1c1f;
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
   --sidebar-floating-shadow: oklch(0 0 0 / 16%);
   /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
      the card does not rely on borders or shadows to stand out from the background. */
   --main-surface-gutter: 8px;
   --main-surface-border-width: 1px;
-  --main-surface-radius: 14px;
 }
 
 .dark {
-  --background: #181818;
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --success: var(--color-green-500);
   --link: oklch(0.64 0.13 255);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --permission-warning: #ff9248;
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: #3a3a3a;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
   --sidebar-floating-shadow: oklch(0 0 0 / 32%);
 }
 
@@ -262,7 +156,7 @@ html[data-window-backdrop="acrylic"]
 .main-window-titlebar {
   position: relative;
   flex: none;
-  height: 32px;
+  height: var(--main-titlebar-height);
   -webkit-app-region: drag;
 }
 .windows-main-content .main-window-titlebar {
@@ -279,7 +173,7 @@ html[data-window-backdrop="acrylic"]
 .main-canvas-viewport {
   position: relative;
   height: 100%;
-  margin-inline: 4px;
+  margin-inline: var(--main-surface-gutter);
   overflow: clip;
 }
 .main-window-statusbar {
@@ -413,8 +307,12 @@ html[data-window-backdrop="acrylic"]
 [data-sidebar-mode="hidden"] .main-sidebar-viewport {
   pointer-events: none;
 }
-[data-sidebar-mode="floating"] .main-sidebar-viewport {
-  overflow: visible;
+[data-sidebar-mode="floating"] .main-sidebar-shell[data-atlas-floating] > .main-sidebar-viewport {
+  /* Atlas paints this outer surface; include the canvas's 4px window gutter. */
+  inset-inline-start: 4px;
+  padding-inline: 0;
+  overflow: clip;
+  border-radius: var(--main-surface-radius);
 }
 [data-sidebar-mode="floating"] .main-sidebar-panel {
   overflow: clip;
@@ -460,16 +358,54 @@ html[data-window-backdrop="acrylic"]
 .windows-sidebar-toggle [data-slot="button"] {
   background-color: transparent;
 }
-/* Application controls use a hover overlay; conversation content keeps its own presentation. */
+/* Application controls use a hover overlay; conversations and Vibemon keep their own presentation. */
 @media (hover: hover) {
   :is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
       [data-disabled]
-    ):not(:where(.codex-thread-content *, .codex-assistant-turn *, .chat-project-picker *)):hover {
+    ):not(
+      :where(
+        .codex-timeline-content *,
+        .timeline-user-message-navigation *,
+        .codex-assistant-turn *,
+        .chat-project-picker *,
+        .vibemon-content *,
+        .vibemon-lounge-pet,
+        .pet-lounge button[aria-label="Vibémon"],
+        .window-card-hit,
+        .canvas-dots *
+      )
+    ):hover {
     background-image: linear-gradient(
       color-mix(in oklab, currentColor 8%, transparent),
       color-mix(in oklab, currentColor 8%, transparent)
     );
   }
+}
+
+.window-card {
+  /* Native window-control roles match the Desktop miniature window chrome. */
+  --window-control-close: #ff5f57;
+  --window-control-minimize: #febc2e;
+  --window-control-maximize: #28c840;
+}
+.window-card-close-dot {
+  background-color: var(--window-control-close);
+}
+.window-card-minimize-dot {
+  background-color: var(--window-control-minimize);
+}
+.window-card-maximize-dot {
+  background-color: var(--window-control-maximize);
+}
+.window-card:has(:focus-visible) {
+  outline: 2px solid var(--pane-feedback-color, var(--ring));
+  outline-offset: -2px;
+}
+.window-card:has(.window-card-hit:active) {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--foreground) 12%, transparent),
+    color-mix(in oklab, var(--foreground) 12%, transparent)
+  );
 }
 
 /* Keep application buttons stationary while pressed, including composed triggers. */
@@ -495,6 +431,18 @@ html[data-window-backdrop="acrylic"]
 .main-window-statusbar button:not(.canvas-dots button):is(:hover, [aria-expanded="true"]) {
   background-color: var(--chrome-hover-background);
 }
+
+/* Nested shortcut controls share their parent row's hover surface. */
+[data-hover-background="none"]:is(:hover, [aria-expanded="true"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.main-sidebar-panel [role="tablist"] [role="tab"]:enabled:hover {
+  background-color: transparent;
+  background-image: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .main-screen-track,
   .main-screen-leading,
@@ -530,7 +478,7 @@ body,
 :root {
   --app-scrollbar-size: 6px;
   --app-scrollbar-edge-gap: 2px;
-  --app-scrollbar-track-size: 10px;
+  --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
   --app-scrollbar-thumb: color-mix(in oklab, var(--foreground) 18%, transparent);
   --app-scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
 }
@@ -546,35 +494,37 @@ body,
   }
 }
 ::-webkit-scrollbar {
-  width: var(--app-scrollbar-size);
-  height: var(--app-scrollbar-size);
+  width: var(--app-scrollbar-track-size);
+  height: var(--app-scrollbar-track-size);
 }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
+  border: var(--app-scrollbar-edge-gap) solid transparent;
   border-radius: 999px;
   background: var(--app-scrollbar-thumb);
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-scrollbar-thumb-hover);
+  background-color: var(--app-scrollbar-thumb-hover);
 }
 ::-webkit-scrollbar-button {
   display: none;
 }
 
 /* Extend only the scroll track into the adjacent gutter; keep tabs and rows aligned. */
-.thread-sidebar-content {
+.session-list-content {
   margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
   padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
 }
-.thread-sidebar-scroll {
+.session-list-scroll {
   --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
   margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
   padding-inline-end: calc(8px + var(--sidebar-scrollbar-extension, 0px));
 }
-.thread-sidebar-scroll > [data-slot="scroll-area-scrollbar"] {
+.session-list-scroll > [data-slot="scroll-area-scrollbar"] {
   padding-inline: var(--app-scrollbar-edge-gap);
 }
 
@@ -690,4 +640,73 @@ body,
 .main-screen-track {
   will-change: transform;
   padding-inline-start: var(--canvas-leading-width);
+}
+
+.main-screen-trailing {
+  position: relative;
+  flex: none;
+  width: var(--sidebar-width);
+  height: 100%;
+  padding-inline: 4px;
+}
+
+/* Selected and pressed controls share an overlay; transcript disclosures stay transparent. */
+.settings-window [data-slot="toggle-group-item"][aria-pressed="true"],
+.settings-window [class~="group/button"][aria-pressed="true"] {
+  background-image: linear-gradient(
+    color-mix(in oklab, currentColor 8%, transparent),
+    color-mix(in oklab, currentColor 8%, transparent)
+  );
+}
+:is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
+    [data-disabled]
+  ):not(
+    :where(
+      .canvas-dots *,
+      .main-sidebar-panel [role="tablist"] [role="tab"],
+      .pet-lounge button[aria-label="Vibémon"],
+      .codex-assistant-turn [data-codex-disclosure],
+      .codex-assistant-turn .codex-edited-files-more
+    )
+  ):active {
+  background-image: linear-gradient(
+    color-mix(in oklab, currentColor 16%, transparent),
+    color-mix(in oklab, currentColor 16%, transparent)
+  );
+}
+
+.number-input input[type="number"] {
+  appearance: textfield;
+}
+.number-input input::-webkit-inner-spin-button,
+.number-input input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.settings-window .chrome-hover:hover {
+  background-image: none;
+}
+
+.settings-window .chrome-hover[data-active] {
+  background-color: var(--chrome-hover-background);
+}
+
+[data-model-menu-list] {
+  margin-inline-end: -6px;
+}
+
+/* Let Drive reach the same outer scroll gutter as the conversation list. */
+.sidebar-drive {
+  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
+}
+.sidebar-drive .alwith-drive-launcher {
+  padding-inline-end: 0;
+}
+.sidebar-drive .alwith-drive-navigation {
+  margin-inline-end: 0;
+  padding-inline-end: 8px;
+}
+.sidebar-drive :is(.alwith-drive-toolbar, .alwith-drive-search) {
+  padding-inline-end: 8px;
 }

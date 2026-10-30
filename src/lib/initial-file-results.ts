@@ -1,7 +1,6 @@
 import { filterFiles } from "@alwith/module-chat/completion-filter"
+import type { FuzzyFileSearchResult } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
-
-import type { FuzzyFileSearchResult } from "@/agent/codex-extensions"
 
 interface ProjectFiles {
   root: string

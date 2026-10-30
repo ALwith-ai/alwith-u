@@ -19,7 +19,25 @@ export default defineConfig({
     }
   ],
   publicDir: false,
-  optimizeDeps: { include: ["@tauri-apps/api/path", "xlsx", "storybook/internal/router"] },
+  optimizeDeps: {
+    include: [
+      "@tauri-apps/api/path",
+      "xlsx",
+      "storybook/internal/router",
+      "@agentclientprotocol/sdk/experimental/v2/unstable",
+      "@alwith/module-store",
+      "@alwith/module-store/tauri",
+      "@nyssance/atlas/station",
+      "@solar-icons/react/bold-duotone/chat-round-dots",
+      "@solar-icons/react/bold-duotone/gamepad",
+      "@solar-icons/react/bold-duotone/library",
+      "@solar-icons/react/bold-duotone/settings",
+      "@tauri-apps/plugin-global-shortcut",
+      "@tauri-apps/plugin-notification",
+      "next-themes",
+      "zustand/react/shallow"
+    ]
+  },
   test: {
     name: "storybook",
     testTimeout: 30_000,

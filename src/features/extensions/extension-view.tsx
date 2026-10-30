@@ -3,10 +3,14 @@ import { ExtensionView, useHostSnapshot } from "@alwith/module-extension/react"
 import { type ReactElement, useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { CatalogHeader } from "@/components/alwith-ui/catalog-header"
+import { toolboxContentClassName, ToolboxPageHeader } from "@/components/alwith-ui/toolbox-layout"
 import { Button } from "@/components/ui/button"
 
+import { ExtensionSettingsControls } from "./extension-settings-controls"
 import { openExtensionConsent } from "./legacy/startup-consent"
-import { reportExtensionError, useExtensions } from "./runtime"
+import { reportExtensionError } from "./runtime"
+import { useExtensions } from "./use-extensions"
 
 export function ExtensionMount({ id }: { id: string }): ReactElement {
   const { runtime } = useExtensions()
@@ -47,12 +51,15 @@ export function ExtensionViewContent({
           <span className="truncate" title={String(failure.error)}>
             {String(failure.error)}
           </span>
-          <Button variant="outline" size="xs" onClick={() => setFailure(null)}>
+          <Button variant="outline" size="xs" className="h-9" onClick={() => setFailure(null)}>
             {t("actions.retry")}
           </Button>
         </div>
       )}
       <div ref={setContainer} className="flex min-h-0 min-w-0 flex-1 flex-col" />
+      {container && (view?.kind === "settingsPages" || view?.kind === "settings") && (
+        <ExtensionSettingsControls container={container} />
+      )}
       {view && !failed && <ExtensionView host={host} id={id} container={container} onError={handleError} />}
     </div>
   )
@@ -63,14 +70,17 @@ export function ExtensionPage({ id, onClose }: { id: string; onClose: () => void
   const { host } = useExtensions()
   const view = host.views.find((item) => item.id === id && (item.kind === "surfaces" || item.kind === "settingsPages"))
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 pt-12">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-lg font-semibold">{view?.title ?? t("extensions.unavailable")}</h1>
-        <Button variant="outline" onClick={onClose}>
-          {t("extensions.back")}
-        </Button>
+    <section className="toolbox-extension-page toolbox-surface @container flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <ToolboxPageHeader>
+        <CatalogHeader title={view?.title ?? t("extensions.unavailable")}>
+          <Button variant="outline" size="sm" className="h-9" onClick={onClose}>
+            {t("extensions.back")}
+          </Button>
+        </CatalogHeader>
+      </ToolboxPageHeader>
+      <div className={`${toolboxContentClassName} toolbox-extension-surface flex min-h-0 flex-1 flex-col pt-6`}>
+        {view && <ExtensionMount key={id} id={id} />}
       </div>
-      {view && <ExtensionMount key={id} id={id} />}
     </section>
   )
 }

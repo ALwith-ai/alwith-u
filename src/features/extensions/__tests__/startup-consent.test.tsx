@@ -38,7 +38,7 @@ async function fixture(consented?: true | "declined", id = "yup-kb", delayed = f
     name: "Knowledge",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     dataSchemaVersion: 1
   }

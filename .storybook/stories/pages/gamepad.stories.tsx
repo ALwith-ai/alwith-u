@@ -26,23 +26,19 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Gamepad: Story = {
-  parameters: { __id: "页面-辅助窗口--gamepad" },
   name: "手柄设置 · 未连接",
   args: { page: "gamepad" }
 }
 
 export const GamepadConnected: Story = {
-  parameters: { __id: "页面-辅助窗口--gamepad-connected" },
   name: "手柄设置 · 已连接",
   args: { page: "gamepad", gamepadCase: "connected" }
 }
 export const GamepadRunning: Story = {
-  parameters: { __id: "页面-辅助窗口--gamepad-running" },
   name: "手柄设置 · 运行中",
   args: { page: "gamepad", gamepadCase: "running" }
 }
 export const GamepadError: Story = {
-  parameters: { __id: "页面-辅助窗口--gamepad-error" },
   name: "手柄设置 · 引擎错误",
   args: { page: "gamepad", gamepadCase: "error" }
 }

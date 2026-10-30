@@ -36,6 +36,7 @@ export function releaseArtifacts(directory: string, tag: string): Artifact[] {
     if ((target === "darwin") !== ["dmg", "tar.gz"].includes(format)) {
       throw new Error(`Invalid platform/format: ${filename}`)
     }
+    if (target === "windows" && arch !== "windows-x86_64") throw new Error(`Unsupported release architecture: ${arch}`)
     const stat = lstatSync(join(directory, filename))
     if (!stat.isFile() || stat.size === 0) throw new Error(`Release asset is not a nonempty file: ${filename}`)
     // A signature marks an updater package in the admin API. DMGs are installers only.
@@ -59,8 +60,7 @@ export function releaseArtifacts(directory: string, tag: string): Artifact[] {
   }
   for (const [arch, format] of [
     ["darwin-aarch64", "tar.gz"],
-    ["windows-x86_64", "nsis"],
-    ["windows-aarch64", "nsis"]
+    ["windows-x86_64", "nsis"]
   ]) {
     if (!artifacts.some((artifact) => artifact.arch === arch && artifact.format === format)) {
       throw new Error(`Missing updater artifact: ${arch}/${format}`)

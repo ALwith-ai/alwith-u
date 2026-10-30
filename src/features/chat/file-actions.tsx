@@ -8,7 +8,7 @@ import { fileLocationPath, openExternal } from "@/lib/open"
 
 import { openFilePreview } from "./dialogs/file-preview-modal"
 
-// Scope relative file references to their owning thread, including inactive chats.
+// Scope relative file references to their owning session, including inactive chats.
 export const ChatDirectoryContext = createContext<string | null>(null)
 /** Opens another session of the current agent in this surface, such as a subagent named in the chat. */
 export const ChatOpenSessionContext = createContext<((sessionId: string, title: string) => void) | null>(null)

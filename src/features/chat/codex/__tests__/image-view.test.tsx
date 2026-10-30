@@ -1,13 +1,12 @@
-import type { ToolItem } from "@alwith/api"
+import type { ToolItem } from "@nyssance/codex-acp-v2/client"
 import * as core from "@tauri-apps/api/core"
-import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
+import { cleanup, fireEvent, waitFor, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
+import { renderTimeline, runningSession } from "../../__tests__/timeline-host"
 import { ImageLightbox } from "../../dialogs/image-lightbox"
-import { ChatDirectoryContext } from "../../file-actions"
-import { ActivityGroup } from "../activity-group"
 
 vi.mock("@tauri-apps/api/core", async (original) => ({ ...(await original<object>()) }))
 await initI18n("en")
@@ -35,15 +34,12 @@ function image(id: string, path: string): ToolItem {
 }
 test("native image views replace file cards, load outside cwd on demand, and navigate the gallery", async () => {
   const invoke = vi.spyOn(core, "invoke").mockResolvedValue({ kind: "image", data: "aGVsbG8=", mimeType: "image/png" })
-  const view = render(
-    <ChatDirectoryContext value="/work/my project">
-      <ActivityGroup
-        items={[image("native-a", "/tmp/one.png"), image("native-b", "two%20#.png")]}
-        terminals={{}}
-        streamingThoughtId={null}
-      />
-      <ImageLightbox />
-    </ChatDirectoryContext>
+  const view = renderTimeline(
+    runningSession("image-view", "/work/my project", [
+      image("native-a", "/tmp/one.png"),
+      image("native-b", "two%20#.png")
+    ]),
+    <ImageLightbox />
   )
   expect(invoke).not.toHaveBeenCalled()
   expect(view.queryByText("PNG")).toBeNull()

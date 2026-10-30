@@ -1,12 +1,13 @@
+mod browser_bridge;
 #[cfg(test)]
 mod codex_launcher;
+mod power;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "__tests__/dropped_file_url.rs"]
 mod dropped_file_url_tests;
 
 mod appearance;
-mod auth;
 mod autostart;
 mod bundled_extensions;
 mod chat_files;
@@ -21,9 +22,11 @@ mod extension_wire;
 mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
+mod imports;
 mod installed_apps;
 mod legacy_extensions;
 mod menu;
+mod mobile;
 mod native;
 #[cfg(target_os = "macos")]
 mod panel;
@@ -42,6 +45,7 @@ mod voice_credentials;
 mod window;
 #[cfg(target_os = "windows")]
 mod windows_frame;
+mod workbuddy;
 mod workspace;
 mod workspace_move;
 
@@ -67,10 +71,11 @@ pub fn run() {
     }
 
     let builder = tauri::Builder::default()
+        .plugin(alwith_module_store::tauri::init())
+        .plugin(alwith_auth_client::tauri::init(native::development_directory()))
         .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
-        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -85,6 +90,7 @@ pub fn run() {
                 log::error!("Cannot reopen main window: {error}");
             }
         }))
+        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
@@ -107,7 +113,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![autostart::ARGUMENT]),
@@ -130,6 +135,7 @@ pub fn run() {
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default())
+        .manage(power::PreventSleep::default())
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
 
@@ -169,30 +175,17 @@ pub fn run() {
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
             app.manage(native::Native::load(app.handle())?);
+            mobile::initialize(app.handle())?;
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
-            trackpad::install(app.handle())?;
+            tauri_plugin_alwith_desktop_shell::install_native(app.handle())?;
             computer::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
-            // Native materials paint behind the transparent page. Panels that must stay
-            // opaque paint their own background in CSS.
-            #[cfg(target_os = "macos")]
-            {
-                use tauri::window::{Effect, EffectsBuilder};
-                app.get_webview_window("main")
-                    .expect("main window exists at setup")
-                    .set_effects(EffectsBuilder::new().effect(Effect::UnderWindowBackground).build())?;
-            }
             #[cfg(target_os = "windows")]
-            {
-                use tauri::window::{Effect, EffectsBuilder};
-                let window = app.get_webview_window("main").expect("main window exists at setup");
-                window.hide()?;
-                window.set_effects(EffectsBuilder::new().effect(Effect::Acrylic).build())?;
-            }
+            app.get_webview_window("main").expect("main window exists at setup").hide()?;
             // Windows draws no app-level menu (it would surface on every window); macOS wants
             // one NSApp menu and Linux a per-window one. Built here, not in `Builder::menu`,
             // because the locale lookup needs the path resolver, which exists only after build.
@@ -291,6 +284,7 @@ pub fn run() {
             app.state::<alwith_computer::ComputerHost>().kill_on_exit();
             voice::shutdown(app);
             gamepad::shutdown(app);
+            power::sync(app, false);
             app.state::<runtime::RuntimeState>().kill_on_exit();
         }
         _ => {}
@@ -306,6 +300,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 autostart::autostart_status,
                 computer::computer_status,
                 computer::computer_start,
+                computer::computer_reconnect,
                 computer::computer_stop,
                 computer::computer_context,
                 computer::computer_revision,
@@ -328,6 +323,8 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
+                workbuddy::workbuddy_create,
+                imports::prepare_cursor_import,
                 voice::voice_start,
                 voice::voice_control,
                 voice::voice_profiles,
@@ -374,7 +371,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 appearance::wallpaper::wallpaper_list,
                 appearance::wallpaper::wallpaper_import,
                 appearance::wallpaper::wallpaper_remove,
-                auth::refresh_tokens,
                 vibemon::vibemon_window,
                 vibemon::vibemon_resource,
                 vibemon::vibemon_download,
@@ -384,6 +380,19 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,
+                mobile::mobile_set_activity_sessions,
+                mobile::mobile_bridge_start,
+                mobile::mobile_bridge_stop,
+                mobile::mobile_bridge_status,
+                mobile::bridge_set_active_session,
+                mobile::bridge_prompt_result,
+                mobile::bridge_pairing_start,
+                mobile::bridge_identity,
+                mobile::bridge_trusted_list,
+                mobile::bridge_trusted_revoke,
+                providers::managed::providers_account_bind,
+                providers::managed::providers_refresh_managed,
+                providers::managed::providers_clear_managed,
                 providers::providers_read,
                 providers::providers_save,
                 providers::providers_save_custom,
@@ -394,6 +403,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 updater::commands::updater_install_and_relaunch,
                 window::attach_window_to_main,
                 installed_apps::read_apps_info,
+                browser_bridge::chrome_extension_installed,
+                browser_bridge::chrome_bridge_installed,
+                browser_bridge::set_chrome_bridge_enabled,
+                installed_apps::default_browser,
+                installed_apps::is_app_running,
+                installed_apps::open_app_by_id,
                 installed_apps::open_path_in_app
             ]
             .event::<trackpad::TrackpadGesture>()
@@ -401,6 +416,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<computer::ComputerPreview>()
             .event::<runtime::RuntimeExit>()
             .event::<providers::Snapshot>()
+            .event::<providers::managed::RevokedSessions>()
             .event::<updater::state::State>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()

@@ -59,7 +59,7 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
             }
             "blur" => {
                 let handle = NativeHandle(window);
-                if action.path.is_some() {
+                if action.radius != Some(0) && action.path.is_some() {
                     window_vibrancy::apply_acrylic(&handle, None)
                 } else {
                     window_vibrancy::clear_acrylic(&handle)
@@ -123,13 +123,15 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
                     bubble(child as HWND, window, None)?;
                 }
             }
-            "bubble" => {
+            "bubble" | "bubble-resize" => {
                 bubble(
                     window,
                     action.parent.ok_or("Bubble parent unavailable")? as HWND,
                     action.width.zip(action.height),
                 )?;
-                ShowWindow(window, SW_SHOWNOACTIVATE);
+                if action.action == "bubble" {
+                    ShowWindow(window, SW_SHOWNOACTIVATE);
+                }
             }
             "drag" => {
                 let mut cursor: POINT = std::mem::zeroed();

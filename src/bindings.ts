@@ -12,8 +12,13 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
-  computerStatus: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_status"),
-  computerStart: (): Promise<ComputerStatus> => __t3Invoke<ComputerStatus>("computer_start"),
+  computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
+  computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
+  /**
+   *  Never replays actions: fresh driver and MCP generation, then a new observation.
+   */
+  computerReconnect: (): Promise<ComputerStatus_Serialize> =>
+    __t3Invoke<ComputerStatus_Serialize>("computer_reconnect"),
   computerStop: (): Promise<null> => __t3Invoke<null>("computer_stop"),
   computerContext: (): Promise<{
     connection: Connection
@@ -55,6 +60,15 @@ export const commands = {
   extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
+  workbuddyCreate: (args: {
+    parent: string
+    name: string
+    productName: string
+    identifier: string
+    auth: string
+    github: string | null
+  }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
+  prepareCursorImport: (args: { cwds: string[] }): Promise<null> => __t3Invoke<null>("prepare_cursor_import", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>
     __t3Invoke<null>("voice_start", args),
   voiceControl: (args: { action: string; recordingId: string }): Promise<null> =>
@@ -190,8 +204,6 @@ export const commands = {
     } | null>("wallpaper_import", args),
   wallpaperRemove: (args: { id: string; locale: string | null }): Promise<boolean> =>
     __t3Invoke<boolean>("wallpaper_remove", args),
-  refreshTokens: (args: { apiBaseUrl: string; refreshToken: string }): Promise<RefreshedTokens> =>
-    __t3Invoke<RefreshedTokens>("refresh_tokens", args),
   vibemonWindow: (args: { action: string; payload: Value }): Promise<Value> =>
     __t3Invoke<Value>("vibemon_window", args),
   vibemonResource: (args: {
@@ -212,6 +224,31 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
+  mobileSetActivitySessions: (args: { sessionIds: string[] }): Promise<null> =>
+    __t3Invoke<null>("mobile_set_activity_sessions", args),
+  mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
+  mobileBridgeStop: (): Promise<null> => __t3Invoke<null>("mobile_bridge_stop"),
+  mobileBridgeStatus: (): Promise<MobileBridgeStatus> => __t3Invoke<MobileBridgeStatus>("mobile_bridge_status"),
+  bridgeSetActiveSession: (args: { sessionId: string | null }): Promise<null> =>
+    __t3Invoke<null>("bridge_set_active_session", args),
+  bridgePromptResult: (args: {
+    deviceId: string
+    sessionId: string
+    clientRequestId: string
+    status: string
+    messageId: string | null
+    error: string | null
+  }): Promise<null> => __t3Invoke<null>("bridge_prompt_result", args),
+  bridgePairingStart: (): Promise<PairingInfo> => __t3Invoke<PairingInfo>("bridge_pairing_start"),
+  bridgeIdentity: (): Promise<BridgeIdentity> => __t3Invoke<BridgeIdentity>("bridge_identity"),
+  bridgeTrustedList: (): Promise<TrustedDevice_Serialize[]> =>
+    __t3Invoke<TrustedDevice_Serialize[]>("bridge_trusted_list"),
+  bridgeTrustedRevoke: (args: { deviceId: string }): Promise<null> => __t3Invoke<null>("bridge_trusted_revoke", args),
+  providersAccountBind: (args: { account: Account }): Promise<number> =>
+    __t3Invoke<number>("providers_account_bind", args),
+  providersRefreshManaged: (args: { generation: number; accessToken: string }): Promise<Snapshot_Serialize> =>
+    __t3Invoke<Snapshot_Serialize>("providers_refresh_managed", args),
+  providersClearManaged: (): Promise<null> => __t3Invoke<null>("providers_clear_managed"),
   providersRead: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_read"),
   providersSave: (args: {
     providerId: string
@@ -242,6 +279,13 @@ export const commands = {
   attachWindowToMain: (args: { label: string }): Promise<boolean> => __t3Invoke<boolean>("attach_window_to_main", args),
   readAppsInfo: (args: { names: string[]; withIcons: boolean }): Promise<AppInfo_Serialize[]> =>
     __t3Invoke<AppInfo_Serialize[]>("read_apps_info", args),
+  chromeExtensionInstalled: (): Promise<boolean> => __t3Invoke<boolean>("chrome_extension_installed"),
+  chromeBridgeInstalled: (): Promise<boolean> => __t3Invoke<boolean>("chrome_bridge_installed"),
+  setChromeBridgeEnabled: (args: { enabled: boolean }): Promise<null> =>
+    __t3Invoke<null>("set_chrome_bridge_enabled", args),
+  defaultBrowser: (): Promise<string> => __t3Invoke<string>("default_browser"),
+  isAppRunning: (args: { bundleId: string }): Promise<boolean> => __t3Invoke<boolean>("is_app_running", args),
+  openAppById: (args: { bundleId: string }): Promise<null> => __t3Invoke<null>("open_app_by_id", args),
   openPathInApp: (args: { bundleId: string; path: string }): Promise<null> => __t3Invoke<null>("open_path_in_app", args)
 } as const
 
@@ -250,6 +294,7 @@ export type CommandErrors = {
   autostartStatus: string
   computerStatus: string
   computerStart: string
+  computerReconnect: string
   computerStop: string
   computerContext: string
   computerRevision: string
@@ -272,6 +317,8 @@ export type CommandErrors = {
   extensionInboxComplete: string
   extensionInboxFailed: string
   draftDirectory: string
+  workbuddyCreate: string
+  prepareCursorImport: string
   voiceStart: string
   voiceControl: string
   voiceProfiles: string
@@ -318,7 +365,6 @@ export type CommandErrors = {
   wallpaperList: string
   wallpaperImport: string
   wallpaperRemove: string
-  refreshTokens: Value
   vibemonWindow: string
   vibemonResource: string
   vibemonDownload: string
@@ -328,6 +374,19 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
+  mobileSetActivitySessions: never
+  mobileBridgeStart: string
+  mobileBridgeStop: string
+  mobileBridgeStatus: never
+  bridgeSetActiveSession: never
+  bridgePromptResult: string
+  bridgePairingStart: string
+  bridgeIdentity: string
+  bridgeTrustedList: string
+  bridgeTrustedRevoke: string
+  providersAccountBind: string
+  providersRefreshManaged: Value
+  providersClearManaged: string
   providersRead: string
   providersSave: string
   providersSaveCustom: string
@@ -338,6 +397,12 @@ export type CommandErrors = {
   updaterInstallAndRelaunch: string
   attachWindowToMain: string
   readAppsInfo: Value
+  chromeExtensionInstalled: string
+  chromeBridgeInstalled: string
+  setChromeBridgeEnabled: string
+  defaultBrowser: Value
+  isAppRunning: Value
+  openAppById: Value
   openPathInApp: Value
 }
 
@@ -385,6 +450,15 @@ export const events = {
     emit: (payload: Snapshot_Deserialize) => __t3Emit("providers:changed", payload),
     emitTo: (target: string | __t3Target, payload: Snapshot_Deserialize) =>
       __t3EmitTo(target, "providers:changed", payload)
+  },
+  "providers:managed-revoked": {
+    name: "providers:managed-revoked",
+    listen: (handler: __t3Callback<RevokedSessions>) =>
+      __t3Listen<RevokedSessions>("providers:managed-revoked", handler),
+    once: (handler: __t3Callback<RevokedSessions>) => __t3Once<RevokedSessions>("providers:managed-revoked", handler),
+    emit: (payload: RevokedSessions) => __t3Emit("providers:managed-revoked", payload),
+    emitTo: (target: string | __t3Target, payload: RevokedSessions) =>
+      __t3EmitTo(target, "providers:managed-revoked", payload)
   },
   "updater:state": {
     name: "updater:state",
@@ -501,6 +575,11 @@ export const events = {
   }
 } as const
 
+export type Account = {
+  apiBaseUrl: string
+  userUuid: string
+}
+
 export type Activity = Activity_Serialize | Activity_Deserialize
 
 export type Activity_Deserialize = {
@@ -542,6 +621,11 @@ export type AppInfo_Serialize = {
 export type AutostartStatus = {
   supported: boolean
   enabled: boolean
+}
+
+export type BridgeIdentity = {
+  deviceId: string
+  publicKeyB64: string
 }
 
 export type BundledExtension = {
@@ -598,11 +682,26 @@ export type ComputerPreview_Serialize = {
   error: string | null
 }
 
-export type ComputerStatus = {
+export type ComputerStatus = ComputerStatus_Serialize | ComputerStatus_Deserialize
+
+export type ComputerStatus_Deserialize = {
   permissions: Permissions
   available: boolean
   enabled: boolean
   version: string
+  phase: string
+  lastError?: string | null
+  diagnostics: string
+}
+
+export type ComputerStatus_Serialize = {
+  permissions: Permissions
+  available: boolean
+  enabled: boolean
+  version: string
+  phase: string
+  lastError: string | null
+  diagnostics: string
 }
 
 export type Connection = {
@@ -734,6 +833,8 @@ export type Frame_Serialize = {
   cursor: CursorPosition | null
 }
 
+export type HostApp = "desktop" | "u"
+
 export type HttpRequest = HttpRequest_Serialize | HttpRequest_Deserialize
 
 export type HttpRequest_Deserialize = {
@@ -792,6 +893,12 @@ export type Metadata_Serialize = {
   base_url: string | null
 }
 
+export type MobileBridgeStatus = {
+  running: boolean
+  connected: boolean
+  relayConnected: boolean
+}
+
 export type MoveToOutcome = MoveToOutcome_Serialize | MoveToOutcome_Deserialize
 
 export type MoveToOutcome_Deserialize = {
@@ -815,6 +922,14 @@ export type Number = number
 export type OpenHotkeys = null
 
 export type OpenSettings = null
+
+export type PairingInfo = {
+  deviceId: string
+  publicKeyB64: string
+  code: string
+  expiresAt: number
+  hostApp: HostApp
+}
 
 export type Permissions = {
   supported: boolean
@@ -887,16 +1002,15 @@ export type PublicCustomProvider_Serialize = {
   models: CustomModel_Serialize[]
 }
 
-export type RefreshedTokens = {
-  access_token: string
-  refresh_token: string
-}
-
 export type ReopenTab = null
 
 export type ReplaceInFile = null
 
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
+
+export type RevokedSessions = {
+  sessionIds: string[]
+}
 
 export type RuntimeExit = RuntimeExit_Serialize | RuntimeExit_Deserialize
 
@@ -938,6 +1052,7 @@ export type Snapshot_Deserialize = {
   appliedRevision?: number | null
   providers: { [key in string]: Metadata_Deserialize }
   customProviders: PublicCustomProvider_Deserialize[]
+  managedProviders: PublicCustomProvider_Deserialize[]
   status: string
   error?: string | null
 }
@@ -947,6 +1062,7 @@ export type Snapshot_Serialize = {
   appliedRevision: number | null
   providers: { [key in string]: Metadata_Serialize }
   customProviders: PublicCustomProvider_Serialize[]
+  managedProviders?: PublicCustomProvider_Serialize[]
   status: string
   error: string | null
 }
@@ -1067,6 +1183,26 @@ export type TrackpadGesture_Serialize = {
   ts: number
   deviceW: number | null
   deviceH: number | null
+}
+
+export type TrustedDevice = TrustedDevice_Serialize | TrustedDevice_Deserialize
+
+export type TrustedDevice_Deserialize = {
+  deviceId: string
+  publicKeyB64: string
+  name: string
+  model?: string | null
+  pairedAt: number
+  pushHandle?: string | null
+}
+
+export type TrustedDevice_Serialize = {
+  deviceId: string
+  publicKeyB64: string
+  name: string
+  model: string | null
+  pairedAt: number
+  pushHandle: string | null
 }
 
 export type UpdateInfo = UpdateInfo_Serialize | UpdateInfo_Deserialize

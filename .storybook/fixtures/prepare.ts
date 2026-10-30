@@ -1,13 +1,13 @@
+import { drafts } from "@alwith/module-chat/conversation"
 import { toast } from "sonner"
 import type { LoaderFunction } from "storybook/internal/types"
 
 import { wallpaperController } from "../../src/features/appearance/wallpaper/controller"
 import { navigationSoundStore } from "../../src/features/chat/codex/navigation-sound-store"
-import { drafts } from "../../src/features/chat/composer/drafts"
 import { predictionPreference } from "../../src/features/chat/composer/prediction-preference"
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { createPluginsStore } from "../../src/features/plugins/store"
-import { useThreadsUiStore } from "../../src/features/threads/store"
+import { useSessionsUiStore } from "../../src/features/sessions/store"
 import { settingsStore } from "../../src/lib/settings-store"
 import { zoomStore } from "../../src/lib/zoom"
 import { type AuthCase, demoUser, resetAuth, usePlatformAuth } from "./auth"
@@ -78,11 +78,11 @@ export interface PreviewState {
 }
 let stopPlugins = () => {}
 
-export const preparePreview: LoaderFunction = async ({ args }) => {
+export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   toast.dismiss()
   disposePlaybackClock()
   const state = args as PreviewState
-  resetNative(state.providerCase, state.voiceCase)
+  resetNative(state.providerCase, state.voiceCase, globals.theme === "dark" ? "dark" : "light")
   resetGamepad(state.gamepadCase)
   installNativeMock(state.platform)
   zoomStore.setState({ level: 1, interaction: 0 })
@@ -126,7 +126,7 @@ export const preparePreview: LoaderFunction = async ({ args }) => {
   history.replaceState(null, "", url)
   navigationSoundStore.setState({ soundMode: "none" })
   drafts.clear()
-  useThreadsUiStore.setState({
+  useSessionsUiStore.setState({
     view: state.sidebarView ?? "sessions",
     projectOpen: new Map([
       [PROJECT_DIRECTORY, true],
@@ -186,18 +186,18 @@ export const preparePreview: LoaderFunction = async ({ args }) => {
       actions: state.globalAction === "multipleForms" ? [action, { ...action, id: "global-form-2" }] : [action]
     })
   }
-  if (state.emptyThreads) client.store.setState({ threads: [], runStates: {} })
+  if (state.emptyThreads) client.store.setState({ sessionList: [], runStates: {} })
   if (state.connection)
     client.store.setState({
       connection: state.connection,
       connectionError: state.connection === "failed" ? "无法连接到 Codex，请检查模型配置后重试。" : null,
-      threadsLoaded: state.connection !== "connecting",
-      threadsLoading: state.connection === "connecting"
+      sessionListLoaded: state.connection !== "connecting",
+      sessionListLoading: state.connection === "connecting"
     })
-  if (state.archiveCase === "empty") client.store.setState({ archivedThreads: [] })
-  if (state.archiveCase === "loading") client.listThreads = async () => new Promise(() => {})
+  if (state.archiveCase === "empty") client.store.setState({ archivedSessions: [] })
+  if (state.archiveCase === "loading") client.listArchived = async () => new Promise(() => {})
   if (state.archiveCase === "loadError")
-    client.listThreads = async () => {
+    client.listArchived = async () => {
       throw new Error("归档加载失败，请检查连接后重试。")
     }
   const remove = client.delete
@@ -212,7 +212,7 @@ export const preparePreview: LoaderFunction = async ({ args }) => {
       throw new Error("删除失败，请稍后重试。")
     }
   if (state.archiveCase === "partialDelete") {
-    const failedId = client.state.archivedThreads[0]?.sessionId
+    const failedId = client.state.archivedSessions[0]?.sessionId
     client.delete = async (id) => {
       if (id === failedId) throw new Error("模拟单条删除失败")
       await remove(id)
@@ -220,8 +220,8 @@ export const preparePreview: LoaderFunction = async ({ args }) => {
   }
   if (state.archiveCase === "many")
     client.store.setState((previous) => ({
-      archivedThreads: Array.from({ length: 60 }, (_, index) => ({
-        ...previous.archivedThreads[index % previous.archivedThreads.length]!,
+      archivedSessions: Array.from({ length: 60 }, (_, index) => ({
+        ...previous.archivedSessions[index % previous.archivedSessions.length]!,
         sessionId: `archived-${index}`
       }))
     }))

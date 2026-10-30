@@ -21,8 +21,7 @@ test.each<UpdaterState>([
   { type: "idle" },
   { type: "checkingForUpdates" },
   { type: "disabled", reason: "invalidConfiguration" },
-  { type: "availableForDownload", update },
-  { type: "restarting", update }
+  { type: "availableForDownload", update }
 ])("hides the card in $type", (state) => {
   useUpdaterStore.setState({ state })
   expect(render(<UpdateStatusButton />).container).toBeEmptyDOMElement()
@@ -58,4 +57,11 @@ test("reports installation errors", async () => {
   const view = render(<UpdateStatusButton />)
   fireEvent.click(view.getByRole("button"))
   await waitFor(() => expect(error).toHaveBeenCalledWith("Install failed"))
+})
+
+test("keeps installation feedback visible until restart", () => {
+  useUpdaterStore.setState({ state: { type: "restarting", update } })
+  const view = render(<UpdateStatusButton />)
+  expect(view.getByRole("status")).toHaveTextContent("Installing update")
+  expect(view.queryByRole("button")).toBeNull()
 })

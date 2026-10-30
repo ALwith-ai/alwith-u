@@ -3,10 +3,11 @@ import type { HostSnapshot, RuntimeSnapshot, ViewContribution } from "@alwith/mo
 import { sortContributions } from "@alwith/module-extension/host"
 import type { Request } from "@alwith/module-extension/tauri"
 import { CircleArrowUpIcon, MoreVerticalIcon, PlusIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
-import { type ReactNode, useId, useState } from "react"
+import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { CatalogHeader } from "@/components/alwith-ui/catalog-header"
 import {
   ItemActions,
   ItemContent,
@@ -23,17 +24,17 @@ import { Input } from "@/components/ui/input"
 import { Item } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { openExternal } from "@/lib/open"
 
-import { EXTENSION_ICONS } from "./extension-icons"
 import { ExtensionIcon } from "./extension-icon"
+import { EXTENSION_ICONS } from "./extension-icons"
 import { findLegacyProfile, LEGACY_SOURCE } from "./legacy/profiles"
 import { extensionActions } from "./policy"
 
 export type ExtensionInstallPhase = "preparing" | "installing"
 
 interface ExtensionsManagerProps {
+  settings?: boolean
   state: RuntimeSnapshot
   host: HostSnapshot
   busy: boolean
@@ -41,6 +42,7 @@ interface ExtensionsManagerProps {
   onInstall: (id?: string) => void
   onRequest: (request: Request) => void
   onReload?: (id: string) => void
+  onRetry?: () => void
   onUninstall: (id: string, name: string) => void
   onOpenSurface?: (id: string) => void
   renderSettings: (view: ViewContribution) => ReactNode
@@ -56,13 +58,14 @@ export function ExtensionsManager({
   onRequest,
   onUninstall,
   onReload,
+  onRetry,
   onOpenSurface,
-  renderSettings
+  renderSettings,
+  settings = false
 }: ExtensionsManagerProps) {
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
   const [dismissedNotices, setDismissedNotices] = useState<Set<string>>(() => new Set())
-  const detailsId = useId()
   const search = query.trim().toLocaleLowerCase()
   const installations = state.native?.installations ?? []
   const matches = installations
@@ -75,17 +78,35 @@ export function ExtensionsManager({
     )
   const unavailable = busy || state.native === null
   return (
-    <div className="@container flex min-w-0 flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">{t("sidebar.extensions")}</h1>
-          <Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>
+    <div className="toolbox-surface @container flex min-w-0 flex-col gap-6">
+      {settings ? (
+        <div className="flex h-[30px] items-center justify-end">
+          <Button variant="outline" size="sm" className="h-[30px]" disabled={unavailable} onClick={() => onInstall()}>
+            {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
+            {t("extensions.install")}
+          </Button>
         </div>
-        <Button variant="outline" size="sm" disabled={unavailable} onClick={() => onInstall()}>
-          {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
-          {t("extensions.install")}
-        </Button>
-      </div>
+      ) : (
+        <CatalogHeader
+          title={t("sidebar.extensions")}
+          badge={<Badge className="bg-primary/10 text-[10px] text-primary">BETA</Badge>}
+        >
+          <div className="toolbox-toolbar flex min-w-0 flex-wrap items-center gap-2">
+            <Input
+              type="search"
+              className="h-9 w-52 max-w-full rounded-full"
+              aria-label={t("extensions.search")}
+              placeholder={t("extensions.search")}
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+            />
+            <Button variant="outline" size="sm" className="h-9" disabled={unavailable} onClick={() => onInstall()}>
+              {installPhase ? <Spinner aria-hidden="true" /> : <PlusIcon />}
+              {t("extensions.install")}
+            </Button>
+          </div>
+        </CatalogHeader>
+      )}
       {installPhase && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden="true" />
@@ -94,17 +115,17 @@ export function ExtensionsManager({
       )}
       {state.errors.service && (
         <Alert variant="destructive">
-          <AlertDescription>{state.errors.service}</AlertDescription>
+          <AlertDescription>
+            {state.errors.service}
+            {onRetry && (
+              <Button variant="outline" size="sm" className="h-9" disabled={busy} onClick={onRetry}>
+                {t("actions.retry")}
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       <div className="space-y-4">
-        <Input
-          type="search"
-          aria-label={t("extensions.search")}
-          placeholder={t("extensions.search")}
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-        />
         {state.native === null && !state.errors.service && (
           <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <Spinner />
@@ -116,8 +137,21 @@ export function ExtensionsManager({
             {t(installations.length === 0 ? "extensions.empty" : "extensions.noMatches")}
           </p>
         )}
-        <PanelList className="grid grid-cols-1 gap-x-4 gap-y-3 @2xl:grid-cols-2">
+        <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
           {matches.map(({ item, name, description }) => {
+            // Imported metadata has a smaller icon vocabulary than entry contributions.
+            const entryAction = sortContributions(
+              host.actions.filter(
+                (action) =>
+                  action.extensionId === item.id && (action.placement === "topBar" || action.placement === "navigation")
+              )
+            )[0]
+            const entryIcon =
+              item.source === LEGACY_SOURCE
+                ? entryAction
+                  ? (entryAction.icon ?? "blocks")
+                  : findLegacyProfile(item.id)?.entryIcon
+                : undefined
             const actions = extensionActions(item)
             const pending = state.native?.pending.find((value) => value.id === item.id)
             const error = state.errors[item.id]
@@ -127,83 +161,43 @@ export function ExtensionsManager({
               : []
             return (
               <section key={item.installationId} aria-label={name} className="min-w-0">
-                <Item size="xs" className="group/extension py-3">
-                  <ItemMedia>
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted">
-                      <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} />
+                <Item size="xs" className="toolbox-row group/extension items-center">
+                  <ItemMedia className="translate-none! self-center!">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+                      <ExtensionIcon key={item.manifest.icon} src={item.manifest.icon} contribution={entryIcon} />
                     </div>
                   </ItemMedia>
-                  <Tooltip>
-                    <TooltipTrigger
-                      delay={300}
-                      render={
-                        <ItemContent
-                          className="min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          role="group"
-                          tabIndex={0}
-                          aria-label={t("extensions.details.label", { name })}
-                          aria-describedby={`${detailsId}-${item.id}`}
-                        />
-                      }
-                    >
-                      <PanelItemTitle className="mb-0.5">{name}</PanelItemTitle>
-                      {description && <ItemDescription className="line-clamp-1">{description}</ItemDescription>}
-                      <ItemDescription className="truncate">
-                        {item.manifest.author && (
-                          <>
-                            {item.manifest.authorUrl ? (
-                              <a
-                                href={item.manifest.authorUrl}
-                                rel="noopener noreferrer"
-                                className="underline-offset-4 hover:text-foreground hover:underline"
-                                onClick={(event) => {
-                                  event.preventDefault()
-                                  void openExternal(event.currentTarget.href).catch((error: unknown) =>
-                                    toast.error(error instanceof Error ? error.message : String(error))
-                                  )
-                                }}
-                              >
-                                {item.manifest.author}
-                              </a>
-                            ) : (
-                              item.manifest.author
-                            )}
-                            {" / "}
-                          </>
-                        )}
-                        v{item.manifest.version}
-                      </ItemDescription>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      id={`${detailsId}-${item.id}`}
-                      role="tooltip"
-                      side="bottom"
-                      sideOffset={8}
-                      align="start"
-                      className="block w-96 max-w-[calc(100vw-2rem)] space-y-3 rounded-lg border border-border bg-popover p-4 leading-relaxed break-words text-popover-foreground shadow-md [&>[aria-hidden=true]]:border-border [&>[aria-hidden=true]]:bg-popover [&>[aria-hidden=true]]:fill-popover [&>[aria-hidden=true][data-side=bottom]]:border-t [&>[aria-hidden=true][data-side=bottom]]:border-l [&>[aria-hidden=true][data-side=top]]:border-r [&>[aria-hidden=true][data-side=top]]:border-b"
-                    >
-                      <p className="text-sm font-medium">{name}</p>
-                      {description && <p className="whitespace-pre-wrap text-muted-foreground">{description}</p>}
-                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-t border-border pt-3 [&>dt]:text-muted-foreground">
-                        <dt>ID</dt>
-                        <dd className="break-all">{item.id}</dd>
-                        <dt>{t("extensions.details.version")}</dt>
-                        <dd>{item.manifest.version}</dd>
-                        {item.manifest.author && (
-                          <>
-                            <dt>{t("extensions.details.author")}</dt>
-                            <dd>{item.manifest.author}</dd>
-                          </>
-                        )}
-                        {item.manifest.authorUrl && (
-                          <>
-                            <dt>{t("extensions.details.homepage")}</dt>
-                            <dd className="break-all">{item.manifest.authorUrl}</dd>
-                          </>
-                        )}
-                      </dl>
-                    </TooltipContent>
-                  </Tooltip>
+                  <ItemContent className="min-w-0">
+                    <PanelItemTitle className="mb-0.5 text-sm font-medium">{name}</PanelItemTitle>
+                    {description && (
+                      <ItemDescription className="line-clamp-1 text-xs leading-5">{description}</ItemDescription>
+                    )}
+                    <ItemDescription data-toolbox-metadata="" className="truncate">
+                      {item.manifest.author && (
+                        <>
+                          {item.manifest.authorUrl ? (
+                            <a
+                              href={item.manifest.authorUrl}
+                              rel="noopener noreferrer"
+                              className="underline-offset-4 hover:text-foreground hover:underline"
+                              onClick={(event) => {
+                                event.preventDefault()
+                                void openExternal(event.currentTarget.href).catch((error: unknown) =>
+                                  toast.error(error instanceof Error ? error.message : String(error))
+                                )
+                              }}
+                            >
+                              {item.manifest.author}
+                            </a>
+                          ) : (
+                            item.manifest.author
+                          )}
+                          {" / "}
+                        </>
+                      )}
+                      v{item.manifest.version}
+                    </ItemDescription>
+                  </ItemContent>
                   <ItemActions className="grid shrink-0 grid-cols-[auto_1.5rem]">
                     <Switch
                       aria-label={t("extensions.enable", { name })}
@@ -319,7 +313,7 @@ export function ExtensionsManager({
                 {host.views
                   .filter((view) => view.extensionId === item.id && view.kind === "settings")
                   .map((view) => (
-                    <div key={view.id} className="px-3 pt-2 pb-4">
+                    <div key={view.id} className="toolbox-extension-settings py-4">
                       {renderSettings(view)}
                     </div>
                   ))}

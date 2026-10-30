@@ -4,7 +4,7 @@ use alwith_api::{ClientEvent, ResponseError, RuntimeClient, process::HideConsole
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
@@ -96,6 +96,9 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
             if let Err(error) = app.state::<alwith_computer::ComputerHost>().shutdown().await {
                 log::error!("Computer shutdown failed: {error}");
             }
+            if let Err(error) = crate::mobile::shutdown().await {
+                log::error!("Mobile shutdown failed: {error}");
+            }
             app.state::<RuntimeState>().shutdown().await;
             app.exit(code.unwrap_or(0));
         });
@@ -103,7 +106,7 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
     true
 }
 
-fn sidecar_path(name: &str) -> Result<PathBuf, String> {
+pub(crate) fn sidecar_path(name: &str) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|error| error.to_string())?;
     let directory = exe.parent().ok_or("executable has no parent directory")?;
     let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
@@ -206,13 +209,15 @@ pub async fn runtime_start(
     let stale = state.client.lock().unwrap().take();
     if let Some(stale) = stale {
         stale.close(SHUTDOWN_GRACE).await;
+        crate::power::sync(&app, false);
     }
-    let journal = app.path().app_cache_dir().map_err(|error| error.to_string())?.join("runtime/sessions");
+    let cache = app.path().app_cache_dir().map_err(|error| error.to_string())?;
+    let data = app.path().app_data_dir().map_err(|error| error.to_string())?;
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
+    configure_runtime_storage(&mut command, &cache, &data);
     command
         .args(["--listen", "stdio://"])
         .env("ALWITH_RUNTIME_ENGINES", engines_table(&app)?)
-        .env("ALWITH_RUNTIME_JOURNAL", journal)
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")
         .hide_console();
@@ -250,6 +255,7 @@ pub async fn runtime_start(
             for event in burst {
                 match event {
                     ClientEvent::Closed { reason } => {
+                        crate::power::sync(&app, false);
                         if let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
                         }
@@ -268,12 +274,18 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
+                        crate::providers::managed::observe_event(&app, &event);
+                        crate::mobile::publish(&event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
                             && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
                         {
                             log::error!("Computer cleanup after Codex exit failed: {error}");
                         }
                         if let alwith_api::RuntimeEvent::RunStates { sessions } = &event {
+                            crate::power::sync(
+                                &app,
+                                crate::power::has_active_tasks(sessions.iter().map(|session| &session.state)),
+                            );
                             app.state::<crate::computer::ComputerGateway>().gateway.sync_running(
                                 sessions
                                     .iter()
@@ -291,7 +303,7 @@ pub async fn runtime_start(
                             app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
-                        if matches!(&event, alwith_api::RuntimeEvent::Exit { .. }) {
+                        if resets_provider_catalog(&event) {
                             app.state::<crate::providers::Providers>().reset().await;
                         }
                         if retry {
@@ -302,7 +314,16 @@ pub async fn runtime_start(
                     }
                     // The webview SDK performs its own sequence check and reports unrecoverable
                     // gaps to its consumers. Prompt it to reconcile its journal cursor now.
-                    ClientEvent::Gap { .. } => lines.push(json!({"type":"lagged"}).to_string()),
+                    ClientEvent::Gap { .. } => {
+                        match client.run_states().await {
+                            Ok(states) => crate::power::sync(
+                                &app,
+                                crate::power::has_active_tasks(states.iter().map(|session| &session.state)),
+                            ),
+                            Err(error) => log::error!("Cannot reconcile sleep inhibition after Runtime gap: {error}"),
+                        }
+                        lines.push(json!({"type":"lagged"}).to_string());
+                    }
                     ClientEvent::Other(value) => lines.push(value.to_string()),
                 }
             }
@@ -310,8 +331,20 @@ pub async fn runtime_start(
                 let _ = RuntimeLines(lines).emit(&app);
             }
         }
+        if let Some(client) = identity.upgrade()
+            && app.state::<RuntimeState>().owns(&client)
+        {
+            crate::power::sync(&app, false);
+        }
     });
     Ok(())
+}
+
+/// Independent host processes must not overwrite each other's attention snapshots or process leases.
+fn configure_runtime_storage(command: &mut tokio::process::Command, cache: &Path, data: &Path) {
+    command
+        .env("ALWITH_RUNTIME_JOURNAL", cache.join("runtime/sessions"))
+        .env("ALWITH_RUNTIME_ATTENTION", data.join("runtime/attention"));
 }
 
 #[derive(Deserialize)]
@@ -335,7 +368,14 @@ pub async fn runtime_send(
         return Err("Window connection replaced".into());
     }
     let client = state.current()?;
-    let lifecycle = is_admission(&request);
+    let lifecycle = is_admission(&request)
+        || crate::providers::managed::requires_admission(&request.method, request.params.as_ref())
+        || matches!(request.method.as_str(), "sessionNew")
+        || (request.method == "acpRequest"
+            && matches!(
+                request.params.as_ref().and_then(|p| p["method"].as_str()),
+                Some("session/new" | "session/set_config_option")
+            ));
     let _admission = if lifecycle { Some(state.admission.lock().await) } else { None };
     let temporary_gamepad = match gamepad_admission_target(window.label(), &request) {
         Some(agent_id) => {
@@ -343,13 +383,36 @@ pub async fn runtime_send(
         }
         None => false,
     };
-    if requires_provider_application(&request) && !temporary_gamepad {
-        crate::providers::apply_locked(window.app_handle(), &client).await?;
+    let active_prompt = if let Some(session_id) = prompt_session_id(&request) {
+        let states = client.run_states().await.map_err(request_error)?;
+        is_active_prompt_target(session_id, states.iter().map(|session| (session.session_id.as_str(), &session.state)))
+    } else {
+        false
+    };
+    // Busy providers retain their applied routing; unrelated sessions can continue.
+    if requires_provider_application(&request)
+        && !temporary_gamepad
+        && !active_prompt
+        && let Err(error) = crate::providers::apply_locked(window.app_handle(), &client).await
+        && !crate::providers::application_pending(&error)
+    {
+        return Err(error);
     }
     if !current_connection() {
         return Err("Window connection replaced".into());
     }
+    let generation = crate::providers::managed::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
+    if let (Some(params), Ok(value)) = (&original, &outcome) {
+        crate::providers::managed::observe_realtime(window.app_handle(), &request.method, params);
+        let body = if request.method == "acpRequest" { &params["params"] } else { params };
+        if let Some(session) = value["sessionId"].as_str().or_else(|| body["sessionId"].as_str()) {
+            let agent = params["agentId"].as_str().unwrap_or("codex");
+            let confirmed = crate::providers::managed::confirms_model(&request.method, params).then_some(generation);
+            crate::providers::managed::observe(window.app_handle(), agent, session, value, confirmed);
+        }
+    }
     if !state.owns(&client) {
         return Err("Runtime instance replaced".into());
     }
@@ -365,6 +428,11 @@ pub async fn runtime_send(
         Err(error) => json!({"connectionId":connection_id,"id":request.id,"error":error}),
     };
     RuntimeLines(vec![response.to_string()]).emit(&window).map_err(|error| error.to_string())
+}
+
+/// Auxiliary agents own separate catalogs and cannot invalidate the main Codex catalog.
+fn resets_provider_catalog(event: &alwith_api::RuntimeEvent) -> bool {
+    matches!(event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
 }
 
 pub fn request_error(error: ResponseError) -> String {
@@ -394,6 +462,25 @@ fn is_admission(request: &Request) -> bool {
     }
 }
 
+fn is_active_prompt_target<'a>(
+    session_id: &str, states: impl IntoIterator<Item = (&'a str, &'a alwith_api::RunState)>,
+) -> bool {
+    states.into_iter().any(|(id, state)| {
+        id == session_id && matches!(state, alwith_api::RunState::Running | alwith_api::RunState::RequiresAction)
+    })
+}
+
+/// Replies and steering use the active turn's catalog, even when a new revision is pending.
+fn prompt_session_id(request: &Request) -> Option<&str> {
+    let params = request.params.as_ref()?;
+    let prompt = match request.method.as_str() {
+        "prompt" => params,
+        "acpRequest" if params.get("method")?.as_str()? == "session/prompt" => params.get("params")?,
+        _ => return None,
+    };
+    prompt.get("sessionId")?.as_str()
+}
+
 /// Restoring history keeps the applied catalog and still serializes with provider updates.
 /// A pending revision must not prevent the user from opening an existing conversation.
 fn requires_provider_application(request: &Request) -> bool {
@@ -409,7 +496,7 @@ fn requires_provider_application(request: &Request) -> bool {
 }
 
 /// Empty draft sessions may be created on the currently applied provider. The first prompt
-/// remains an admission point and applies a saved provider revision only after active turns end.
+/// retries saved changes while busy providers retain their previously applied routing.
 fn is_draft_session_new(params: Option<&Value>) -> bool {
     let Some(params) = params else { return false };
     let meta = params.get("_meta").or_else(|| params.get("meta"));

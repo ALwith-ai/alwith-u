@@ -1,3 +1,4 @@
+import { ResourceContent } from "@alwith/module-chat/resource-content"
 import { containsPath } from "@alwith/module-fs"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactElement, useContext, useEffect, useState } from "react"
@@ -5,7 +6,6 @@ import { type ReactElement, useContext, useEffect, useState } from "react"
 import { fileLocationPath } from "@/lib/open"
 
 import { ChatDirectoryContext } from "../file-actions"
-import { ResourceContent } from "./resource-content"
 
 type ImagePayload = { data: string; mimeType: string }
 

@@ -13,7 +13,7 @@ test("a formal Plugin entry runs on U's common host without a legacy import cert
     name: "Notes",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: { "alwith-u": ">=0.2.0" },
     dataSchemaVersion: 1
   }

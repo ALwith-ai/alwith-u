@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { within } from "storybook/test"
 
 import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
@@ -31,7 +32,9 @@ export const Marketplace: Story = { name: "插件市场" }
 export const Installed: Story = {
   name: "已安装插件与技能",
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole("tab", { name: /已安装/ }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
   }
 }
 

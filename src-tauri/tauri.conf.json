@@ -6,8 +6,8 @@
   "identifier": "ai.alwith.u",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1430",
-    "beforeDevCommand": "bun run stage && bun run dev",
+    "devUrl": "http://127.0.0.1:1430",
+    "beforeDevCommand": "bun run stage && bun dev",
     "beforeBuildCommand": "bun run stage && bun run build"
   },
   "app": {
@@ -28,7 +28,7 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$HOME/.codex/**"]
+        "scope": ["$HOME/.codex/**", "$APPDATA/vibemon/**"]
       }
     }
   },
@@ -52,13 +52,17 @@
     "resources": {
       "resources/adapter": "adapter",
       "resources/computer": "computer",
+      "resources/chrome-bridge": "chrome-bridge",
       "resources/licenses": "licenses",
       "resources/native": "native",
       "resources/deepseek": "deepseek",
+      "resources/alwith": "alwith",
       "resources/qwen": "qwen",
       "resources/openrouter": "openrouter",
       "resources/xai": "xai",
-      "resources/extensions": "extensions"
+      "resources/custom": "custom",
+      "resources/extensions": "extensions",
+      "resources/create-alwith": "create-alwith"
     },
     "icon": [
       "icons/32x32.png",

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, beforeAll, expect, test } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
@@ -35,6 +35,9 @@ test("draft shows the configured provider models before any session exists", asy
     })
   })
   expect(document.body.textContent).toContain("DeepSeek-Flash")
+  expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
+  expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
   expect(document.body.textContent).not.toContain("OpenRouter")
   expect(document.body.innerHTML).not.toContain("test-secret-never-render")
   await act(() => {
@@ -43,6 +46,23 @@ test("draft shows the configured provider models before any session exists", asy
     })
   })
   expect(selected).toBe("gateway:deepseek:deepseek-flash")
+  view.rerender(
+    <DraftModelSelect
+      snapshot={{
+        revision: 1,
+        appliedRevision: 1,
+        providers: { deepseek: { configured: true, region: null, base_url: null } },
+        customProviders: [],
+        status: "applied",
+        error: null
+      }}
+      model={selected}
+      onChange={() => {
+        throw new Error("Unexpected model switch")
+      }}
+    />
+  )
+  expect(within(view.getByTestId("model-trigger")).getByText("Flash", { exact: true })).toBeVisible()
 })
 
 test("removing a provider does not silently switch a selected draft to Codex", () => {

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor, within } from "storybook/test"
 
-import { threadRegistry } from "../../../src/features/chat/lib/thread-registry"
 import { actionsTaken, client } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
@@ -130,7 +129,7 @@ export const SearchChat: Story = {
   args: { chatCase: "long" },
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await waitFor(() => expect(threadRegistry.getState().api).not.toBeNull())
+    await body.findByRole("log")
     await userEvent.click(body.getByRole("button", { name: "更多操作" }))
     await userEvent.click(await body.findByRole("menuitem", { name: /查找/ }))
     const search = await body.findByPlaceholderText("在聊天中查找")

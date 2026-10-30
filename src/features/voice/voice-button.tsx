@@ -1,5 +1,6 @@
-import { ShortcutTooltip } from "@/components/alwith-ui/shortcut-hint"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import "./voice-waveform.css"
+import { PromptInputButton } from "@alwith/module-chat/composer"
 import { usePromptInputSubmission } from "@alwith/module-chat/composer-context"
 import { recordingSettings } from "@alwith/module-voice"
 import { prepareCapture } from "@alwith/module-voice/audio"
@@ -13,7 +14,6 @@ import { type MutableRefObject, type ReactNode, useEffect, useRef, useState } fr
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { PromptInputButton } from "@/features/chat/composer/prompt-input"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { loadVoiceSettings, voiceProfiles } from "./settings"
@@ -193,42 +193,46 @@ function EnabledVoiceButton({
   )
   return (
     <div className="voice-controls-layout">
-      <div className="voice-controls-buttons">
-        <ShortcutTooltip label={`${label} · ${t("voice.shortcutHint")}`} shortcut="Alt">
-          <PromptInputButton
-            aria-label={label}
-            disabled={!enabled || busy || phase === "finishing"}
-            onClick={() => {
-              void toggle().catch(report)
-            }}
-          >
-            {phase === "starting" || phase === "finishing" ? (
-              <Loader2Icon className="size-4 animate-spin" />
-            ) : phase === "recording" ? (
-              <SquareIcon className="size-3 fill-current text-foreground" />
-            ) : (
-              <MicIcon className="size-4" />
-            )}
-          </PromptInputButton>
-        </ShortcutTooltip>
-        {(busy || phase === "starting" || phase === "recording" || phase === "finishing") && (
-          <PromptInputButton
-            aria-label={t("voice.cancel")}
-            title={t("voice.cancel")}
-            onClick={() => {
-              startPending.current = false
-              resumeAbort.current?.abort()
-              setResuming(false)
-              cancel(true)
-            }}
-          >
-            <XIcon className="size-4 text-foreground" />
-          </PromptInputButton>
-        )}
-      </div>
-      <div className="voice-waveform-track" aria-hidden="true">
-        {phase === "recording" && <VoiceWaveform audioLevel={audioLevel} />}
-      </div>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PromptInputButton
+              aria-label={label}
+              className={phase === "recording" ? "voice-recording-button" : undefined}
+              disabled={!enabled || busy || phase === "finishing"}
+              onClick={() => {
+                void toggle().catch(report)
+              }}
+            >
+              {phase === "starting" || phase === "finishing" ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : phase === "recording" ? (
+                <>
+                  <VoiceWaveform audioLevel={audioLevel} />
+                  <SquareIcon className="size-2.5 shrink-0 fill-current text-foreground" aria-hidden="true" />
+                </>
+              ) : (
+                <MicIcon className="size-4" />
+              )}
+            </PromptInputButton>
+          }
+        />
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+      {(busy || phase === "starting" || phase === "recording" || phase === "finishing") && (
+        <PromptInputButton
+          aria-label={t("voice.cancel")}
+          title={t("voice.cancel")}
+          onClick={() => {
+            startPending.current = false
+            resumeAbort.current?.abort()
+            setResuming(false)
+            cancel(true)
+          }}
+        >
+          <XIcon className="size-4 text-foreground" />
+        </PromptInputButton>
+      )}
     </div>
   )
 }

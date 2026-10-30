@@ -1,9 +1,5 @@
-import type {
-  PluginDetail,
-  PluginMarketplaceEntry,
-  PluginSummary,
-  SkillMetadata
-} from "../../src/agent/codex-extensions"
+import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
+
 import { client } from "./client"
 
 export type PluginCase = "catalog" | "empty" | "loading" | "error" | "detailError" | "unavailable" | "installed"

@@ -1,7 +1,7 @@
 // ALwith Desktop's DraftProjectPicker reduced: the empty draft's project capsule. Shows the
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
 // dialog. The host prepares the default workspace when no previous project was selected.
-import { invoke } from "@tauri-apps/api/core"
+import { QUICK_CHATS_GROUP, sessionGroup } from "@nyssance/codex-acp-v2/client"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { isQuickChatDirectory } from "@/features/threads/thread-groups"
+import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
 import { cn } from "@/lib/utils"
 
@@ -32,42 +32,50 @@ export async function chooseFolder(defaultPath: string | null): Promise<string |
 export function DraftProjectPicker({
   cwd,
   recentProjects,
-  onChange
+  onChange,
+  preparing = false
 }: {
   cwd: string | null
   recentProjects: string[]
-  onChange: (cwd: string) => void
+  onChange: (cwd: string | null) => void
+  preparing?: boolean
 }) {
   const { t } = useTranslation()
+  const context = useApp((state) => state.projectContext)
   const [defaultCwd, setDefaultCwd] = useState<string | null>(null)
   useEffect(() => {
     let active = true
-    void invoke<string>("draft_directory", { cwd: null }).then(
-      (path) => {
-        if (active) setDefaultCwd(path)
-      },
-      (error) => {
-        if (active) toast.error(String(error))
-      }
-    )
+    void client
+      .connect()
+      .then(() => client.refreshProjectContext(true))
+      .then((context) => context.chatDirectory)
+      .then(
+        (path) => {
+          if (active) setDefaultCwd(path)
+        },
+        (error) => {
+          if (active) toast.error(String(error))
+        }
+      )
     return () => {
       active = false
     }
   }, [])
   const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
-    (path) => path !== defaultCwd && !isQuickChatDirectory(path)
+    (path) => path !== defaultCwd && (!context || sessionGroup(context, { cwd: path }).id !== QUICK_CHATS_GROUP)
   )
   const hasProject = cwd !== null && cwd !== defaultCwd
   const workOutsideProject = (): void => {
     if (defaultCwd === null) throw new Error("The default draft directory is not ready")
-    onChange(defaultCwd)
+    onChange(null)
   }
   return (
     <DropdownMenu>
       <div
+        aria-busy={preparing}
         className={cn(
-          "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full px-2",
-          hasProject ? "text-foreground" : "text-foreground/65"
+          "chat-project-picker group/project inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full",
+          hasProject ? "ps-2 text-foreground" : "text-foreground/65"
         )}
       >
         {hasProject && (
@@ -80,8 +88,8 @@ export function DraftProjectPicker({
             disabled={defaultCwd === null}
             onClick={workOutsideProject}
           >
-            <FolderClosedIcon className="size-4 group-focus-within/project:opacity-0 group-hover/project:opacity-0" />
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-focus-within/project:opacity-100 group-hover/project:opacity-100">
+            <FolderClosedIcon className="size-4 group-hover/project:opacity-0" />
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-muted-foreground text-background opacity-0 group-hover/project:opacity-100">
               <XIcon className="size-3" />
             </span>
           </Button>
@@ -91,7 +99,10 @@ export function DraftProjectPicker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 min-w-0 shrink gap-1.5 rounded-full p-0 text-sm font-normal text-inherit hover:bg-transparent dark:hover:bg-transparent"
+              className={cn(
+                "h-7 min-w-0 shrink gap-1.5 rounded-full py-0 text-sm font-normal text-inherit hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent",
+                hasProject ? "ps-0 pe-2" : "px-2"
+              )}
             />
           }
         >
@@ -102,7 +113,7 @@ export function DraftProjectPicker({
       <DropdownMenuContent side="top" align="start" className="w-72 overflow-hidden">
         {projects.length > 0 && (
           <>
-            <Pane className="flex-none" viewportClassName="max-h-64 pe-0">
+            <Pane className="flex-none [&>[data-slot=scroll-area-scrollbar]]:-me-1" viewportClassName="max-h-64 pe-0">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map((path) => (
                   <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>

@@ -1,6 +1,6 @@
+import { MENU_HIGHLIGHT } from "@alwith/module-chat/session-list"
 import type { ComponentProps } from "react"
 
-import { MENU_HIGHLIGHT } from "@/components/alwith-ui/surface-highlight"
 import { cn } from "@/lib/utils"
 
 export function NavigationMenuIconButton({

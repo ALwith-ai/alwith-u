@@ -1,5 +1,20 @@
 [
   {
+    "id": "litellm",
+    "source": "account",
+    "name": "ALwith",
+    "models": [
+      {
+        "id": "deepseek-V4.1-flash",
+        "label": "DeepSeek-Flash"
+      }
+    ],
+    "catalog": "alwith/models.json",
+    "config": {
+      "web_search": "disabled"
+    }
+  },
+  {
     "id": "deepseek",
     "name": "DeepSeek",
     "baseUrl": "https://api.deepseek.com/",

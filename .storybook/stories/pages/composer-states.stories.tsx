@@ -21,7 +21,7 @@ export const PermissionMenu: Story = {
   name: "权限模式菜单",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: /^切换权限模式/ }))
-    await within(canvasElement.ownerDocument.body).findByText("完全访问权限")
+    await within(canvasElement.ownerDocument.body).findByText("完全访问")
   }
 }
 export const PermissionChange: Story = {
@@ -29,7 +29,7 @@ export const PermissionChange: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: /^切换权限模式/ }))
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(await body.findByRole("menuitemradio", { name: /完全访问权限/ }))
+    await userEvent.click(await body.findByRole("menuitemradio", { name: /完全访问/ }))
     await waitFor(() =>
       expect(
         client.session("conversation").configOptions.find((option) => option.category === "mode")?.currentValue
@@ -193,7 +193,10 @@ export const PredictionAccept: Story = {
 export const PredictionError: Story = {
   name: "输入预测 · 服务失败",
   args: { composerCase: "predictionError" },
-  play: async ({ canvas }) => {
-    await canvas.findByText("输入建议暂不可用")
+  play: async ({ canvas, userEvent }) => {
+    await waitFor(() => expect(actionsTaken.some((action) => action.type === "prediction")).toBe(true))
+    const input = canvas.getByRole("textbox", { name: "发送消息" })
+    await userEvent.type(input, "继续检查交付内容")
+    await expect(input).toHaveValue("继续检查交付内容")
   }
 }

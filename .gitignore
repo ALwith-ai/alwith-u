@@ -4,6 +4,8 @@ __pycache__/
 dist/
 storybook-static/
 .env
+.env.local
+.env.*.local
 .DS_Store
 src-tauri/binaries/
 src-tauri/resources/native/
@@ -21,3 +23,7 @@ src-tauri/resources/licenses/alwith-voice/
 src-tauri/resources/licenses/cua-driver/
 src-tauri/resources/computer/
 src-tauri/resources/licenses/alwith-native-*/
+
+src-tauri/resources/chrome-bridge/
+
+src-tauri/resources/create-alwith/

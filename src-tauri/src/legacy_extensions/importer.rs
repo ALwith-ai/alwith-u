@@ -481,7 +481,7 @@ fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String>
         .ok_or("Invalid legacy extension id")?;
     let mut manifest = json!({
         "manifestVersion": 3, "id": id, "name": name, "version": version,
-        "entry": "main.js", "dependencies": {"@alwith/module-extension": "^0.1.0-rc.11"},
+        "entry": "main.js", "dependencies": {"@alwith/module-extension": "^0.5.0"},
         "hosts": {"alwith-u": ">=0.1.1"}, "dataSchemaVersion": 1
     });
     if let Some(icon) = p.and_then(|p| p.icon.as_deref()) {
@@ -939,7 +939,7 @@ mod tests {
         assert!(is_legacy_manifest(&old).unwrap());
         let converted = converted_manifest(&old, None).unwrap();
         assert_eq!(converted["id"], "weather-local");
-        assert_eq!(converted["dependencies"]["@alwith/module-extension"], "^0.1.0-rc.11");
+        assert_eq!(converted["dependencies"]["@alwith/module-extension"], "^0.5.0");
     }
     #[test]
     fn snapshots_resources_and_separates_named_mutable_data() {
@@ -979,7 +979,7 @@ mod tests {
     fn automatic_format_detection_never_downgrades_current_manifests() {
         let old = json!({"id":"bi-metrics","name":"BI","version":"2.36.2","minAppVersion":"26.6.18"});
         assert!(is_legacy_manifest(&old).unwrap());
-        let mut current = json!({"id":"bi-metrics","name":"BI","version":"1.0.0","dependencies":{"@alwith/module-extension":"^0.1.2"}});
+        let mut current = json!({"id":"bi-metrics","name":"BI","version":"1.0.0","dependencies":{"@alwith/module-extension":"^0.5.0"}});
         assert!(!is_legacy_manifest(&current).unwrap());
         current["manifestVersion"] = json!(3);
         assert!(!is_legacy_manifest(&current).unwrap());

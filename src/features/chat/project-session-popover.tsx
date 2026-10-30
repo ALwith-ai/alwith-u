@@ -1,27 +1,35 @@
+import {
+  OverflowMarquee,
+  relativeTime,
+  TRAILING_GROUP,
+  TrailingSwap,
+  useProjectSessions,
+  useSidebarOverlay
+} from "@alwith/module-chat/session-list"
 import { FolderClosedIcon, MessageSquareIcon, PlusIcon } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { ThreadSummary } from "@/agent/client"
-import { commands } from "@/bindings"
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
+import type { SessionSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
-import { useSidebarOverlay } from "@/components/alwith-ui/sidebar-overlay-context"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { ProjectPathAction } from "@/features/threads/project-path-action"
-import { relativeTime } from "@/features/threads/thread-info-card"
-import { useProjectThreads } from "@/features/threads/use-project-threads"
+import { CollectionPicker } from "@/features/collection/collection-menu"
+import { ProjectPathAction } from "@/features/sessions/project-path-action"
+import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
+import { client, useApp } from "@/lib/client"
 import { basename } from "@/lib/path"
+import { cn } from "@/lib/utils"
 
 import { newChatDirectory } from "./new-chat-directory"
 
 type ProjectActions = {
+  actionLabel?: string
   cwd: string | null
   currentSessionId?: string | null
-  onSelect: (thread: ThreadSummary) => void
+  onSelect: (sessionRow: SessionSummary) => void
   onNewChat: () => void
 }
 
@@ -30,7 +38,8 @@ type DirectoryState =
 
 /** Quick chats share the sidebar group; the host's default workspace is only the folder action. */
 export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?: ReactElement }) {
-  const project = newChatDirectory(cwd)
+  const context = useApp((state) => state.projectContext)
+  const project = newChatDirectory(cwd, context)
   const [directory, setDirectory] = useState<DirectoryState>({ status: "loading" })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
@@ -39,19 +48,22 @@ export function ChatProjectMenu({ cwd, ...actions }: ProjectActions & { trigger?
     void attempt
     let active = true
     setDirectory({ status: "loading" })
-    void commands.draftDirectory({ cwd: null }).then(
-      (cwd) => {
-        if (active) setDirectory({ status: "ready", cwd })
-      },
-      (error) => {
-        if (active)
-          setDirectory({
-            status: "failed",
-            error: error instanceof Error ? error.message : String(error),
-            retry: () => setAttempt((value) => value + 1)
-          })
-      }
-    )
+    void client
+      .refreshProjectContext(true)
+      .then((context) => context.chatDirectory)
+      .then(
+        (cwd) => {
+          if (active) setDirectory({ status: "ready", cwd })
+        },
+        (error) => {
+          if (active)
+            setDirectory({
+              status: "failed",
+              error: error instanceof Error ? error.message : String(error),
+              retry: () => setAttempt((value) => value + 1)
+            })
+        }
+      )
     return () => {
       active = false
     }
@@ -72,6 +84,7 @@ export function ProjectSessionPopover(props: ProjectActions & { trigger?: ReactE
 
 /** Header click and sidebar hover share the same list and actions, as in Desktop. */
 function ProjectPopover({
+  actionLabel,
   cwd,
   currentSessionId,
   directory,
@@ -90,9 +103,10 @@ function ProjectPopover({
   const popupRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const [expanded, setExpanded] = useState(false)
+  const [collectionOpen, setCollectionOpen] = useState(false)
   const expandPointer = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
-    if (trigger === undefined || !open || !expanded) return
+    if (trigger === undefined || !open || !expanded || collectionOpen) return
     const popup = popupRef.current
     const projectTrigger = triggerRef.current
     if (popup === null || projectTrigger === null) throw new Error("Project popup is not mounted")
@@ -127,7 +141,7 @@ function ProjectPopover({
     }
     document.addEventListener("mousemove", onMouseMove)
     return () => document.removeEventListener("mousemove", onMouseMove)
-  }, [trigger, open, expanded])
+  }, [trigger, open, expanded, collectionOpen])
   const leave = (action: () => void) => {
     skipFocus.current = true
     setOpen(false)
@@ -141,7 +155,7 @@ function ProjectPopover({
           details.cancel()
           return
         }
-        if (!value && expandPointer.current !== null && details.reason === "trigger-hover") {
+        if (!value && (expandPointer.current !== null || collectionOpen) && details.reason === "trigger-hover") {
           details.cancel()
           return
         }
@@ -149,6 +163,7 @@ function ProjectPopover({
           skipFocus.current = false
           expandPointer.current = null
           setExpanded(false)
+          setCollectionOpen(false)
         }
         setOpen(value)
       }}
@@ -161,12 +176,12 @@ function ProjectPopover({
               variant="ghost"
               size="icon-sm"
               className="shrink-0 transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
-              aria-label={label}
-              title={cwd ?? label}
+              aria-label={actionLabel ?? label}
+              title={actionLabel ?? cwd ?? label}
             />
           }
         >
-          <FolderClosedIcon />
+          {actionLabel ? <MessageSquareIcon /> : <FolderClosedIcon />}
         </PopoverTrigger>
       ) : (
         <PopoverTrigger
@@ -185,24 +200,28 @@ function ProjectPopover({
         aria-label={label}
         initialFocus={trigger === undefined ? popupRef : false}
         finalFocus={() => !skipFocus.current}
-        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden px-0 py-1"
+        className="max-h-[var(--available-height)] w-80 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden p-1"
       >
         {open && (
-          <ProjectContents
-            key={cwd ?? "quick-chats"}
-            cwd={cwd}
-            currentSessionId={currentSessionId}
-            directory={directory}
-            showHeading={trigger === undefined}
-            expanded={expanded}
-            onExpand={(x, y) => {
-              expandPointer.current = { x, y }
-              setExpanded(true)
-            }}
-            onSelect={(thread) => leave(() => onSelect(thread))}
-            onNewChat={() => leave(onNewChat)}
-            onOpened={() => setOpen(false)}
-          />
+          // The popover also opens from chat headers, outside the sidebar's session list.
+          <SessionListHostProvider>
+            <ProjectContents
+              key={cwd ?? "quick-chats"}
+              cwd={cwd}
+              currentSessionId={currentSessionId}
+              directory={directory}
+              showHeading={trigger === undefined}
+              expanded={expanded}
+              onExpand={(x, y) => {
+                expandPointer.current = { x, y }
+                setExpanded(true)
+              }}
+              onSelect={(sessionRow) => leave(() => onSelect(sessionRow))}
+              onNewChat={() => leave(onNewChat)}
+              onOpened={() => setOpen(false)}
+              onCollectionOpenChange={setCollectionOpen}
+            />
+          </SessionListHostProvider>
         )}
       </PopoverContent>
     </Popover>
@@ -224,43 +243,45 @@ function ProjectContents({
   onOpened,
   showHeading,
   expanded,
-  onExpand
+  onExpand,
+  onCollectionOpenChange
 }: ProjectActions & {
   directory: DirectoryState
   onOpened: () => void
   showHeading: boolean
   expanded: boolean
   onExpand: (x: number, y: number) => void
+  onCollectionOpenChange: (open: boolean) => void
 }) {
   const { t, i18n } = useTranslation()
-  const { result, retry } = useProjectThreads(cwd)
+  const { result, retry } = useProjectSessions(cwd)
   const mainSessionId = useMainWindowSurface((state) => (state.visible ? state.sessionId : null))
   const chatSessionId = useChatWindowSurface((state) => (state.visible ? state.sessionId : null))
-  const threads =
+  const sessionRows =
     result?.status === "ready"
-      ? result.threads.filter(
-          (thread) =>
-            thread.sessionId !== currentSessionId &&
-            thread.sessionId !== mainSessionId &&
-            thread.sessionId !== chatSessionId
+      ? result.sessionRows.filter(
+          (sessionRow) =>
+            sessionRow.sessionId !== currentSessionId &&
+            sessionRow.sessionId !== mainSessionId &&
+            sessionRow.sessionId !== chatSessionId
         )
       : []
   const listRef = useRef<HTMLDivElement>(null)
   return (
     <>
       {showHeading && (
-        <div className="flex min-h-8 items-center gap-2 px-3 py-1.5">
+        <div className="flex min-h-8 items-center gap-2 px-2 py-1.5">
           <FolderClosedIcon className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-semibold">
+          <span className="min-w-0 flex-1 truncate font-medium">
             {cwd === null ? t("sidebar.quickChats") : basename(cwd)}
           </span>
           <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
-            {result?.status === "ready" ? t("chat.project.chatCount", { count: threads.length }) : null}
+            {result?.status === "ready" ? t("chat.project.chatCount", { count: sessionRows.length }) : null}
           </span>
         </div>
       )}
       <Pane
-        className="flex max-h-70 flex-auto flex-col"
+        className="flex max-h-70 flex-auto flex-col pe-0"
         viewportClassName="h-auto min-h-0 pe-0"
         viewportRef={listRef}
         viewportProps={{ tabIndex: -1 }}
@@ -280,34 +301,56 @@ function ProjectContents({
             </Button>
           </div>
         )}
-        {result?.status === "ready" && threads.length === 0 && (
+        {result?.status === "ready" && sessionRows.length === 0 && (
           <p className="px-3 py-2 text-sm text-muted-foreground">{t("sidebar.noResults")}</p>
         )}
         {result?.status === "ready" &&
-          (expanded ? threads : threads.slice(0, 5)).map((thread) => (
-            <Button
-              key={thread.sessionId}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-full justify-start gap-2 rounded-none border-0 px-3 font-normal"
-              aria-label={thread.title ?? t("sidebar.untitled")}
-              onClick={() => onSelect(thread)}
-            >
-              <MessageSquareIcon />
-              <OverflowMarquee className="flex-1 text-start">{thread.title ?? t("sidebar.untitled")}</OverflowMarquee>
-              {thread.updatedAt !== null && (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {relativeTime(thread.updatedAt, i18n.language)}
-                </span>
+          (expanded ? sessionRows : sessionRows.slice(0, 5)).map((sessionRow) => (
+            <div
+              key={sessionRow.sessionId}
+              className={cn(
+                TRAILING_GROUP,
+                "flex h-8 w-full items-center gap-2 rounded-sm px-2 focus-within:bg-accent hover:bg-accent"
               )}
-            </Button>
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 min-w-0 flex-1 justify-start gap-2 rounded-sm border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
+                data-hover-background="none"
+                aria-label={sessionRow.title ?? t("sidebar.untitled")}
+                onClick={() => onSelect(sessionRow)}
+              >
+                <MessageSquareIcon />
+                <OverflowMarquee className="flex-1 text-start">
+                  {sessionRow.title ?? t("sidebar.untitled")}
+                </OverflowMarquee>
+              </Button>
+              <TrailingSwap
+                content={
+                  sessionRow.updatedAt !== null ? (
+                    <span className="text-xs text-muted-foreground">
+                      {relativeTime(sessionRow.updatedAt, i18n.language)}
+                    </span>
+                  ) : undefined
+                }
+                actions={
+                  <CollectionPicker
+                    sessionId={sessionRow.sessionId}
+                    favorite
+                    className="size-6 [&_svg]:size-3.5"
+                    onOpenChange={onCollectionOpenChange}
+                  />
+                }
+              />
+            </div>
           ))}
       </Pane>
-      {result?.status === "ready" && !expanded && threads.length > 5 && (
+      {result?.status === "ready" && !expanded && sessionRows.length > 5 && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 justify-start rounded-none border-0 ps-9 pe-3 text-muted-foreground"
+          className="h-8 justify-start rounded-sm border-0 ps-8 pe-2 font-normal text-muted-foreground hover:bg-accent"
           onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
@@ -338,7 +381,7 @@ function ProjectContents({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-start gap-2 rounded-none border-0 px-3 font-normal"
+        className="justify-start gap-2 rounded-sm border-0 px-2 font-normal hover:bg-accent"
         onClick={onNewChat}
       >
         <PlusIcon />

@@ -5,7 +5,7 @@ import base, { SkillToggle as source } from "../../flow-definitions/plugins"
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 已安装", "点击 · 已安装", "点击 · 禁用技能"]
+const labels = ["初始页面 · 已安装", "点击 · 技能", "点击 · project-review", "点击 · 禁用技能:"]
 const config = { labels, id: "workflow-plugins-skilltoggle" }
 const meta = {
   ...base,

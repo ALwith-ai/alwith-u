@@ -4,8 +4,8 @@ import {
   getNavigationAudioContextState,
   getNavigationInstrumentReady,
   type NavigationTokenPair,
-  playThreadUserMessageNavigationSequence as playSequence,
-  preloadThreadUserMessageNavigationInstrument as preloadInstrument
+  playTimelineUserMessageNavigationSequence as playSequence,
+  preloadTimelineUserMessageNavigationInstrument as preloadInstrument
 } from "@alwith/module-chat/navigation-audio"
 
 import type { NavigationInstrument, NavigationSoundMode } from "./navigation-instruments"
@@ -21,7 +21,7 @@ function diag(message: string): void {
   void import("@tauri-apps/plugin-log").then(({ info }) => info(`[nav-audio] ${message}`))
 }
 
-export function preloadThreadUserMessageNavigationInstrument(instrument: NavigationInstrument) {
+export function preloadTimelineUserMessageNavigationInstrument(instrument: NavigationInstrument) {
   void getNavigationInstrumentReady(instrument).then(
     () => diag(`instrument "${instrument}" ready; context=${getNavigationAudioContextState()}`),
     (error: unknown) => diag(`instrument "${instrument}" FAILED: ${String(error)}`)
@@ -29,7 +29,7 @@ export function preloadThreadUserMessageNavigationInstrument(instrument: Navigat
   preloadInstrument(instrument)
 }
 
-export function playThreadUserMessageNavigationSequence(
+export function playTimelineUserMessageNavigationSequence(
   fromIndex: number,
   toIndex: number,
   tokenPairs: NavigationTokenPair[],

@@ -1,4 +1,4 @@
-import { applyUpdate, createSession } from "@alwith/api"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
 import { act, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
@@ -8,7 +8,7 @@ import { initI18n } from "@/lib/i18n"
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 
 vi.mock("@tauri-apps/plugin-log", () => ({ info: async () => {} }))
-const { ChatBody } = await import("../chat-body")
+const { ChatBody } = await import("./timeline-host")
 await initI18n("en")
 navigationSoundStore.setState({ soundMode: "none" })
 
@@ -35,7 +35,7 @@ test("shows restored messages before session/resume finishes", async () => {
   await act(async () => {})
 })
 
-test("shows an interruption explanation when replay contains only the user's prompt", async () => {
+test("retains an interrupted historical prompt without claiming its response was lost", async () => {
   const session = applyUpdate(
     { ...createSession("stopped-history", "/tmp/project"), attached: true },
     {
@@ -51,12 +51,12 @@ test("shows an interruption explanation when replay contains only the user's pro
     </ThemeProvider>
   )
   expect(view.getByText("Stopped question")).toBeDefined()
-  expect(view.getByText("Stopped. Codex history may not contain the unfinished response.")).toBeDefined()
+  expect(view.queryByText("Stopped. Codex history may not contain the unfinished response.")).toBeNull()
   await act(async () => {})
 })
 
 test.each(["error", "cancelled"] as const)("shows %s before the first assistant token", async (reason) => {
-  const { addPrompt } = await import("@alwith/api")
+  const { addPrompt } = await import("@nyssance/codex-acp-v2/client")
   const session = {
     ...addPrompt(
       createSession(`early-${reason}`, "/tmp/project"),
@@ -83,7 +83,7 @@ test.each(["error", "cancelled"] as const)("shows %s before the first assistant 
 })
 
 test("an accepted turn shows inline thinking while history restoration keeps its loader", async () => {
-  const { addPrompt } = await import("@alwith/api")
+  const { addPrompt } = await import("@nyssance/codex-acp-v2/client")
   const initial = { ...createSession("thinking", "/tmp/project"), attached: true }
   const view = render(
     <ThemeProvider>
@@ -100,7 +100,7 @@ test("an accepted turn shows inline thinking while history restoration keeps its
       <ChatBody session={running} />
     </ThemeProvider>
   )
-  expect(view.getByRole("status").textContent).toBe("Thinking")
+  expect(view.getByRole("status").textContent).toBe("Working")
   expect(view.container.querySelector(".codex-pending-message .codex-activity-running")).not.toBeNull()
   expect(view.container.querySelector(".animate-spin")).toBeNull()
   const time = view.container.querySelector(".codex-user-actions .codex-user-time")
@@ -131,7 +131,7 @@ test("an interrupted prompt keeps its notice after another turn starts", async (
     </ThemeProvider>
   )
   expect(view.getAllByText("Stopped")).toHaveLength(1)
-  expect(view.getByText("Thinking")).toBeInTheDocument()
+  expect(view.getByText("Working")).toBeInTheDocument()
   view.unmount()
   await act(async () => {})
 })

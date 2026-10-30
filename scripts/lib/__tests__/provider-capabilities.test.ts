@@ -10,6 +10,7 @@ interface CatalogModel {
   default_reasoning_level?: string | null
   supported_reasoning_levels: Array<{ effort: string }>
   input_modalities: string[]
+  context_window?: number
 }
 
 for (const provider of providers) {
@@ -54,4 +55,42 @@ test("Qwen 3.8 exposes its documented levels without compatibility aliases", () 
     expect(model?.supported_reasoning_levels.map((entry) => entry.effort)).toEqual(["none", "low", "medium", "xhigh"])
   }
   expect(tauri.bundle.resources).toHaveProperty("resources/qwen", "qwen")
+})
+
+test("custom model metadata exposes only effective effort levels and supported Codex inputs", () => {
+  const catalog = JSON.parse(
+    readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources/custom/models.json"), "utf8")
+  ) as { models: CatalogModel[] }
+  const expected: Record<string, string[]> = {
+    "glm-5.3": ["low", "high", "max"],
+    "glm-5.3-flash": ["low", "high", "max"],
+    "glm-5.2": ["none", "high", "max"],
+    "glm-5.1": [],
+    "MiniMax-M3.1-Flash": ["low", "medium", "high", "xhigh", "max"],
+    "MiniMax-M3": [],
+    "doubao-seed-evolving": ["minimal", "low", "medium", "high"],
+    "doubao-seed-2-1-pro-260915": ["minimal", "low", "medium", "high"],
+    "doubao-seed-2-1-lite-260915": ["minimal", "low", "medium", "high"],
+    "doubao-seed-2.1-pro": ["minimal", "low", "medium", "high"],
+    "doubao-seed-2.1-lite": ["minimal", "low", "medium", "high"],
+    "kimi-k3.1-pro": ["low", "high", "max"],
+    "kimi-k3": ["low", "high", "max"],
+    "kimi-k2.7-code": [],
+    "mimo-v2.6-pro": [],
+    "mimo-v2.6-flash": []
+  }
+  expect(catalog.models.map((model) => model.slug).sort()).toEqual(Object.keys(expected).sort())
+  for (const model of catalog.models) {
+    const efforts = model.supported_reasoning_levels.map((level) => level.effort)
+    expect(efforts, model.slug).toEqual(expected[model.slug])
+    if (efforts.length > 0) expect(efforts).toContain(model.default_reasoning_level ?? "")
+    else expect(model.default_reasoning_level).toBe("high")
+    expect(model.input_modalities).toContain("text")
+    expect(model.input_modalities.every((modality) => ["text", "image"].includes(modality))).toBe(true)
+    if (["glm-5.3", "glm-5.2", "glm-5.1"].includes(model.slug)) {
+      expect(model.input_modalities).toEqual(["text"])
+    }
+    if (model.slug.startsWith("doubao-")) expect(model.context_window).toBe(1024000)
+  }
+  expect(tauri.bundle.resources).toHaveProperty("resources/custom", "custom")
 })

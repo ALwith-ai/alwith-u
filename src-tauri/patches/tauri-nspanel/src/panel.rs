@@ -239,7 +239,7 @@ macro_rules! panel {
                         }
                     )*)?
 
-                    // Mouse tracking methods - forward to delegate if set
+                    // Preserve AppKit handling when no delegate consumes a tracking event.
                     #[unsafe(method(mouseEntered:))]
                     fn __mouse_entered(&self, event: &$crate::objc2_app_kit::NSEvent) {
                         unsafe {
@@ -251,8 +251,10 @@ macro_rules! panel {
                                 let responds: bool = $crate::objc2::msg_send![&**d, respondsToSelector: selector];
                                 if responds {
                                     let _: () = $crate::objc2::msg_send![&**d, mouseEntered: event];
+                                    return;
                                 }
                             }
+                            let _: () = $crate::objc2::msg_send![super(self), mouseEntered: event];
                         }
                     }
 
@@ -267,8 +269,10 @@ macro_rules! panel {
                                 let responds: bool = $crate::objc2::msg_send![&**d, respondsToSelector: selector];
                                 if responds {
                                     let _: () = $crate::objc2::msg_send![&**d, mouseExited: event];
+                                    return;
                                 }
                             }
+                            let _: () = $crate::objc2::msg_send![super(self), mouseExited: event];
                         }
                     }
 
@@ -283,8 +287,10 @@ macro_rules! panel {
                                 let responds: bool = $crate::objc2::msg_send![&**d, respondsToSelector: selector];
                                 if responds {
                                     let _: () = $crate::objc2::msg_send![&**d, mouseMoved: event];
+                                    return;
                                 }
                             }
+                            let _: () = $crate::objc2::msg_send![super(self), mouseMoved: event];
                         }
                     }
 
@@ -299,8 +305,10 @@ macro_rules! panel {
                                 let responds: bool = $crate::objc2::msg_send![&**d, respondsToSelector: selector];
                                 if responds {
                                     let _: () = $crate::objc2::msg_send![&**d, cursorUpdate: event];
+                                    return;
                                 }
                             }
+                            let _: () = $crate::objc2::msg_send![super(self), cursorUpdate: event];
                         }
                     }
                 }

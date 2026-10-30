@@ -1,20 +1,30 @@
 // Model providers, reduced from ALwith Desktop's API tab: compact provider pills choose one
 // configuration panel. A saved key puts that provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
-import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
+import { CardSendIcon } from "@solar-icons/react/line-duotone/card-send"
+import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/alwith-ui/select"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
+import { openPlatformTopUp } from "@/features/auth/open-account"
+import { requestAccountProviderRefresh } from "@/features/auth/store"
 import { openExternal } from "@/lib/open"
 import type {
   CustomProvider,
@@ -25,6 +35,7 @@ import type {
   ProviderTestResult
 } from "@/lib/providers"
 import {
+  applyProvidersWhenIdle,
   parseCustomModels,
   type Provider,
   providerKeyUrl,
@@ -43,6 +54,74 @@ import { SettingGroup, SettingLabel } from "./shared"
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+/** Fetch on entry; failed network refreshes retry the fetch rather than cached configuration application. */
+export function ManagedProviderSection() {
+  const { t } = useTranslation()
+  const [attempt, setAttempt] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(true)
+  useEffect(() => {
+    // Settings closes by hiding, so returning to the mounted page must also refresh.
+    const refresh = (): void => setAttempt((value) => value + 1)
+    window.addEventListener("focus", refresh)
+    return () => window.removeEventListener("focus", refresh)
+  }, [])
+  useEffect(() => {
+    let active = true
+    setPending(true)
+    void requestAccountProviderRefresh().then(
+      () => {
+        if (active) {
+          setError(null)
+          setPending(false)
+        }
+      },
+      (cause: unknown) => {
+        if (active) {
+          setError(describe(cause))
+          setPending(false)
+        }
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [attempt])
+  return (
+    <SettingGroup>
+      <div className="space-y-3 rounded-xl border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-medium">ALwith</h3>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-primary hover:text-primary/80"
+            aria-label={t("provider.managed.topUp")}
+            title={t("provider.managed.topUp")}
+            onClick={() => {
+              void openPlatformTopUp().catch((error: unknown) => toast.error(describe(error)))
+            }}
+          >
+            <CardSendIcon className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("provider.managed.description")}</p>
+        {error !== null && (
+          <div className="space-y-2">
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+            <Button variant="outline" size="sm" disabled={pending} onClick={() => setAttempt((value) => value + 1)}>
+              {pending && <Spinner aria-hidden="true" />}
+              {t("actions.retry")}
+            </Button>
+          </div>
+        )}
+      </div>
+    </SettingGroup>
+  )
 }
 
 export function ProviderSection() {
@@ -109,7 +188,7 @@ export function ProviderSection() {
           delete next[input.id]
           return next
         })
-        toast.success(t("provider.saved", { name: input.name }))
+        toast.success(t(result.status === "pending" ? "provider.pending" : "provider.saved", { name: input.name }))
       }
       return !result.error
     } catch (error) {
@@ -128,8 +207,21 @@ export function ProviderSection() {
       if (result.error) toast.error(result.error)
       else {
         setActiveId(PROVIDERS[0]?.id ?? "")
-        toast.success(t("provider.removed", { name: provider.name }))
+        toast.success(t(result.status === "pending" ? "provider.pending" : "provider.removed", { name: provider.name }))
       }
+    } catch (error) {
+      toast.error(describe(error))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const retry = async (): Promise<void> => {
+    setBusy("retry")
+    try {
+      const result = await applyProvidersWhenIdle()
+      if (result.error) toast.error(result.error)
+      else if (result.status === "pending") toast.info(t("provider.pending"))
     } catch (error) {
       toast.error(describe(error))
     } finally {
@@ -148,8 +240,14 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-6">
       <CodexProviderSection />
+      <ManagedProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
+      {snapshot && snapshot.status !== "applied" && (
+        <Button variant="outline" className="self-start" disabled={busy !== null} onClick={() => void retry()}>
+          {t("actions.retry")}
+        </Button>
+      )}
       <SettingGroup>
         {snapshot && (
           <>
@@ -296,7 +394,7 @@ function ProviderTab({
         data-testid={`${id}-status`}
         data-configured={configured}
         aria-hidden="true"
-        className={cn("size-2 shrink-0 rounded-full", configured ? "bg-primary" : "bg-muted-foreground/30")}
+        className={cn("size-2 shrink-0 rounded-full", configured ? "bg-success" : "bg-muted-foreground/30")}
       />
     </Button>
   )
@@ -335,13 +433,8 @@ function ProviderActions({
       {onTest && <p className="text-xs leading-relaxed text-muted-foreground">{t("provider.testDescription")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {onRemove && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            disabled={busy}
-            onClick={onRemove}
-          >
+          <Button size="sm" variant="destructive" className="font-normal" disabled={busy} onClick={onRemove}>
+            <Trash2Icon className="size-4" />
             {t("provider.remove")}
           </Button>
         )}
@@ -482,6 +575,7 @@ export function ProviderRow({
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
+                size="icon-xs"
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
                 onClick={() => setShowKey((value) => !value)}
               >
@@ -491,7 +585,7 @@ export function ProviderRow({
           </InputGroup>
         </Field>
         <Collapsible className="space-y-2">
-          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group -ms-2" />}>
+          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group px-2.5" />}>
             {t("provider.baseUrl")}
             <ChevronDownIcon
               className="size-4 transition-transform group-aria-expanded:rotate-180"
@@ -605,7 +699,13 @@ export function CustomProviderEditor({
       models,
       ...(apiKey.trim() === "" ? {} : { apiKey: apiKey.trim() })
     })
-    if (saved) onSaved(id)
+    if (saved) {
+      setName((current) => (current === name ? name.trim() : current))
+      setBaseUrl((current) => (current === baseUrl ? baseUrl.trim() : current))
+      setApiKey((current) => (current === apiKey ? "" : current))
+      setModelsJson((current) => (current === modelsJson ? JSON.stringify(models, null, 2) : current))
+      onSaved(id)
+    }
   }
 
   return (
@@ -650,6 +750,7 @@ export function CustomProviderEditor({
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
+                size="icon-xs"
                 aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
                 onClick={() => setShowKey((value) => !value)}
               >

@@ -158,6 +158,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
           items: [
             {
               uuid: "demo-item",
+              vibemon_uuid: "pet-0",
               reward_type: "VIBEMON",
               status: 1,
               rarity_code: "SSR",

@@ -1,5 +1,6 @@
-import type { Session, SessionRunState } from "@alwith/api"
-import { applyUpdate, createSession, isSelectOption, isText } from "@alwith/api"
+import type { SessionRunState } from "@alwith/api"
+import type { Session } from "@nyssance/codex-acp-v2/client"
+import { applyUpdate, createSession, isSelectOption, isText } from "@nyssance/codex-acp-v2/client"
 import { useStore } from "zustand"
 
 import { type AppState, CodexClient } from "../../src/agent/client"
@@ -9,7 +10,10 @@ import {
   FIXED_TIME,
   makeSession,
   makeThreads,
+  OTHER_DIRECTORY,
   pendingAction,
+  PROJECT_DIRECTORY,
+  QUICK_DIRECTORY,
   userMessage
 } from "./catalog"
 
@@ -23,6 +27,21 @@ export const client = new CodexClient(
     launch: { engine: "storybook" }
   }
 )
+const projectContext = {
+  homeDirectory: "/Users/demo",
+  codexChatDirectory: QUICK_DIRECTORY,
+  chatDirectory: QUICK_DIRECTORY,
+  projects: [PROJECT_DIRECTORY, OTHER_DIRECTORY].map((path, index) => ({
+    id: `preview-project-${index}`,
+    name: path.split("/").at(-1)!,
+    roots: [{ path }],
+    metadata: {},
+    position: index,
+    createdAt: 0,
+    updatedAt: 0,
+    recencyAt: null
+  }))
+}
 const initialState = client.state
 let connectionCase = "ready"
 let connectAttempts = 0
@@ -74,7 +93,8 @@ export function resetClient(
   sequence = 0
   response = options.response ?? "complete"
   draftFailure = options.draftFailure ?? null
-  client.listThreads = async () => {}
+  client.listSessions = async () => {}
+  client.listArchived = async () => {}
   actionsTaken.length = 0
   const threads = makeThreads()
   const sessions = Object.fromEntries(
@@ -88,10 +108,11 @@ export function resetClient(
       ...initialState,
       connection: "ready",
       sessions,
-      threads,
-      threadsLoaded: true,
+      sessionList: threads,
+      projectContext,
+      sessionListLoaded: true,
       archivedLoaded: true,
-      archivedThreads: threads
+      archivedSessions: threads
         .slice(10, 16)
         .map((thread, index) => ({ ...thread, sessionId: `archive-${index}`, archived: true })),
       agent: {
@@ -113,7 +134,8 @@ export function resetClient(
               plugins: true,
               fuzzyFileSearch: true,
               sessionLineage: true,
-              forkAtTurn: true
+              forkAtTurn: true,
+              composerPredictions: true
             }
           }
         }
@@ -139,10 +161,12 @@ client.connect = async () => {
     throw new Error("模拟连接中断，请重试。")
   client.store.setState({ connection: "ready", connectionError: null })
 }
-client.listThreads = async () => {}
-client.listProjectThreads = async (cwd) => client.state.threads.filter((thread) => thread.cwd === cwd)
-client.listHistorySessions = async () => [...client.state.threads, ...client.state.archivedThreads]
-client.readThreadSummary = async (id) => client.state.threads.find((thread) => thread.sessionId === id) ?? null
+client.listSessions = async () => {}
+client.listArchived = async () => {}
+client.refreshProjectContext = async () => projectContext
+client.listProjectSessions = async (cwd) => client.state.sessionList.filter((thread) => thread.cwd === cwd)
+client.listHistorySessions = async () => [...client.state.sessionList, ...client.state.archivedSessions]
+client.readSessionSummary = async (id) => client.state.sessionList.find((thread) => thread.sessionId === id) ?? null
 client.activityReply = async () => "页面与交互检查已完成，交付资料已经更新。"
 client.prepareDraft = async (owner, cwd, model) => {
   if (draftFailure) throw Object.assign(new Error(draftFailure), { code: -32000 })
@@ -158,7 +182,7 @@ client.prepareDraft = async (owner, cwd, model) => {
   if (previous) return previous
   const id = `draft-${owner}-${++sequence}`
   const session = {
-    ...createSession(id, cwd),
+    ...createSession(id, cwd ?? QUICK_DIRECTORY),
     attached: true,
     configOptions: configOptions.map((option) =>
       isSelectOption(option) && option.category === "model" && model
@@ -195,7 +219,8 @@ client.transferDraft = async (id, owner) => {
     }
   }))
 }
-client.newSession = async (cwd, model, owner = "main") => client.prepareDraft(owner, cwd, model)
+client.newSession = async (cwd, model, owner = "main") =>
+  client.prepareDraft(owner, cwd, typeof model === "string" ? model : null)
 client.open = async (id, cwd) => {
   publish({ ...(client.state.sessions[id] ?? makeSession("conversation", id)), cwd, attached: true, restoring: false })
 }
@@ -213,11 +238,11 @@ client.prompt = async (id, prompt) => {
   })
   client.store.setState((state) => ({
     draftSessions: Object.fromEntries(Object.entries(state.draftSessions).filter(([key]) => key !== id)),
-    threads: state.threads.some((thread) => thread.sessionId === id)
-      ? state.threads
+    sessionList: state.sessionList.some((thread) => thread.sessionId === id)
+      ? state.sessionList
       : [
           { sessionId: id, cwd: current.cwd, title: text.slice(0, 40), archived: false, updatedAt: FIXED_TIME },
-          ...state.threads
+          ...state.sessionList
         ],
     runStates: { ...state.runStates, [id]: runState(id, "running") }
   }))
@@ -243,10 +268,7 @@ client.prompt = async (id, prompt) => {
     else if (response === "error") publish({ ...makeSession("error", id), cwd: current.cwd })
     else finish(id)
   }, 1300)
-}
-client.promptReceipt = async (id, prompt) => {
-  await client.prompt(id, prompt)
-  return `receipt-${sequence}`
+  return `${id}-user-${index}`
 }
 client.cancel = async (id) => {
   publish({ ...client.session(id), state: "idle" })
@@ -285,27 +307,27 @@ client.setConfig = async (id, configId, value) => {
 client.renameSession = async (id, title) => {
   if (client.state.sessions[id]) publish({ ...client.session(id), title })
   client.store.setState((state) => ({
-    threads: state.threads.map((thread) => (thread.sessionId === id ? { ...thread, title } : thread))
+    sessionList: state.sessionList.map((thread) => (thread.sessionId === id ? { ...thread, title } : thread))
   }))
 }
 client.archive = async (id) => {
-  const thread = client.state.threads.find((thread) => thread.sessionId === id)
+  const thread = client.state.sessionList.find((thread) => thread.sessionId === id)
   client.store.setState((state) => ({
-    threads: state.threads.filter((thread) => thread.sessionId !== id),
-    archivedThreads: thread ? [{ ...thread, archived: true }, ...state.archivedThreads] : state.archivedThreads
+    sessionList: state.sessionList.filter((thread) => thread.sessionId !== id),
+    archivedSessions: thread ? [{ ...thread, archived: true }, ...state.archivedSessions] : state.archivedSessions
   }))
 }
 const unarchive: typeof client.unarchive = async (id) => {
-  const thread = client.state.archivedThreads.find((thread) => thread.sessionId === id)
+  const thread = client.state.archivedSessions.find((thread) => thread.sessionId === id)
   client.store.setState((state) => ({
-    archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id),
-    threads: thread ? [{ ...thread, archived: false }, ...state.threads] : state.threads
+    archivedSessions: state.archivedSessions.filter((thread) => thread.sessionId !== id),
+    sessionList: thread ? [{ ...thread, archived: false }, ...state.sessionList] : state.sessionList
   }))
 }
 const deleteSession: typeof client.delete = async (id) => {
   client.store.setState((state) => ({
-    threads: state.threads.filter((thread) => thread.sessionId !== id),
-    archivedThreads: state.archivedThreads.filter((thread) => thread.sessionId !== id)
+    sessionList: state.sessionList.filter((thread) => thread.sessionId !== id),
+    archivedSessions: state.archivedSessions.filter((thread) => thread.sessionId !== id)
   }))
   actionsTaken.push({ type: "delete", id })
 }
@@ -319,7 +341,7 @@ client.fork = async (id, cwd) => {
     attached: true,
     title: `${client.session(id).title} · 分支`
   })
-  client.includeThread({
+  client.includeSession({
     sessionId: next,
     cwd,
     title: client.session(next).title,

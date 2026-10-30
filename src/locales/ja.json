@@ -15,6 +15,7 @@
     "pending": "保留中"
   },
   "actions": {
+    "confirm": "確認",
     "copy": "コピー",
     "copied": "コピーしました",
     "cancel": "キャンセル",
@@ -48,7 +49,6 @@
     "newChat": "新しいチャット",
     "chats": "チャット",
     "untitled": "新しいチャット",
-    "unarchive": "復元",
     "delete": "削除",
     "rename": "名前を変更",
     "search": "チャットを検索",
@@ -60,10 +60,7 @@
     "showRight": "右サイドバーを表示",
     "hideRight": "右サイドバーを非表示",
     "backToMain": "メイン画面に戻る",
-    "archived": "アーカイブ済み",
-    "archive": "アーカイブ",
     "loadMore": "さらに読み込む",
-    "fork": "分岐を作成",
     "deleteTitle": "このチャットを削除しますか？",
     "deleteDescription": "このチャットは完全に削除されます。この操作は取り消せません。",
     "noResults": "チャットが見つかりません"
@@ -112,16 +109,20 @@
     "steerPlaceholder": "現在のターンに指示を追加",
     "permissionModes": {
       "readOnly": {
+        "name": "読み取り専用",
+        "description": "ワークスペースのファイルを読み取れます。編集やインターネットへのアクセスには承認が必要です"
+      },
+      "workspaceAccess": {
         "name": "承認を求める",
-        "description": "外部ファイルの編集やインターネットの使用前に必ず承認を求めます"
+        "description": "ワークスペースのファイルの読み書きとコマンドの実行が可能です。インターネットへのアクセスやワークスペース外の編集には承認が必要です"
       },
       "agent": {
         "name": "代わりに承認",
-        "description": "安全でない可能性があると検出された操作のみ承認を求めます"
+        "description": "安全でない可能性があると検出された操作についてのみ確認します"
       },
       "fullAccess": {
         "name": "フルアクセス",
-        "description": "インターネットとコンピューター上のすべてのファイルに制限なくアクセスします"
+        "description": "注意して使用してください：Codex は承認なしでワークスペース外のファイルを編集し、インターネットにアクセスできます"
       },
       "heading": "ALwith U の操作をどのように承認しますか？"
     }
@@ -192,7 +193,13 @@
       "mac": "3本指でページを切り替えます。macOS の Mission Control やアプリケーション Exposé が操作を中断する場合は、システム設定で変更してください。",
       "windows": "高精度タッチパッドで3本指の横スワイプを使用します。システム操作も実行される場合は、Windows の設定 > Bluetooth とデバイス > タッチパッドで3本指のスワイプを「何もしない」に設定してください。",
       "unsupported": "Linux では未対応です。ナビゲーションボタンまたはマウスの中ボタンでドラッグしてください。"
-    }
+    },
+    "trackpad": "トラックパッド",
+    "trackpadEnabled": "トラックパッドのジェスチャを有効にする",
+    "threeFingerSwipeDesc": "3本指で横にスワイプしてキャンバスを移動",
+    "import": "インポート",
+    "explorer": "エクスプローラー",
+    "explorerHiddenDescription": "名前がドット（.）で始まる隠しファイルとディレクトリを表示"
   },
   "usage": {
     "usage": "使用量",
@@ -367,10 +374,13 @@
     "source": "ソース",
     "newTab": "新しいタブ",
     "emptyNewTab": "新しいタブ",
-    "more": "その他の操作"
+    "more": "その他の操作",
+    "ignored": "Git で無視されたファイルを表示"
   },
   "pet": {
-    "retry": "再試行"
+    "retry": "再試行",
+    "lounge": "Vibémon 休憩室",
+    "recall": "休憩室に戻す"
   },
   "app": {
     "name": "ALwith U"
@@ -382,5 +392,28 @@
   "canvas": {
     "navigation": "ページナビゲーション",
     "page": "ページ {{number}}"
+  },
+  "computer": {
+    "connection": "接続",
+    "reconnect": "再接続",
+    "verifying": "確認中…",
+    "reconnectHint": "再接続すると操作を停止し、画面取得とアクセシビリティを確認します。操作は再実行されません。接続後にメッセージを再送してください。",
+    "diagnostics": "診断（現在のアプリセッション）",
+    "phases": {
+      "disabled": "オフ",
+      "verifying": "アクセスを確認中",
+      "ready": "準備完了",
+      "stopping": "停止中",
+      "failed": "復旧が必要"
+    }
+  },
+  "voice": {
+    "realtimeStart": "Codex 音声通話を開始",
+    "realtimeStop": "音声通話を終了",
+    "realtimeCancel": "音声接続をキャンセル"
+  },
+  "workbuddy": {
+    "headline": "自分だけのデスクトップ Harness を作ろう",
+    "create": "自分だけの ALwith を作成"
   }
 }

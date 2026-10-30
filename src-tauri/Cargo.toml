@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "0.2.14"
+version = "0.2.23"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
@@ -17,7 +17,13 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+tauri-plugin-alwith-desktop-shell = { path = "../node_modules/@alwith/module-desktop-shell/rust" }
+keepawake = "0.6"
+alwith-browser = { path = "../node_modules/@alwith/module-browser/rust" }
+alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
+alwith-module-store = { path = "../node_modules/@alwith/module-store/rust", features = ["tauri"] }
+alwith-auth-client = { path = "../node_modules/@alwith/module-auth/rust", features = ["tauri"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }
@@ -52,19 +58,18 @@ tauri-plugin-os = "3.0.0-alpha.3"
 tauri-plugin-notification = "3.0.0-alpha.3"
 tauri-plugin-opener = "3.0.0-alpha.3"
 tauri-plugin-shell = "3.0.0-alpha.3"
-tauri-plugin-store = "3.0.0-alpha.3"
 tauri-plugin-autostart = "3.0.0-alpha.3"
 tauri-plugin-process = "3.0.0-alpha.3"
 tauri-plugin-single-instance = { version = "3.0.0-alpha.3", features = ["deep-link"] }
 tauri-plugin-deep-link = "3.0.0-alpha.3"
 tauri-plugin-updater = { version = "3.0.0-alpha.3", default-features = false, features = ["system-proxy", "zip"] }
 tauri-plugin-window-state = "3.0.0-alpha.2"
-image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 base64 = "0.23"
 minisign-verify = "0.3"
 semver = "1"
 sys-locale = "0.3"
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -73,25 +78,27 @@ objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
 # Tauri 3 adaptation of tauri-nspanel v2.1.1; see patches/tauri-nspanel/MIGRATION.md.
 tauri-nspanel = { path = "patches/tauri-nspanel" }
-objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics"] }
+objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics", "NSScreen"] }
 
 objc2-quartz-core = { version = "0.3", default-features = false, features = ["std", "CALayer", "CAShapeLayer", "CATransaction", "objc2-core-foundation", "objc2-core-graphics"] }
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGAffineTransform", "CGGeometry", "CGPath"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell"] }
+tauri-plugin-decoration = "3"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
 
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration"]
+exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
 
 [patch.crates-io]
 # Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.
 wry = { path = "patches/wry" }
+tauri-plugin-single-instance = { path = "patches/tauri-plugin-single-instance" }
+tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
 
 [profile.dev]
 debug = "line-tables-only"

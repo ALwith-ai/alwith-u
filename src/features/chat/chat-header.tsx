@@ -1,7 +1,7 @@
+import { OverflowMarquee } from "@alwith/module-chat/session-list"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 
-import { OverflowMarquee } from "@/components/alwith-ui/overflow-marquee"
 import { cn } from "@/lib/utils"
 
 /** The floating surface supplies its top bar; the main surface keeps its own header. */
@@ -37,7 +37,7 @@ export function ChatHeader({
   if (floating) return target === null ? null : createPortal(content, target)
   return (
     <header
-      className="@container relative flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border ps-1 pe-6"
+      className="desktop-shell-chat-header"
       data-main-chat-header
       data-tauri-drag-region
     >

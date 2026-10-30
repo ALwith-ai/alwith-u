@@ -9,7 +9,7 @@ registry = "https://registry.npmmirror.com"
 "@alwith" = { url = "https://registry.npmjs.org" }
 "@nyssance" = { url = "https://registry.npmjs.org" }
 
-# Formatting and linting are built into Bun (1.4.4+); only non-default settings are written. prettier / oxlint / biome are gone.
+# Formatting uses Bun; built-in lint requires Bun Canary.
 [fmt]
 printWidth = 120
 semi = false
@@ -49,3 +49,6 @@ ignorePatterns = [
   "src/components/ui/**",
   "docs/**",
 ]
+
+[run]
+bun = true

@@ -2,6 +2,25 @@ use super::*;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 #[test]
+fn host_storage_namespaces_both_attention_and_journal_paths() {
+    let environments = ["u", "u-dev"].map(|host| {
+        let mut command = tokio::process::Command::new("unused-runtime-test-command");
+        let cache = PathBuf::from("cache").join(host);
+        let data = PathBuf::from("data").join(host);
+        configure_runtime_storage(&mut command, &cache, &data);
+        let environment: HashMap<_, _> =
+            command.as_std().get_envs().map(|(key, value)| (key.to_owned(), value.unwrap().to_owned())).collect();
+        assert_eq!(environment[std::ffi::OsStr::new("ALWITH_RUNTIME_JOURNAL")], cache.join("runtime/sessions"));
+        assert_eq!(environment[std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")], data.join("runtime/attention"));
+        environment
+    });
+    assert_ne!(
+        environments[0][std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")],
+        environments[1][std::ffi::OsStr::new("ALWITH_RUNTIME_ATTENTION")]
+    );
+}
+
+#[test]
 fn initialize_admission_survives_webview_replacement_without_blocking_other_agents() {
     tauri::async_runtime::block_on(async {
         let state = RuntimeState::default();
@@ -187,4 +206,36 @@ fn an_unresponsive_peer_cannot_prevent_shutdown_completion() {
         assert!(state.shutdown_complete.load(Ordering::Acquire));
         assert!(state.client.lock().unwrap().is_none());
     });
+}
+
+#[test]
+fn active_prompt_admission_uses_the_explicit_target_session() {
+    for (method, params) in [
+        ("prompt", json!({"sessionId": "active"})),
+        ("acpRequest", json!({"method": "session/prompt", "params": {"sessionId": "active"}})),
+    ] {
+        let request = Request { id: 1, method: method.into(), params: Some(params) };
+        assert_eq!(prompt_session_id(&request), Some("active"));
+        assert!(is_admission(&request));
+    }
+    for method in ["session/new", "session/fork", "session/resume"] {
+        assert_eq!(prompt_session_id(&gamepad_request(method, "codex")), None);
+    }
+}
+
+#[test]
+fn only_the_active_target_bypasses_pending_catalog_application() {
+    use alwith_api::RunState;
+    for state in [RunState::Running, RunState::RequiresAction] {
+        assert!(is_active_prompt_target("target", [("target", &state)]));
+        assert!(!is_active_prompt_target("other", [("target", &state)]));
+    }
+    assert!(!is_active_prompt_target("target", [("target", &RunState::Done)]));
+    assert!(!is_active_prompt_target("target", []));
+}
+
+#[test]
+fn auxiliary_agent_exit_preserves_main_provider_catalog() {
+    assert!(!resets_provider_catalog(&alwith_api::RuntimeEvent::Exit { agent_id: "gamepad-config-test".into() }));
+    assert!(resets_provider_catalog(&alwith_api::RuntimeEvent::Exit { agent_id: "codex".into() }));
 }

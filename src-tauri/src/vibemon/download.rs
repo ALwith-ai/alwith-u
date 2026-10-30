@@ -1,6 +1,10 @@
-use std::{error::Error, io::ErrorKind, time::Duration};
+use std::{
+    error::Error,
+    io::ErrorKind,
+    time::{Duration, Instant},
+};
 
-const LIMIT: usize = 32 * 1024 * 1024;
+const LIMIT: usize = 200 * 1024 * 1024;
 const ATTEMPTS: usize = 3;
 
 struct Failure {
@@ -50,12 +54,16 @@ async fn attempt(client: &reqwest::Client, url: &reqwest::Url) -> Result<Vec<u8>
         });
     }
     if response.content_length().is_some_and(|size| size > LIMIT as u64) {
-        return Err(Failure { message: "Vibemon resource exceeds 32 MiB".into(), retryable: false });
+        return Err(Failure { message: "Vibemon resource exceeds 200 MiB".into(), retryable: false });
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(request_failure)? {
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        let mut failure = request_failure(error);
+        failure.message = format!("{} after {} bytes", failure.message, bytes.len());
+        failure
+    })? {
         if bytes.len() + chunk.len() > LIMIT {
-            return Err(Failure { message: "Vibemon resource exceeds 32 MiB".into(), retryable: false });
+            return Err(Failure { message: "Vibemon resource exceeds 200 MiB".into(), retryable: false });
         }
         bytes.extend_from_slice(&chunk);
     }
@@ -88,18 +96,29 @@ where
 pub(super) async fn download(url: reqwest::Url) -> Result<Vec<u8>, String> {
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(30))
+        // Active transfers may be slow; only stalled reads should fail quickly.
+        .read_timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(600))
         .build()
         .map_err(|error| format!("{error:?}"))?;
     let mut resource = url.clone();
     resource.set_query(None);
     resource.set_fragment(None);
+    log::info!("[pet-download] started resource={resource}");
     retry(|number| {
         let client = &client;
         let url = &url;
         let resource = &resource;
         async move {
+            let started = Instant::now();
             let result = attempt(client, url).await;
+            if let Ok(bytes) = &result {
+                log::info!(
+                    "[pet-download] completed resource={resource} bytes={} elapsed_ms={}",
+                    bytes.len(),
+                    started.elapsed().as_millis()
+                );
+            }
             if let Err(error) = &result {
                 log::warn!(
                     "[pet-download] resource={resource} attempt={number}/{ATTEMPTS} retryable={} cause={}",

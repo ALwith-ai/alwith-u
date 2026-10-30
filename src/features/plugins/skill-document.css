@@ -1,0 +1,27 @@
+/* Catalog documents follow plugin detail typography rather than chat preferences. */
+.skill-document {
+  --codex-chat-font-size: 14px;
+  --codex-chat-code-font-size: 13px;
+  --codex-chat-code-line-height: 20px;
+}
+
+.skill-document .codex-markdown-content {
+  --markdown-font-size: 14px;
+  --markdown-line-height: 24px;
+}
+
+.skill-document .codex-markdown-heading {
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.skill-document .codex-markdown-heading-1 {
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.skill-document .codex-markdown-heading-2 {
+  font-size: 16px;
+  line-height: 24px;
+}

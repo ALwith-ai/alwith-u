@@ -11,12 +11,14 @@ type Api = EmblaCarouselType
 let frames: Map<number, FrameRequestCallback>
 let frameId: number
 let now: number
+let totalDx: number
 const disposals: Array<() => void> = []
 
 beforeEach(() => {
   frames = new Map()
   frameId = 0
   now = 1000
+  totalDx = 0
   vi.spyOn(performance, "now").mockImplementation(() => now)
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     frames.set(++frameId, callback)
@@ -36,15 +38,25 @@ function flush(): void {
   callbacks.forEach((callback) => callback(now))
 }
 function pointer(target: EventTarget, type: string, button: number, clientX = 0): void {
-  target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button, clientX }))
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    button,
+    clientX,
+    buttons: type === "pointerup" ? 0 : 4
+  })
+  Object.defineProperty(event, "pointerId", { value: 1 })
+  target.dispatchEvent(event)
 }
 function gesture(phase: TrackpadGesture["phase"], dx = 0, fingers = 3): TrackpadGesture {
+  if (phase === "began") totalDx = dx
+  else if (phase === "changed") totalDx += dx
   return {
     phase,
     dx,
     dy: 0,
     fingers,
-    totalDx: dx,
+    totalDx,
     totalDy: 0,
     dSpread: 0,
     totalDSpread: 0,
@@ -54,9 +66,7 @@ function gesture(phase: TrackpadGesture["phase"], dx = 0, fingers = 3): Trackpad
   }
 }
 
-/** Controlled carousel boundary: synthetic DOM mouse events move its physical location.
- * Release deliberately chooses an inertia destination so input must override that decision.
- */
+/** Controlled engine boundary for U integration; Atlas owns direct dragging and release. */
 function harness() {
   const root = document.createElement("div")
   root.innerHTML =
@@ -68,31 +78,51 @@ function harness() {
   let selected = 1
   let location = snaps[selected]
   let dragging = false
-  let previousX = 0
   let blocked = false
   const synthetic: string[] = []
-  root.addEventListener("mousedown", (event) => {
-    dragging = true
-    previousX = event.clientX
-    synthetic.push(event.type)
-  })
-  root.addEventListener("mousemove", (event) => {
-    if (!dragging) return
-    location += event.clientX - previousX
-    previousX = event.clientX
-    synthetic.push(event.type)
-  })
-  root.addEventListener("mouseup", () => {
-    dragging = false
-    selected = 2
-    synthetic.push("mouseup")
-  })
+  for (const type of ["mousedown", "mousemove", "mouseup"]) {
+    root.addEventListener(type, () => synthetic.push(type))
+  }
+  const captured = new Set<number>()
+  root.setPointerCapture = (id) => {
+    captured.add(id)
+  }
+  root.hasPointerCapture = (id) => captured.has(id)
+  root.releasePointerCapture = (id) => {
+    captured.delete(id)
+  }
+  const vector = {
+    get: () => location,
+    set: (value: number | { get: () => number }) => {
+      location = typeof value === "number" ? value : value.get()
+    }
+  }
+  const scrollBody = { useDuration: () => scrollBody, seek: () => scrollBody }
   const listeners = new Map<string, Set<() => void>>()
   const api = {
     rootNode: () => root,
     selectedScrollSnap: () => selected,
     scrollSnapList: () => snaps,
-    internalEngine: () => ({ location: { get: () => location }, scrollSnaps: snaps, slideRegistry: [[0], [1], [2]] }),
+    internalEngine: () => ({
+      location: vector,
+      target: vector,
+      previousLocation: vector,
+      offsetLocation: vector,
+      animation: { stop: () => {} },
+      scrollBody,
+      translate: { to: () => {} },
+      axis: { direction: (value: number) => value },
+      limit: { constrain: (value: number) => Math.max(-2000, Math.min(0, value)) },
+      eventHandler: {
+        emit: (name: string) => {
+          if (name === "pointerDown") dragging = true
+          if (name === "pointerUp") dragging = false
+          listeners.get(name)?.forEach((listener) => listener())
+        }
+      },
+      scrollSnaps: snaps,
+      slideRegistry: [[0], [1], [2]]
+    }),
     scrollTo: (index: number) => {
       selected = index
       location = snaps[index]
@@ -121,6 +151,7 @@ function harness() {
   disposals.push(() => input.destroy())
   return {
     root,
+    api,
     input,
     synthetic,
     location: () => location,
@@ -148,7 +179,7 @@ test("only three fingers drive continuous movement using the start width", () =>
   h.resize(2000)
   h.input.gesture(gesture("changed", -0.05))
   expect(h.location()).toBe(-1100)
-  expect(h.synthetic).toEqual(["mousedown", "mousemove", "mousemove"])
+  expect(h.synthetic).toEqual([])
 })
 
 test.each([
@@ -165,22 +196,22 @@ test.each([
   expect(h.selected()).toBe(expected)
 })
 
-test("native cancellation settles normally but active cancellation restores the initial snap", () => {
+test("native and explicit cancellation both restore the initial snap", () => {
   const h = harness()
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", -0.2))
   h.input.gesture(gesture("cancelled"))
   flush()
-  expect(h.selected()).toBe(2)
+  expect(h.selected()).toBe(1)
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", 0.6))
   h.input.cancelInput()
   flush()
-  expect(h.selected()).toBe(2)
-  expect(h.location()).toBe(-2000)
+  expect(h.selected()).toBe(1)
+  expect(h.location()).toBe(-1000)
 })
 
-test("cancel restores the starting snap even when mouseup changes carousel selection", () => {
+test("cancel restores the starting snap without synthetic mouseup", () => {
   const h = harness()
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", -0.6))
@@ -236,7 +267,7 @@ test("middle mouse and trackpad never share a drag", () => {
   expect(h.location()).toBe(-1100)
 })
 
-test("dispose removes input listeners and stale release callbacks cannot navigate", () => {
+test("dispose removes input listeners without changing an already released destination", () => {
   const h = harness()
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", 0.2))
@@ -247,7 +278,7 @@ test("dispose removes input listeners and stale release callbacks cannot navigat
   h.input.gesture(gesture("began"))
   pointer(h.root, "pointerdown", 1)
   expect(h.dragging()).toBe(false)
-  expect(h.selected()).toBe(1)
+  expect(h.selected()).toBe(0)
 })
 
 test("modal blocking and reinitialization abort active movement", () => {
@@ -264,14 +295,14 @@ test("modal blocking and reinitialization abort active movement", () => {
   expect(h.selected()).toBe(1)
 })
 
-test("cancelling before release animation restores start and invalidates the queued destination", () => {
+test("cancelling after release preserves the committed destination", () => {
   const h = harness()
   h.input.gesture(gesture("began"))
   h.input.gesture(gesture("changed", -0.2))
   h.input.gesture(gesture("ended"))
   h.input.cancelInput()
   flush()
-  expect(h.selected()).toBe(1)
+  expect(h.selected()).toBe(2)
 })
 
 test("a rejected middle drag during the secondary guard does not leave a grabbing cursor", () => {
@@ -292,4 +323,31 @@ test("a repeated native begin restores before establishing the new drag origin",
   h.input.gesture(gesture("ended"))
   flush()
   expect(h.selected()).toBe(1)
+})
+
+test("idle cancellation does not jump a programmatic animation to its target", () => {
+  const h = harness()
+  const scroll = vi.spyOn(h.api, "scrollTo")
+  h.input.cancelInput()
+  expect(scroll).not.toHaveBeenCalled()
+  h.input.goToSnap(2, { instant: false })
+  h.input.goToSnap(0, { instant: false })
+  expect(scroll.mock.calls).toEqual([
+    [2, false],
+    [0, false]
+  ])
+})
+
+test.each([1, -1])("three-finger overflow is bounded and reversible at edge %s", (direction) => {
+  const h = harness()
+  h.input.gesture(gesture("began"))
+  h.input.gesture(gesture("changed", direction * 20))
+  const edge = direction > 0 ? 0 : -2000
+  expect(Math.abs(h.location() - edge)).toBeGreaterThan(0)
+  expect(Math.abs(h.location() - edge)).toBeLessThanOrEqual(60)
+  h.input.gesture(gesture("changed", -direction * 20))
+  expect(h.location()).toBeCloseTo(-1000)
+  h.input.gesture(gesture("ended"))
+  flush()
+  expect(h.location()).toBe(-1000)
 })

@@ -12,7 +12,7 @@ export function VibemonCenter() {
   const status = useSyncExternalStore(subscribeResourceSync, resourceSyncStatus)
   const { t } = useTranslation()
   return (
-    <main className="flex h-full min-h-0 flex-col overflow-hidden">
+    <main className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
       {status === "error" && (
         <Alert className="shrink-0">
           <AlertDescription className="flex items-center justify-between gap-2">
@@ -23,7 +23,7 @@ export function VibemonCenter() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="min-h-0 flex-1">
+      <div className="vibemon-content relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
         <PetCenter key={user?.user_uuid} />
       </div>
     </main>

@@ -1,4 +1,5 @@
-import { createSession, type SessionRunState } from "@alwith/api"
+import { type SessionRunState } from "@alwith/api"
+import { createSession } from "@nyssance/codex-acp-v2/client"
 import { expect, test, vi } from "vitest"
 
 import { CodexClient } from "@/agent/client"
@@ -26,7 +27,7 @@ function harness() {
     })
   })
   vi.spyOn(client, "newSession").mockResolvedValue("generated")
-  const prompt = vi.spyOn(client, "prompt").mockResolvedValue()
+  const prompt = vi.spyOn(client, "prompt").mockResolvedValue("u")
   const cancel = vi.spyOn(client, "cancel").mockResolvedValue()
   const close = vi.spyOn(client, "close").mockResolvedValue()
   const dispose = vi.fn(async () => {})

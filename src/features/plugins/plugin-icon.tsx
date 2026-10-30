@@ -93,7 +93,7 @@ export function pluginIconSrc(name: string): string {
   return `#plugin-${ICON_NAMES[hash % ICON_NAMES.length]}`
 }
 
-export function PluginIcon({ name, className = "size-9 shrink-0" }: { name: string; className?: string }): ReactNode {
+export function PluginIcon({ name, className = "size-6 shrink-0" }: { name: string; className?: string }): ReactNode {
   return (
     <svg aria-hidden="true" focusable="false" width={36} height={36} viewBox="0 0 36 36" className={className}>
       <use href={pluginIconSrc(name)} />

@@ -4,19 +4,27 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/alwith-ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { ProjectAppIcon, useExternalApps } from "@/features/chat/open-in-editor"
 import { requestChatSurface } from "@/lib/chat-window"
 import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
+import { formatEditableShortcut, parseEditableShortcut } from "@/lib/shortcut-formatter"
 
 import { AutostartRow } from "./autostart-row"
+import { PreventSleepRow } from "./prevent-sleep-row"
 import { SettingGroup, SettingRow } from "./shared"
-import { TrackpadRow } from "./trackpad-row"
 
 export function GeneralSection() {
   const { t } = useTranslation()
@@ -33,7 +41,7 @@ export function GeneralSection() {
   useEffect(() => {
     void loadPreferences().then((preferences) => {
       setExternalEditor(preferences.externalEditor)
-      setShortcut(preferences.chatWindowShortcut ?? "Alt+Space")
+      setShortcut(formatEditableShortcut(preferences.chatWindowShortcut ?? "Alt+Space"))
     })
   }, [])
   const activeEditor = apps.find((app) => app.bundle_id === externalEditor) ?? apps[0]
@@ -50,6 +58,7 @@ export function GeneralSection() {
             value={shortcut}
             placeholder={t("chatWindow.shortcutOff")}
             onChange={(event) => setShortcut(event.target.value)}
+            onBlur={() => setShortcut(formatEditableShortcut(shortcut))}
             disabled={savingShortcut}
           />
           <Button
@@ -58,7 +67,7 @@ export function GeneralSection() {
             disabled={savingShortcut}
             onClick={() => {
               setSavingShortcut(true)
-              void requestChatSurface("main", { type: "shortcut", shortcut: shortcut.trim() })
+              void requestChatSurface("main", { type: "shortcut", shortcut: parseEditableShortcut(shortcut) })
                 .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
                 .finally(() => setSavingShortcut(false))
             }}
@@ -139,7 +148,7 @@ export function GeneralSection() {
           />
         </div>
       </SettingRow>
-      <TrackpadRow />
+      <PreventSleepRow />
       <AutostartRow />
     </SettingGroup>
   )

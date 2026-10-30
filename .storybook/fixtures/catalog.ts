@@ -1,7 +1,7 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/api"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@nyssance/codex-acp-v2/client"
 
-import type { PendingAction, ThreadSummary } from "../../src/agent/client"
+import type { PendingAction, SessionSummary } from "../../src/agent/client"
 
 export const QUICK_DIRECTORY = "/Users/demo/Documents/ALwith U"
 export const PROJECT_DIRECTORY = "/Users/demo/Projects/产品工作台"
@@ -210,6 +210,7 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     session,
     "已整理好本周的交付资料。\n\n## 检查结果\n\n| 模块 | 状态 | 说明 |\n| --- | --- | --- |\n| 聊天与项目 | 已完成 | 包含新建、切换和归档 |\n| 文件工作区 | 已完成 | 支持编辑、预览与多标签 |\n| 插件与设置 | 已完成 | 包含正常、空列表和异常情况 |\n\n你可以打开 [交付清单](docs/交付清单.md) 查看明细。\n\n```tsx\nexport function Dashboard() {\n  return <main>产品工作台</main>\n}\n```\n\n下一步建议先复核文件预览，再确认最终交付范围。"
   )
+  session = { ...session, lastStopReason: "end_turn" }
   if (kind === "readOnly") return { ...session, readOnly: true }
   if (kind === "stopped") return { ...session, attached: false }
   if (kind === "long" || kind === "history") {
@@ -305,7 +306,7 @@ export function pendingAction(kind: "permission" | "form" | "url", sessionId: st
   }
 }
 
-export function makeThreads(): ThreadSummary[] {
+export function makeThreads(): SessionSummary[] {
   return Array.from({ length: 28 }, (_, index) => ({
     sessionId: index === 0 ? "conversation" : index === 1 ? "running" : index === 2 ? "permission" : `thread-${index}`,
     cwd: index % 4 === 0 ? QUICK_DIRECTORY : index % 4 === 3 ? OTHER_DIRECTORY : PROJECT_DIRECTORY,

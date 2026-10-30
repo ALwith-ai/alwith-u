@@ -1,0 +1,164 @@
+//! U supplies Runtime facts; the shared module owns pairing and mobile transport.
+use alwith_api::{RuntimeEvent, SessionRunState};
+pub use alwith_mobile::host::*;
+use serde_json::{Value, json};
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, Mutex},
+};
+use tauri::{AppHandle, Manager};
+mod history;
+
+#[derive(Default)]
+struct Projection {
+    activity: Vec<String>,
+    states: Vec<SessionRunState>,
+}
+static PROJECTION: LazyLock<Mutex<Projection>> = LazyLock::new(|| Mutex::new(Projection::default()));
+
+#[tauri3_specta::command]
+pub fn mobile_set_activity_sessions(session_ids: Vec<String>) {
+    let mut projection = PROJECTION.lock().unwrap();
+    projection.activity = session_ids;
+    publish_run_states(project_states(projection.states.clone(), &projection.activity).to_string());
+}
+
+fn project_snapshot(states: Vec<SessionRunState>) -> Value {
+    let mut projection = PROJECTION.lock().unwrap();
+    projection.states = states;
+    project_states(projection.states.clone(), &projection.activity)
+}
+
+pub fn initialize(app: &AppHandle) -> Result<(), String> {
+    let host = app.clone();
+    alwith_mobile::host::init(app, alwith_mobile::HostApp::U, move |method, params| {
+        let app = host.clone();
+        Box::pin(async move {
+            let client = app.state::<crate::runtime::RuntimeState>().current()?;
+            let session_id = || params["sessionId"].as_str().ok_or_else(|| "Missing mobile sessionId".to_string());
+            match method.as_str() {
+                "runStates" => Ok(project_snapshot(client.run_states().await.map_err(crate::runtime::request_error)?)),
+                "agentForSession" => {
+                    // U's conversations belong to its Codex adapter, including retained activity
+                    // whose Runtime attachment has ended. Reading history must not resume or select it.
+                    session_id()?;
+                    Ok(json!("codex"))
+                }
+                "sessionReplay" => {
+                    let id = session_id()?;
+                    let mut lines = history::read(id, |params| {
+                        let client = client.clone();
+                        async move {
+                            client
+                                .acp_request("codex", "_codex/session_history", params, None, None)
+                                .await
+                                .map_err(crate::runtime::request_error)
+                        }
+                    })
+                    .await?;
+                    // Fetch after history so pending permissions reflect the latest Runtime snapshot.
+                    let replay = client.session_replay(id).await.map_err(crate::runtime::request_error)?;
+                    lines.extend(history::pending_permissions(id, replay)?);
+                    Ok(json!(lines))
+                }
+                "markRead" => {
+                    client.mark_read(session_id()?, None).await.map_err(crate::runtime::request_error)?;
+                    Ok(Value::Null)
+                }
+                _ => Err(format!("Unknown mobile host request: {method}")),
+            }
+        })
+    })
+}
+fn project_states(states: Vec<SessionRunState>, activity: &[String]) -> Value {
+    // The UI supplies display membership and order; every session fact still comes from Runtime.
+    let mut by_id: HashMap<_, _> = states.into_iter().map(|state| (state.session_id.clone(), state)).collect();
+    let states: Vec<_> = activity.iter().filter_map(|id| by_id.remove(id)).collect();
+    let mut states = serde_json::to_value(states).expect("serialize Runtime states");
+    for state in states.as_array_mut().expect("Runtime state list") {
+        state["windowLabel"] = state["owner"].clone();
+    }
+    states
+}
+pub fn publish(event: &RuntimeEvent) {
+    match event {
+        RuntimeEvent::RunStates { sessions } => publish_run_states(project_snapshot(sessions.clone()).to_string()),
+        // ACP notifications are the confirmed conversation stream. Publishing outbound prompts
+        // as well would display both the request and its user_message echo on the phone.
+        RuntimeEvent::AcpNotification { agent_id, method, params, .. }
+            if method == "session/update" && !params["update"]["_meta"]["replay"]["id"].is_string() =>
+        {
+            let line = json!({"jsonrpc":"2.0", "method":method, "params":params}).to_string();
+            publish_session_lines(agent_id.clone(), json!([line]).to_string());
+        }
+        RuntimeEvent::AcpAgentRequest { agent_id, id, method, params, .. }
+            if method == "session/request_permission" =>
+        {
+            let line = json!({"jsonrpc":"2.0", "id":id, "method":method, "params":params}).to_string();
+            publish_session_lines(agent_id.clone(), json!([line]).to_string());
+        }
+        _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn staged_mobile_library_preserves_identity_and_rejects_offline_pairing() {
+        let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/native");
+        alwith_native_client::configure(&directory).unwrap();
+        let storage = tempfile::tempdir().unwrap();
+        let mobile = alwith_mobile::Mobile::new(storage.path(), alwith_mobile::HostApp::U).unwrap();
+        let status: alwith_mobile::MobileBridgeStatus = mobile.call("status", json!({})).unwrap();
+        assert!(!status.running);
+        assert_eq!(mobile.call::<Value>("pairing", json!({})).unwrap_err(), "relay disconnected");
+        let identity: alwith_mobile::BridgeIdentity = mobile.call("identity", json!({})).unwrap();
+        assert!(!identity.device_id.is_empty());
+        assert!(!identity.public_key_b64.is_empty());
+        let again: alwith_mobile::BridgeIdentity = mobile.call("identity", json!({})).unwrap();
+        assert_eq!(identity.device_id, again.device_id);
+        mobile.close().unwrap();
+    }
+
+    #[test]
+    fn projects_runtime_owner_without_changing_run_state_or_read_version() {
+        let source = json!({
+            "sessionId": "remote", "state": "done", "reusableDraft": false,
+            "owner": "main", "cwd": "/repo", "title": "Remote", "since": 42,
+            "tasks": [], "listeningPorts": [], "executionId": null, "executionRole": null,
+            "lastActivityAt": 42, "version": 7, "interruption": null
+        });
+        let state: SessionRunState = serde_json::from_value(source.clone()).unwrap();
+        let projected = project_states(vec![state], &["remote".into()]);
+        assert_eq!(projected[0]["windowLabel"], "main");
+        for (key, value) in source.as_object().unwrap() {
+            assert_eq!(&projected[0][key], value, "Runtime field changed: {key}");
+        }
+    }
+    #[test]
+    fn excludes_retired_drafts_but_keeps_active_and_unread_sessions() {
+        let base = json!({
+            "sessionId": "session", "state": "idle", "reusableDraft": true,
+            "owner": "", "cwd": "/repo", "title": "", "since": 42,
+            "tasks": [], "listeningPorts": [], "executionId": null, "executionRole": null,
+            "lastActivityAt": 42, "version": 1, "interruption": null
+        });
+        let mut retired: SessionRunState = serde_json::from_value(base).unwrap();
+        retired.owner_id = "stdio".into();
+        let mut active = retired.clone();
+        active.owner_id = "stdio".into();
+        active.session_id = "active".into();
+        let mut unread = retired.clone();
+        unread.session_id = "unread".into();
+        unread.reusable_draft = false;
+        unread.state = alwith_api::RunState::Done;
+        let projected =
+            project_states(vec![retired, active, unread], &["unread".into(), "active".into(), "missing".into()]);
+        assert_eq!(projected.as_array().unwrap().len(), 2);
+        assert_eq!(projected[0]["sessionId"], "unread");
+        assert_eq!(projected[1]["sessionId"], "active");
+        assert_eq!(projected[0]["state"], "done");
+    }
+}

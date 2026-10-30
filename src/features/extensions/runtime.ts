@@ -3,7 +3,7 @@ import * as dom from "@alwith/module-extension/dom"
 import { createCommonJsEvaluator, type ExtensionRuntime } from "@alwith/module-extension/host"
 import * as legacy from "@alwith/module-extension/legacy"
 import * as plugin from "@alwith/module-extension/plugin"
-import { mountReact, useHostSnapshot } from "@alwith/module-extension/react"
+import { mountReact } from "@alwith/module-extension/react"
 import { createTauriExtensionRuntime } from "@alwith/module-extension/tauri"
 import {
   createTauriDialogs,
@@ -13,7 +13,6 @@ import {
 } from "@alwith/module-extension/tauri/capabilities"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import * as React from "react"
-import { useEffect, useSyncExternalStore } from "react"
 import * as reactDom from "react-dom/client"
 import * as jsxDevRuntime from "react/jsx-dev-runtime"
 import * as jsxRuntime from "react/jsx-runtime"
@@ -28,9 +27,9 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
+import { createExtensionStartup } from "./startup-service"
 import * as extensionUi from "./ui"
 
-let startup: Promise<ExtensionRuntime> | undefined
 let runtime: ExtensionRuntime | undefined
 
 export function reportExtensionError(error: unknown): void {
@@ -43,7 +42,7 @@ export function reportExtensionError(error: unknown): void {
   reportBackgroundError("extension-runtime", error, { message })
 }
 
-function getRuntime(): ExtensionRuntime {
+export function getRuntime(): ExtensionRuntime {
   runtime ??= createTauriExtensionRuntime({
     apiVersion: sdk.extensionApiVersion,
     host: { id: "alwith-u", version: hostVersion },
@@ -114,32 +113,9 @@ function getRuntime(): ExtensionRuntime {
 }
 
 /** The runtime belongs to the WebView, not a React mount or the selected chat. */
-export function startExtensionRuntime(): Promise<ExtensionRuntime> {
-  const current = getRuntime()
-  startup ??= (async () => {
-    await current.start()
-    if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
-    return current
-  })()
-  return startup
-}
-
-export function useExtensions() {
-  const current = getRuntime()
-  const state = useSyncExternalStore(current.subscribe, current.snapshot, current.snapshot)
-  const host = useHostSnapshot(current.host)
-  useEffect(() => {
-    void startExtensionRuntime().catch(reportExtensionError)
-    const refresh = (): void => {
-      void current.refresh().catch(reportExtensionError)
-    }
-    window.addEventListener("focus", refresh)
-    return (): void => {
-      window.removeEventListener("focus", refresh)
-    }
-  }, [current])
-  return { runtime: current, state, host }
-}
+export const startExtensionRuntime = createExtensionStartup(getRuntime, async (current) => {
+  if (getCurrentWindow().label === "main") await ensureBundledExtensions(current, await commands.extensionBundles())
+})
 
 if (import.meta.hot)
   import.meta.hot.dispose(() => {

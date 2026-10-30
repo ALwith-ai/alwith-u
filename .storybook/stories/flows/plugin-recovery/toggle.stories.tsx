@@ -5,7 +5,7 @@ import base, { Toggle as source } from "../../flow-definitions/plugin-recovery"
 import { prepareWorkflow, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 停用插件", "点击 · 已安装", "点击 · 禁用Spreadsheets", "点击 · 禁用Spreadsheets"]
+const labels = ["初始页面 · 停用插件", "点击 · Spreadsheets", "点击 · 禁用Spreadsheets", "点击 · 禁用Spreadsheets"]
 const config = { labels, id: "workflow-plugin-recovery-toggle" }
 const meta = {
   ...base,

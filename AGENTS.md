@@ -74,9 +74,9 @@ Always answer the user in Chinese.
 
 ## Validate before handing back
 
-`bun run typecheck`, `bun run test`, `bun run lint`, `bun run knip`, `bun run build`;
+`bun check --no-script -b`, `bun run test`, `bun lint`, `bun run knip`, `bun run build`;
 these are CI's gates and match ALwith Desktop's (`bun lint`, knip for dead
-code). `bun run format` before committing; formatting is not a gate. Run
+code). `bun fmt` before committing; formatting is not a gate. Run
 `bun run test:live` (uses the user's Codex login) when touching the protocol or
 turn lifecycle. In `src-tauri` when touching Rust: `cargo fmt`, `cargo clippy
 --all-targets`, `cargo test --lib` (rustfmt.toml is Desktop's).
@@ -129,3 +129,39 @@ Origin: explicit user instruction (2026-09-30).
 - Write commit messages in English only. No Chinese in subjects or bodies, in any repo.
 - Squash churn before pushing: one commit per logical change. Never leave an add-then-remove sequence (a feature commit followed by its revert, or a dependency pinned and re-pinned) in history; rewrite it into the net result.
 - Origin: user instruction (2026-10-20).
+
+## Desktop architecture policy
+
+Windows and Linux distributions support x64 only; do not build, stage, or publish ARM64 packages for either OS. macOS ARM64 remains supported. This also applies to shared Runtime and native module distributions. User decision: 2026-10-25.
+
+## Shared dependency release line
+
+- Keep the shared dependencies updated by this migration on the `0.5.x` release line. Use patch updates only; do not publish `0.6`.
+- Origin: explicit user instruction (2026-10-28).
+
+## Vibémon context menu
+
+- The pet context menu must use `pet.recall`: "叫回休息室" / "Return to lounge". Keep this distinct from the account menu's show/hide labels; do not replace it with `pet.hide`.
+- Origin: explicit user instruction (2026-10-28).
+
+## Test Runtime isolation
+
+Scripts that start Runtime/engine sessions, including temporary probes, must use
+`startTestRuntime` from `@alwith/api/node`. Never use the real Codex home as test
+state. Default tests use mocks; only an explicitly authorized live test supplies
+`authFrom` to copy auth.json into the helper's temporary home. Use `await using`
+or await `dispose()` in `finally`. Existing server protocol fixtures that already
+create isolated homes remain valid; they must never fall back to the real home.
+
+## Desktop debugging
+
+Prefer Hasgard for desktop debugging and UI verification: inspect the running application's snapshots, elements, interactions and logs. Use other tools when Hasgard is unavailable or unsuitable for the issue.
+
+## Release only after completion
+
+Develop, debug and validate with local candidate packages in isolated environments. Publish only after the complete implementation meets the final delivery standard and quality and compatibility checks pass. Never publish merely to unblock debugging or release repeatedly during development. Keep local candidate paths out of production manifests and lockfiles.
+
+## Act on corrections
+
+- When the user points out an omission or a mismatch with an agreed requirement, fix it in the current task. Do not stop at apologizing, explaining, or promising a later change.
+- A design or mockup is not an implementation. Apply accepted UI decisions to the actual running application and verify them before claiming completion.

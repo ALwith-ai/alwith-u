@@ -84,7 +84,19 @@ test("sign-in registers the supplied token and starts only after registration", 
   const state = snapshot(false)
   const { controller, requests } = await fixture(state, (request) => {
     return Promise.try(() => {
-      if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
+      if (request.type === "ssoConfig")
+        return {
+          type: "ssoConfig",
+          data: {
+            enabled: false,
+            issuer: null,
+            clientId: null,
+            authorizationEndpoint: null,
+            tokenEndpoint: null,
+            redirectUris: [],
+            scopes: []
+          }
+        }
       if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 100 }
       if (request.type === "login") {
         state.configured = true
@@ -255,7 +267,19 @@ test("settings use the host default server and hide SSO when disabled", async ()
   const state = { ...snapshot(false), baseUrl: "" }
   const { controller, requests } = await fixture(state, (request) => {
     return Promise.try(() => {
-      if (request.type === "ssoConfig") return { type: "ssoConfig", data: { enabled: false } }
+      if (request.type === "ssoConfig")
+        return {
+          type: "ssoConfig",
+          data: {
+            enabled: false,
+            issuer: null,
+            clientId: null,
+            authorizationEndpoint: null,
+            tokenEndpoint: null,
+            redirectUris: [],
+            scopes: []
+          }
+        }
       if (request.type === "login") {
         state.configured = true
         return { type: "snapshot", data: { ...state } }

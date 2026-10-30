@@ -4,9 +4,9 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
+import { codexTurnId, composerPrediction } from "@nyssance/codex-acp-v2/client"
 
 import { CodexClient } from "../src/agent/client"
-import { codexTurnId, composerPrediction } from "../src/agent/codex-extensions"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const cwd = await realpath(await mkdtemp(join(tmpdir(), "alwith-predictions-")))
@@ -41,10 +41,10 @@ let sessionId: string | undefined
 let unsubscribe: (() => void) | undefined
 const evidence: { phase: string; parentVisible: boolean; temporaryVisible: boolean }[] = []
 async function snapshot(phase: string) {
-  await client.listThreads({ reset: true })
-  const project = await client.listProjectThreads(cwd)
-  const parentVisible = project.some((thread) => thread.sessionId === sessionId)
-  const temporaryVisible = project.some((thread) => thread.sessionId !== sessionId)
+  await client.listSessions({ reset: true })
+  const project = await client.listProjectSessions(cwd)
+  const parentVisible = project.some((sessionRow) => sessionRow.sessionId === sessionId)
+  const temporaryVisible = project.some((sessionRow) => sessionRow.sessionId !== sessionId)
   evidence.push({ phase, parentVisible, temporaryVisible })
   if (!parentVisible || temporaryVisible) throw new Error(`Sidebar isolation failed: ${phase}`)
   console.log(`Sidebar ${phase}: parent visible; no temporary fork`)

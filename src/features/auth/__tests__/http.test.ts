@@ -58,7 +58,7 @@ describe("ALwith account HTTP adapter", () => {
     )
     const error = await transport.request("/api/v1/auth/login", "POST", {}, false).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
-    expect(error).toMatchObject({ message: "验证码错误或已过期。" })
+    expect(error).toMatchObject({ message: "验证码错误或已过期。", status: 400 })
   })
   test("unstructured error bodies never become user-facing details", async () => {
     for (const body of [
@@ -205,4 +205,19 @@ describe("ALwith account HTTP adapter", () => {
     )
     await expect(transport.request("https://other.test", "GET")).rejects.toThrow("Invalid ALwith API path")
   })
+})
+
+test("native authenticated operations retry once with the refreshed account token", async () => {
+  const { transport } = await setup(
+    () => Promise.reject(new Error("HTTP must stay native")),
+    () => Promise.resolve(fresh)
+  )
+  const tokens: string[] = []
+  const result = await transport.authenticated(async (token: string) => {
+    tokens.push(token)
+    if (token === "old-access") throw Object.assign(new Error("Unauthorized"), { status: 401 })
+    return { models: ["account-model"] }
+  })
+  expect(result).toEqual({ models: ["account-model"] })
+  expect(tokens).toEqual(["old-access", "new-access"])
 })

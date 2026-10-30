@@ -1,6 +1,6 @@
 import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { importDraft } from "@alwith/module-chat/conversation"
 
-import { importDraft } from "../../src/features/chat/composer/drafts"
 import type { ChatTransfer } from "../../src/lib/chat-window"
 import type { Preferences } from "../../src/lib/preferences"
 import { PROJECT_DIRECTORY } from "./catalog"

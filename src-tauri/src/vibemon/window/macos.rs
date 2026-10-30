@@ -75,8 +75,9 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
     match action.action.as_str() {
         "blur" => backdrop::apply(window, action.radius.ok_or("Missing pet blur radius")?, action.path)?,
         "focus" => {
-            window.orderFrontRegardless();
-            window.makeKeyWindow();
+            if window.isVisible() {
+                window.makeKeyWindow();
+            }
         }
         "prepare" => crate::panel::prepare(host)?,
         "sound" => {
@@ -112,8 +113,7 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
                 parent.removeChildWindow(window);
             }
         }
-        "bubble" => {
-            crate::panel::prepare(host)?;
+        "bubble" | "bubble-resize" => {
             let pointer = action.parent.ok_or("Bubble parent unavailable")?;
             if pointer == 0 {
                 return Err("Bubble parent unavailable".into());
@@ -121,14 +121,17 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
             let parent = unsafe { &*(pointer as *const NSWindow) };
             let size = action.width.zip(action.height).map_or(window.frame().size, |(w, h)| NSSize::new(w, h));
             layout_bubble(window, parent, size)?;
-            unsafe {
-                if let Some(previous) = window.parentWindow() {
-                    previous.removeChildWindow(window);
+            if action.action == "bubble" {
+                crate::panel::prepare(host)?;
+                unsafe {
+                    if let Some(previous) = window.parentWindow() {
+                        previous.removeChildWindow(window);
+                    }
+                    parent.addChildWindow_ordered(window, NSWindowOrderingMode::Above);
                 }
-                parent.addChildWindow_ordered(window, NSWindowOrderingMode::Above);
+                crate::panel::set_presented(host.label(), true);
+                window.orderFrontRegardless();
             }
-            crate::panel::set_presented(host.label(), true);
-            window.orderFrontRegardless();
         }
         "drag" => {
             let app = NSApplication::sharedApplication(marker);

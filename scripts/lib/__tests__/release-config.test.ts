@@ -40,9 +40,8 @@ function tauriStep(job: Job): Step {
 }
 
 const releaseTargets = [
-  { target: "aarch64-apple-darwin", runner: "macos-15" },
-  { target: "x86_64-pc-windows-msvc", runner: "windows-2025" },
-  { target: "aarch64-pc-windows-msvc", runner: "windows-11-arm" }
+  { target: "aarch64-apple-darwin", runner: "macos-26" },
+  { target: "x86_64-pc-windows-msvc", runner: "windows-2025" }
 ]
 
 test("every CI Bun installation uses the packageManager pin and checks toolchain consistency", () => {
@@ -108,7 +107,7 @@ test("tag runs validate release inputs and publish signed updater artifacts to a
   expect(step.uses).toBe("tauri-apps/tauri-action@v1")
   expect(step.with?.tagName).toBe("${{ github.ref_name }}")
   expect(step.with?.releaseId).toBe("${{ needs.release-preflight.outputs.release_id }}")
-  expect(step.with?.tauriScript).toBe("bun run tauri")
+  expect(step.with?.tauriScript).toBe("bun tauri")
   expect(step.with?.releaseName).toBe("ALwith U ${{ github.ref_name }}")
   expect(step.with?.releaseDraft).toBe(true)
   expect(step.with?.updaterJsonPreferNsis).toBe(true)
@@ -166,4 +165,38 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
     CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"
   })
   expect(job.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
+})
+
+test("mobile release dependencies are installable on every desktop build runner", () => {
+  const manifest = JSON.parse(read("package.json")) as {
+    dependencies: Record<string, string>
+    devDependencies: Record<string, string>
+    overrides: Record<string, string>
+  }
+  expect(manifest.dependencies["@alwith/module-mobile"]).toMatch(/^[~^]?\d+\.\d+\.\d+$/)
+  expect(manifest.devDependencies["@alwith/native-mobile"]).toMatch(/^[~^]?\d+\.\d+\.\d+$/)
+  expect(Object.keys(manifest.overrides).filter((name) => name.startsWith("@alwith/native-mobile"))).toEqual([])
+  const workflow = Bun.YAML.parse(read(".github/workflows/ci.yml")) as Workflow
+  expect(workflow.jobs?.["windows-staging"].steps?.some((step) => step.run === "bun run stage")).toBe(true)
+})
+
+test("Windows CI verifies staged artifacts through the standalone entry point", () => {
+  const workflow = Bun.YAML.parse(read(".github/workflows/ci.yml")) as Workflow
+  const commands = workflow.jobs?.["windows-staging"].steps?.flatMap((step) => (step.run ? [step.run] : [])) ?? []
+  const stage = commands.indexOf("bun run stage")
+  expect(stage).toBeGreaterThan(-1)
+  expect(commands[stage + 1]).toBe("bun scripts/verify-staged-toolchain.ts")
+  expect(commands.some((command) => command.includes("__tests__/"))).toBe(false)
+})
+
+test("Windows installers include both sandbox helpers without replacing the shared sidecars", () => {
+  const base = JSON.parse(read("src-tauri/tauri.conf.json")) as { bundle: { externalBin: string[] } }
+  const windows = JSON.parse(read("src-tauri/tauri.windows.conf.json")) as { bundle: { externalBin: string[] } }
+  expect(windows.bundle.externalBin).toEqual([
+    ...base.bundle.externalBin,
+    "binaries/codex-windows-sandbox-setup",
+    "binaries/codex-command-runner"
+  ])
+  expect(base.bundle.externalBin).not.toContain("binaries/codex-windows-sandbox-setup")
+  expect(base.bundle.externalBin).not.toContain("binaries/codex-command-runner")
 })

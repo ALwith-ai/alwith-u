@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { usePlatformAuth } from "@/features/auth/store"
-import { SidebarAccountMenu } from "@/features/threads/sidebar-account-menu"
+import { SidebarAccountMenu } from "@/features/sessions/sidebar-account-menu"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
@@ -91,7 +91,7 @@ function fixture(enabled: boolean, failure?: Error) {
 }
 
 async function openMenu() {
-  const view = render(<SidebarAccountMenu onOpenSettings={() => {}} />)
+  const view = render(<SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   return view
 }
@@ -104,7 +104,9 @@ test("the account menu groups settings and language above tools and sign out", a
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
   expect(view.getAllByRole("menuitem")).toEqual(
-    ["Settings", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) => view.getByRole("menuitem", { name }))
+    ["Create your ALwith", "Settings", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) =>
+      view.getByRole("menuitem", { name })
+    )
   )
   expect(view.getByRole("menuitem", { name: "Settings" }).parentElement).toBe(
     view.getByRole("menuitem", { name: "Language" }).parentElement
@@ -123,8 +125,8 @@ test("the account menu groups settings and language above tools and sign out", a
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" }))))
   expect(f.openPet).toHaveBeenCalledTimes(1)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Hide Vibémon" }))))
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Close Vibémon" })).toBeTruthy())
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Close Vibémon" }))))
   expect(f.closePet).toHaveBeenCalledTimes(1)
 })
 
@@ -132,13 +134,13 @@ test("closing from the pet updates the account menu and language changes transla
   await initI18n("en")
   const f = fixture(true)
   const view = await openMenu()
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Close Vibémon" })).toBeTruthy())
   await act(() => Promise.try(() => f.closeExternally()))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
   await act(async () => {
     await i18n.changeLanguage("zh-CN")
   })
-  expect(view.getByRole("menuitem", { name: "显示 Vibémon" })).toBeTruthy()
+  expect(view.getByRole("menuitem", { name: "开启 Vibémon" })).toBeTruthy()
   expect(f.openPet).not.toHaveBeenCalled()
   expect(f.closePet).not.toHaveBeenCalled()
 })
@@ -147,7 +149,7 @@ test("account changes display the new account's switch state", async () => {
   await initI18n("en")
   const f = fixture(true)
   const view = await openMenu()
-  await waitFor(() => expect(view.getByRole("menuitem", { name: "Hide Vibémon" })).toBeTruthy())
+  await waitFor(() => expect(view.getByRole("menuitem", { name: "Close Vibémon" })).toBeTruthy())
   await act(() => Promise.try(() => f.switchAccount()))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy())
 })
@@ -188,4 +190,14 @@ test("the language submenu marks the current language and saves a new selection"
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitemradio", { name: "简体中文" }))))
   expect(i18n.language).toBe("zh-CN")
   expect(savePreference).toHaveBeenCalledWith("language", "zh-CN")
+})
+
+test("creation stays open after the account menu closes", async () => {
+  await initI18n("en")
+  fixture(false)
+  const view = await openMenu()
+  fireEvent.click(view.getByRole("menuitem", { name: "Create your ALwith" }))
+  await waitFor(() => expect(view.getByRole("dialog")).toBeVisible())
+  await waitFor(() => expect(view.queryByRole("menu")).toBeNull())
+  expect(view.getByRole("dialog")).toBeVisible()
 })

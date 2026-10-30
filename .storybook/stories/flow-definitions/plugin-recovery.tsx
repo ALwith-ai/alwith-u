@@ -33,7 +33,9 @@ export const Toggle: Story = {
   name: "停用插件 → 失败回滚 → 重试成功",
   args: { pluginOperation: "toggleError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
     await userEvent.click(await canvas.findByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await userEvent.click(canvas.getByRole("switch", { name: /禁用.*Spreadsheets/ }))
@@ -45,12 +47,12 @@ export const Uninstall: Story = {
   args: { pluginOperation: "uninstallError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
-    await userEvent.click((await canvas.findAllByRole("button", { name: "更多操作" }))[0]!)
-    await userEvent.click(await body.findByRole("menuitem", { name: /卸载/ }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
+    await userEvent.click(await body.findByRole("button", { name: /卸载/ }))
     await body.findByText(/模拟插件操作失败/)
-    await userEvent.click(canvas.getAllByRole("button", { name: "更多操作" })[0]!)
-    await userEvent.click(await body.findByRole("menuitem", { name: /卸载/ }))
+    await userEvent.click(await body.findByRole("button", { name: /卸载/ }))
     await waitFor(() => expect(pluginsStore.getState().installed).toHaveLength(1))
   }
 }

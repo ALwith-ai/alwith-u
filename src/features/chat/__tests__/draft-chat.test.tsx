@@ -1,13 +1,15 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { drafts, importDraft } from "@alwith/module-chat/conversation"
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
-import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
-import { StrictMode, useState } from "react"
+import { act, fireEvent, render as renderView, waitFor, within } from "@testing-library/react"
+import { type ReactElement, StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
+import { projectContext } from "@/agent/__tests__/project-context"
 import { CodexClient } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
@@ -20,16 +22,17 @@ import type { ProviderSnapshot } from "@/lib/providers"
 import { mockOf } from "@/test/mock-of"
 
 import { navigationSoundStore } from "../codex/navigation-sound-store"
-import { Composer } from "../composer"
-import { drafts, importDraft } from "../composer/drafts"
 import { DRAFT_SESSION_ID, DraftChat } from "../draft-chat"
 import * as projectPicker from "../draft-project-picker"
+import { Composer } from "./timeline-host"
 
 vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
 // ACP uses native Web Streams; jsdom supplies only the browser surface.
 Object.assign(globalThis, { TransformStream, ReadableStream, WritableStream })
 await initI18n("en")
+// DraftChat reads U's theme through the conversation host, as under the application's ThemeProvider.
+const render = (ui: ReactElement) => renderView(ui, { wrapper: ThemeProvider })
 const providers: ProviderSnapshot = {
   revision: 1,
   appliedRevision: 1,
@@ -44,12 +47,14 @@ function environment(nativeWindow = false) {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const real = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    real.store.setState({ projectContext: projectContext() })
     const previous = client.state
     client.store.setState(real.state)
     const unsubscribe = real.store.subscribe((state) => client.store.setState(state))
     const invokeHost = core.invoke
     const mocks = [
       vi.spyOn(client, "connect").mockImplementation(() => real.connect()),
+      vi.spyOn(client, "refreshProjectContext").mockImplementation((...args) => real.refreshProjectContext(...args)),
       vi.spyOn(client, "session").mockImplementation((id) => real.session(id)),
       vi.spyOn(client, "prepareDraft").mockImplementation((...args) => real.prepareDraft(...args)),
       vi.spyOn(client, "discardDraft").mockImplementation((...args) => real.discardDraft(...args)),
@@ -58,7 +63,8 @@ function environment(nativeWindow = false) {
       vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
       vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
         let result: unknown
-        if (command === "draft_directory") result = (args as { cwd: string | null }).cwd ?? "/tmp/ALwith U"
+        if (command === "draft_directory")
+          result = (args as { cwd: string | null }).cwd ?? "/Users/mac/Documents/ALwith"
         else if (command === "providers_apply" || command === "providers_read") result = providers
         else if (command === "read_apps_info") result = []
         else if (nativeWindow) return invokeHost<T>(command, args)
@@ -169,10 +175,11 @@ test("floating project menus switch from a draft to another conversation and exc
     await act(() => env.present())
     await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
     const draft = must(Object.keys(env.real.state.draftSessions)[0], "the floating draft")
-    await act(async () => {
+    await act(() => {
       env.real.store.setState({
-        threadsLoaded: true,
-        threads: [
+        sessionListLoaded: true,
+        projectContext: projectContext(),
+        sessionList: [
           { sessionId: draft, cwd: "/tmp/window-original", title: "Current draft", updatedAt: null, archived: false },
           {
             sessionId: existing,
@@ -183,26 +190,28 @@ test("floating project menus switch from a draft to another conversation and exc
           }
         ]
       })
+
+      return Promise.resolve()
     })
     const header = within(must(view.container.querySelector("header"), "the floating window header"))
-    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    await act(() => Promise.resolve(fireEvent.click(header.getByRole("button", { name: "window-original" }))))
     expect(view.queryByRole("button", { name: "Current draft" })).toBeNull()
     expect(view.getByText("1 chat")).toBeVisible()
-    await act(async () => fireEvent.click(view.getByRole("button", { name: "Other conversation" })))
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Other conversation" }))))
     await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(existing, true))
     expect(env.real.state.draftSessions[draft]).toBeUndefined()
     expect(env.real.state.sessionWindows[existing]).toBe("chat")
-    await act(async () => fireEvent.click(header.getByRole("button", { name: "window-original" })))
+    await act(() => Promise.resolve(fireEvent.click(header.getByRole("button", { name: "window-original" }))))
     expect(view.queryByRole("button", { name: "Other conversation" })).toBeNull()
   } finally {
-    await act(async () => view.unmount())
+    await act(() => Promise.resolve(view.unmount()))
     env.restore()
   }
 })
 
 test.each([
   ["/private/var/folders/example/T/project", "/private/var/folders/example/T/project"],
-  ["/Users/mac/Documents/Codex/project", "/tmp/ALwith U"],
+  ["/Users/mac/Documents/Codex/project", "/Users/mac/Documents/ALwith"],
   ["/work/project", "/work/project"]
 ])("floating new chat from %s prepares in %s", async (cwd, expected) => {
   const env = await windowEnvironment()
@@ -422,8 +431,9 @@ test("sending after default-directory resolution keeps the submitted conversatio
     accept = resolve
   })
   vi.spyOn(client, "prompt").mockImplementation(async (...args) => {
-    await real.prompt(...args)
+    const sent = await real.prompt(...args)
     await receipt
+    return sent
   })
   let release: (() => void) | undefined
   fake.newSessionDelay.current = () =>
@@ -461,7 +471,7 @@ test("sending after default-directory resolution keeps the submitted conversatio
     await act(() => Promise.try(() => must(release, "default preparation")()))
     await waitFor(() => expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false))
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
-    await waitFor(() => expect(real.state.threads).toHaveLength(1))
+    await waitFor(() => expect(real.state.sessionList).toHaveLength(1))
     await waitFor(() => expect(view.queryByRole("status")).toBeNull())
     expect(fake.modelHints.size).toBe(1)
     expect(Object.keys(real.state.draftSessions)).toHaveLength(0)
@@ -507,6 +517,9 @@ test("the composer stays visible while initial providers and the native draft ar
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true)
     expect(view.getByRole("button", { name: "Send" }).getAttribute("aria-busy")).toBe("true")
     expect(view.queryByTestId("model-trigger")).toBeNull()
+    expect(view.container.querySelector(".chat-project-picker")).toHaveAttribute("aria-busy", "true")
+    expect(view.container.querySelector(".chat-project-picker .lucide-loader-circle")).toBeNull()
+    expect(view.container.querySelector(".chat-project-picker .lucide-folder-closed")).toBeVisible()
     expect(Object.keys(real.state.sessions)).toHaveLength(0)
     view.rerender(<DraftChat {...props} providerSnapshot={providers} />)
     await waitFor(() => expect(release).toBeDefined())
@@ -516,10 +529,12 @@ test("the composer stays visible while initial providers and the native draft ar
     await waitFor(() => expect(view.getByTestId("model-trigger")).toBeTruthy())
     expect(view.getByRole("textbox")).toBe(input)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("saved input")
-    expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6\.1 Sol$/)
+    expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6.1 Sol$/)
+    expect(view.container.querySelector(".chat-project-picker")).toHaveAttribute("aria-busy", "false")
+    expect(view.container.querySelector(".chat-project-picker .lucide-loader-circle")).toBeNull()
     expect(view.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false)
     expect(Object.keys(real.state.sessions)).toHaveLength(1)
-    expect(real.state.threads).toHaveLength(0)
+    expect(real.state.sessionList).toHaveLength(0)
   } finally {
     release?.()
     await act(() => Promise.try(() => view.unmount()))
@@ -590,13 +605,13 @@ test("new chat prepares once under StrictMode and exposes the real model before 
     </StrictMode>
   )
   try {
-    await waitFor(() => expect(view.getByTestId("model-trigger")).toHaveTextContent(/^6\.1 Sol$/))
+    await waitFor(() => expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6.1 Sol$/))
     await waitFor(() => expect(view.getByRole("textbox").hasAttribute("disabled")).toBe(false))
     expect(selected).not.toBeNull()
     expect(fake.modelHints.size).toBe(1)
-    expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/ALwith U")
+    expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/Users/mac/Documents/ALwith")
     expect(real.session(must<string>(selected, "selected draft")).items).toEqual([])
-    expect(real.state.threads).toEqual([])
+    expect(real.state.sessionList).toEqual([])
     await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
     expect(view.getByRole("menuitemradio", { name: "GPT-6.1 Sol" })).toBeTruthy()
   } finally {
@@ -728,9 +743,14 @@ test("a queued directory failure retains the last successful replacement and its
     const original = must<string>(selected, "selected draft")
     view.rerender(<DraftChat {...props} cwd="/tmp/slow-project" />)
     await waitFor(() => expect(release).toBeDefined())
+    expect(view.container.querySelector(".chat-project-picker")).toHaveAttribute("aria-busy", "true")
+    expect(view.container.querySelector(".chat-project-picker .lucide-loader-circle")).toBeNull()
+    expect(view.container.querySelector(".chat-project-picker .lucide-folder-closed")).toBeVisible()
     view.rerender(<DraftChat {...props} cwd="/needs-auth" />)
     await act(() => Promise.try(() => must(release, "pending session creation")()))
     await waitFor(() => expect(view.getByRole("button", { name: "Configure provider" })).toBeTruthy())
+    expect(view.container.querySelector(".chat-project-picker")).toHaveAttribute("aria-busy", "false")
+    expect(view.container.querySelector(".chat-project-picker .lucide-loader-circle")).toBeNull()
     expect(selected).not.toBe(original)
     expect(real.session(must<string>(selected, "selected draft")).cwd).toBe("/tmp/slow-project")
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this input")
@@ -954,7 +974,7 @@ test("returning a floating draft transfers its input and releases the surface on
 })
 
 test("extension drafts fill the mounted composer without sending and protect existing input", async () => {
-  const { setComposerDraft } = await import("../composer/drafts")
+  const { setComposerDraft } = await import("@alwith/module-chat/conversation")
   const { real, restore } = await environment()
   await real.connect()
   const id = await real.prepareDraft("main", "/tmp/extension-draft")
@@ -964,10 +984,10 @@ test("extension drafts fill the mounted composer without sending and protect exi
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
     expect(drafts.get(id)?.text).toBe("Review this before sending")
     expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
-    expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
+    expect(() => setComposerDraft(id, "replacement")).toThrow("already has a draft")
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
     await act(() => Promise.try(() => view.unmount()))
-    expect(() => setComposerDraft(id, "after close")).toThrow("输入框")
+    expect(() => setComposerDraft(id, "after close")).toThrow("composer is not open")
   } finally {
     await act(() => Promise.try(() => view.unmount()))
     restore()
@@ -975,7 +995,7 @@ test("extension drafts fill the mounted composer without sending and protect exi
 })
 
 test.each(["attachments", "mentions"] as const)("extension drafts preserve existing %s and model", async (content) => {
-  const { setComposerDraft } = await import("../composer/drafts")
+  const { setComposerDraft } = await import("@alwith/module-chat/conversation")
   const { real, restore } = await environment()
   await real.connect()
   const id = await real.prepareDraft("main", "/tmp/extension-draft")
@@ -991,7 +1011,7 @@ test.each(["attachments", "mentions"] as const)("extension drafts preserve exist
   importDraft(id, original)
   const view = render(<Composer session={real.session(id)} />)
   try {
-    expect(() => setComposerDraft(id, "replacement")).toThrow("草稿")
+    expect(() => setComposerDraft(id, "replacement")).toThrow("already has a draft")
     expect(drafts.get(id)).toEqual(original)
     expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
   } finally {
@@ -1007,7 +1027,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
   const { createMemoryData } = await import("@alwith/module-extension/testing")
   const { createExtensionChatBridge } = await import("@/features/extensions/chat/bridge")
   const { setExtensionDraft, sendExtensionMessage } = await import("@/features/extensions/chat/chat")
-  const { setComposerDraft } = await import("../composer/drafts")
+  const { setComposerDraft } = await import("@alwith/module-chat/conversation")
   const { real, restore } = await environment()
   await real.connect()
   const id = await real.prepareDraft("main", "/tmp/extension-draft")
@@ -1021,7 +1041,9 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     present: () => {
       presented = true
     },
-    prompt: (target: string, text: string) => real.prompt(target, [{ type: "text", text }])
+    prompt: async (target: string, text: string) => {
+      await real.prompt(target, [{ type: "text", text }])
+    }
   }
   const chat = createExtensionChatBridge({
     check: () => {},
@@ -1055,7 +1077,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     name: "Chat",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     dataSchemaVersion: 1
   }
@@ -1175,8 +1197,9 @@ test.each(["main", "chat"] as const)(
       release = resolve
     })
     mockOf(client, "prompt").mockImplementation(async (...args) => {
-      await env.real.prompt(...args)
+      const sent = await env.real.prompt(...args)
       await receipt
+      return sent
     })
     let selected: string | null = null
     const view = render(
@@ -1229,3 +1252,37 @@ test.each(["main", "chat"] as const)(
     }
   }
 )
+
+test("a collection draft is saved only after its first send is accepted", async () => {
+  const env = await environment()
+  const collections = await import("@/features/collection/store")
+  const saved = vi.spyOn(collections, "dispatchCollection").mockResolvedValue()
+  importDraft(DRAFT_SESSION_ID, { text: "Save this conversation", mentions: [], attachments: [], modelId: null })
+  let sessionId: string | null = null
+  const view = render(
+    <DraftChat
+      owner="main"
+      collectionId="work"
+      cwd="/tmp/collection"
+      onCwdChange={() => {}}
+      onCreated={(id) => {
+        sessionId = id
+      }}
+      onSendingChange={() => {}}
+      onAuthRequired={() => {}}
+      onNewChat={() => {}}
+      providerSnapshot={providers}
+    />
+  )
+  try {
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
+    expect(sessionId).not.toBeNull()
+    expect(saved).not.toHaveBeenCalled()
+    await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Send" }))))
+    await waitFor(() => expect(saved).toHaveBeenCalledExactlyOnceWith({ type: "add", collectionId: "work", sessionId }))
+  } finally {
+    await act(() => Promise.resolve(view.unmount()))
+    saved.mockRestore()
+    env.restore()
+  }
+})

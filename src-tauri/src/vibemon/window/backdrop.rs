@@ -137,6 +137,9 @@ thread_local! {
  static BACKDROPS: RefCell<HashMap<usize, Retained<PetBackdropView>>> = RefCell::new(HashMap::new());
 }
 pub(super) fn apply(native: &NSWindow, radius: u32, outline: Option<Vec<BackdropPathCommand>>) -> Result<(), String> {
+    // Opaque task cards still publish measured geometry for presentation readiness.
+    // A zero radius must not create or expose a native material behind their animation.
+    let outline = if radius == 0 { None } else { outline };
     let mtm = MainThreadMarker::new().ok_or("Pet backdrop requires the main thread")?;
     let handle = native as *const _ as usize;
     BACKDROPS.with_borrow_mut(|backdrops| {

@@ -82,3 +82,13 @@ export function formatShortcutForDisplay(key: string): string[] {
 export function displayShortcut(key: string): string {
   return formatShortcutForDisplay(key).join(isMac() ? "" : "+")
 }
+
+/** Keep accelerator syntax editable while making the Alt key name explicit. */
+export function formatEditableShortcut(shortcut: string): string {
+  return shortcut.replace(/(^|[+|])(?:alt|option)(?=[+|]|$)/gi, "$1Option/Alt")
+}
+
+/** Display aliases never reach the native shortcut registration boundary. */
+export function parseEditableShortcut(shortcut: string): string {
+  return shortcut.trim().replace(/(^|[+|])Option\/Alt(?=[+|]|$)/gi, "$1Alt")
+}

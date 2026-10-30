@@ -1,5 +1,7 @@
-import { isFormElicitation } from "@alwith/api"
 import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
+import { hasAccount, isFormElicitation } from "@nyssance/codex-acp-v2/client"
+import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -8,18 +10,17 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 
-import type { ThreadSummary } from "@/agent/client"
-import { hasAccount } from "@/agent/codex-extensions"
-import { watchThreadList } from "@/agent/thread-list-refresh"
-import { events } from "@/bindings"
+import type { SessionSummary } from "@/agent/client"
+import { watchSessionList } from "@/agent/session-list-refresh"
+import { commands, events } from "@/bindings"
+import { Pane } from "@/components/alwith-ui/pane"
+import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
-import { ActionCard } from "@/features/chat/action-card"
+import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
-import { exportDraft, importDraft, setComposerDraft } from "@/features/chat/composer/drafts"
-import { ElicitationFormDialog, type FormAction } from "@/features/chat/dialogs/elicitation-form-dialog"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
@@ -28,24 +29,25 @@ import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } f
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
 import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
-import { ExtensionEntryMenu } from "@/features/extensions/extension-entry-menu"
 import { ExtensionNavigation } from "@/features/extensions/extension-navigation"
 import { ExtensionStatusBar } from "@/features/extensions/extension-outlets"
 import { ExtensionMount, ExtensionPage } from "@/features/extensions/extension-view"
 import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
-import { reportExtensionError, useExtensions } from "@/features/extensions/runtime"
+import { reportExtensionError } from "@/features/extensions/runtime"
+import { useExtensions } from "@/features/extensions/use-extensions"
 import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
+import { TrailingBoard } from "@/features/layout/components/trailing-board"
 import { CommandPalette } from "@/features/palette/command-palette"
 import { PluginsPage } from "@/features/plugins/plugins-page"
+import { ArchivedChatsPage } from "@/features/sessions/archived-chats-page"
+import { recentMainActivity } from "@/features/sessions/recent-main-activity"
+import { selectSession } from "@/features/sessions/select-session"
+import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
-import { ArchivedChatsPage } from "@/features/threads/archived-chats-page"
-import { recentMainActivity } from "@/features/threads/recent-main-activity"
-import { selectThread } from "@/features/threads/select-thread"
-import { ThreadSidebar } from "@/features/threads/thread-sidebar"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
@@ -63,6 +65,7 @@ import {
 import { serveChatClient } from "@/lib/chat-window-client"
 import { useMainWindowSurface } from "@/lib/chat-window-state"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
+import { serveImportsBridge } from "@/lib/imports-bridge"
 import { watchForNotifications } from "@/lib/notifications"
 import { type Preferences, savePreference } from "@/lib/preferences"
 import { applyProvidersWhenIdle } from "@/lib/providers"
@@ -96,6 +99,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  useEffect(() => {
+    if (isTauri()) void commands.bridgeSetActiveSession({ sessionId: selectedId })
+  }, [selectedId])
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)
@@ -108,7 +114,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "archives" | "story" | "extension">(
     "chat"
   )
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("plugins")
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("extensions")
   const leading =
     view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension" || view === "archives"
   const [extensionView, setExtensionView] = useState<string | null>(null)
@@ -136,6 +142,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("plugins")
   }, [])
   const openExtensions = useCallback(() => {
+    setPluginsVisited(true)
     setLeadingPage("extensions")
     setView("extensions")
   }, [])
@@ -169,7 +176,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         return catalog.data.flatMap((entry) => entry.skills)
       },
       present: () => setView("chat"),
-      prompt: (targetId: string, prompt: string) => client.prompt(targetId, [{ type: "text", text: prompt }]),
+      prompt: async (targetId: string, prompt: string) => {
+        await client.prompt(targetId, [{ type: "text", text: prompt }])
+      },
       writeDraft: setComposerDraft
     }
     return connectExtensionNavigation({
@@ -205,15 +214,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useReadVisibleSession(selectedId, focused && view === "chat")
 
   const select = useCallback(
-    (thread: ThreadSummary) => {
-      // Codex refuses to resume an archived thread; opening one restores it first, as the
+    (sessionRow: SessionSummary) => {
+      // Codex refuses to resume an archived session; opening one restores it first, as the
       // official client does.
       void operation
         .run(() =>
-          selectThread(thread, {
+          selectSession(sessionRow, {
             connect: async () => {
               await client.connect()
-              if (client.state.draftSessions[thread.sessionId] !== "main") await client.discardDraft("main")
+              if (client.state.draftSessions[sessionRow.sessionId] !== "main") await client.discardDraft("main")
             },
             unarchive: (id) => client.unarchive(id),
             release: async (id) => {
@@ -222,7 +231,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               return transfer
             },
             importDraft,
-            include: (thread) => client.includeThread(thread),
+            include: (sessionRow) => client.includeSession(sessionRow),
             open: (id, cwd) => client.open(id, cwd),
             show: (id) => {
               setSurfaceGeneration((value) => value + 1)
@@ -242,13 +251,20 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     void savePreference("lastProjectDirectory", directory).catch((error: unknown) => toast.error(describe(error)))
   }, [])
 
+  const [draftCollection, setDraftCollection] = useState<{ id: string; generation: number } | null>(null)
   const newChatInDirectory = useCallback(
-    (cwd?: string | null) => {
+    (cwd?: string | null, collectionId?: string) => {
       if (operation.busy) return
       void operation
         .run(async () => {
-          const directory = newChatDirectory(cwd === undefined ? (extensionSession.current?.cwd ?? lastDirectory) : cwd)
+          const directory = newChatDirectory(
+            cwd === undefined ? (extensionSession.current?.cwd ?? lastDirectory) : cwd,
+            client.state.projectContext
+          )
           await client.discardDraft("main")
+          setDraftCollection(
+            collectionId === undefined ? null : { id: collectionId, generation: surfaceGeneration + 1 }
+          )
           chooseDraftFolder(directory)
           importDraft(DRAFT_SESSION_ID, null)
           setSurfaceGeneration((value) => value + 1)
@@ -258,7 +274,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         })
         .catch((error: unknown) => toast.error(describe(error)))
     },
-    [chooseDraftFolder, lastDirectory, operation]
+    [chooseDraftFolder, lastDirectory, operation, surfaceGeneration]
   )
 
   const newChat = useCallback(() => newChatInDirectory(), [newChatInDirectory])
@@ -360,12 +376,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [])
 
   useEffect(() => {
-    if (connection === "ready") return watchThreadList(client)
+    if (connection === "ready") return watchSessionList(client)
   }, [connection])
 
   useEffect(() => {
-    if (focused && connection === "ready" && client.state.threadsLoaded)
-      void client.listThreads({ reset: true }).catch(() => undefined)
+    if (focused && connection === "ready" && client.state.sessionListLoaded)
+      void client.listSessions({ reset: true }).catch(() => undefined)
   }, [focused, connection])
 
   // Either window can reconnect the owner; refresh Runtime subscriptions for every ready port.
@@ -400,6 +416,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   // The settings window has no agent connection of its own: it asks this window for the
   // engine identity and for sign-out, and provider keys saved there are applied here.
   useEffect(() => {
+    const stopImports = serveImportsBridge(client)
     const stopBridge = serveSettingsBridge({
       agent: () => {
         const agent = client.state.agent
@@ -425,7 +442,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       },
       onRateLimits: (listener) => client.onRateLimits(listener)
     })
-    return stopBridge
+    return () => {
+      stopImports()
+      stopBridge()
+    }
   }, [])
 
   useEffect(() => {
@@ -540,7 +560,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newProjectChat}
             />
           }
-          onSelectThread={select}
+          onSelectSession={select}
           onOpenWindow={moveToWindow}
           onNewChat={newProjectChat}
           onDeleted={deleted}
@@ -550,6 +570,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <>
         {connectionNotice}
         <DraftChat
+          collectionId={draftCollection?.generation === surfaceGeneration ? draftCollection.id : undefined}
           owner="main"
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
@@ -599,7 +620,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             else openLeading()
           }}
           sidebar={
-            <ThreadSidebar
+            <SessionSidebar
               screen={leading ? "leading" : "main"}
               leadingPage={leadingPage}
               selectedId={view === "chat" && mainVisible ? selectedId : null}
@@ -610,18 +631,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onOpenWindow={() => void openChatWindow().catch((error) => toast.error(describe(error)))}
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
-              onOpenPlugins={openPlugins}
-              onOpenExtensions={openExtensions}
-              renderExtensionEntry={(trigger) => (
-                <ExtensionEntryMenu
-                  host={extensions}
-                  manifests={extensionState.native?.installations.map((item) => item.manifest) ?? []}
-                  trigger={trigger}
-                  onManage={openExtensions}
-                  onOpenSurface={openExtension}
-                  onError={reportExtensionError}
-                />
-              )}
+              onOpenPlugins={openExtensions}
               drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
               onSwitchScreen={() => {
                 if (leading) setView("chat")
@@ -635,8 +645,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 activePage={view === "extension" ? null : leadingPage}
                 onOpenVibemon={openVibemon}
                 onOpenArchives={openArchives}
-                onOpenPlugins={openPlugins}
-                onOpenExtensions={openExtensions}
+                onOpenPlugins={openExtensions}
               >
                 <ExtensionNavigation
                   host={extensions}
@@ -650,8 +659,29 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 {leading && actionCards}
                 {view === "archives" && <ArchivedChatsPage />}
                 {pluginsVisited && (
-                  <div className={leadingPage === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                    <PluginsPage cwd={session?.cwd ?? lastDirectory} active={view === "plugins"} />
+                  <div
+                    className={
+                      (leadingPage === "plugins" || leadingPage === "extensions") && view !== "extension"
+                        ? "flex min-h-0 flex-1 flex-col"
+                        : "hidden"
+                    }
+                  >
+                    <PluginsPage
+                      cwd={session?.cwd ?? lastDirectory}
+                      active={view === "plugins"}
+                      onOpenCatalog={openPlugins}
+                      extensions={{
+                        active: leadingPage === "extensions",
+                        onOpen: openExtensions,
+                        content: (
+                          <Pane className="pe-0" viewportClassName="pe-0">
+                            <div className={`${toolboxContentClassName} pt-8`}>
+                              <ExtensionsSection onOpenSurface={openExtension} />
+                            </div>
+                          </Pane>
+                        )
+                      }}
+                    />
                   </div>
                 )}
                 {vibemonVisited && (
@@ -661,17 +691,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 )}
                 {view === "extension" && extensionView !== null ? (
                   <ExtensionPage id={extensionView} onClose={() => setView("chat")} />
-                ) : leadingPage === "extensions" ? (
-                  <div className="min-h-0 flex-1 overflow-auto">
-                    <div className="mx-auto w-full max-w-5xl px-6 py-8">
-                      <ExtensionsSection onOpenSurface={openExtension} />
-                    </div>
-                  </div>
                 ) : null}
               </SidebarInset>
             </>
           }
-          toolbar={<div ref={setWorkspaceToolbar} hidden={leading} className="main-workspace-toolbar" />}
+          trailing={<TrailingBoard onOpenVibemon={openVibemon} />}
+          toolbar={
+            <div hidden={leading} className="main-workspace-toolbar flex items-center gap-2">
+              <div ref={setWorkspaceToolbar} />
+            </div>
+          }
           statusBar={
             <>
               <div className="main-extension-status pointer-events-none flex min-w-0 flex-1 items-center gap-2 [-webkit-app-region:no-drag]">
@@ -697,6 +726,15 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                   {driveSidebar &&
                     createPortal(
                       <DrivePage
+                        renderProjectActions={(root) => (
+                          <ChatProjectMenu
+                            actionLabel={t("workspace.recentSessions")}
+                            cwd={root.localPath}
+                            currentSessionId={selectedId}
+                            onSelect={select}
+                            onNewChat={() => void newChatInDirectory(root.localPath)}
+                          />
+                        )}
                         currentProject={session?.cwd ?? lastDirectory}
                         onOpenProject={(root) =>
                           operation.run(async () => {

@@ -1,5 +1,6 @@
 import { DriveNotificationProvider } from "@alwith/module-drive/react"
 import { isTauri } from "@tauri-apps/api/core"
+import { listen } from "@tauri-apps/api/event"
 import { attachConsole, error as logError, info } from "@tauri-apps/plugin-log"
 import { platform } from "@tauri-apps/plugin-os"
 import { StrictMode } from "react"
@@ -21,6 +22,7 @@ import { predictionPreference } from "@/features/chat/composer/prediction-prefer
 import { restoreComputer } from "@/features/computer/operations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
+import { initializeMobile } from "@/features/mobile/bridge"
 import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
@@ -71,12 +73,14 @@ async function bootstrap(): Promise<void> {
     document.documentElement.dataset.windowBackdrop = "acrylic"
   }
   await bootstrapSettings()
+  await initializeMobile().catch((error: unknown) => surfaceGlobalError(describe(error)))
   await attachConsole()
   await info("frontend booting")
   const preferences = await loadPreferences()
   predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
   await initI18n(preferences.language)
   if (isTauri()) {
+    await listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
     await restoreComputer().catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
     void useUpdaterStore

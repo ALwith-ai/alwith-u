@@ -8,7 +8,7 @@ import {
   type FileTreeController
 } from "@alwith/module-file-tree"
 import { basename, containsPath, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
-import { type ReactNode, useCallback, useMemo } from "react"
+import { type ReactNode, useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -42,6 +42,7 @@ export function pickerRootsOf(roots: readonly RootInfo[], rootPath: string): Dir
 }
 
 export interface MoveToDialogProps {
+  mode?: "move" | "publish"
   sources: readonly string[]
   rootPath: string
   fs: FileSystem
@@ -51,11 +52,26 @@ export interface MoveToDialogProps {
   onClose: () => void
 }
 
-export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }: MoveToDialogProps): ReactNode {
+export function MoveToDialog({
+  sources,
+  rootPath,
+  fs,
+  tree,
+  onMoveTo,
+  onClose,
+  mode = "move"
+}: MoveToDialogProps): ReactNode {
+  const publishing = mode === "publish"
   const { t } = useTranslation()
   const { snapshot } = useDrive(drive)
   const roots = snapshot?.roots ?? []
-  const pickerRoots = pickerRootsOf(roots, rootPath)
+  const pickerRoots = pickerRootsOf(roots, rootPath).filter(
+    (candidate) =>
+      !publishing ||
+      roots.some((root) => normalizePath(root.localPath) === candidate.path && root.canWrite && root.syncEnabled)
+  )
+  // A confirmed server result belongs to its destination, including across picker refreshes.
+  const published = useRef(new Map<string, Set<string>>())
   const cloudCache = useMemo(
     () => ({
       generation: snapshot?.generation,
@@ -102,6 +118,7 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
     [cloudCache, fs, rootPath, tree]
   )
   const warningFor = (directory: string): string | null => {
+    if (publishing) return t("workspace.publishWarning")
     const destination = resolveDriveRoot(directory, roots)
     if (!destination) return null
     if (!destination.root.selected) return t("workspace.moveToUnsyncedWarning")
@@ -113,6 +130,38 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
       : null
   }
   const move = async (directory: string): Promise<boolean> => {
+    if (publishing) {
+      const destination = normalizePath(directory)
+      let completed = published.current.get(destination)
+      if (!completed) {
+        completed = new Set<string>()
+        published.current.set(destination, completed)
+      }
+      try {
+        for (const source of sources) {
+          if (completed.has(source)) continue
+          const entry = await fs.stat(source)
+          if (entry === null || entry === undefined) throw new Error(t("workspace.publishSourceMissing"))
+          const response = await drive.request({
+            type: "publishBetweenProjects",
+            source: source.replace(/\.yupcloud$/, ""),
+            destination: directory,
+            isDirectory: entry.kind === "directory"
+          })
+          if (response.type !== "id") throw new Error("Invalid Drive publish response")
+          if (response.data === null) throw new Error(t("workspace.publishNotUploaded"))
+          completed.add(source)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(
+          completed.size > 0 ? t("workspace.publishPartialFailure", { count: completed.size, message }) : message,
+          { cause: error }
+        )
+      }
+      toast.success(t("workspace.publishDone", { count: completed.size }))
+      return true
+    }
     const currentRoots = drive.getSnapshot().snapshot?.roots ?? []
     const destination = resolveDriveRoot(directory, currentRoots)
     const sameProject = sources.every(
@@ -136,8 +185,8 @@ export function MoveToDialog({ sources, rootPath, fs, tree, onMoveTo, onClose }:
       onClose={onClose}
       onError={report}
       labels={{
-        title: t("workspace.moveDialogTitle", { count: sources.length }),
-        confirm: t("workspace.move"),
+        title: t(publishing ? "workspace.publishDialogTitle" : "workspace.moveDialogTitle", { count: sources.length }),
+        confirm: t(publishing ? "workspace.publish" : "workspace.move"),
         cancel: t("workspace.cancel"),
         notSynced: t("workspace.moveTargetNotSynced"),
         expand: t("workspace.expandFolder"),

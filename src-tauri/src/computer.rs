@@ -21,7 +21,9 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), String> {
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(200)).await;
             let gateway = handle.state::<ComputerGateway>();
+            let _lifecycle = gateway.lifecycle.lock().await;
             if gateway.gateway.faulted() {
+                *gateway.failure.lock().unwrap() = Some("Computer connection failed during an action. Its outcome may be unknown; reconnect and observe before retrying.".into());
                 log::error!(
                     "Computer transport failed during a native action; stopping the driver before releasing ownership"
                 );
@@ -44,6 +46,9 @@ pub struct ComputerStatus {
     available: bool,
     enabled: bool,
     version: String,
+    phase: String,
+    last_error: Option<String>,
+    diagnostics: String,
 }
 fn check_surface(window: &WebviewWindow) -> Result<(), String> {
     if matches!(window.label(), "main" | "chat" | "settings") {
@@ -52,19 +57,25 @@ fn check_surface(window: &WebviewWindow) -> Result<(), String> {
         Err("Computer settings are unavailable in this window".into())
     }
 }
-fn status(state: &ComputerHost) -> Result<ComputerStatus, String> {
+fn status(state: &ComputerHost, gateway: &ComputerGateway) -> Result<ComputerStatus, String> {
     let state = state.status()?;
+    let failure = gateway.failure.lock().unwrap().clone();
     Ok(ComputerStatus {
         permissions: state.permissions,
         available: state.available,
         enabled: state.ready,
         version: state.version,
+        phase: if failure.is_some() { "failed".into() } else { state.phase },
+        last_error: state.last_error.or(failure),
+        diagnostics: format!("{}\n{}", state.diagnostics, gateway.gateway.diagnostics()),
     })
 }
 #[tauri3_specta::command]
-pub fn computer_status(window: WebviewWindow, state: State<'_, ComputerHost>) -> Result<ComputerStatus, String> {
+pub fn computer_status(
+    window: WebviewWindow, state: State<'_, ComputerHost>, gateway: State<'_, ComputerGateway>,
+) -> Result<ComputerStatus, String> {
     check_surface(&window)?;
-    status(&state)
+    status(&state, &gateway)
 }
 #[tauri3_specta::command]
 pub async fn computer_request_permissions(
@@ -105,19 +116,41 @@ pub async fn computer_request_permissions(
     }
 }
 #[tauri3_specta::command]
-pub async fn computer_start(window: WebviewWindow, state: State<'_, ComputerHost>) -> Result<ComputerStatus, String> {
+pub async fn computer_start(
+    window: WebviewWindow, state: State<'_, ComputerHost>, gateway: State<'_, ComputerGateway>,
+) -> Result<ComputerStatus, String> {
     check_surface(&window)?;
+    let _lifecycle = gateway.lifecycle.lock().await;
+    if gateway.gateway.faulted() {
+        state.stop_current().await?;
+        gateway.gateway.stop_all();
+    }
     state.start(APPLICATION_GRANT.into()).await?;
-    status(&state)
+    *gateway.failure.lock().unwrap() = None;
+    status(&state, &gateway)
 }
 #[tauri3_specta::command]
 pub async fn computer_stop(
     window: WebviewWindow, state: State<'_, ComputerHost>, gateway: State<'_, ComputerGateway>,
 ) -> Result<(), String> {
     check_surface(&window)?;
+    let _lifecycle = gateway.lifecycle.lock().await;
     state.stop_current().await?;
     gateway.gateway.stop_all();
     Ok(())
+}
+/// Never replays actions: fresh driver and MCP generation, then a new observation.
+#[tauri3_specta::command]
+pub async fn computer_reconnect(
+    window: WebviewWindow, state: State<'_, ComputerHost>, gateway: State<'_, ComputerGateway>,
+) -> Result<ComputerStatus, String> {
+    check_surface(&window)?;
+    let _lifecycle = gateway.lifecycle.lock().await;
+    state.stop_current().await?;
+    gateway.gateway.stop_all();
+    state.start(APPLICATION_GRANT.into()).await?;
+    *gateway.failure.lock().unwrap() = None;
+    status(&state, &gateway)
 }
 #[tauri3_specta::command]
 pub fn computer_context(
@@ -155,6 +188,8 @@ pub fn computer_context(
 
 #[derive(Default)]
 pub struct ComputerGateway {
+    lifecycle: tokio::sync::Mutex<()>,
+    failure: std::sync::Mutex<Option<String>>,
     pub gateway: std::sync::Arc<alwith_computer::gateway::Gateway>,
     subscriptions: std::sync::Mutex<std::collections::HashMap<String, (String, tokio::sync::watch::Sender<bool>)>>,
 }

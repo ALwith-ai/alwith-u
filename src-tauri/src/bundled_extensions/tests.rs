@@ -62,7 +62,7 @@ fn fixture_package(root: &Path, id: &str) {
         path.join("manifest.json"),
         serde_json::json!({
             "manifestVersion": 3, "id": id, "name": id, "version": "1.0.0", "entry": "main.js",
-            "dependencies": { "@alwith/module-extension": "^0.1.0" }, "dataSchemaVersion": 1
+            "dependencies": { "@alwith/module-extension": "^0.5.0" }, "dataSchemaVersion": 1
         })
         .to_string(),
     )

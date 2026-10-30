@@ -1,4 +1,5 @@
-import { applyUpdate, createSession } from "@alwith/api"
+import { timelineRegistry } from "@alwith/module-chat/timeline-registry"
+import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
@@ -11,7 +12,6 @@ import { initI18n } from "@/lib/i18n"
 
 import { ChatActionsMenu } from "../chat-actions-menu"
 import { ChatSearch } from "../dialogs/chat-search"
-import { threadRegistry } from "../lib/thread-registry"
 import * as projectApps from "../open-in-editor"
 
 // Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
@@ -102,8 +102,8 @@ test("delete requires confirmation, keeps the dialog on failure and reports the 
 test("menu search opens the current chat search and keeps focus in its input", async () => {
   mockWindows("chat")
   mockIPC(() => {}, { shouldMockEvents: true })
-  const registry = threadRegistry.getState()
-  threadRegistry.setState({ sessionId: null, turns: [] })
+  const registry = timelineRegistry.getState()
+  timelineRegistry.setState({ sessionId: null, turns: [] })
   const rootRef = createRef<HTMLDivElement>()
   const view = render(
     <div ref={rootRef}>
@@ -139,7 +139,7 @@ test("menu search opens the current chat search and keeps focus in its input", a
     view.unmount()
     await act(() => {
       return Promise.try(() => {
-        threadRegistry.setState(registry, true)
+        timelineRegistry.setState(registry, true)
       })
     })
     clearMocks()

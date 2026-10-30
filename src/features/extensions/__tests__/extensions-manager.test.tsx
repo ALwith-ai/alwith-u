@@ -31,7 +31,7 @@ function installation(id: string, name: string): Installation {
       manifestVersion: 3,
       entry: "main.js",
       dataSchemaVersion: 1,
-      dependencies: { "@alwith/module-extension": "^0.1.0" },
+      dependencies: { "@alwith/module-extension": "^0.5.0" },
       hosts: {}
     }
   }
@@ -67,6 +67,9 @@ function setup(
       state={snapshot}
       host={contributions}
       busy={busy}
+      onRetry={() => {
+        actions.push({ retry: true })
+      }}
       onInstall={(id?: string): void => {
         actions.push({ install: id ?? null })
       }}
@@ -231,6 +234,9 @@ test("service failure is distinct from empty installations and blocks local acti
   expect(view.getByRole("alert").textContent).toContain("Storage unavailable")
   expect(view.queryByText("No app extensions installed.")).toBeNull()
   expect((view.getByRole("button", { name: "Install from folder" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(view.queryByRole("status")).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "Retry" }))
+  expect(view.actions).toEqual([{ retry: true }])
 })
 
 test("bundled wallpaper can be disabled but has no manual update or uninstall actions", async (): Promise<void> => {
@@ -300,39 +306,19 @@ test("search includes optional description and author", async (): Promise<void> 
   }
 })
 
-test("hovering extension information reveals full metadata and follows language changes", async (): Promise<void> => {
+test("extension rows stay flat on hover without metadata tooltips", async (): Promise<void> => {
   const snapshot = state()
-  const item = installation("alpha", "Alpha Notes")
-  item.manifest.description = "A complete description that remains available when the list truncates it."
-  item.manifest.author = "Example Team"
-  item.manifest.authorUrl = "https://example.com/team"
-  item.manifest.locales = { zh: { name: "阿尔法笔记", description: "完整的扩展简介，不因列表省略而丢失。" } }
-  snapshot.native.installations = [item]
+  snapshot.native.installations = [installation("alpha", "Alpha Notes")]
   const view = setup(snapshot)
-  expect(view.queryByRole("tooltip")).toBeNull()
+  const row = view.getByRole("region", { name: "Alpha Notes" })
+  expect(row.querySelector('[data-slot="item"]')).not.toHaveClass("chrome-hover", "hover:bg-foreground/8")
+  fireEvent.mouseEnter(view.getByText("Alpha Notes"))
+  fireEvent.mouseMove(view.getByText("Alpha Notes"))
   await act(async () => {
-    const information = view.getByRole("group", { name: "Details for Alpha Notes" })
-    fireEvent.mouseEnter(information)
-    fireEvent.mouseMove(information)
     await new Promise((resolve) => setTimeout(resolve, 350))
   })
-  const details = within(view.getByRole("tooltip"))
-  for (const text of [
-    "Alpha Notes",
-    item.manifest.description,
-    "Example Team",
-    "1.0.0",
-    "alpha",
-    "https://example.com/team"
-  ])
-    expect(details.getByText(text)).toBeTruthy()
-  await act(async () => {
-    await i18n.changeLanguage("zh-CN")
-  })
-  expect(details.getByText("阿尔法笔记")).toBeTruthy()
-  expect(details.getByText("完整的扩展简介，不因列表省略而丢失。")).toBeTruthy()
-  expect(details.getByText("作者")).toBeTruthy()
-  expect(view.actions).toEqual([])
+  expect(view.queryByRole("tooltip")).toBeNull()
+  expect(row.querySelector("[aria-describedby]")).toBeNull()
 })
 
 test("host language changes localize disabled extensions and uninstall prompts without runtime requests", async (): Promise<void> => {
@@ -406,6 +392,68 @@ test("disabled extensions render Lucide metadata icons locally without image req
   expect(row.querySelector("svg.lucide-clock")).not.toBeNull()
   expect(row.querySelector("img")).toBeNull()
   expect(view.actions).toEqual([])
+})
+
+test.each([
+  ["bi-metrics", "lucide:chart", "lucide-chart-column"],
+  ["yup-kb", "lucide:globe", "lucide-book-open"],
+  ["etms-strategy-review", "lucide:settings", "lucide-shield-check"]
+])("legacy %s keeps its entry icon when disabled without reimporting", (id, oldIcon, selector): void => {
+  const snapshot = state()
+  const item = installation(id, id)
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = oldIcon
+  item.enabled = false
+  snapshot.native.installations = [item]
+  const view = setup(snapshot)
+  expect(view.getByRole("region", { name: id }).querySelector(`svg.${selector}`)).not.toBeNull()
+})
+
+test("legacy list uses its current entry icon instead of compatibility metadata", (): void => {
+  const snapshot = state()
+  const item = installation("yup-kb", "Knowledge")
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = "lucide:globe"
+  snapshot.native.installations = [item]
+  const view = setup(snapshot, false, {
+    ...host,
+    actions: [
+      {
+        id: "yup-kb/open",
+        extensionId: "yup-kb",
+        title: "Knowledge",
+        placement: "topBar",
+        icon: "file-text",
+        target: { type: "surface", id: "yup-kb/page" }
+      }
+    ],
+    views: [surface("yup-kb", "yup-kb/page", "Knowledge")]
+  })
+  const row = view.getByRole("region", { name: "Knowledge" })
+  expect(row.querySelector("svg.lucide-file-text")).not.toBeNull()
+  expect(row.querySelector("svg.lucide-globe")).toBeNull()
+})
+
+test("legacy list matches the default icon of an entry without an explicit icon", (): void => {
+  const snapshot = state()
+  const item = installation("yup-kb", "Knowledge")
+  item.source = "legacy:alwith-u"
+  item.manifest.icon = "lucide:globe"
+  snapshot.native.installations = [item]
+  const view = setup(snapshot, false, {
+    ...host,
+    actions: [
+      {
+        id: "yup-kb/open",
+        extensionId: "yup-kb",
+        title: "Knowledge",
+        placement: "topBar",
+        target: { type: "surface", id: "yup-kb/page" }
+      }
+    ],
+    views: [surface("yup-kb", "yup-kb/page", "Knowledge")]
+  })
+  expect(view.getByRole("region", { name: "Knowledge" }).querySelector("svg.lucide-blocks")).not.toBeNull()
 })
 
 test("does not show a compatibility notice for supported Yup history", () => {

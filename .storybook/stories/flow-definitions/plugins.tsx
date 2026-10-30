@@ -35,7 +35,9 @@ export const Install: Story = {
 export const Toggle: Story = {
   name: "已安装 → 停用 → 启用",
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
+    await userEvent.click(
+      within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
     await userEvent.click(await canvas.findByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await canvas.findByRole("switch", { name: /启用.*Spreadsheets/ })
     await userEvent.click(canvas.getByRole("switch", { name: /启用.*Spreadsheets/ }))
@@ -43,20 +45,22 @@ export const Toggle: Story = {
   }
 }
 export const Uninstall: Story = {
-  name: "已安装 → 更多操作 → 卸载",
+  name: "已安装 → 详情 → 卸载",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(body.getByRole("tab", { name: "已安装" }))
-    await userEvent.click((await body.findAllByRole("button", { name: "更多操作" }))[0]!)
-    await userEvent.click(await body.findByRole("menuitem", { name: /卸载/ }))
+    await userEvent.click(
+      within(body.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
+    )
+    await userEvent.click(await body.findByRole("button", { name: /卸载/ }))
     await waitFor(() => expect(pluginsStore.getState().installed).toHaveLength(1))
   }
 }
 export const SkillToggle: Story = {
   name: "已安装 → 技能停用与启用",
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("tab", { name: "已安装" }))
-    const switches = await canvas.findAllByRole("switch", { name: "禁用技能" })
+    await userEvent.click(canvas.getByRole("button", { name: "技能" }))
+    await userEvent.click(await canvas.findByRole("button", { name: "project-review" }))
+    const switches = await within(document.body).findAllByRole("switch", { name: /^禁用技能:/ })
     await userEvent.click(switches[0]!)
     await waitFor(() => expect(pluginsStore.getState().skills[0]?.enabled).toBe(false))
   }

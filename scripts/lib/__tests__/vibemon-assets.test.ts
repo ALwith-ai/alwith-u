@@ -50,7 +50,10 @@ for (const base of ["/", "./"]) {
         "proceed-hover",
         "proceed-active"
       ])
-        expect([...files].some((file) => basename(file).startsWith(`${name}-`))).toBe(true)
+        expect(
+          [...files].some((file) => basename(file).startsWith(`${name}-`)),
+          `Missing emitted asset: ${name}; emitted: ${[...files].join(", ")}`
+        ).toBe(true)
       expect([...files].filter((file) => /\.(mp4|webm)$/.test(file))).toHaveLength(3)
 
       let references = 0

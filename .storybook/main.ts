@@ -32,6 +32,13 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     const { mergeConfig } = await import("vite")
     return mergeConfig(config, {
+      define: {
+        __ALWITH_APP_ENV__: JSON.stringify({
+          apiBaseUrl: "https://api.example.test/service",
+          webSsoBaseUrl: "https://example.test"
+        })
+      },
+      server: { watch: { ignored: ["**/src-tauri/**", "**/storybook-static/**"] } },
       plugins: [
         {
           name: "storybook-host-boundaries",
@@ -55,6 +62,20 @@ const config: StorybookConfig = {
         },
         tailwindcss()
       ],
+      // Worker URLs must be transformed by Vite instead of dependency prebundling.
+      optimizeDeps: {
+        entries: [path.resolve(import.meta.dirname, "stories/**/*.stories.tsx")],
+        exclude: ["@alwith/module-chat"],
+        // The excluded module's CommonJS dependencies still need prebundling, as in vite.config.ts.
+        include: [
+          "@base-ui/react/radio",
+          "@base-ui/react/radio-group",
+          "diff2html",
+          "diff2html/lib/types",
+          "use-sync-external-store/shim",
+          "use-sync-external-store/shim/with-selector"
+        ]
+      },
       resolve: {
         alias: {
           "@/lib/open": path.resolve(import.meta.dirname, "fixtures/open.ts"),

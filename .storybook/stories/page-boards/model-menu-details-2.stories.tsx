@@ -4,10 +4,8 @@ import * as source from "../pages/model-menu-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-model-menu-details-2",
-  title: "页面/主窗聊天/模型菜单/页面操作"
+  title: "页面/主窗聊天/模型菜单/页面状态"
 }
 export default meta
 
-export const Providers = { ...source.Providers, name: "模型供应商" }
-export const ScrollableCatalog = { ...source.ScrollableCatalog, name: "可滚动模型目录" }
-export const OpenMenu = { ...source.OpenMenu, name: "展开模型菜单" }
+export const DelayedEffort = { ...source.DelayedEffort, name: "Effort" }

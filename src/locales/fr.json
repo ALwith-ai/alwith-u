@@ -15,6 +15,7 @@
     "pending": "En attente"
   },
   "actions": {
+    "confirm": "Confirmer",
     "copy": "Copier",
     "copied": "Copié",
     "cancel": "Annuler",
@@ -48,7 +49,6 @@
     "newChat": "Nouveau chat",
     "chats": "Discussions",
     "untitled": "Nouveau chat",
-    "unarchive": "Restaurer",
     "delete": "Supprimer",
     "rename": "Renommer",
     "search": "Rechercher dans les chats…",
@@ -60,10 +60,7 @@
     "showRight": "Afficher la barre latérale droite",
     "hideRight": "Masquer la barre latérale droite",
     "backToMain": "Revenir à l’écran principal",
-    "archived": "Archivées",
-    "archive": "Archiver",
     "loadMore": "Charger plus",
-    "fork": "Créer une branche",
     "deleteTitle": "Supprimer cette discussion ?",
     "deleteDescription": "Cette discussion sera définitivement supprimée. Cette action est irréversible.",
     "noResults": "Aucune discussion trouvée"
@@ -110,8 +107,12 @@
     "steerPlaceholder": "Ajouter une instruction au tour en cours",
     "permissionModes": {
       "readOnly": {
-        "name": "Demander une autorisation",
-        "description": "Toujours demander avant de modifier des fichiers externes ou d’utiliser Internet"
+        "name": "Lecture seule",
+        "description": "Lire les fichiers de l’espace de travail ; les modifications et l’accès à Internet nécessitent une approbation"
+      },
+      "workspaceAccess": {
+        "name": "Demander une approbation",
+        "description": "Lire et modifier les fichiers de l’espace de travail et exécuter des commandes ; l’accès à Internet et les modifications hors de l’espace de travail nécessitent une approbation"
       },
       "agent": {
         "name": "Approuver pour moi",
@@ -119,7 +120,7 @@
       },
       "fullAccess": {
         "name": "Accès complet",
-        "description": "Accès illimité à Internet et à tous les fichiers de votre ordinateur"
+        "description": "À utiliser avec précaution : Codex peut modifier des fichiers hors de cet espace de travail et accéder à Internet sans approbation"
       },
       "heading": "Comment approuver les actions de ALwith U ?"
     }
@@ -185,7 +186,13 @@
       "mac": "Changez de page avec trois doigts. Les gestes Mission Control ou App Exposé de macOS peuvent interrompre le balayage ; ajustez-les dans Réglages Système.",
       "windows": "Changez de page avec trois doigts sur un pavé tactile de précision. Les gestes système peuvent aussi se déclencher ; choisissez Rien pour les balayages à trois doigts dans Paramètres Windows > Bluetooth et appareils > Pavé tactile.",
       "unsupported": "Non pris en charge sous Linux. Utilisez les boutons de navigation ou faites glisser avec le bouton central de la souris."
-    }
+    },
+    "trackpad": "Pavé tactile",
+    "trackpadEnabled": "Activer les gestes du pavé tactile",
+    "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas",
+    "import": "Importer",
+    "explorer": "Explorateur",
+    "explorerHiddenDescription": "Afficher les fichiers et dossiers cachés dont le nom commence par un point (.)"
   },
   "usage": {
     "usage": "Utilisation",
@@ -346,10 +353,13 @@
     "confirm": "Confirmer",
     "newTab": "Nouvel onglet",
     "emptyNewTab": "Nouvel onglet",
-    "more": "Plus d’actions"
+    "more": "Plus d’actions",
+    "ignored": "Afficher les fichiers ignorés par Git"
   },
   "pet": {
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "lounge": "Salon Vibémon",
+    "recall": "Retourner au salon"
   },
   "app": {
     "name": "ALwith U"
@@ -361,5 +371,28 @@
   "canvas": {
     "navigation": "Navigation entre les pages",
     "page": "Page {{number}}"
+  },
+  "computer": {
+    "connection": "Connexion",
+    "reconnect": "Reconnecter",
+    "verifying": "Vérification…",
+    "reconnectHint": "La reconnexion arrête les actions et vérifie la capture et l’accessibilité. Aucune action n’est rejouée. Renvoyez ensuite votre message.",
+    "diagnostics": "Diagnostic (session actuelle)",
+    "phases": {
+      "disabled": "Désactivé",
+      "verifying": "Vérification de l’accès",
+      "ready": "Prêt",
+      "stopping": "Arrêt en cours",
+      "failed": "Récupération nécessaire"
+    }
+  },
+  "voice": {
+    "realtimeStart": "Démarrer un appel vocal Codex",
+    "realtimeStop": "Terminer l’appel vocal",
+    "realtimeCancel": "Annuler la connexion vocale"
+  },
+  "workbuddy": {
+    "headline": "Créez votre propre harness de bureau",
+    "create": "Créez votre ALwith"
   }
 }

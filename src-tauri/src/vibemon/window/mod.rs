@@ -66,7 +66,7 @@ fn validate(action: &WindowAction) -> Result<(), String> {
         return Err("Missing pet blur radius".into());
     }
     if let Some(radius) = action.radius
-        && !(1..=20).contains(&radius)
+        && radius > 20
     {
         return Err("Invalid pet blur radius".into());
     }
@@ -103,10 +103,14 @@ fn validate(action: &WindowAction) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn allows_action(label: &str, action: &str) -> bool {
+    matches!(label, "vibemon" | "bubble-menu-vibemon") || (action == "sound" && matches!(label, "main" | "chat"))
+}
+
 pub async fn perform(
     window: &WebviewWindow, action: &str, parent: Option<WebviewWindow>, extra: Value,
 ) -> Result<Value, String> {
-    if !matches!(window.label(), "vibemon" | "bubble-menu-vibemon") {
+    if !allows_action(window.label(), action) {
         return Err("Invalid pet window".into());
     }
     let host = window.clone();
@@ -136,7 +140,7 @@ pub async fn perform(
 }
 
 fn apply(host: &WebviewWindow, operation: &str, parent: Option<WebviewWindow>, extra: Value) -> Result<(), String> {
-    if matches!(operation, "present" | "focus" | "bubble") {
+    if matches!(operation, "present" | "focus" | "bubble" | "bubble-resize") {
         crate::window::ensure_open(host.app_handle())?;
     }
     #[cfg(target_os = "macos")]

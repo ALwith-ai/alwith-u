@@ -58,8 +58,8 @@ afterEach(() => {
 test("main surface snapshots reach a newly reporting chat window and follow selection and visibility", async () => {
   currentLabel = "main"
   useMainWindowSurface.setState({ sessionId: "main-before-chat", visible: true })
-  const stopMain = await serveChatSurface(async () => {
-    throw new Error("Surface synchronization must not navigate")
+  const stopMain = await serveChatSurface(() => {
+    return Promise.reject(new Error("Surface synchronization must not navigate"))
   })
   currentLabel = "chat"
   const reports: unknown[] = []
@@ -90,8 +90,8 @@ test("main surface snapshots reach a newly reporting chat window and follow sele
 
 test("the floating window applies main surface updates and removes the listener on cleanup", async () => {
   currentLabel = "chat"
-  const stopChat = await serveChatSurface(async () => {
-    throw new Error("Surface synchronization must not navigate")
+  const stopChat = await serveChatSurface(() => {
+    return Promise.reject(new Error("Surface synchronization must not navigate"))
   })
   try {
     await emitTo("chat", "chat:main-surface", { sessionId: "main-session", visible: true })

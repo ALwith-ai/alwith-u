@@ -1,4 +1,17 @@
 use super::{BackdropPathCommand, WindowAction, validate};
+
+#[test]
+fn lounge_can_play_the_handoff_sound_without_overlay_window_controls() {
+    for label in ["main", "chat"] {
+        assert!(super::allows_action(label, "sound"));
+        for action in ["present", "hide", "drag", "focus"] {
+            assert!(!super::allows_action(label, action));
+        }
+    }
+    assert!(!super::allows_action("settings", "sound"));
+    assert!(super::allows_action("vibemon", "sound"));
+}
+
 fn action(value: serde_json::Value) -> WindowAction {
     serde_json::from_value(value).unwrap()
 }
@@ -7,6 +20,8 @@ fn backdrop_rejects_invalid_radius_role_and_nonfinite_coordinates() {
     let mut backdrop = action(
         serde_json::json!({"action":"blur","handle":1,"role":"bubble","radius":20,"path":[{"kind":"move","x":0,"y":0},{"kind":"close"}]}),
     );
+    assert!(validate(&backdrop).is_ok());
+    backdrop.radius = Some(0);
     assert!(validate(&backdrop).is_ok());
     backdrop.radius = Some(21);
     assert!(validate(&backdrop).is_err());

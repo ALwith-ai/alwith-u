@@ -14,6 +14,7 @@
     "pending": "Tertunda"
   },
   "actions": {
+    "confirm": "Konfirmasi",
     "copy": "Salin",
     "copied": "Disalin",
     "cancel": "Batal",
@@ -47,7 +48,6 @@
     "newChat": "Obrolan baru",
     "chats": "Obrolan",
     "untitled": "Obrolan baru",
-    "unarchive": "Pulihkan",
     "delete": "Hapus",
     "rename": "Ganti nama",
     "search": "Cari Obrolan…",
@@ -59,10 +59,7 @@
     "showRight": "Tampilkan bilah samping kanan",
     "hideRight": "Sembunyikan bilah samping kanan",
     "backToMain": "Kembali ke layar utama",
-    "archived": "Diarsipkan",
-    "archive": "Arsipkan",
     "loadMore": "Muat lebih banyak",
-    "fork": "Buat cabang",
     "deleteTitle": "Hapus obrolan ini?",
     "deleteDescription": "Obrolan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
     "noResults": "Tidak ada obrolan ditemukan"
@@ -104,16 +101,20 @@
     "steerPlaceholder": "Tambahkan arahan untuk giliran saat ini",
     "permissionModes": {
       "readOnly": {
+        "name": "Hanya baca",
+        "description": "Baca berkas ruang kerja; pengeditan atau akses internet memerlukan persetujuan"
+      },
+      "workspaceAccess": {
         "name": "Minta persetujuan",
-        "description": "Selalu minta persetujuan sebelum mengedit file eksternal atau menggunakan internet"
+        "description": "Baca dan edit berkas ruang kerja serta jalankan perintah; akses internet atau pengeditan di luar ruang kerja memerlukan persetujuan"
       },
       "agent": {
         "name": "Setujui untuk saya",
-        "description": "Hanya minta persetujuan untuk tindakan yang terdeteksi berpotensi tidak aman"
+        "description": "Hanya tanyakan tindakan yang terdeteksi berpotensi tidak aman"
       },
       "fullAccess": {
         "name": "Akses penuh",
-        "description": "Akses tanpa batas ke internet dan file apa pun di komputer"
+        "description": "Gunakan dengan hati-hati: Codex dapat mengedit berkas di luar ruang kerja ini dan mengakses internet tanpa persetujuan"
       },
       "heading": "Bagaimana tindakan ALwith U disetujui?"
     }
@@ -179,7 +180,13 @@
       "mac": "Beralih halaman dengan tiga jari. Gestur Mission Control atau App Exposé macOS dapat mengganggu usapan; sesuaikan di Pengaturan Sistem.",
       "windows": "Beralih halaman dengan tiga jari pada touchpad presisi. Gestur sistem juga dapat berjalan; pilih Tidak ada untuk usapan tiga jari di Pengaturan Windows > Bluetooth & perangkat > Touchpad.",
       "unsupported": "Tidak didukung di Linux. Gunakan tombol navigasi atau seret dengan tombol tengah mouse."
-    }
+    },
+    "trackpad": "Trackpad",
+    "trackpadEnabled": "Aktifkan gestur trackpad",
+    "threeFingerSwipeDesc": "Geser horizontal dengan tiga jari untuk menggeser kanvas",
+    "import": "Impor",
+    "explorer": "Penjelajah",
+    "explorerHiddenDescription": "Tampilkan file dan direktori tersembunyi yang namanya diawali titik (.)"
   },
   "usage": {
     "usage": "Penggunaan",
@@ -353,10 +360,13 @@
     "source": "Sumber",
     "newTab": "Tab baru",
     "emptyNewTab": "Tab baru",
-    "more": "Tindakan lainnya"
+    "more": "Tindakan lainnya",
+    "ignored": "Tampilkan file yang diabaikan Git"
   },
   "pet": {
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "lounge": "Ruang istirahat Vibémon",
+    "recall": "Kembalikan ke ruang istirahat"
   },
   "app": {
     "name": "ALwith U"
@@ -368,5 +378,28 @@
   "canvas": {
     "navigation": "Navigasi halaman",
     "page": "Halaman {{number}}"
+  },
+  "computer": {
+    "connection": "Koneksi",
+    "reconnect": "Hubungkan ulang",
+    "verifying": "Memverifikasi…",
+    "reconnectHint": "Menghubungkan ulang menghentikan tindakan dan memeriksa tangkapan layar serta aksesibilitas. Tindakan tidak diulang. Kirim pesan lagi setelah terhubung.",
+    "diagnostics": "Diagnostik (sesi aplikasi saat ini)",
+    "phases": {
+      "disabled": "Nonaktif",
+      "verifying": "Memeriksa akses",
+      "ready": "Siap",
+      "stopping": "Menghentikan",
+      "failed": "Perlu pemulihan"
+    }
+  },
+  "voice": {
+    "realtimeStart": "Mulai panggilan suara Codex",
+    "realtimeStop": "Akhiri panggilan suara",
+    "realtimeCancel": "Batalkan koneksi suara"
+  },
+  "workbuddy": {
+    "headline": "Bangun harness desktop Anda sendiri",
+    "create": "Buat ALwith Anda sendiri"
   }
 }

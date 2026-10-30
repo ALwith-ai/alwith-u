@@ -211,10 +211,10 @@ test("floating fork sends the source and turn to the owner and receives the new 
     const source = await remote.newSession("/tmp/floating")
     const child = await remote.fork(source, "/tmp/floating", "turn-1")
     expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
-    expect(remote.state.threads.find((thread) => thread.sessionId === child)?.forkedFromId).toBe(source)
+    expect(remote.state.sessionList.find((sessionRow) => sessionRow.sessionId === child)?.forkedFromId).toBe(source)
     expect(remote.session(child).attached).toBe(true)
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
-    expect((await remote.readThreadSummary(source))?.sessionId).toBe(source)
+    expect((await remote.readSessionSummary(source))?.sessionId).toBe(source)
     expect(port.started).toEqual(["codex"])
     await remote.stopSession(source)
     expect(owner.state.sessions[source]?.attached).toBe(false)
@@ -438,7 +438,7 @@ test("draft handoff keeps its model and only the new owner can discard it", asyn
 const codexModel = "gpt-6-astra"
 const deepseekModel = "gateway:deepseek:deepseek-flash"
 
-test("floating model selection and restore use only the floating slot", async () => {
+test("floating model selection does not override restored sessions", async () => {
   const f = await providerWindows()
   try {
     f.owner.setModelSelections({ main: codexModel, chat: codexModel })
@@ -448,8 +448,8 @@ test("floating model selection and restore use only the floating slot", async ()
     await f.remote.setConfig(draft, "model", deepseekModel)
     await f.owner.open("h1", "/tmp/main-restore")
     await f.remote.open("h2", "/tmp/floating-restore")
-    expect(f.fake.modelHints.get("h1")).toBe(codexModel)
-    expect(f.fake.modelHints.get("h2")).toBe(deepseekModel)
+    expect(f.fake.modelHints.get("h1")).toBeNull()
+    expect(f.fake.modelHints.get("h2")).toBeNull()
     expect(choices).toEqual([["chat", deepseekModel]])
   } finally {
     f.dispose()
@@ -641,11 +641,77 @@ test("floating project views use the owner's full session list and receive mutat
   const remote = new RemoteChatClient(transport)
   try {
     await remote.connect()
-    expect((await remote.listProjectThreads("/tmp/one")).map((thread) => thread.sessionId)).toEqual(["h1"])
-    expect(fake.fullListRequests).toEqual([undefined])
+    expect((await remote.listProjectSessions("/tmp/one")).map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
+    expect(fake.fullListRequests).toEqual([{}])
     await owner.renameSession("h1", "Renamed")
-    expect((await remote.listProjectThreads("/tmp/one"))[0]?.title).toBe("Renamed")
+    expect((await remote.listProjectSessions("/tmp/one"))[0]?.title).toBe("Renamed")
     expect(fake.fullListRequests).toHaveLength(1)
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
+test("floating realtime forwards SDP before start acknowledgement and releases its subscription", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  let receive: Parameters<CodexClient["onRealtime"]>[1] | undefined
+  const unsubscribe = vi.fn()
+  vi.spyOn(owner, "onRealtime").mockImplementation((_id, fn) => {
+    receive = fn
+    return unsubscribe
+  })
+  const start = vi.spyOn(owner, "startRealtime").mockImplementation((sessionId) => {
+    receive?.({ sessionId, event: "sdp", data: { sdp: "answer" } })
+    return Promise.resolve({})
+  })
+  const end = vi.spyOn(owner, "stopRealtime").mockImplementation((sessionId) => {
+    receive?.({ sessionId, event: "closed", data: { reason: null } })
+    return Promise.resolve({})
+  })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    const events: string[] = []
+    const unlisten = remote.onRealtime("existing", (event) => events.push(event.event))
+    await remote.startRealtime("existing", { outputModality: "audio", transport: { type: "webrtc", sdp: "offer" } })
+    expect(events).toEqual(["sdp"])
+    expect(start).toHaveBeenCalledWith("existing", {
+      outputModality: "audio",
+      transport: { type: "webrtc", sdp: "offer" }
+    })
+    await expect(
+      remote.startRealtime("existing", { outputModality: "audio", transport: { type: "webrtc", sdp: "duplicate" } })
+    ).rejects.toThrow("A voice call already owns this session")
+    expect(unsubscribe).not.toHaveBeenCalled()
+    await remote.stopRealtime("existing")
+    expect(events).toEqual(["sdp", "closed"])
+    expect(end).toHaveBeenCalledTimes(1)
+    expect(unsubscribe).toHaveBeenCalledTimes(1)
+    unlisten()
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
+test("floating shell commands execute on the main owner with an explicit session id", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const execute = vi.spyOn(owner, "executeShell").mockResolvedValue(undefined)
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  try {
+    await remote.connect()
+    await remote.executeShell("target-session", "printf shell-result")
+    expect(execute).toHaveBeenCalledExactlyOnceWith("target-session", "printf shell-result")
   } finally {
     remote.disconnect()
     stop()

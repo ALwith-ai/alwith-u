@@ -74,7 +74,16 @@ async function chooseSession(payload: {
 export function petWindowCall<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   if (action === "session-menu") return chooseSession(payload as Parameters<typeof chooseSession>[0]) as Promise<T>
   if (action === "bubble-interact" || action === "dismiss-result") return requestPet(action, payload)
-  if (action === "menu") payload = { ...payload, closeLabel: i18n.t("pet.hide") }
+  if (action === "menu") payload = { ...payload, closeLabel: i18n.t("pet.recall") }
+  if (action === "drag")
+    return (async () => {
+      await emitTo("main", "vibemon:drag-start")
+      try {
+        return await invoke<T>("vibemon_window", { action, payload })
+      } finally {
+        await emitTo("main", "vibemon:drag-end")
+      }
+    })()
   return invoke<T>("vibemon_window", { action, payload })
 }
 export function createPetWindowClient(): PetWindowHost {
