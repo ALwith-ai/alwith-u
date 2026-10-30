@@ -40,7 +40,7 @@ function tauriStep(job: Job): Step {
 }
 
 const releaseTargets = [
-  { target: "aarch64-apple-darwin", runner: "macos-15" },
+  { target: "aarch64-apple-darwin", runner: "macos-26" },
   { target: "x86_64-pc-windows-msvc", runner: "windows-2025" }
 ]
 
