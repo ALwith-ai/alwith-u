@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { useUpdaterStore } from "@/features/updater/store"
 
@@ -12,6 +13,7 @@ import { SettingGroup, SettingRow } from "./shared"
 export function AboutSection() {
   const [clientVersion, setClientVersion] = useState<string | null>(null)
   const [cliVersion, setCliVersion] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
@@ -90,6 +92,28 @@ export function AboutSection() {
         <span className="text-sm text-muted-foreground">
           {t("settings.codexVersion", { version: cliVersion ?? "—" })}
         </span>
+      </SettingRow>
+      <SettingRow title={t("settings.diagnosticsTitle")} desc={t("settings.diagnosticsDescription")}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9"
+          disabled={exporting}
+          onClick={() => {
+            setExporting(true)
+            void commands
+              .diagnosticsExport()
+              .then((saved) => {
+                if (saved) toast.success(t("settings.diagnosticsExported"))
+              })
+              .catch((error: unknown) => {
+                toast.error(error instanceof Error ? error.message : String(error))
+              })
+              .finally(() => setExporting(false))
+          }}
+        >
+          {t(exporting ? "settings.diagnosticsExporting" : "settings.diagnosticsExport")}
+        </Button>
       </SettingRow>
       <SettingRow title={t("settings.licensesTitle")} desc={t("settings.licenses")} />
     </SettingGroup>

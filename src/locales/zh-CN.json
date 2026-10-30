@@ -495,7 +495,12 @@
     "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。",
     "import": "导入",
     "explorer": "资源管理器",
-    "explorerHiddenDescription": "显示以 . 开头的隐藏文件和目录"
+    "explorerHiddenDescription": "显示以 . 开头的隐藏文件和目录",
+    "diagnosticsTitle": "诊断日志",
+    "diagnosticsDescription": "本机最多保留最近 7 天、约 2 MB 的诊断信息。可导出到本地文件，不包含聊天内容、凭据或原始协议报文。",
+    "diagnosticsExport": "导出诊断日志",
+    "diagnosticsExporting": "正在导出…",
+    "diagnosticsExported": "诊断日志已导出"
   },
   "usage": {
     "title": "套餐用量限额",

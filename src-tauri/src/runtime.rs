@@ -255,6 +255,7 @@ pub async fn runtime_start(
             for event in burst {
                 match event {
                     ClientEvent::Closed { reason } => {
+                        crate::diagnostics::runtime_closed(&reason);
                         crate::power::sync(&app, false);
                         if let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
@@ -274,6 +275,7 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
+                        crate::diagnostics::runtime_event(&event);
                         crate::providers::managed::observe_event(&app, &event);
                         crate::mobile::publish(&event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
@@ -359,6 +361,11 @@ pub async fn runtime_send(
     window: WebviewWindow, state: State<'_, RuntimeState>, line: String, connection_id: String,
 ) -> Result<(), String> {
     let request: Request = serde_json::from_str(&line).map_err(|error| error.to_string())?;
+    let mut diagnostic = crate::diagnostics::RequestTrace::begin(
+        &request.method,
+        request.params.as_ref(),
+        &format!("{connection_id}:{}", request.id),
+    );
     let current_connection = || state.connections.lock().unwrap().get(window.label()) == Some(&connection_id);
     if !current_connection() {
         return Err("Window connection replaced".into());
@@ -404,6 +411,7 @@ pub async fn runtime_send(
     let generation = crate::providers::managed::check(window.app_handle(), &request.method, request.params.as_ref())?;
     let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
+    diagnostic.finish(&outcome);
     if let (Some(params), Ok(value)) = (&original, &outcome) {
         crate::providers::managed::observe_realtime(window.app_handle(), &request.method, params);
         let body = if request.method == "acpRequest" { &params["params"] } else { params };

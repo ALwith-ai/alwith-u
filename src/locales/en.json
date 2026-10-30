@@ -495,7 +495,12 @@
     "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off.",
     "import": "Import",
     "explorer": "Explorer",
-    "explorerHiddenDescription": "Show hidden files and directories whose names start with a dot (.)"
+    "explorerHiddenDescription": "Show hidden files and directories whose names start with a dot (.)",
+    "diagnosticsTitle": "Diagnostic logs",
+    "diagnosticsDescription": "Keep up to 7 days of diagnostic metadata, within 2 MB. Export a local copy without conversation content, credentials or raw protocol messages.",
+    "diagnosticsExport": "Export diagnostic logs",
+    "diagnosticsExporting": "Exporting…",
+    "diagnosticsExported": "Diagnostic logs exported"
   },
   "usage": {
     "title": "Plan usage limits",

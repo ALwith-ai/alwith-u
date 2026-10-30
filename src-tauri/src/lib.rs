@@ -13,6 +13,7 @@ mod bundled_extensions;
 mod chat_files;
 mod chat_window;
 mod computer;
+mod diagnostics;
 mod draft_directory;
 mod drive;
 mod extension_capabilities;
@@ -90,7 +91,22 @@ pub fn run() {
                 log::error!("Cannot reopen main window: {error}");
             }
         }))
-        .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .max_file_size(2 * 1024 * 1024)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(3))
+                .format(|out, message, record| {
+                    diagnostics::native_log(record.level(), &message.to_string());
+                    out.finish(format_args!(
+                        "[{:?}][{}][{}] {message}",
+                        std::time::SystemTime::now(),
+                        record.level(),
+                        record.target()
+                    ));
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
@@ -170,6 +186,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            diagnostics::install(app.handle())?;
             match app.path().app_log_dir() {
                 Ok(directory) => panic_report::install(directory.join("panic.log")),
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
@@ -298,6 +315,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 autostart::autostart_status,
+                diagnostics::diagnostics_export,
                 computer::computer_status,
                 computer::computer_start,
                 computer::computer_reconnect,

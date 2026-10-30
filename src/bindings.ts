@@ -12,6 +12,7 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
+  diagnosticsExport: (): Promise<boolean> => __t3Invoke<boolean>("diagnostics_export"),
   computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
   computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
   /**
@@ -292,6 +293,7 @@ export const commands = {
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
   autostartStatus: string
+  diagnosticsExport: string
   computerStatus: string
   computerStart: string
   computerReconnect: string
