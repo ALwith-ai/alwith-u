@@ -6,16 +6,20 @@ const ports = vi.hoisted(() => ({
   refresh: vi.fn(),
   bundles: vi.fn(),
   ensure: vi.fn(),
-  recover: vi.fn()
+  recover: vi.fn(),
+  create: vi.fn()
 }))
 vi.mock("@alwith/module-extension/tauri", () => ({
-  createTauriExtensionRuntime: () => ({
-    start: ports.start,
-    refresh: ports.refresh,
-    subscribe: () => () => {},
-    snapshot: () => null,
-    host: {}
-  })
+  createTauriExtensionRuntime: (options: unknown) => {
+    ports.create(options)
+    return {
+      start: ports.start,
+      refresh: ports.refresh,
+      subscribe: () => () => {},
+      snapshot: () => null,
+      host: {}
+    }
+  }
 }))
 vi.mock("@alwith/module-extension/react", () => ({ mountReact: vi.fn(), useHostSnapshot: () => ({}) }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: "main" }) }))
@@ -48,6 +52,13 @@ test("window focus runs full recovery and unmount removes its listener", async (
   view.unmount()
   fireEvent(window, new Event("focus"))
   expect(ports.recover).toHaveBeenCalledOnce()
+})
+
+test("the application runtime retains support for the pre-0.5 extension API", async () => {
+  const { extensionApiSupport } = await import("../api-support")
+  const { getRuntime } = await import("../runtime")
+  getRuntime()
+  expect(ports.create).toHaveBeenCalledWith(expect.objectContaining(extensionApiSupport))
 })
 
 test.each(["service", "bundles"])(

@@ -23,6 +23,7 @@ import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
 
 import { version as hostVersion } from "../../../package.json"
+import { extensionApiSupport } from "./api-support"
 import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
@@ -44,7 +45,7 @@ export function reportExtensionError(error: unknown): void {
 
 export function getRuntime(): ExtensionRuntime {
   runtime ??= createTauriExtensionRuntime({
-    apiVersion: sdk.extensionApiVersion,
+    ...extensionApiSupport,
     host: { id: "alwith-u", version: hostVersion },
     capabilities: {
       ...commonCapabilities,
