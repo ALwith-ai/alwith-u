@@ -27,6 +27,7 @@ import {
   preloadTimelineUserMessageNavigationInstrument
 } from "./codex/navigation-audio"
 import { navigationSoundStore } from "./codex/navigation-sound-store"
+import { UndoActions } from "./undo-actions"
 
 function reportError(error: unknown) {
   const description = (error as ReportedError | null)?.description
@@ -47,16 +48,23 @@ export function useChatHost(sessionId?: string): ConversationHost {
       // Computer-use tools are private actions; show what they did, not the tool name.
       toolBlock: (block) => {
         const action = privateComputerAction(block.name) ?? privateComputerAction(block.title)
-        return action ? { ...block, kind: "other" as const, title: t(computerActionKey(action)) } : block
+        return action
+          ? {
+              ...block,
+              kind: "other" as const,
+              title: t(computerActionKey(action))
+            }
+          : block
       },
       saveFile: async (name, data) => {
         await invoke<boolean>("chat_save_file", { name, data })
       },
       FileIcon: CodexFileIcon,
+      EditedFilesActions: sessionId ? (props) => <UndoActions sessionId={sessionId} {...props} /> : undefined,
       reportError,
       writeTextAttachment: (name, text) => commands.chatWriteTextAttachment({ name, text })
     }),
-    [activity, resolvedTheme, t]
+    [activity, resolvedTheme, t, sessionId]
   )
 }
 

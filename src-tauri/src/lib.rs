@@ -364,6 +364,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 workspace::workspace_list_files,
                 workspace::workspace_import,
                 workspace::workspace_file,
+                workspace::workspace_apply_patches,
                 workspace::workspace_watch,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,

@@ -1366,5 +1366,13 @@
     "bareCaption": "无需 ALwith 账号，独立使用与定制。",
     "location": "项目位置",
     "chooseLocation": "选择新项目路径"
+  },
+  "undo": {
+    "undo": "撤销修改",
+    "reapply": "重新应用",
+    "working": "处理中…",
+    "unsupported": "这些修改缺少完整的可撤销文本补丁，或超出了支持范围。",
+    "busy": "请等待当前会话结束后再操作。",
+    "failed": "已处理 {{count}} 批修改，其余未执行：{{detail}}"
   }
 }

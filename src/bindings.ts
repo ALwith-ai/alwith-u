@@ -117,6 +117,11 @@ export const commands = {
   workspaceImport: (args: { root: string; destination: string; paths: string[] }): Promise<null> =>
     __t3Invoke<null>("workspace_import", args),
   workspaceFile: (args: { request: Value }): Promise<Value> => __t3Invoke<Value>("workspace_file", args),
+  /**
+   *  Apply only the patches explicitly selected in a conversation, coordinated with Drive writes.
+   */
+  workspaceApplyPatches: (args: { root: string; patches: Value; reverse: boolean }): Promise<Value> =>
+    __t3Invoke<Value>("workspace_apply_patches", args),
   workspaceWatch: (args: { path: string; enabled: boolean }): Promise<null> =>
     __t3Invoke<null>("workspace_watch", args),
   workspaceDirty: (args: { dirty: boolean }): Promise<null> => __t3Invoke<null>("workspace_dirty", args),
@@ -342,6 +347,7 @@ export type CommandErrors = {
   workspaceListFiles: string
   workspaceImport: string
   workspaceFile: string
+  workspaceApplyPatches: string
   workspaceWatch: string
   workspaceDirty: string
   workspaceExit: string

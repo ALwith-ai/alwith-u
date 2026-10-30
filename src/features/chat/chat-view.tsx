@@ -86,7 +86,7 @@ function Conversation({
       overlay={
         <>
           <div
-            className="pointer-events-none absolute top-0 right-0 z-20 w-72 max-w-full [&>*]:pointer-events-auto"
+            className="pointer-events-none absolute top-2 right-2 z-20 w-72 max-w-[calc(100%-16px)] [&>*]:pointer-events-auto"
             data-computer-preview-overlay
           >
             <SessionPreview key={session.id} sessionId={session.id} />

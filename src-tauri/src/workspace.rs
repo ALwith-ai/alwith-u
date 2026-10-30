@@ -361,3 +361,72 @@ mod workspace_tests {
         assert!(fs.authorize_path(&sibling.canonicalize().unwrap()).is_err());
     }
 }
+
+/// Apply only the patches explicitly selected in a conversation, coordinated with Drive writes.
+#[tauri3_specta::command]
+pub async fn workspace_apply_patches(
+    window: tauri::WebviewWindow, root: PathBuf, patches: Value, reverse: bool,
+) -> Result<Value, String> {
+    if !matches!(window.label(), "main" | "chat") {
+        return Err("Patch access is limited to conversation windows".into());
+    }
+    if DIRTY.load(std::sync::atomic::Ordering::Acquire) {
+        return Err("Save or close unsaved editor files before changing conversation patches".into());
+    }
+    let root = workspace_root(&root)?;
+    let patches: Vec<alwith_fs::patch::FilePatch> = serde_json::from_value(patches).map_err(|e| e.to_string())?;
+    let mut writes = Vec::new();
+    let mut removed = Vec::new();
+    for patch in &patches {
+        for path in patch.old_path.iter().chain(patch.new_path.iter()) {
+            writes.push(alwith_fs::patch::validate_path(&root, path)?);
+        }
+        if let Some(path) = (if reverse { &patch.new_path } else { &patch.old_path })
+            .as_ref()
+            .filter(|_| patch.old_path != patch.new_path)
+        {
+            removed.push(alwith_fs::patch::validate_path(&root, path)?);
+        }
+    }
+    let _operation = OPERATIONS.lock().await;
+    let drive_state = window.app_handle().state::<crate::drive::DriveState>();
+    let drive = drive_state.service()?;
+    let operation_root = root.clone();
+    let performed = std::sync::Arc::new(Mutex::new(None));
+    let observed = performed.clone();
+    let coordinated = drive
+        .with_filesystem(&writes, &removed, async move {
+            if DIRTY.load(std::sync::atomic::Ordering::Acquire) {
+                return Err("Save or close unsaved editor files before changing conversation patches".into());
+            }
+            let result = tokio::task::spawn_blocking(move || {
+                alwith_fs::patch::apply_patches(&operation_root, &patches, reverse)
+            })
+            .await
+            .map_err(|e| e.to_string())??;
+            *observed.lock().map_err(|e| e.to_string())? = Some(result.clone());
+            Ok(result)
+        })
+        .await;
+    // A Drive bookkeeping error after the write cannot erase completed patch receipts.
+    let result = match coordinated {
+        Ok(result) => result,
+        Err(error) => {
+            let Some(mut result) = performed.lock().map_err(|e| e.to_string())?.take() else {
+                return Err(error);
+            };
+            result.warning = Some(error);
+            result
+        }
+    };
+    let payload = serde_json::json!({ "root": root.to_string_lossy().replace('\\', "/"),
+        "paths": writes.iter().map(|p| p.to_string_lossy().replace('\\', "/")).collect::<Vec<_>>(), "error": null });
+    if let Err(error) = window.app_handle().emit("workspace:change", payload) {
+        log::error!("Patch applied but workspace notification failed: {error}");
+    }
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+#[path = "__tests__/file_patches.rs"]
+mod file_patch_tests;

@@ -1366,5 +1366,13 @@
     "bareCaption": "Use and customize your app independently, without an ALwith account.",
     "location": "Project location",
     "chooseLocation": "Choose a new project path"
+  },
+  "undo": {
+    "undo": "Undo",
+    "reapply": "Reapply",
+    "working": "Working…",
+    "unsupported": "These edits lack complete reversible text patches or exceed the supported limits.",
+    "busy": "Wait for this conversation to finish before changing files.",
+    "failed": "Applied {{count}} batches. Remaining batches were not applied: {{detail}}"
   }
 }
