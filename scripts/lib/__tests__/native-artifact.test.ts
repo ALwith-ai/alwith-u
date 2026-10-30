@@ -18,7 +18,7 @@ async function fixture() {
   mkdirSync(bridge, { recursive: true })
   mkdirSync(join(platform, "licenses"), { recursive: true })
   cpSync(
-    join(dirname(import.meta.resolve("@alwith/native-auth/stage").replace("file://", "")), "stage.js"),
+    join(dirname(fileURLToPath(import.meta.resolve("@alwith/native-auth/stage"))), "stage.js"),
     join(bridge, "stage.mjs")
   )
   const kit = join(root, "node_modules/@alwith/native-kit")

@@ -1,0 +1,138 @@
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
+import type { Meta, StoryObj } from "@storybook/react-vite"
+import { useState } from "react"
+import { expect, waitFor } from "storybook/test"
+
+import { Button } from "../../../src/components/ui/button"
+import { ChatTimeline } from "../../fixtures/chat-timeline"
+
+const paragraphs = Array.from({ length: 24 }, (_, index) => `Checking step ${index + 1} of the long task.`).join("\n\n")
+
+function ReasoningPreview() {
+  const [id] = useState(() => crypto.randomUUID())
+  // A sent prompt opens the turn, which stays live so its work section remains open as reasoning streams.
+  const [session, setSession] = useState(() => {
+    const content = [{ type: "text" as const, text: "Inspect the project" }]
+    const prompted = addPrompt(createSession(id, "/storybook/project"), content, `local:${id}`)
+    const sent = applyUpdate(acknowledgePrompt(prompted, `local:${id}`, `${id}-user`), {
+      sessionUpdate: "user_message",
+      messageId: `${id}-user`,
+      content
+    })
+    return applyUpdate(applyUpdate(sent, { sessionUpdate: "state_update", state: "running" } as never), {
+      sessionUpdate: "agent_thought_chunk",
+      messageId: id,
+      content: { type: "text", text: paragraphs }
+    })
+  })
+  const [finished, setFinished] = useState(false)
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-2">
+        <Button
+          disabled={finished}
+          onClick={() =>
+            setSession((current) =>
+              applyUpdate(current, {
+                sessionUpdate: "agent_thought_chunk",
+                messageId: id,
+                content: { type: "text", text: "\n\nNewest reasoning update." }
+              })
+            )
+          }
+        >
+          Append reasoning
+        </Button>
+        <Button
+          disabled={finished}
+          onClick={() => {
+            setSession((current) =>
+              applyUpdate(current, {
+                sessionUpdate: "agent_message_chunk",
+                messageId: `${id}-commentary`,
+                content: { type: "text", text: "Inspection complete; continuing the task." },
+                _meta: { codex: { phase: "commentary" } }
+              })
+            )
+            setFinished(true)
+          }}
+        >
+          Finish reasoning
+        </Button>
+      </div>
+      <div className="flex h-[480px] min-h-0 flex-col">
+        <ChatTimeline session={session} />
+      </div>
+    </div>
+  )
+}
+
+const meta = {
+  id: "页面-聊天-思考细节",
+  title: "页面/主窗聊天/思考细节",
+  component: ReasoningPreview,
+  globals: { locale: "en" },
+  parameters: {
+    a11y: {
+      config: {
+        // Codex's existing muted reasoning label is below AA contrast; retain all other checks.
+        rules: [{ id: "color-contrast", selector: ":not(.codex-reasoning-label)" }]
+      }
+    }
+  }
+} satisfies Meta<typeof ReasoningPreview>
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const LivePreview: Story = {
+  name: "实时预览",
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const viewport = () => {
+      const element = canvasElement.querySelector<HTMLElement>(".codex-reasoning-details")
+      if (element === null) throw new Error("Reasoning preview is missing")
+      return element
+    }
+    await userEvent.click(canvas.getByRole("button", { name: "Thinking" }))
+    const maxHeight = 8.75 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+    await waitFor(() => {
+      void expect(canvas.getByRole("button", { name: "Thinking" })).toHaveAttribute("aria-expanded", "true")
+      const preview = viewport()
+      void expect(preview.textContent).toContain("Checking step 24")
+      void expect(preview.getBoundingClientRect().height).toBeGreaterThan(0)
+      void expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(preview.scrollHeight).toBeGreaterThan(preview.clientHeight)
+      void expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
+    })
+    const previousScrollHeight = viewport().scrollHeight
+    await userEvent.click(canvas.getByRole("button", { name: "Append reasoning" }))
+    await waitFor(() => {
+      const preview = viewport()
+      void expect(preview.textContent).toContain("Newest reasoning update.")
+      void expect(preview.scrollHeight).toBeGreaterThan(previousScrollHeight)
+      void expect(preview.getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(preview.scrollHeight - preview.clientHeight - preview.scrollTop).toBeLessThanOrEqual(1)
+    })
+    await userEvent.click(canvas.getByRole("button", { name: "Finish reasoning" }))
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Thought" }))
+    await waitFor(() => {
+      void expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "false")
+      void expect(canvas.queryByRole("button", { name: "Thinking" })).toBeNull()
+      void expect(canvas.queryByRole("region", { name: "Thought" })).toBeNull()
+      const disclosure = viewport().closest(".codex-activity-details-grid")
+      void expect(disclosure?.getBoundingClientRect().height).toBeLessThanOrEqual(1)
+    })
+    await userEvent.click(canvas.getByRole("button", { name: "Thought" }))
+    await waitFor(() => {
+      void expect(canvas.getByRole("button", { name: "Thought" })).toHaveAttribute("aria-expanded", "true")
+      void expect(viewport().getBoundingClientRect().height).toBeGreaterThan(0)
+      void expect(viewport().getBoundingClientRect().height).toBeLessThanOrEqual(maxHeight)
+      void expect(viewport().textContent).toContain("Checking step 1")
+      void expect(viewport().textContent).toContain("Newest reasoning update.")
+    })
+    await userEvent.tab()
+    void expect(canvas.getByRole("region", { name: "Thought" })).toHaveFocus()
+  }
+}

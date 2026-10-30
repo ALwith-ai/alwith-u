@@ -234,6 +234,8 @@
 
     "@alwith/native-gamepad-linux-x64": ["@alwith/native-gamepad-linux-x64@0.5.0", "", { "os": "linux", "cpu": "x64" }, "sha512-X+oxrYvZPNslfxZtsuPySBBHi1JPn+JLjve0bPI6Q+0ZfDE+DqcQgKbqkN96sraZUq2dKvx14SUUX0rBwNQfSQ=="],
 
+    "@alwith/native-gamepad-win32-x64": ["@alwith/native-gamepad-win32-x64@0.5.0", "", { "os": "win32", "cpu": "x64" }, "sha512-TEDLwNmFZSuNU92VHo2ttMGakMS7Tw+rTwJPl9xijkLY0Z7PHikjsXc+W1Y2xenDisgDNNWQkGLYbvZkX7NruA=="],
+
     "@alwith/native-installed-apps": ["@alwith/native-installed-apps@0.5.0", "", { "dependencies": { "@alwith/native-kit": "0.5.0" }, "optionalDependencies": { "@alwith/native-installed-apps-darwin-arm64": "0.5.0", "@alwith/native-installed-apps-linux-x64": "0.5.0", "@alwith/native-installed-apps-win32-x64": "0.5.0" } }, "sha512-/92+bhmHapsaKGD5ff4fbd9UNX08DdVcTDHjy4xSBKl1TvbnSWOcWd57LDv5vJbVC78tQvBia12FRKKsz5dqCA=="],
 
     "@alwith/native-installed-apps-darwin-arm64": ["@alwith/native-installed-apps-darwin-arm64@0.5.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-KgmIdAkKSLBQS2Z9m2ht6kS+GF4JmjuPqQeIynxWFsNnkKx9cgb4pxU/gO5sC2E7CaZGaA0+CBrJT0L+U3OLRw=="],
@@ -247,6 +249,8 @@
     "@alwith/native-mobile": ["@alwith/native-mobile@0.5.2", "", { "dependencies": { "@alwith/native-kit": "0.5.0" }, "optionalDependencies": { "@alwith/native-mobile-darwin-arm64": "0.5.2", "@alwith/native-mobile-linux-x64": "0.5.2", "@alwith/native-mobile-win32-x64": "0.5.2" } }, "sha512-LnkOo81HlMHmZRXb5pRWKjNxOnAI/JaJZjiBBLiYIEKAGfowr37cyTucZsf2J2feFmyazVjtSgd9PTYF/eCVWg=="],
 
     "@alwith/native-mobile-darwin-arm64": ["@alwith/native-mobile-darwin-arm64@0.5.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-6Xabws5NKtn4CgvCc8dMjAzaHR4FdhQlMAJMAABylyvrzx4Q8zOmj4egJF2fvgvkKE6T3ksnbNSOsFmDevUOzw=="],
+
+    "@alwith/native-mobile-linux-x64": ["@alwith/native-mobile-linux-x64@0.5.2", "", { "os": "linux", "cpu": "x64" }, "sha512-juOsL9dUNaSJ6FsGQs5xMwtB0XuN5xs7wJjrShbGxlN0WhOV26AX/w0bSmGwJZa2u3pnAz5a6jL0Ed9WokPKpg=="],
 
     "@alwith/native-mobile-win32-x64": ["@alwith/native-mobile-win32-x64@0.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-8MIUkHiyYc4iCS6p9uJE7FepOasno3EHm3HMalgqZpq/iPy6mlhIJKlMdSnTBGFQ7XffCedjORPRs/Kc2AE9xQ=="],
 

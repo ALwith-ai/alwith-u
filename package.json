@@ -11,7 +11,7 @@
     "storybook": "bun --bun ./node_modules/storybook/dist/bin/dispatcher.js dev -p 6007 --host 127.0.0.1 --no-open --disable-telemetry",
     "storybook:build": "bun --bun ./node_modules/storybook/dist/bin/dispatcher.js build --disable-telemetry",
     "storybook:check": "bun check --no-script -p .storybook/tsconfig.json",
-    "storybook:test": "vitest run --config .storybook/vitest.config.ts",
+    "storybook:test": "bun scripts/test-storybook.ts",
     "build": "bun check --no-script -b && vite build",
     "preview": "vite preview",
     "dev:tauri": "bun tauri dev --features hasgard-testing --config src-tauri/tauri.dev-instance.conf.json",
