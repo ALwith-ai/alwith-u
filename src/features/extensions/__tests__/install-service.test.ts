@@ -9,7 +9,7 @@ const manifest = parseManifest({
   id: "notes",
   name: "Notes",
   version: "1.0.0",
-  dependencies: { "@alwith/module-extension": "^0.1.0" }
+  dependencies: { "@alwith/module-extension": "^0.5.0" }
 })
 const selected = { format: "current" as const, id: "notes", version: "1.0.0", digest: "new", path: "/source" }
 

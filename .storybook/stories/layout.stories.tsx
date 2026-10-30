@@ -34,7 +34,7 @@ const extensionManifests: ExtensionManifest[] = Array.from({ length: 20 }, (_, i
   manifestVersion: 3,
   entry: "main.js",
   dataSchemaVersion: 1,
-  dependencies: { "@alwith/module-extension": "^0.1.0" },
+  dependencies: { "@alwith/module-extension": "^0.5.0" },
   hosts: {}
 }))
 const extensionHost: HostSnapshot = {

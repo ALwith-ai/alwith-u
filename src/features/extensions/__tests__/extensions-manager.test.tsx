@@ -31,7 +31,7 @@ function installation(id: string, name: string): Installation {
       manifestVersion: 3,
       entry: "main.js",
       dataSchemaVersion: 1,
-      dependencies: { "@alwith/module-extension": "^0.1.0" },
+      dependencies: { "@alwith/module-extension": "^0.5.0" },
       hosts: {}
     }
   }

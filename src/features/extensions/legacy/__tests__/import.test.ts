@@ -10,7 +10,7 @@ describe("generic import with optional host adapters", () => {
       name: "Reader",
       version: "1.0.0",
       entry: "main.js",
-      dependencies: { "@alwith/module-extension": "^0.1.4" },
+      dependencies: { "@alwith/module-extension": "^0.5.0" },
       hosts: { "alwith-u": ">=0.1.1" },
       dataSchemaVersion: 1
     }

@@ -49,7 +49,7 @@ mod tests {
             "installations":[{
                 "id":"notes", "manifest":{
                     "manifestVersion":3, "id":"notes", "name":"Notes", "version":"1.0.0",
-                    "dependencies":{"@alwith/module-extension":"^0.1.5"}
+                    "dependencies":{"@alwith/module-extension":"^0.5.0"}
                 }, "source":"local", "installationId":"install", "packageRevision":"revision",
                 "dataGeneration":1, "enabled":true
             }]

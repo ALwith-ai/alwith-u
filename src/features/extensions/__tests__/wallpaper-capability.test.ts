@@ -12,7 +12,7 @@ const manifest = parseManifest({
   id: "wallpaper-client",
   name: "Test extension",
   version: "1.0.0",
-  dependencies: { "@alwith/module-extension": "^0.1.0" }
+  dependencies: { "@alwith/module-extension": "^0.5.0" }
 })
 
 test("wallpaper dialogs receive the current app language through the native boundary", async (): Promise<void> => {

@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-auth-client"
-version = "0.5.5"
+version = "0.5.10"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -64,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-browser"
-version = "0.0.1"
+version = "0.5.0"
 dependencies = [
  "dirs 7.0.0",
  "serde_json",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-computer"
-version = "0.1.4"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -83,7 +83,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-drive"
-version = "0.1.1"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-extension"
-version = "0.1.0-rc.19"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "percent-encoding",
@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-fs"
-version = "0.1.0-rc.7"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -121,7 +121,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-gamepad"
-version = "0.1.0-rc.3"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -131,7 +131,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-mobile"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "alwith-mobile-protocol",
  "alwith-native-client",
@@ -165,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-native-client"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "libloading",
  "serde",
@@ -244,7 +244,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-voice"
-version = "0.1.0-rc.13"
+version = "0.5.0"
 dependencies = [
  "alwith-native-client",
  "serde",
@@ -4210,6 +4210,7 @@ checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
  "once_cell",
+ "ring",
  "rustls-pki-types",
  "rustls-webpki",
  "subtle",
@@ -5134,13 +5135,15 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-alwith-desktop-shell"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "atlas-tauri",
  "log",
  "serde",
  "tauri",
  "tauri-plugin",
+ "tauri-plugin-updater",
+ "time",
 ]
 
 [[package]]
@@ -5466,6 +5469,7 @@ dependencies = [
  "osakit",
  "percent-encoding",
  "reqwest",
+ "rustls",
  "semver",
  "serde",
  "serde_json",

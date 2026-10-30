@@ -1077,7 +1077,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     name: "Chat",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     dataSchemaVersion: 1
   }

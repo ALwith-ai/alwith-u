@@ -26,7 +26,7 @@ test("background history failures propagate without global archival notices", as
     version: "1.0.0",
     manifestVersion: 3 as const,
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.10" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     dataSchemaVersion: 1
   }
@@ -90,7 +90,7 @@ test("extension notices remain manually dismissible after updating an indefinite
       version: "1.0.0",
       manifestVersion: 3,
       entry: "main.js",
-      dependencies: { "@alwith/module-extension": "^0.1.10" },
+      dependencies: { "@alwith/module-extension": "^0.5.0" },
       hosts: {},
       dataSchemaVersion: 1
     }

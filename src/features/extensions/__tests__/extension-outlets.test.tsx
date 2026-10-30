@@ -141,7 +141,7 @@ test("settings navigation uses the owning extension icon rather than its setting
     manifestVersion: 3,
     entry: "main.js",
     dataSchemaVersion: 1,
-    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     icon: "lucide:chart"
   }

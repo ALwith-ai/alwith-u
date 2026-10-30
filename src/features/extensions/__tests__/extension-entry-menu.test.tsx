@@ -53,7 +53,7 @@ function fixture() {
     manifestVersion: 3,
     entry: "main.js",
     dataSchemaVersion: 1,
-    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {}
   }))
   return { host, manifests, run, onManage, onOpenSurface, onError }

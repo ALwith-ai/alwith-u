@@ -32,7 +32,7 @@ test("private capability grants require native bundled provenance and matching i
     name: "Second",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: {},
     dataSchemaVersion: 1
   }

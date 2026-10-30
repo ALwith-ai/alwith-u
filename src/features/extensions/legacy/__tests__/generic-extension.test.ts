@@ -14,7 +14,7 @@ test("an unlisted legacy application loads modules, mounts a page, and shares fi
     name: "Reader",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.1.0-rc.11" },
+    dependencies: { "@alwith/module-extension": "^0.5.0" },
     hosts: { "alwith-u": ">=0.1.1" },
     dataSchemaVersion: 1
   }
