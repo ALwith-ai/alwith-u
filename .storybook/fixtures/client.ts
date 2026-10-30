@@ -44,7 +44,6 @@ const projectContext = {
 }
 const initialState = client.state
 let connectionCase = "ready"
-let connectAttempts = 0
 let sequence = 0
 let response: "complete" | "permission" | "question" | "error" = "complete"
 let draftFailure: string | null = null
@@ -89,7 +88,6 @@ export function resetClient(
   for (const timer of timers) clearTimeout(timer)
   timers = []
   connectionCase = options.connection ?? "ready"
-  connectAttempts = 0
   sequence = 0
   response = options.response ?? "complete"
   draftFailure = options.draftFailure ?? null
@@ -155,10 +153,12 @@ client.session = (id) => {
   return session
 }
 client.disconnect = async () => {}
+export function restoreConnection(): void {
+  connectionCase = "ready"
+}
 client.connect = async () => {
   if (connectionCase === "connecting") return new Promise(() => {})
-  if (["failed", "disconnected"].includes(connectionCase) && ++connectAttempts === 1)
-    throw new Error("模拟连接中断，请重试。")
+  if (["failed", "disconnected"].includes(connectionCase)) throw new Error("模拟连接中断，请重试。")
   client.store.setState({ connection: "ready", connectionError: null })
 }
 client.listSessions = async () => {}

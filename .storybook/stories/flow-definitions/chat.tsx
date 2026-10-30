@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor, within } from "storybook/test"
 
-import { actionsTaken, client } from "../../fixtures/client"
+import { actionsTaken, client, restoreConnection } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
@@ -53,7 +53,9 @@ export const Reconnect: Story = {
   name: "连接失败 → 重连 → 新聊天",
   args: { connection: "failed" },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: "重新连接" }))
+    const reconnect = await canvas.findByRole("button", { name: "重新连接" })
+    restoreConnection()
+    await userEvent.click(reconnect)
     await waitFor(() => expect(client.state.connection).toBe("ready"))
   }
 }

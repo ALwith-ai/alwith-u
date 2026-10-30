@@ -32,7 +32,7 @@ export const Palette: Story = {
   name: "搜索入口 → 查找聊天 → 打开会话",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(body.getByRole("button", { name: "搜索聊天" }))
+    await userEvent.click(body.getByRole("button", { name: "搜索聊天…" }))
     await userEvent.type(await body.findByRole("combobox"), "交付")
     await body.findAllByRole("option")
   }
@@ -41,7 +41,7 @@ export const NoMatch: Story = {
   name: "搜索入口 → 无匹配 → 退出",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(body.getByRole("button", { name: "搜索聊天" }))
+    await userEvent.click(body.getByRole("button", { name: "搜索聊天…" }))
     await userEvent.type(await body.findByRole("combobox"), "no-such-project-937")
     await userEvent.keyboard("{Escape}")
   }

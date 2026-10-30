@@ -22,7 +22,10 @@ function ExtensionSettingsPreview() {
     new Setting(container)
       .setName("API 域名")
       .setDesc("使用 HTTPS 反向代理时填写域名。")
-      .addText((control) => control.setValue("example.com"))
+      .addText((control) => {
+        control.setValue("example.com")
+        control.inputEl.setAttribute("aria-label", "API 域名")
+      })
     new Setting(container)
       .setName("使用 HTTPS")
       .setDesc("开启安全连接。")
