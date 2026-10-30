@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>
 export const Sections: Story = {
   name: "通用 → 外观 → 编辑器 → 账号 → 模型 → 语音 → 电脑 → 扩展 → 云盘 → 关于",
   play: async ({ canvas, userEvent, step }) => {
-    for (const name of ["通用", "外观", "编辑器", "账户", "模型提供方", "语音", "操作电脑", "应用扩展", "云盘", "关于"])
+    for (const name of ["通用", "外观", "编辑器", "账户", "大模型", "语音", "操作电脑", "应用扩展", "云盘", "关于"])
       await step(name, async () => {
         await userEvent.click(canvas.getByRole("button", { name }))
         await expect(canvas.getByRole("region", { name })).toBeVisible()

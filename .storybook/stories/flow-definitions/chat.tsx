@@ -156,7 +156,7 @@ export const ConfigureProvider: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole("button", { name: "配置服务商" }))
-    await body.findByRole("region", { name: "模型提供方" })
+    await body.findByRole("region", { name: "大模型" })
   }
 }
 export const TransferDraft: Story = {

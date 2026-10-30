@@ -6,6 +6,7 @@
     "scripts/**/*.ts",
     // Host boundaries are selected by the Storybook Vite resolver.
     ".storybook/fixtures/*.{ts,tsx}",
+    ".storybook/vitest.config.ts",
     "src/features/story/use-story-available.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],

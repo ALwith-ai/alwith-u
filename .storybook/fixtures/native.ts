@@ -304,7 +304,9 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
       version: "1.0.0",
       digest: "storybook-delivery-1"
     }
-  if (command === "extension_cleanup_grants") return
+  if (command === "extension_cleanup_grants" || command === "extension_inbox_finish") return
+  if (command === "extension_inbox_scan" || command === "extension_inbox_scan_extension")
+    return { operationId: "storybook-inbox", tasks: [], errors: [] }
   if (command === "plugin:extension|dispatch")
     return extensionRequest(args.request as Parameters<typeof extensionRequest>[0])
   if (command === "gamepad_permission") return { supported: true, authorized: true, mayPrompt: false, known: true }

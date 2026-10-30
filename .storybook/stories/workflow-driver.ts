@@ -43,7 +43,7 @@ export const playback = {
 }
 export function workflowTarget(config: WorkflowConfig): number | null {
   const value = new URLSearchParams(window.location.search).get("workflowStep")
-  if (value === null) return config.target
+  if (value === null) return import.meta.env.STORYBOOK_TEST ? 0 : config.target
   const target = Number(value)
   if (!/^\d+$/.test(value) || target < 0 || target >= config.labels.length)
     throw new Error(`Invalid workflow checkpoint: ${value}`)
@@ -56,7 +56,7 @@ export const prepareWorkflow: LoaderFunction = async (context) => {
   disposePlaybackClock()
   update({ index: 0, finished: false, error: null })
   await preparePreview(context)
-  if (workflowTarget(context.parameters.workflow) !== null) installPlaybackClock()
+  if (!import.meta.env.STORYBOOK_TEST && workflowTarget(context.parameters.workflow) !== null) installPlaybackClock()
   return {}
 }
 export async function workflowAction(_label: string, action: () => unknown) {
@@ -84,6 +84,13 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
           },
           { timeout: 25_000 }
         )
+        return
+      }
+      if (import.meta.env.STORYBOOK_TEST) {
+        // Exercise each journey once with its complete assertions. Diagram layout and
+        // iframe checkpoint isolation are covered by verify-player.mjs against the build.
+        const page = context.canvasElement.querySelector<HTMLElement>("#workflow-page")!
+        await source.play?.({ ...context, canvasElement: page, canvas: within(page) as typeof context.canvas })
         return
       }
       const currentGeneration = generation

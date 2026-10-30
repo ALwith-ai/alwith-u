@@ -21,7 +21,7 @@ export const PermissionMode: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: /^切换权限模式/ }))
     await userEvent.click(
-      await within(canvasElement.ownerDocument.body).findByRole("menuitemradio", { name: /完全访问权限/ })
+      await within(canvasElement.ownerDocument.body).findByRole("menuitemradio", { name: /完全访问/ })
     )
     await waitFor(() =>
       expect(
