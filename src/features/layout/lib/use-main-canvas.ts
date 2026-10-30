@@ -85,8 +85,7 @@ export function useMainCanvas(
       container: () =>
         viewport.current?.closest("[data-main-screen]")?.querySelector<HTMLElement>(".main-window-statusbar") ?? null,
       label: i18n.t("canvas.navigation"),
-      pageLabel: (index) => i18n.t("canvas.page", { number: index + 1 }),
-      overviewLabel: i18n.t("canvas.overview")
+      pageLabel: (index) => i18n.t("canvas.page", { number: index + 1 })
     },
     overview: {
       label: i18n.t("canvas.overview"),
