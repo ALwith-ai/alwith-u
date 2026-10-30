@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@alwith/module-desktop-shell/styles.css";
+@import "@alwith/module-desktop-shell/theme.css";
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
 @import "@alwith/module-auth/pets/styles.css";
@@ -68,84 +70,19 @@ pre,
 }
 
 :root {
-  --pet-lounge-nest: oklch(1 0 0);
   --canvas-page-indicator: oklch(0.985 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
   --success: var(--color-green-500);
   --link: oklch(0.42 0.17 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: #f5f6f7;
-  --sidebar-foreground: #1a1c1f;
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
   --sidebar-floating-shadow: oklch(0 0 0 / 16%);
   /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
      the card does not rely on borders or shadows to stand out from the background. */
   --main-surface-gutter: 8px;
   --main-surface-border-width: 1px;
-  --main-surface-radius: 14px;
 }
 
 .dark {
-  --background: #181818;
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
   --success: var(--color-green-500);
   --link: oklch(0.64 0.13 255);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: #3a3a3a;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
   --sidebar-floating-shadow: oklch(0 0 0 / 32%);
 }
 
@@ -219,7 +156,7 @@ html[data-window-backdrop="acrylic"]
 .main-window-titlebar {
   position: relative;
   flex: none;
-  height: 32px;
+  height: var(--main-titlebar-height);
   -webkit-app-region: drag;
 }
 .windows-main-content .main-window-titlebar {
@@ -236,7 +173,7 @@ html[data-window-backdrop="acrylic"]
 .main-canvas-viewport {
   position: relative;
   height: 100%;
-  margin-inline: 4px;
+  margin-inline: var(--main-surface-gutter);
   overflow: clip;
 }
 .main-window-statusbar {

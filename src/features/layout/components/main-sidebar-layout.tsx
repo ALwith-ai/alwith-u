@@ -141,6 +141,9 @@ export function MainSidebarLayout({
       style={
         {
           "--sidebar-width": `${desktopDefaults.navigationWidth}px`,
+          "--main-surface-radius": `${desktopDefaults.surfaceRadius}px`,
+          "--main-surface-gutter": `${desktopDefaults.gutter}px`,
+          "--main-titlebar-height": `${desktopDefaults.insetTop}px`,
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--canvas-sidebar-offset": `${Math.max(0, (canvas.geometry.stops[canvas.selected] ?? 0) - canvas.geometry.leading)}px`,
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",

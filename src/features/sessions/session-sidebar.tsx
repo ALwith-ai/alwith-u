@@ -201,7 +201,7 @@ function SidebarPanels({
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
     >
-      <SidebarHeader className="shrink-0 gap-1 p-1 px-2" data-tauri-drag-region>
+      <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-1" data-tauri-drag-region>
         <div className="flex h-8 items-center gap-0.5 px-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
@@ -364,7 +364,7 @@ function SidebarPanels({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="shrink-0 gap-1 p-1 px-2">
+      <SidebarFooter className="desktop-shell-navigation-footer shrink-0 gap-1">
         <UpdateStatusButton />
         <div className="px-1" data-slot="navigation-ads-padding">
           <NavigationAds onOpenVibemon={onOpenVibemon} />

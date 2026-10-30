@@ -1,5 +1,4 @@
 import { PetLounge } from "@alwith/module-auth/pets/react"
-import { stationDefaults } from "@nyssance/atlas/station"
 import { ChatRoundDotsIcon as MessageSquareIcon } from "@solar-icons/react/bold-duotone/chat-round-dots"
 import { GamepadIcon as Gamepad2Icon } from "@solar-icons/react/bold-duotone/gamepad"
 import { LibraryIcon as BookOpenIcon } from "@solar-icons/react/bold-duotone/library"
@@ -158,7 +157,6 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
         <PetLounge
           key={user.user_uuid}
           active={active}
-          nest={stationDefaults}
           onOpenCenter={onOpenVibemon}
           onSend={send}
           dropTarget={dropTarget}
