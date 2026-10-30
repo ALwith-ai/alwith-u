@@ -7,6 +7,7 @@ import { LeadingNavigation } from "../../../src/features/layout/components/leadi
 import { MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { ArchivedChatsPage } from "../../../src/features/sessions/archived-chats-page"
 import { client } from "../../../src/lib/client"
+import { resetClient } from "../../fixtures/client"
 
 const chats: SessionSummary[] = [
   {
@@ -39,6 +40,7 @@ const meta = {
   globals: { locale: "zh-CN" },
   beforeEach: () => {
     const previous = client.state
+    resetClient()
     client.store.setState({ connection: "ready", archivedSessions: [], archivedLoaded: false, archivedCursor: null })
     const list = spyOn(client, "listArchived").mockImplementation(() => {
       return Promise.try(() => {
