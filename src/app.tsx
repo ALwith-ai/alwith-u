@@ -46,7 +46,6 @@ import { ArchivedChatsPage } from "@/features/sessions/archived-chats-page"
 import { recentMainActivity } from "@/features/sessions/recent-main-activity"
 import { selectSession } from "@/features/sessions/select-session"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"
-import { SessionStatusMenu } from "@/features/sessions/session-status-menu"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
@@ -699,7 +698,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           trailing={<TrailingBoard onOpenVibemon={openVibemon} />}
           toolbar={
             <div hidden={leading} className="main-workspace-toolbar flex items-center gap-2">
-              <SessionStatusMenu onSelect={select} />
               <div ref={setWorkspaceToolbar} />
             </div>
           }
