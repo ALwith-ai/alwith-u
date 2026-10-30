@@ -6,7 +6,7 @@ import {
   MonitorIcon,
   SquareIcon
 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { ComputerPreview_Serialize } from "@/bindings"
@@ -69,14 +69,71 @@ export function ComputerPreviewCard({
   const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const drag = useRef<{
+    pointer: number
+    x: number
+    y: number
+    left: number
+    top: number
+    origin: typeof position
+    bounds: DOMRect
+    width: number
+    height: number
+  } | null>(null)
   const queued = preview.activity.phase === "queued"
   const title = preview.frame?.appName || t("computer.preview.active")
   return (
-    <section aria-label={t("computer.preview.title")} className="computer-preview ml-auto w-full max-w-72 shrink-0 p-1">
+    <section
+      aria-label={t("computer.preview.title")}
+      className="computer-preview ml-auto w-full max-w-72 shrink-0"
+      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+    >
       <div className="group/preview relative ml-auto w-full max-w-72 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
         <div
+          onPointerDown={(event) => {
+            if (event.button !== 0 || (event.target as Element).closest("button")) return
+            const card = event.currentTarget.closest("section")!
+            const rect = card.getBoundingClientRect()
+            const bounds = card.parentElement!.parentElement!.getBoundingClientRect()
+            drag.current = {
+              pointer: event.pointerId,
+              x: event.clientX,
+              y: event.clientY,
+              left: rect.left,
+              top: rect.top,
+              origin: position,
+              bounds,
+              width: rect.width,
+              height: rect.height
+            }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            event.preventDefault()
+          }}
+          onPointerMove={(event) => {
+            const state = drag.current
+            if (!state || state.pointer !== event.pointerId) return
+            const left = Math.max(
+              state.bounds.left + 8,
+              Math.min(state.left + event.clientX - state.x, state.bounds.right - state.width - 8)
+            )
+            const top = Math.max(
+              state.bounds.top + 8,
+              Math.min(state.top + event.clientY - state.y, state.bounds.bottom - state.height - 8)
+            )
+            setPosition({ x: state.origin.x + left - state.left, y: state.origin.y + top - state.top })
+          }}
+          onPointerUp={() => {
+            drag.current = null
+          }}
+          onPointerCancel={() => {
+            drag.current = null
+          }}
+          onLostPointerCapture={() => {
+            drag.current = null
+          }}
           className={cn(
-            "z-20 flex h-7 items-center gap-0.5 bg-card/65 px-1.5 py-0.5 backdrop-blur-xl transition-opacity motion-reduce:transition-none",
+            "z-20 flex h-7 cursor-grab touch-none items-center gap-0.5 bg-card/65 px-1.5 py-0.5 backdrop-blur-xl transition-opacity select-none active:cursor-grabbing motion-reduce:transition-none",
             !queued &&
               !collapsed &&
               preview.frame &&

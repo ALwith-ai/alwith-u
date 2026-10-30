@@ -96,3 +96,33 @@ test("clicking the preview focuses its own session and observed revision", async
   fireEvent.click(screen.getByRole("button", { name: "computer.preview.focus" }))
   await waitFor(() => expect(native.focus).toHaveBeenCalledExactlyOnceWith({ sessionId: "a", revision: 1 }))
 })
+
+test("the preview header drags within its viewport and leaves toolbar buttons clickable", async () => {
+  const view = render(
+    <div>
+      <div>
+        <SessionPreview sessionId="a" />
+      </div>
+    </div>
+  )
+  await emit("a", "active")
+  const card = screen.getByRole("region", { name: "computer.preview.title" })
+  const header = screen.getByText("TextEdit").parentElement!
+  vi.spyOn(card, "getBoundingClientRect").mockReturnValue(new DOMRect(704, 8, 288, 180))
+  vi.spyOn(card.parentElement!.parentElement!, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 700))
+  header.setPointerCapture = vi.fn()
+  const pointer = (type: string, x: number, y: number) => {
+    const event = new Event(type, { bubbles: true })
+    Object.assign(event, { pointerId: 1, button: 0, clientX: x, clientY: y })
+    fireEvent(header, event)
+  }
+  pointer("pointerdown", 750, 20)
+  pointer("pointermove", 650, 120)
+  expect(card).toHaveStyle({ transform: "translate(-100px, 100px)" })
+  pointer("pointermove", 2000, -100)
+  expect(card).toHaveStyle({ transform: "translate(0px, 0px)" })
+  pointer("pointerup", 2000, -100)
+  fireEvent.click(screen.getByRole("button", { name: "computer.preview.collapse" }))
+  expect(screen.queryByRole("img")).not.toBeInTheDocument()
+  view.unmount()
+})
