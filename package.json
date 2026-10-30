@@ -28,9 +28,9 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.1.0",
     "@alwith/api": "~0.5.4",
-    "@alwith/module-auth": "~0.5.10",
+    "@alwith/module-auth": "~0.5.11",
     "@alwith/module-browser": "^0.5.0",
-    "@alwith/module-chat": "~0.5.15",
+    "@alwith/module-chat": "~0.5.16",
     "@alwith/module-collection": "^0.5.0",
     "@alwith/module-computer": "^0.5.0",
     "@alwith/module-desktop-shell": "^0.5.3",
@@ -164,7 +164,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.166.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.15",
+    "@alwith/module-chat": "~0.5.16",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {
