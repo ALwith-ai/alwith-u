@@ -30,7 +30,7 @@
     "@alwith/api": "~0.5.4",
     "@alwith/module-auth": "~0.5.8",
     "@alwith/module-browser": "^0.0.1",
-    "@alwith/module-chat": "~0.5.13",
+    "@alwith/module-chat": "~0.5.15",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",
     "@alwith/module-desktop-shell": "^0.5.1",
@@ -164,7 +164,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.166.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.13",
+    "@alwith/module-chat": "~0.5.15",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {
