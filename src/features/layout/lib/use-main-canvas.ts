@@ -1,4 +1,5 @@
-import { openExternal } from "@/lib/open"
+import { connectDesktopOverview } from "@alwith/module-desktop-shell/overview"
+import "@alwith/module-desktop-shell/overview.css"
 import { useAtlas } from "@nyssance/atlas/react"
 import { isTauri } from "@tauri-apps/api/core"
 import {
@@ -16,6 +17,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { events } from "@/bindings"
+import { openExternal } from "@/lib/open"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
 
 import type { CanvasContext, CanvasWorkspace } from "./canvas-context"
@@ -89,8 +91,8 @@ export function useMainCanvas(
       pageLabel: (index) => i18n.t("canvas.page", { number: index + 1 })
     },
     overview: {
-      footer: () => viewport.current?.closest("[data-main-screen]")?.querySelector<HTMLElement>(".main-window-statusbar") ?? null,
-      openLink: (url) => { void openExternal(url) },
+      footer: () =>
+        viewport.current?.closest("[data-main-screen]")?.querySelector<HTMLElement>(".main-window-statusbar") ?? null,
       label: i18n.t("canvas.overview"),
       regions: "[data-atlas-overview-region], [data-atlas-navigation], .file-workspace-slide"
     },
@@ -190,6 +192,7 @@ export function useMainCanvas(
     dividerDragging
   ])
 
+  useEffect(() => (api ? connectDesktopOverview(api, { openLink: openExternal }) : undefined), [api])
   useEffect(() => {
     if (!api) return
     if (previousScreen.current !== screen) {

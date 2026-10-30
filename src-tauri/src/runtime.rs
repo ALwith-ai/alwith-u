@@ -573,3 +573,10 @@ mod binding_tests {
         );
     }
 }
+
+/// Inspect the exact bundled CLI selected by Runtime without starting a session.
+#[tauri3_specta::command]
+pub async fn codex_status() -> Result<serde_json::Value, String> {
+    let status = tauri_plugin_alwith_desktop_shell::bundled_cli_status("codex").await?;
+    serde_json::to_value(status).map_err(|error| error.to_string())
+}

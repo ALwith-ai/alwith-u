@@ -12,7 +12,7 @@
         "@alwith/module-chat": "~0.5.17",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.5.1",
-        "@alwith/module-desktop-shell": "^0.5.5",
+        "@alwith/module-desktop-shell": "^0.5.7",
         "@alwith/module-drive": "^0.5.1",
         "@alwith/module-editor": "^0.5.0",
         "@alwith/module-extension": "^0.5.1",
@@ -37,7 +37,7 @@
         "@milkdown/preset-gfm": "^7.23.0",
         "@milkdown/prose": "^7.23.0",
         "@milkdown/utils": "^7.23.0",
-        "@nyssance/atlas": "^0.1.7",
+        "@nyssance/atlas": "^0.1.8",
         "@shadcn/react": "^0.3.1",
         "@solar-icons/react": "^2.3.3",
         "@tauri-apps/api": "^3.0.0-alpha.3",
@@ -168,7 +168,7 @@
 
     "@alwith/module-computer": ["@alwith/module-computer@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.0" } }, "sha512-NH5dbTwbxWTYqNZZ/OOvrwwe8Ih8KXKgdeLIDDXN978WLFN+39vBR+moE8MxCdDMMlO+ngLbyvu598gyxV/ZBg=="],
 
-    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.5.5", "", { "peerDependencies": { "@nyssance/atlas": "^0.1.4", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.0.0" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-qwe3CrUmDRF/5SsDF1CvsXDQV1GZ287hVOLm9Q95RW6QHeSdFTtKsS83GPJadq6AHUuBZnHbHNhbgdlFx2XCjg=="],
+    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.5.7", "", { "dependencies": { "@base-ui/react": "^1.9.0", "cn": "^0.5.0", "lucide-react": "^1.64.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.8", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.0.0", "react-dom": "^19.0.0" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-Z7aeBfBaJfwB8Ar6gYhHR5V+DDIOJu970QI7MMf2Q8qwpks2ipCzRxQpzwOjo/Vlar/HdHIk6s1SzFiF8EZeeA=="],
 
     "@alwith/module-drive": ["@alwith/module-drive@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.0" }, "peerDependencies": { "@alwith/module-editor": "^0.5.0", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "lucide-react": "^1.61.0", "react": "^19.3.1", "react-dom": "^19.3.1", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-WXqE90r/b6Q/VXd3YQNceu4f8jqrvTn2lQbT/B9n263AEvMDfVz/qhClmEI+VomwPNQal2tLU4oiiu9FBkm9Cg=="],
 
@@ -540,7 +540,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@nyssance/atlas": ["@nyssance/atlas@0.1.7", "", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.6.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "sha512-YN6XACrpS5d3LI0WXZxjMNL/2PgtXPd3f5Z/mvCEpi7zT2xuLOaDZiwoZHM3XB858G1BHf3KxdDtY8/WRpwfQg=="],
+    "@nyssance/atlas": ["@nyssance/atlas@0.1.8", "", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.6.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "sha512-r4Otz2setAIQnUuKwjHXe5QkuBvIiLQyXYFqIcD2LgXHRpxQBM/NcXIBBy4BSlz3Nm/1RlwoWVpbz3V3DbJJoA=="],
 
     "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.48", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.1.0", "@openai/codex": "^0.166.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.0", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-dsZ7MIlB1XIaYXvlHgTdxfuaXG5Gy/mGmVWhcQvLM/Spa0RGAI9uy1hJf4yAF8i2fpOq81egkUECB6bHUA9j+Q=="],
 

@@ -859,3 +859,6 @@ body,
 button.text-destructive:has(> svg[viewBox="0 0 18 18"]) {
   color: var(--muted-foreground);
 }
+
+@source "../node_modules/@alwith/module-desktop-shell/*.js";
+@source "../node_modules/@alwith/module-desktop-shell/ui/*.js";

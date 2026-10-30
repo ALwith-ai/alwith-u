@@ -1,69 +1,52 @@
+import {
+  DesktopStatusItem,
+  type DesktopStatusItemProps,
+  desktopStatusLabels
+} from "@alwith/module-desktop-shell/status-item"
 import { getVersion } from "@tauri-apps/api/app"
-import { isTauri } from "@tauri-apps/api/core"
-import { TerminalIcon } from "lucide-react"
+import { invoke, isTauri } from "@tauri-apps/api/core"
+import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { commands } from "@/bindings"
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { appEnv } from "@/lib/app-env"
+import { openExternal } from "@/lib/open"
 
-/** Lightweight status entry at the bottom right, showing the client version and the Codex executable version actually used by Runtime. */
 export function ClientVersionPopover() {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const { i18n } = useTranslation()
   const [clientVersion, setClientVersion] = useState<string | null>(null)
-  const [cliVersion, setCliVersion] = useState<string | null>(null)
-
+  const [cli, setCli] = useState<DesktopStatusItemProps["cli"]>(null)
   useEffect(() => {
-    if (!open || !isTauri()) return
-    let disposed = false
-    void Promise.all([getVersion(), commands.codexVersion()])
-      .then(([client, cli]) => {
-        if (disposed) return
-        setClientVersion(client)
-        setCliVersion(cli)
+    if (!isTauri()) return
+    let active = true
+    void getVersion()
+      .then((value) => {
+        if (active) setClientVersion(value)
       })
-      .catch((error: unknown) => {
-        if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
+      .catch((error) => toast.error(String(error)))
+    void invoke<DesktopStatusItemProps["cli"]>("codex_status")
+      .then((value) => {
+        if (active) setCli(value)
       })
+      .catch((error) => toast.error(String(error)))
     return () => {
-      disposed = true
+      active = false
     }
-  }, [open])
-
+  }, [])
+  const labels = desktopStatusLabels(i18n.language)
+  const url = new URL(appEnv.apiBaseUrl)
+  const nonProduction = url.hostname !== "api.alwith.ai"
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="main-client-version-button text-muted-foreground hover:text-foreground"
-            aria-label={t("settings.about")}
-            title={t("settings.about")}
-          />
-        }
-      >
-        <TerminalIcon className="size-4" />
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        align="end"
-        sideOffset={4}
-        className="w-auto gap-1 p-3"
-        aria-label={t("settings.about")}
-      >
-        <div className="grid grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span aria-hidden className="size-1.5 rounded-full bg-success" />
-          <span>ALwith U</span>
-          <span className="text-right tabular-nums">{clientVersion === null ? "—" : `v${clientVersion}`}</span>
-          <span aria-hidden className="size-1.5 rounded-full bg-success" />
-          <span>Codex CLI</span>
-          <span className="text-right tabular-nums">{cliVersion ?? "—"}</span>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <DesktopStatusItem
+      server={{ url: appEnv.apiBaseUrl, label: nonProduction ? labels.development : url.host, nonProduction }}
+      signing={null}
+      appVersion={clientVersion}
+      cli={cli}
+      labels={labels}
+      openUrl={openExternal}
+      revealPath={revealItemsInDir}
+      onError={(error) => toast.error(String(error))}
+    />
   )
 }
