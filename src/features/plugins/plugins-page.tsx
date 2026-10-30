@@ -85,11 +85,7 @@ function PluginActionButton({ plugin, marketplace }: { plugin: PluginSummary; ma
       title={unavailable ? t("plugins.disabledReason.unknown") : label}
       onClick={() => void install({ plugin, marketplace }).catch(() => {})}
     >
-      {installing ? (
-        <Spinner aria-hidden="true" />
-      ) : (
-        <PlusIcon className="size-5" strokeWidth={2} aria-hidden="true" />
-      )}
+      {installing ? <Spinner aria-hidden="true" /> : <PlusIcon className="size-5" strokeWidth={2} aria-hidden="true" />}
     </Button>
   )
 }

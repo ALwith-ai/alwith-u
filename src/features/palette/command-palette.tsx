@@ -1,10 +1,10 @@
+import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 
 import type { SessionSummary } from "@/agent/client"
-import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {

@@ -13,9 +13,11 @@ vi.mock("@tauri-apps/plugin-dialog", async (importOriginal) => ({ ...(await impo
 
 await initI18n("en")
 const originalContext = client.state.projectContext
+const refreshProjectContext = vi.fn(() => Promise.resolve(projectContext()))
 beforeEach(() => {
   vi.spyOn(client, "connect").mockResolvedValue()
-  vi.spyOn(client, "refreshProjectContext").mockResolvedValue(projectContext())
+  vi.spyOn(client, "refreshProjectContext").mockImplementation(refreshProjectContext)
+  refreshProjectContext.mockClear()
   client.store.setState({ projectContext: projectContext() })
 })
 afterEach(() => client.store.setState({ projectContext: originalContext }))
@@ -90,7 +92,7 @@ test("outside-project selection resolves to the host default and hides it from r
   expect(view.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["current", "recent"])
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Work outside a project" }))))
   expect(onChange).toHaveBeenCalledWith(null)
-  expect(client.refreshProjectContext).toHaveBeenCalledWith(true)
+  expect(refreshProjectContext).toHaveBeenCalledWith(true)
   view.rerender(
     <DraftProjectPicker
       cwd="/Users/mac/Documents/ALwith"
@@ -119,7 +121,7 @@ test("the project icon exits directly without opening the project menu", async (
 
 test("the project icon waits for the host default before allowing an exit", async () => {
   const directory = Promise.withResolvers<ReturnType<typeof projectContext>>()
-  vi.mocked(client.refreshProjectContext).mockReturnValue(directory.promise)
+  refreshProjectContext.mockReturnValueOnce(directory.promise)
   const onChange = vi.fn()
   const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} />)
   const clear = view.getByRole("button", { name: "Work outside a project" })

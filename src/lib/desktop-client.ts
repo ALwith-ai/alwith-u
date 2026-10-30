@@ -1,5 +1,6 @@
-import { CodexClient } from "@/agent/client"
 import type { FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@nyssance/codex-acp-v2/client"
+
+import { CodexClient } from "@/agent/client"
 
 import { initialFileResults } from "./initial-file-results"
 

@@ -7,7 +7,7 @@ import {
   type PetSurface,
   sameBinding
 } from "@alwith/module-auth/pets/core"
-import { isText, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
+import { inSessionTree, isText, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
 
 import type { AppState } from "@/agent/client"
 
@@ -165,12 +165,15 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       const binding = bindings.get(id)
       if (binding === undefined) throw new Error("Pet binding unavailable")
       const action =
-        state.actions.findLast((item) => item.sessionId === id && item.kind === "permission") ??
-        state.actions.findLast((item) => item.sessionId === id)
+        state.actions.findLast(
+          (item) => inSessionTree(state.sessions, id, item.sessionId) && item.kind === "permission"
+        ) ?? state.actions.findLast((item) => inSessionTree(state.sessions, id, item.sessionId))
       const subject = action?.kind === "permission" ? action.params.subject : null
       const tool = subject != null && isToolCallSubject(subject) ? subject.toolCall : null
       const storedTool =
-        tool === null ? undefined : session?.items.find((item) => item.id === tool.toolCallId && item.kind === "tool")
+        tool === null || action?.sessionId == null
+          ? undefined
+          : state.sessions[action.sessionId]?.items.find((item) => item.id === tool.toolCallId && item.kind === "tool")
       const prompt = petPrompt(
         action,
         tool?.rawInput !== undefined ? tool.rawInput : storedTool?.kind === "tool" ? storedTool.rawInput : undefined
@@ -390,7 +393,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       const state = owner.state()
       if (
         state.runStates[binding.sessionId]?.state === "running" ||
-        state.actions.some((action) => action.sessionId === binding.sessionId) ||
+        state.actions.some((action) => inSessionTree(state.sessions, binding.sessionId, action.sessionId)) ||
         value.prompt !== null
       )
         throw new Error("This conversation is busy or requires an answer")
@@ -400,7 +403,11 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       if (!mainMinimized) throw new Error("Open the main window to answer this permission")
       const value = await claim(binding, requestId)
       if (answered.has(token)) return
-      const action = owner.state().actions.find((item) => item.id === token && item.sessionId === binding.sessionId)
+      const action = owner
+        .state()
+        .actions.find(
+          (item) => item.id === token && inSessionTree(owner.state().sessions, binding.sessionId, item.sessionId)
+        )
       if (
         !mainMinimized ||
         value.prompt?.kind !== "permission" ||

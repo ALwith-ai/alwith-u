@@ -30,7 +30,7 @@
     "@alwith/api": "~0.5.4",
     "@alwith/module-auth": "~0.5.8",
     "@alwith/module-browser": "^0.0.1",
-    "@alwith/module-chat": "~0.5.12",
+    "@alwith/module-chat": "~0.5.13",
     "@alwith/module-collection": "^0.0.3",
     "@alwith/module-computer": "^0.1.8",
     "@alwith/module-desktop-shell": "^0.5.1",
@@ -125,7 +125,7 @@
     "@alwith/native-kit": "^0.1.1",
     "@alwith/native-mobile": "~0.5.1",
     "@alwith/native-voice": "^0.1.2",
-    "@nyssance/codex-acp-v2": "0.7.45",
+    "@nyssance/codex-acp-v2": "0.7.47",
     "@nyssance/ts7-lint": "^0.1.3",
     "@openai/codex": "0.166.0",
     "@storybook/addon-a11y": "^10.6.5",
@@ -164,7 +164,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.166.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.12",
+    "@alwith/module-chat": "~0.5.13",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {

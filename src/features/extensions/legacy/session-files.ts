@@ -52,7 +52,8 @@ export function createSessionFiles(root: string, source: SessionFileSource): Ses
     source.check()
     return sessionRows
   }
-  const name = (sessionRow: SessionSummary): string => `${project(sessionRow.cwd)}/${encodeURIComponent(sessionRow.sessionId)}.jsonl`
+  const name = (sessionRow: SessionSummary): string =>
+    `${project(sessionRow.cwd)}/${encodeURIComponent(sessionRow.sessionId)}.jsonl`
   return {
     async listSessions(baseDir: string): Promise<LegacySessionEntry[]> {
       if (baseDir !== root && !baseDir.startsWith(`${root}/`)) throw new Error("会话目录必须位于只读历史投影内")

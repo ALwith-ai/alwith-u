@@ -12,7 +12,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-test("compaction adds the Codex delay notice at ten seconds and removes it on completion", () => {
+test("compaction adds the Codex delay notice at ten seconds and removes it on completion", async () => {
   vi.useFakeTimers()
   const session = applyUpdate(createSession("compact-delay", "/tmp"), {
     sessionUpdate: "compaction_update",
@@ -21,9 +21,9 @@ test("compaction adds the Codex delay notice at ten seconds and removes it on co
   })
   const view = renderTimeline(session)
   expect(screen.getByText("Compacting context")).toBeInTheDocument()
-  act(() => vi.advanceTimersByTime(9999))
+  await act(() => vi.advanceTimersByTime(9999))
   expect(screen.queryByText(/This can take a few minutes/)).not.toBeInTheDocument()
-  act(() => vi.advanceTimersByTime(1))
+  await act(() => vi.advanceTimersByTime(1))
   expect(screen.getByText("Compacting context · This can take a few minutes")).toBeInTheDocument()
   view.unmount()
   const done = applyUpdate(session, {

@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import "./voice-waveform.css"
+import { PromptInputButton } from "@alwith/module-chat/composer"
 import { usePromptInputSubmission } from "@alwith/module-chat/composer-context"
 import { recordingSettings } from "@alwith/module-voice"
 import { prepareCapture } from "@alwith/module-voice/audio"
@@ -13,7 +14,6 @@ import { type MutableRefObject, type ReactNode, useEffect, useRef, useState } fr
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { PromptInputButton } from "@alwith/module-chat/composer"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { loadVoiceSettings, voiceProfiles } from "./settings"

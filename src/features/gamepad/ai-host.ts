@@ -1,6 +1,6 @@
 import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/module-gamepad/ai"
 import type { GamepadHost } from "@alwith/module-gamepad/react"
-import { isText } from "@nyssance/codex-acp-v2/client"
+import { inSessionTree, isText } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
 import { platform } from "@tauri-apps/plugin-os"
 
@@ -78,7 +78,7 @@ export function createGamepadConfigGenerator(open: () => Promise<GamepadAiContex
             const session = state.sessions[id]
             if (!session) throw new Error("Gamepad generation session closed")
             if (session.error) throw new Error(session.error.error?.message ?? session.error.stopReason)
-            if (state.actions.some((action) => action.sessionId === id))
+            if (state.actions.some((action) => inSessionTree(state.sessions, id, action.sessionId)))
               throw new Error("Gamepad generation requires interactive approval")
             let text = ""
             let chars = 0

@@ -273,5 +273,5 @@ try {
     client.disconnect()
   }
 } finally {
-  fixture?.stop(true)
+  await fixture?.stop(true)
 }

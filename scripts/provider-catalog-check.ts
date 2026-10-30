@@ -136,5 +136,5 @@ try {
   for (const id of ids) await client.delete(id).catch(() => {})
   client.disconnect()
   await runtime.dispose()
-  server.stop(true)
+  await server.stop(true)
 }

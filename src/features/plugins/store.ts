@@ -1,11 +1,3 @@
-// Plugins & marketplace state, shaped after the official Codex app's local plugins page:
-// the catalog (`plugin/list`: marketplaces + featured ids), the installed set
-// (`plugin/installed`, newest first), skills (`skills/list`), and the actions the page runs.
-// Every action talks to Codex through the client and re-reads the catalogs afterwards, the
-// way the official page invalidates its queries.
-import { toast } from "sonner"
-import { createStore, type StoreApi } from "zustand/vanilla"
-
 import type {
   MarketplaceAddParams,
   MarketplaceAddResponse,
@@ -27,6 +19,14 @@ import type {
   SkillsConfigWriteResponse,
   SkillsListResponse
 } from "@nyssance/codex-acp-v2/client"
+// Plugins & marketplace state, shaped after the official Codex app's local plugins page:
+// the catalog (`plugin/list`: marketplaces + featured ids), the installed set
+// (`plugin/installed`, newest first), skills (`skills/list`), and the actions the page runs.
+// Every action talks to Codex through the client and re-reads the catalogs afterwards, the
+// way the official page invalidates its queries.
+import { toast } from "sonner"
+import { createStore, type StoreApi } from "zustand/vanilla"
+
 import i18n from "@/lib/i18n"
 
 /** The client methods the store needs; tests pass a fake. */

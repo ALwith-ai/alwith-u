@@ -1,3 +1,4 @@
+import { PromptInputButton } from "@alwith/module-chat/composer"
 import { useCodexRealtimeVoice } from "@alwith/module-voice/react"
 import { supportsCodexRealtime } from "@nyssance/codex-acp-v2/client"
 import { HeadphonesIcon, Loader2Icon, PhoneOffIcon } from "lucide-react"
@@ -6,7 +7,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { PromptInputButton } from "@alwith/module-chat/composer"
 import { client, useApp } from "@/lib/client"
 
 import { useVoiceEnabled } from "./use-voice-enabled"

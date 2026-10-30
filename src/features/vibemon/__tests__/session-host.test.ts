@@ -2,7 +2,7 @@
 
 import { type SessionRunState } from "@alwith/api"
 import type { PetObservation } from "@alwith/module-auth/pets/core"
-import { isText, runStateSource } from "@nyssance/codex-acp-v2/client"
+import { createSession, isText, runStateSource } from "@nyssance/codex-acp-v2/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
@@ -439,4 +439,36 @@ test("an authorization is answered once while its Runtime action remains pending
   expect(f.respond).toHaveBeenCalledTimes(2)
   expect(f.respond).toHaveBeenLastCalledWith("pending", { outcome: { outcome: "selected", optionId: "allow" } })
   expect(f.client.state.actions).toHaveLength(1)
+})
+
+test("a child permission is shown and answered through its parent's pet binding", async () => {
+  const f = await fixture()
+  const child = {
+    ...createSession("child", "/tmp"),
+    attached: true,
+    subagent: { parentId: f.a.id, description: null, capabilities: null, _meta: null }
+  }
+  f.client.store.setState((state) => ({
+    sessions: { ...state.sessions, child },
+    actions: [
+      {
+        id: "child-permission",
+        kind: "permission",
+        sessionId: child.id,
+        params: {
+          sessionId: child.id,
+          title: "Read child files",
+          options: [{ optionId: "allow", kind: "allow_once", name: "Allow once" }]
+        }
+      }
+    ]
+  }))
+  await f.host.surface("main", { sessionId: f.a.id, visible: false })
+  await f.host.minimized(true)
+  const observation = must(f.host.snapshot(), "pet observation")
+  expect(observation.prompt?.token).toBe("child-permission")
+  f.respond.mockImplementation(() => {})
+  await f.host.answer(observation.binding, "child-answer", "child-permission", "allow")
+  expect(f.respond).toHaveBeenCalledWith("child-permission", { outcome: { outcome: "selected", optionId: "allow" } })
+  await expect(f.host.send(observation.binding, "busy-child", "continue")).rejects.toThrow("requires an answer")
 })
