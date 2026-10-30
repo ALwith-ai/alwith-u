@@ -687,17 +687,175 @@ body,
   margin-inline-end: -6px;
 }
 
-/* Let Drive reach the same outer scroll gutter as the conversation list. */
-.sidebar-drive {
-  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
-}
+/* Drive uses the same Pane gutter and viewport inset as the other sidebar lists. */
 .sidebar-drive .alwith-drive-launcher {
-  padding-inline-end: 0;
+  min-height: 0;
+  flex: 1;
 }
 .sidebar-drive .alwith-drive-navigation {
-  margin-inline-end: 0;
-  padding-inline-end: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 .sidebar-drive :is(.alwith-drive-toolbar, .alwith-drive-search) {
-  padding-inline-end: 8px;
+  padding-inline: 8px;
+}
+.sidebar-drive .alwith-drive-toolbar {
+  justify-content: space-between;
+}
+.sidebar-drive .alwith-drive-toolbar .alwith-drive-actions {
+  gap: 4px;
+}
+.sidebar-drive .alwith-drive-toolbar button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 8px;
+}
+.sidebar-drive .alwith-drive-icon {
+  width: 16px;
+  height: 16px;
+}
+.sidebar-drive :is(.alwith-drive-search, .alwith-drive-group) > input {
+  height: 28px;
+  padding-inline: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+  font-size: 12px;
+  box-shadow: none;
+}
+.sidebar-drive :is(.alwith-drive-search, .alwith-drive-group) > input:focus-visible {
+  border-color: var(--ring);
+  outline: 2px solid color-mix(in oklab, var(--ring) 20%, transparent);
+  outline-offset: 0;
+}
+.sidebar-drive .alwith-drive-search-results {
+  max-height: min(240px, 35vh);
+  margin-block-start: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--foreground) 3%, transparent);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.sidebar-drive .alwith-drive-search-result {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 6px !important;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+.sidebar-drive .alwith-drive-search-result-main {
+  display: contents;
+}
+.sidebar-drive .alwith-drive-search-result-main > .alwith-drive-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  place-self: center;
+}
+.sidebar-drive .alwith-drive-search-result-main > span {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+.sidebar-drive .alwith-drive-search-result-main > span,
+.sidebar-drive .alwith-drive-search-result > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-drive .alwith-drive-search-result > small {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  padding-inline-start: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 16px;
+}
+.sidebar-drive .alwith-drive-search-results > p {
+  padding: 6px;
+}
+.sidebar-drive .alwith-drive-kind-icon {
+  color: color-mix(in oklab, var(--foreground) 40%, transparent);
+}
+.sidebar-drive .alwith-drive-nav-row[data-sync-selected="true"] .alwith-drive-kind-icon {
+  color: var(--foreground);
+}
+
+/* Application presentation for shared Drive navigation. */
+.sidebar-drive .alwith-drive-group {
+  padding-block: 0;
+}
+.sidebar-drive .alwith-drive-group + .alwith-drive-group {
+  margin-block-start: 2px;
+}
+.sidebar-drive .alwith-drive-group > summary {
+  height: 30px;
+  padding-block: 0 !important;
+}
+.sidebar-drive .alwith-drive-nav-row {
+  height: 30px;
+  margin-block-start: 2px;
+  gap: 4px;
+  padding-inline: 6px;
+  border-radius: 10px;
+  corner-shape: superellipse(1.5);
+}
+.sidebar-drive
+  .alwith-drive-nav-row:is(:hover, [data-active="true"], :has(> .alwith-drive-more-trigger[aria-expanded="true"])) {
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+}
+/* The row owns the base surface; actions add their own hover feedback. */
+.sidebar-drive .alwith-drive-nav-row > button {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.sidebar-drive
+  .alwith-drive-nav-row
+  > :is(.alwith-drive-condense-trigger, .alwith-drive-more-trigger):is(:hover, [aria-expanded="true"]) {
+  background-color: var(--chrome-hover-background) !important;
+}
+.sidebar-drive .alwith-drive-nav-row > .alwith-drive-more-trigger {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: min(var(--radius-md), 8px);
+}
+.sidebar-drive .alwith-drive-nav-row > :is(.alwith-drive-condense-trigger, .alwith-drive-more-trigger) {
+  display: none;
+}
+.sidebar-drive
+  .alwith-drive-nav-row:is(:hover, :has(:focus-visible), :has(> .alwith-drive-more-trigger[aria-expanded="true"]))
+  > :is(.alwith-drive-condense-trigger, .alwith-drive-more-trigger) {
+  display: inline-flex;
+  opacity: 1;
+}
+.sidebar-drive
+  .alwith-drive-nav-row:is(:hover, :has(:focus-visible), :has(> .alwith-drive-more-trigger[aria-expanded="true"]))
+  .alwith-drive-nav-open
+  > small:not([role="status"]) {
+  display: none !important;
+}
+.sidebar-drive .alwith-drive-nav-open {
+  --navigation-row-height: 30px;
+  padding-inline: 0 !important;
+  background-color: transparent;
+  font-size: 13px !important;
+}
+.vibemon-content button:is(:hover, :active, [data-pressed], [data-popup-open], [data-state="open"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+/* Context warnings use the approval control's muted foreground. */
+button.text-destructive:has(> svg[viewBox="0 0 18 18"]) {
+  color: var(--muted-foreground);
 }

@@ -114,6 +114,85 @@ function fixture(
   return { controller, host, requests }
 }
 describe("shared Desktop Drive UI", () => {
+  it.each(["syncing", "done"] as const)(
+    "shows a spinner only while background project progress is %s",
+    async (phase) => {
+      const f = fixture({
+        projects: [
+          { projectId: root.projectId, phase, done: 0, total: 1, failed: 0, message: null, at: "2026-10-30T00:00:00Z" }
+        ]
+      })
+      render(
+        <DrivePanel
+          {...f}
+          controls={controls}
+          mode="launcher"
+          onOpenProject={async () => {}}
+          confirm={() => Promise.resolve(true)}
+        />
+      )
+      const button = await screen.findByRole("button", { name: root.name })
+      expect(button.querySelector(".lucide-loader-circle.animate-spin") !== null).toBe(phase === "syncing")
+      expect(button.querySelector(".alwith-drive-kind-icon") !== null).toBe(phase === "done")
+    }
+  )
+
+  it.each([
+    { kind: "MATERIAL" as const, selected: true, cursor: null, icon: "lucide-library-big" },
+    { kind: "MATERIAL" as const, selected: false, cursor: "1", icon: "lucide-library-big" },
+    { kind: "KNOWLEDGE" as const, selected: true, cursor: "1", icon: "lucide-book-open" },
+    { kind: "KNOWLEDGE" as const, selected: false, cursor: null, icon: "lucide-book-open" }
+  ])(
+    "shows the $kind icon and marks sync selection independently of cursor ($selected)",
+    async ({ icon, ...state }) => {
+      const f = fixture({ roots: [{ ...root, ...state }] })
+      render(
+        <DrivePanel
+          {...f}
+          controls={controls}
+          mode="launcher"
+          onOpenProject={async () => {}}
+          confirm={() => Promise.resolve(true)}
+        />
+      )
+      const button = await screen.findByRole("button", { name: root.name })
+      expect(button.querySelector(`.${icon}`)).toHaveClass("alwith-drive-kind-icon")
+      expect(button.closest(".alwith-drive-nav-row")).toHaveAttribute("data-sync-selected", String(state.selected))
+      expect(button.querySelector("small")).toHaveClass("alwith-drive-project-kind")
+      expect(button.querySelector("small")).not.toHaveAttribute("role", "status")
+      const row = button.closest(".alwith-drive-nav-row")
+      if (!row) throw new Error("Expected a Drive navigation row")
+      fireEvent.mouseEnter(row)
+      expect(button.querySelector(".alwith-drive-project-kind")).toBeNull()
+      expect(button).toHaveTextContent(root.name)
+      fireEvent.mouseLeave(row)
+      expect(button.querySelector("small")).toHaveClass("alwith-drive-project-kind")
+    }
+  )
+
+  it("uses the host navigation scroll container without scrolling the toolbar", async () => {
+    const f = fixture()
+    render(
+      <DrivePanel
+        {...f}
+        controls={{
+          ...controls,
+          NavigationScroll: ({ children, className }) => (
+            <section data-testid="navigation-scroll" className={className}>
+              {children}
+            </section>
+          )
+        }}
+        mode="launcher"
+        onOpenProject={async () => {}}
+        confirm={() => Promise.resolve(true)}
+      />
+    )
+    const scroll = screen.getByTestId("navigation-scroll")
+    expect(scroll).toContainElement(await screen.findByRole("button", { name: root.name }))
+    expect(scroll.querySelector(".alwith-drive-toolbar")).toBeNull()
+  })
+
   it("opens a shared file by its refreshed exact path, never its project as a file", async () => {
     const f = fixture({}, (request) => {
       return Promise.try(() => {
@@ -627,3 +706,34 @@ it("project session actions receive the row's path without opening a new project
   expect(openProject).not.toHaveBeenCalled()
   expect(document.querySelector("button button")).toBeNull()
 })
+
+it.each([{ metaKey: true }, { ctrlKey: true }])(
+  "a host can release the Drive search shortcut %j without disabling manual search",
+  async (modifiers) => {
+    const f = fixture()
+    f.host.searchShortcut = false
+    const view = render(
+      <DrivePanel
+        {...f}
+        controls={controls}
+        mode="launcher"
+        locale="en"
+        onOpenProject={async () => {}}
+        confirm={async () => true}
+      />
+    )
+    const input = view.container.querySelector<HTMLInputElement>(".alwith-drive-search input")!
+    expect(input.placeholder).not.toContain("⌘K")
+    const outside = document.createElement("button")
+    document.body.append(outside)
+    outside.focus()
+    try {
+      expect(fireEvent.keyDown(window, { key: "k", ...modifiers })).toBe(true)
+      expect(outside).toHaveFocus()
+      input.focus()
+      expect(input).toHaveFocus()
+    } finally {
+      outside.remove()
+    }
+  }
+)

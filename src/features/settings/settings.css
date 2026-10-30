@@ -244,3 +244,92 @@
   align-items: center;
   margin-block-start: 0;
 }
+
+/* Align Drive credentials and directory controls with the settings navigation. */
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting:is(
+    :has(> .alwith-drive-form),
+    :has(> .alwith-drive-actions > input:not([type="number"]))
+  ) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--settings-control-width));
+  align-items: start;
+  column-gap: 16px;
+}
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting:is(
+    :has(> .alwith-drive-form),
+    :has(> .alwith-drive-actions > input:not([type="number"]))
+  )
+  > :last-child {
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+}
+.settings-content .alwith-drive-settings .alwith-drive-form {
+  margin: 0;
+  gap: 8px;
+}
+.settings-content .alwith-drive-settings .alwith-drive-form > .alwith-drive-actions {
+  justify-content: flex-end;
+}
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting
+  > .alwith-drive-actions:has(> input:not([type="number"])) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
+  gap: 8px;
+}
+.settings-content .alwith-drive-settings :is(.alwith-drive-form, .alwith-drive-actions) > input {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .settings-content
+    .alwith-drive-settings
+    > section.alwith-drive-setting:is(
+      :has(> .alwith-drive-form),
+      :has(> .alwith-drive-actions > input:not([type="number"]))
+    ) {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+}
+/* The editable path already identifies the root while signed out. */
+.settings-content
+  .alwith-drive-setting:has(> .alwith-drive-actions > input:not([type="number"]))
+  > div:first-child
+  > p {
+  display: none;
+}
+
+/* Signed-in rows give their description the available width and anchor actions to the edge. */
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting:nth-of-type(-n + 2):not(:has(> .alwith-drive-form, > .alwith-drive-actions > input)) {
+  align-items: start;
+  column-gap: 16px;
+}
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting:nth-of-type(-n + 2)
+  > .alwith-drive-actions:not(:has(> input)) {
+  flex: 0 0 auto;
+  width: auto;
+  margin-inline-start: auto;
+  justify-content: flex-end;
+  min-height: 30px;
+}
+.settings-content
+  .alwith-drive-settings
+  > section.alwith-drive-setting:first-of-type:not(:has(> form))
+  > div:first-child
+  > p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

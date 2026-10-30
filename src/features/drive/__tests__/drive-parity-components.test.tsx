@@ -243,6 +243,52 @@ test("failed mass deletion retains the dialog and never advances to another batc
   expect(f.requests).toEqual([{ type: "confirmDeletes", projectId: 1 }])
 })
 
+test("sync icon spins immediately, throughout engine work, and stops when idle", async () => {
+  const request = Promise.withResolvers<DriveResponse>()
+  const f = fixture({}, async (value) => {
+    if (value.type === "sync") return request.promise
+    if (value.type === "failedUploads") return { type: "failedUploads", data: [] }
+    throw new Error(`Unexpected request: ${value.type}`)
+  })
+  render(
+    <DrivePanel
+      {...f}
+      controls={controls}
+      mode="status"
+      onOpenProject={async () => {}}
+      confirm={() => Promise.resolve(true)}
+    />
+  )
+  const button = screen.getByRole("button", { name: "Sync now" })
+  const icon = button.querySelector("svg")
+  expect(icon).not.toHaveClass("alwith-drive-spin")
+  fireEvent.click(button)
+  expect(icon).toHaveClass("alwith-drive-spin")
+  expect(button).toBeDisabled()
+  const status = {
+    state: { kind: "scanning" as const },
+    pending: 0,
+    uploading: 0,
+    downloading: 0,
+    synced: 0,
+    failed: 0,
+    conflicts: [],
+    errors: [],
+    lastSyncAt: null,
+    pushConnected: false
+  }
+  await act(async () => {
+    f.update({ status })
+    request.resolve({ type: "done" })
+    await request.promise
+  })
+  expect(icon).toHaveClass("alwith-drive-spin")
+  await act(async () => f.update({ status: { ...status, state: { kind: "syncing" } } }))
+  expect(icon).toHaveClass("alwith-drive-spin")
+  await act(async () => f.update({ status: { ...status, state: { kind: "idle" } } }))
+  expect(icon).not.toHaveClass("alwith-drive-spin")
+})
+
 test("status panel uses a state row and disables the sync icon while paused", async () => {
   const f = fixture({
     status: {

@@ -632,7 +632,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openExtensions}
-              drivePanel={<div ref={setDriveSidebar} className="min-h-0 flex-1 overflow-auto" />}
+              drivePanel={<div ref={setDriveSidebar} className="flex min-h-0 flex-1 flex-col overflow-hidden" />}
               onSwitchScreen={() => {
                 if (leading) setView("chat")
                 else openLeading()
@@ -707,11 +707,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 <div className="min-w-0 flex-1">
                   <ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />
                 </div>
-                <div className="flex h-8 shrink-0 items-center">
-                  <DriveStatus />
-                </div>
               </div>
-              <div className="flex size-8 shrink-0 items-center justify-center">
+              <div className="flex h-8 shrink-0 items-center gap-[4px]">
+                <DriveStatus />
                 <ClientVersionPopover />
               </div>
             </>
@@ -726,15 +724,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                   {driveSidebar &&
                     createPortal(
                       <DrivePage
-                        renderProjectActions={(root) => (
-                          <ChatProjectMenu
-                            actionLabel={t("workspace.recentSessions")}
-                            cwd={root.localPath}
-                            currentSessionId={selectedId}
-                            onSelect={select}
-                            onNewChat={() => void newChatInDirectory(root.localPath)}
-                          />
-                        )}
                         currentProject={session?.cwd ?? lastDirectory}
                         onOpenProject={(root) =>
                           operation.run(async () => {

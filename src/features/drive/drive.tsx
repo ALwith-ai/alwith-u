@@ -62,10 +62,8 @@ export function useDriveConnection(start = true): void {
 
 export function DrivePage({
   onOpenProject,
-  renderProjectActions,
   currentProject
 }: {
-  renderProjectActions?: (root: RootInfo) => ReactNode
   currentProject?: string | null
   onOpenProject: (root: RootInfo) => Promise<void>
 }): ReactNode {
@@ -82,7 +80,7 @@ export function DrivePage({
     await workspace.openProject(root.localPath)
   }
   const host: DriveHost = {
-    renderProjectActions,
+    searchShortcut: false,
     readDirectory: async (path) =>
       (await (await driveFileSystem(path)).readDirectory(path)).map((entry) => ({
         name: entry.name,
@@ -115,7 +113,7 @@ export function DrivePage({
     }
   }
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <DrivePanel
         controller={drive}
         mode="launcher"

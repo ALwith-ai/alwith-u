@@ -332,7 +332,7 @@ function SidebarPanels({
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
-            className={cn("sidebar-drive ms-2 min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
+            className={cn("sidebar-drive min-h-0 flex-1 flex-col", view === "drive" ? "flex" : "hidden")}
           >
             {drivePanel}
           </div>
