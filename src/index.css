@@ -18,86 +18,10 @@ pre,
   unicode-bidi: isolate;
 }
 
-/* Keep diff metadata readable in both themes, including upstream diff2html styles. */
-[data-stream-style="codexUI"] .d2h-wrapper .d2h-info,
-[data-stream-style="codexUI"] .d2h-wrapper .d2h-tag {
-  color: var(--foreground);
-}
-
-[data-stream-style="codexUI"] .codex-markdown-link-label {
-  color: var(--link);
-  text-decoration: underline;
-}
-
-.codex-markdown-link,
-.codex-markdown-link .codex-markdown-link-mention {
-  color: var(--link);
-  cursor: pointer;
-}
-
-.codex-markdown-link:is(:hover, :focus-visible) .codex-markdown-link-label {
-  color: var(--link);
-  background-color: color-mix(in oklab, var(--link) 14%, transparent);
-  text-decoration: underline;
-}
 /* Published pet components also live in shared chunks at the dist root. */
 @source "../node_modules/@alwith/module-auth/dist";
 
 @custom-variant dark (&:is(.dark *));
-
-.permission-mode-menu [role="menuitemradio"] > svg {
-  color: var(--muted-foreground);
-}
-
-form[data-shell-mode="true"] .codex-composer-surface {
-  border-color: var(--destructive) !important;
-}
-
-.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] svg {
-  width: 14px;
-  height: 14px;
-}
-
-.permission-mode-menu [data-slot="dropdown-menu-radio-item-indicator"] {
-  inset-block-start: 50%;
-  transform: translateY(-50%);
-  height: 1rem;
-}
-
-/* Match Desktop's lounge nest and keep native button states off the sprite. */
-.pet-lounge button[aria-label="Vibémon"] {
-  background-image: none;
-  box-shadow: none;
-}
-.pet-lounge .vibemon-lounge-pet {
-  background-color: transparent;
-}
-.pet-lounge button[aria-label="Vibémon"]:not(.vibemon-lounge-pet) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-color: var(--pet-lounge-nest);
-  background-color: color-mix(in oklab, var(--pet-lounge-nest) 10%, transparent);
-  color: var(--pet-lounge-nest);
-}
-.pet-lounge button[aria-label="Vibémon"]:not(.vibemon-lounge-pet) svg {
-  stroke-width: 2.5;
-}
-.pet-lounge [data-testid="pet-lounge-drop"] {
-  border-color: var(--pet-lounge-nest);
-  background-color: color-mix(in oklab, var(--pet-lounge-nest) 30%, transparent);
-}
-
-button[data-permission-warning],
-button[data-permission-warning] svg,
-.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]),
-.permission-mode-menu [role="menuitemradio"]:has([data-permission-warning]) * {
-  color: var(--permission-warning);
-}
-
-:root {
-  --permission-warning: oklch(0.65 0.2 40);
-}
 
 @theme inline {
   --font-heading: var(--font-sans);
