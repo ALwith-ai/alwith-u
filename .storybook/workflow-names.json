@@ -1,0 +1,188 @@
+{
+  "account": {
+    "code": "验证码登录",
+    "password": "密码登录",
+    "register": "账户注册",
+    "invalidemail": "邮箱校验",
+    "waitlisted": "账号开通等待",
+    "disabled": "账号禁用处理",
+    "logout": "退出登录"
+  },
+  "archive": {
+    "restore": "恢复归档聊天",
+    "deleteone": "删除归档聊天",
+    "deleteall": "清空归档",
+    "canceldelete": "取消清空归档",
+    "search": "搜索归档",
+    "filter": "筛选归档"
+  },
+  "archives-states": {
+    "restoreerror": "归档恢复失败",
+    "restoring": "归档恢复等待",
+    "deleteerror": "归档删除失败",
+    "deleting": "归档删除等待",
+    "partialdelete": "归档批量删除异常"
+  },
+  "chat": {
+    "send": "项目对话",
+    "quickchat": "随聊对话",
+    "stop": "停止生成",
+    "reconnect": "连接恢复",
+    "senderror": "模型繁忙处理",
+    "model": "模型与推理设置",
+    "switchproject": "项目切换",
+    "rename": "聊天重命名",
+    "searchchat": "聊天内容搜索",
+    "floating": "聊天窗口切换",
+    "configureprovider": "模型登录配置",
+    "transferdraft": "聊天草稿交接"
+  },
+  "chat-details-states": {
+    "usage": "Token 用量查看",
+    "warning": "上下文用量预警",
+    "full": "上下文容量耗尽",
+    "forkorigin": "返回原聊天"
+  },
+  "drive": {
+    "open": "资料库访问",
+    "create": "云盘项目创建",
+    "manage": "资料库管理"
+  },
+  "drive-surfaces-states": {
+    "unsynced": "未同步资料提醒",
+    "running": "知识归纳等待",
+    "done": "知识归纳结果",
+    "failed": "知识归纳重试"
+  },
+  "file-operations": {
+    "newfolder": "文件夹创建",
+    "rename": "文件重命名",
+    "delete": "文件删除",
+    "saveretry": "文件保存重试"
+  },
+  "files": {
+    "markdown": "文件预览切换",
+    "savetext": "文本编辑保存",
+    "multitabs": "多文件标签切换",
+    "maximize": "工作区缩放",
+    "close": "关闭文件工作区",
+    "newfile": "文件创建",
+    "cancelnewfile": "取消文件创建",
+    "dirtycancel": "保留未保存编辑",
+    "dirtydiscard": "放弃文件编辑",
+    "dirtysave": "保存编辑后关闭"
+  },
+  "files-states": {
+    "newfiledialog": "文件创建弹窗",
+    "newfolderdialog": "文件夹创建弹窗",
+    "renamedialog": "文件行内重命名",
+    "deletedialog": "文件删除确认",
+    "movedialog": "文件移动选址",
+    "crossprojectmove": "跨项目移动提示",
+    "unsaveddialog": "未保存文件处理"
+  },
+  "input-recovery": {
+    "permissionmode": "权限模式设置",
+    "filemention": "项目文件引用",
+    "textattachmentretry": "长文本附件重试",
+    "prediction": "输入建议采纳",
+    "globalforms": "全局表单处理"
+  },
+  "login-states": {
+    "password": "密码登录入口",
+    "register": "账号注册入口",
+    "invalidemail": "邮箱格式校验",
+    "codesent": "验证码发送冷却",
+    "waitlisted": "候补账号提示",
+    "disabled": "停用账号提示",
+    "sending": "验证码发送等待",
+    "network": "验证码发送失败",
+    "registered": "注册邮箱重复",
+    "wrongcode": "无效验证码处理",
+    "signingin": "验证码登录等待",
+    "wrongpassword": "密码错误处理",
+    "passwordsigningin": "密码登录等待",
+    "weakpassword": "注册密码校验",
+    "registering": "账号注册等待"
+  },
+  "navigation": {
+    "modules": "功能模块导航",
+    "palette": "全局聊天搜索",
+    "nomatch": "搜索无匹配处理",
+    "account": "账户资料访问",
+    "guide": "用户指南阅读"
+  },
+  "pet-reply": {
+    "send": "宠物快捷对话",
+    "allow": "宠物权限批准",
+    "reject": "宠物权限拒绝",
+    "answer": "宠物问题回答"
+  },
+  "pets": {
+    "wish": "卡池浏览",
+    "album": "伙伴图鉴浏览",
+    "equip": "伙伴选择",
+    "draw": "伙伴单次抽取",
+    "drawmulti": "伙伴多次抽取"
+  },
+  "plugin-recovery": {
+    "install": "插件安装重试",
+    "toggle": "插件停用重试",
+    "uninstall": "插件卸载重试",
+    "upgrade": "插件目录升级重试"
+  },
+  "plugins": {
+    "install": "插件安装",
+    "toggle": "插件启停",
+    "uninstall": "插件卸载",
+    "skilltoggle": "技能启停",
+    "search": "插件搜索",
+    "upgrade": "插件目录升级",
+    "extensionenable": "扩展启停",
+    "extensionunavailable": "扩展不可用处理",
+    "extensioninstall": "扩展安装"
+  },
+  "provider-states-states": {
+    "customnew": "自定义供应商添加",
+    "customedit": "自定义供应商编辑",
+    "jsoneditor": "模型列表编辑",
+    "jsoninvalid": "模型 JSON 校验",
+    "jsonduplicate": "模型 ID 重复处理",
+    "testsuccess": "供应商连接成功",
+    "invalidkey": "API 密钥校验",
+    "timeout": "供应商连接超时",
+    "network": "供应商网络异常",
+    "ratelimited": "限流与余额异常",
+    "unsupported": "供应商响应校验",
+    "testing": "供应商连接测试",
+    "saving": "供应商密钥保存"
+  },
+  "requests": {
+    "allow": "单次工具授权",
+    "always": "持续工具授权",
+    "reject": "工具授权拒绝",
+    "formaccept": "表单填写提交",
+    "formdecline": "表单请求拒绝",
+    "formcancel": "表单请求取消",
+    "urlopen": "外部连接授权",
+    "urldecline": "连接授权拒绝",
+    "urlcancel": "连接授权取消",
+    "question": "异步问题回答"
+  },
+  "settings": {
+    "sections": "设置页面导航",
+    "theme": "外观主题切换",
+    "computer": "电脑操作设置",
+    "computerpermission": "系统权限设置",
+    "provider": "模型供应商配置",
+    "voice": "语音输入设置",
+    "editor": "编辑器显示设置"
+  },
+  "voice-states-states": {
+    "starting": "麦克风连接等待",
+    "recording": "语音录制",
+    "transcribing": "语音转写等待",
+    "error": "语音识别失败",
+    "nospeech": "无语音输入处理"
+  }
+}

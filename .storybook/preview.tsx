@@ -1,24 +1,23 @@
+import "./fixtures/native"
+import { disposePlaybackClock } from "./fixtures/playback-clock"
 import "../src/index.css"
 import { withThemeByClassName } from "@storybook/addon-themes"
 import type { Preview } from "@storybook/react-vite"
-import { mockIPC } from "@tauri-apps/api/mocks"
 import { type ReactNode, useEffect } from "react"
 import { I18nextProvider } from "react-i18next"
+import { configure } from "storybook/test"
 
 import { AppDirectionProvider } from "../src/components/alwith-ui/app-direction-provider"
 import { ThemeProvider, useTheme } from "../src/components/theme-provider"
 import i18n, { initI18n } from "../src/lib/i18n"
-
-mockIPC((command) => {
-  if (command === "plugin:log|log") return
-  throw new Error(`Unexpected Storybook IPC command: ${command}`)
-})
 
 function ThemeSync({ theme, children }: { theme: "light" | "dark"; children: ReactNode }) {
   const { setTheme } = useTheme()
   useEffect(() => setTheme(theme), [theme, setTheme])
   return children
 }
+
+configure({ asyncUtilTimeout: 5000 })
 
 const preview: Preview = {
   tags: ["autodocs"],
@@ -34,9 +33,10 @@ const preview: Preview = {
       }
     }
   },
-  initialGlobals: { locale: "en" },
+  initialGlobals: { locale: "zh-CN", theme: "light" },
   loaders: [
     async ({ globals }) => {
+      disposePlaybackClock()
       const locale = globals.locale as string
       if (!i18n.isInitialized) await initI18n(locale)
       else await i18n.changeLanguage(locale)
@@ -49,8 +49,15 @@ const preview: Preview = {
         <AppDirectionProvider>
           <ThemeProvider>
             <ThemeSync theme={context.globals.theme === "dark" ? "dark" : "light"}>
-              <div className="mx-auto max-w-3xl bg-background p-4 text-foreground" data-stream-style="codexUI">
-                <Story />
+              <div
+                className={
+                  context.parameters.productPage
+                    ? "h-dvh w-full overflow-hidden bg-sidebar text-foreground"
+                    : "mx-auto max-w-3xl bg-background p-4 text-foreground"
+                }
+                data-stream-style="codexUI"
+              >
+                <Story key={JSON.stringify([context.id, context.args, context.globals])} />
               </div>
             </ThemeSync>
           </ThemeProvider>
@@ -58,7 +65,45 @@ const preview: Preview = {
       </I18nextProvider>
     )
   ],
-  parameters: { layout: "padded", a11y: { test: "error" } }
+  parameters: {
+    docs: { story: { inline: false } },
+    layout: "padded",
+    a11y: { test: "error" },
+    options: {
+      storySort: {
+        order: [
+          "页面",
+          [
+            "账号与登录",
+            "主窗整体",
+            "主窗聊天",
+            "文件树和预览区",
+            "浮窗聊天",
+            "负一屏",
+            ["插件", "扩展", "宠物伙伴", "归档"],
+            "设置页",
+            "Gamepad",
+            "其他"
+          ],
+          "流程",
+          [
+            "账号与登录",
+            "主窗整体",
+            "主窗聊天",
+            "文件树和预览区",
+            "浮窗聊天",
+            "负一屏",
+            ["插件", "扩展", "宠物伙伴", "归档"],
+            "设置页",
+            "Gamepad",
+            "其他"
+          ]
+        ],
+        method: "alphabetical",
+        locales: "zh-CN"
+      }
+    }
+  }
 }
 
 export default preview

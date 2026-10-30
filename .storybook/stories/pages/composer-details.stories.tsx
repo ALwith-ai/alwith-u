@@ -1,0 +1,157 @@
+import { createSession, type Session } from "@alwith/api"
+import type { Meta, StoryObj } from "@storybook/react-vite"
+import { mockIPC } from "@tauri-apps/api/mocks"
+import { type ReactNode, useState } from "react"
+import { expect, fn, waitFor } from "storybook/test"
+
+import { Composer } from "../../../src/features/chat/composer"
+import { drafts } from "../../../src/features/chat/composer/drafts"
+import { DraftProjectPicker } from "../../../src/features/chat/draft-project-picker"
+import type { SettingsRequest } from "../../../src/lib/settings-store"
+
+const session: Session = {
+  ...createSession("composer-preview", "/Projects/alwith"),
+  attached: true,
+  commands: [{ name: "plan", description: "Plan a task" }],
+  configOptions: [
+    {
+      configId: "model",
+      category: "model",
+      name: "Model",
+      type: "select",
+      currentValue: "gpt-6.1-sol",
+      options: [{ value: "gpt-6.1-sol", name: "GPT-6.1 Sol" }]
+    },
+    {
+      configId: "effort",
+      category: "thought_level",
+      name: "Effort",
+      type: "select",
+      currentValue: "medium",
+      options: [{ value: "medium", name: "中" }]
+    },
+    {
+      configId: "mode",
+      category: "mode",
+      name: "Permissions",
+      type: "select",
+      currentValue: "read-only",
+      options: [{ value: "read-only", name: "Read only" }]
+    }
+  ]
+}
+
+const meta = {
+  id: "页面-聊天-输入框细节",
+  title: "页面/主窗聊天/输入框细节",
+  component: Composer,
+  globals: { locale: "zh-CN" },
+  args: {
+    session,
+    onSubmit: fn(async () => {}),
+    inputHeader: <ProjectPickerPreview />
+  },
+  beforeEach: () => {
+    drafts.delete(session.id)
+    let revision = Date.now()
+    let values: Record<string, unknown> = { "voice.enabled": true }
+    mockIPC((command, payload) => {
+      if (command === "plugin:log|log") return
+      if (command === "draft_directory") return "/Users/demo/Documents/Codex"
+      if (command === "settings_request") {
+        if (!payload || !("input" in payload)) throw new Error("Missing settings request")
+        const input = payload.input as SettingsRequest
+        values = { ...values, ...input.changes }
+        return { revision: ++revision, values, browserMigrated: true }
+      }
+      throw new Error(`Unexpected composer preview IPC command: ${command}`)
+    })
+    return () => {
+      drafts.delete(session.id)
+      mockIPC((command) => {
+        if (command === "plugin:log|log") return
+        throw new Error(`Unexpected Storybook IPC command: ${command}`)
+      })
+    }
+  }
+} satisfies Meta<typeof Composer>
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Project: Story = {
+  name: "已选择项目",
+  play: async ({ canvasElement, canvas, userEvent, args }) => {
+    const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
+    const textarea = canvas.getByRole("textbox")
+    const project = canvasElement.querySelector<HTMLElement>(".chat-project-picker")!
+    expect(getComputedStyle(project).backgroundColor).toBe("rgba(0, 0, 0, 0)")
+    await waitFor(() => expect(surface.getBoundingClientRect().height).toBe(100))
+    const toolbar = canvasElement.querySelector<HTMLElement>(".chat-composer-toolbar")!
+    expect(toolbar.getBoundingClientRect().bottom).toBeLessThan(surface.getBoundingClientRect().bottom)
+    await userEvent.type(textarea, "/")
+    const list = await canvas.findByRole("listbox")
+    expect(list.getBoundingClientRect().left).toBe(surface.getBoundingClientRect().left)
+    expect(list.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
+    await userEvent.click(canvas.getByRole("option"))
+    expect(textarea).toHaveValue("/plan ")
+    await userEvent.click(canvas.getByRole("button", { name: "发送" }))
+    await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
+    await waitFor(() => expect(textarea).toHaveValue(""))
+  }
+}
+
+export const NoProject: Story = {
+  name: "未选择项目",
+  args: { inputHeader: <DraftProjectPicker cwd={null} recentProjects={[]} onChange={fn()} /> }
+}
+
+export const Narrow: Story = {
+  name: "窄窗口",
+  decorators: [
+    (Story) => (
+      <div className="w-[360px] max-w-full">
+        <Story />
+      </div>
+    )
+  ],
+  play: async ({ canvasElement, canvas }) => {
+    const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
+    for (const button of canvas.getAllByRole("button")) {
+      expect(button.getBoundingClientRect().left).toBeGreaterThanOrEqual(surface.getBoundingClientRect().left)
+      expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(surface.getBoundingClientRect().right)
+    }
+  }
+}
+
+export const LongDraft: Story = {
+  name: "长草稿",
+  play: async ({ canvasElement, canvas, userEvent }) => {
+    const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
+    const textarea = canvas.getByRole("textbox") as HTMLTextAreaElement
+    await userEvent.click(textarea)
+    await userEvent.paste(Array.from({ length: 40 }, (_, index) => `Line ${index + 1}`).join("\n"))
+    await waitFor(() => expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight))
+    expect(getComputedStyle(surface).overflowY).toBe("clip")
+    expect(getComputedStyle(textarea).scrollbarWidth).toBe("none")
+    textarea.scrollTop = textarea.scrollHeight
+    expect(textarea.scrollTop).toBeGreaterThan(0)
+    expect(canvas.getByRole("button", { name: "发送" })).toBeVisible()
+  }
+}
+
+function ProjectPickerPreview(): ReactNode {
+  const [cwd, setCwd] = useState<string | null>("/Projects/alwith")
+  return <DraftProjectPicker cwd={cwd} recentProjects={[]} onChange={setCwd} />
+}
+
+export const ExitProject: Story = {
+  name: "退出项目",
+  play: async ({ canvas, userEvent }) => {
+    const clear = canvas.getByRole("button", { name: "不在项目中工作" })
+    await waitFor(() => expect(clear).toBeEnabled())
+    await userEvent.click(clear)
+    expect(canvas.queryByRole("button", { name: "不在项目中工作" })).toBeNull()
+    expect(canvas.getByRole("button", { name: "选择项目" })).toBeVisible()
+    expect(canvas.queryByRole("menu")).toBeNull()
+  }
+}
