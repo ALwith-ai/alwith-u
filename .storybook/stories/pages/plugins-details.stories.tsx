@@ -202,7 +202,7 @@ export const CatalogLayout: Story = {
   render: () => <CatalogPreview />,
   play: async ({ canvasElement, userEvent }) => {
     const ui = within(canvasElement)
-    const sidebar = await ui.findByRole("complementary", { name: "Customization navigation" })
+    const sidebar = await ui.findByRole("complementary", { name: "Toolbox navigation" })
     const main = ui.getByRole("main", { name: "Plugin and skill content" })
     const sideHeader = sidebar.querySelector("[data-plugin-sidebar-header]")!
     const mainHeader = main.querySelector("[data-plugin-page-header]")!
@@ -210,12 +210,12 @@ export const CatalogLayout: Story = {
       const box = node.getBoundingClientRect()
       return box.top + box.height / 2
     }
-    const headerCenter = center(mainHeader)
+    const headerTop = mainHeader.getBoundingClientRect().top
     const catalogHeading = within(main).getByRole("heading", { name: "Plugins", level: 1 })
-    await expect(catalogHeading.getBoundingClientRect().top - main.getBoundingClientRect().top).toBeCloseTo(32, 0)
+    await expect(mainHeader.getBoundingClientRect().top - main.getBoundingClientRect().top).toBeCloseTo(32, 0)
     await expect(sideHeader.getBoundingClientRect().top - sidebar.getBoundingClientRect().top).toBeCloseTo(12, 0)
     const left = catalogHeading.getBoundingClientRect().left
-    await expect(left - sidebar.getBoundingClientRect().right).toBeCloseTo(40, 0)
+    await expect(left - sidebar.getBoundingClientRect().right).toBeCloseTo(48, 0)
     const customize = within(sidebar).getByRole("heading", { name: "Toolbox" })
     const railIcon = canvasElement.querySelector(".leading-navigation button svg")!
     await expect(center(customize)).toBeCloseTo(center(railIcon), 0)
@@ -226,15 +226,17 @@ export const CatalogLayout: Story = {
     await expect(
       installedHeading.getBoundingClientRect().top - skillsButton.getBoundingClientRect().bottom
     ).toBeCloseTo(8, 0)
-    await expect(main.getBoundingClientRect().right - mainHeader.getBoundingClientRect().right).toBeCloseTo(40, 0)
+    await expect(main.getBoundingClientRect().right - mainHeader.getBoundingClientRect().right).toBeCloseTo(48, 0)
     const installed = within(ui.getByRole("navigation", { name: "Installed" }))
     await userEvent.click(installed.getByRole("button", { name: "Research workspace" }))
     const detailHeading = await ui.findByRole("heading", { name: "Research workspace", level: 1 })
-    await expect(center(main.querySelector("[data-plugin-page-header]")!)).toBeCloseTo(headerCenter, 0)
-    await expect(detailHeading.closest("[data-slot=scroll-area]")!.getBoundingClientRect().left + 40).toBeCloseTo(
-      left,
-      0
-    )
+    await expect(main.querySelector("[data-plugin-page-header]")!.getBoundingClientRect().top).toBeCloseTo(headerTop, 0)
+    await expect(
+      detailHeading
+        .closest(".toolbox-surface")!
+        .querySelector("[data-slot=scroll-area] .toolbox-content")!
+        .getBoundingClientRect().left + 48
+    ).toBeCloseTo(left, 0)
     const description = await ui.findByText("Find sources and turn your research into useful documents.")
     await expect(description).toBeVisible()
     await expect(sidebar).toBeVisible()

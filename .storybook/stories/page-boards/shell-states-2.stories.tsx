@@ -8,4 +8,4 @@ const meta = {
 }
 export default meta
 
-export const ExtensionEntry = { ...source.ExtensionEntry, name: "扩展入口菜单" }
+export const ExtensionEntry = { ...source.ExtensionEntry, name: "扩展入口导航" }

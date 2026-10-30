@@ -85,7 +85,7 @@ Monaco uses Chromium EditContext. Automated editing dispatches its OS text-updat
 
 The frozen lockfile now includes the native mobile Linux and gamepad Windows optional artifacts at their existing versions. A script test checks that every native wrapper's platform dependency is represented in the lockfile. Native-artifact tests resolve fixture paths with `fileURLToPath`, including workspace paths containing spaces or Chinese characters. The aggregate source test run passes 90 script tests and 1,482 frontend/engine tests.
 
-Browser tests run in batches of eight files with one worker and a fresh Chromium process per batch. Page assertions run for every page story; workflow assertions replay each complete source journey once. A separate player check verifies the rendered diagrams, isolated checkpoints, navigation geometry, pan/zoom, long settings flows, theme, and narrow viewports. Workflow playback keeps its checkpoint behavior outside the test runner.
+Browser tests run in batches of eight files with one worker and a fresh Chromium process per batch. Page assertions run for every page story; workflow assertions replay each complete source journey once. A separate player check verifies the rendered diagrams, isolated checkpoints, navigation geometry, pan/zoom, long settings flows, theme, and narrow viewports. Workflow playback keeps its checkpoint behavior outside the test runner. Local batched runs and focused reruns cover all 369 page cases and 144 source journeys; the final five-file recheck passes all 16 cases. The static player verification also passes.
 
 ## Baseline integration verification (2fd356d, 2026-10-30)
 
@@ -116,5 +116,7 @@ Catalog: **369 page/component examples + 144 workflow diagrams = 513 sidebar sto
 - `bun run storybook:build`: standalone static export in ignored `storybook-static/`.
 - `bun run typecheck`, `bun run knip`, `bun run build`: application gates.
 - `bun x --no-install vitest run`: source frontend and engine tests.
+
+The source archive delete button also reports 4:1 text contrast against the required 4.5:1; its layout story retains the archive page's explicit accessibility TODO.
 
 The accessibility addon remains available. Full-page fixtures and the existing computer waiting preview report source accessibility findings as TODOs rather than altering source visuals to satisfy the catalog. A passing interaction run is not an accessibility certification.

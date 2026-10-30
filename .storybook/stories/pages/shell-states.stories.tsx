@@ -52,11 +52,11 @@ export const GlobalFormQueue: Story = {
   }
 }
 export const ExtensionEntry: Story = {
-  name: "扩展入口菜单",
+  name: "扩展入口导航",
   args: { extensionCase: "content" },
   play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(canvas.getAllByRole("button", { name: "扩展" })[0]!)
-    await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "项目工具" })
+    await userEvent.click(canvas.getByRole("button", { name: "项目工具" }))
+    await within(canvasElement.ownerDocument.body).findByText("项目工具已就绪")
   }
 }
 export const ExtensionNavigation: Story = {
