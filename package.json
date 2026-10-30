@@ -28,17 +28,17 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.1.0",
     "@alwith/api": "~0.5.4",
-    "@alwith/module-auth": "~0.5.12",
+    "@alwith/module-auth": "~0.5.13",
     "@alwith/module-browser": "^0.5.0",
-    "@alwith/module-chat": "~0.5.16",
+    "@alwith/module-chat": "~0.5.17",
     "@alwith/module-collection": "^0.5.0",
-    "@alwith/module-computer": "^0.5.0",
+    "@alwith/module-computer": "^0.5.1",
     "@alwith/module-desktop-shell": "^0.5.5",
-    "@alwith/module-drive": "^0.5.0",
+    "@alwith/module-drive": "^0.5.1",
     "@alwith/module-editor": "^0.5.0",
-    "@alwith/module-extension": "^0.5.0",
+    "@alwith/module-extension": "^0.5.1",
     "@alwith/module-file-tree": "^0.5.0",
-    "@alwith/module-fs": "^0.5.0",
+    "@alwith/module-fs": "^0.5.1",
     "@alwith/module-gamepad": "^0.5.0",
     "@alwith/module-mobile": "~0.5.2",
     "@alwith/module-store": "^0.5.0",
@@ -116,7 +116,7 @@
   },
   "devDependencies": {
     "@alwith/native-auth": "^0.5.0",
-    "@alwith/native-computer": "^0.5.0",
+    "@alwith/native-computer": "^0.5.1",
     "@alwith/native-drive": "^0.5.0",
     "@alwith/native-extension": "^0.5.0",
     "@alwith/native-fs": "^0.5.0",
@@ -125,7 +125,7 @@
     "@alwith/native-kit": "^0.5.0",
     "@alwith/native-mobile": "~0.5.2",
     "@alwith/native-voice": "^0.5.0",
-    "@nyssance/codex-acp-v2": "0.7.47",
+    "@nyssance/codex-acp-v2": "0.7.48",
     "@nyssance/ts7-lint": "^0.1.3",
     "@openai/codex": "0.166.0",
     "@storybook/addon-a11y": "^10.6.5",
@@ -164,7 +164,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.166.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.16",
+    "@alwith/module-chat": "~0.5.17",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {
