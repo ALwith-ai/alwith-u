@@ -5441,11 +5441,8 @@ dependencies = [
 name = "tauri-plugin-single-instance"
 version = "3.0.0-alpha.3"
 dependencies = [
- "serde",
- "serde_json",
  "tauri",
  "tauri-plugin-deep-link",
- "thiserror 2.0.21",
  "tokio",
  "tracing",
  "windows-sys 0.61.2",
