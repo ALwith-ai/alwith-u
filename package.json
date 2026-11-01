@@ -30,14 +30,14 @@
     "@alwith/api": "~0.5.4",
     "@alwith/module-auth": "~0.5.13",
     "@alwith/module-browser": "^0.5.0",
-    "@alwith/module-chat": "^0.5.19",
+    "@alwith/module-chat": "^0.5.20",
     "@alwith/module-collection": "^0.5.0",
     "@alwith/module-computer": "^0.5.1",
-    "@alwith/module-desktop-shell": "^0.5.8",
-    "@alwith/module-device": "^0.5.0",
+    "@alwith/module-desktop-shell": "^0.5.9",
+    "@alwith/module-device": "^0.5.1",
     "@alwith/module-drive": "^0.5.1",
     "@alwith/module-editor": "^0.5.0",
-    "@alwith/module-extension": "^0.5.1",
+    "@alwith/module-extension": "^0.5.2",
     "@alwith/module-file-tree": "^0.5.0",
     "@alwith/module-fs": "^0.5.1",
     "@alwith/module-gamepad": "^0.5.0",
@@ -99,7 +99,7 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-i18next": "^17.1.9",
+    "react-i18next": "^17.1.10",
     "react-player": "^3.4.0",
     "semver": "^7.8.5",
     "shadcn": "^4.23.0",
@@ -164,7 +164,7 @@
     "@openai/codex-win32-x64": "npm:@openai/codex@0.166.0-win32-x64"
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.19",
+    "@alwith/module-chat": "~0.5.20",
     "effect": "^4.0.6"
   },
   "patchedDependencies": {

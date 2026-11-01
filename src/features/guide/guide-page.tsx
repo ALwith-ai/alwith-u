@@ -1,4 +1,5 @@
 import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
+import { AuxWindowShell } from "@alwith/module-desktop-shell/settings"
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -21,7 +22,6 @@ import {
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { openExternal } from "@/lib/open"

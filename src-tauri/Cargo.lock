@@ -117,7 +117,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -332,6 +331,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "380962b3d93b99642e50b9febf72c071e97e8b32d86eae9cf4ef582bb960ae6e"
 dependencies = [
  "rustversion",
+]
+
+[[package]]
+name = "ashpd"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2f3f79755c74fd155000314eb349864caa787c6592eace6c6882dad873d9c39"
+dependencies = [
+ "enumflags2",
+ "futures-channel",
+ "futures-util",
+ "rand 0.9.5",
+ "raw-window-handle",
+ "serde",
+ "serde_repr",
+ "tokio",
+ "url",
+ "zbus",
 ]
 
 [[package]]
@@ -4143,6 +4160,7 @@ version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4fe518b6db89699d59862e4d1e3a0226316090f4e4ec09f7dd686be25634c7c"
 dependencies = [
+ "ashpd",
  "block2",
  "dispatch2",
  "glib-sys",
@@ -5146,10 +5164,11 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-alwith-desktop-shell"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "atlas-tauri",
  "log",
+ "rfd",
  "serde",
  "tauri",
  "tauri-plugin",
@@ -5284,9 +5303,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-hasgard"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4dbaea5fb0b4b707323690b52a2271bb1621587685d3bd4aae07275e610d7b9"
+checksum = "c73b865f9aa294164f34be6d4fef73d84a2e7bedd0710a25a9e283b501625877"
 dependencies = [
  "block2",
  "core-foundation 0.10.1",
@@ -5795,6 +5814,7 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
+ "tracing",
  "windows-sys 0.61.2",
 ]
 
@@ -7189,6 +7209,7 @@ dependencies = [
  "rustix",
  "serde",
  "serde_repr",
+ "tokio",
  "tracing",
  "uds_windows",
  "uuid",
@@ -7362,6 +7383,7 @@ dependencies = [
  "endi",
  "enumflags2",
  "serde",
+ "url",
  "winnow 1.0.4",
  "zcheapstr",
  "zvariant_derive",

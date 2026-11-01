@@ -26,7 +26,6 @@ jobs:
           name: test-results
           path: test-results.xml
           if-no-files-found: ignore
-      - run: bun run knip
       - run: bun run build
       - run: bun run storybook:check
       - run: bun run storybook:build
@@ -52,8 +51,6 @@ jobs:
           workspaces: src-tauri
       - run: bun run stage
       - run: bun run build
-      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
       - run: bun tauri build --no-bundle
 

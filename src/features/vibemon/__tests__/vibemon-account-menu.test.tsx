@@ -104,8 +104,8 @@ test("the account menu groups settings and language above tools and sign out", a
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
   expect(view.getAllByRole("menuitem")).toEqual(
-    ["Create your ALwith", "Settings", "Mobile connection", "Language", "Show Vibémon", "Gamepad", "Sign out"].map((name) =>
-      view.getByRole("menuitem", { name })
+    ["Create your ALwith", "Settings", "Mobile connection", "Language", "Show Vibémon", "Gamepad", "Sign out"].map(
+      (name) => view.getByRole("menuitem", { name })
     )
   )
   expect(view.getByRole("menuitem", { name: "Settings" }).parentElement).toBe(

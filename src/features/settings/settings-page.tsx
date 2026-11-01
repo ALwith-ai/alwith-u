@@ -3,6 +3,7 @@
 // `settings-change-tab` event; closing the window hides it so reopening is instant.
 
 import { MENU_HIGHLIGHT, NavigationItemButton, NavigationStack } from "@alwith/module-chat/session-list"
+import { AuxWindowShell } from "@alwith/module-desktop-shell/settings"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import {
@@ -25,7 +26,6 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { AuxWindowShell } from "@/components/alwith-ui/aux-window-shell"
 import { Pane } from "@/components/alwith-ui/pane"
 import { DriveSettings } from "@/features/drive/drive"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"

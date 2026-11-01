@@ -74,12 +74,13 @@ test("semantic navigation does not rebuild unchanged canvas geometry", () => {
   expect(view.getByTestId("canvas")).toHaveAttribute("data-moving", "false")
 })
 
-test("divider movement defers rebuilding until release", () => {
+test("divider movement rebuilds live and release does not rebuild again", () => {
   const view = render(<Harness />)
   const before = carousel.api.refresh.mock.calls.length
   fireEvent.click(view.getByText("Start"))
+  expect(carousel.api.cancelInput).toHaveBeenCalled()
   fireEvent.click(view.getByText("Resize"))
-  expect(carousel.api.refresh).toHaveBeenCalledTimes(before)
+  expect(carousel.api.refresh).toHaveBeenCalledTimes(before + 1)
   fireEvent.click(view.getByText("End"))
   expect(carousel.api.refresh).toHaveBeenCalledTimes(before + 1)
 })

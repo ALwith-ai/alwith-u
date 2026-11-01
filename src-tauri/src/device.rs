@@ -199,10 +199,7 @@ pub async fn device_save_screenshot(window: WebviewWindow, udid: String) -> Resu
 }
 /// A sortable UTC stamp without pulling a date crate into the host.
 fn file_stamp() -> String {
-    let seconds = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
+    let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
     let (days, rest) = (seconds / 86_400, seconds % 86_400);
     let z = days as i64 + 719_468;
     let era = z.div_euclid(146_097);

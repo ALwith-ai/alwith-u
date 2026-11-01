@@ -14,7 +14,7 @@ import { deviceBridge } from "./bridge"
 export function DeviceWorkspaceButton() {
   const workspace = useWorkspace()
   const { t } = useTranslation()
-  if (workspace === null || workspace.openPane === undefined || !isTauri()) return null
+  if (workspace?.openPane === undefined || !isTauri()) return null
   const openPane = workspace.openPane
   const active = workspace.visible && workspace.pane === "simulator"
   return (
