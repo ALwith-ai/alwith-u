@@ -19,6 +19,7 @@ import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
 import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
 import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
+import { stageNative as stageNativeDevice } from "@alwith/native-device/stage"
 import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
 import { stageNative as stageNativeExtension } from "@alwith/native-extension/stage"
 import { stageNative as stageNativeFs } from "@alwith/native-fs/stage"
@@ -84,6 +85,9 @@ console.log(`Cua Driver -> ${computerDestination}`)
 const computerResources = join(root, "src-tauri/resources/computer")
 mkdirSync(computerResources, { recursive: true })
 copyFileSync(join(root, "node_modules/@alwith/module-computer/proxy/stdio.mjs"), join(computerResources, "stdio.mjs"))
+const deviceResources = join(root, "src-tauri/resources/device")
+mkdirSync(deviceResources, { recursive: true })
+copyFileSync(join(root, "node_modules/@alwith/module-device/proxy/stdio.mjs"), join(deviceResources, "stdio.mjs"))
 if (!existsSync(join(licenses, `bun-${versions.bun}.md`))) {
   throw new Error(`Missing Bun ${versions.bun} licence notice; update resources/licenses with the version bump`)
 }
@@ -132,7 +136,8 @@ const nativeLibraries = [
   stageNativeGamepad,
   stageNativeComputer,
   stageNativeDrive,
-  stageNativeExtension
+  stageNativeExtension,
+  ...(triple.endsWith("apple-darwin") ? [stageNativeDevice] : [])
 ].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify

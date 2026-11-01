@@ -4,10 +4,15 @@ export interface FilePosition {
   column: number
 }
 
+/** What the preview region shows: the file workspace or a device simulator. */
+export type WorkspacePane = "files" | "simulator"
 export interface WorkspaceActions {
   registerFileReference?: (target: WorkspaceFileReference) => () => void
   visible: boolean
   viewMode?: boolean
+  pane?: WorkspacePane
+  /** Show the region with this pane; calling it for the visible pane closes the region. */
+  openPane?: (pane: WorkspacePane) => void
   toggle: () => void
   openFile: (path: string, root: string | null, position?: FilePosition) => Promise<void>
   openProject: (path: string) => Promise<void>
@@ -24,3 +29,5 @@ export function useWorkspace(): WorkspaceActions | null {
 }
 
 export const WorkspaceHeaderContext = createContext<HTMLElement | null>(null)
+/** The conversation the preview region belongs to; device panes attach on its behalf. */
+export const WorkspaceSessionContext = createContext<string | null>(null)

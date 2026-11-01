@@ -51,7 +51,7 @@ import { StoryPage } from "@/features/story/story-page"
 import { updateMainPetSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
-import { WorkspaceHeaderContext } from "@/features/workspace/context"
+import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
 import { installChatShortcut } from "@/lib/chat-shortcut"
@@ -718,29 +718,31 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
-                <FileWorkspace cwd={session?.cwd ?? lastDirectory} chatRevealRequest={chatRevealRequest}>
-                  <DriveDeleteConfirmation />
-                  <div className="flex min-h-0 flex-1 flex-col">{main}</div>
-                  {driveSidebar &&
-                    createPortal(
-                      <DrivePage
-                        currentProject={session?.cwd ?? lastDirectory}
-                        onOpenProject={(root) =>
-                          operation.run(async () => {
-                            await client.discardDraft("main")
-                            flushSync(() => {
-                              chooseDraftFolder(root.localPath)
-                              importDraft(DRAFT_SESSION_ID, null)
-                              setSurfaceGeneration((value) => value + 1)
-                              setSelectedId(null)
-                              setView("chat")
+                <WorkspaceSessionContext.Provider value={session?.id ?? null}>
+                  <FileWorkspace cwd={session?.cwd ?? lastDirectory} chatRevealRequest={chatRevealRequest}>
+                    <DriveDeleteConfirmation />
+                    <div className="flex min-h-0 flex-1 flex-col">{main}</div>
+                    {driveSidebar &&
+                      createPortal(
+                        <DrivePage
+                          currentProject={session?.cwd ?? lastDirectory}
+                          onOpenProject={(root) =>
+                            operation.run(async () => {
+                              await client.discardDraft("main")
+                              flushSync(() => {
+                                chooseDraftFolder(root.localPath)
+                                importDraft(DRAFT_SESSION_ID, null)
+                                setSurfaceGeneration((value) => value + 1)
+                                setSelectedId(null)
+                                setView("chat")
+                              })
                             })
-                          })
-                        }
-                      />,
-                      driveSidebar
-                    )}
-                </FileWorkspace>
+                          }
+                        />,
+                        driveSidebar
+                      )}
+                  </FileWorkspace>
+                </WorkspaceSessionContext.Provider>
               </WorkspaceHeaderContext.Provider>
             </SidebarInset>
           }

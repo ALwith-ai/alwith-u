@@ -8,6 +8,7 @@ import {
   HoverInfoAction,
   MENU_HIGHLIGHT,
   NavigationItemButton,
+  NavigationLeading,
   NavigationStack,
   SessionList,
   type SessionListExpansion,
@@ -152,7 +153,7 @@ function SidebarPanels({
   useEffect(() => {
     if (view === "activity") setActivitySeen(activityNotifications)
   }, [view, activityNotifications, setActivitySeen])
-  // Tabs share the navigation icon buttons' 32px height and hover styles, without an outer background panel.
+  // Tabs share the navigation icon buttons' shared 30px height and hover styles, without an outer background panel.
   // Selected: icon and text inside a pill; unselected: icon only (Desktop's atlas-layout tabs, reduced to two items).
   const driveVisible = useDriveVisible()
   const [driveVisited, setDriveVisited] = useState(false)
@@ -201,15 +202,21 @@ function SidebarPanels({
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
       className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
     >
-      <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-1" data-tauri-drag-region>
-        <div className="flex h-8 items-center gap-0.5 px-1" data-tauri-drag-region>
+      <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-0.5" data-tauri-drag-region>
+        <div className="flex h-[var(--navigation-row-height)] items-center gap-0.5 ps-1" data-tauri-drag-region>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
             {t("app.name")}
           </span>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="ghost" size="icon-sm" aria-label={t("sidebar.search")} onClick={onSearch}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-[var(--navigation-row-height)] p-0"
+                  aria-label={t("sidebar.search")}
+                  onClick={onSearch}
+                >
                   <SearchIcon />
                 </Button>
               }
@@ -221,7 +228,13 @@ function SidebarPanels({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="ghost" size="icon-sm" aria-label={t("chatWindow.open")} onClick={onOpenWindow}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-[var(--navigation-row-height)] p-0"
+                  aria-label={t("chatWindow.open")}
+                  onClick={onOpenWindow}
+                >
                   <PictureInPicture2Icon />
                 </Button>
               }
@@ -233,7 +246,13 @@ function SidebarPanels({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="ghost" size="icon-sm" aria-label={t("sidebar.newChat")} onClick={onNewChat}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-[var(--navigation-row-height)] p-0"
+                  aria-label={t("sidebar.newChat")}
+                  onClick={onNewChat}
+                >
                   <PlusIcon />
                 </Button>
               }
@@ -243,22 +262,26 @@ function SidebarPanels({
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           <NavigationItemButton
             active={screen === "leading" && (leadingPage === "plugins" || leadingPage === "extensions")}
-            className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
+            className={`${MENU_HIGHLIGHT}`}
             onClick={onOpenPlugins}
           >
-            <LayoutGridIcon />
+            <NavigationLeading>
+              <LayoutGridIcon />
+            </NavigationLeading>
             <span>{t("plugins.catalog.customize")}</span>
           </NavigationItemButton>
           {onOpenVibemon && (
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}
-              className={`${MENU_HIGHLIGHT} h-8 gap-2 px-2`}
+              className={`${MENU_HIGHLIGHT}`}
               onClick={onOpenVibemon}
             >
-              <PawPrintIcon />
+              <NavigationLeading>
+                <PawPrintIcon />
+              </NavigationLeading>
               <span>Vibémon</span>
             </NavigationItemButton>
           )}
@@ -266,10 +289,10 @@ function SidebarPanels({
         {extensionNavigation}
       </SidebarHeader>
       <SidebarContent className="session-list-content gap-0 overflow-hidden px-0 py-1">
-        <div className="relative mx-2 mb-2 flex h-8 shrink-0 items-center gap-0.5 [--navigation-row-height:32px]">
+        <div className="relative mb-2 flex h-[var(--navigation-row-height)] shrink-0 items-center gap-0.5">
           <div
             role="tablist"
-            className={`${MENU_HIGHLIGHT} flex h-8 w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}
+            className={`${MENU_HIGHLIGHT} flex h-[var(--navigation-row-height)] w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}
           >
             {tabs
               .filter((tab) => tab.key !== "drive" || driveVisible)
@@ -294,7 +317,7 @@ function SidebarPanels({
                         : undefined
                     }
                     className={cn(
-                      "relative isolate h-8 min-w-8 justify-start rounded-[10px] px-2 text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4 [&_svg]:shrink-0",
+                      "relative isolate h-[var(--navigation-row-height)] min-w-[var(--navigation-row-height)] justify-start rounded-[10px] px-2 text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4 [&_svg]:shrink-0",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
                     )}
                   >
@@ -373,7 +396,7 @@ function SidebarPanels({
           <Button
             variant="ghost"
             className={cn(
-              "h-8 min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)] hover:bg-foreground/5",
+              "h-[var(--navigation-row-height)] min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)] hover:bg-foreground/5",
               screen === "main" ? "justify-start" : "justify-end"
             )}
             aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
@@ -383,7 +406,7 @@ function SidebarPanels({
             {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
           </Button>
         </div>
-        <div className="flex h-8 items-center gap-1">
+        <div className="flex h-[var(--navigation-row-height)] items-center gap-0.5">
           <div className="min-w-0 flex-1">
             <SidebarAccountMenu onOpenSettings={onOpenSettings} onCreated={onNewProjectChat} />
           </div>

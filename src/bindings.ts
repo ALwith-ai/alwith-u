@@ -41,6 +41,68 @@ export const commands = {
     __t3Invoke<null>("computer_unsubscribe", args),
   computerRequestPermissions: (args: { permission: string; request: boolean }): Promise<null> =>
     __t3Invoke<null>("computer_request_permissions", args),
+  /**
+   *  A fresh gateway token for one conversation plus the carrier the agent runtime launches.
+   */
+  deviceContext: (): Promise<{
+    registration: Registration
+    carrier: DeviceCarrier
+  } | null> =>
+    __t3Invoke<{
+      registration: Registration
+      carrier: DeviceCarrier
+    } | null>("device_context"),
+  deviceBind: (args: { token: string; sessionId: string }): Promise<null> => __t3Invoke<null>("device_bind", args),
+  deviceStopSession: (args: { sessionId: string }): Promise<null> => __t3Invoke<null>("device_stop_session", args),
+  deviceList: (args: { platform: string }): Promise<ManagedDevice[]> =>
+    __t3Invoke<ManagedDevice[]>("device_list", args),
+  deviceAttachments: (): Promise<AttachmentInfo_Serialize[]> =>
+    __t3Invoke<AttachmentInfo_Serialize[]>("device_attachments"),
+  /**
+   *  The panel attaches on behalf of its conversation so the agent's tools see the same device.
+   */
+  deviceAttach: (args: {
+    sessionId: string
+    platform: string
+    udid: string | null
+  }): Promise<AttachmentInfo_Serialize> => __t3Invoke<AttachmentInfo_Serialize>("device_attach", args),
+  deviceDetach: (args: { udid: string }): Promise<null> => __t3Invoke<null>("device_detach", args),
+  /**
+   *  A PNG data URL of the current screen for the polling preview.
+   */
+  deviceFrame: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_frame", args),
+  /**
+   *  Input needs the native simulator helper, which this version does not ship yet.
+   */
+  deviceGesture: (args: { udid: string; gesture: Value }): Promise<null> => __t3Invoke<null>("device_gesture", args),
+  deviceAppearance: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_appearance", args),
+  deviceSetAppearance: (args: { udid: string; mode: string }): Promise<null> =>
+    __t3Invoke<null>("device_set_appearance", args),
+  deviceSetStatusBar: (args: { udid: string; look: string }): Promise<null> =>
+    __t3Invoke<null>("device_set_status_bar", args),
+  deviceShutdown: (args: { udid: string }): Promise<null> => __t3Invoke<null>("device_shutdown", args),
+  deviceRestart: (args: { udid: string }): Promise<null> => __t3Invoke<null>("device_restart", args),
+  /**
+   *  Save the current screen as a PNG on the Desktop and return its path.
+   */
+  deviceSaveScreenshot: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_save_screenshot", args),
+  deviceLogs: (args: { udid: string; query: LogQuery_Deserialize }): Promise<LogPage> =>
+    __t3Invoke<LogPage>("device_logs", args),
+  deviceCrashReport: (args: {
+    udid: string
+    bundleId: string | null
+  }): Promise<{
+    path: string
+    process: string
+    timestamp: string
+    summary: string
+  } | null> =>
+    __t3Invoke<{
+      path: string
+      process: string
+      timestamp: string
+      summary: string
+    } | null>("device_crash_report", args),
   autostartSet: (args: { enabled: boolean }): Promise<null> => __t3Invoke<null>("autostart_set", args),
   autostartLaunch: (): Promise<boolean> => __t3Invoke<boolean>("autostart_launch"),
   autostartComplete: (args: { restored: boolean }): Promise<null> => __t3Invoke<null>("autostart_complete", args),
@@ -230,6 +292,10 @@ export const commands = {
    *  Read the same bundled executable used by the Runtime, not the ACP adapter's package version.
    */
   codexVersion: (): Promise<string> => __t3Invoke<string>("codex_version"),
+  /**
+   *  Inspect the exact bundled CLI selected by Runtime without starting a session.
+   */
+  codexStatus: (): Promise<Value> => __t3Invoke<Value>("codex_status"),
   mobileSetActivitySessions: (args: { sessionIds: string[] }): Promise<null> =>
     __t3Invoke<null>("mobile_set_activity_sessions", args),
   mobileBridgeStart: (args: { relayUrl: string }): Promise<null> => __t3Invoke<null>("mobile_bridge_start", args),
@@ -312,6 +378,23 @@ export type CommandErrors = {
   computerFocus: string
   computerUnsubscribe: string
   computerRequestPermissions: string
+  deviceContext: string
+  deviceBind: string
+  deviceStopSession: string
+  deviceList: string
+  deviceAttachments: string
+  deviceAttach: string
+  deviceDetach: string
+  deviceFrame: string
+  deviceGesture: string
+  deviceAppearance: string
+  deviceSetAppearance: string
+  deviceSetStatusBar: string
+  deviceShutdown: string
+  deviceRestart: string
+  deviceSaveScreenshot: string
+  deviceLogs: string
+  deviceCrashReport: string
   autostartSet: string
   autostartLaunch: never
   autostartComplete: string
@@ -382,6 +465,7 @@ export type CommandErrors = {
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
+  codexStatus: string
   mobileSetActivitySessions: never
   mobileBridgeStart: string
   mobileBridgeStop: string
@@ -441,6 +525,16 @@ export const events = {
     emit: (payload: ComputerPreview_Deserialize) => __t3Emit("computer:preview", payload),
     emitTo: (target: string | __t3Target, payload: ComputerPreview_Deserialize) =>
       __t3EmitTo(target, "computer:preview", payload)
+  },
+  "device:attachments": {
+    name: "device:attachments",
+    listen: (handler: __t3Callback<DeviceAttachments_Serialize>) =>
+      __t3Listen<DeviceAttachments_Serialize>("device:attachments", handler),
+    once: (handler: __t3Callback<DeviceAttachments_Serialize>) =>
+      __t3Once<DeviceAttachments_Serialize>("device:attachments", handler),
+    emit: (payload: DeviceAttachments_Deserialize) => __t3Emit("device:attachments", payload),
+    emitTo: (target: string | __t3Target, payload: DeviceAttachments_Deserialize) =>
+      __t3EmitTo(target, "device:attachments", payload)
   },
   "runtime:exit": {
     name: "runtime:exit",
@@ -626,6 +720,32 @@ export type AppInfo_Serialize = {
   icon: string | null
 }
 
+export type AttachmentInfo = AttachmentInfo_Serialize | AttachmentInfo_Deserialize
+
+export type AttachmentInfo_Deserialize = {
+  udid: string
+  platform: string
+  deviceName: string
+  systemVersion: string
+  owner: Owner
+  attachedAt: string
+  pixelWidth?: number | null
+  pixelHeight?: number | null
+  app?: LaunchedApp | null
+}
+
+export type AttachmentInfo_Serialize = {
+  udid: string
+  platform: string
+  deviceName: string
+  systemVersion: string
+  owner: Owner
+  attachedAt: string
+  pixelWidth: number | null
+  pixelHeight: number | null
+  app: LaunchedApp | null
+}
+
 export type AutostartStatus = {
   supported: boolean
   enabled: boolean
@@ -719,6 +839,13 @@ export type Connection = {
   env: Environment[]
 }
 
+export type CrashReport = {
+  path: string
+  process: string
+  timestamp: string
+  summary: string
+}
+
 export type CredentialInput = {
   provider: Provider
   apiKey: string
@@ -765,6 +892,29 @@ export type CustomModel_Serialize = {
   api_id: string
   contextWindow?: number
   description?: string
+}
+
+export type DeviceAttachments = DeviceAttachments_Serialize | DeviceAttachments_Deserialize
+
+export type DeviceAttachments_Deserialize = {
+  revision: number
+  attachments: AttachmentInfo_Deserialize[]
+}
+
+export type DeviceAttachments_Serialize = {
+  revision: number
+  attachments: AttachmentInfo_Serialize[]
+}
+
+export type DeviceCarrier = {
+  command: string
+  args: string[]
+  proxy: string
+}
+
+export type DeviceSessionConnection = {
+  registration: Registration
+  carrier: DeviceCarrier
 }
 
 export type DirectoryGrant = {
@@ -887,6 +1037,56 @@ export type Input_Serialize = {
   baseUrl: string | null
 }
 
+export type LaunchedApp = {
+  bundleId: string
+  executable: string
+  pid: number
+  launchedAt: string
+}
+
+export type LogEntry = {
+  seq: number
+  timestamp: string
+  level: string
+  process: string
+  pid: number
+  subsystem: string
+  category: string
+  message: string
+}
+
+export type LogPage = {
+  entries: LogEntry[]
+  dropped: number
+  total: number
+  lastSeq: number
+  captureStartedAt: string
+}
+
+export type LogQuery = LogQuery_Serialize | LogQuery_Deserialize
+
+export type LogQuery_Deserialize = {
+  sinceSeq?: number | null
+  tail?: number | null
+  minLevel?: string | null
+  filter?: string | null
+}
+
+export type LogQuery_Serialize = {
+  sinceSeq: number | null
+  tail: number | null
+  minLevel: string | null
+  filter: string | null
+}
+
+export type ManagedDevice = {
+  id: string
+  platform: string
+  name: string
+  systemVersion: string
+  running: boolean
+}
+
 export type Metadata = Metadata_Serialize | Metadata_Deserialize
 
 export type Metadata_Deserialize = {
@@ -930,6 +1130,8 @@ export type Number = number
 export type OpenHotkeys = null
 
 export type OpenSettings = null
+
+export type Owner = { type: "development_session"; id: string } | { type: "qa_run"; id: string }
 
 export type PairingInfo = {
   deviceId: string
@@ -1008,6 +1210,11 @@ export type PublicCustomProvider_Serialize = {
   name: string
   baseUrl: string
   models: CustomModel_Serialize[]
+}
+
+export type Registration = {
+  address: string
+  token: string
 }
 
 export type ReopenTab = null

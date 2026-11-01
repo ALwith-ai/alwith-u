@@ -13,6 +13,7 @@ mod bundled_extensions;
 mod chat_files;
 mod chat_window;
 mod computer;
+mod device;
 mod diagnostics;
 mod draft_directory;
 mod drive;
@@ -200,6 +201,7 @@ pub fn run() {
             gamepad::initialize(app.handle())?;
             tauri_plugin_alwith_desktop_shell::install_native(app.handle())?;
             computer::initialize(app.handle())?;
+            device::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             #[cfg(target_os = "windows")]
             app.get_webview_window("main").expect("main window exists at setup").hide()?;
@@ -329,6 +331,23 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 computer::computer_focus,
                 computer::computer_unsubscribe,
                 computer::computer_request_permissions,
+                device::device_context,
+                device::device_bind,
+                device::device_stop_session,
+                device::device_list,
+                device::device_attachments,
+                device::device_attach,
+                device::device_detach,
+                device::device_frame,
+                device::device_gesture,
+                device::device_appearance,
+                device::device_set_appearance,
+                device::device_set_status_bar,
+                device::device_shutdown,
+                device::device_restart,
+                device::device_save_screenshot,
+                device::device_logs,
+                device::device_crash_report,
                 autostart::autostart_set,
                 autostart::autostart_launch,
                 autostart::autostart_complete,
@@ -434,6 +453,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<trackpad::TrackpadGesture>()
             .event::<runtime::RuntimeLines>()
             .event::<computer::ComputerPreview>()
+            .event::<device::DeviceAttachments>()
             .event::<runtime::RuntimeExit>()
             .event::<providers::Snapshot>()
             .event::<providers::managed::RevokedSessions>()

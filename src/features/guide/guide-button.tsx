@@ -37,7 +37,7 @@ export function GuideButton(): ReactNode {
               ref={trigger}
               variant="ghost"
               size="icon-sm"
-              className="shrink-0 rounded-[10px] [corner-shape:superellipse(1.5)]"
+              className="size-[var(--navigation-row-height,30px)] shrink-0 rounded-[10px] p-0 [corner-shape:superellipse(1.5)]"
               aria-label={t("guide.help")}
               title={t("guide.help")}
             />
@@ -46,13 +46,13 @@ export function GuideButton(): ReactNode {
           <CircleHelpIcon className="size-4 shrink-0" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="end" sideOffset={8} style={{ width: menuWidth }}>
-          <DropdownMenuItem className="h-8 py-0" onClick={() => setHotkeysOpen(true)}>
+          <DropdownMenuItem className="h-[var(--navigation-row-height,30px)] py-0" onClick={() => setHotkeysOpen(true)}>
             <KeyboardIcon className="text-muted-foreground" />
             {t("shortcuts.title")}
             <ShortcutKey shortcut="CmdOrCtrl+/" className="ml-auto shrink-0" />
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="h-8 py-0"
+            className="h-[var(--navigation-row-height,30px)] py-0"
             onClick={() =>
               void openGuideWindow().catch((error: unknown) =>
                 toast.error(error instanceof Error ? error.message : String(error))

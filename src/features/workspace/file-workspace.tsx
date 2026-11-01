@@ -70,9 +70,17 @@ import { Button } from "@/components/alwith-ui/button"
 import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
+import { DeviceWorkspaceButton, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
-import { type FilePosition, WorkspaceContext, type WorkspaceFileReference, WorkspaceHeaderContext } from "./context"
+import {
+  type FilePosition,
+  WorkspaceContext,
+  type WorkspaceFileReference,
+  WorkspaceHeaderContext,
+  type WorkspacePane,
+  WorkspaceSessionContext
+} from "./context"
 import { connectExplorerSettings } from "./explorer-settings"
 import { useHostDialog } from "./host-dialog"
 import type { PanelControls } from "./panel-controls-context"
@@ -187,7 +195,9 @@ export function FileWorkspace({
   const headerTarget = useContext(WorkspaceHeaderContext)
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
-    [viewMode, setViewMode] = useState(false)
+    [viewMode, setViewMode] = useState(false),
+    [pane, setPane] = useState<WorkspacePane>("files")
+  const paneSessionId = useContext(WorkspaceSessionContext)
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
   const showMainControls = canvas === null || canvas.selected === 1
@@ -546,6 +556,10 @@ export function FileWorkspace({
   const openDriveLink = useCallback((path: string): Promise<void> => routeDriveTarget.current(path), [])
   useDriveDeepLinks(openDriveLink)
   const toggle = useCallback((): void => {
+    if (visible && pane !== "files") {
+      setPane("files")
+      return
+    }
     if (visible) {
       // Use the layout's effective state, including a preview moved onto the third screen.
       if (panelControls.current?.expanded) panelControls.current.toggleExpanded()
@@ -786,9 +800,30 @@ export function FileWorkspace({
     },
     [ensure]
   )
+  const openPane = useCallback(
+    (next: WorkspacePane): void => {
+      if (next === "files") {
+        if (!visible || pane !== "files") {
+          setPane("files")
+          if (!visible) toggle()
+        } else toggle()
+        return
+      }
+      if (visible && pane === next) {
+        setVisible(false)
+        setViewMode(false)
+        setPane("files")
+        return
+      }
+      setPane(next)
+      setVisible(true)
+      navigateCanvas?.("preview")
+    },
+    [visible, pane, toggle, navigateCanvas]
+  )
   const context = useMemo(
-    () => ({ visible, viewMode, toggle, openFile, openProject, revealEntry, registerFileReference }),
-    [visible, viewMode, toggle, openFile, openProject, revealEntry, registerFileReference]
+    () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
+    [visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference]
   )
   const treeLabels: FileTreeLabels = {
     files: t("workspace.files"),
@@ -842,6 +877,7 @@ export function FileWorkspace({
                 setCondenseScope(scope)
               }}
             />
+            {windowsControls === null && <DeviceWorkspaceButton />}
             {windowsControls === null && <WorkspaceButton />}
           </div>,
           headerTarget
@@ -850,14 +886,15 @@ export function FileWorkspace({
         windowsControls !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
+            <DeviceWorkspaceButton />
             <WorkspaceButton />
           </div>,
           windowsControls
         )}
       <WorkspacePanels
         controlsRef={panelControls}
-        visible={visible && workspace !== null}
-        maximized={visible && workspace !== null && viewMode}
+        visible={visible && (pane === "simulator" ? paneSessionId !== null : workspace !== null)}
+        maximized={visible && (pane === "simulator" ? paneSessionId !== null : workspace !== null) && viewMode}
         onMaximizedChange={setViewMode}
         onVisibleChange={(next) => {
           setVisible(next)
@@ -865,203 +902,216 @@ export function FileWorkspace({
         }}
         chat={children}
         preview={
-          workspace && (
-            <PreviewSurface
-              treeVisible={treeVisible}
-              onTreeVisibleChange={setTreeVisible}
+          pane === "simulator" && paneSessionId !== null ? (
+            <DeviceWorkspacePane
+              sessionId={paneSessionId}
               maximized={viewMode}
               onMaximize={() => setViewMode((value) => !value)}
               onClose={() => {
                 setVisible(false)
                 setViewMode(false)
+                setPane("files")
               }}
-              tree={
-                <FileTree
-                  controller={workspace.tree}
-                  collapsed={!treeVisible}
-                  explorerControl={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="workspace-explorer-toggle"
-                      aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                      title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                      shortcut="CmdOrCtrl+Shift+E"
-                      aria-expanded={treeVisible}
-                      onClick={() => setTreeVisible((value) => !value)}
-                    >
-                      <FolderTree />
-                    </Button>
-                  }
-                  isDark={resolvedTheme === "dark"}
-                  iconTheme={iconTheme ?? workspace.iconTheme}
-                  activePath={activeDocument ? activeDocument.path : null}
-                  labels={treeLabels}
-                  onError={report}
-                  onOpenFile={(path) => workspace.treeOpener.open(path)}
-                  renderActions={(paths) => {
-                    const path = paths[0]
-                    if (
-                      paths.length > 1 &&
-                      driveState?.running &&
-                      paths.every((path) => {
-                        const hit = resolveDriveRoot(path, driveState.roots)
-                        return hit !== null && hit.root.canWrite && path !== hit.base
-                      })
-                    )
-                      return (
-                        <ContextMenuItem onClick={() => setPublishSources({ owner: workspace, paths })}>
-                          {t("workspace.publishTo")}
-                        </ContextMenuItem>
-                      )
-                    return paths.length === 1 &&
-                      path !== undefined &&
-                      driveState?.running &&
-                      driveState.roots.some((root) => containsPath(root.localPath, path)) ? (
-                      <DriveTreeActions
-                        path={path}
-                        isDirectory={workspace.tree
-                          .getSnapshot()
-                          .rows.some((row) => row.path === path && row.kind === "directory")}
-                        onSharing={setSharingPath}
-                        onCondense={(scope) => {
-                          setCondenseJob(undefined)
-                          setCondenseScope(scope)
-                        }}
-                        onMove={(path, kind) => setMoveTarget({ path, kind })}
-                        onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
-                        saveDocument={saveDriveDocument}
-                      />
-                    ) : null
-                  }}
-                  renderDecoration={(row) => (
-                    <DriveBadge
-                      controller={drive}
-                      path={row.path}
-                      isDirectory={row.kind === "directory"}
-                      locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
-                    />
-                  )}
-                  onPinFile={(path) => {
-                    const target = fileReference.current
-                    if (target !== null) target.add(path)
-                    else return workspace.treeOpener.open(path, true)
-                  }}
-                  onOpenExternal={openExternal}
-                  onReveal={(path) => revealItemsInDir(path)}
-                  onCopyPath={writeText}
-                  onMove={(paths) => {
-                    return Promise.try(() => {
-                      setMoveSources({ owner: workspace, paths })
-                    })
-                  }}
-                  onImport={async (destination, directory) => {
-                    const paths = await openDialog({
-                      directory,
-                      multiple: true,
-                      title: t(directory ? "workspace.importFolder" : "workspace.importFiles")
-                    })
-                    if (paths === null) return
-                    await invoke("workspace_import", { root: workspace.root, destination, paths })
-                    await workspace.tree.refresh()
-                  }}
-                  explorerLabels={{
-                    explorer: t("workspace.explorer"),
-                    search: t("workspace.search"),
-                    collapse: t("workspace.collapse"),
-                    more: t("workspace.more"),
-                    ignored: t("workspace.ignored"),
-                    newMarkdown: t("workspace.newMarkdown"),
-                    copyPath: t("workspace.copyPath"),
-                    copyRelativePath: t("workspace.copyRelativePath"),
-                    moveTo: t("workspace.moveTo"),
-                    reveal: t("workspace.reveal"),
-                    importFiles: t("workspace.importFiles"),
-                    importFolder: t("workspace.importFolder"),
-                    open: t("workspace.open"),
-                    closeSearch: t("workspace.closeSearch"),
-                    previousMatch: t("workspace.previousMatch"),
-                    nextMatch: t("workspace.nextMatch")
-                  }}
-                  requestName={(action, current) =>
-                    ask({
-                      title: t(
-                        action === "rename"
-                          ? "workspace.rename"
-                          : action === "file"
-                            ? "workspace.newFile"
-                            : "workspace.newFolder"
-                      ),
-                      detail: workspace.root,
-                      initial: current,
-                      choices: [{ label: t("workspace.confirm"), value: "confirm" }]
-                    })
-                  }
-                  confirmDelete={async (paths) =>
-                    (await ask({
-                      title: t("workspace.remove"),
-                      detail: paths.join("\n"),
-                      choices: [{ label: t("workspace.remove"), value: "delete" }]
-                    })) === "delete"
-                  }
-                />
-              }
-              editor={({ leading, trailing }) => (
-                <DriveDocumentSurface host={contentHost} path={activeDocument?.path ?? null}>
-                  <ChatDirectoryContext.Provider value={workspace.root}>
-                    <WorkspaceEditor
-                      tabs={workspace.tabs}
-                      leading={leading}
-                      trailing={trailing}
-                      iconTheme={iconTheme ?? workspace.iconTheme}
-                      isDark={resolvedTheme === "dark"}
-                      readOnly={driveReadOnly}
-                      sourceReadOnly={driveFile?.state === "collab" || activeCollaborationOwner !== undefined}
-                      controller={workspace.editor}
-                      labels={editorLabels}
-                      compactToolbar
-                      rootPath={navigator.platform.includes("Win") ? normalizePath(workspace.root) : workspace.root}
-                      onRevealPath={(path) => workspace.tree.reveal(path)}
-                      onReveal={(document) => revealItemsInDir(document.path)}
-                      onCopyPath={(document) => writeText(document.path)}
-                      tabLabels={{
-                        closeOthers: t("workspace.closeOthers"),
-                        closeRight: t("workspace.closeRight"),
-                        closeSaved: t("workspace.closeSaved"),
-                        closeAll: t("workspace.closeAll"),
-                        copyPath: t("workspace.copyPath"),
-                        reveal: t("workspace.reveal")
-                      }}
-                      actionsLabel={t("workspace.more")}
-                      onError={report}
-                      onOpenExternal={(document) => openExternal(document.path)}
-                      previews={previews}
-                      requestSaveAs={async (document) =>
-                        ask({
-                          title: t("workspace.saveAs"),
-                          detail: workspace.root,
-                          initial: document.path,
-                          choices: [{ label: t("workspace.save"), value: "save" }]
-                        })
-                      }
-                      renderTextEditor={(props) => (
-                        <Suspense
-                          fallback={<div className="p-6 text-sm text-muted-foreground">{t("workspace.loading")}</div>}
-                        >
-                          <CodeEditor
-                            {...props}
-                            controller={workspace.editor}
-                            settings={settings}
-                            onError={report}
-                            position={navigation?.path === props.document.path ? navigation.position : undefined}
-                          />
-                        </Suspense>
-                      )}
-                    />
-                  </ChatDirectoryContext.Provider>
-                </DriveDocumentSurface>
-              )}
             />
+          ) : (
+            workspace && (
+              <PreviewSurface
+                treeVisible={treeVisible}
+                onTreeVisibleChange={setTreeVisible}
+                maximized={viewMode}
+                onMaximize={() => setViewMode((value) => !value)}
+                onClose={() => {
+                  setVisible(false)
+                  setViewMode(false)
+                }}
+                tree={
+                  <FileTree
+                    controller={workspace.tree}
+                    collapsed={!treeVisible}
+                    explorerControl={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="workspace-explorer-toggle"
+                        aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
+                        title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
+                        shortcut="CmdOrCtrl+Shift+E"
+                        aria-expanded={treeVisible}
+                        onClick={() => setTreeVisible((value) => !value)}
+                      >
+                        <FolderTree />
+                      </Button>
+                    }
+                    isDark={resolvedTheme === "dark"}
+                    iconTheme={iconTheme ?? workspace.iconTheme}
+                    activePath={activeDocument ? activeDocument.path : null}
+                    labels={treeLabels}
+                    onError={report}
+                    onOpenFile={(path) => workspace.treeOpener.open(path)}
+                    renderActions={(paths) => {
+                      const path = paths[0]
+                      if (
+                        paths.length > 1 &&
+                        driveState?.running &&
+                        paths.every((path) => {
+                          const hit = resolveDriveRoot(path, driveState.roots)
+                          return hit !== null && hit.root.canWrite && path !== hit.base
+                        })
+                      )
+                        return (
+                          <ContextMenuItem onClick={() => setPublishSources({ owner: workspace, paths })}>
+                            {t("workspace.publishTo")}
+                          </ContextMenuItem>
+                        )
+                      return paths.length === 1 &&
+                        path !== undefined &&
+                        driveState?.running &&
+                        driveState.roots.some((root) => containsPath(root.localPath, path)) ? (
+                        <DriveTreeActions
+                          path={path}
+                          isDirectory={workspace.tree
+                            .getSnapshot()
+                            .rows.some((row) => row.path === path && row.kind === "directory")}
+                          onSharing={setSharingPath}
+                          onCondense={(scope) => {
+                            setCondenseJob(undefined)
+                            setCondenseScope(scope)
+                          }}
+                          onMove={(path, kind) => setMoveTarget({ path, kind })}
+                          onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
+                          saveDocument={saveDriveDocument}
+                        />
+                      ) : null
+                    }}
+                    renderDecoration={(row) => (
+                      <DriveBadge
+                        controller={drive}
+                        path={row.path}
+                        isDirectory={row.kind === "directory"}
+                        locale={i18n.language.startsWith("zh") ? "zh-CN" : "en"}
+                      />
+                    )}
+                    onPinFile={(path) => {
+                      const target = fileReference.current
+                      if (target !== null) target.add(path)
+                      else return workspace.treeOpener.open(path, true)
+                    }}
+                    onOpenExternal={openExternal}
+                    onReveal={(path) => revealItemsInDir(path)}
+                    onCopyPath={writeText}
+                    onMove={(paths) => {
+                      return Promise.try(() => {
+                        setMoveSources({ owner: workspace, paths })
+                      })
+                    }}
+                    onImport={async (destination, directory) => {
+                      const paths = await openDialog({
+                        directory,
+                        multiple: true,
+                        title: t(directory ? "workspace.importFolder" : "workspace.importFiles")
+                      })
+                      if (paths === null) return
+                      await invoke("workspace_import", { root: workspace.root, destination, paths })
+                      await workspace.tree.refresh()
+                    }}
+                    explorerLabels={{
+                      explorer: t("workspace.explorer"),
+                      search: t("workspace.search"),
+                      collapse: t("workspace.collapse"),
+                      more: t("workspace.more"),
+                      ignored: t("workspace.ignored"),
+                      newMarkdown: t("workspace.newMarkdown"),
+                      copyPath: t("workspace.copyPath"),
+                      copyRelativePath: t("workspace.copyRelativePath"),
+                      moveTo: t("workspace.moveTo"),
+                      reveal: t("workspace.reveal"),
+                      importFiles: t("workspace.importFiles"),
+                      importFolder: t("workspace.importFolder"),
+                      open: t("workspace.open"),
+                      closeSearch: t("workspace.closeSearch"),
+                      previousMatch: t("workspace.previousMatch"),
+                      nextMatch: t("workspace.nextMatch")
+                    }}
+                    requestName={(action, current) =>
+                      ask({
+                        title: t(
+                          action === "rename"
+                            ? "workspace.rename"
+                            : action === "file"
+                              ? "workspace.newFile"
+                              : "workspace.newFolder"
+                        ),
+                        detail: workspace.root,
+                        initial: current,
+                        choices: [{ label: t("workspace.confirm"), value: "confirm" }]
+                      })
+                    }
+                    confirmDelete={async (paths) =>
+                      (await ask({
+                        title: t("workspace.remove"),
+                        detail: paths.join("\n"),
+                        choices: [{ label: t("workspace.remove"), value: "delete" }]
+                      })) === "delete"
+                    }
+                  />
+                }
+                editor={({ leading, trailing }) => (
+                  <DriveDocumentSurface host={contentHost} path={activeDocument?.path ?? null}>
+                    <ChatDirectoryContext.Provider value={workspace.root}>
+                      <WorkspaceEditor
+                        tabs={workspace.tabs}
+                        leading={leading}
+                        trailing={trailing}
+                        iconTheme={iconTheme ?? workspace.iconTheme}
+                        isDark={resolvedTheme === "dark"}
+                        readOnly={driveReadOnly}
+                        sourceReadOnly={driveFile?.state === "collab" || activeCollaborationOwner !== undefined}
+                        controller={workspace.editor}
+                        labels={editorLabels}
+                        compactToolbar
+                        rootPath={navigator.platform.includes("Win") ? normalizePath(workspace.root) : workspace.root}
+                        onRevealPath={(path) => workspace.tree.reveal(path)}
+                        onReveal={(document) => revealItemsInDir(document.path)}
+                        onCopyPath={(document) => writeText(document.path)}
+                        tabLabels={{
+                          closeOthers: t("workspace.closeOthers"),
+                          closeRight: t("workspace.closeRight"),
+                          closeSaved: t("workspace.closeSaved"),
+                          closeAll: t("workspace.closeAll"),
+                          copyPath: t("workspace.copyPath"),
+                          reveal: t("workspace.reveal")
+                        }}
+                        actionsLabel={t("workspace.more")}
+                        onError={report}
+                        onOpenExternal={(document) => openExternal(document.path)}
+                        previews={previews}
+                        requestSaveAs={async (document) =>
+                          ask({
+                            title: t("workspace.saveAs"),
+                            detail: workspace.root,
+                            initial: document.path,
+                            choices: [{ label: t("workspace.save"), value: "save" }]
+                          })
+                        }
+                        renderTextEditor={(props) => (
+                          <Suspense
+                            fallback={<div className="p-6 text-sm text-muted-foreground">{t("workspace.loading")}</div>}
+                          >
+                            <CodeEditor
+                              {...props}
+                              controller={workspace.editor}
+                              settings={settings}
+                              onError={report}
+                              position={navigation?.path === props.document.path ? navigation.position : undefined}
+                            />
+                          </Suspense>
+                        )}
+                      />
+                    </ChatDirectoryContext.Provider>
+                  </DriveDocumentSurface>
+                )}
+              />
+            )
           )
         }
       />

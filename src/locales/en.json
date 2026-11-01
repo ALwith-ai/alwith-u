@@ -1374,5 +1374,12 @@
     "unsupported": "These edits lack complete reversible text patches or exceed the supported limits.",
     "busy": "Wait for this conversation to finish before changing files.",
     "failed": "Applied {{count}} batches. Remaining batches were not applied: {{detail}}"
+  },
+  "device": {
+    "panel": {
+      "title": "iOS Simulator",
+      "open": "Show simulator",
+      "close": "Hide simulator"
+    }
   }
 }

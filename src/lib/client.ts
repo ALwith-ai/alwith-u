@@ -34,6 +34,7 @@ export const client =
         prepareSessionTools: prepareComputerTools,
         revokeSessionAccess: async (sessionId) => {
           await commands.computerStopSession({ sessionId })
+          await commands.deviceStopSession({ sessionId }).catch(() => undefined)
         }
       })
 

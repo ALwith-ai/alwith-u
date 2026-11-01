@@ -3,6 +3,7 @@ import { isTauri } from "@tauri-apps/api/core"
 
 import type { ClientOptions } from "@/agent/client"
 import { commands } from "@/bindings"
+import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
 import i18n from "@/lib/i18n"
 
@@ -16,15 +17,27 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   if (!isTauri()) return { ...drive, revision: "disabled" }
   const descriptor = await commands.computerContext()
   const computer = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
-  const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt].filter(Boolean).join("\n\n")
-  return {
-    revision: computer.revision,
-    bind: descriptor
+  const device = await deviceSessionContext()
+  const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt, device.appendSystemPrompt]
+    .filter(Boolean)
+    .join("\n\n")
+  const binders = [
+    descriptor
       ? async (sessionId: string) => {
           await commands.computerBind({ token: descriptor.token, sessionId })
         }
       : undefined,
-    mcpServers: [...drive.mcpServers, ...computer.mcpServers],
+    device.bind
+  ].filter((bind) => bind !== undefined)
+  return {
+    revision: computer.revision,
+    bind:
+      binders.length > 0
+        ? async (sessionId: string) => {
+            for (const bind of binders) await bind(sessionId)
+          }
+        : undefined,
+    mcpServers: [...drive.mcpServers, ...computer.mcpServers, ...device.mcpServers],
     ...(appendSystemPrompt ? { appendSystemPrompt } : {})
   }
 }

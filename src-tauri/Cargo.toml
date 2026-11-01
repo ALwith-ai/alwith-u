@@ -26,6 +26,7 @@ alwith-module-store = { path = "../node_modules/@alwith/module-store/rust", feat
 alwith-auth-client = { path = "../node_modules/@alwith/module-auth/rust", features = ["tauri"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }
+alwith-device = { path = "../node_modules/@alwith/module-device/rust" }
 alwith-voice = { path = "../node_modules/@alwith/module-voice/rust" }
 alwith-gamepad = { path = "../node_modules/@alwith/module-gamepad/rust", features = ["desktop"] }
 open = { version = "5", features = ["shellexecute-on-windows"] }
