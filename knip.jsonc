@@ -15,13 +15,11 @@
     "@openai/codex",
     "@alwith/module-mobile",
     "@alwith/native-device-darwin-arm64",
-    // Consumed by the native host through Cargo, with product-specific menus.
-    "@alwith/module-desktop-shell",
     // Bundled with immutable resources by scripts/lib/workbuddy-artifact.ts.
     "create-alwith",
     // invoked as `bun ts7-lint` by the fabfile.py check gate
     "@nyssance/ts7-lint"
   ],
   // rustc supplies the host target triple; fmt is built into Bun rather than installed from npm.
-  "ignoreBinaries": ["rustc", "fmt"]
+  "ignoreBinaries": ["rustc"]
 }
