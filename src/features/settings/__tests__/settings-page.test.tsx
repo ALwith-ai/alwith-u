@@ -51,10 +51,15 @@ test("changing settings sections updates the accessible content label and curren
   expect(screen.getAllByText("Appearance")).toHaveLength(1)
 })
 
-test("mobile connections are reachable from settings navigation", () => {
-  render(<SettingsPage />)
-  fireEvent.click(screen.getByRole("button", { name: "Mobile connection" }))
-  expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
+test("mobile connections open from the account menu, not settings navigation", () => {
+  window.history.replaceState(null, "", "/settings.html?tab=mobile")
+  try {
+    render(<SettingsPage />)
+    expect(screen.queryByRole("button", { name: "Mobile connection" })).toBeNull()
+    expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
+  } finally {
+    window.history.replaceState(null, "", "/")
+  }
 })
 
 test("explorer settings expose the global hidden-file switch", () => {

@@ -24,7 +24,10 @@ export function AuxWindowShell({
 }) {
   return (
     <div className={cn("flex h-screen bg-background", className)}>
-      <aside className={cn("flex shrink-0 flex-col border-e border-border bg-sidebar", sidebarClassName)}>
+      {/* ChatGPT's sidebar color as composited (window, shell layer, navigation tint), light and dark. */}
+      <aside
+        className={cn("flex shrink-0 flex-col border-e border-border bg-[#fcfcfc] dark:bg-[#1c1c1c]", sidebarClassName)}
+      >
         {/* Windows uses a native title bar outside the webview. */}
         {!IS_WINDOWS && <div className="h-8 shrink-0" data-tauri-drag-region />}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{sidebar}</div>

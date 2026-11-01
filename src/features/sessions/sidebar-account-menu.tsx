@@ -1,12 +1,19 @@
-import { useSidebarOverlay } from "@alwith/module-chat/session-list"
-import { AppWindowIcon, Gamepad2Icon, GlobeIcon, LogOutIcon, PawPrintIcon, SettingsIcon } from "lucide-react"
+import { NavigationItemButton, NavigationLeading, useSidebarOverlay } from "@alwith/module-chat/session-list"
+import {
+  AppWindowIcon,
+  Gamepad2Icon,
+  GlobeIcon,
+  LogOutIcon,
+  PawPrintIcon,
+  SettingsIcon,
+  SmartphoneIcon
+} from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +33,7 @@ import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
 import { CreateWorkBuddy } from "@/features/workbuddy/create-workbuddy"
 import { LANGUAGES } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
-import { openGamepadWindow } from "@/lib/window-manager"
+import { openGamepadWindow, openSettingsWindow } from "@/lib/window-manager"
 
 export function SidebarAccountMenu({
   onOpenSettings,
@@ -46,7 +53,7 @@ export function SidebarAccountMenu({
 
   const displayName = user.nickname || user.login_email
   const avatar = (
-    <Avatar className="size-5 after:border-0">
+    <Avatar className="size-[18px] after:border-0">
       <AvatarImage src={user.avatar} alt="" />
       <AvatarFallback className="bg-primary text-xs text-primary-foreground">
         {[...displayName].slice(0, 2).join("").toLocaleUpperCase()}
@@ -60,20 +67,19 @@ export function SidebarAccountMenu({
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger
           render={
-            <Button
-              variant="ghost"
+            <NavigationItemButton
               disabled={busy}
-              className="h-8 w-full justify-start gap-2 rounded-[10px] px-2 font-normal text-muted-foreground [corner-shape:superellipse(1.5)] hover:bg-foreground/5 data-popup-open:bg-foreground/5"
+              className="font-normal text-muted-foreground hover:bg-foreground/8 data-popup-open:bg-foreground/5"
             />
           }
         >
-          {avatar}
+          <NavigationLeading>{avatar}</NavigationLeading>
           <span className="min-w-0 truncate">{displayName}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[calc(var(--anchor-width)+36px)]">
           <DropdownMenuGroup>
             <DropdownMenuLabel className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-popover-foreground">
-              {avatar}
+              <NavigationLeading>{avatar}</NavigationLeading>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{displayName}</span>
                 <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
@@ -85,7 +91,7 @@ export function SidebarAccountMenu({
           </DropdownMenuGroup>
           <DropdownMenuGroup>
             <DropdownMenuItem
-              className="h-8 py-0"
+              className="h-[var(--navigation-row-height,30px)] py-0"
               onClick={() => {
                 setOpen(false)
                 setCreateOpen(true)
@@ -94,13 +100,20 @@ export function SidebarAccountMenu({
               <AppWindowIcon className="text-muted-foreground" />
               {t("workbuddy.create")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="h-8 py-0" onClick={onOpenSettings}>
+            <DropdownMenuItem className="h-[var(--navigation-row-height,30px)] py-0" onClick={onOpenSettings}>
               <SettingsIcon className="text-muted-foreground" />
               {t("sidebar.settings")}
               <ShortcutKey shortcut="CmdOrCtrl+," className="ml-auto shrink-0" />
             </DropdownMenuItem>
+            <DropdownMenuItem
+              className="h-[var(--navigation-row-height,30px)] py-0"
+              onClick={() => void openSettingsWindow("mobile")}
+            >
+              <SmartphoneIcon className="text-muted-foreground" />
+              {t("settings.mobile")}
+            </DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="h-8 py-0">
+              <DropdownMenuSubTrigger className="h-[var(--navigation-row-height,30px)] py-0">
                 <GlobeIcon className="text-muted-foreground" />
                 {t("settings.language")}
               </DropdownMenuSubTrigger>
@@ -128,14 +141,14 @@ export function SidebarAccountMenu({
           <DropdownMenuGroup>
             <DropdownMenuItem
               disabled={busy || vibemon.disabled}
-              className="h-8 py-0"
+              className="h-[var(--navigation-row-height,30px)] py-0"
               onClick={() => void vibemon.toggle()}
             >
               <PawPrintIcon className="text-muted-foreground" />
               {t(vibemon.enabled ? "pet.hide" : "pet.show")}
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="h-8 py-0"
+              className="h-[var(--navigation-row-height,30px)] py-0"
               onClick={() =>
                 void openGamepadWindow().catch((error: unknown) =>
                   toast.error(error instanceof Error ? error.message : String(error))
@@ -150,7 +163,7 @@ export function SidebarAccountMenu({
           <DropdownMenuGroup>
             <DropdownMenuItem
               disabled={busy}
-              className="h-8 py-0"
+              className="h-[var(--navigation-row-height,30px)] py-0"
               onClick={() => {
                 setBusy(true)
                 void logoutPlatform()
