@@ -1,4 +1,4 @@
-import type { SkillMetadata } from "@nyssance/codex-acp-v2/client"
+import type { SkillMetadata } from "@alwith/module-chat/client"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { CheckIcon, SparklesIcon, XIcon } from "lucide-react"
 import { useDeferredValue, useState } from "react"

@@ -1,5 +1,5 @@
 import { type SessionRunState } from "@alwith/api"
-import { createSession, type MessageItem } from "@nyssance/codex-acp-v2/client"
+import { createSession, type MessageItem } from "@alwith/module-chat/client"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 

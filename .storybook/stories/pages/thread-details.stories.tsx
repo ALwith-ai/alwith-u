@@ -5,7 +5,7 @@ import {
   createSession,
   projectHistoryTurns,
   type Session
-} from "@nyssance/codex-acp-v2/client"
+} from "@alwith/module-chat/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useRef, useState } from "react"
 import { expect, spyOn, waitFor } from "storybook/test"

@@ -1,6 +1,6 @@
+import type { Session, ToolItem } from "@alwith/module-chat/client"
+import { createSession, isDiffEntry } from "@alwith/module-chat/client"
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
-import type { Session, ToolItem } from "@nyssance/codex-acp-v2/client"
-import { createSession, isDiffEntry } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"

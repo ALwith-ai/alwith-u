@@ -1,4 +1,4 @@
-import type { SkillsListResponse } from "@nyssance/codex-acp-v2/client"
+import type { SkillsListResponse } from "@alwith/module-chat/client"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
 

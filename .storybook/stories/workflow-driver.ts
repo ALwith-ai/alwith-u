@@ -27,7 +27,7 @@ const listeners = new Set<() => void>()
 let generation = 0
 let beforeAction: (() => Promise<void>) | null = null
 let checkpoint: (() => Promise<void>) | null = null
-const stop = Symbol("workflow checkpoint")
+const stop = new Error("workflow checkpoint")
 function update(next: Partial<CheckpointState>) {
   state = { ...state, ...next }
   for (const listener of listeners) listener()
@@ -74,12 +74,12 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
       if (target === null) {
         // Each embedded page owns its source components, stores, portals and timers.
         await waitFor(
-          () => {
+          async () => {
             const pages = context.canvasElement.querySelectorAll("[data-workflow-step]")
-            expect(pages).toHaveLength(config.labels.length)
+            await expect(pages).toHaveLength(config.labels.length)
             for (const page of pages) {
-              expect(page.getAttribute("data-error")).toBeNull()
-              expect(page.getAttribute("data-ready")).toBe("true")
+              await expect(page.getAttribute("data-error")).toBeNull()
+              await expect(page.getAttribute("data-ready")).toBe("true")
             }
           },
           { timeout: 25_000 }

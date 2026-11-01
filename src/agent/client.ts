@@ -21,7 +21,7 @@ import {
   type SessionOperation,
   type SessionRequestOptions,
   type SessionSummary
-} from "@nyssance/codex-acp-v2/client"
+} from "@alwith/module-chat/client"
 
 import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
@@ -42,7 +42,7 @@ export type GatewayModel = { id: string; label?: string; description?: string }
 /** Fires when a session's selected model is known; `isGateway` tells whose model it is. */
 export type SessionModelListener = (sessionId: string, modelId: string, isGateway: boolean) => void
 
-export type { SessionSummary } from "@nyssance/codex-acp-v2/client"
+export type { SessionSummary } from "@alwith/module-chat/client"
 
 /** What the Runtime starts the agent with: the engine, plus whatever the engine table takes (env, args…). */
 export type Launch = { engine: string; [key: string]: unknown }

@@ -1,4 +1,4 @@
-import type { PluginSummary } from "@nyssance/codex-acp-v2/client"
+import type { PluginSummary } from "@alwith/module-chat/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect } from "react"
 

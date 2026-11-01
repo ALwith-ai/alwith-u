@@ -1,4 +1,4 @@
-import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
+import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@alwith/module-chat/client"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 

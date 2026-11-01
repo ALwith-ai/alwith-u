@@ -104,14 +104,14 @@ export const Windows: Story = {
   args: { platform: "windows", file: "README.md" },
   play: async ({ canvas, canvasElement }) => {
     await canvas.findByRole("button", { name: "源码" })
-    expect(canvasElement.querySelector(".windows-main-titlebar")).toBeVisible()
+    await expect(canvasElement.querySelector(".windows-main-titlebar")).toBeVisible()
   }
 }
 export const Linux: Story = {
   name: "Linux 主窗口",
   args: { platform: "linux" },
   play: async ({ canvasElement }) => {
-    expect(canvasElement.querySelector(".windows-main-titlebar")).toBeNull()
+    await expect(canvasElement.querySelector(".windows-main-titlebar")).toBeNull()
   }
 }
 export const ZoomFeedback: Story = {

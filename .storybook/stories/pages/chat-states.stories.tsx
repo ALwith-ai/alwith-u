@@ -36,10 +36,10 @@ const expandThinking: NonNullable<Story["play"]> = async (context) => {
   const thinking = canvasElement.querySelector(".codex-reasoning-label")?.closest("button")
   await expect(work).toHaveAttribute("aria-expanded", "true")
   await expect(thinking).toHaveAttribute("aria-expanded", "true")
-  await waitFor(() => {
+  await waitFor(async () => {
     const details = canvasElement.querySelector<HTMLElement>(".codex-reasoning-details")
-    expect(details).toHaveTextContent("正在比对最新组件与交付清单。")
-    expect(details!.getBoundingClientRect().height).toBeGreaterThan(0)
+    await expect(details).toHaveTextContent("正在比对最新组件与交付清单。")
+    await expect(details!.getBoundingClientRect().height).toBeGreaterThan(0)
   })
 }
 

@@ -1,5 +1,5 @@
 import { createStore } from "@alwith/api/client"
-import type { ToolItem } from "@nyssance/codex-acp-v2/client"
+import type { ToolItem } from "@alwith/module-chat/client"
 import { invoke } from "@tauri-apps/api/core"
 import { Redo2Icon, Undo2Icon } from "lucide-react"
 import { useMemo, useSyncExternalStore } from "react"

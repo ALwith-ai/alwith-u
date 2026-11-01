@@ -4,7 +4,7 @@
 // two windows talk over events, as ALwith Desktop's windows do.
 
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import type { AccountReadResponse, RateLimitSnapshot } from "@nyssance/codex-acp-v2/client"
+import type { AccountReadResponse, RateLimitSnapshot } from "@alwith/module-chat/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import * as React from "react"
 import { toast } from "sonner"

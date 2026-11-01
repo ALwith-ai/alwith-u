@@ -1,4 +1,4 @@
-import type { RateLimitWindow } from "@nyssance/codex-acp-v2/client"
+import type { RateLimitWindow } from "@alwith/module-chat/client"
 // Account: who is signed in and how much of the plan's rate limits is used, ALwith
 // Desktop's usage section reduced to what Codex reports (`account/read`,
 // `account/rateLimits/read`). The settings window gets the data from the main window's

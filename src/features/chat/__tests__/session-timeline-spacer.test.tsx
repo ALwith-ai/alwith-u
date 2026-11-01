@@ -1,4 +1,4 @@
-import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/module-chat/client"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 

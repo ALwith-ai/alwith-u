@@ -1,11 +1,5 @@
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import {
-  type BooleanOption,
-  isSelectOption,
-  type SelectOption,
-  type Session,
-  textOf
-} from "@nyssance/codex-acp-v2/client"
+import { type BooleanOption, isSelectOption, type SelectOption, type Session, textOf } from "@alwith/module-chat/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { must } from "@/lib/__tests__/must"

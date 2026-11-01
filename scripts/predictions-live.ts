@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
-import { codexTurnId, composerPrediction } from "@nyssance/codex-acp-v2/client"
+import { codexTurnId, composerPrediction } from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"

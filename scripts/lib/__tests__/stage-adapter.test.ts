@@ -3,6 +3,8 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync 
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
+import { chatAdapterArtifact } from "@alwith/module-chat/stage"
+
 import providers from "../../../src/lib/provider-catalog.json"
 import { codexSidecars } from "../toolchain"
 
@@ -24,14 +26,12 @@ test("the staged toolchain runs with explicit resources outside the executable d
   })
   expect(stage.exitCode, stage.stderr.toString()).toBe(0)
   expect(readFileSync(join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-acp-v2.mjs"))).toEqual(
-    readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/dist/index.js"))
+    readFileSync(chatAdapterArtifact().entry)
   )
 
   expect(
     readFileSync(join(import.meta.dir, "../../../src-tauri/resources/licenses/codex-acp-v2-protocol.txt"))
-  ).toEqual(
-    readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/licenses/alwith-protocol.txt"))
-  )
+  ).toEqual(readFileSync(chatAdapterArtifact().protocolLicense))
 
   const suffix = process.platform === "win32" ? ".exe" : ""
   const features = Bun.spawnSync(
@@ -79,9 +79,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
       { cwd: directory, env: { ...process.env, PATH: "", NODE_PATH: "" }, timeout: 10_000 }
     )
     expect(adapter.exitCode, adapter.stderr.toString()).toBe(0)
-    const adapterPackage = JSON.parse(
-      readFileSync(join(import.meta.dir, "../../../node_modules/@nyssance/codex-acp-v2/package.json"), "utf8")
-    ) as { name: string; version: string }
+    const adapterPackage = chatAdapterArtifact()
     expect(adapter.stdout.toString().trim()).toBe(`${adapterPackage.name} ${adapterPackage.version}`)
 
     const binaries = join(directory, "bin")

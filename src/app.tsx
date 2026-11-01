@@ -1,6 +1,6 @@
 import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { hasAccount, isFormElicitation } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
-import { hasAccount, isFormElicitation } from "@nyssance/codex-acp-v2/client"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"

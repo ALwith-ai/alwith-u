@@ -1,9 +1,9 @@
+import { isSelectOption } from "@alwith/module-chat/client"
 /**
  * U's composer: the package composer with U's dictation and realtime voice, native file drops,
  * model catalog and prediction preference.
  */
 import { Composer, type ComposerProps, useComposer } from "@alwith/module-chat/conversation"
-import { isSelectOption } from "@nyssance/codex-acp-v2/client"
 import { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"

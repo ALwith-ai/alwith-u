@@ -1,7 +1,7 @@
 // ALwith Desktop's DraftProjectPicker reduced: the empty draft's project capsule. Shows the
 // draft's folder name (or "Select project"), lists recent projects, and offers the folder
 // dialog. The host prepares the default workspace when no previous project was selected.
-import { QUICK_CHATS_GROUP, sessionGroup } from "@nyssance/codex-acp-v2/client"
+import { QUICK_CHATS_GROUP, sessionGroup } from "@alwith/module-chat/client"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"

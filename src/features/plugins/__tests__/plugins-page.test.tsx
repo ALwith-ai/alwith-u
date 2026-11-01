@@ -1,4 +1,4 @@
-import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@nyssance/codex-acp-v2/client"
+import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@alwith/module-chat/client"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"

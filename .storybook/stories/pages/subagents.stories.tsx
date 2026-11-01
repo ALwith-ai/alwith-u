@@ -1,6 +1,6 @@
+import { applyUpdate, CodexClient, createSession, type Session } from "@alwith/module-chat/client"
 import { ConversationProvider, SessionActions } from "@alwith/module-chat/conversation"
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
-import { applyUpdate, CodexClient, createSession, type Session } from "@nyssance/codex-acp-v2/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"

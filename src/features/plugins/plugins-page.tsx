@@ -1,6 +1,6 @@
+import type { PluginMarketplaceEntry, PluginSummary } from "@alwith/module-chat/client"
+import { hasPluginStore } from "@alwith/module-chat/client"
 import { MENU_HIGHLIGHT, NavigationItemButton, NavigationStack } from "@alwith/module-chat/session-list"
-import type { PluginMarketplaceEntry, PluginSummary } from "@nyssance/codex-acp-v2/client"
-import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
 // Browse and manage Codex plugins and skills from one catalog surface.
 import {
   BlocksIcon,

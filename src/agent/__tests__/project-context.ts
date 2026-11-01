@@ -1,4 +1,4 @@
-import type { ProjectContext } from "@nyssance/codex-acp-v2/client"
+import type { ProjectContext } from "@alwith/module-chat/client"
 
 export function projectContext(homeDirectory = "/Users/mac"): ProjectContext {
   return {

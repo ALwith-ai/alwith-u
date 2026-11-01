@@ -6,7 +6,7 @@ import {
   elicitationOptions,
   isMultiSelect
 } from "@alwith/module-chat/choice-schema"
-import { isFormElicitation, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
+import { isFormElicitation, isToolCallSubject } from "@alwith/module-chat/client"
 
 import type { PendingAction } from "@/agent/client"
 

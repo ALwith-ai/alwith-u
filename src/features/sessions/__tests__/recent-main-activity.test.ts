@@ -1,5 +1,5 @@
 import { type SessionRunState } from "@alwith/api"
-import { createSession } from "@nyssance/codex-acp-v2/client"
+import { createSession } from "@alwith/module-chat/client"
 import { expect, test } from "vitest"
 
 import { type AppState, CodexClient } from "@/agent/client"

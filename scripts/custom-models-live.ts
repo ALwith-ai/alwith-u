@@ -4,7 +4,7 @@ import { readFile, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
-import { isGroupedSelect, isSelectOption, isText } from "@nyssance/codex-acp-v2/client"
+import { isGroupedSelect, isSelectOption, isText } from "@alwith/module-chat/client"
 
 import catalog from "../src-tauri/resources/custom/models.json"
 import { CodexClient } from "../src/agent/client"

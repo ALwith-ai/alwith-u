@@ -1,9 +1,9 @@
-import type { CodexCapabilitiesClient } from "@nyssance/codex-acp-v2/client"
+import type { CodexCapabilitiesClient } from "@alwith/module-chat/client"
 import type {
   ExternalAgentConfigImportTypeResult,
   ExternalAgentConfigMigrationItem,
   ImportSource
-} from "@nyssance/codex-acp-v2/import"
+} from "@alwith/module-chat/import"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { useEffect, useState } from "react"
 

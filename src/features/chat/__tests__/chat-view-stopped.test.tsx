@@ -1,4 +1,4 @@
-import { applyUpdate, createSession } from "@nyssance/codex-acp-v2/client"
+import { applyUpdate, createSession } from "@alwith/module-chat/client"
 import { act, fireEvent, render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 

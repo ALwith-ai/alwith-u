@@ -8,6 +8,7 @@ import { useMainCanvas } from "../use-main-canvas"
 
 const carousel = vi.hoisted(() => {
   const api = {
+    overview: { getState: () => null, subscribe: vi.fn(() => vi.fn()) },
     refresh: vi.fn(),
     subscribe: vi.fn(() => vi.fn()),
     cancelInput: vi.fn(),

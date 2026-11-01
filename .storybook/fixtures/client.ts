@@ -1,6 +1,6 @@
 import type { SessionRunState } from "@alwith/api"
-import type { Session } from "@nyssance/codex-acp-v2/client"
-import { applyUpdate, createSession, isSelectOption, isText } from "@nyssance/codex-acp-v2/client"
+import type { Session } from "@alwith/module-chat/client"
+import { applyUpdate, createSession, isSelectOption, isText } from "@alwith/module-chat/client"
 import { useStore } from "zustand"
 
 import { type AppState, CodexClient } from "../../src/agent/client"
@@ -152,7 +152,7 @@ client.session = (id) => {
   if (!session) throw new Error(`Missing preview session: ${id}`)
   return session
 }
-client.disconnect = async () => {}
+client.disconnect = () => {}
 export function restoreConnection(): void {
   connectionCase = "ready"
 }

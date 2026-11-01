@@ -1,4 +1,4 @@
-import { hasPluginStore } from "@nyssance/codex-acp-v2/client"
+import { hasPluginStore } from "@alwith/module-chat/client"
 import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"

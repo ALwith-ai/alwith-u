@@ -200,7 +200,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
     client.listArchived = async () => {
       throw new Error("归档加载失败，请检查连接后重试。")
     }
-  const remove = client.delete
+  const remove = client.delete.bind(client)
   if (state.archiveCase === "restoring") client.unarchive = async () => new Promise(() => {})
   if (state.archiveCase === "restoreError")
     client.unarchive = async () => {

@@ -1,5 +1,5 @@
+import { createSession } from "@alwith/module-chat/client"
 import { drafts } from "@alwith/module-chat/conversation"
-import { createSession } from "@nyssance/codex-acp-v2/client"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 

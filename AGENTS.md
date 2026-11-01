@@ -165,3 +165,7 @@ Develop, debug and validate with local candidate packages in isolated environmen
 
 - When the user points out an omission or a mismatch with an agreed requirement, fix it in the current task. Do not stop at apologizing, explaining, or promising a later change.
 - A design or mockup is not an implementation. Apply accepted UI decisions to the actual running application and verify them before claiming completion.
+
+## Shared chat dependency boundary
+
+Application code imports the client and session projections from `@alwith/module-chat/client`, import helpers from `@alwith/module-chat/import`, and adapter staging from `@alwith/module-chat/stage`. The shared chat package owns codex-acp; do not declare it directly or locate its files through the application's node_modules. The adapter still owns protocol implementation, and Runtime owns agent processes.

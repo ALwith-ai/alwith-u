@@ -5,7 +5,7 @@ import {
   readHistoryPage,
   SessionStore,
   textOf
-} from "@nyssance/codex-acp-v2/client"
+} from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
 const turn = (id: string, text = id) => ({

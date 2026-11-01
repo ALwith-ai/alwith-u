@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 import { ProcessRuntimeClient, startTestRuntime } from "@alwith/api/node"
-import { isGroupedSelect, isSelectOption } from "@nyssance/codex-acp-v2/client"
+import { isGroupedSelect, isSelectOption } from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"

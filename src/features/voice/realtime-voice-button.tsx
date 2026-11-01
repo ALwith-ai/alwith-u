@@ -1,6 +1,6 @@
+import { supportsCodexRealtime } from "@alwith/module-chat/client"
 import { PromptInputButton } from "@alwith/module-chat/composer"
 import { useCodexRealtimeVoice } from "@alwith/module-voice/react"
-import { supportsCodexRealtime } from "@nyssance/codex-acp-v2/client"
 import { HeadphonesIcon, Loader2Icon, PhoneOffIcon } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"

@@ -1,5 +1,5 @@
-import type { ToolItem } from "@nyssance/codex-acp-v2/client"
-import { isDiffEntry } from "@nyssance/codex-acp-v2/client"
+import type { ToolItem } from "@alwith/module-chat/client"
+import { isDiffEntry } from "@alwith/module-chat/client"
 
 export interface FilePatch {
   oldPath: string | null

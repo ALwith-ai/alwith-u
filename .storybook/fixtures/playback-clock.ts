@@ -3,6 +3,7 @@ const nativeTimeout = window.setTimeout.bind(window)
 const nativeClearTimeout = window.clearTimeout.bind(window)
 const nativeInterval = window.setInterval.bind(window)
 const nativeClearInterval = window.clearInterval.bind(window)
+// eslint-disable-next-line @typescript-eslint/unbound-method -- Save the prototype method for call(this) and restoration below.
 const nativeFocus = HTMLElement.prototype.focus
 export const playbackDelay = (ms: number) => new Promise<void>((resolve) => nativeTimeout(resolve, ms))
 interface Task {

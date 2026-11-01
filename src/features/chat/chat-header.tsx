@@ -36,11 +36,7 @@ export function ChatHeader({
   )
   if (floating) return target === null ? null : createPortal(content, target)
   return (
-    <header
-      className="desktop-shell-chat-header"
-      data-main-chat-header
-      data-tauri-drag-region
-    >
+    <header className="desktop-shell-chat-header" data-main-chat-header data-tauri-drag-region>
       {content}
     </header>
   )

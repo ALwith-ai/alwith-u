@@ -1,4 +1,4 @@
-import type { FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@nyssance/codex-acp-v2/client"
+import type { FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@alwith/module-chat/client"
 
 import { CodexClient } from "@/agent/client"
 

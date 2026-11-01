@@ -1,4 +1,4 @@
-import { createSession, type Session } from "@nyssance/codex-acp-v2/client"
+import { createSession, type Session } from "@alwith/module-chat/client"
 import { expect, test } from "vitest"
 
 import { observeVoiceTurn } from "../voice-turn"

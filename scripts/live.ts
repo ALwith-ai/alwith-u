@@ -21,7 +21,7 @@ import {
   isStringProperty,
   isText,
   type Session
-} from "@nyssance/codex-acp-v2/client"
+} from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"

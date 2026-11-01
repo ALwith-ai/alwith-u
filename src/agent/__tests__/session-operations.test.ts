@@ -1,4 +1,4 @@
-import { SessionOperations } from "@nyssance/codex-acp-v2/client"
+import { SessionOperations } from "@alwith/module-chat/client"
 import { describe, expect, it } from "vitest"
 
 function gate<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void } {

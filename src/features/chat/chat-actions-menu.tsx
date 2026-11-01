@@ -1,6 +1,6 @@
+import type { Session } from "@alwith/module-chat/client"
+import { hasRename } from "@alwith/module-chat/client"
 import { OverflowMarquee } from "@alwith/module-chat/session-list"
-import type { Session } from "@nyssance/codex-acp-v2/client"
-import { hasRename } from "@nyssance/codex-acp-v2/client"
 import {
   ArrowUpRightIcon,
   FolderPlusIcon,

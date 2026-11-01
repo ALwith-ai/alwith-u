@@ -2,7 +2,7 @@
 
 import { type SessionRunState } from "@alwith/api"
 import type { PetObservation } from "@alwith/module-auth/pets/core"
-import { createSession, isText, runStateSource } from "@nyssance/codex-acp-v2/client"
+import { createSession, isText, runStateSource } from "@alwith/module-chat/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"

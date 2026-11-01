@@ -1,4 +1,4 @@
-import type { PluginDetail } from "@nyssance/codex-acp-v2/client"
+import type { PluginDetail } from "@alwith/module-chat/client"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ExternalLinkIcon, PlusIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"

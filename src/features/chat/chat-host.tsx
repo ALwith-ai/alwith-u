@@ -1,3 +1,4 @@
+import { codexTurnId } from "@alwith/module-chat/client"
 import {
   type ConversationHost,
   ConversationProvider,
@@ -5,7 +6,6 @@ import {
   type TimelineSlots
 } from "@alwith/module-chat/conversation"
 import type { NavigationRailAudio, TimelineViewportProps } from "@alwith/module-chat/session-timeline"
-import { codexTurnId } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useMemo } from "react"
 import { useTranslation } from "react-i18next"

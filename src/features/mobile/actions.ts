@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { isToolCallSubject } from "@nyssance/codex-acp-v2/client"
+import { isToolCallSubject } from "@alwith/module-chat/client"
 
 import type { CodexClient } from "@/agent/client"
 

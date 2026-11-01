@@ -7,7 +7,7 @@ import {
   type PetSurface,
   sameBinding
 } from "@alwith/module-auth/pets/core"
-import { inSessionTree, isText, isToolCallSubject } from "@nyssance/codex-acp-v2/client"
+import { inSessionTree, isText, isToolCallSubject } from "@alwith/module-chat/client"
 
 import type { AppState } from "@/agent/client"
 

@@ -1,5 +1,5 @@
 import { RuntimeRequestError } from "@alwith/api"
-import type { CodexCapabilitiesClient } from "@nyssance/codex-acp-v2/client"
+import type { CodexCapabilitiesClient } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
 import { ImportController } from "../imports-bridge"

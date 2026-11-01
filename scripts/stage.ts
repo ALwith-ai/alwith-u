@@ -16,6 +16,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSy
 import { join, resolve } from "node:path"
 
 import { stageChromeBridge } from "@alwith/module-browser/stage"
+import { stageChatAdapter } from "@alwith/module-chat/stage"
 import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
 import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
 import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
@@ -180,17 +181,9 @@ if (triple === nativeTriple) {
   assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }
 
-const adapterPackage = JSON.parse(
-  readFileSync(join(root, "node_modules/@nyssance/codex-acp-v2/package.json"), "utf8")
-) as {
-  version: string
-}
-const adapterEntry = join(root, "node_modules/@nyssance/codex-acp-v2/dist/index.js")
 const adapterDirectory = join(root, "src-tauri/resources/adapter")
-mkdirSync(adapterDirectory, { recursive: true })
-const adapterDestination = join(adapterDirectory, "codex-acp-v2.mjs")
-// Preserve the published adapter byte-for-byte. U's cache bootstrap is a separate resource.
-copyFileSync(adapterEntry, adapterDestination)
+const adapterPackage = stageChatAdapter(adapterDirectory, licenses)
+const adapterDestination = adapterPackage.entry
 const bootstrapBuild = await Bun.build({
   entrypoints: [join(root, "scripts/codex-bootstrap.ts")],
   target: "bun",
@@ -213,7 +206,7 @@ if (triple === nativeTriple) {
   assertVersion(
     "staged ACP adapter",
     (await $`${bunDestination} --no-install ${adapterDestination} --version`.text()).trim(),
-    `@nyssance/codex-acp-v2 ${adapterPackage.version}`
+    `${adapterPackage.name} ${adapterPackage.version}`
   )
 }
 console.log(`codex-acp-v2 ${adapterPackage.version} -> ${adapterDestination}`)
@@ -250,13 +243,6 @@ function resolveRuntimeOverride(): string | null {
 }
 
 // The @openai/codex npm package ships no licence file; resources/licenses/codex.txt is kept in the repo.
-const adapterLicense = join(root, "node_modules/@nyssance/codex-acp-v2/LICENSE")
-if (!existsSync(adapterLicense)) throw new Error(`Licence file missing: ${adapterLicense}`)
-copyFileSync(adapterLicense, join(licenses, "codex-acp-v2.txt"))
-copyFileSync(
-  join(root, "node_modules/@nyssance/codex-acp-v2/licenses/alwith-protocol.txt"),
-  join(licenses, "codex-acp-v2-protocol.txt")
-)
 const driveLicenses = join(licenses, "alwith-drive")
 mkdirSync(driveLicenses, { recursive: true })
 for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {

@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@nyssance/codex-acp-v2/client"
+import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 
 import type { PendingAction, SessionSummary } from "../../src/agent/client"
 

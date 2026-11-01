@@ -1,4 +1,4 @@
-import type { PluginDetail, PluginSummary } from "@nyssance/codex-acp-v2/client"
+import type { PluginDetail, PluginSummary } from "@alwith/module-chat/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
 import { useEffect, useLayoutEffect } from "react"

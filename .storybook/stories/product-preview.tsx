@@ -1,7 +1,7 @@
 import { PetQuickReply, PetWindow } from "@alwith/module-auth/pets/react"
+import { isFormElicitation } from "@alwith/module-chat/client"
 import { exportDraft } from "@alwith/module-chat/conversation"
 import type { FormAction } from "@alwith/module-chat/conversation"
-import { isFormElicitation } from "@nyssance/codex-acp-v2/client"
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"

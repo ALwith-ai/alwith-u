@@ -18,7 +18,7 @@ import type {
   SkillsConfigWriteParams,
   SkillsConfigWriteResponse,
   SkillsListResponse
-} from "@nyssance/codex-acp-v2/client"
+} from "@alwith/module-chat/client"
 // Plugins & marketplace state, shaped after the official Codex app's local plugins page:
 // the catalog (`plugin/list`: marketplaces + featured ids), the installed set
 // (`plugin/installed`, newest first), skills (`skills/list`), and the actions the page runs.

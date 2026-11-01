@@ -11,8 +11,8 @@ import {
   syncVibemonResources,
   updateVibemonState
 } from "@alwith/module-auth/pets/core"
+import { runStateSource } from "@alwith/module-chat/client"
 import { exportDraft } from "@alwith/module-chat/conversation"
-import { runStateSource } from "@nyssance/codex-acp-v2/client"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"

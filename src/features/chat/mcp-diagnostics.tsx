@@ -1,5 +1,5 @@
+import { isContentEntry, isText, type Session } from "@alwith/module-chat/client"
 import { isMcpStartup } from "@alwith/module-chat/turns"
-import { isContentEntry, isText, type Session } from "@nyssance/codex-acp-v2/client"
 import { PlugIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"

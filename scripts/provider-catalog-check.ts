@@ -2,7 +2,7 @@
 import { resolve } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
-import { textOf } from "@nyssance/codex-acp-v2/client"
+import { textOf } from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"

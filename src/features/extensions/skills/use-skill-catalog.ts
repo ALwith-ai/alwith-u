@@ -1,4 +1,4 @@
-import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@nyssance/codex-acp-v2/client"
+import type { SkillErrorInfo, SkillMetadata, SkillsListResponse } from "@alwith/module-chat/client"
 import { useEffect, useMemo, useState } from "react"
 
 interface SkillsApi {
