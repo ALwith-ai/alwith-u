@@ -31,7 +31,6 @@
 .file-workspace-slab {
   width: 100%;
   height: 100%;
-  padding-inline: calc(var(--main-surface-gutter) / 2);
   overflow: clip;
 }
 .file-workspace-slide[aria-hidden="true"],

@@ -1,6 +1,7 @@
 import { connectDesktopOverview } from "@alwith/module-desktop-shell/overview"
 import "@alwith/module-desktop-shell/overview.css"
 import { useAtlas } from "@nyssance/atlas/react"
+import { attachWindowDrag } from "@nyssance/atlas/tauri"
 import { isTauri } from "@tauri-apps/api/core"
 import {
   type ContextType,
@@ -111,6 +112,7 @@ export function useMainCanvas(
     trackpadAvailable: enabled && isTauri(),
     blocked: () => divider.current
   })
+  useEffect(() => (api && isTauri() ? attachWindowDrag(api.root, console.error) : undefined), [api])
   const navigationRef = useCallback((node: HTMLDivElement | null): void => {
     navigation.current = node
   }, [])
@@ -138,7 +140,7 @@ export function useMainCanvas(
     observer.observe(root)
     observer.observe(nav)
     return () => observer.disconnect()
-  }, [])
+  }, [api])
 
   const commitScreen = useCallback((index: number): void => {
     const next = index === 0 ? "leading" : "main"
@@ -152,13 +154,16 @@ export function useMainCanvas(
     (dragging: boolean): void => {
       divider.current = dragging
       setDividerState(dragging)
-      if (dragging) api?.cancelInput()
+      if (dragging) {
+        if (!geometry.split && selected === 1) region.current = "chat"
+        api?.cancelInput()
+      }
     },
-    [api]
+    [api, geometry.split, selected]
   )
 
   useLayoutEffect(() => {
-    if (!api || size.viewport === 0 || dividerDragging) return
+    if (!api || size.viewport === 0) return
     const requested = request !== null && appliedRequest.current !== request.revision
     const geometryChanged = appliedGeometry.current !== geometryKey
     if (!geometryChanged && !requested) return

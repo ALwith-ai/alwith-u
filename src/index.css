@@ -76,7 +76,7 @@ pre,
   --sidebar-floating-shadow: oklch(0 0 0 / 16%);
   /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
      the card does not rely on borders or shadows to stand out from the background. */
-  --main-surface-gutter: 8px;
+  --main-surface-gutter: var(--atlas-gutter, 4px);
   --main-surface-border-width: 1px;
 }
 
@@ -154,9 +154,7 @@ html[data-window-backdrop="acrylic"]
 
 /* Window chrome owns full-width rows; only the middle row participates in screen layout. */
 .main-window-titlebar {
-  position: relative;
   flex: none;
-  height: var(--main-titlebar-height);
   -webkit-app-region: drag;
 }
 .windows-main-content .main-window-titlebar {
@@ -173,7 +171,6 @@ html[data-window-backdrop="acrylic"]
 .main-canvas-viewport {
   position: relative;
   height: 100%;
-  margin-inline: var(--main-surface-gutter);
   overflow: clip;
 }
 .main-window-statusbar {
@@ -181,14 +178,13 @@ html[data-window-backdrop="acrylic"]
   flex: none;
   align-items: center;
   gap: 8px;
-  height: var(--atlas-inset-bottom);
   padding-inline: 12px 4px;
   -webkit-app-region: no-drag;
 }
 .main-chat-surface {
   width: auto;
   min-width: 0;
-  margin-inline: var(--main-surface-gutter);
+  margin-inline: var(--atlas-gutter);
   margin-block: 0;
   overflow: hidden;
   border: 0;
@@ -623,9 +619,6 @@ body,
 .main-screen-content > .main-workspace-surface {
   margin-inline: 0;
   overflow: visible;
-}
-.main-window-statusbar {
-  position: relative;
 }
 
 .main-screen-track {

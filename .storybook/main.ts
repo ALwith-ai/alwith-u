@@ -17,7 +17,10 @@ const boundaries = {
 }
 
 const config: StorybookConfig = {
-  stories: ["./stories/page-boards/**/*.stories.tsx", "./stories/flows/**/*.stories.tsx"],
+  stories:
+    process.env.ATLAS_LAYOUT_TEST === "1"
+      ? ["./stories/pages/canvas-details.stories.tsx"]
+      : ["./stories/page-boards/**/*.stories.tsx", "./stories/flows/**/*.stories.tsx"],
   docs: { defaultName: "说明文档" },
   staticDirs: [
     "../public",

@@ -479,9 +479,9 @@ dependencies = [
 
 [[package]]
 name = "atlas-tauri"
-version = "0.1.4"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "694623a9096663806494976112f28d79c84af24084e04f4b489a1653aa9449a6"
+checksum = "121399ae069c73cb7fbab325ba65bbc1ba13809f009e51f5ac251bb043a5d409"
 dependencies = [
  "log",
  "objc2",

@@ -183,7 +183,7 @@ export const Unified: Story = {
   },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     await hoverNavigationEdge(canvasElement)
@@ -229,7 +229,7 @@ export const DirectionChange: Story = {
   globals: { locale: "en" },
   play: async ({ canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     await userEvent.click(dots()[1])
@@ -255,7 +255,7 @@ export const ReturnFromPreview: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
@@ -292,7 +292,7 @@ export const ReflowWithFloatingSidebar: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
@@ -339,7 +339,7 @@ export const HidePinnedNavigation: Story = {
         await expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
         const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
         await expect(chat.getBoundingClientRect().left).toBeGreaterThanOrEqual(body.left)
-        await expect(preview.getBoundingClientRect().right).toBeCloseTo(body.right - desktopDefaults.gutter * 1.5, 0)
+        await expect(preview.getBoundingClientRect().right).toBeCloseTo(body.right - desktopDefaults.gutter * 2, 0)
         await expect(chat.getBoundingClientRect().width).toBeCloseTo(preview.getBoundingClientRect().width, 0)
       },
       { timeout: 3000 }
@@ -354,7 +354,7 @@ export const HideNavigationAfterManualSplit: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     await userEvent.click(canvas.getByRole("separator"))
@@ -381,7 +381,7 @@ export const OperationChain: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const body = canvasElement.querySelector<HTMLElement>(".main-window-body")!
@@ -474,7 +474,7 @@ export const PointerSplitAndReverse: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     const divider = canvas.getByRole("separator")
@@ -511,15 +511,15 @@ export const StableOuterGutters: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     const body = canvasElement.querySelector<HTMLElement>(".main-window-body")!
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const assertGutters = async (selector: string): Promise<void> => {
       await waitFor(
         async () => {
           const bounds = body.getBoundingClientRect()
           const panel = canvasElement.querySelector(selector)!.getBoundingClientRect()
-          await expect(panel.left - bounds.left).toBeCloseTo(desktopDefaults.gutter * 1.5, 0)
-          await expect(bounds.right - panel.right).toBeCloseTo(desktopDefaults.gutter * 1.5, 0)
+          await expect(panel.left - bounds.left).toBeCloseTo(desktopDefaults.gutter * 2, 0)
+          await expect(bounds.right - panel.right).toBeCloseTo(desktopDefaults.gutter * 2, 0)
         },
         { timeout: 3000 }
       )
@@ -561,7 +561,7 @@ export const NavigationDuringMotion: Story = {
     const track = canvasElement.querySelector<HTMLElement>(".main-screen-track")!
     const viewport = canvasElement.querySelector<HTMLElement>(".main-sidebar-viewport")!
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     const original = nav.getBoundingClientRect().left - track.getBoundingClientRect().left
@@ -611,11 +611,11 @@ export const StablePanelGap: Story = {
       const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
       const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
       const gap = i18n.dir() === "rtl" ? chat.left - preview.right : preview.left - chat.right
-      await expect(gap).toBeCloseTo(desktopDefaults.gutter, 2)
+      await expect(gap).toBeCloseTo(desktopDefaults.gutter * 2, 2)
     }
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     await assertGap()
@@ -650,7 +650,7 @@ export const MainControlsOnly: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     for (const index of [0, 1, 2, 1]) {
@@ -681,7 +681,7 @@ export const DragLeftHidesChat: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     const divider = canvas.getByRole("separator")
@@ -718,7 +718,7 @@ export const RestoreAfterDragging: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     for (const delta of [-240, 100]) {
@@ -746,7 +746,7 @@ export const RestoreAfterDragging: Story = {
           const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
           const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
           await expect(chat.width).toBeGreaterThan(320)
-          await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter, 1)
+          await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter * 2, 1)
           await expect(preview.right).toBeLessThanOrEqual(
             canvasElement.querySelector(".main-window-body")!.getBoundingClientRect().right
           )
@@ -766,7 +766,7 @@ export const TitlebarRestoreThenClose: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     const divider = canvas.getByRole("separator", { name: "Resize workspace" })
@@ -785,7 +785,7 @@ export const TitlebarRestoreThenClose: Story = {
         const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
         const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
         await expect(chat.width).toBeGreaterThan(320)
-        await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter, 1)
+        await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter * 2, 1)
       },
       { timeout: 3000 }
     )
@@ -806,13 +806,13 @@ export const ThreeScreenTransitions: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-main-screen]")!
     const settled = async (index: number, count: number): Promise<void> => {
       await waitFor(
         async () => {
-          await expect(dots()).toHaveLength(index > 0 && count > 2 ? count - 1 : 0)
+          await expect(dots()).toHaveLength(count > 2 ? count - 1 : 0)
           if (index > 0 && dots().length > 0) await expect(dots()[index - 1]).toHaveAttribute("aria-current", "page")
           await expect(host).toHaveAttribute("data-main-screen", index === 0 ? "leading" : "main")
           await expect(host).toHaveAttribute("data-canvas-moving", "false")
@@ -886,7 +886,7 @@ export const SplitFromMainStaysOnMain: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>(".canvas-dots button")
+      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-canvas-moving]")!
     await waitFor(() => expect(dots()).toHaveLength(2))

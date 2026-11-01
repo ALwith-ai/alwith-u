@@ -151,26 +151,29 @@ export function WorkspacePanels({
         }}
         onMouseLeave={() => setEdgeZone(null)}
       >
-        <div ref={unified ? undefined : atlasRef} className="file-workspace-viewport">
+        <div ref={unified ? undefined : atlasRef} className="file-workspace-viewport" data-atlas-layout="sized">
           <div className="file-workspace-track" data-atlas-track>
             <div
               className="file-workspace-slide"
               data-atlas-region="chat"
+              data-atlas-collapsed={chatWidth === 0 && (visible || maximized || unified)}
               style={{ width: !visible && !maximized && !canvas ? "100%" : chatWidth }}
               inert={maximized || (canvas?.split && canvas.selected === 2)}
               aria-hidden={maximized}
             >
-              <div className="file-workspace-slab">
+              <div className="file-workspace-slab" data-atlas-pane>
                 <div className="file-workspace-chat">{chat}</div>
               </div>
             </div>
             <div
               data-atlas-region="preview"
+              data-atlas-collapsed={fileWidth === 0}
               className="file-workspace-slide file-workspace-preview-slide"
               style={{ width: fileWidth }}
             >
               <div
                 className="file-workspace-slab"
+                data-atlas-pane
                 inert={!visible || (canvas?.split && canvas.selected !== 2)}
                 aria-hidden={!visible}
               >

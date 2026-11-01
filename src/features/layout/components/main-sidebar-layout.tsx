@@ -143,7 +143,6 @@ export function MainSidebarLayout({
           "--main-surface-radius": `${desktopDefaults.surfaceRadius}px`,
           "--main-surface-gutter": `${desktopDefaults.gutter}px`,
           "--main-titlebar-height": `${desktopDefaults.insetTop}px`,
-          "--atlas-inset-bottom": `${desktopDefaults.insetBottom}px`,
           "--leading-sidebar-width": "var(--sidebar-width)",
           "--canvas-sidebar-offset": `${Math.max(0, (canvas.geometry.stops[canvas.selected] ?? 0) - canvas.geometry.leading)}px`,
           "--active-sidebar-width": docked ? "var(--sidebar-width)" : "0px",
@@ -152,15 +151,18 @@ export function MainSidebarLayout({
         } as CSSProperties
       }
     >
-      <header className="main-window-titlebar" data-tauri-drag-region>
-        {showMainControls && !titlebar && sidebarToggle}
-        {showMainControls && !workspaceControls && toolbar}
-      </header>
       {showMainControls && workspaceControls && toolbar && createPortal(toolbar, workspaceControls)}
       {showMainControls && titlebar && createPortal(sidebarToggle, titlebar)}
       <CanvasContext.Provider value={canvas.context}>
         <div className="main-window-body" dir={canvas.direction}>
-          <div ref={canvas.ref} className="main-canvas-viewport">
+          <div ref={canvas.ref} className="main-canvas-viewport" data-atlas-layout="custom">
+            <header className="main-window-titlebar" data-atlas-topbar>
+              {showMainControls && !titlebar && sidebarToggle}
+              {showMainControls && !workspaceControls && toolbar}
+            </header>
+            <footer className="main-window-statusbar" data-atlas-footer>
+              {statusBar}
+            </footer>
             <div
               className="main-screen-track"
               data-atlas-track
@@ -230,7 +232,6 @@ export function MainSidebarLayout({
           </div>
         </div>
       </CanvasContext.Provider>
-      <footer className="main-window-statusbar">{statusBar}</footer>
       {children}
     </SidebarProvider>
   )
