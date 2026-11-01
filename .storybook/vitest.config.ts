@@ -1,8 +1,18 @@
+import { readdirSync } from "node:fs"
 import path from "node:path"
 
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin"
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
+
+// The shadcn plugin rewrites `@/components/ui/x` to package paths at transform time, which Vite's
+// dependency scan cannot see. Prebundle every shipped module so a cold run never reloads mid-test.
+const shadcnRoot = path.resolve(import.meta.dirname, "../node_modules/@nyssance/shadcn/dist/vega")
+const shadcnModules = ["components/ui", "hooks", "lib"].flatMap((dir) =>
+  readdirSync(path.join(shadcnRoot, dir))
+    .filter((file) => file.endsWith(".js"))
+    .map((file) => `@nyssance/shadcn/vega/${dir}/${file.slice(0, -3)}`)
+)
 
 export default defineConfig({
   define: { "import.meta.env.STORYBOOK_TEST": "true" },
@@ -35,7 +45,8 @@ export default defineConfig({
       "@tauri-apps/plugin-global-shortcut",
       "@tauri-apps/plugin-notification",
       "@nyssance/shadcn > next-themes",
-      "zustand/react/shallow"
+      "zustand/react/shallow",
+      ...shadcnModules
     ]
   },
   test: {
