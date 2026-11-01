@@ -3,7 +3,8 @@ import { driveTranslator } from "@alwith/module-drive/react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../src/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
 import { driveControls, driveDialogClassName } from "../../src/features/drive/controls"
 import { DriveSharingDialog } from "../../src/features/drive/drive"
 import { PROJECT_DIRECTORY } from "../fixtures/catalog"

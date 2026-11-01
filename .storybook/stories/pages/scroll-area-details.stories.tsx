@@ -3,8 +3,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
+import { Button } from "@/components/ui/button"
+
 import { Pane } from "../../../src/components/alwith-ui/pane"
-import { Button } from "../../../src/components/ui/button"
 
 function ScrollAreaExample({ navigation = false }: { navigation?: boolean }) {
   const [overflow, setOverflow] = useState(true)

@@ -1,5 +1,6 @@
 import path from "node:path"
 
+import { shadcn } from "@nyssance/shadcn/vite"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
@@ -12,17 +13,16 @@ const debug = process.env.TAURI_ENV_DEBUG === "true"
 
 export const config = (mode = "development"): UserConfig => ({
   define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
-  plugins: [react(), tailwindcss(), productionJsxGuard()],
+  // `@/x` is the app's own src/x when it exists, else the shadcn/ui registry package (style base-vega).
+  plugins: [shadcn({ style: "vega" }), react(), tailwindcss(), productionJsxGuard()],
   resolve: {
-    dedupe: ["react", "react-dom", "@base-ui/react"],
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src")
-    }
+    dedupe: ["react", "react-dom", "@base-ui/react"]
   },
   // Local tarballs change during module development. Serve these ESM packages
   // directly so dependency optimization cannot retain an older JS implementation.
   optimizeDeps: {
     exclude: [
+      "@nyssance/shadcn",
       "@alwith/module-chat",
       "@alwith/module-gamepad",
       "@alwith/module-fs",

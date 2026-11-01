@@ -10,7 +10,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useRef, useState } from "react"
 import { expect, spyOn, waitFor } from "storybook/test"
 
-import { Button } from "../../../src/components/ui/button"
+import { Button } from "@/components/ui/button"
+
 import { ChatTimeline } from "../../fixtures/chat-timeline"
 
 function sentPrompt(previous: Session, text: string, messageId: string): Session {

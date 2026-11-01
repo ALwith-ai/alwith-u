@@ -10,6 +10,8 @@
 
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
+@source "../node_modules/@alwith/module-device/dist";
+@source "../node_modules/@nyssance/shadcn/dist/vega";
 
 /* Isolate technical notation from the interface direction. */
 [data-slot="kbd"],

@@ -5,7 +5,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
-import { Button } from "../../../src/components/ui/button"
+import { Button } from "@/components/ui/button"
+
 import { ImageLightbox, openImageGallery, openImageLightbox } from "../../../src/features/chat/dialogs/image-lightbox"
 import { preventVibemonImageDragging } from "../../../src/features/vibemon/image-drag"
 import i18n from "../../../src/lib/i18n"

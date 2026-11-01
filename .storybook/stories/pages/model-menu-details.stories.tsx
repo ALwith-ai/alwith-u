@@ -5,7 +5,8 @@ import { ExternalLink } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { expect, fn, waitFor, within } from "storybook/test"
 
-import { DropdownMenuItem } from "../../../src/components/ui/dropdown-menu"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+
 import { modelTriggerLabel, presentModelCatalog } from "../../../src/features/chat/composer/model-catalog"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest } from "../../fixtures/native"

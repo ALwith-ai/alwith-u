@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, spyOn, waitFor, within } from "storybook/test"
 
+import { SidebarInset } from "@/components/ui/sidebar"
+
 import type { SessionSummary } from "../../../src/agent/client"
-import { SidebarInset } from "../../../src/components/ui/sidebar"
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { ArchivedChatsPage } from "../../../src/features/sessions/archived-chats-page"

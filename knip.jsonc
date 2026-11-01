@@ -10,20 +10,15 @@
     "src/features/story/use-story-available.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],
-  "ignoreIssues": {
-    // registry components are kept whole, as upstream ships them
-    "src/components/ui/**": ["files", "exports", "types", "duplicates"]
-  },
   "ignoreDependencies": [
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     "@alwith/module-mobile",
+    "@alwith/native-device-darwin-arm64",
     // Consumed by the native host through Cargo, with product-specific menus.
     "@alwith/module-desktop-shell",
     // Bundled with immutable resources by scripts/lib/workbuddy-artifact.ts.
     "create-alwith",
-    // only imported by the unused registry component ui/message-scroller
-    "@shadcn/react",
     // invoked as `bun ts7-lint` by the fabfile.py check gate
     "@nyssance/ts7-lint"
   ],

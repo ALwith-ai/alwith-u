@@ -3,8 +3,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useContext, useRef, useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
-import { Button } from "../../../src/components/ui/button"
-import { SidebarInset } from "../../../src/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { SidebarInset } from "@/components/ui/sidebar"
+
 import { type MainScreen, MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { CanvasContext } from "../../../src/features/layout/lib/canvas-context"
 import type { PanelControls } from "../../../src/features/workspace/panel-controls-context"

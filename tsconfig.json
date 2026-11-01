@@ -1,7 +1,7 @@
 {
   "files": [],
   "compilerOptions": {
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*", "./node_modules/@nyssance/shadcn/dist/vega/*"] }
   },
   "references": [
     { "path": "./tsconfig.app.json" },

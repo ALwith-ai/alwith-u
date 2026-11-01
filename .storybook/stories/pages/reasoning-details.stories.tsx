@@ -3,7 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
-import { Button } from "../../../src/components/ui/button"
+import { Button } from "@/components/ui/button"
+
 import { ChatTimeline } from "../../fixtures/chat-timeline"
 
 const paragraphs = Array.from({ length: 24 }, (_, index) => `Checking step ${index + 1} of the long task.`).join("\n\n")

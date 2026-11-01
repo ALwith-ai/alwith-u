@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactNode, useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
-import { Button } from "../../../src/components/ui/button"
+import { Button } from "@/components/ui/button"
+
 import { ChatHeader } from "../../../src/features/chat/chat-header"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../../src/features/workspace/workspace-panels"

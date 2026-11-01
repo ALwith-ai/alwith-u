@@ -34,7 +34,7 @@ export default defineConfig({
       "@solar-icons/react/bold-duotone/settings",
       "@tauri-apps/plugin-global-shortcut",
       "@tauri-apps/plugin-notification",
-      "next-themes",
+      "@nyssance/shadcn > next-themes",
       "zustand/react/shallow"
     ]
   },

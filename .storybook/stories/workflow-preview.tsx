@@ -2,7 +2,8 @@ import { Minus, Plus } from "lucide-react"
 import { type ComponentType, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { buildArgsParam } from "storybook/internal/router"
 
-import { Button } from "../../src/components/ui/button"
+import { Button } from "@/components/ui/button"
+
 import { ProductPreview, type ProductPreviewProps } from "./product-preview"
 import { playback, type WorkflowConfig, workflowTarget } from "./workflow-driver"
 

@@ -20,7 +20,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*", "./node_modules/@nyssance/shadcn/dist/vega/*"]
     }
   },
   "include": ["vite.config.ts", "vitest.config.ts", "scripts"]

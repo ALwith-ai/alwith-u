@@ -4,7 +4,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
-import { SidebarInset } from "../../../src/components/ui/sidebar"
+import { SidebarInset } from "@/components/ui/sidebar"
+
 import { ExtensionNavigation } from "../../../src/features/extensions/extension-navigation"
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"

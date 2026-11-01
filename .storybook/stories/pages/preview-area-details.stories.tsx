@@ -7,8 +7,9 @@ import { FolderTree } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
+import { Button } from "@/components/ui/button"
+
 import { useTheme } from "../../../src/components/theme-provider"
-import { Button } from "../../../src/components/ui/button"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { createTreeOpener } from "../../../src/features/workspace/tree-opener"
 import { WorkspaceEditor } from "../../../src/features/workspace/workspace-editor"

@@ -1,5 +1,6 @@
 import path from "node:path"
 
+import { shadcn } from "@nyssance/shadcn/vite"
 import type { StorybookConfig } from "@storybook/react-vite"
 import tailwindcss from "@tailwindcss/vite"
 
@@ -63,6 +64,7 @@ const config: StorybookConfig = {
             }
           }
         },
+        shadcn({ style: "vega", src: path.resolve(import.meta.dirname, "../src") }),
         tailwindcss()
       ],
       // Worker URLs must be transformed by Vite instead of dependency prebundling.
@@ -81,8 +83,7 @@ const config: StorybookConfig = {
       },
       resolve: {
         alias: {
-          "@/lib/open": path.resolve(import.meta.dirname, "fixtures/open.ts"),
-          "@": path.resolve(import.meta.dirname, "../src")
+          "@/lib/open": path.resolve(import.meta.dirname, "fixtures/open.ts")
         },
         dedupe: ["react", "react-dom", "@base-ui/react"]
       },
