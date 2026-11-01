@@ -1,5 +1,6 @@
 import { resolveSplitWidths as resolvePanelWidths } from "@nyssance/atlas/layout"
 import { useAtlas } from "@nyssance/atlas/react"
+import "@nyssance/atlas/styles.css"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   type ReactNode,

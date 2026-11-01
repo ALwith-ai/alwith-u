@@ -1,3 +1,4 @@
+import { desktopDefaults } from "@nyssance/atlas/layout"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactNode, useState } from "react"
 import { expect, waitFor } from "storybook/test"
@@ -78,6 +79,10 @@ type Story = StoryObj<typeof meta>
 export const EqualPanels: Story = {
   name: "等宽面板",
   play: async ({ canvasElement, canvas, userEvent }) => {
+    // Atlas owns the gaps: a docked region's edge is the shell gutter plus its half-gap; the maximized
+    // preview spans the regions' half-gaps and keeps only the shell gutter.
+    const edges = desktopDefaults.gutter * 4
+    const maximizedEdges = desktopDefaults.gutter * 2
     const layout = canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!
     const chat = canvasElement.querySelector<HTMLElement>(".file-workspace-chat")!
     const preview = canvasElement.querySelector<HTMLElement>(".file-workspace-panel")!
@@ -91,7 +96,7 @@ export const EqualPanels: Story = {
     await userEvent.type(canvas.getByRole("textbox", { name: "Message" }), "Keep this message")
     await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
     await waitFor(async () => {
-      await expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth - 8)
+      await expect(preview.getBoundingClientRect().width).toBe(layout.clientWidth - maximizedEdges)
       await expect(chat.closest(".file-workspace-slide")).toHaveAttribute("inert")
     })
     await userEvent.click(canvas.getByRole("button", { name: "Restore" }))
@@ -106,7 +111,7 @@ export const EqualPanels: Story = {
         await expect(canvasElement.querySelector(".file-workspace-tree")).toHaveAttribute("data-collapsed", "false")
     )
     await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
-    await waitFor(async () => expect(chat.getBoundingClientRect().width).toBe(layout.clientWidth - 8))
+    await waitFor(async () => expect(chat.getBoundingClientRect().width).toBe(layout.clientWidth - edges))
     await userEvent.click(canvas.getByRole("button", { name: "Open preview" }))
     await waitFor(
       async () => await expect(preview.getBoundingClientRect().width).toBeCloseTo(chat.getBoundingClientRect().width, 0)

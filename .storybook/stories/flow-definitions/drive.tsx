@@ -33,7 +33,9 @@ export const Manage: Story = {
   name: "资料库 → 更多 → 管理菜单",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(await body.findByRole("button", { name: "产品资料库 更多" }))
+    // The row's more button stays display:none until the row is hovered, and synthetic hover does not apply
+    // CSS :hover. A display:none element has no accessible name, so find it by its label instead of by role.
+    await userEvent.click(await body.findByLabelText("产品资料库 更多", { selector: "button" }))
     await body.findByRole("menu")
   }
 }

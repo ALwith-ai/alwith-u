@@ -123,7 +123,7 @@ export const DelayedEffort: Story = {
   args: { delay: 500 },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByTestId("model-trigger"))
-    const slider = within(document.body).getByRole("slider", { name: "Effort" })
+    const slider = await within(document.body).findByRole("slider", { name: "Effort" })
     slider.focus()
     await userEvent.keyboard("{ArrowRight}")
     for (let frame = 0; frame < 12; frame++) {
