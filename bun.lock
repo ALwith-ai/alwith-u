@@ -24,7 +24,7 @@
         "@alwith/module-store": "^0.5.0",
         "@alwith/module-voice": "^0.5.0",
         "@alwith/native-device": "^0.5.2",
-        "@alwith/runtime": "^0.5.0",
+        "@alwith/runtime": "^0.5.1",
         "@base-ui/react": "^1.9.0",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
@@ -256,13 +256,12 @@
 
     "@alwith/native-voice-win32-x64": ["@alwith/native-voice-win32-x64@0.5.1", "", { "os": "win32", "cpu": "x64" }, "sha512-dR+VPdmyfVZR6ZvH5l08YmOCM5oV9btefZEVNPYsnz0ZufQUn+KLQvqG+wzNtN68f5QuEsl9d6i09zzxsHJ3AA=="],
 
-    "@alwith/runtime": ["@alwith/runtime@0.5.0", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.5.0", "@alwith/runtime-linux-x64": "0.5.0", "@alwith/runtime-win32-x64": "0.5.0" } }, "sha512-zIJTbho+3sXkUttR2j4uIS7bXdPXoF/PQJC0vEuWV0p7HPV2LB8DQbHlHqCCtUlQ9x+Dwkvhk9iZN30z475NVw=="],
+    "@alwith/runtime": ["@alwith/runtime@0.5.1", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.5.1", "@alwith/runtime-win32-x64": "0.5.1" } }, "sha512-fkmTjwgb/LvTGxjuHV3f6yYSNWaPOw2ZM6um+KIsYVq38y2H31WOEj69gFsN1oo3O892u8ltyYIyc3kYda1kIA=="],
 
-    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.5.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-JFRclEYmP84Dny7XVC4qx9rwvsw7J6JCi2cR1r/l+fhTk7uFPP2Zep556eAn6yVVq1ebOKWD6Rf1y4u1c3q8Fw=="],
+    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.5.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-vxC+AYikwmXarEZsUj95m8UzgL+AgfjL9AGqbJIZELffpxE/q87bP1IHNLpjXzxu1mMpa+DgFZpZy5NR422I2A=="],
 
-    "@alwith/runtime-linux-x64": ["@alwith/runtime-linux-x64@0.5.0", "", { "os": "linux", "cpu": "x64" }, "sha512-Ur7eJ3qmLDksrAtiSw6HGMLEC8QHFQAuU/zPLe16RikPnKxnv+EQNsRmcfgWefRLJC52swP+Oaz4wJewFS+NAw=="],
 
-    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.5.0", "", { "os": "win32", "cpu": "x64" }, "sha512-e5uyKe0DdFuvQVtSqynqWSQYgv2KqZ8gcXbbX9VPyT05aWMZ7Avo+8nI0HpPSd1WLzpXtZvf3LDrXcdEHZGyxA=="],
+    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.5.1", "", { "os": "win32", "cpu": "x64" }, "sha512-iE06t4dl4rGDuWqQbFh8i8oS4ye4JadxdNKoy3TVos9Ja/NeY8ccGd7hRNWcaG1T4PMAfTJzut2BJmiXHuNomQ=="],
 
     "@antfu/install-pkg": ["@antfu/install-pkg@2.1.0", "https://registry.npmmirror.com/@antfu/install-pkg/-/install-pkg-2.1.0.tgz", { "dependencies": { "package-manager-detector": "^1.8.0", "tinyexec": "^1.3.1" } }, "sha512-sdg9NxU3zR4Mnawfbc/x6GB5Wf17WYud5qOuEuxXjaKpYpMkISSJEjItGebXJ2bQ4DIcly4NYH23mtkGJjvKUw=="],
 

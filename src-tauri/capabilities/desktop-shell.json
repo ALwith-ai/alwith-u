@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop-shell",
+  "description": "The main workspace canvas detects native trackpad availability",
+  "windows": ["main"],
+  "permissions": ["alwith-desktop-shell:allow-has-trackpad"]
+}

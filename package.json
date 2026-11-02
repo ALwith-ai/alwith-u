@@ -1,7 +1,7 @@
 {
   "name": "alwith-u",
   "private": true,
-  "version": "26.11.2",
+  "version": "26.11.3",
   "description": "An independent desktop client for the OpenAI Codex CLI",
   "license": "Apache-2.0",
   "type": "module",
@@ -45,7 +45,7 @@
     "@alwith/module-store": "^0.5.0",
     "@alwith/module-voice": "^0.5.0",
     "@alwith/native-device": "^0.5.2",
-    "@alwith/runtime": "^0.5.0",
+    "@alwith/runtime": "^0.5.1",
     "@base-ui/react": "^1.9.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
