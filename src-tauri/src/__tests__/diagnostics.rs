@@ -1,6 +1,51 @@
 use super::*;
 
 #[test]
+fn computer_lifecycle_records_survive_export_without_session_ids_or_error_text() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().into());
+    for action in [
+        ComputerOperation::Start,
+        ComputerOperation::Stop,
+        ComputerOperation::Reconnect,
+        ComputerOperation::Ready,
+        ComputerOperation::Bind,
+    ] {
+        collector.record(
+            "computer",
+            "failed",
+            Context {
+                operation: Some(action.name().into()),
+                session_ref: Some(reference("private-computer-session")),
+                error: Some(signature("Computer connection failed at C:\\Users\\private-path")),
+                ..Context::default()
+            },
+        );
+    }
+    let report = collector.report();
+    assert_eq!(report["events"].as_array().unwrap().len(), 5);
+    let exported = report.to_string();
+    assert!(!exported.contains("private-computer-session"));
+    assert!(!exported.contains("private-path"));
+    assert!(!exported.contains("Computer connection failed"));
+}
+
+#[test]
+fn gateway_rejection_is_distinct_from_a_transport_failure() {
+    let message = r#"{"error":{"classification":"terminal_http","message":"upstream request was rejected","type":"upstream_error"},"type":"error"}"#;
+    let error = signature(message);
+    assert_eq!(error.kind, "upstream_rejected");
+    assert_eq!(error.http_status, None);
+    assert_eq!(error.transport_code, None);
+    let exported = serde_json::to_string(&error).unwrap();
+    assert!(!exported.contains("upstream request was rejected"));
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().into());
+    collector.record("session", "error", Context { error: Some(error), ..Context::default() });
+    assert_eq!(collector.report()["events"][0]["context"]["error"]["kind"], "upstream_rejected");
+}
+
+#[test]
 fn proxy_errors_preserve_transport_evidence_without_raw_content() {
     let message = format!(
         "unexpected status 502 Bad Gateway: Responses compatibility proxy could not forward the request (ECONNRESET), url: http://127.0.0.1:59724/{}/responses Authorization: Bearer sk-private-message",

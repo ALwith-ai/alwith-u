@@ -1,4 +1,5 @@
 //! Thin transport for the shared computer host. The native host owns all grants.
+use crate::diagnostics::{ComputerOperation, computer_result};
 use alwith_computer::{ComputerHost, Connection, permissions};
 use tauri::{Manager, State, WebviewWindow};
 
@@ -7,12 +8,7 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), String> {
     let directory = exe.parent().ok_or("Application executable has no parent")?;
     let name = if cfg!(windows) { "cua-driver.exe" } else { "cua-driver" };
     // Tauri places staged sidecars beside the host executable in development and release.
-    app.manage(
-        ComputerHost::new(directory.join(name), app.config().identifier.clone()).with_cursor_theme(
-            "ai.alwith.u".into(),
-            include_bytes!("../assets/computer/ai.alwith.u.cua-theme").to_vec(),
-        ),
-    );
+    app.manage(ComputerHost::new(directory.join(name), app.config().identifier.clone()));
     let gateway = ComputerGateway::default();
     tauri::async_runtime::block_on(gateway.gateway.listen())?;
     app.manage(gateway);
@@ -121,13 +117,17 @@ pub async fn computer_start(
 ) -> Result<ComputerStatus, String> {
     check_surface(&window)?;
     let _lifecycle = gateway.lifecycle.lock().await;
-    if gateway.gateway.faulted() {
-        state.stop_current().await?;
-        gateway.gateway.stop_all();
+    let result = async {
+        if gateway.gateway.faulted() {
+            state.stop_current().await?;
+            gateway.gateway.stop_all();
+        }
+        state.start(APPLICATION_GRANT.into()).await?;
+        *gateway.failure.lock().unwrap() = None;
+        status(&state, &gateway)
     }
-    state.start(APPLICATION_GRANT.into()).await?;
-    *gateway.failure.lock().unwrap() = None;
-    status(&state, &gateway)
+    .await;
+    computer_result(ComputerOperation::Start, None, result)
 }
 #[tauri3_specta::command]
 pub async fn computer_stop(
@@ -135,9 +135,13 @@ pub async fn computer_stop(
 ) -> Result<(), String> {
     check_surface(&window)?;
     let _lifecycle = gateway.lifecycle.lock().await;
-    state.stop_current().await?;
-    gateway.gateway.stop_all();
-    Ok(())
+    let result = async {
+        state.stop_current().await?;
+        gateway.gateway.stop_all();
+        Ok(())
+    }
+    .await;
+    computer_result(ComputerOperation::Stop, None, result)
 }
 /// Never replays actions: fresh driver and MCP generation, then a new observation.
 #[tauri3_specta::command]
@@ -146,11 +150,15 @@ pub async fn computer_reconnect(
 ) -> Result<ComputerStatus, String> {
     check_surface(&window)?;
     let _lifecycle = gateway.lifecycle.lock().await;
-    state.stop_current().await?;
-    gateway.gateway.stop_all();
-    state.start(APPLICATION_GRANT.into()).await?;
-    *gateway.failure.lock().unwrap() = None;
-    status(&state, &gateway)
+    let result = async {
+        state.stop_current().await?;
+        gateway.gateway.stop_all();
+        state.start(APPLICATION_GRANT.into()).await?;
+        *gateway.failure.lock().unwrap() = None;
+        status(&state, &gateway)
+    }
+    .await;
+    computer_result(ComputerOperation::Reconnect, None, result)
 }
 #[tauri3_specta::command]
 pub fn computer_context(
@@ -210,21 +218,25 @@ pub async fn computer_ready(
     window: WebviewWindow, state: State<'_, ComputerHost>, gateway: State<'_, ComputerGateway>, session_id: String,
 ) -> Result<(), String> {
     check_surface(&window)?;
-    if state.connection(APPLICATION_GRANT)?.is_none() {
-        return Ok(());
+    let result = async {
+        if state.connection(APPLICATION_GRANT)?.is_none() {
+            return Ok(());
+        }
+        let permissions = state.status()?.permissions;
+        if !permissions.accessibility || !permissions.screen_capture {
+            return Err("Computer permissions were revoked; restore them in Settings before retrying".into());
+        }
+        gateway.gateway.ensure_ready(&session_id).await
     }
-    let permissions = state.status()?.permissions;
-    if !permissions.accessibility || !permissions.screen_capture {
-        return Err("Computer permissions were revoked; restore them in Settings before retrying".into());
-    }
-    gateway.gateway.ensure_ready(&session_id).await
+    .await;
+    computer_result(ComputerOperation::Ready, Some(&session_id), result)
 }
 #[tauri3_specta::command]
 pub fn computer_bind(
     window: WebviewWindow, state: State<'_, ComputerGateway>, token: String, session_id: String,
 ) -> Result<(), String> {
     check_surface(&window)?;
-    state.gateway.bind(&token, &session_id)
+    computer_result(ComputerOperation::Bind, Some(&session_id), state.gateway.bind(&token, &session_id))
 }
 #[tauri3_specta::command]
 pub fn computer_stop_session(

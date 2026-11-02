@@ -316,6 +316,8 @@ fn signature(message: &str) -> ErrorSignature {
         "session_not_found"
     } else if lower.contains("responses compatibility proxy") {
         "model_proxy_transport"
+    } else if lower.contains("terminal_http") {
+        "upstream_rejected"
     } else if transport_code.is_some() {
         "network_transport"
     } else if lower.contains("timeout") || lower.contains("timed out") {
@@ -374,6 +376,7 @@ impl Event {
                     | "agent_stderr"
                     | "session"
                     | "native_network"
+                    | "computer"
             )
             && matches!(
                 self.phase.as_str(),
@@ -411,6 +414,7 @@ impl Event {
                         error.kind.as_str(),
                         "session_not_found"
                             | "model_proxy_transport"
+                            | "upstream_rejected"
                             | "network_transport"
                             | "timeout"
                             | "tls"
@@ -735,6 +739,11 @@ fn operation(method: &str) -> Option<&str> {
         | "providers/set"
         | "providers/disable"
         | "auth/login"
+        | "computer/start"
+        | "computer/stop"
+        | "computer/reconnect"
+        | "computer/ready"
+        | "computer/bind"
         | "start" => Some(method),
         "sessionNew" => Some("session/new"),
         "sessionResume" => Some("session/resume"),
@@ -743,6 +752,42 @@ fn operation(method: &str) -> Option<&str> {
         "prompt" => Some("session/prompt"),
         _ => None,
     }
+}
+
+pub enum ComputerOperation {
+    Start,
+    Stop,
+    Reconnect,
+    Ready,
+    Bind,
+}
+
+impl ComputerOperation {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Start => "computer/start",
+            Self::Stop => "computer/stop",
+            Self::Reconnect => "computer/reconnect",
+            Self::Ready => "computer/ready",
+            Self::Bind => "computer/bind",
+        }
+    }
+}
+
+pub fn computer_result<T>(
+    operation: ComputerOperation, session: Option<&str>, result: Result<T, String>,
+) -> Result<T, String> {
+    record(
+        "computer",
+        if result.is_ok() { "succeeded" } else { "failed" },
+        Context {
+            operation: Some(operation.name().into()),
+            session_ref: session.map(reference),
+            error: result.as_ref().err().map(|error| signature(error)),
+            ..Context::default()
+        },
+    );
+    result
 }
 
 fn model_context(model: &str, context: &mut Context) {
