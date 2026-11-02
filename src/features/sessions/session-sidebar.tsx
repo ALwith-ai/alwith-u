@@ -14,6 +14,7 @@ import {
   type SessionListExpansion,
   SessionRow
 } from "@alwith/module-chat/session-list"
+import { DesktopNavigationFooter } from "@alwith/module-desktop-shell/react"
 import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
@@ -39,7 +40,7 @@ import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu
 import { Pane } from "@/components/alwith-ui/pane"
 import { ShortcutHint } from "@/components/alwith-ui/shortcut-hint"
 import { Button } from "@/components/ui/button"
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { AddToCollectionAction } from "@/features/collection/collection-menu"
@@ -386,8 +387,7 @@ function SidebarPanels({
           </Pane>
         )}
       </SidebarContent>
-      <SidebarFooter className="desktop-shell-navigation-footer shrink-0 gap-1">
-        <UpdateStatusButton />
+      <DesktopNavigationFooter className="flex shrink-0 flex-col gap-1 p-2" status={<UpdateStatusButton />}>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -408,7 +408,7 @@ function SidebarPanels({
           </div>
           <GuideButton />
         </div>
-      </SidebarFooter>
+      </DesktopNavigationFooter>
     </Sidebar>
   )
 }

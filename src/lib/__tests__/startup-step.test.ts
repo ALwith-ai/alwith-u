@@ -9,7 +9,6 @@ afterEach(() => {
   vi.useRealTimers()
   vi.resetAllMocks()
   document.body.innerHTML = ""
-  document.documentElement.style.visibility = ""
 })
 
 function logging(): void {
@@ -39,9 +38,7 @@ test("startup rejection retains its cause and leaves no pending timer", async ()
 
 test("fatal bootstrap failures replace the loader even before React and toasts mount", () => {
   document.body.innerHTML = '<div id="root"><span>Loading</span></div>'
-  document.documentElement.style.visibility = "hidden"
   showStartupFailure(new Error("<script>failed</script>"))
   expect(document.getElementById("root")).toHaveTextContent("ALwith U startup failed: <script>failed</script>")
   expect(document.querySelector("script")).toBeNull()
-  expect(document.documentElement.style.visibility).toBe("visible")
 })

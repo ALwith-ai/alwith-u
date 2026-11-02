@@ -26,5 +26,4 @@ export function showStartupFailure(failure: unknown): void {
   const root = document.getElementById("root")
   if (root)
     root.textContent = `ALwith U startup failed: ${failure instanceof Error ? failure.message : String(failure)}`
-  document.documentElement.style.visibility = "visible"
 }

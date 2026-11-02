@@ -1,3 +1,4 @@
+import { rememberThemePreference } from "@alwith/module-desktop-shell/theme"
 import { setTheme as setNativeTheme } from "@tauri-apps/api/app"
 import { isTauri } from "@tauri-apps/api/core"
 import * as React from "react"
@@ -58,6 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove("light", "dark")
       root.classList.add(resolved)
       root.style.colorScheme = resolved
+      rememberThemePreference(theme)
       setResolvedTheme(resolved)
       if (isTauri()) {
         void setNativeTheme(theme === "system" ? null : theme).catch((error: unknown) =>

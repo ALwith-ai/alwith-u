@@ -1,5 +1,6 @@
 import path from "node:path"
 
+import { desktopShellPages } from "@alwith/module-desktop-shell/vite"
 import { shadcn } from "@nyssance/shadcn/vite"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
@@ -15,7 +16,14 @@ const debug = process.env.TAURI_ENV_DEBUG === "true"
 export const config = (mode = "development"): UserConfig => ({
   define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
   // `@/x` is the app's own src/x when it exists, else the shadcn/ui registry package (style base-vega).
-  plugins: [shadcn({ style: "vega" }), react(), tailwindcss(), productionJsxGuard(), moduleIdentityGuard()],
+  plugins: [
+    shadcn({ style: "vega" }),
+    react(),
+    tailwindcss(),
+    desktopShellPages(),
+    productionJsxGuard(),
+    moduleIdentityGuard()
+  ],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"]
   },

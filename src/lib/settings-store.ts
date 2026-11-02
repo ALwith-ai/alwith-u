@@ -1,3 +1,4 @@
+import { rememberThemePreference } from "@alwith/module-desktop-shell/theme"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 
@@ -83,6 +84,7 @@ function applyInitialTheme(): void {
   document.documentElement.classList.toggle("dark", resolved === "dark")
   document.documentElement.classList.toggle("light", resolved === "light")
   document.documentElement.style.colorScheme = resolved
+  rememberThemePreference(theme)
 }
 /** Browser previews have no native persistence; production bootstrap always initializes Rust. */
 export async function bootstrapSettings(): Promise<void> {
@@ -93,8 +95,6 @@ export async function bootstrapSettings(): Promise<void> {
     const root = document.getElementById("root")
     if (root) root.textContent = error instanceof Error ? error.message : String(error)
     throw error
-  } finally {
-    document.documentElement.style.visibility = "visible"
   }
 }
 export async function updateSettings(changes: Record<string, unknown>): Promise<void> {
