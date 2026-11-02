@@ -23,8 +23,7 @@
         "@alwith/module-mobile": "~0.5.2",
         "@alwith/module-store": "^0.5.0",
         "@alwith/module-voice": "^0.5.0",
-        "@alwith/native-device": "^0.5.0",
-        "@alwith/native-device-darwin-arm64": "0.5.0",
+        "@alwith/native-device": "^0.5.2",
         "@alwith/runtime": "^0.5.0",
         "@base-ui/react": "^1.9.0",
         "@dnd-kit/core": "^6.3.1",
@@ -104,7 +103,7 @@
         "@alwith/native-gamepad": "^0.5.1",
         "@alwith/native-installed-apps": "^0.5.1",
         "@alwith/native-kit": "0.5.1",
-        "@alwith/native-mobile": "~0.5.3",
+        "@alwith/native-mobile": "^0.5.3",
         "@alwith/native-voice": "^0.5.1",
         "@nyssance/ts7-lint": "^0.1.3",
         "@openai/codex": "0.166.0",
@@ -202,9 +201,11 @@
 
     "@alwith/native-computer-win32-x64": ["@alwith/native-computer-win32-x64@0.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-3mfLvsgd/K5WaDwnxb1k8XZxk/D7cZVhEzqD+qpLUPv5W1zeqBHNKV+4EuMmNsZXgMsCxkrgrv0tpN4rohD3Jw=="],
 
-    "@alwith/native-device": ["@alwith/native-device@0.5.0", "", { "dependencies": { "@alwith/native-kit": "0.5.0" }, "optionalDependencies": { "@alwith/native-device-darwin-arm64": "0.5.0" } }, "sha512-rGheS0Yfw/I53wAHKjVvW9T4RvVtvsaG5uFKD5o1DtscfF+kfaVgA0hH2xmpEysvCvEpAt210vnw8RI6Sz3pdA=="],
+    "@alwith/native-device": ["@alwith/native-device@0.5.2", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-device-darwin-arm64": "0.5.2", "@alwith/native-device-win32-x64": "0.5.2" } }, "sha512-mtiCuQfpz8fYKyOD0175tO3A+qBeZbXLx9iN/3EXhMK9nXVLGngsaqq7hgO2/9LWVbHOKmK6AcfoEA/ikSIfRg=="],
 
-    "@alwith/native-device-darwin-arm64": ["@alwith/native-device-darwin-arm64@0.5.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-oeCq0+VtYOHFFFp3+UIVjnz0/4Gdf0R1AwrpqHvtfiA5uhq8SyMDjpkjfTjQZSAG3K0xoHklhotgG0EnCixCNQ=="],
+    "@alwith/native-device-darwin-arm64": ["@alwith/native-device-darwin-arm64@0.5.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-pd0nJdQ1PkNQZHabONn6dsw0MfCPOSGOxAbCkXoIccf0tsk3wsWmCGJkLlXWJ3P7qCFagcBZ/lHR7pKRMp9RUg=="],
+
+    "@alwith/native-device-win32-x64": ["@alwith/native-device-win32-x64@0.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-KE24YQhZCNeo45OA3vRdFDpC9KVKVsJeeys4Tj5c9x9EZ0mGqXbyx4/t0uG1MU1izY7ZFzfiP42DudVSxg1PJQ=="],
 
     "@alwith/native-drive": ["@alwith/native-drive@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-drive-darwin-arm64": "0.5.1", "@alwith/native-drive-win32-x64": "0.5.1" } }, "sha512-5VgpZUi8AUOlXo9EJnIC3znY+CPZN9fo0kEPeqn2ih8jUGd4GNLXhB9Bx3UMp849onwDNiKBPaNZh3P+CF/olw=="],
 

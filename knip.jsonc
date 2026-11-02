@@ -14,7 +14,6 @@
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     "@alwith/module-mobile",
-    "@alwith/native-device-darwin-arm64",
     // Bundled with immutable resources by scripts/lib/workbuddy-artifact.ts.
     "create-alwith",
     // invoked as `bun ts7-lint` by the fabfile.py check gate

@@ -131,7 +131,7 @@ const nativeLibraries = [
   stageNativeComputer,
   stageNativeDrive,
   stageNativeExtension,
-  ...(triple.endsWith("apple-darwin") ? [stageNativeDevice] : [])
+  stageNativeDevice
 ].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify

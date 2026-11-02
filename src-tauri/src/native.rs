@@ -39,8 +39,6 @@ impl Native {
             "computer",
             "drive",
             "extension",
-            // Device libraries are staged only for macOS.
-            #[cfg(target_os = "macos")]
             "device",
         ] {
             alwith_native_client::Library::module(module).map_err(|error| {
