@@ -62,7 +62,7 @@ function options(currentValue: string): acp.SessionConfigOption[] {
         {
           groupId: "deepseek",
           name: "DeepSeek",
-          options: [{ value: providerModel, name: "DeepSeek-Flash" }]
+          options: [{ value: providerModel, name: "Flash" }]
         }
       ]
     }
@@ -168,7 +168,7 @@ test("the shared window model menu selects the DeepSeek gateway and returns to t
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
   expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
   expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
-  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("Flash"))))
   expect(controls.setConfig).toHaveBeenLastCalledWith("floating-session", "model", providerModel)
   // Only the confirmed session configuration changes the selected label.
   expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6-Astra$/)
@@ -206,7 +206,7 @@ test("a rejected provider switch reports the failure and keeps the confirmed mod
   controls.setConfig.mockRejectedValue(new Error("DeepSeek unavailable"))
   const view = render(<ChatModelMenu sessionId="main-session" options={options(nativeModel)} disabled={false} />)
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
-  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("Flash"))))
   await waitFor(() => expect(controls.error).toHaveBeenCalledWith("DeepSeek unavailable"))
   expect(view.getByTestId("model-trigger")).toHaveTextContent(/^GPT-6-Astra$/)
 })
@@ -217,7 +217,7 @@ test("unsent draft provider changes go through replacement instead of changing t
     <ChatModelMenu sessionId="draft" options={options(nativeModel)} disabled={false} onModelChange={onModelChange} />
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
-  await act(() => Promise.try(() => fireEvent.click(view.getByText("DeepSeek-Flash"))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByText("Flash"))))
   expect(onModelChange).toHaveBeenCalledWith(providerModel)
   expect(controls.setConfig).not.toHaveBeenCalled()
 })
@@ -336,7 +336,7 @@ test("an applied DeepSeek catalog joins the flat list without reordering native 
       options: [
         { groupId: "chatgpt", name: "ChatGPT", options: native },
         ...(configured
-          ? [{ groupId: "deepseek", name: "DeepSeek", options: [{ value: providerModel, name: "DeepSeek-Flash" }] }]
+          ? [{ groupId: "deepseek", name: "DeepSeek", options: [{ value: providerModel, name: "Flash" }] }]
           : [])
       ]
     }
@@ -346,14 +346,14 @@ test("an applied DeepSeek catalog joins the flat list without reordering native 
     <ChatModelMenu sessionId="draft" options={config(false)} disabled={false} onModelChange={onModelChange} />
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
-  expect(view.queryByRole("menuitemradio", { name: "DeepSeek-Flash" })).not.toBeInTheDocument()
+  expect(view.queryByRole("menuitemradio", { name: "Flash" })).not.toBeInTheDocument()
   view.rerender(
     <ChatModelMenu sessionId="draft" options={config(true)} disabled={false} onModelChange={onModelChange} />
   )
   const choices = view.getAllByRole("menuitemradio")
   expect(choices).toHaveLength(21)
   expect(choices.slice(0, 20).map((item) => item.textContent)).toEqual(native.map((item) => item.name))
-  expect(choices[20]).toHaveAccessibleName("DeepSeek-Flash")
+  expect(choices[20]).toHaveAccessibleName("Flash")
   expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
   await act(() => Promise.try(() => fireEvent.click(choices[20])))
   expect(onModelChange).toHaveBeenCalledWith(providerModel)
@@ -448,7 +448,7 @@ test("source-configured ALwith names preserve identity and unknown account label
   ]
   const [group] = presentModelCatalog(groups)
   expect(group.models[0].api_id).toBe(id)
-  expect(group.models[0].label).toBe("DeepSeek-Flash")
+  expect(group.models[0].label).toBe("DS Flash")
   expect(modelTriggerLabel(group.models[0])).toBe("Flash")
   expect(group.models[1].label).toBe("New account model")
   expect(modelTriggerLabel(group.models[1])).toBe("New account model")

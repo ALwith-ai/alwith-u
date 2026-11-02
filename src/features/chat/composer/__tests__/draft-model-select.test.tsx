@@ -34,7 +34,7 @@ test("draft shows the configured provider models before any session exists", asy
       fireEvent.click(trigger)
     })
   })
-  expect(document.body.textContent).toContain("DeepSeek-Flash")
+  expect(document.body.textContent).toContain("Flash")
   expect(view.queryByText("Effort", { exact: true })).not.toBeInTheDocument()
   expect(view.queryByRole("group", { name: "ChatGPT" })).not.toBeInTheDocument()
   expect(view.queryByRole("group", { name: "DeepSeek" })).not.toBeInTheDocument()
@@ -42,7 +42,7 @@ test("draft shows the configured provider models before any session exists", asy
   expect(document.body.innerHTML).not.toContain("test-secret-never-render")
   await act(() => {
     return Promise.try(() => {
-      fireEvent.click(view.getByText("DeepSeek-Flash"))
+      fireEvent.click(view.getByText("Flash"))
     })
   })
   expect(selected).toBe("gateway:deepseek:deepseek-flash")
