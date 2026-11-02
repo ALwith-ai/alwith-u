@@ -17,6 +17,7 @@ mod device;
 mod diagnostics;
 mod draft_directory;
 mod drive;
+mod editor;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
@@ -317,6 +318,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 autostart::autostart_status,
+                editor::parse_spreadsheet,
                 diagnostics::diagnostics_export,
                 computer::computer_status,
                 computer::computer_start,

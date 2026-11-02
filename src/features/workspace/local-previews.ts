@@ -1,41 +1,22 @@
-import { createPreviewProviders, type PreviewHost, type SpreadsheetWorkbook } from "@alwith/module-editor/previews"
+import {
+  createPreviewProviders,
+  type NativeSpreadsheetWorkbook,
+  type PreviewHost
+} from "@alwith/module-editor/previews"
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 
-import SpreadsheetWorker from "./spreadsheet.worker?worker"
-
-function parseSpreadsheet(bytes: Uint8Array, signal?: AbortSignal): Promise<SpreadsheetWorkbook> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException("Preview was closed", "AbortError"))
-      return
-    }
-    const worker = new SpreadsheetWorker()
-    const close = (): void => {
-      worker.terminate()
-      signal?.removeEventListener("abort", abort)
-    }
-    const abort = (): void => {
-      close()
-      reject(new DOMException("Preview was closed", "AbortError"))
-    }
-    signal?.addEventListener("abort", abort, { once: true })
-    worker.onerror = (event) => {
-      close()
-      reject(new Error(event.message || "Spreadsheet worker failed"))
-    }
-    worker.onmessageerror = () => {
-      close()
-      reject(new Error("Invalid spreadsheet worker response"))
-    }
-    worker.onmessage = (event: MessageEvent<{ book?: SpreadsheetWorkbook; error?: string }>) => {
-      close()
-      if (event.data.error) reject(new Error(event.data.error))
-      else if (event.data.book && Array.isArray(event.data.book.SheetNames)) resolve(event.data.book)
-      else reject(new Error("Invalid spreadsheet worker response"))
-    }
-    const copy = new Uint8Array(bytes)
-    worker.postMessage(copy, [copy.buffer])
-  })
+import { commands } from "@/bindings"
+async function parseSpreadsheet(
+  bytes: Uint8Array,
+  signal?: AbortSignal,
+  path?: string
+): Promise<NativeSpreadsheetWorkbook> {
+  signal?.throwIfAborted()
+  if (!path) throw new Error("Spreadsheet path is required to identify the format")
+  const extension = path.split(".").at(-1)!.toLowerCase()
+  const result = await commands.parseSpreadsheet({ bytes: Array.from(bytes), extension })
+  signal?.throwIfAborted()
+  return result
 }
 export function localPreviewProviders(host: Omit<PreviewHost, "pdfWorkerSrc" | "parseSpreadsheet">) {
   return createPreviewProviders({ ...host, pdfWorkerSrc, parseSpreadsheet })

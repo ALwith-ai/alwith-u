@@ -29,6 +29,7 @@ impl Native {
         let _ = app;
         alwith_native_client::configure(&directory)?;
         for module in [
+            "editor",
             "mobile",
             "auth",
             "installed-apps",

@@ -12,6 +12,8 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
+  parseSpreadsheet: (args: { bytes: number[]; extension: string }): Promise<SpreadsheetWorkbook_Serialize> =>
+    __t3Invoke<SpreadsheetWorkbook_Serialize>("parse_spreadsheet", args),
   diagnosticsExport: (): Promise<boolean> => __t3Invoke<boolean>("diagnostics_export"),
   computerStatus: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_status"),
   computerStart: (): Promise<ComputerStatus_Serialize> => __t3Invoke<ComputerStatus_Serialize>("computer_start"),
@@ -364,6 +366,7 @@ export const commands = {
 /** Declared Rust errors. IPC/transport failures remain unknown. */
 export type CommandErrors = {
   autostartStatus: string
+  parseSpreadsheet: string
   diagnosticsExport: string
   computerStatus: string
   computerStart: string
@@ -1280,6 +1283,108 @@ export type Snapshot_Serialize = {
   managedProviders?: PublicCustomProvider_Serialize[]
   status: string
   error: string | null
+}
+
+export type SpreadsheetCell = SpreadsheetCell_Serialize | SpreadsheetCell_Deserialize
+
+export type SpreadsheetCell_Deserialize = {
+  text: string
+  number?: number | null
+  style?: number | null
+}
+
+export type SpreadsheetCell_Serialize = {
+  text: string
+  number: number | null
+  style: number | null
+}
+
+export type SpreadsheetFont = SpreadsheetFont_Serialize | SpreadsheetFont_Deserialize
+
+export type SpreadsheetFont_Deserialize = {
+  name?: string | null
+  size?: number | null
+  bold: boolean
+  italic: boolean
+}
+
+export type SpreadsheetFont_Serialize = {
+  name: string | null
+  size: number | null
+  bold: boolean
+  italic: boolean
+}
+
+export type SpreadsheetRow = SpreadsheetRow_Serialize | SpreadsheetRow_Deserialize
+
+export type SpreadsheetRow_Deserialize = {
+  cells: { [key in number]: SpreadsheetCell_Deserialize }
+}
+
+export type SpreadsheetRow_Serialize = {
+  cells: { [key in number]: SpreadsheetCell_Serialize }
+}
+
+export type SpreadsheetSheet = SpreadsheetSheet_Serialize | SpreadsheetSheet_Deserialize
+
+export type SpreadsheetSheet_Deserialize = {
+  name: string
+  rows: { [key in number]: SpreadsheetRow_Deserialize }
+  rowCount: number
+  columnCount: number
+  styles: SpreadsheetStyle_Deserialize[]
+  merges: [number, number, number, number][]
+  truncated: boolean
+}
+
+export type SpreadsheetSheet_Serialize = {
+  name: string
+  rows: { [key in number]: SpreadsheetRow_Serialize }
+  rowCount: number
+  columnCount: number
+  styles: SpreadsheetStyle_Serialize[]
+  merges: [number, number, number, number][]
+  truncated: boolean
+}
+
+export type SpreadsheetStyle = SpreadsheetStyle_Serialize | SpreadsheetStyle_Deserialize
+
+export type SpreadsheetStyle_Deserialize = {
+  font?: SpreadsheetFont_Deserialize | null
+  color?: string | null
+  background?: string | null
+  align?: string | null
+  verticalAlign?: string | null
+  wrap: boolean
+  underline: boolean
+  strike: boolean
+  borders: { [key in string]: [string, string] }
+  numberFormat?: string | null
+}
+
+export type SpreadsheetStyle_Serialize = {
+  font: SpreadsheetFont_Serialize | null
+  color: string | null
+  background: string | null
+  align: string | null
+  verticalAlign: string | null
+  wrap: boolean
+  underline: boolean
+  strike: boolean
+  borders: { [key in string]: [string, string] }
+  numberFormat: string | null
+}
+
+export type SpreadsheetWorkbook = SpreadsheetWorkbook_Serialize | SpreadsheetWorkbook_Deserialize
+
+export type SpreadsheetWorkbook_Deserialize = {
+  sheets: SpreadsheetSheet_Deserialize[]
+  date1904: boolean
+}
+
+export type SpreadsheetWorkbook_Serialize = {
+  sheets: SpreadsheetSheet_Serialize[]
+  date1904: boolean
 }
 
 export type StagedImport = {

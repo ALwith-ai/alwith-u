@@ -103,6 +103,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-editor"
+version = "0.5.2"
+dependencies = [
+ "alwith-native-client",
+ "base64 0.23.1",
+ "serde",
+ "serde_json",
+ "specta",
+]
+
+[[package]]
 name = "alwith-extension"
 version = "0.5.1"
 dependencies = [
@@ -192,6 +203,7 @@ dependencies = [
  "alwith-computer",
  "alwith-device",
  "alwith-drive",
+ "alwith-editor",
  "alwith-extension",
  "alwith-fs",
  "alwith-gamepad",

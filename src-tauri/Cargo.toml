@@ -17,6 +17,7 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-editor = { path = "../node_modules/@alwith/module-editor/rust" }
 tauri-plugin-alwith-desktop-shell = { path = "../node_modules/@alwith/module-desktop-shell/rust" }
 keepawake = "0.6"
 alwith-browser = { path = "../node_modules/@alwith/module-browser/rust" }
