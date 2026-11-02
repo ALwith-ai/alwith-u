@@ -28,7 +28,6 @@ jobs:
           if-no-files-found: ignore
       - run: bun run build
       - run: bun run storybook:check
-      - run: bun run storybook:build
       - run: bunx --bun playwright install --with-deps chromium
       - run: bun run storybook:test
 

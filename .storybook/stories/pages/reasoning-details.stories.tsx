@@ -70,6 +70,7 @@ function ReasoningPreview() {
 
 const meta = {
   id: "页面-聊天-思考细节",
+  tags: ["layout"],
   title: "页面/主窗聊天/思考细节",
   component: ReasoningPreview,
   globals: { locale: "en" },

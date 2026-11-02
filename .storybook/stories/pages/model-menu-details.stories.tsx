@@ -89,6 +89,7 @@ function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
 
 const meta = {
   id: "页面-聊天-模型菜单",
+  tags: ["layout"],
   title: "页面/主窗聊天/模型菜单",
   component: ModelMenuPreview,
   globals: { locale: "zh-CN" },

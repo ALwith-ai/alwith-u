@@ -37,6 +37,7 @@ const session = applyUpdate(
 
 const meta = {
   id: "页面-聊天-滚动与错误保留",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/主窗聊天/滚动与错误保留",
   component: ChatTimeline,

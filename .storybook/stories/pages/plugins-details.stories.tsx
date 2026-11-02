@@ -98,6 +98,7 @@ function DetailPreview({ failed = false }: { failed?: boolean }) {
 
 const meta = {
   id: "页面-插件-详情细节",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/负一屏/插件/详情细节",
   component: DetailPreview,

@@ -33,6 +33,7 @@ function PetImageExample() {
 
 const meta = {
   id: "页面-辅助窗口-窗口图标",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/其他/辅助窗口/窗口图标",
   component: ImagePreviewExample

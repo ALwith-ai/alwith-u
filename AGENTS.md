@@ -64,6 +64,10 @@ Always answer the user in Chinese.
   project (jsdom, `vitest.setup.ts` stubs), `src/agent` suites in the `engine` project
   (node) because a DOM in scope breaks the ACP stream tests. `scripts/lib` tests stay
   on `bun test` (they exercise Bun APIs).
+- Storybook is a catalog for people, not a test suite. Behaviour, state and interaction
+  assertions belong in vitest unit tests. A story runs as a browser test only when it
+  asserts something jsdom cannot compute (layout geometry, computed CSS, `:hover`,
+  canvas or media): tag its meta `layout`. Workflow stories are never tested.
 - Pieces reduced from ALwith Desktop (`chat/composer`, `chat/dialogs`, the virtualized
   turn list, `src-tauri/src/updater`, `menu.rs`) stay recognisably Desktop's code:
   subtract, do not redesign.

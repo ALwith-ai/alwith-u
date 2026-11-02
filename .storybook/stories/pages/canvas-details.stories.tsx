@@ -61,6 +61,7 @@ async function hoverNavigationEdge(canvas: HTMLElement): Promise<void> {
 
 const meta = {
   id: "页面-导航与项目-画布细节",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/主窗整体/导航与项目/画布细节",
   component: MainSidebarLayout,

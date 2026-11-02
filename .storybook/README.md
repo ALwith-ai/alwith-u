@@ -21,7 +21,7 @@ There are **144 individual journeys** with **492 embedded intermediate/final che
 - Every step renders in an isolated iframe and replays source interactions to its checkpoint. Preparation runs in order because sibling frames share keyboard focus; completed pages remain visible while later steps load. These are live source components, not screenshots.
 - Embedded checkpoints are reached with the `workflowStep` query parameter on the journey story; they are no longer separate sidebar stories.
 
-Sidebar workflow titles use concise purpose names from `workflow-names.json`; individual actions and checkpoint labels remain inside the diagram. Definitions live in `stories/flow-definitions/`. After editing a definition, run `bun .storybook/generate-workflows.mjs` and `bun fmt .storybook` with the repository Bun version. The generator emits static CSF exports under `stories/flows/<module>/`, so each journey appears in Storybook search, navigation, and the test catalog. The generator excludes definitions without actual interactions; their state previews remain under **页面**. It removes only obsolete files carrying its generated-file header.
+Sidebar workflow titles use concise purpose names from `workflow-names.json`; individual actions and checkpoint labels remain inside the diagram. Definitions live in `stories/flow-definitions/`. After editing a definition, run `bun .storybook/generate-workflows.mjs` and `bun fmt .storybook` with the repository Bun version. The generator emits static CSF exports under `stories/flows/<module>/`, so each journey appears in Storybook search and navigation. The generator excludes definitions without actual interactions; their state previews remain under **页面**. It removes only obsolete files carrying its generated-file header.
 
 ## Source ownership
 
@@ -111,8 +111,8 @@ Catalog: **369 page/component examples + 144 workflow diagrams = 513 sidebar sto
 ## Verification commands
 
 - `bun run storybook:check`: Storybook and all imported source type checks.
-- `bun run storybook:test`: batched Chromium checks for every generated page and workflow journey, followed by the player checks. Run `bun run storybook:build` first; the runner starts and cleans up a static preview on `127.0.0.1:6007` if no preview is already running. Optional path filters, such as `bun run storybook:test page-boards`, limit the browser suite for local diagnosis.
-- `bun .storybook/verify-player.mjs`: action labels, 1100px page sizing, a single horizontal row, separate labels, blank-canvas and image dragging, inactive page clicks, a zoom-only toolbar, an unchanged source viewport, stable initial scroll position, source checkpoints, menu/dialog isolation, failure recovery, long flows, narrow viewports, and dark theme. This is a targeted check; it does not run the complete 144-flow batch.
+- `bun run storybook:test`: Chromium checks for the page boards whose source meta is tagged `layout`, the only stories that assert what jsdom cannot compute (geometry, computed CSS, `:hover`, canvas, media). Other page states and all workflows are catalog entries, not tests; behaviour belongs in vitest unit tests. Optional path filters, such as `bun run storybook:test canvas`, narrow the run.
+- `bun .storybook/verify-player.mjs` (manual, against a running Storybook): action labels, 1100px page sizing, a single horizontal row, separate labels, blank-canvas and image dragging, inactive page clicks, a zoom-only toolbar, an unchanged source viewport, stable initial scroll position, source checkpoints, menu/dialog isolation, failure recovery, long flows, narrow viewports, and dark theme. This is a targeted check; it does not run the complete 144-flow batch.
 - `bun run storybook:build`: standalone static export in ignored `storybook-static/`.
 - `bun run typecheck`, `bun run knip`, `bun run build`: application gates.
 - `bun x --no-install vitest run`: source frontend and engine tests.

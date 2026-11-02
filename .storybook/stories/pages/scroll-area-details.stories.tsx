@@ -39,6 +39,7 @@ function ScrollAreaExample({ navigation = false }: { navigation?: boolean }) {
 
 const meta = {
   id: "页面-通用细节-滚动区域",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/其他/通用细节/滚动区域",
   component: ScrollAreaExample,

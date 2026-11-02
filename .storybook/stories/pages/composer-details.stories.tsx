@@ -54,6 +54,7 @@ function Composer(props: ComponentProps<typeof ChatComposer>) {
 
 const meta = {
   id: "页面-聊天-输入框细节",
+  tags: ["layout"],
   title: "页面/主窗聊天/输入框细节",
   component: Composer,
   globals: { locale: "zh-CN" },

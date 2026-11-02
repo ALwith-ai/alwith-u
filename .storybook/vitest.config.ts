@@ -52,7 +52,7 @@ export default defineConfig({
   test: {
     name: "storybook",
     testTimeout: 30_000,
-    maxWorkers: 1,
+    maxWorkers: 4,
     browser: {
       enabled: true,
       provider: playwright({ launchOptions: { channel: process.env.STORYBOOK_BROWSER_CHANNEL } }),

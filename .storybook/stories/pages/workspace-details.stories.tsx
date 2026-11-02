@@ -68,6 +68,7 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
 
 const meta = {
   id: "页面-文件工作区-布局细节",
+  tags: ["layout"],
   globals: { locale: "en" },
   title: "页面/文件树和预览区/布局细节",
   component: WorkspaceExample,
