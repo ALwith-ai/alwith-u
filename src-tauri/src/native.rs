@@ -28,10 +28,23 @@ impl Native {
         let directory = app.path().resource_dir()?.join("native");
         let _ = app;
         alwith_native_client::configure(&directory)?;
-        for module in
-            ["mobile", "auth", "installed-apps", "voice", "fs", "gamepad", "computer", "drive", "extension", "device"]
-        {
-            alwith_native_client::Library::module(module)?;
+        for module in [
+            "mobile",
+            "auth",
+            "installed-apps",
+            "voice",
+            "fs",
+            "gamepad",
+            "computer",
+            "drive",
+            "extension",
+            // Device libraries are staged only for macOS.
+            #[cfg(target_os = "macos")]
+            "device",
+        ] {
+            alwith_native_client::Library::module(module).map_err(|error| {
+                format!("Cannot load native module '{module}' from {}: {error}", directory.display())
+            })?;
         }
         Ok(Self { installed_apps: NativeLibrary(alwith_native_client::Library::module("installed-apps")?) })
     }
