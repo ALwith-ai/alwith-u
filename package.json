@@ -61,7 +61,7 @@
     "@milkdown/prose": "^7.23.0",
     "@milkdown/utils": "^7.23.0",
     "@nyssance/atlas": "^0.1.10",
-    "@nyssance/shadcn": "^4.23.3",
+    "@nyssance/shadcn": "^4.23.4",
     "@solar-icons/react": "^2.3.3",
     "@tauri-apps/api": "^3.0.0-alpha.3",
     "@tauri-apps/plugin-clipboard-manager": "^3.0.0-alpha.3",
@@ -166,7 +166,6 @@
     "@alwith/native-kit": "0.5.1"
   },
   "patchedDependencies": {
-    "vite@8.3.5": "patches/vite@8.3.5.patch",
-    "@nyssance/shadcn@4.23.3": "patches/@nyssance%2Fshadcn@4.23.3.patch"
+    "vite@8.3.5": "patches/vite@8.3.5.patch"
   }
 }
