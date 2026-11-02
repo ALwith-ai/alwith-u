@@ -6,15 +6,15 @@ import providerCatalog from "../../src/lib/provider-catalog.json"
 import { joinModelCatalogPaths } from "./model-catalog"
 
 const root = resolve(import.meta.dirname, "../..")
-const TRIPLES = ["aarch64-apple-darwin", "x86_64-unknown-linux-gnu"]
+const HOST_TARGETS: Record<string, { triple: string; suffix: string }> = {
+  "darwin-arm64": { triple: "aarch64-apple-darwin", suffix: "" },
+  "win32-x64": { triple: "x86_64-pc-windows-msvc", suffix: ".exe" }
+}
 
 export function staged(name: string): string {
-  const platform =
-    process.platform === "darwin" ? "apple-darwin" : process.platform === "linux" ? "unknown-linux-gnu" : null
-  const architecture = process.arch === "arm64" ? "aarch64" : process.arch === "x64" ? "x86_64" : null
-  const triple = `${architecture}-${platform}`
-  if (!TRIPLES.includes(triple)) throw new Error(`Unsupported live-test host: ${process.platform}/${process.arch}`)
-  const binary = resolve(root, `src-tauri/binaries/${name}-${triple}`)
+  const target = HOST_TARGETS[`${process.platform}-${process.arch}`]
+  if (!target) throw new Error(`Unsupported live-test host: ${process.platform}/${process.arch}`)
+  const binary = resolve(root, `src-tauri/binaries/${name}-${target.triple}${target.suffix}`)
   if (!existsSync(binary)) throw new Error(`No staged ${name} binary at ${binary}; run \`bun run stage\``)
   return binary
 }

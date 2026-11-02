@@ -3,6 +3,7 @@
 # `bun update` refreshes every manifest, so one `fab u` stalled for minutes. npmmirror tracks npmjs's
 # latest and is 30x faster. The @alwith scope below points at npmjs directly and takes precedence.
 [install]
+linker = "hoisted"
 registry = "https://registry.npmmirror.com"
 
 [install.scopes]

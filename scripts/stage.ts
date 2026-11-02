@@ -48,18 +48,10 @@ const TARGETS: Record<string, Target> = {
     npm: "darwin-arm64",
     exe: ""
   },
-  "x86_64-unknown-linux-gnu": {
-    npm: "linux-x64",
-    exe: ""
-  },
   "x86_64-pc-windows-msvc": {
     npm: "win32-x64",
     exe: ".exe"
   }
-}
-// The npm package keeps the binary under its own vendor triple, which differs from Rust's on Linux.
-const NPM_VENDOR_TRIPLE: Record<string, string> = {
-  "x86_64-unknown-linux-gnu": "x86_64-unknown-linux-musl"
 }
 
 async function hostTriple(): Promise<string> {
@@ -164,7 +156,7 @@ const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "pack
   version: string
 }
 assertVersion("installed Codex platform package", codexPlatformPackage.version, `${codexVersion}-${target.npm}`)
-const vendorTriple = NPM_VENDOR_TRIPLE[triple] ?? triple
+const vendorTriple = triple
 // Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar
 // next to the app executable. Windows sandbox setup and command-runner helpers
 // also support this sibling layout (their package sources live in codex-resources).

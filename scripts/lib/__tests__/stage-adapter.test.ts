@@ -10,7 +10,6 @@ import { codexSidecars } from "../toolchain"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
   "darwin-arm64": "aarch64-apple-darwin",
-  "linux-x64": "x86_64-unknown-linux-gnu",
   "win32-x64": "x86_64-pc-windows-msvc"
 }
 

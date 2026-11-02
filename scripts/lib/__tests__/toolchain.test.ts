@@ -24,8 +24,8 @@ test("rejects floating toolchain versions and mismatched platform pins", () => {
   bunMismatch.optionalDependencies["@oven/bun-windows-x64-baseline"] = "0.0.0"
   expect(() => toolchainVersions(bunMismatch)).toThrow("@oven/bun-windows-x64-baseline: expected")
   const codexMismatch = structuredClone(manifest)
-  codexMismatch.optionalDependencies["@openai/codex-linux-x64"] = "npm:@openai/codex@0.0.0-linux-x64"
-  expect(() => toolchainVersions(codexMismatch)).toThrow("@openai/codex-linux-x64: expected")
+  codexMismatch.optionalDependencies["@openai/codex-win32-x64"] = "npm:@openai/codex@0.0.0-win32-x64"
+  expect(() => toolchainVersions(codexMismatch)).toThrow("@openai/codex-win32-x64: expected")
 })
 
 test("rejects missing or stale installed artifacts", () => {

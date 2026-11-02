@@ -1,5 +1,7 @@
 import { join } from "node:path"
 
+import { BUN_PACKAGES } from "./toolchain"
+
 /** A neighbouring checkout must never silently change a release build's inputs. */
 export function runtimeSource(value: string | undefined): "npm" | "sibling" {
   if (value === undefined || value === "npm") return "npm"
@@ -9,6 +11,7 @@ export function runtimeSource(value: string | undefined): "npm" | "sibling" {
 
 /** Cargo's native and explicit cross-target builds have different artifact directories. */
 export function runtimeBuildArtifact(sibling: string, target: string, hostTarget: string): string {
+  if (!Object.hasOwn(BUN_PACKAGES, target)) throw new Error(`Unsupported runtime target: ${target}`)
   const suffix = target.includes("windows") ? ".exe" : ""
   return join(sibling, "target", ...(target === hostTarget ? [] : [target]), "release", `alwith-runtime${suffix}`)
 }
