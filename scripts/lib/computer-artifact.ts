@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { chmod, copyFile, mkdir, readdir } from "node:fs/promises"
-import { join } from "node:path"
+import { basename, dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import manifest from "@alwith/module-computer/artifacts"
@@ -18,7 +18,12 @@ export async function stageComputer(root: string, target: string): Promise<strin
   const bytes = new Uint8Array(await file.arrayBuffer())
   verifyComputerArtifact(bytes, artifact.sha256)
   // Stage the pinned executable from the package's platform archive.
-  const process = Bun.spawn(["tar", "-xOf", archive, artifact.executable], { stdout: "pipe", stderr: "pipe" })
+  // GNU tar treats a Windows drive letter in an archive path as a remote host.
+  const process = Bun.spawn(["tar", "-xOf", basename(archive), artifact.executable], {
+    cwd: dirname(archive),
+    stdout: "pipe",
+    stderr: "pipe"
+  })
   const [binary, error, exit] = await Promise.all([
     new Response(process.stdout).arrayBuffer(),
     new Response(process.stderr).text(),
