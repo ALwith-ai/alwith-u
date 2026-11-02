@@ -22,7 +22,6 @@ export const config = (mode = "development"): UserConfig => ({
   // directly so dependency optimization cannot retain an older JS implementation.
   optimizeDeps: {
     exclude: [
-      "@nyssance/shadcn",
       "@alwith/module-chat",
       "@alwith/module-gamepad",
       "@alwith/module-fs",

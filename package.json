@@ -62,7 +62,7 @@
     "@milkdown/prose": "^7.23.0",
     "@milkdown/utils": "^7.23.0",
     "@nyssance/atlas": "^0.1.10",
-    "@nyssance/shadcn": "^4.23.2",
+    "@nyssance/shadcn": "^4.23.3",
     "@solar-icons/react": "^2.3.3",
     "@tauri-apps/api": "^3.0.0-alpha.3",
     "@tauri-apps/plugin-clipboard-manager": "^3.0.0-alpha.3",

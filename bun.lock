@@ -41,7 +41,7 @@
         "@milkdown/prose": "^7.23.0",
         "@milkdown/utils": "^7.23.0",
         "@nyssance/atlas": "^0.1.10",
-        "@nyssance/shadcn": "^4.23.2",
+        "@nyssance/shadcn": "^4.23.3",
         "@solar-icons/react": "^2.3.3",
         "@tauri-apps/api": "^3.0.0-alpha.3",
         "@tauri-apps/plugin-clipboard-manager": "^3.0.0-alpha.3",
@@ -552,7 +552,7 @@
 
     "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.50", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@openai/codex": "^0.166.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.1", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.1", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-81fIKoOrBqL6SHaFglszAgkNyhTgRbUd1RYzkv3kYYHYSX56M7n5rwx5sL0Qko/8T6dkWYg6NHbTtuSuRXTmwg=="],
 
-    "@nyssance/shadcn": ["@nyssance/shadcn@4.23.2", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@shadcn/react": "^0.3.1", "class-variance-authority": "^0.7.1", "cmdk": "^1.1.1", "cn": "^0.5.1", "embla-carousel-react": "^8.6.0", "input-otp": "^1.5.0", "lucide-react": "^1.66.0", "next-themes": "^0.4.6", "react-day-picker": "^10.0.2", "react-resizable-panels": "^4.16.0", "recharts": "3.8.0", "shiki": "^4.5.0", "sonner": "^2.0.8" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "vite": ">=6" }, "optionalPeers": ["vite"] }, "sha512-Jirz6lg7KdOH7CmdRr6sMVB6fvFf8Ocr1trpvEiApv1BBKKtuOMyuckqsyDfqIZBrWXEIKvKHh3iBJ3ZWBm4nw=="],
+    "@nyssance/shadcn": ["@nyssance/shadcn@4.23.3", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@shadcn/react": "^0.3.1", "class-variance-authority": "^0.7.1", "cmdk": "^1.1.1", "cn": "^0.5.1", "embla-carousel-react": "^8.6.0", "input-otp": "^1.5.0", "lucide-react": "^1.66.0", "next-themes": "^0.4.6", "react-day-picker": "^10.0.2", "react-resizable-panels": "^4.16.0", "recharts": "3.8.0", "shiki": "^4.5.0", "sonner": "^2.0.8" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "vite": ">=8" }, "optionalPeers": ["vite"] }, "sha512-HGAW8q25W+GWR0IZCddd2N3qaK3KKmbUV8AX6AxcuvMcmIraB8rKaBg5pzKBMCPmGzd9JVNPoFbuhAEJC3eJtQ=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
