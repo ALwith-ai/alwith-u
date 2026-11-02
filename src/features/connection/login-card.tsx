@@ -64,11 +64,15 @@ export function LoginCard({
           <Button
             key={method.methodId}
             variant={index === 0 ? "default" : "outline"}
+            className="transition-colors"
             disabled={busy !== null}
+            aria-busy={busy === method.methodId}
             onClick={() => (method.methodId === "api-key" ? setApiKeyOpen(true) : void login(method.methodId))}
           >
-            {busy === method.methodId && <Spinner data-icon="inline-start" />}
-            {methodLabel(method, t)}
+            <span data-icon="inline-start" className="flex size-4 shrink-0 items-center justify-center">
+              {busy === method.methodId && <Spinner />}
+            </span>
+            <span>{methodLabel(method, t)}</span>
           </Button>
         ))}
       </div>
