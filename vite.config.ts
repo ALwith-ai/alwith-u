@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
 
 import { loadAppEnv } from "./scripts/lib/app-env.ts"
+import { moduleIdentityGuard } from "./scripts/lib/module-identity.ts"
 import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
 
 const host = process.env.TAURI_DEV_HOST
@@ -14,7 +15,7 @@ const debug = process.env.TAURI_ENV_DEBUG === "true"
 export const config = (mode = "development"): UserConfig => ({
   define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
   // `@/x` is the app's own src/x when it exists, else the shadcn/ui registry package (style base-vega).
-  plugins: [shadcn({ style: "vega" }), react(), tailwindcss(), productionJsxGuard()],
+  plugins: [shadcn({ style: "vega" }), react(), tailwindcss(), productionJsxGuard(), moduleIdentityGuard()],
   resolve: {
     dedupe: ["react", "react-dom", "@base-ui/react"]
   },

@@ -1,0 +1,13 @@
+diff --git a/dist/vite.js b/dist/vite.js
+index ee1794599803e3dea78bbd14f413d31610c41f6e..0ec60818260be8b374bec732d391527077c7e71a 100644
+--- a/dist/vite.js
++++ b/dist/vite.js
+@@ -50,7 +50,7 @@ function shadcn(options) {
+       const { rest, query } = parse(source);
+       const own = ownFile(rest);
+       if (own)
+-        return own + query;
++        return own.replaceAll("\\", "/") + query;
+       for (const name of packages) {
+         const resolved = await this.resolve(`${name}/${options.style}/${rest}${query}`, importer, {
+           ...resolveOptions,
