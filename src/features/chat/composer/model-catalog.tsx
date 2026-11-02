@@ -23,18 +23,19 @@ const managedLabels = new Map(
 )
 
 const presentation: Record<string, { shortLabel: string } | undefined> = modelPresentation
+const groupPriorities = new Map<string, number>([
+  ...providerCatalog.map((provider): [string, number] => [provider.id, provider.source === "account" ? 1 : 2]),
+  [NATIVE_MODEL_GROUP.id, 0]
+])
 
 /** Short labels affect only the selected trigger; catalog labels remain authoritative. */
 export function modelTriggerLabel(model: ModelOption): string {
   return model.shortLabel ?? model.label
 }
 
-/** Put the subscription provider first while preserving provider and model order. */
+/** Order subscription, account, built-in and custom groups; preserve order within each tier. */
 export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
-  const ordered = [
-    ...groups.filter((group) => group.id === NATIVE_MODEL_GROUP.id),
-    ...groups.filter((group) => group.id !== NATIVE_MODEL_GROUP.id)
-  ]
+  const ordered = [...groups].sort((a, b) => (groupPriorities.get(a.id) ?? 3) - (groupPriorities.get(b.id) ?? 3))
   return ordered.map((group) => {
     const native = group.id === NATIVE_MODEL_GROUP.id
     const Logo = PROVIDERS.find((provider) => provider.id === group.id)?.logo ?? Bot

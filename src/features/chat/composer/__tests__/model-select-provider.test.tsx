@@ -117,6 +117,49 @@ test("subscription providers come first without moving selected models or reorde
   expect(groups.map((group) => group.id)).toEqual(["qwen", "deepseek", "chatgpt"])
 })
 
+test.each([true, false])(
+  "model menu orders subscription, account, built-in and custom models (account: %s)",
+  async (account) => {
+    const groups = [
+      { groupId: "custom-second", name: "Custom second", options: [{ value: "custom-2", name: "Custom 2" }] },
+      { groupId: "qwen", name: "Qwen", options: [{ value: "qwen-1", name: "Qwen 1" }] },
+      ...(account
+        ? [{ groupId: "litellm", name: "ALwith", options: [{ value: "account-1", name: "Account 1" }] }]
+        : []),
+      { groupId: "custom-first", name: "Custom first", options: [{ value: "custom-1", name: "Custom 1" }] },
+      { groupId: "chatgpt", name: "ChatGPT", options: [{ value: "native-1", name: "Subscription 1" }] },
+      { groupId: "deepseek", name: "DeepSeek", options: [{ value: "deepseek-1", name: "DeepSeek 1" }] }
+    ]
+    const view = render(
+      <ChatModelMenu
+        sessionId="ordered-catalog"
+        disabled={false}
+        options={[
+          {
+            configId: "model",
+            category: "model",
+            name: "Model",
+            type: "select",
+            currentValue: "custom-1",
+            options: groups
+          }
+        ]}
+      />
+    )
+    await act(() => Promise.try(() => fireEvent.click(view.getByTestId("model-trigger"))))
+    expect(view.getAllByRole("menuitemradio").map((item) => item.querySelector("span.flex-1")?.textContent)).toEqual([
+      "Subscription 1",
+      ...(account ? ["Account 1"] : []),
+      "Qwen 1",
+      "DeepSeek 1",
+      "Custom 2",
+      "Custom 1"
+    ])
+    expect(view.getByRole("menuitemradio", { name: "Custom 1" })).toHaveAttribute("aria-checked", "true")
+    expect(controls.setConfig).not.toHaveBeenCalled()
+  }
+)
+
 test("models without a short label keep the catalog name in the trigger and menu", async () => {
   const view = render(
     <ChatModelMenu
