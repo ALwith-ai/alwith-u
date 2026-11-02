@@ -9,7 +9,7 @@
         "@alwith/api": "~0.5.4",
         "@alwith/module-auth": "~0.5.13",
         "@alwith/module-browser": "^0.5.0",
-        "@alwith/module-chat": "^0.5.22",
+        "@alwith/module-chat": "^0.5.24",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.5.1",
         "@alwith/module-desktop-shell": "^0.5.12",
@@ -142,11 +142,10 @@
     },
   },
   "patchedDependencies": {
-    "@alwith/module-chat@0.5.22": "patches/G34-module-chat-0.5.22-activity.patch",
     "vite@8.3.5": "patches/vite@8.3.5.patch",
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.22",
+    "@alwith/module-chat": "~0.5.24",
     "@alwith/native-kit": "0.5.1",
     "effect": "^4.0.6",
   },
@@ -161,7 +160,7 @@
 
     "@alwith/module-browser": ["@alwith/module-browser@0.5.0", "", { "peerDependencies": { "react": "^19.3.1" } }, "sha512-K1wbnoS+WsCGWTbCoF5/kVBDUWjGpaH54q9ymOtGP9h2YKf8gkj7qi5gitzMTo2Xlb4V++LGpJRKvj6B6woiOA=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.5.22", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.50", "@nyssance/shadcn": "^4.23.2", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.3", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "marked": "^18.1.2", "marked-linkify-it": "^4.0.2", "motion": "^14.9.0", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.5.4", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-KyMCLarTveYA4UzGJ6IQ9PtoRW3rHkFo6sE8uBG8v41ups6iVcxQj+VM/3d9JwwzQz8bJeaiZHoMuG9YDyM2oQ=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.5.24", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.51", "@nyssance/shadcn": "^4.23.4", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.3", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "marked": "^18.1.2", "marked-linkify-it": "^4.0.2", "motion": "^14.9.0", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.5.4", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-5WolUWZPt04cj2zjONB3osJCSWdiitnOcimi0cd01NUoVj1QLXL4TDvd8s9x2JwKuzzuQhCDPRZusdMI7rVHDA=="],
 
     "@alwith/module-collection": ["@alwith/module-collection@0.5.0", "", {}, "sha512-7QQuhJOZfLCo89VGsvpv7G+i9PPUhgb79eiZeTwsy4u9hHG+qyU7QdhUHyXIqC13s6+oIqc3HmNwd2I2WIdaEg=="],
 
