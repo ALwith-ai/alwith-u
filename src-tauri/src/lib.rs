@@ -13,6 +13,7 @@ mod bundled_extensions;
 mod chat_files;
 mod chat_window;
 mod computer;
+mod desktop_shell;
 mod device;
 mod diagnostics;
 mod draft_directory;
@@ -74,6 +75,7 @@ pub fn run() {
     }
 
     let builder = tauri::Builder::default()
+        .plugin(desktop_shell::init())
         .plugin(alwith_module_store::tauri::init())
         .plugin(alwith_auth_client::tauri::init(native::development_directory()))
         .manage(login_launch)
