@@ -332,6 +332,29 @@ body,
 .computer-agent-cursor {
   filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--foreground) 25%, transparent));
 }
+/* Floating navigation shares the settings navigation surface in both themes. */
+:root {
+  --navigation-surface: #fcfcfc;
+}
+.dark {
+  --navigation-surface: #1c1c1c;
+}
+.settings-window > aside,
+[data-sidebar-mode="floating"] [data-atlas-floating] > [data-atlas-navigation-surface] {
+  background: var(--navigation-surface);
+}
+
+/* Atlas adds four gutters to the floating width; distribute them evenly around its contents. */
+[data-sidebar-mode="floating"] .main-sidebar-panel {
+  inset-inline-start: calc(2 * var(--atlas-gutter, 4px));
+  border-radius: 0;
+}
+
+/* The outer floating surface owns the fill; the nested sidebar must not paint another one. */
+[data-sidebar-mode="floating"] [data-slot="sidebar"] {
+  background-color: transparent;
+}
+
 /* Inset chrome hover surfaces within the 32px title and status rows. */
 .main-sidebar-toggle {
   height: 32px;

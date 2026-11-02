@@ -1,34 +1,53 @@
 import { DevicePanel } from "@alwith/module-device/preview"
 import { isTauri } from "@tauri-apps/api/core"
-import { SmartphoneIcon } from "lucide-react"
+import { MoreHorizontalIcon, SmartphoneIcon } from "lucide-react"
 import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
 import { useWorkspace } from "@/features/workspace/context"
 import { PanelControlsContext } from "@/features/workspace/panel-controls-context"
 
 import { deviceBridge } from "./bridge"
 
-/** Opens the simulator in the preview region, as a pane beside the file workspace. */
-export function DeviceWorkspaceButton() {
+/** Keep device controls behind a compact workspace overflow menu. */
+export function DeviceWorkspaceMenu() {
   const workspace = useWorkspace()
   const { t } = useTranslation()
   if (workspace?.openPane === undefined || !isTauri()) return null
   const openPane = workspace.openPane
   const active = workspace.visible && workspace.pane === "simulator"
   return (
-    <Button
-      variant="ghost"
-      size="icon-xs"
-      className="workspace-sidebar-toggle"
-      aria-label={t(active ? "device.panel.close" : "device.panel.open")}
-      title={t(active ? "device.panel.close" : "device.panel.open")}
-      aria-pressed={active}
-      onClick={() => openPane("simulator")}
-    >
-      <SmartphoneIcon className="size-4" />
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="workspace-sidebar-toggle"
+            aria-label={t("actions.more")}
+            data-workspace-overflow
+          />
+        }
+      >
+        <MoreHorizontalIcon className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => openPane("simulator")}>
+            <SmartphoneIcon />
+            {t(active ? "device.panel.close" : "device.panel.open")}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

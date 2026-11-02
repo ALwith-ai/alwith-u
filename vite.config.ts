@@ -32,6 +32,7 @@ export const config = (mode = "development"): UserConfig => ({
   optimizeDeps: {
     exclude: [
       "@alwith/module-chat",
+      "@alwith/module-device",
       "@alwith/module-gamepad",
       "@alwith/module-fs",
       "@alwith/module-file-tree",

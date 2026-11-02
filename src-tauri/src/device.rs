@@ -23,6 +23,21 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), String> {
         return Ok(());
     };
     let host = Arc::new(host);
+    #[cfg(target_os = "macos")]
+    {
+        let resources = if tauri::is_dev() {
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources")
+        } else {
+            app.path().resource_dir().map_err(|error| error.to_string())?
+        };
+        let helper = resources.join("native/alwith-device-helper");
+        if helper.is_file()
+            && let Err(error) = host.call_value("configure_helper", serde_json::json!({"path": helper}))
+        {
+            log::error!("Cannot configure device helper: {error}");
+            return Ok(());
+        }
+    }
     tauri::async_runtime::block_on(host.listen())?;
     app.manage(DeviceState { host: host.clone() });
     let handle = app.clone();
@@ -138,18 +153,28 @@ pub async fn device_detach(window: WebviewWindow, udid: String) -> Result<(), St
     let host = host(&window)?;
     host.detach(&udid, None).await
 }
-/// A PNG data URL of the current screen for the polling preview.
+/// The newest native preview frame as a data URL.
 #[tauri3_specta::command]
 pub async fn device_frame(window: WebviewWindow, udid: String) -> Result<String, String> {
     let host = host(&window)?;
-    Ok(format!("data:image/png;base64,{}", host.screenshot(&udid).await?))
+    tauri::async_runtime::spawn_blocking(move || {
+        let value = host.call_value("preview", serde_json::json!({"udid": udid})).map_err(|error| error.to_string())?;
+        serde_json::from_value(value).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
-/// Input needs the native simulator helper, which this version does not ship yet.
+/// Route panel input to the shared native device module.
 #[tauri3_specta::command]
 pub async fn device_gesture(window: WebviewWindow, udid: String, gesture: serde_json::Value) -> Result<(), String> {
-    host(&window)?;
-    let _ = (udid, gesture);
-    Err("Input is not available until the simulator helper ships".into())
+    let host = host(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        host.call_value("gesture", serde_json::json!({"udid": udid, "gesture": gesture}))
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 #[tauri3_specta::command]
 pub async fn device_appearance(window: WebviewWindow, udid: String) -> Result<String, String> {
@@ -176,6 +201,38 @@ pub async fn device_restart(window: WebviewWindow, udid: String) -> Result<(), S
     let host = host(&window)?;
     host.restart_device(&udid).await
 }
+/// Start a native recording and save it beside screenshots.
+#[tauri3_specta::command]
+pub async fn device_record_start(window: WebviewWindow, udid: String) -> Result<String, String> {
+    let host = host(&window)?;
+    let info = host.attachments()?.into_iter().find(|info| info.udid == udid).ok_or("Device is not attached")?;
+    let path = capture_path(&window, &info.device_name, if info.platform == "ios" { "mp4" } else { "webm" })?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let value = host
+            .call_value("record_start", serde_json::json!({"udid": udid, "path": path}))
+            .map_err(|error| error.to_string())?;
+        serde_json::from_value(value).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+#[tauri3_specta::command]
+pub async fn device_record_stop(window: WebviewWindow, udid: String) -> Result<String, String> {
+    let host = host(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let value =
+            host.call_value("record_stop", serde_json::json!({"udid": udid})).map_err(|error| error.to_string())?;
+        serde_json::from_value(value).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+fn capture_path(window: &WebviewWindow, name: &str, extension: &str) -> Result<std::path::PathBuf, String> {
+    let directory = window.app_handle().path().desktop_dir().map_err(|error| error.to_string())?;
+    let name: String =
+        name.chars().map(|c| if c.is_control() || matches!(c, '/' | ':' | '\\') { '_' } else { c }).take(80).collect();
+    Ok(directory.join(format!("{name} {} {}.{extension}", file_stamp(), uuid::Uuid::new_v4().simple())))
+}
 /// Save the current screen as a PNG on the Desktop and return its path.
 #[tauri3_specta::command]
 pub async fn device_save_screenshot(window: WebviewWindow, udid: String) -> Result<String, String> {
@@ -183,19 +240,20 @@ pub async fn device_save_screenshot(window: WebviewWindow, udid: String) -> Resu
     let host = host(&window)?;
     let encoded = host.screenshot(&udid).await?;
     let png = base64::engine::general_purpose::STANDARD.decode(encoded).map_err(|e| e.to_string())?;
-    let resolver = window.app_handle().path();
-    let directory = resolver.desktop_dir().or_else(|_| resolver.home_dir()).map_err(|e| e.to_string())?;
     let name = host
         .attachments()?
         .into_iter()
         .find(|info| info.udid == udid)
         .map_or_else(|| "Simulator".into(), |info| info.device_name);
-    let path = directory.join(format!("{name} {}.png", file_stamp()));
+    let path = capture_path(&window, &name, "png")?;
     let target = path.clone();
-    tauri::async_runtime::spawn_blocking(move || std::fs::write(&target, png))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::Write;
+        std::fs::OpenOptions::new().write(true).create_new(true).open(&target)?.write_all(&png)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().into_owned())
 }
 /// A sortable UTC stamp without pulling a date crate into the host.

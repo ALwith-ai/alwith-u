@@ -350,6 +350,8 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 device::device_shutdown,
                 device::device_restart,
                 device::device_save_screenshot,
+                device::device_record_start,
+                device::device_record_stop,
                 device::device_logs,
                 device::device_crash_report,
                 autostart::autostart_set,

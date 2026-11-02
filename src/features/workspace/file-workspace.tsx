@@ -73,7 +73,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/alwith-ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
-import { DeviceWorkspaceButton, DeviceWorkspacePane } from "@/features/device/device-workspace"
+import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 
 import {
   type FilePosition,
@@ -879,8 +879,8 @@ export function FileWorkspace({
                 setCondenseScope(scope)
               }}
             />
-            {windowsControls === null && <DeviceWorkspaceButton />}
             {windowsControls === null && <WorkspaceButton />}
+            {windowsControls === null && <DeviceWorkspaceMenu />}
           </div>,
           headerTarget
         )}
@@ -888,8 +888,8 @@ export function FileWorkspace({
         windowsControls !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
-            <DeviceWorkspaceButton />
             <WorkspaceButton />
+            <DeviceWorkspaceMenu />
           </div>,
           windowsControls
         )}

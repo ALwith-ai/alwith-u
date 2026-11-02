@@ -4,7 +4,10 @@ import { isTauri } from "@tauri-apps/api/core"
 import { commands, events } from "@/bindings"
 
 /** One bridge per conversation: the panel attaches on behalf of that conversation's agent session. */
-export function deviceBridge(sessionId: string): DeviceBridge {
+export function deviceBridge(sessionId: string): DeviceBridge & {
+  startRecording(udid: string): Promise<string>
+  stopRecording(udid: string): Promise<string>
+} {
   return {
     listDevices: (platform) => commands.deviceList({ platform }),
     attach: (udid, platform) => commands.deviceAttach({ sessionId, platform, udid: udid ?? null }),
@@ -38,6 +41,8 @@ export function deviceBridge(sessionId: string): DeviceBridge {
           filter: query.filter ?? null
         }
       }),
+    startRecording: (udid) => commands.deviceRecordStart({ udid }),
+    stopRecording: (udid) => commands.deviceRecordStop({ udid }),
     saveScreenshot: (udid) => commands.deviceSaveScreenshot({ udid }),
     subscribe: (listener: (attachments: AttachmentInfo[]) => void) => {
       if (!isTauri()) return () => {}

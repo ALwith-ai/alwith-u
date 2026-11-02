@@ -70,11 +70,11 @@ export const commands = {
   }): Promise<AttachmentInfo_Serialize> => __t3Invoke<AttachmentInfo_Serialize>("device_attach", args),
   deviceDetach: (args: { udid: string }): Promise<null> => __t3Invoke<null>("device_detach", args),
   /**
-   *  A PNG data URL of the current screen for the polling preview.
+   *  The newest native preview frame as a data URL.
    */
   deviceFrame: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_frame", args),
   /**
-   *  Input needs the native simulator helper, which this version does not ship yet.
+   *  Route panel input to the shared native device module.
    */
   deviceGesture: (args: { udid: string; gesture: Value }): Promise<null> => __t3Invoke<null>("device_gesture", args),
   deviceAppearance: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_appearance", args),
@@ -88,6 +88,11 @@ export const commands = {
    *  Save the current screen as a PNG on the Desktop and return its path.
    */
   deviceSaveScreenshot: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_save_screenshot", args),
+  /**
+   *  Start a native recording and save it beside screenshots.
+   */
+  deviceRecordStart: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_record_start", args),
+  deviceRecordStop: (args: { udid: string }): Promise<string> => __t3Invoke<string>("device_record_stop", args),
   deviceLogs: (args: { udid: string; query: LogQuery_Deserialize }): Promise<LogPage> =>
     __t3Invoke<LogPage>("device_logs", args),
   deviceCrashReport: (args: {
@@ -400,6 +405,8 @@ export type CommandErrors = {
   deviceShutdown: string
   deviceRestart: string
   deviceSaveScreenshot: string
+  deviceRecordStart: string
+  deviceRecordStop: string
   deviceLogs: string
   deviceCrashReport: string
   autostartSet: string

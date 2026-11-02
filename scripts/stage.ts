@@ -138,6 +138,9 @@ if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // the distributed bytes first, then sign the staged copy using the app's identity.
   for (const library of nativeLibraries)
     await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${library}`
+  const deviceHelper = join(root, "src-tauri/resources/native/alwith-device-helper")
+  if (existsSync(deviceHelper))
+    await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${deviceHelper}`
 }
 for (const library of nativeLibraries) console.log(`native module -> ${library}`)
 
