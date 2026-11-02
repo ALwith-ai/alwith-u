@@ -2,6 +2,7 @@
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
 
 import type { CodexClient } from "@/agent/client"
+import { useMainWindowSurface } from "@/lib/chat-window-state"
 import i18n from "@/lib/i18n"
 
 async function notify(title: string, body: string): Promise<void> {
@@ -10,7 +11,7 @@ async function notify(title: string, body: string): Promise<void> {
   if (granted) sendNotification({ title, body })
 }
 
-/** Fires when a session needs input or finishes a turn while the window is not focused. */
+/** Fires when a session needs input or finishes a turn while the window is not focused or its chat is in the background. */
 export function watchForNotifications(client: CodexClient): () => void {
   let previous = client.store.getState().sessions
   return client.store.subscribe((state) => {
@@ -18,7 +19,9 @@ export function watchForNotifications(client: CodexClient): () => void {
     if (current === previous) return
     for (const [id, session] of Object.entries(current)) {
       const before = previous[id]
-      if (!before || before.state === session.state || document.hasFocus()) continue
+      // A focused window whose chat is collapsed beside a maximized preview is not looking at the conversation.
+      if (!before || before.state === session.state || (document.hasFocus() && useMainWindowSurface.getState().visible))
+        continue
       const title = session.title ?? i18n.t("sidebar.untitled")
       if (session.state === "requires_action") void notify(i18n.t("notify.needsInput"), title)
       else if (session.state === "idle" && before.state === "running" && !session.restoring)

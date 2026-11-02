@@ -111,15 +111,6 @@ pre,
   left: calc(var(--sidebar-toggle-left) + 32px);
   right: 12px;
 }
-@keyframes activity-notification-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
 
 /* Fixed chrome uses pixel tokens so WebKit's rem metrics at extreme page zoom cannot resize it. */
 .zoom-feedback {

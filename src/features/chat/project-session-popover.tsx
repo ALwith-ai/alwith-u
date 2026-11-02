@@ -309,11 +309,7 @@ function ProjectContents({
           (expanded ? sessionRows : sessionRows.slice(0, 5)).map((sessionRow) => (
             <div
               key={sessionRow.sessionId}
-              className={cn(
-                TRAILING_GROUP,
-                ROW_HIGHLIGHT,
-                "flex h-7 w-full items-center gap-2 rounded-sm ps-3 pe-3"
-              )}
+              className={cn(TRAILING_GROUP, ROW_HIGHLIGHT, "flex h-7 w-full items-center gap-2 rounded-sm ps-3 pe-3")}
             >
               <Button
                 variant="ghost"

@@ -133,6 +133,10 @@ const nativeLibraries = [
   stageNativeExtension,
   stageNativeDevice
 ].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
+// @alwith/native-device 0.5.4 stages its iOS helper without the execute bit npm dropped; restore it until the next
+// native release carries the fix.
+const stagedDeviceHelper = join(root, "src-tauri/resources/native/alwith-device-helper")
+if (existsSync(stagedDeviceHelper)) chmodSync(stagedDeviceHelper, 0o755)
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify
   // the distributed bytes first, then sign the staged copy using the app's identity.

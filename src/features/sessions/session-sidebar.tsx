@@ -7,19 +7,21 @@
 import {
   HoverInfoAction,
   MENU_HIGHLIGHT,
+  NavigationHeader,
   NavigationItemButton,
   NavigationLeading,
+  NavigationScreenSwitch,
   NavigationStack,
+  NavigationTabs,
   SessionList,
   type SessionListExpansion,
+  SessionListFilter,
   SessionRow
 } from "@alwith/module-chat/session-list"
 import { DesktopNavigationFooter, DesktopUpdateStatus } from "@alwith/module-desktop-shell/react"
 import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
   CloudIcon,
   FolderIcon,
   FolderMinusIcon,
@@ -28,22 +30,16 @@ import {
   PictureInPicture2Icon,
   PlusIcon,
   SearchIcon,
-  SlidersHorizontalIcon,
   StarIcon
 } from "lucide-react"
-import { motion } from "motion/react"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import type { SessionSummary } from "@/agent/client"
-import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
 import { Pane } from "@/components/alwith-ui/pane"
-import { ShortcutHint } from "@/components/alwith-ui/shortcut-hint"
-import { Button } from "@/components/ui/button"
 import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { AddToCollectionAction } from "@/features/collection/collection-menu"
 import { CollectionPanel } from "@/features/collection/collection-panel"
@@ -55,7 +51,6 @@ import type { MainScreen } from "@/features/layout/components/main-sidebar-layou
 import { useApp } from "@/lib/client"
 import { updateLabels } from "@/lib/update-labels"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 import { ActivityPanel } from "./activity-panel"
@@ -175,6 +170,10 @@ function SidebarPanels({
 
   const chatWindowShortcut = useChatWindowShortcut()
   const [allProjectsShown, setAllProjectsShown] = useState(false)
+  const collapseAll = (): void => {
+    setProjectOpen(new Map())
+    setAllProjectsShown(false)
+  }
   const expansion: SessionListExpansion = {
     open: projectOpen,
     setOpen: (cwd, open) => setProjectOpen(new Map(projectOpen).set(cwd, open)),
@@ -203,69 +202,29 @@ function SidebarPanels({
     <Sidebar
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
-      className="h-full w-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
+      className="h-full min-h-0 w-full shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
     >
       <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-0.5" data-tauri-drag-region>
-        <div className="flex h-[var(--navigation-row-height)] items-center gap-0.5" data-tauri-drag-region>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold" data-tauri-drag-region>
-            {t("app.name")}
-          </span>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-[var(--navigation-row-height)] p-0"
-                  aria-label={t("sidebar.search")}
-                  onClick={onSearch}
-                >
-                  <SearchIcon />
-                </Button>
-              }
-            />
-            <TooltipContent>
-              <ShortcutHint label={t("sidebar.search")} shortcut="CmdOrCtrl+K" />
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-[var(--navigation-row-height)] p-0"
-                  aria-label={t("chatWindow.open")}
-                  onClick={onOpenWindow}
-                >
-                  <PictureInPicture2Icon />
-                </Button>
-              }
-            />
-            <TooltipContent>
-              <ShortcutHint label={t("chatWindow.open")} shortcut={chatWindowShortcut} />
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-[var(--navigation-row-height)] p-0"
-                  aria-label={t("sidebar.newChat")}
-                  onClick={onNewChat}
-                >
-                  <PlusIcon />
-                </Button>
-              }
-            />
-            <TooltipContent>
-              <ShortcutHint label={t("sidebar.newChat")} shortcut="CmdOrCtrl+N" />
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="flex flex-col gap-0.5">
+        <NavigationHeader
+          title={t("app.name")}
+          actions={[
+            {
+              key: "search",
+              icon: <SearchIcon />,
+              label: t("sidebar.search"),
+              shortcut: "CmdOrCtrl+K",
+              onClick: onSearch
+            },
+            {
+              key: "window",
+              icon: <PictureInPicture2Icon />,
+              label: t("chatWindow.open"),
+              shortcut: chatWindowShortcut,
+              onClick: onOpenWindow
+            },
+            { key: "new", icon: <PlusIcon />, label: t("sidebar.newChat"), shortcut: "CmdOrCtrl+N", onClick: onNewChat }
+          ]}
+        >
           <NavigationItemButton
             active={screen === "leading" && (leadingPage === "plugins" || leadingPage === "extensions")}
             className={MENU_HIGHLIGHT}
@@ -288,94 +247,19 @@ function SidebarPanels({
               <span>Vibémon</span>
             </NavigationItemButton>
           )}
-        </div>
+        </NavigationHeader>
         {extensionNavigation}
       </SidebarHeader>
       <SidebarContent className="session-list-content gap-0 overflow-hidden px-0 py-1">
-        <div className="relative mb-2 flex h-[var(--navigation-row-height)] shrink-0 items-center gap-0.5">
-          <div
-            role="tablist"
-            className="flex h-[var(--navigation-row-height)] w-52 flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]"
-          >
-            {tabs
-              .filter((tab) => tab.key !== "drive" || driveVisible)
-              .map((tab) => {
-                const active = view === tab.key
-                return (
-                  <NavigationMenuIconButton
-                    key={tab.key}
-                    role="tab"
-                    active={active}
-                    expanded={active}
-                    highlight={false}
-                    aria-selected={active}
-                    title={tab.title}
-                    onClick={() => setView(tab.key)}
-                    onDoubleClick={
-                      tab.key === "sessions"
-                        ? () => {
-                            setProjectOpen(new Map())
-                            setAllProjectsShown(false)
-                          }
-                        : undefined
-                    }
-                    className={cn(
-                      "relative isolate h-[var(--navigation-row-height)] min-w-[var(--navigation-row-height)] justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-[18px] [&_svg]:shrink-0",
-                      active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
-                    )}
-                  >
-                    {active && (
-                      <motion.span
-                        layoutId="navigation-selected-pill"
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 -z-10 rounded-[10px] bg-foreground/8 [corner-shape:superellipse(1.5)]"
-                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    )}
-                    {tab.icon}
-                    {tab.key === "activity" && hasActivityNotification && (
-                      <span
-                        data-activity-notification
-                        aria-hidden="true"
-                        className="pointer-events-none absolute top-1 right-1 z-20 size-1.5 rounded-full bg-destructive motion-safe:animate-[activity-notification-pulse_2s_ease-in-out_infinite]"
-                      />
-                    )}
-                    <span
-                      className={cn(
-                        "relative z-10 grid",
-                        active
-                          ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
-                          : "ms-0 grid-cols-[0fr] duration-0"
-                      )}
-                    >
-                      <span className="min-w-0 overflow-hidden whitespace-nowrap">{tab.title}</span>
-                    </span>
-                  </NavigationMenuIconButton>
-                )
-              })}
-          </div>
-          <div className="ms-auto flex shrink-0 items-center gap-0.5">
-            {view === "sessions" && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<NavigationMenuIconButton aria-label={t("sidebar.filter")} title={t("sidebar.filter")} />}
-                >
-                  <SlidersHorizontalIcon />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setProjectOpen(new Map())
-                      setAllProjectsShown(false)
-                    }}
-                  >
-                    {t("sidebar.collapseAllGroups")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
+        <NavigationTabs
+          className="mb-2"
+          tabs={tabs.filter((tab) => tab.key !== "drive" || driveVisible)}
+          view={view}
+          onViewChange={(next) => setView(next as SidebarView)}
+          onReset={(tab) => tab === "sessions" && collapseAll()}
+          notifications={hasActivityNotification ? new Set(["activity"]) : undefined}
+          trailing={view === "sessions" ? <SessionListFilter onCollapseAll={collapseAll} /> : undefined}
+        />
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
@@ -420,14 +304,7 @@ function SidebarPanels({
           />
         }
       >
-        <NavigationItemButton
-          className={cn(MENU_HIGHLIGHT, screen === "main" ? "justify-start" : "justify-end")}
-          aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-          title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-          onClick={onSwitchScreen}
-        >
-          <NavigationLeading>{screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}</NavigationLeading>
-        </NavigationItemButton>
+        <NavigationScreenSwitch screen={screen} onSwitch={onSwitchScreen} />
         <div data-sidebar-footer-row className="flex h-[var(--navigation-row-height)] items-center gap-0.5">
           <div className="min-w-0 flex-1">
             <SidebarAccountMenu onOpenSettings={onOpenSettings} onCreated={onNewProjectChat} />

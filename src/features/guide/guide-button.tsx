@@ -1,69 +1,37 @@
-import { useSidebarOverlay } from "@alwith/module-chat/session-list"
-import { CircleHelpIcon, KeyboardIcon, LifeBuoyIcon } from "lucide-react"
-import { type ReactNode, useRef, useState } from "react"
+import { AccountMenuItem, HelpMenu } from "@alwith/module-chat/session-list"
+import { KeyboardIcon, LifeBuoyIcon } from "lucide-react"
+import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
-import { sidebarFooterMenuRow } from "@/components/alwith-ui/sidebar-footer-menu"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 
 import { openGuideWindow } from "./guide-window"
 
+/** U's help menu: module-chat's HelpMenu with the shortcuts sheet and the user guide. */
 export function GuideButton(): ReactNode {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const trigger = useRef<HTMLButtonElement>(null)
-  const [menuWidth, setMenuWidth] = useState<number>()
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
-  useSidebarOverlay(open)
   return (
     <>
-      <DropdownMenu
-        open={open}
-        onOpenChange={(next) => {
-          if (next) {
-            const row = sidebarFooterMenuRow(trigger.current)
-            setMenuWidth(row.clientWidth)
-          }
-          setOpen(next)
-        }}
-      >
-        <DropdownMenuTrigger
-          render={
-            <Button
-              ref={trigger}
-              variant="ghost"
-              size="icon-sm"
-              className="size-[var(--navigation-row-height,30px)] shrink-0 rounded-[10px] p-0 [corner-shape:superellipse(1.5)]"
-              aria-label={t("guide.help")}
-              title={t("guide.help")}
-            />
+      <HelpMenu>
+        <AccountMenuItem onClick={() => setHotkeysOpen(true)}>
+          <KeyboardIcon />
+          {t("shortcuts.title")}
+          <ShortcutKey shortcut="CmdOrCtrl+/" className="ml-auto shrink-0" />
+        </AccountMenuItem>
+        <AccountMenuItem
+          onClick={() =>
+            void openGuideWindow().catch((error: unknown) =>
+              toast.error(error instanceof Error ? error.message : String(error))
+            )
           }
         >
-          <CircleHelpIcon className="size-4 shrink-0" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" sideOffset={8} style={{ width: menuWidth }}>
-          <DropdownMenuItem className="h-[var(--navigation-row-height,30px)] py-0" onClick={() => setHotkeysOpen(true)}>
-            <KeyboardIcon className="text-muted-foreground" />
-            {t("shortcuts.title")}
-            <ShortcutKey shortcut="CmdOrCtrl+/" className="ml-auto shrink-0" />
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="h-[var(--navigation-row-height,30px)] py-0"
-            onClick={() =>
-              void openGuideWindow().catch((error: unknown) =>
-                toast.error(error instanceof Error ? error.message : String(error))
-              )
-            }
-          >
-            <LifeBuoyIcon className="text-muted-foreground" />
-            {t("guide.userGuide")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <LifeBuoyIcon />
+          {t("guide.userGuide")}
+        </AccountMenuItem>
+      </HelpMenu>
       <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
     </>
   )

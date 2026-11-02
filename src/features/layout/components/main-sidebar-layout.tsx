@@ -32,6 +32,7 @@ export function MainSidebarLayout({
   initialPinned,
   screen,
   onScreenChange,
+  onRegionChange,
   sidebar,
   leading,
   main,
@@ -43,6 +44,8 @@ export function MainSidebarLayout({
   initialPinned: boolean
   screen: MainScreen
   onScreenChange?: (screen: MainScreen) => void
+  /** The canvas's foreground region; chat collapsed beside a maximized preview is not it. */
+  onRegionChange?: (region: "leading" | "chat" | "preview" | "trailing") => void
   sidebar: ReactNode
   leading: ReactNode
   main: ReactNode
@@ -71,8 +74,9 @@ export function MainSidebarLayout({
       // Overview exits settle instantly and do not emit the animated screen-change event.
       const next = region === "leading" ? "leading" : "main"
       if (next !== screen) onScreenChange?.(next)
+      onRegionChange?.(region)
     },
-    [screen, onScreenChange]
+    [screen, onScreenChange, onRegionChange]
   )
   return (
     <DesktopWorkspace

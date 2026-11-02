@@ -191,6 +191,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     })
   }, [openExtension, operation])
   const [mainVisible, setMainVisible] = useState(false)
+  // Chat is in the foreground only while the canvas shows it; collapsed beside a maximized preview it is background.
+  const [chatForeground, setChatForeground] = useState(true)
   const focused = useWindowFocus()
   useEffect(() => {
     let cancelled = false
@@ -199,16 +201,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const visible = (focused || (await window.isVisible())) && !(await window.isMinimized())
       if (!cancelled) {
         setMainVisible(visible)
-        useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" })
-        await updateMainPetSurface(selectedId, visible && view === "chat")
+        useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" && chatForeground })
+        await updateMainPetSurface(selectedId, visible && view === "chat" && chatForeground)
       }
     })().catch((error) => toast.error(describe(error)))
     return () => {
       cancelled = true
     }
-  }, [selectedId, focused, view])
+  }, [selectedId, focused, view, chatForeground])
 
-  useReadVisibleSession(selectedId, focused && view === "chat")
+  useReadVisibleSession(selectedId, focused && view === "chat" && chatForeground)
 
   const select = useCallback(
     (sessionRow: SessionSummary) => {
@@ -616,6 +618,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             if (screen === "main") setView("chat")
             else openLeading()
           }}
+          onRegionChange={(region) => setChatForeground(region === "chat")}
           sidebar={
             <SessionSidebar
               screen={leading ? "leading" : "main"}

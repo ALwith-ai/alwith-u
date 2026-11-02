@@ -50,7 +50,12 @@ test("empty quick chats stays first and collapsed with a project hover card", ()
   expect(
     view
       .getAllByRole("button")
-      .find((button) => button.hasAttribute("aria-expanded") && !button.matches("[data-slot=dropdown-menu-trigger]") && button.closest(".session-list-content"))
+      .find(
+        (button) =>
+          button.hasAttribute("aria-expanded") &&
+          !button.matches("[data-slot=dropdown-menu-trigger]") &&
+          button.closest(".session-list-content")
+      )
   ).toBe(quick)
 })
 
