@@ -738,6 +738,10 @@ export type AttachmentInfo_Deserialize = {
   attachedAt: string
   pixelWidth?: number | null
   pixelHeight?: number | null
+  pointWidth?: number | null
+  pointHeight?: number | null
+  rotation?: number | null
+  recordingPath?: string | null
   app?: LaunchedApp | null
 }
 
@@ -750,6 +754,10 @@ export type AttachmentInfo_Serialize = {
   attachedAt: string
   pixelWidth: number | null
   pixelHeight: number | null
+  pointWidth: number | null
+  pointHeight: number | null
+  rotation: number | null
+  recordingPath: string | null
   app: LaunchedApp | null
 }
 
