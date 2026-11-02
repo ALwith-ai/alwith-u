@@ -23,7 +23,8 @@ export default mergeConfig(
             "@alwith/module-chat",
             "@alwith/module-editor",
             "@alwith/module-drive",
-            "@alwith/module-desktop-shell"
+            "@alwith/module-desktop-shell",
+            "@alwith/module-extension"
           ]
         }
       },

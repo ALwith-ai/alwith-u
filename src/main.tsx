@@ -29,6 +29,7 @@ import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { bootstrapSettings } from "@/lib/settings-store"
+import { showStartupFailure, startupStep } from "@/lib/startup-step"
 import { hydrateZoom } from "@/lib/zoom"
 import { startZoomViewport } from "@/lib/zoom-viewport"
 import "./index.css"
@@ -72,28 +73,30 @@ async function bootstrap(): Promise<void> {
   if (isTauri() && platform() === "windows") {
     document.documentElement.dataset.windowBackdrop = "acrylic"
   }
-  await bootstrapSettings()
-  await initializeMobile().catch((error: unknown) => surfaceGlobalError(describe(error)))
-  await attachConsole()
+  await startupStep("settings", bootstrapSettings)
+  await startupStep("mobile", initializeMobile).catch((error: unknown) => surfaceGlobalError(describe(error)))
+  await startupStep("console", attachConsole)
   await info("frontend booting")
-  const preferences = await loadPreferences()
+  const preferences = await startupStep("preferences", loadPreferences)
   predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
-  await initI18n(preferences.language)
+  await startupStep("language", () => initI18n(preferences.language))
   if (isTauri()) {
-    await listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
-    await restoreComputer().catch((error: unknown) => surfaceGlobalError(describe(error)))
+    await startupStep("power listener", () =>
+      listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
+    )
+    await startupStep("computer", restoreComputer).catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
     void useUpdaterStore
       .getState()
       .init()
       .catch((error: unknown) => surfaceGlobalError(describe(error)))
   }
-  await startZoomViewport()
-  await hydrateZoom(preferences.zoomLevel)
+  await startupStep("viewport", startZoomViewport)
+  await startupStep("zoom", () => hydrateZoom(preferences.zoomLevel))
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
-  await initPlatformAuth()
-  await initializeVibemonMain()
+  await startupStep("auth listeners", initPlatformAuth)
+  await startupStep("pet host", initializeVibemonMain)
   const root = document.getElementById("root")
   if (!root) throw new Error("index.html has no #root")
   createRoot(root).render(
@@ -117,6 +120,10 @@ async function bootstrap(): Promise<void> {
       </AppDirectionProvider>
     </StrictMode>
   )
+  void info("[startup] root render requested").catch(console.error)
 }
 
-bootstrap().catch((failure: unknown) => surfaceGlobalError(`bootstrap failed: ${describe(failure)}`))
+bootstrap().catch((failure: unknown) => {
+  showStartupFailure(failure)
+  surfaceGlobalError(`bootstrap failed: ${describe(failure)}`)
+})
