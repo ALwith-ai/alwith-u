@@ -7,7 +7,7 @@ import { Sidebar, SidebarFooter, SidebarInset } from "@/components/ui/sidebar"
 
 import { ExtensionsSection } from "../../../src/features/extensions/extensions-section"
 import { GuideButton } from "../../../src/features/guide/guide-button"
-import { ClientVersionPopover } from "../../../src/features/layout/components/client-version-popover"
+import { AppStatusBar } from "../../../src/features/layout/components/app-status-bar"
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
 import { type MainScreen, MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { PluginsPage } from "../../../src/features/plugins/plugins-page"
@@ -24,13 +24,13 @@ function StartupNavigation(_props: Record<string, never>) {
         screen={screen}
         onScreenChange={setScreen}
         statusBar={
-          <>
-            <div className="flex-1" />
-            <Button variant="ghost" size="sm" className="h-6 text-xs" aria-label="Chrome reference">
-              Reference
-            </Button>
-            <ClientVersionPopover />
-          </>
+          <AppStatusBar
+            end={
+              <Button variant="ghost" size="sm" className="h-6 text-xs" aria-label="Chrome reference">
+                Reference
+              </Button>
+            }
+          />
         }
         sidebar={
           <Sidebar collapsible="none" className="h-full bg-transparent">
@@ -191,7 +191,7 @@ export const SidebarGutters: Story = {
       await check()
     })
     const reference = canvasElement.querySelector<HTMLElement>('[aria-label="Chrome reference"]')!
-    const status = canvasElement.querySelector<HTMLElement>(".client-version-status > button")!
+    const status = canvasElement.querySelector<HTMLElement>(".desktop-status-item > button")!
     await expect(status.getBoundingClientRect().height).toBe(reference.getBoundingClientRect().height)
     for (const property of ["borderRadius", "paddingInlineStart", "paddingInlineEnd", "borderWidth"] as const) {
       await expect(getComputedStyle(status)[property]).toBe(getComputedStyle(reference)[property])

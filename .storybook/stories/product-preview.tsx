@@ -28,7 +28,7 @@ import { ExtensionMount, ExtensionPage } from "../../src/features/extensions/ext
 import { ExtensionsSection } from "../../src/features/extensions/extensions-section"
 import { GamepadWindow } from "../../src/features/gamepad/gamepad-window"
 import { GuidePage } from "../../src/features/guide/guide-page"
-import { ClientVersionPopover } from "../../src/features/layout/components/client-version-popover"
+import { AppStatusBar } from "../../src/features/layout/components/app-status-bar"
 import { LeadingNavigation } from "../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../src/features/layout/components/main-sidebar-layout"
 import { CommandPalette } from "../../src/features/palette/command-palette"
@@ -269,18 +269,10 @@ export function ProductPreview({
               onScreenChange={(screen) => setPage(screen === "main" ? "chat" : "plugins")}
               toolbar={<div ref={setToolbar} className="flex flex-1 items-center" />}
               statusBar={
-                <>
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <ExtensionStatusBar
-                        views={extensions.views}
-                        renderView={(view) => <ExtensionMount id={view.id} />}
-                      />
-                    </div>
-                    <DriveStatus />
-                  </div>
-                  <ClientVersionPopover />
-                </>
+                <AppStatusBar
+                  start={<ExtensionStatusBar views={extensions.views} renderView={(view) => <ExtensionMount id={view.id} />} />}
+                  end={<DriveStatus />}
+                />
               }
               sidebar={
                 <SessionSidebar

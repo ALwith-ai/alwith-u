@@ -36,7 +36,7 @@ import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { useExtensions } from "@/features/extensions/use-extensions"
-import { ClientVersionPopover } from "@/features/layout/components/client-version-popover"
+import { AppStatusBar } from "@/features/layout/components/app-status-bar"
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { TrailingBoard } from "@/features/layout/components/trailing-board"
@@ -698,17 +698,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             </div>
           }
           statusBar={
-            <>
-              <div className="main-extension-status pointer-events-none flex min-w-0 flex-1 items-center gap-2 [-webkit-app-region:no-drag]">
-                <div className="min-w-0 flex-1">
-                  <ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />
-                </div>
-              </div>
-              <div className="flex h-8 shrink-0 items-center gap-[4px]">
-                <DriveStatus />
-                <ClientVersionPopover />
-              </div>
-            </>
+            <AppStatusBar
+              start={<ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />}
+              end={<DriveStatus />}
+            />
           }
           main={
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
