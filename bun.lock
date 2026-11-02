@@ -12,7 +12,7 @@
         "@alwith/module-chat": "^0.5.22",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.5.1",
-        "@alwith/module-desktop-shell": "^0.5.9",
+        "@alwith/module-desktop-shell": "^0.5.10",
         "@alwith/module-device": "^0.5.1",
         "@alwith/module-drive": "^0.5.1",
         "@alwith/module-editor": "^0.5.0",
@@ -168,7 +168,7 @@
 
     "@alwith/module-computer": ["@alwith/module-computer@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.0" } }, "sha512-NH5dbTwbxWTYqNZZ/OOvrwwe8Ih8KXKgdeLIDDXN978WLFN+39vBR+moE8MxCdDMMlO+ngLbyvu598gyxV/ZBg=="],
 
-    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.5.9", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/shadcn": "^4.23.2", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "lucide-react": "^1.66.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.10", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-HLjU3fZWMkzYx1pGglPie1zIwRvRjx25mNn/dbvtnyi1HVDc56fvFQTQ9XT+/HLHviwbLjb+BYvRf+gqS8zC0w=="],
+    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.5.10", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/shadcn": "^4.23.2", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "lucide-react": "^1.66.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.10", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-OLOTqtf7ihxonrp4CaIPnYsp73V5c+j1elit98f+9qeHf+NR26qZYDdbA1tURCoO1Rroet1rnhJjGLH5DpGuQA=="],
 
     "@alwith/module-device": ["@alwith/module-device@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.0", "@nyssance/shadcn": "^4.23.2", "lucide-react": "^1.66.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-RQSGpQE520gN5nzcMEjmSwLYm5/Tm7kNE6RzFdavBUlJwuLasEuBf9Kw+8tb42fYARH20uh7ZYZNikw50nBODQ=="],
 
