@@ -4,13 +4,16 @@ import { act, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { useUpdaterStore } from "@/features/updater/store"
 import { initI18n } from "@/lib/i18n"
 import * as bridge from "@/lib/settings-bridge"
 
 import { AboutSection } from "../about-section"
 
 vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
+vi.mock("@alwith/module-desktop-shell/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useDesktopUpdater: () => ({ state: { type: "idle" }, confirmInstallAndRelaunch: vi.fn() })
+}))
 
 await initI18n("en")
 
@@ -18,7 +21,6 @@ afterEach(() => clearMocks())
 
 test("About shows the installed app and executable versions instead of the ACP adapter version", async () => {
   const native = vi.spyOn(core, "isTauri").mockReturnValue(true)
-  const init = vi.spyOn(useUpdaterStore.getState(), "init").mockResolvedValue()
   const agent = vi.spyOn(bridge, "useSettingsAgent").mockReturnValue({
     name: "Codex",
     version: "0.7.4",
@@ -41,14 +43,12 @@ test("About shows the installed app and executable versions instead of the ACP a
   } finally {
     view.unmount()
     native.mockRestore()
-    init.mockRestore()
     agent.mockRestore()
   }
 })
 
 test("a failed Codex version check reports the error and still displays the app version", async () => {
   const native = vi.spyOn(core, "isTauri").mockReturnValue(true)
-  const init = vi.spyOn(useUpdaterStore.getState(), "init").mockResolvedValue()
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error-toast")
   mockIPC(
     (command) => {
@@ -67,7 +67,6 @@ test("a failed Codex version check reports the error and still displays the app 
   } finally {
     view.unmount()
     native.mockRestore()
-    init.mockRestore()
     error.mockRestore()
   }
 })

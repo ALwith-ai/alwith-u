@@ -348,8 +348,6 @@ export const commands = {
   providersTest: (args: { providerId: string }): Promise<TestResult_Serialize> =>
     __t3Invoke<TestResult_Serialize>("providers_test", args),
   providersApply: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_apply"),
-  updaterGetState: (): Promise<State_Serialize> => __t3Invoke<State_Serialize>("updater_get_state"),
-  updaterInstallAndRelaunch: (): Promise<null> => __t3Invoke<null>("updater_install_and_relaunch"),
   /**
    *  Makes `label` a child window of `main` (macOS only): it floats above the main window,
    *  follows it between Spaces and never becomes its own Stage Manager stage. Called on every
@@ -496,8 +494,6 @@ export type CommandErrors = {
   providersRemoveCustom: string
   providersTest: string
   providersApply: string
-  updaterGetState: null
-  updaterInstallAndRelaunch: string
   attachWindowToMain: string
   readAppsInfo: Value
   chromeExtensionInstalled: string
@@ -572,13 +568,6 @@ export const events = {
     emit: (payload: RevokedSessions) => __t3Emit("providers:managed-revoked", payload),
     emitTo: (target: string | __t3Target, payload: RevokedSessions) =>
       __t3EmitTo(target, "providers:managed-revoked", payload)
-  },
-  "updater:state": {
-    name: "updater:state",
-    listen: (handler: __t3Callback<State_Serialize>) => __t3Listen<State_Serialize>("updater:state", handler),
-    once: (handler: __t3Callback<State_Serialize>) => __t3Once<State_Serialize>("updater:state", handler),
-    emit: (payload: State_Deserialize) => __t3Emit("updater:state", payload),
-    emitTo: (target: string | __t3Target, payload: State_Deserialize) => __t3EmitTo(target, "updater:state", payload)
   },
   "menu:open-settings": {
     name: "menu:open-settings",
@@ -932,8 +921,6 @@ export type DirectoryGrant = {
   scope: string
   path: string
 }
-
-export type DisablementReason = "invalidConfiguration"
 
 export type EditRedo = null
 
@@ -1421,40 +1408,6 @@ export type StartOptions_Serialize = {
   resourceId?: string
 }
 
-/**
- *  The updater state machine (VSCode abstractUpdateService). `AvailableForDownload` is
- *  stored but never emitted: a hit is downloaded straight away.
- */
-export type State = State_Serialize | State_Deserialize
-
-/**
- *  The updater state machine (VSCode abstractUpdateService). `AvailableForDownload` is
- *  stored but never emitted: a hit is downloaded straight away.
- */
-export type State_Deserialize =
-  | { type: "uninitialized" }
-  | { type: "disabled"; reason: DisablementReason }
-  | { type: "idle" }
-  | { type: "checkingForUpdates" }
-  | { type: "availableForDownload"; update: UpdateInfo_Deserialize }
-  | { type: "downloading"; update: UpdateInfo_Deserialize; downloadedBytes?: number | null; totalBytes?: number | null }
-  | { type: "ready"; update: UpdateInfo_Deserialize }
-  | { type: "restarting"; update: UpdateInfo_Deserialize }
-
-/**
- *  The updater state machine (VSCode abstractUpdateService). `AvailableForDownload` is
- *  stored but never emitted: a hit is downloaded straight away.
- */
-export type State_Serialize =
-  | { type: "uninitialized" }
-  | { type: "disabled"; reason: DisablementReason }
-  | { type: "idle" }
-  | { type: "checkingForUpdates" }
-  | { type: "availableForDownload"; update: UpdateInfo_Serialize }
-  | { type: "downloading"; update: UpdateInfo_Serialize; downloadedBytes: number | null; totalBytes: number | null }
-  | { type: "ready"; update: UpdateInfo_Serialize }
-  | { type: "restarting"; update: UpdateInfo_Serialize }
-
 export type Target = {
   pid: number
   windowId: number
@@ -1531,22 +1484,6 @@ export type TrustedDevice_Serialize = {
   model: string | null
   pairedAt: number
   pushHandle: string | null
-}
-
-export type UpdateInfo = UpdateInfo_Serialize | UpdateInfo_Deserialize
-
-export type UpdateInfo_Deserialize = {
-  version: string
-  filename: string
-  signature: string
-  contentLength?: number | null
-}
-
-export type UpdateInfo_Serialize = {
-  version: string
-  filename: string
-  signature: string
-  contentLength: number | null
 }
 
 export type Value = null | boolean | number | string | Value[] | { [key in string]: Value }

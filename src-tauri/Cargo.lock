@@ -220,7 +220,6 @@ dependencies = [
  "libloading",
  "log",
  "macos-privacy",
- "minisign-verify",
  "objc2",
  "objc2-app-kit",
  "objc2-core-graphics",
@@ -5348,13 +5347,16 @@ name = "tauri-plugin-alwith-desktop-shell"
 version = "0.5.2"
 dependencies = [
  "atlas-tauri",
+ "base64 0.23.1",
  "log",
+ "minisign-verify",
  "rfd",
+ "semver",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-plugin",
  "tauri-plugin-updater",
- "time",
  "tokio",
 ]
 

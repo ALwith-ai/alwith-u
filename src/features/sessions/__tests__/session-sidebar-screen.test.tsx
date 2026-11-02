@@ -1,11 +1,16 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
-import { afterEach, expect, test } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
+
+// The shell owns the updater; this screen only places its card in the navigation footer.
+vi.mock("@alwith/module-desktop-shell/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  DesktopUpdateStatus: () => <button type="button">Relaunch to update</button>
+}))
 
 import { projectContext } from "@/agent/__tests__/project-context"
 import { usePlatformAuth } from "@/features/auth/store"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
-import { useUpdaterStore } from "@/features/updater/store"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
@@ -16,25 +21,17 @@ await initI18n("en")
 const originalState = client.state
 const originalAuth = usePlatformAuth.getState()
 const originalUi = useSessionsUiStore.getState()
-const originalUpdater = useUpdaterStore.getState()
 afterEach(async () => {
   await act(async () => {
     cleanup()
     client.store.setState(originalState, true)
     usePlatformAuth.setState(originalAuth, true)
     useSessionsUiStore.setState(originalUi, true)
-    useUpdaterStore.setState(originalUpdater, true)
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
 })
 
 test("footer arrows switch screens, plugins are selected only on the leading screen, and new chat returns to main", async () => {
-  useUpdaterStore.setState({
-    state: {
-      type: "ready",
-      update: { version: "0.2.5", filename: "update.tar.gz", signature: "sig", contentLength: 100 }
-    }
-  })
   // The plugins entry is fixed navigation: it does not wait for the engine to connect.
   client.store.setState({ connection: "connecting", agent: null })
   function Harness() {

@@ -41,7 +41,6 @@ mod settings;
 mod settings_store;
 use atlas_tauri as trackpad;
 mod tray;
-mod updater;
 mod vibemon;
 mod voice;
 mod voice_credentials;
@@ -216,7 +215,6 @@ pub fn run() {
             #[cfg(not(target_os = "windows"))]
             app.set_menu(menu::build_app_menu(app.handle())?)?;
             tray::initialize(app.handle())?;
-            updater::init(app);
             Ok(())
         })
         .on_page_load(|webview, payload| {
@@ -446,8 +444,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 providers::providers_remove_custom,
                 providers::providers_test,
                 providers::providers_apply,
-                updater::commands::updater_get_state,
-                updater::commands::updater_install_and_relaunch,
                 window::attach_window_to_main,
                 installed_apps::read_apps_info,
                 browser_bridge::chrome_extension_installed,
@@ -465,7 +461,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<runtime::RuntimeExit>()
             .event::<providers::Snapshot>()
             .event::<providers::managed::RevokedSessions>()
-            .event::<updater::state::State>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()
             .event::<menu::NewTab>()

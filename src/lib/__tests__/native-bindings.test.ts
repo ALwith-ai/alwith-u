@@ -45,12 +45,11 @@ test("generated provider and updater bindings keep optional inputs and existing 
   }
   mockIPC((command, args) => {
     calls.push({ command, args })
-    return command === "providers_save" ? snapshot : { type: "idle" }
+    return snapshot
   })
   expect(await commands.providersSave({ providerId: "qwen", input: { apiKey: "test" }, expectedRevision: 0 })).toEqual(
     snapshot
   )
-  expect(await commands.updaterGetState()).toEqual({ type: "idle" })
   expect(calls[0]).toEqual({
     command: "providers_save",
     args: { providerId: "qwen", input: { apiKey: "test" }, expectedRevision: 0 }

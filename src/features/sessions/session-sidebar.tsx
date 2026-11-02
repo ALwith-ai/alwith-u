@@ -14,7 +14,7 @@ import {
   type SessionListExpansion,
   SessionRow
 } from "@alwith/module-chat/session-list"
-import { DesktopNavigationFooter } from "@alwith/module-desktop-shell/react"
+import { DesktopNavigationFooter, DesktopUpdateStatus } from "@alwith/module-desktop-shell/react"
 import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
@@ -34,6 +34,7 @@ import { motion } from "motion/react"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 
 import type { SessionSummary } from "@/agent/client"
 import { NavigationMenuIconButton } from "@/components/alwith-ui/navigation-menu-icon-button"
@@ -50,7 +51,7 @@ import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
-import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
+import { updateLabels } from "@/lib/update-labels"
 import { useApp } from "@/lib/client"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
@@ -387,7 +388,12 @@ function SidebarPanels({
           </Pane>
         )}
       </SidebarContent>
-      <DesktopNavigationFooter className="flex shrink-0 flex-col gap-1 p-2" status={<UpdateStatusButton />}>
+      <DesktopNavigationFooter className="flex shrink-0 flex-col gap-1 p-2" status={
+          <DesktopUpdateStatus
+            labels={updateLabels(t)}
+            onError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
+          />
+        }>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

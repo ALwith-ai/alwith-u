@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "desktop-shell",
   "description": "The desktop shell: state, trackpad availability, updates and the folder picker",
-  "windows": ["main"],
+  "windows": ["main", "settings"],
   "permissions": ["alwith-desktop-shell:default"]
 }

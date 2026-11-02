@@ -6,8 +6,9 @@ vi.mock("@/bindings", () => ({ commands: { diagnosticsExport: controls.export } 
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => false }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock("sonner", () => ({ toast: { success: controls.success, error: controls.error } }))
-vi.mock("@/features/updater/store", () => ({
-  useUpdaterStore: (selector: (state: unknown) => unknown) => selector({ state: { type: "idle" } })
+vi.mock("@alwith/module-desktop-shell/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useDesktopUpdater: () => ({ state: { type: "idle" }, confirmInstallAndRelaunch: vi.fn() })
 }))
 
 import { AboutSection } from "../sections/about-section"

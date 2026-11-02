@@ -1,3 +1,4 @@
+import { useDesktopUpdater } from "@alwith/module-desktop-shell/react"
 import { getVersion } from "@tauri-apps/api/app"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
@@ -6,7 +7,7 @@ import { toast } from "sonner"
 
 import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
-import { useUpdaterStore } from "@/features/updater/store"
+import { updateLabels } from "@/lib/update-labels"
 
 import { SettingGroup, SettingRow } from "./shared"
 
@@ -32,16 +33,11 @@ export function AboutSection() {
       disposed = true
     }
   }, [])
-  useEffect(() => {
-    if (!isTauri()) return
-    void useUpdaterStore
-      .getState()
-      .init(false)
-      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
-  }, [])
   const { t } = useTranslation()
-  const state = useUpdaterStore((store) => store.state)
-  const confirmInstallAndRelaunch = useUpdaterStore((store) => store.confirmInstallAndRelaunch)
+  const { state, confirmInstallAndRelaunch } = useDesktopUpdater({
+    labels: updateLabels(t),
+    onError: (error) => toast.error(error instanceof Error ? error.message : String(error))
+  })
 
   // Checks and downloads are silent; the row only says where the updater stands.
   const updaterText = (() => {

@@ -23,7 +23,6 @@ import { restoreComputer } from "@/features/computer/operations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
 import { initializeMobile } from "@/features/mobile/bridge"
-import { useUpdaterStore } from "@/features/updater/store"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
@@ -86,10 +85,6 @@ async function bootstrap(): Promise<void> {
     )
     await startupStep("computer", restoreComputer).catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
-    void useUpdaterStore
-      .getState()
-      .init()
-      .catch((error: unknown) => surfaceGlobalError(describe(error)))
   }
   await startupStep("viewport", startZoomViewport)
   await startupStep("zoom", () => hydrateZoom(preferences.zoomLevel))
