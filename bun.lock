@@ -11,7 +11,7 @@
         "@alwith/module-browser": "^0.5.0",
         "@alwith/module-chat": "^0.5.24",
         "@alwith/module-collection": "^0.5.0",
-        "@alwith/module-computer": "^0.5.1",
+        "@alwith/module-computer": "^0.5.2",
         "@alwith/module-desktop-shell": "^0.5.12",
         "@alwith/module-device": "^0.5.1",
         "@alwith/module-drive": "^0.5.1",
@@ -93,14 +93,14 @@
       },
       "devDependencies": {
         "@alwith/native-auth": "^0.5.1",
-        "@alwith/native-computer": "^0.5.2",
+        "@alwith/native-computer": "^0.5.3",
         "@alwith/native-drive": "^0.5.1",
         "@alwith/native-editor": "0.5.1",
         "@alwith/native-extension": "^0.5.1",
         "@alwith/native-fs": "^0.5.1",
         "@alwith/native-gamepad": "^0.5.1",
         "@alwith/native-installed-apps": "^0.5.1",
-        "@alwith/native-kit": "0.5.1",
+        "@alwith/native-kit": "0.5.2",
         "@alwith/native-mobile": "^0.5.3",
         "@alwith/native-voice": "^0.5.1",
         "@nyssance/ts7-lint": "^0.1.3",
@@ -145,8 +145,6 @@
     "vite@8.3.5": "patches/vite@8.3.5.patch",
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.24",
-    "@alwith/native-kit": "0.5.1",
     "effect": "^4.0.6",
   },
   "packages": {
@@ -164,7 +162,7 @@
 
     "@alwith/module-collection": ["@alwith/module-collection@0.5.0", "", {}, "sha512-7QQuhJOZfLCo89VGsvpv7G+i9PPUhgb79eiZeTwsy4u9hHG+qyU7QdhUHyXIqC13s6+oIqc3HmNwd2I2WIdaEg=="],
 
-    "@alwith/module-computer": ["@alwith/module-computer@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.0" } }, "sha512-NH5dbTwbxWTYqNZZ/OOvrwwe8Ih8KXKgdeLIDDXN978WLFN+39vBR+moE8MxCdDMMlO+ngLbyvu598gyxV/ZBg=="],
+    "@alwith/module-computer": ["@alwith/module-computer@0.5.2", "", { "dependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-L6it/keBms57OT3VN3HWTnNMPTuLv4hYCyz0wxDLf4DN1qMNLFXRYfBSENCZiK/2BhL4q2u4syKW+HMlEJ2Rfg=="],
 
     "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.5.12", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/shadcn": "^4.23.2", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "lucide-react": "^1.66.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.10", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-hhk3d3v0CiJ/7zHt7RfwknVJWTVpqyjKCr9YkmKwEEJ/a6SA8uhBX7sACLhBZK1GR6APBPxk3KPssKZzZ92coQ=="],
 
@@ -194,11 +192,13 @@
 
     "@alwith/native-auth-win32-x64": ["@alwith/native-auth-win32-x64@0.5.1", "", { "os": "win32", "cpu": "x64" }, "sha512-dpm7+qE/2K6H0kgYwBgZ7cET7VLM7cNIIdDxONjHcc2d8O+iJyL6uC8zzbL4zi1HjZf5oBaZlMroTSdUxg0UxQ=="],
 
-    "@alwith/native-computer": ["@alwith/native-computer@0.5.2", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-computer-darwin-arm64": "0.5.2", "@alwith/native-computer-win32-x64": "0.5.2" } }, "sha512-f3s6k646V4Htl5l6wnyoAIV8nnDy77wsuHRUWdgCBBO9BvURBOt2rGuagc/DP9iizvIFvUz5wS5SyUmRRgP2sQ=="],
+    "@alwith/native-computer": ["@alwith/native-computer@0.5.3", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-computer-darwin-arm64": "0.5.3", "@alwith/native-computer-linux-x64": "0.5.3", "@alwith/native-computer-win32-x64": "0.5.3" } }, "sha512-frojsrSM28Lr1S+o11oNCwp6XHwmB9wYkshnOK2cQQMK5YsxqDf7Jy4U4H1gcUYEa8nsTlqBLrhee64OhAceRA=="],
 
-    "@alwith/native-computer-darwin-arm64": ["@alwith/native-computer-darwin-arm64@0.5.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-g4edH0X/MEb2eqC6AOiiCJTjfN0DpQtFoJXX6Fbod9Cpk5stI00Wc36ZXY2NTXyC/haNOw2ZROQq0JNEeFoBXA=="],
+    "@alwith/native-computer-darwin-arm64": ["@alwith/native-computer-darwin-arm64@0.5.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-BN0RLJmHZ3Hd5/DhdpvTFR6+b6NEYeKlRWR5SDUDweS010mybjjtH7FebDa7yeG3uH6TRJv9VB+eYdoYxeC65A=="],
 
-    "@alwith/native-computer-win32-x64": ["@alwith/native-computer-win32-x64@0.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-3mfLvsgd/K5WaDwnxb1k8XZxk/D7cZVhEzqD+qpLUPv5W1zeqBHNKV+4EuMmNsZXgMsCxkrgrv0tpN4rohD3Jw=="],
+    "@alwith/native-computer-linux-x64": ["@alwith/native-computer-linux-x64@0.5.3", "", { "os": "linux", "cpu": "x64" }, "sha512-p21EWESLt/II8elMwh+J5pxG5MU6wuUA3WdscBLnjamwCAHPwDfGQmy4ZAt+WiWAwL6tVFPKR6tMxwWZMOWhCg=="],
+
+    "@alwith/native-computer-win32-x64": ["@alwith/native-computer-win32-x64@0.5.3", "", { "os": "win32", "cpu": "x64" }, "sha512-7aSStmZHzacwU4/M5ZGjRaQfWDyxHJMUcToxOiN8jlT5LxcUhGhFaOcYldLE/tQQ38RcjYFSNlZp1Xs51eQoLg=="],
 
     "@alwith/native-device": ["@alwith/native-device@0.5.2", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-device-darwin-arm64": "0.5.2", "@alwith/native-device-win32-x64": "0.5.2" } }, "sha512-mtiCuQfpz8fYKyOD0175tO3A+qBeZbXLx9iN/3EXhMK9nXVLGngsaqq7hgO2/9LWVbHOKmK6AcfoEA/ikSIfRg=="],
 
@@ -242,7 +242,7 @@
 
     "@alwith/native-installed-apps-win32-x64": ["@alwith/native-installed-apps-win32-x64@0.5.1", "", { "os": "win32", "cpu": "x64" }, "sha512-qbbbVeXCj3yrJWHAtQBDvOlBFjo4/fz5ZSUc+lSZUgGblVAarAHtRWAtDOv/4rEQKLlqkXOeUpCPs3rDjpvvmA=="],
 
-    "@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+    "@alwith/native-kit": ["@alwith/native-kit@0.5.2", "", {}, "sha512-3rEpldU/pdyeFoKH8LvYj83lsCmLI9lFZWEhBUPNMPOwQY+88IFcaB/fxctR87m1zryBA6l1DKHcbBpJ+MOIZg=="],
 
     "@alwith/native-mobile": ["@alwith/native-mobile@0.5.3", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-mobile-darwin-arm64": "0.5.3", "@alwith/native-mobile-win32-x64": "0.5.3" } }, "sha512-TRrQZrT1bNBfbpHz4xtU7kszacFpTUvNMNu+H7etk3D0CkcXnlBDm5//3m4bpgu+QrF6+Hb169PUn1ujNWAz2Q=="],
 
@@ -514,15 +514,15 @@
 
     "@napi-rs/canvas-linux-arm-gnueabihf": ["@napi-rs/canvas-linux-arm-gnueabihf@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm-gnueabihf/-/canvas-linux-arm-gnueabihf-1.1.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-Y4YkKG1ijoqkgUdTEEBNG4k+2BK5bR5jGL6S56YxCXYPwGfUd5nED8/74xyc7z+bpixPasCjSYoP3xYPOIGNxw=="],
 
-    "@napi-rs/canvas-linux-arm64-gnu": ["@napi-rs/canvas-linux-arm64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-dE/XthqYkiWcBVtKFlZbUXwAYfDuQGqDWixznipJNmevLGpprNnTVQZyftm1RZJudkIOn2EkzYZDMMETM08Row=="],
+    "@napi-rs/canvas-linux-arm64-gnu": ["@napi-rs/canvas-linux-arm64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-dE/XthqYkiWcBVtKFlZbUXwAYfDuQGqDWixznipJNmevLGpprNnTVQZyftm1RZJudkIOn2EkzYZDMMETM08Row=="],
 
-    "@napi-rs/canvas-linux-arm64-musl": ["@napi-rs/canvas-linux-arm64-musl@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-musl/-/canvas-linux-arm64-musl-1.1.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-DqZ/CMcHlhU56pPjv9AP0h3U7MFQ5LzC1HzMyRMotL+PFsJmZJA/ziApPYVyyz78DaVLhI8t3So3ztqtijbYpg=="],
+    "@napi-rs/canvas-linux-arm64-musl": ["@napi-rs/canvas-linux-arm64-musl@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-musl/-/canvas-linux-arm64-musl-1.1.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-DqZ/CMcHlhU56pPjv9AP0h3U7MFQ5LzC1HzMyRMotL+PFsJmZJA/ziApPYVyyz78DaVLhI8t3So3ztqtijbYpg=="],
 
-    "@napi-rs/canvas-linux-riscv64-gnu": ["@napi-rs/canvas-linux-riscv64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-riscv64-gnu/-/canvas-linux-riscv64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-kJ7m5n2VffxWXM5QGa5lfq8ZN4LdOJEoz3aAJAmIqYvKiZw1gRdXqpucnRXsF6D9nLYiiIlevaAtAclR7c5ilg=="],
+    "@napi-rs/canvas-linux-riscv64-gnu": ["@napi-rs/canvas-linux-riscv64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-riscv64-gnu/-/canvas-linux-riscv64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "none" }, "sha512-kJ7m5n2VffxWXM5QGa5lfq8ZN4LdOJEoz3aAJAmIqYvKiZw1gRdXqpucnRXsF6D9nLYiiIlevaAtAclR7c5ilg=="],
 
-    "@napi-rs/canvas-linux-x64-gnu": ["@napi-rs/canvas-linux-x64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-uQ9JuJlRhQdHyttcMWOiwLkfIqkqaB0YFUVe835LUe12THt2b51HXkTItq0fxWT1jdhUPX2ylWZ1walkJyD6GQ=="],
+    "@napi-rs/canvas-linux-x64-gnu": ["@napi-rs/canvas-linux-x64-gnu@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-uQ9JuJlRhQdHyttcMWOiwLkfIqkqaB0YFUVe835LUe12THt2b51HXkTItq0fxWT1jdhUPX2ylWZ1walkJyD6GQ=="],
 
-    "@napi-rs/canvas-linux-x64-musl": ["@napi-rs/canvas-linux-x64-musl@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-musl/-/canvas-linux-x64-musl-1.1.0.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-has4CPPAkkCac/LZ13VAw5p+MJLdaKVoyrhumN/A7uJd6960xYkJNDZgUebyxiha82AFzXx6RV+QJg5qGG079g=="],
+    "@napi-rs/canvas-linux-x64-musl": ["@napi-rs/canvas-linux-x64-musl@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-musl/-/canvas-linux-x64-musl-1.1.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-has4CPPAkkCac/LZ13VAw5p+MJLdaKVoyrhumN/A7uJd6960xYkJNDZgUebyxiha82AFzXx6RV+QJg5qGG079g=="],
 
     "@napi-rs/canvas-win32-arm64-msvc": ["@napi-rs/canvas-win32-arm64-msvc@1.1.0", "https://registry.npmmirror.com/@napi-rs/canvas-win32-arm64-msvc/-/canvas-win32-arm64-msvc-1.1.0.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-MJnktLKNijmXqdjTughHDZ9TDLZ9uUm2hvFXqaOqn0+w7lphXFnft6bpSgQAc9U1exc20UGIBlzGu9+kiCj9Ag=="],
 
@@ -576,21 +576,21 @@
 
     "@oxc-parser/binding-linux-arm-musleabihf": ["@oxc-parser/binding-linux-arm-musleabihf@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-0.155.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-058/+LardpfuUlsKIvBGk/CYoakEVcMgqYx8GgyUZeOxFWTojYLlCc1Gb60/y21v3esDhHidgiY/Zbq9LpBhaQ=="],
 
-    "@oxc-parser/binding-linux-arm64-gnu": ["@oxc-parser/binding-linux-arm64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-nrOt2Y3xIAzu+lSPzH0864ieO+iCCXgoo9qFlGANE8Xh0cQ+RP8Wstfp+/wXN2YCyb98cAGzX0VruKYw7it/jw=="],
+    "@oxc-parser/binding-linux-arm64-gnu": ["@oxc-parser/binding-linux-arm64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-nrOt2Y3xIAzu+lSPzH0864ieO+iCCXgoo9qFlGANE8Xh0cQ+RP8Wstfp+/wXN2YCyb98cAGzX0VruKYw7it/jw=="],
 
-    "@oxc-parser/binding-linux-arm64-musl": ["@oxc-parser/binding-linux-arm64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-musl/-/binding-linux-arm64-musl-0.155.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-KYAayyN5hQbJPtGKtRxlyc8XYmyntOplyXSQzTDrmbz7l/GCrzQbSswvyJFBTH1LGtsZrbXOAfN52i/Kz6kLKg=="],
+    "@oxc-parser/binding-linux-arm64-musl": ["@oxc-parser/binding-linux-arm64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-musl/-/binding-linux-arm64-musl-0.155.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-KYAayyN5hQbJPtGKtRxlyc8XYmyntOplyXSQzTDrmbz7l/GCrzQbSswvyJFBTH1LGtsZrbXOAfN52i/Kz6kLKg=="],
 
-    "@oxc-parser/binding-linux-ppc64-gnu": ["@oxc-parser/binding-linux-ppc64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "ppc64", "libc": "glibc" }, "sha512-CSuSY5hfjtsBnHXydOj8jiNfS1qHbdPZuPz1YL1cSgK7VmNYP+QlZIbG0BBYYBgX/vYEgZwbG9mBdW4YairZ5w=="],
+    "@oxc-parser/binding-linux-ppc64-gnu": ["@oxc-parser/binding-linux-ppc64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-CSuSY5hfjtsBnHXydOj8jiNfS1qHbdPZuPz1YL1cSgK7VmNYP+QlZIbG0BBYYBgX/vYEgZwbG9mBdW4YairZ5w=="],
 
-    "@oxc-parser/binding-linux-riscv64-gnu": ["@oxc-parser/binding-linux-riscv64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-7KCfOQm+Nz2N8trAXbQkal4TQ5756WVEmhm35y816YHvyFnEfVsICsiV5k0pEszNf/fRm4cm2i6i18SJ6/iCWg=="],
+    "@oxc-parser/binding-linux-riscv64-gnu": ["@oxc-parser/binding-linux-riscv64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "none" }, "sha512-7KCfOQm+Nz2N8trAXbQkal4TQ5756WVEmhm35y816YHvyFnEfVsICsiV5k0pEszNf/fRm4cm2i6i18SJ6/iCWg=="],
 
-    "@oxc-parser/binding-linux-riscv64-musl": ["@oxc-parser/binding-linux-riscv64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-0.155.0.tgz", { "os": "linux", "cpu": "none", "libc": "musl" }, "sha512-JSlhgoK+/g1TGJI5NuADx2+6syhxnQNLCWLXyO5QLFyetomcr/vIxSdiNlmyAv963YXUzCuwAwRG6npZ5xyJ1A=="],
+    "@oxc-parser/binding-linux-riscv64-musl": ["@oxc-parser/binding-linux-riscv64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-0.155.0.tgz", { "os": "linux", "cpu": "none" }, "sha512-JSlhgoK+/g1TGJI5NuADx2+6syhxnQNLCWLXyO5QLFyetomcr/vIxSdiNlmyAv963YXUzCuwAwRG6npZ5xyJ1A=="],
 
-    "@oxc-parser/binding-linux-s390x-gnu": ["@oxc-parser/binding-linux-s390x-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-0.155.0.tgz", { "os": "linux", "cpu": "s390x", "libc": "glibc" }, "sha512-WFIX+dPokWp64mi434Md3U3lJaTwNxAphvGjpltoyQjGUsdXavOIRrnp9dOS34Hd75HOAwDxAI+YwWOwqmJbtg=="],
+    "@oxc-parser/binding-linux-s390x-gnu": ["@oxc-parser/binding-linux-s390x-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-0.155.0.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-WFIX+dPokWp64mi434Md3U3lJaTwNxAphvGjpltoyQjGUsdXavOIRrnp9dOS34Hd75HOAwDxAI+YwWOwqmJbtg=="],
 
-    "@oxc-parser/binding-linux-x64-gnu": ["@oxc-parser/binding-linux-x64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-g6xSDC/JpbnVOz5uafMGyK3txBVRFMQTx8opv/yHXGxqV3ZMVl3bf7W8XrSnF68dmy3gM4dgReNryuE53+WkeQ=="],
+    "@oxc-parser/binding-linux-x64-gnu": ["@oxc-parser/binding-linux-x64-gnu@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.155.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-g6xSDC/JpbnVOz5uafMGyK3txBVRFMQTx8opv/yHXGxqV3ZMVl3bf7W8XrSnF68dmy3gM4dgReNryuE53+WkeQ=="],
 
-    "@oxc-parser/binding-linux-x64-musl": ["@oxc-parser/binding-linux-x64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.155.0.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-6/4xlxKlZJWrQ0uwDFPc0H9+xLu7068CKhX3vIDW3SbvP/lVgnVuT5v6dyugeWskWpuxqF/WJ4WKwhxjU3pG2w=="],
+    "@oxc-parser/binding-linux-x64-musl": ["@oxc-parser/binding-linux-x64-musl@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.155.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-6/4xlxKlZJWrQ0uwDFPc0H9+xLu7068CKhX3vIDW3SbvP/lVgnVuT5v6dyugeWskWpuxqF/WJ4WKwhxjU3pG2w=="],
 
     "@oxc-parser/binding-openharmony-arm64": ["@oxc-parser/binding-openharmony-arm64@0.155.0", "https://registry.npmmirror.com/@oxc-parser/binding-openharmony-arm64/-/binding-openharmony-arm64-0.155.0.tgz", { "os": "none", "cpu": "arm64" }, "sha512-tltklL0J0XjDxIRTBXWOBhvc2mitcmES45pIxhwDWfxRyqz7Vkeu0NekTZEIxGE4f/lXgq3vZcjjffteQOVorg=="],
 
@@ -618,21 +618,21 @@
 
     "@oxc-resolver/binding-linux-arm-musleabihf": ["@oxc-resolver/binding-linux-arm-musleabihf@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-11.24.2.tgz", { "os": "linux", "cpu": "arm" }, "sha512-bnHAak3ujYfH5pKk4NieFNbvYvernfoQDgwLddbZ3OtMYrem87/qjlA+u+aKG0oZcqSLGCful/6/CEA+aeAgaA=="],
 
-    "@oxc-resolver/binding-linux-arm64-gnu": ["@oxc-resolver/binding-linux-arm64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-vDT3KHgzYp47gmtNOqL2VNhCyl5Zv643eyxm//A68J8DeUGXrvD1pZFiaT4jSfe+RInfnn1R2yVHye4enx6RnA=="],
+    "@oxc-resolver/binding-linux-arm64-gnu": ["@oxc-resolver/binding-linux-arm64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-vDT3KHgzYp47gmtNOqL2VNhCyl5Zv643eyxm//A68J8DeUGXrvD1pZFiaT4jSfe+RInfnn1R2yVHye4enx6RnA=="],
 
-    "@oxc-resolver/binding-linux-arm64-musl": ["@oxc-resolver/binding-linux-arm64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-musl/-/binding-linux-arm64-musl-11.24.2.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-+kMlQvbzfyEYtu5FcjE4p+ttBLpKW4d/AsAsuE69BxV6V4twZJeIQZFfD8gh/wqglY0MkPSezWXQH0jBV13MUw=="],
+    "@oxc-resolver/binding-linux-arm64-musl": ["@oxc-resolver/binding-linux-arm64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-musl/-/binding-linux-arm64-musl-11.24.2.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-+kMlQvbzfyEYtu5FcjE4p+ttBLpKW4d/AsAsuE69BxV6V4twZJeIQZFfD8gh/wqglY0MkPSezWXQH0jBV13MUw=="],
 
-    "@oxc-resolver/binding-linux-ppc64-gnu": ["@oxc-resolver/binding-linux-ppc64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "ppc64", "libc": "glibc" }, "sha512-shjfMhmZ3gq9fv/w7bi3PnZlgOPG+2QAOFf0BJF0EgBSIGZ6PMLN2zbGEblTUYB/NKVDRyYhE2ff3dJ1QqNPkA=="],
+    "@oxc-resolver/binding-linux-ppc64-gnu": ["@oxc-resolver/binding-linux-ppc64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-shjfMhmZ3gq9fv/w7bi3PnZlgOPG+2QAOFf0BJF0EgBSIGZ6PMLN2zbGEblTUYB/NKVDRyYhE2ff3dJ1QqNPkA=="],
 
-    "@oxc-resolver/binding-linux-riscv64-gnu": ["@oxc-resolver/binding-linux-riscv64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-zGelwFR5oRo+b69k8Lrzun86DyUHzfKN6cnjbR9l7Z7NIRznOE/2ZvPa1IUKqAL2PzAXOdwkfVqNvO1H2RlpAw=="],
+    "@oxc-resolver/binding-linux-riscv64-gnu": ["@oxc-resolver/binding-linux-riscv64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-zGelwFR5oRo+b69k8Lrzun86DyUHzfKN6cnjbR9l7Z7NIRznOE/2ZvPa1IUKqAL2PzAXOdwkfVqNvO1H2RlpAw=="],
 
-    "@oxc-resolver/binding-linux-riscv64-musl": ["@oxc-resolver/binding-linux-riscv64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-11.24.2.tgz", { "os": "linux", "cpu": "none", "libc": "musl" }, "sha512-qxZ1SWCXJY0eyhAlP6Lmo9F2Nrtx7EkYj9oCgL8apDPCwXwCEDA2U697bbT81JIc2IrVjxO4KX6WU2N+oN9Z4w=="],
+    "@oxc-resolver/binding-linux-riscv64-musl": ["@oxc-resolver/binding-linux-riscv64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-11.24.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-qxZ1SWCXJY0eyhAlP6Lmo9F2Nrtx7EkYj9oCgL8apDPCwXwCEDA2U697bbT81JIc2IrVjxO4KX6WU2N+oN9Z4w=="],
 
-    "@oxc-resolver/binding-linux-s390x-gnu": ["@oxc-resolver/binding-linux-s390x-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-11.24.2.tgz", { "os": "linux", "cpu": "s390x", "libc": "glibc" }, "sha512-sGCecF3cx2DFlH4t/z7ApnOnXqN48p5p5mlHDEnHTAukQa2P+qMVE4CwyWE9W+q/m3QJ7kKfGrIjax31f44oFQ=="],
+    "@oxc-resolver/binding-linux-s390x-gnu": ["@oxc-resolver/binding-linux-s390x-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-11.24.2.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-sGCecF3cx2DFlH4t/z7ApnOnXqN48p5p5mlHDEnHTAukQa2P+qMVE4CwyWE9W+q/m3QJ7kKfGrIjax31f44oFQ=="],
 
-    "@oxc-resolver/binding-linux-x64-gnu": ["@oxc-resolver/binding-linux-x64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-gnu/-/binding-linux-x64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-k/VlMMcSzMlahb3/fENM4rTlsJ0s3fFROA0KXPBmKggqmTSaE383sl8F3KCOXPLmVsYfW6hCitMhXCEtNeZxxg=="],
+    "@oxc-resolver/binding-linux-x64-gnu": ["@oxc-resolver/binding-linux-x64-gnu@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-gnu/-/binding-linux-x64-gnu-11.24.2.tgz", { "os": "linux", "cpu": "x64" }, "sha512-k/VlMMcSzMlahb3/fENM4rTlsJ0s3fFROA0KXPBmKggqmTSaE383sl8F3KCOXPLmVsYfW6hCitMhXCEtNeZxxg=="],
 
-    "@oxc-resolver/binding-linux-x64-musl": ["@oxc-resolver/binding-linux-x64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-musl/-/binding-linux-x64-musl-11.24.2.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-8hbnZyNi97b/8wapYaIF9+t9GmZKBW2vunaOc3h9HGJptH7b7XpvZqOTBSm/MpTjr7H497BlgOaSfLUdhmy2bw=="],
+    "@oxc-resolver/binding-linux-x64-musl": ["@oxc-resolver/binding-linux-x64-musl@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-musl/-/binding-linux-x64-musl-11.24.2.tgz", { "os": "linux", "cpu": "x64" }, "sha512-8hbnZyNi97b/8wapYaIF9+t9GmZKBW2vunaOc3h9HGJptH7b7XpvZqOTBSm/MpTjr7H497BlgOaSfLUdhmy2bw=="],
 
     "@oxc-resolver/binding-openharmony-arm64": ["@oxc-resolver/binding-openharmony-arm64@11.24.2", "https://registry.npmmirror.com/@oxc-resolver/binding-openharmony-arm64/-/binding-openharmony-arm64-11.24.2.tgz", { "os": "none", "cpu": "arm64" }, "sha512-MvyGik3a6pVgZ0t/kWlbmFxFLmXQJwgLsY2eYFHLpy0wGwRbfzeIGgDwQ3kXqE30z+kSXennRkCrT7TUvkptNg=="],
 
@@ -692,17 +692,17 @@
 
     "@rolldown/binding-linux-arm-gnueabihf": ["@rolldown/binding-linux-arm-gnueabihf@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.16.tgz", { "os": "linux", "cpu": "arm" }, "sha512-tHdKWbFkFBI687iim3LIyIvyL7j66VvQYkDPss5Stn/qyE2tWkR1YD0dXmXPFKKqT/o5ZEJVsaRsWS2meQwGOA=="],
 
-    "@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-FJiLGAblPBMlBEdbOqw6kW6QcXDWAf/oJu7gYs9ZJZwmg+K+/zjFLxPTIY9izJUzxzc24FHvmseyA0IvJSl17w=="],
+    "@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-FJiLGAblPBMlBEdbOqw6kW6QcXDWAf/oJu7gYs9ZJZwmg+K+/zjFLxPTIY9izJUzxzc24FHvmseyA0IvJSl17w=="],
 
-    "@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.16.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-hrJpblMsrQ58U9veWpbXzkhV5zStunds6HWLprqq1qauvgBr1E6P+24kLj6lSLI9vjRn/RYpjprhkHQPKGWpNg=="],
+    "@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.16.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-hrJpblMsrQ58U9veWpbXzkhV5zStunds6HWLprqq1qauvgBr1E6P+24kLj6lSLI9vjRn/RYpjprhkHQPKGWpNg=="],
 
-    "@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "ppc64", "libc": "glibc" }, "sha512-qJd/dC6j6CwLG9/s/RP2nb1RZ0GIgj7Ioj7x/SYa3RzjVrlzrmH0fhIOpfvqQDeIsdP0loi+kHaMhJzY1PBIaA=="],
+    "@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-qJd/dC6j6CwLG9/s/RP2nb1RZ0GIgj7Ioj7x/SYa3RzjVrlzrmH0fhIOpfvqQDeIsdP0loi+kHaMhJzY1PBIaA=="],
 
-    "@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.16.tgz", { "os": "linux", "cpu": "s390x", "libc": "glibc" }, "sha512-Vx7Xg5uUJuNcujJjI70OICaH0EYj80BtOLZTSN7uOYg8QOLlyKnaG0IW7Fn/J0IpJsaKzmDKMhOQv1JBM9m9vg=="],
+    "@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.16.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-Vx7Xg5uUJuNcujJjI70OICaH0EYj80BtOLZTSN7uOYg8QOLlyKnaG0IW7Fn/J0IpJsaKzmDKMhOQv1JBM9m9vg=="],
 
-    "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-TNKhgE3uJTsTzatUSSYt0Kgo+Oa2uSlSjz4r1aEIea7HX6ULBym4fAlYUhG1i6pjNf2njfCUAfKwr6C3E9Xg1w=="],
+    "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.16.tgz", { "os": "linux", "cpu": "x64" }, "sha512-TNKhgE3uJTsTzatUSSYt0Kgo+Oa2uSlSjz4r1aEIea7HX6ULBym4fAlYUhG1i6pjNf2njfCUAfKwr6C3E9Xg1w=="],
 
-    "@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.16.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-7chXdpjXZ8qG0+mIxECN3cT9kvhZ3/oZhMX6Pp876P7CDrIy8nJswva6Mq357JR7eYXfuskwZxMeV1SzoZdHrA=="],
+    "@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.16.tgz", { "os": "linux", "cpu": "x64" }, "sha512-7chXdpjXZ8qG0+mIxECN3cT9kvhZ3/oZhMX6Pp876P7CDrIy8nJswva6Mq357JR7eYXfuskwZxMeV1SzoZdHrA=="],
 
     "@rolldown/binding-openharmony-arm64": ["@rolldown/binding-openharmony-arm64@1.2.16", "https://registry.npmmirror.com/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.16.tgz", { "os": "none", "cpu": "arm64" }, "sha512-Kwjt+7uNTJK5/MDkGWGVO2KQPnj8yAV75dMpfwyHZrJSXWHrniOB0aUEWlVYf3H1hOqFLIStLdM5QXq6bnKmOQ=="],
 
@@ -798,13 +798,13 @@
 
     "@tailwindcss/oxide-linux-arm-gnueabihf": ["@tailwindcss/oxide-linux-arm-gnueabihf@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-arm-gnueabihf/-/oxide-linux-arm-gnueabihf-4.3.3.tgz", { "os": "linux", "cpu": "arm" }, "sha512-aAYUprJAJQWWbRrPvtjdroZ56Md+JM8pMiopS6xGEwDfLhqj+2ver2p4nU4Mb3CRqcMmNBjo8KkUgcxhkzVQGQ=="],
 
-    "@tailwindcss/oxide-linux-arm64-gnu": ["@tailwindcss/oxide-linux-arm64-gnu@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-arm64-gnu/-/oxide-linux-arm64-gnu-4.3.3.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-nDxldcEENOxZRzC2uu9jrutZdAAQtb+8WWDCSnWL1zvBk1+FN+x6MtDViPB5AJMfttVCUhehGWus3XBPgatM/w=="],
+    "@tailwindcss/oxide-linux-arm64-gnu": ["@tailwindcss/oxide-linux-arm64-gnu@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-arm64-gnu/-/oxide-linux-arm64-gnu-4.3.3.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-nDxldcEENOxZRzC2uu9jrutZdAAQtb+8WWDCSnWL1zvBk1+FN+x6MtDViPB5AJMfttVCUhehGWus3XBPgatM/w=="],
 
-    "@tailwindcss/oxide-linux-arm64-musl": ["@tailwindcss/oxide-linux-arm64-musl@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-arm64-musl/-/oxide-linux-arm64-musl-4.3.3.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-Md44bD6veX/PC5iyF8cDVnw4HBIANZepRZZ7a8DQOvkfo5WUBwcp6iAuCUz23u+4SUkhJlD3eL7hNdW8ezd/kA=="],
+    "@tailwindcss/oxide-linux-arm64-musl": ["@tailwindcss/oxide-linux-arm64-musl@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-arm64-musl/-/oxide-linux-arm64-musl-4.3.3.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-Md44bD6veX/PC5iyF8cDVnw4HBIANZepRZZ7a8DQOvkfo5WUBwcp6iAuCUz23u+4SUkhJlD3eL7hNdW8ezd/kA=="],
 
-    "@tailwindcss/oxide-linux-x64-gnu": ["@tailwindcss/oxide-linux-x64-gnu@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.3.3.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-tx7us1muwOKAKWao2v/GaafFeQboE6aj88vC6ziN2NCGcRm8gWUhwjzg+YdVB1e4boAtdtma4L43onunI6NS4w=="],
+    "@tailwindcss/oxide-linux-x64-gnu": ["@tailwindcss/oxide-linux-x64-gnu@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.3.3.tgz", { "os": "linux", "cpu": "x64" }, "sha512-tx7us1muwOKAKWao2v/GaafFeQboE6aj88vC6ziN2NCGcRm8gWUhwjzg+YdVB1e4boAtdtma4L43onunI6NS4w=="],
 
-    "@tailwindcss/oxide-linux-x64-musl": ["@tailwindcss/oxide-linux-x64-musl@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-x64-musl/-/oxide-linux-x64-musl-4.3.3.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-SJxX60smvHgasZoBy11dX6YRjXJFovwWBoedhbQPOBzgFWBHGB+TVPWB9BxzR7TTxU8FQZAI2AyiNCMzFm8Img=="],
+    "@tailwindcss/oxide-linux-x64-musl": ["@tailwindcss/oxide-linux-x64-musl@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-linux-x64-musl/-/oxide-linux-x64-musl-4.3.3.tgz", { "os": "linux", "cpu": "x64" }, "sha512-SJxX60smvHgasZoBy11dX6YRjXJFovwWBoedhbQPOBzgFWBHGB+TVPWB9BxzR7TTxU8FQZAI2AyiNCMzFm8Img=="],
 
     "@tailwindcss/oxide-wasm32-wasi": ["@tailwindcss/oxide-wasm32-wasi@4.3.3", "https://registry.npmmirror.com/@tailwindcss/oxide-wasm32-wasi/-/oxide-wasm32-wasi-4.3.3.tgz", { "dependencies": { "@emnapi/core": "^1.11.1", "@emnapi/runtime": "^1.11.1", "@emnapi/wasi-threads": "^1.2.2", "@napi-rs/wasm-runtime": "^1.1.4", "@tybys/wasm-util": "^0.10.2", "tslib": "^2.8.1" }, "cpu": "none" }, "sha512-jx1+rPhY/5Ympkktd656HBWEBLxP7dH06losBLjjf5vgCODXvi9KhtftWcMIwTFIDqBr7cRnQkdLnAG+IOlGvQ=="],
 
@@ -828,15 +828,15 @@
 
     "@tauri-apps/cli-linux-arm-gnueabihf": ["@tauri-apps/cli-linux-arm-gnueabihf@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-arm-gnueabihf/-/cli-linux-arm-gnueabihf-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "arm" }, "sha512-m2WDczfS1OkteHmhkBTxGbQUtKpj0TkqXs6s2cJa11kwRVTS/QSBwN+MjMrX3wAR3f68IU/liTI/iGV1ogc9Iw=="],
 
-    "@tauri-apps/cli-linux-arm64-gnu": ["@tauri-apps/cli-linux-arm64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-9/QRqUp9EvVEK0ard48JKYmfzcNpl0EQ43/oUJfKC9vox7ijjgXaVeZH1YZDusdpu1rjcxkzxegIPUCMME6AjQ=="],
+    "@tauri-apps/cli-linux-arm64-gnu": ["@tauri-apps/cli-linux-arm64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-9/QRqUp9EvVEK0ard48JKYmfzcNpl0EQ43/oUJfKC9vox7ijjgXaVeZH1YZDusdpu1rjcxkzxegIPUCMME6AjQ=="],
 
-    "@tauri-apps/cli-linux-arm64-musl": ["@tauri-apps/cli-linux-arm64-musl@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-SxU3dbIHcA9WTSrS469aUmz8cdwE3QzCBVgJEyxSPEkI7xlWSMPAH1CyjZjpf97FM0FD2QvMY/gs7vf+1E3EBA=="],
+    "@tauri-apps/cli-linux-arm64-musl": ["@tauri-apps/cli-linux-arm64-musl@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-SxU3dbIHcA9WTSrS469aUmz8cdwE3QzCBVgJEyxSPEkI7xlWSMPAH1CyjZjpf97FM0FD2QvMY/gs7vf+1E3EBA=="],
 
-    "@tauri-apps/cli-linux-riscv64-gnu": ["@tauri-apps/cli-linux-riscv64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-riscv64-gnu/-/cli-linux-riscv64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-d9PzysM/T5skp5lOjlsQjRQLy8FbjulYSq0eYZhxySqGPhS5m5Ok9HwDI2CCl2iYMHutIxA20jd5zxL2szZMJQ=="],
+    "@tauri-apps/cli-linux-riscv64-gnu": ["@tauri-apps/cli-linux-riscv64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-riscv64-gnu/-/cli-linux-riscv64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "none" }, "sha512-d9PzysM/T5skp5lOjlsQjRQLy8FbjulYSq0eYZhxySqGPhS5m5Ok9HwDI2CCl2iYMHutIxA20jd5zxL2szZMJQ=="],
 
-    "@tauri-apps/cli-linux-x64-gnu": ["@tauri-apps/cli-linux-x64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-nnYAZe0naGlneyOpJhK3aubL/R5hv0X3JYzmAAOcdcYakNm9V00bZIfa0FhY/kjxTQx4MsMj0ItO06638W+0Pw=="],
+    "@tauri-apps/cli-linux-x64-gnu": ["@tauri-apps/cli-linux-x64-gnu@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "x64" }, "sha512-nnYAZe0naGlneyOpJhK3aubL/R5hv0X3JYzmAAOcdcYakNm9V00bZIfa0FhY/kjxTQx4MsMj0ItO06638W+0Pw=="],
 
-    "@tauri-apps/cli-linux-x64-musl": ["@tauri-apps/cli-linux-x64-musl@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-FMvfSHYCDO4dZm58gBUzT8USxUW7nkOnZ3AKwWVc8sylJuWfTjXkWr2Ia5vhDGpt0JSirODGB4NlYYsdwbRAVQ=="],
+    "@tauri-apps/cli-linux-x64-musl": ["@tauri-apps/cli-linux-x64-musl@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-3.0.0-alpha.5.tgz", { "os": "linux", "cpu": "x64" }, "sha512-FMvfSHYCDO4dZm58gBUzT8USxUW7nkOnZ3AKwWVc8sylJuWfTjXkWr2Ia5vhDGpt0JSirODGB4NlYYsdwbRAVQ=="],
 
     "@tauri-apps/cli-win32-arm64-msvc": ["@tauri-apps/cli-win32-arm64-msvc@3.0.0-alpha.5", "https://registry.npmmirror.com/@tauri-apps/cli-win32-arm64-msvc/-/cli-win32-arm64-msvc-3.0.0-alpha.5.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-1++QwxPDNoORHbbIkBxQpLgT6QX9RNrb23fy0tK7rApqbH1bakfMdNq0OdqkNkSXzRaxau0bBm5im/sOV8WYUg=="],
 
@@ -1174,7 +1174,7 @@
 
     "copy-anything": ["copy-anything@3.0.5", "https://registry.npmmirror.com/copy-anything/-/copy-anything-3.0.5.tgz", { "dependencies": { "is-what": "^4.1.8" } }, "sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w=="],
 
-    "core-js": ["core-js@2.6.12", "https://registry.npmmirror.com/core-js/-/core-js-2.6.12.tgz", { "hasInstallScript": true }, "sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ=="],
+    "core-js": ["core-js@2.6.12", "https://registry.npmmirror.com/core-js/-/core-js-2.6.12.tgz", {}, "sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ=="],
 
     "core-util-is": ["core-util-is@1.0.3", "https://registry.npmmirror.com/core-util-is/-/core-util-is-1.0.3.tgz", {}, "sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ=="],
 
@@ -1358,7 +1358,7 @@
 
     "es-toolkit": ["es-toolkit@1.53.1", "https://registry.npmmirror.com/es-toolkit/-/es-toolkit-1.53.1.tgz", {}, "sha512-VhMc6IXmexu8iYFfL2aaAww6IvJTdHlqBLruLoEUs33YD4IcP5DdZcLOybMsMmmLsiy1c8PsiLsrM0DdIuuRUA=="],
 
-    "esbuild": ["esbuild@0.28.2", "https://registry.npmmirror.com/esbuild/-/esbuild-0.28.2.tgz", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "hasInstallScript": true, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
+    "esbuild": ["esbuild@0.28.2", "https://registry.npmmirror.com/esbuild/-/esbuild-0.28.2.tgz", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
 
     "escalade": ["escalade@3.2.0", "https://registry.npmmirror.com/escalade/-/escalade-3.2.0.tgz", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
 
@@ -1410,7 +1410,7 @@
 
     "fs-extra": ["fs-extra@11.4.1", "https://registry.npmmirror.com/fs-extra/-/fs-extra-11.4.1.tgz", { "dependencies": { "graceful-fs": "^4.2.0", "jsonfile": "^6.0.1", "universalify": "^2.0.0" } }, "sha512-KYAb4c9BJQI6QqGKthV68OHe0badztdXJWKo0WtBA9IuCFPTKvE5ZdUBglP833aMjhaSPNO4A5j/EkzZtGlKjA=="],
 
-    "fsevents": ["fsevents@2.3.3", "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.3.tgz", { "os": "darwin", "hasInstallScript": true }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
+    "fsevents": ["fsevents@2.3.3", "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.3.tgz", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
     "function-bind": ["function-bind@1.1.2", "https://registry.npmmirror.com/function-bind/-/function-bind-1.1.2.tgz", {}, "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="],
 
@@ -1576,13 +1576,13 @@
 
     "lightningcss-linux-arm-gnueabihf": ["lightningcss-linux-arm-gnueabihf@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.33.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-N7FVBe6iS24MlM6R/4RBTxGhQheZGs7tiQ9U32UtF75NzP5Q7xWPRqLBCKxlRQRk3rY1jCIPLzx7WzOhuUIRLQ=="],
 
-    "lightningcss-linux-arm64-gnu": ["lightningcss-linux-arm64-gnu@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.33.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-j2v/itmy4HlNxlc6voKXYgBqNi0Ng2LShg4z7GufpEgs05P+2suBVyi9I6YHq5uoVFx9ETin3eCEhLVyXGQnKg=="],
+    "lightningcss-linux-arm64-gnu": ["lightningcss-linux-arm64-gnu@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.33.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-j2v/itmy4HlNxlc6voKXYgBqNi0Ng2LShg4z7GufpEgs05P+2suBVyi9I6YHq5uoVFx9ETin3eCEhLVyXGQnKg=="],
 
-    "lightningcss-linux-arm64-musl": ["lightningcss-linux-arm64-musl@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.33.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-yiO5ROMuYQgXbC60yjZU5CYSFZGKXL0HFATXt9mHJn1+zW55oCtMI9NfcVhYLMFDL7gV7oBPon/EmMMGg2OvtQ=="],
+    "lightningcss-linux-arm64-musl": ["lightningcss-linux-arm64-musl@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.33.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-yiO5ROMuYQgXbC60yjZU5CYSFZGKXL0HFATXt9mHJn1+zW55oCtMI9NfcVhYLMFDL7gV7oBPon/EmMMGg2OvtQ=="],
 
-    "lightningcss-linux-x64-gnu": ["lightningcss-linux-x64-gnu@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.33.0.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg=="],
+    "lightningcss-linux-x64-gnu": ["lightningcss-linux-x64-gnu@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.33.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg=="],
 
-    "lightningcss-linux-x64-musl": ["lightningcss-linux-x64-musl@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.33.0.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw=="],
+    "lightningcss-linux-x64-musl": ["lightningcss-linux-x64-musl@1.33.0", "https://registry.npmmirror.com/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.33.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw=="],
 
     "lightningcss-win32-arm64-msvc": ["lightningcss-win32-arm64-msvc@1.33.0", "https://registry.npmmirror.com/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.33.0.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-1K+MPfLSFVpphzpdbfkhlWk6wBrTObBzS2T6db10PNOZgR9GoVsAWzwNyuhUYYbTp23j+4RrncfujZ4uAzXvwA=="],
 
@@ -2232,7 +2232,7 @@
 
     "wsl-utils": ["wsl-utils@0.1.0", "https://registry.npmmirror.com/wsl-utils/-/wsl-utils-0.1.0.tgz", { "dependencies": { "is-wsl": "^3.1.0" } }, "sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw=="],
 
-    "x-data-spreadsheet": ["x-data-spreadsheet@1.1.9", "https://registry.npmmirror.com/x-data-spreadsheet/-/x-data-spreadsheet-1.1.9.tgz", { "dependencies": { "opencollective": "^1.0.3", "opencollective-postinstall": "^2.0.2" }, "hasInstallScript": true }, "sha512-wk7knDBYdHjtWiHUVQryZMy00dsGNCF+6wMb5ykwEFcAtBYkYZakJCOCHpEo8onC0Lb/q2gIynWpbQxA4qakyg=="],
+    "x-data-spreadsheet": ["x-data-spreadsheet@1.1.9", "https://registry.npmmirror.com/x-data-spreadsheet/-/x-data-spreadsheet-1.1.9.tgz", { "dependencies": { "opencollective": "^1.0.3", "opencollective-postinstall": "^2.0.2" } }, "sha512-wk7knDBYdHjtWiHUVQryZMy00dsGNCF+6wMb5ykwEFcAtBYkYZakJCOCHpEo8onC0Lb/q2gIynWpbQxA4qakyg=="],
 
     "xlsx": ["xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz", { "bin": { "xlsx": "./bin/xlsx.njs" } }, "sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA=="],
 
@@ -2263,6 +2263,42 @@
     "zustand": ["zustand@5.0.16", "https://registry.npmmirror.com/zustand/-/zustand-5.0.16.tgz", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-Uv7e327ihlCfayfja3hDc0M64Upev1LWBKpRobdK4NyovDDPeeX4imWXc/wzC1yc6fkYPoAY/ncKVPAs2jrtQw=="],
 
     "zwitch": ["zwitch@2.0.4", "https://registry.npmmirror.com/zwitch/-/zwitch-2.0.4.tgz", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
+
+    "@alwith/module-device/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-drive/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-editor/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-extension/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-fs/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-gamepad/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-mobile/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/module-voice/@alwith/native-kit": ["@alwith/native-kit@0.5.0", "", {}, "sha512-r5S0/qs4MoKTL1ja9e8UC9qMLMl0mEkOCm1CvrcF1cmGKOsRV794r3v2+8Lzwe+XhKpZNcwJ+g3qveZFry8fyA=="],
+
+    "@alwith/native-auth/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-device/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-drive/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-editor/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-extension/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-fs/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-gamepad/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-installed-apps/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-mobile/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
+
+    "@alwith/native-voice/@alwith/native-kit": ["@alwith/native-kit@0.5.1", "", {}, "sha512-QAyBk/tvnLmq6rZpFDCPaB3v3r9LElRQpxmHtJppLr7RRBYQemIlGVWdHILndJrf++N/pt5lYWJzWUU0YPlYFg=="],
 
     "@babel/core/@babel/parser": ["@babel/parser@7.29.12", "https://registry.npmmirror.com/@babel/parser/-/parser-7.29.12.tgz", { "dependencies": { "@babel/types": "^7.29.11" }, "bin": "./bin/babel-parser.js" }, "sha512-WJ7JBp/Q4+z/ImydtI7jS6NVco5++632ExBemSX+Ysb+G1lCwQ5BVo3SY+jGGOcZXI4ZccbZSUSJLNBW6eEpJg=="],
 
@@ -2482,13 +2518,13 @@
 
     "@tailwindcss/node/lightningcss/lightningcss-linux-arm-gnueabihf": ["lightningcss-linux-arm-gnueabihf@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.32.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-x6rnnpRa2GL0zQOkt6rts3YDPzduLpWvwAF6EMhXFVZXD4tPrBkEFqzGowzCsIWsPjqSK+tyNEODUBXeeVHSkw=="],
 
-    "@tailwindcss/node/lightningcss/lightningcss-linux-arm64-gnu": ["lightningcss-linux-arm64-gnu@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.32.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ=="],
+    "@tailwindcss/node/lightningcss/lightningcss-linux-arm64-gnu": ["lightningcss-linux-arm64-gnu@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.32.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ=="],
 
-    "@tailwindcss/node/lightningcss/lightningcss-linux-arm64-musl": ["lightningcss-linux-arm64-musl@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.32.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg=="],
+    "@tailwindcss/node/lightningcss/lightningcss-linux-arm64-musl": ["lightningcss-linux-arm64-musl@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.32.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg=="],
 
-    "@tailwindcss/node/lightningcss/lightningcss-linux-x64-gnu": ["lightningcss-linux-x64-gnu@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA=="],
+    "@tailwindcss/node/lightningcss/lightningcss-linux-x64-gnu": ["lightningcss-linux-x64-gnu@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA=="],
 
-    "@tailwindcss/node/lightningcss/lightningcss-linux-x64-musl": ["lightningcss-linux-x64-musl@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.32.0.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg=="],
+    "@tailwindcss/node/lightningcss/lightningcss-linux-x64-musl": ["lightningcss-linux-x64-musl@1.32.0", "https://registry.npmmirror.com/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.32.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg=="],
 
     "@tailwindcss/node/lightningcss/lightningcss-win32-arm64-msvc": ["lightningcss-win32-arm64-msvc@1.32.0", "https://registry.npmmirror.com/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.32.0.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw=="],
 
@@ -2538,21 +2574,21 @@
 
     "storybook/oxc-parser/@oxc-parser/binding-linux-arm-musleabihf": ["@oxc-parser/binding-linux-arm-musleabihf@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-0.127.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-Cs2fdJ8cPpFdeebj6p4dag8A4+56hPvZ0AhQQzlaLswGz1tz7bXt1nETLeorrM9+AMcWFFkqxcXwDGfTVidY8g=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-arm64-gnu": ["@oxc-parser/binding-linux-arm64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-qdOfTcT6SY8gsJrrV92uyEUyjqMGPpIB5JZUG6QN5dukYd+7/j0kX6MwK1DgQj39jtUYixxPiaRUiEN1+0CXgQ=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-arm64-gnu": ["@oxc-parser/binding-linux-arm64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-qdOfTcT6SY8gsJrrV92uyEUyjqMGPpIB5JZUG6QN5dukYd+7/j0kX6MwK1DgQj39jtUYixxPiaRUiEN1+0CXgQ=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-arm64-musl": ["@oxc-parser/binding-linux-arm64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-musl/-/binding-linux-arm64-musl-0.127.0.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-EoTCZneNFU/P2qrpEM+RHmQwt+CvDkyGESG6qhr7KaegXLZwePfbrkCDfAk8/rhxbDUVGsZILX+2tqPzFtoFWA=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-arm64-musl": ["@oxc-parser/binding-linux-arm64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-arm64-musl/-/binding-linux-arm64-musl-0.127.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-EoTCZneNFU/P2qrpEM+RHmQwt+CvDkyGESG6qhr7KaegXLZwePfbrkCDfAk8/rhxbDUVGsZILX+2tqPzFtoFWA=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-ppc64-gnu": ["@oxc-parser/binding-linux-ppc64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "ppc64", "libc": "glibc" }, "sha512-zALjmZYgxFLHjXeudcDF0xFGNydTAtkAeXAr2EuC17ywCyFxcmQra4w0BMde0Yi/re4Bi4iwEoEXtYN7l6eBLQ=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-ppc64-gnu": ["@oxc-parser/binding-linux-ppc64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-zALjmZYgxFLHjXeudcDF0xFGNydTAtkAeXAr2EuC17ywCyFxcmQra4w0BMde0Yi/re4Bi4iwEoEXtYN7l6eBLQ=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-riscv64-gnu": ["@oxc-parser/binding-linux-riscv64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-fPP8M6zQLS7Jz7o9d5ArUSuAuSK3e+WCYVrCpdzeCOejidtZExJ9tjhDrAd3HEPqARBCPmdpqxESPFqy44vkBQ=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-riscv64-gnu": ["@oxc-parser/binding-linux-riscv64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "none" }, "sha512-fPP8M6zQLS7Jz7o9d5ArUSuAuSK3e+WCYVrCpdzeCOejidtZExJ9tjhDrAd3HEPqARBCPmdpqxESPFqy44vkBQ=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-riscv64-musl": ["@oxc-parser/binding-linux-riscv64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-0.127.0.tgz", { "os": "linux", "cpu": "none", "libc": "musl" }, "sha512-7IcC4Ao02oGpfnjt+X/oF4U2mllo2qoSkw5xxiXNKL9MCTsTiAC6616beOuehdxGcnz1bRoPC1RQ2f1GQDdN+g=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-riscv64-musl": ["@oxc-parser/binding-linux-riscv64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-0.127.0.tgz", { "os": "linux", "cpu": "none" }, "sha512-7IcC4Ao02oGpfnjt+X/oF4U2mllo2qoSkw5xxiXNKL9MCTsTiAC6616beOuehdxGcnz1bRoPC1RQ2f1GQDdN+g=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-s390x-gnu": ["@oxc-parser/binding-linux-s390x-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-0.127.0.tgz", { "os": "linux", "cpu": "s390x", "libc": "glibc" }, "sha512-pbXIhiNFHoqWeqDNLiJ9JkpHz1IM9k4DXa66x+1GTWMG7iLxtkXgE53iiuKSXwmk3zIYmaPVfBvgcAhS583K4Q=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-s390x-gnu": ["@oxc-parser/binding-linux-s390x-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-0.127.0.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-pbXIhiNFHoqWeqDNLiJ9JkpHz1IM9k4DXa66x+1GTWMG7iLxtkXgE53iiuKSXwmk3zIYmaPVfBvgcAhS583K4Q=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-x64-gnu": ["@oxc-parser/binding-linux-x64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-MYCguB9RvBvlSd6gbuNI7QwiLoCCAlGnlRJFPrzLI6U1/9wkC/WK6LtBAUln55H1Ctqw45PWmqrobKoMhsYQzQ=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-x64-gnu": ["@oxc-parser/binding-linux-x64-gnu@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.127.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-MYCguB9RvBvlSd6gbuNI7QwiLoCCAlGnlRJFPrzLI6U1/9wkC/WK6LtBAUln55H1Ctqw45PWmqrobKoMhsYQzQ=="],
 
-    "storybook/oxc-parser/@oxc-parser/binding-linux-x64-musl": ["@oxc-parser/binding-linux-x64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.127.0.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-5eY0B/bxf1xIUxb4NOTvOI3KWtBQfPWYyKAzgcrCt0mDibSZygVpO1Pz8bkeiSZ5Jj9+M09dkggG3H8I5d0Uyg=="],
+    "storybook/oxc-parser/@oxc-parser/binding-linux-x64-musl": ["@oxc-parser/binding-linux-x64-musl@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.127.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-5eY0B/bxf1xIUxb4NOTvOI3KWtBQfPWYyKAzgcrCt0mDibSZygVpO1Pz8bkeiSZ5Jj9+M09dkggG3H8I5d0Uyg=="],
 
     "storybook/oxc-parser/@oxc-parser/binding-openharmony-arm64": ["@oxc-parser/binding-openharmony-arm64@0.127.0", "https://registry.npmmirror.com/@oxc-parser/binding-openharmony-arm64/-/binding-openharmony-arm64-0.127.0.tgz", { "os": "none", "cpu": "arm64" }, "sha512-Gld0ajrFTUXNtdw20fVBuTQx66FA75nIVg+//pPfR3sXkuABB4mTBhl3r9JNzrJpgW//qiwxf0nWXUWGJSL3UQ=="],
 
@@ -2578,21 +2614,21 @@
 
     "storybook/oxc-resolver/@oxc-resolver/binding-linux-arm-musleabihf": ["@oxc-resolver/binding-linux-arm-musleabihf@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm-musleabihf/-/binding-linux-arm-musleabihf-11.21.2.tgz", { "os": "linux", "cpu": "arm" }, "sha512-L/Rgas7SrOKy/z7IH+HxSFRqVO4PuLDKLEGKvnhoCBBq3UJ0YzGBou3qMzaAGgkJwsIvX2pBF+7ojzfUhLiZxQ=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-arm64-gnu": ["@oxc-resolver/binding-linux-arm64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-CUEYvlX1Fk7E9kUMzuswru1J9HLxMwnpDeQGjQuI4ZH+iNCoa2X9T+pvyzrbsgl7WnIeTFTlNlHsRfVdf5g9/g=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-arm64-gnu": ["@oxc-resolver/binding-linux-arm64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-CUEYvlX1Fk7E9kUMzuswru1J9HLxMwnpDeQGjQuI4ZH+iNCoa2X9T+pvyzrbsgl7WnIeTFTlNlHsRfVdf5g9/g=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-arm64-musl": ["@oxc-resolver/binding-linux-arm64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-musl/-/binding-linux-arm64-musl-11.21.2.tgz", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-ViN1ZibQyxwC67GpoP33oo+S9UyUnkog13vzQb9+v9bCNvrVzJuk0MRdacjtv/9xfRMVF/eqHFyl8YOeykI10Q=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-arm64-musl": ["@oxc-resolver/binding-linux-arm64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-arm64-musl/-/binding-linux-arm64-musl-11.21.2.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-ViN1ZibQyxwC67GpoP33oo+S9UyUnkog13vzQb9+v9bCNvrVzJuk0MRdacjtv/9xfRMVF/eqHFyl8YOeykI10Q=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-ppc64-gnu": ["@oxc-resolver/binding-linux-ppc64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "ppc64", "libc": "glibc" }, "sha512-CU1sCqWnhGqYD5I1HedHk5pujrn7ssDkNB/AEQd/pd3D/EojVSgJUlpbafwIbyhia3PgIfkvdFpRPWSALzVumA=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-ppc64-gnu": ["@oxc-resolver/binding-linux-ppc64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-CU1sCqWnhGqYD5I1HedHk5pujrn7ssDkNB/AEQd/pd3D/EojVSgJUlpbafwIbyhia3PgIfkvdFpRPWSALzVumA=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-riscv64-gnu": ["@oxc-resolver/binding-linux-riscv64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "none", "libc": "glibc" }, "sha512-jWVyZtIHca4Gb96x7dag+y69vlei7ffjrsveLkmf2ZhqEAz6ZSBnY1GWvgZUaZlwZP62A3xD092BW97Q5VGc+g=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-riscv64-gnu": ["@oxc-resolver/binding-linux-riscv64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-gnu/-/binding-linux-riscv64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-jWVyZtIHca4Gb96x7dag+y69vlei7ffjrsveLkmf2ZhqEAz6ZSBnY1GWvgZUaZlwZP62A3xD092BW97Q5VGc+g=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-riscv64-musl": ["@oxc-resolver/binding-linux-riscv64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-11.21.2.tgz", { "os": "linux", "cpu": "none", "libc": "musl" }, "sha512-LF29obFqNgBUgDX7rmUK7M4D0JQG5LxhYzn3xXmECcHU9aQAdWG7NiY052qybtesEdwHQXKNTWYQ7mTsybNvWg=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-riscv64-musl": ["@oxc-resolver/binding-linux-riscv64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-riscv64-musl/-/binding-linux-riscv64-musl-11.21.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-LF29obFqNgBUgDX7rmUK7M4D0JQG5LxhYzn3xXmECcHU9aQAdWG7NiY052qybtesEdwHQXKNTWYQ7mTsybNvWg=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-s390x-gnu": ["@oxc-resolver/binding-linux-s390x-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-11.21.2.tgz", { "os": "linux", "cpu": "s390x", "libc": "glibc" }, "sha512-+NYcm+cCHBbtdQQ3A4phQTSuVRYnNHz7wrl9XRAPEovcdoqi0mb1K5ZOl+jN54ZD+q1zz3V0vltbFJmzecJKmw=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-s390x-gnu": ["@oxc-resolver/binding-linux-s390x-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-11.21.2.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-+NYcm+cCHBbtdQQ3A4phQTSuVRYnNHz7wrl9XRAPEovcdoqi0mb1K5ZOl+jN54ZD+q1zz3V0vltbFJmzecJKmw=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-x64-gnu": ["@oxc-resolver/binding-linux-x64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-gnu/-/binding-linux-x64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-UQqZDdG2r2HhAOsZEgufkIWHPQ886IUyuJQkoZByvzhW8j51R4UNzGBJFkTiTnLhQnggwJRdJgFWK4uY6ZVIMw=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-x64-gnu": ["@oxc-resolver/binding-linux-x64-gnu@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-gnu/-/binding-linux-x64-gnu-11.21.2.tgz", { "os": "linux", "cpu": "x64" }, "sha512-UQqZDdG2r2HhAOsZEgufkIWHPQ886IUyuJQkoZByvzhW8j51R4UNzGBJFkTiTnLhQnggwJRdJgFWK4uY6ZVIMw=="],
 
-    "storybook/oxc-resolver/@oxc-resolver/binding-linux-x64-musl": ["@oxc-resolver/binding-linux-x64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-musl/-/binding-linux-x64-musl-11.21.2.tgz", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-3Q9PMRjalWkT6NZ4jfujuqTCFwoWErg3y3BnOgb544B8IMw4PktiwWOigMfOHNRLMghZeJ7hpfpZf4CP7rV7Og=="],
+    "storybook/oxc-resolver/@oxc-resolver/binding-linux-x64-musl": ["@oxc-resolver/binding-linux-x64-musl@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-linux-x64-musl/-/binding-linux-x64-musl-11.21.2.tgz", { "os": "linux", "cpu": "x64" }, "sha512-3Q9PMRjalWkT6NZ4jfujuqTCFwoWErg3y3BnOgb544B8IMw4PktiwWOigMfOHNRLMghZeJ7hpfpZf4CP7rV7Og=="],
 
     "storybook/oxc-resolver/@oxc-resolver/binding-openharmony-arm64": ["@oxc-resolver/binding-openharmony-arm64@11.21.2", "https://registry.npmmirror.com/@oxc-resolver/binding-openharmony-arm64/-/binding-openharmony-arm64-11.21.2.tgz", { "os": "none", "cpu": "arm64" }, "sha512-Eljeq3ndtyKhM+Es8LITi4Zl2htzuRZcrPMF3kMCsrILztvU6AjZ3FuEhHHKobPUB9rMpzLpJP5bDqXI7r+iog=="],
 

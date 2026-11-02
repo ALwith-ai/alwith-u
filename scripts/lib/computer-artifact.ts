@@ -10,28 +10,14 @@ export function verifyComputerArtifact(bytes: Uint8Array, sha256: string): void 
 }
 
 export async function stageComputer(root: string, target: string): Promise<string> {
-  const artifact = manifest.artifacts[target as keyof typeof manifest.artifacts]
+  const artifact = manifest.artifacts[target]
   if (!artifact) throw new Error(`Cua Driver has no pinned artifact for ${target}`)
-  const cache = join(root, "node_modules/.cache/alwith-computer", manifest.version)
-  await mkdir(cache, { recursive: true })
-  const archive =
-    "bundled" in artifact
-      ? fileURLToPath(new URL(artifact.bundled, import.meta.resolve("@alwith/module-computer/artifacts")))
-      : join(cache, artifact.archive)
+  const archive = fileURLToPath(new URL(artifact.bundled, import.meta.resolve("@alwith/module-computer/artifacts")))
   const file = Bun.file(archive)
-  let bytes: Uint8Array
-  if (await file.exists()) {
-    bytes = new Uint8Array(await file.arrayBuffer())
-  } else {
-    if ("bundled" in artifact) throw new Error(`Bundled Cua Driver artifact is missing: ${artifact.archive}`)
-    const response = await fetch(artifact.url, { signal: AbortSignal.timeout(120_000) })
-    if (!response.ok) throw new Error(`Cua Driver download failed: HTTP ${response.status}`)
-    bytes = new Uint8Array(await response.arrayBuffer())
-    verifyComputerArtifact(bytes, artifact.sha256)
-    await Bun.write(archive, bytes)
-  }
+  if (!(await file.exists())) throw new Error(`Bundled Cua Driver artifact is missing: ${artifact.archive}`)
+  const bytes = new Uint8Array(await file.arrayBuffer())
   verifyComputerArtifact(bytes, artifact.sha256)
-  // Extract only the executable; the archive also contains SDKs we do not ship.
+  // Stage the pinned executable from the package's platform archive.
   const process = Bun.spawn(["tar", "-xOf", archive, artifact.executable], { stdout: "pipe", stderr: "pipe" })
   const [binary, error, exit] = await Promise.all([
     new Response(process.stdout).arrayBuffer(),

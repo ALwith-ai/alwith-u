@@ -13,8 +13,8 @@ use std::{
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
-const FILE_BYTES: u64 = 512 * 1024;
-const FILE_COUNT: usize = 4;
+const FILE_BYTES: u64 = 1024 * 1024;
+const FILE_COUNT: usize = 5;
 const MEMORY_EVENTS: usize = 128;
 const RETENTION_DAYS: i64 = 7;
 const RETENTION_MS: i64 = RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -53,6 +53,7 @@ struct Context {
     rpc_code: Option<i64>,
     error: Option<ErrorSignature>,
     proxy: Option<ModelProxyDiagnostic>,
+    network: Option<NativeNetworkDiagnostic>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -88,7 +89,7 @@ impl ModelProxyDiagnostic {
             && self.request_id.bytes().all(|c| c.is_ascii_hexdigit())
             && matches!(self.transport.as_str(), "http" | "websocket")
             && matches!(self.destination.as_str(), "native" | "external")
-            && matches!(self.runtime.as_str(), "bun-fetch" | "node-http" | "node-websocket")
+            && matches!(self.runtime.as_str(), "bun-fetch" | "node-http" | "node-websocket" | "rust-native")
             && matches!(
                 self.stage.as_str(),
                 "resolve_target" | "read_request" | "prepare_request" | "connect_upstream" | "read_response"
@@ -138,6 +139,11 @@ impl ModelProxyDiagnostic {
                 matches!(
                     code.as_str(),
                     "UNKNOWN"
+                        | "NATIVE_NETWORK_CONNECT_FAILED"
+                        | "NATIVE_PROXY_RESOLUTION_FAILED"
+                        | "NATIVE_NETWORK_AUTH_FAILED"
+                        | "NATIVE_NETWORK_PROTOCOL_ERROR"
+                        | "NATIVE_NETWORK_CANCELLED"
                         | "ECONNRESET"
                         | "ECONNREFUSED"
                         | "ETIMEDOUT"
@@ -155,6 +161,108 @@ impl ModelProxyDiagnostic {
                 )
             })
     }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeNetworkDiagnostic {
+    version: u8,
+    request_id: String,
+    transport: String,
+    tls_backend: String,
+    target_host: String,
+    target_port: u16,
+    phase: String,
+    stage: String,
+    route: String,
+    proxy_host: Option<String>,
+    proxy_port: Option<u16>,
+    proxy_scheme: Option<String>,
+    proxy_source: Option<String>,
+    winhttp_error: Option<u32>,
+    elapsed_ms: u64,
+    proxy_resolve_ms: Option<u64>,
+    first_byte_ms: Option<u64>,
+    status: Option<u16>,
+    close_code: Option<u16>,
+    sent_bytes: u64,
+    received_bytes: u64,
+    error_code: Option<String>,
+    error_kind: Option<String>,
+    os_error: Option<i32>,
+}
+impl NativeNetworkDiagnostic {
+    fn valid(&self) -> bool {
+        let host = |value: &str| {
+            !value.is_empty()
+                && value.len() <= 253
+                && value.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b':' | b'[' | b']'))
+        };
+        self.version == 1
+            && self.request_id.len() == 24
+            && self.request_id.bytes().all(|b| b.is_ascii_hexdigit())
+            && matches!(self.transport.as_str(), "http" | "websocket")
+            && matches!(self.tls_backend.as_str(), "schannel" | "native-tls" | "none")
+            && host(&self.target_host)
+            && self.target_port > 0
+            && matches!(
+                self.phase.as_str(),
+                "started" | "proxy_resolved" | "headers" | "completed" | "cancelled" | "failed"
+            )
+            && matches!(self.stage.as_str(), "resolve_proxy" | "connect_upstream" | "read_response")
+            && matches!(self.route.as_str(), "unresolved" | "direct" | "proxy")
+            && self.proxy_host.as_deref().is_none_or(host)
+            && self.proxy_port.is_none_or(|port| port > 0)
+            && self
+                .proxy_scheme
+                .as_deref()
+                .is_none_or(|scheme| matches!(scheme, "http" | "https" | "socks5" | "socks5h"))
+            && self.proxy_source.as_deref().is_none_or(|source| {
+                matches!(
+                    source,
+                    "windows-user"
+                        | "windows-machine"
+                        | "windows-pac"
+                        | "windows-auto"
+                        | "windows-manual"
+                        | "windows-direct"
+                )
+            })
+            && self.status.is_none_or(|status| (100..=599).contains(&status))
+            && self.close_code.is_none_or(|code| (1000..=4999).contains(&code))
+            && self
+                .error_kind
+                .as_deref()
+                .is_none_or(|kind| matches!(kind, "timeout" | "dns" | "connect" | "body" | "request" | "websocket"))
+            && self.error_code.as_deref().is_none_or(|code| {
+                matches!(
+                    code,
+                    "NATIVE_NETWORK_CONNECT_FAILED"
+                        | "NATIVE_PROXY_RESOLUTION_FAILED"
+                        | "NATIVE_NETWORK_AUTH_FAILED"
+                        | "NATIVE_NETWORK_PROTOCOL_ERROR"
+                        | "NATIVE_NETWORK_CANCELLED"
+                        | "NATIVE_NETWORK_STREAM_FAILED"
+                        | "ETIMEDOUT"
+                )
+            })
+    }
+}
+fn native_network_context(line: &str) -> Option<Context> {
+    let payload = line.strip_prefix("[alwith-native-network] ")?;
+    if payload.len() > 8192 {
+        return None;
+    }
+    let network: NativeNetworkDiagnostic = serde_json::from_str(payload).ok()?;
+    if !network.valid() {
+        return None;
+    }
+    Some(Context {
+        request_ref: Some(network.request_id.clone()),
+        elapsed_ms: Some(network.elapsed_ms),
+        network: Some(network),
+        ..Context::default()
+    })
 }
 
 fn model_proxy_context(line: &str) -> Option<Context> {
@@ -188,6 +296,11 @@ struct ErrorSignature {
 fn signature(message: &str) -> ErrorSignature {
     let lower = message.to_ascii_lowercase();
     let transport_code = [
+        "NATIVE_NETWORK_CONNECT_FAILED",
+        "NATIVE_PROXY_RESOLUTION_FAILED",
+        "NATIVE_NETWORK_AUTH_FAILED",
+        "NATIVE_NETWORK_PROTOCOL_ERROR",
+        "NATIVE_NETWORK_CANCELLED",
         "ECONNRESET",
         "ECONNREFUSED",
         "ETIMEDOUT",
@@ -253,7 +366,14 @@ impl Event {
         uuid::Uuid::parse_str(&self.launch_id).is_ok()
             && matches!(
                 self.source.as_str(),
-                "app" | "runtime" | "application_log" | "request" | "agent" | "agent_stderr" | "session"
+                "app"
+                    | "runtime"
+                    | "application_log"
+                    | "request"
+                    | "agent"
+                    | "agent_stderr"
+                    | "session"
+                    | "native_network"
             )
             && matches!(
                 self.phase.as_str(),
@@ -284,6 +404,7 @@ impl Event {
                 .as_deref()
                 .is_none_or(|value| matches!(value, "running" | "requires_action" | "done" | "idle"))
             && context.proxy.as_ref().is_none_or(ModelProxyDiagnostic::valid)
+            && context.network.as_ref().is_none_or(NativeNetworkDiagnostic::valid)
             && context.error.as_ref().is_none_or(|error| {
                 hash(&error.fingerprint)
                     && matches!(
@@ -300,7 +421,12 @@ impl Event {
                     && error.transport_code.as_deref().is_none_or(|code| {
                         matches!(
                             code,
-                            "ECONNRESET"
+                            "NATIVE_NETWORK_CONNECT_FAILED"
+                                | "NATIVE_PROXY_RESOLUTION_FAILED"
+                                | "NATIVE_NETWORK_AUTH_FAILED"
+                                | "NATIVE_NETWORK_PROTOCOL_ERROR"
+                                | "NATIVE_NETWORK_CANCELLED"
+                                | "ECONNRESET"
                                 | "ECONNREFUSED"
                                 | "ETIMEDOUT"
                                 | "ENOTFOUND"
@@ -544,7 +670,7 @@ impl Collector {
             "recording": {"retentionDays":RETENTION_DAYS,"cleanupIntervalSeconds":CLEANUP_INTERVAL.as_secs(),
                 "maxDiskBytes":FILE_BYTES * FILE_COUNT as u64,"writeFailed":inner.write_failed,"writeErrorKind":inner.write_error_kind,
                 "cleanupFailed":inner.cleanup_failed,"discardedRecords":inner.discarded_records,"incompleteRecords":incomplete_files},
-            "privacy": "Metadata only, including model proxy target hostnames and upstream request IDs. No conversation, credentials, raw protocol frames, full URLs, file paths or original error messages.",
+            "privacy": "Metadata only, including model target hostnames, selected proxy endpoints and upstream request IDs. No conversation, credentials, raw protocol frames, full URLs, file paths or original error messages.",
             "events": events,
         })
     }
@@ -573,6 +699,18 @@ pub fn install(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 pub fn native_log(level: log::Level, message: &str) {
+    if let Some(context) = native_network_context(message) {
+        let phase = match context.network.as_ref().expect("validated native event").phase.as_str() {
+            "started" => "started",
+            "proxy_resolved" | "headers" => "state",
+            "completed" => "succeeded",
+            "cancelled" => "interrupted",
+            "failed" => "failed",
+            _ => unreachable!("validated native phase"),
+        };
+        record("native_network", phase, context);
+        return;
+    }
     if level <= log::Level::Warn {
         record(
             "application_log",

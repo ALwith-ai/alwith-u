@@ -326,3 +326,46 @@ fn model_proxy_projection_rejects_unknown_fields_and_unbounded_or_private_values
     }
     assert!(model_proxy_context(&format!("[alwith-model-proxy] {}", "x".repeat(8193))).is_none());
 }
+
+fn native_network_line() -> String {
+    format!(
+        "[alwith-native-network] {}",
+        json!({
+            "version":1,"requestId":"0123456789abcdef01234567","transport":"websocket","tlsBackend":"schannel",
+            "targetHost":"chatgpt.com","targetPort":443,"phase":"failed","stage":"connect_upstream",
+            "route":"proxy","proxyHost":"127.0.0.1","proxyPort":7890,"proxyScheme":"http","proxySource":"windows-pac","winhttpError":12166,
+            "elapsedMs":321,"proxyResolveMs":5,"firstByteMs":null,"status":null,"closeCode":null,
+            "sentBytes":42,"receivedBytes":0,"errorCode":"NATIVE_NETWORK_CONNECT_FAILED","errorKind":"connect","osError":10054
+        })
+    )
+}
+#[test]
+fn native_network_metadata_survives_export_and_uses_five_mib_budget() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().to_path_buf());
+    collector.record("native_network", "failed", native_network_context(&native_network_line()).unwrap());
+    let report = collector.report();
+    assert_eq!(report["recording"]["maxDiskBytes"], 5 * 1024 * 1024);
+    let event = report["events"].as_array().unwrap().iter().find(|e| e["source"] == "native_network").unwrap();
+    assert_eq!(event["context"]["requestRef"], "0123456789abcdef01234567");
+    assert_eq!(event["context"]["network"]["proxyPort"], 7890);
+    assert_eq!(event["context"]["network"]["osError"], 10054);
+    assert_eq!(event["context"]["network"]["winhttpError"], 12166);
+}
+#[test]
+fn native_network_projection_rejects_private_and_unbounded_fields() {
+    let original: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    for (field, value) in [
+        ("token", json!("secret")),
+        ("requestId", json!("secret")),
+        ("proxyHost", json!("user:password@proxy")),
+        ("targetHost", json!("https://example.com/private")),
+        ("errorKind", json!("raw private error")),
+        ("errorCode", json!("raw private error")),
+    ] {
+        let mut invalid = original.clone();
+        invalid[field] = value;
+        assert!(native_network_context(&format!("[alwith-native-network] {invalid}")).is_none(), "accepted {field}");
+    }
+}

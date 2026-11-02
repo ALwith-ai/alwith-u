@@ -138,7 +138,7 @@ pub async fn codex_version() -> Result<String, String> {
         .ok_or_else(|| "Unexpected Codex version output".into())
 }
 
-fn engines_table(app: &AppHandle) -> Result<String, String> {
+fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Result<String, String> {
     #[cfg(debug_assertions)]
     let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
     #[cfg(not(debug_assertions))]
@@ -155,6 +155,9 @@ fn engines_table(app: &AppHandle) -> Result<String, String> {
         "args": ["--no-install", adapter],
         "env": {"CODEX_PATH": sidecar_path("alwith-codex-launcher")?, "ALWITH_U_CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
     }});
+    if let Some(endpoint) = native_network_endpoint {
+        engines["codex"]["env"]["CODEX_ACP_NATIVE_NETWORK_ENDPOINT"] = json!(endpoint);
+    }
     // Development seam: `ALWITH_U_DSH_AGENT` names a dsh-agent entry (`.../dsh-agent/src/main.ts`) run with
     // bundled Bun (`ALWITH_U_BUN` explicitly overrides it). Never discover Desktop's Bun through PATH.
     if let Ok(entry) = std::env::var("ALWITH_U_DSH_AGENT") {
@@ -213,11 +216,19 @@ pub async fn runtime_start(
     }
     let cache = app.path().app_cache_dir().map_err(|error| error.to_string())?;
     let data = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    #[cfg(windows)]
+    let native_network = tauri_plugin_alwith_chat::native_network::NativeNetwork::start()
+        .await
+        .map_err(|error| format!("Cannot start native network transport: {error}"))?;
+    #[cfg(windows)]
+    let native_network_endpoint = Some(native_network.endpoint());
+    #[cfg(not(windows))]
+    let native_network_endpoint = None;
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
     configure_runtime_storage(&mut command, &cache, &data);
     command
         .args(["--listen", "stdio://"])
-        .env("ALWITH_RUNTIME_ENGINES", engines_table(&app)?)
+        .env("ALWITH_RUNTIME_ENGINES", engines_table(&app, native_network_endpoint)?)
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")
         .hide_console();
@@ -235,6 +246,8 @@ pub async fn runtime_start(
     app.state::<crate::providers::Providers>().reset().await;
     let identity = Arc::downgrade(&client);
     tauri::async_runtime::spawn(async move {
+        #[cfg(windows)]
+        let _native_network = native_network;
         // Every emit is one script evaluation on the app's main thread. A session replay
         // arrives as thousands of frames within milliseconds; forwarding them one event
         // each stalls the whole app, so a burst is drained here and delivered as one
