@@ -10,6 +10,12 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
 
 afterEach(cleanup)
 
+// The shell owns the window chrome rules; U adds its own controls after them.
+const styles = [
+  readFileSync("node_modules/@alwith/module-desktop-shell/styles.css", "utf8"),
+  readFileSync("src/index.css", "utf8")
+].join("\n")
+
 test("status bar hover styling excludes canvas pagination buttons", () => {
   const view = render(
     <footer className="main-window-statusbar">
@@ -19,7 +25,7 @@ test("status bar hover styling excludes canvas pagination buttons", () => {
       <Button variant="ghost">Status</Button>
     </footer>
   )
-  const stylesheet = readFileSync("src/index.css", "utf8")
+  const stylesheet = styles
   const rule = stylesheet.match(/([^{}]+)\{\s*background-color: var\(--chrome-hover-background\);\s*\}/)
   if (!rule) throw new Error("Missing shared chrome hover rule")
   const overlayRule = stylesheet.match(/([^{}]+)\{\s*background-image: linear-gradient\(/)
@@ -46,7 +52,7 @@ test("sidebar hover styling reaches buttons composed with tooltip and menu trigg
       </Popover>
     </div>
   )
-  const stylesheet = readFileSync("src/index.css", "utf8")
+  const stylesheet = styles
   const rule = stylesheet.match(/([^{}]+)\{\s*background-color: var\(--chrome-hover-background\);\s*\}/)
   if (!rule) throw new Error("Missing shared chrome hover rule")
   // Check the real composed DOM against the stylesheet's selector without requiring a pointer in jsdom.

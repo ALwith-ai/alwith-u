@@ -1,3 +1,7 @@
+import {
+  DesktopCanvasContext as CanvasContext,
+  DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
+} from "@alwith/module-desktop-shell/react"
 import type { TextEditorProps } from "@alwith/module-editor"
 import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module-fs"
 import type { NativeRequest } from "@alwith/module-fs/tauri"
@@ -6,10 +10,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { openGuideWindow } from "@/features/guide/guide-window"
-import { CanvasContext } from "@/features/layout/lib/canvas-context"
 import { initI18n } from "@/lib/i18n"
 
 import { useWorkspace, WorkspaceHeaderContext } from "../context"

@@ -1,13 +1,13 @@
 import { useSidebarOverlay } from "@alwith/module-chat/session-list"
+import {
+  DesktopTitleBarContext as WindowsTitleBarContext,
+  DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
+} from "@alwith/module-desktop-shell/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
-import {
-  WindowsTitleBarContext,
-  WindowsWorkspaceControlsContext
-} from "@/components/alwith-ui/windows-main-window-shell"
 import { Button } from "@/components/ui/button"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"

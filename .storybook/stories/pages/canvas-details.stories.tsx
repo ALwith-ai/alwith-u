@@ -1,3 +1,4 @@
+import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useContext, useRef, useState } from "react"
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 
 import { type MainScreen, MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
-import { CanvasContext } from "../../../src/features/layout/lib/canvas-context"
 import type { PanelControls } from "../../../src/features/workspace/panel-controls-context"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../../src/features/workspace/workspace-panels"

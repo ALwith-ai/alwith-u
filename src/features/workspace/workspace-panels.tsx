@@ -1,6 +1,7 @@
 import { resolveSplitWidths as resolvePanelWidths } from "@nyssance/atlas/layout"
 import { useAtlas } from "@nyssance/atlas/react"
 import "@nyssance/atlas/styles.css"
+import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   type ReactNode,
@@ -16,7 +17,6 @@ import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
-import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
 import { type PanelControls, PanelControlsContext } from "./panel-controls-context"
 import { PanelDivider } from "./panel-divider"

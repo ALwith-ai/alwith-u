@@ -1,4 +1,5 @@
 import { PetLounge } from "@alwith/module-auth/pets/react"
+import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { ChatRoundDotsIcon as MessageSquareIcon } from "@solar-icons/react/bold-duotone/chat-round-dots"
 import { GamepadIcon as Gamepad2Icon } from "@solar-icons/react/bold-duotone/gamepad"
 import { LibraryIcon as BookOpenIcon } from "@solar-icons/react/bold-duotone/library"
@@ -18,7 +19,6 @@ import { requestPet } from "@/features/vibemon/transport"
 import { useLoungeDrop } from "@/features/vibemon/use-lounge-drop"
 import { openChatWindow } from "@/lib/chat-window"
 
-import { CanvasContext } from "../lib/canvas-context"
 import { useRunningApps } from "../lib/use-running-apps"
 import { BrowserBridgeCard } from "./browser-bridge-card"
 import { WindowCard } from "./window-card"

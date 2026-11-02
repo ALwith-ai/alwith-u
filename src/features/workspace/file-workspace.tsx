@@ -44,6 +44,10 @@ import { DriveTreeActions } from "@/features/drive/tree-actions"
 import { openExternal } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
+import {
+  DesktopCanvasContext as CanvasContext,
+  DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
+} from "@alwith/module-desktop-shell/react"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -67,11 +71,9 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Button } from "@/components/alwith-ui/button"
-import { WindowsWorkspaceControlsContext } from "@/components/alwith-ui/windows-main-window-shell"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceButton, DeviceWorkspacePane } from "@/features/device/device-workspace"
-import { CanvasContext } from "@/features/layout/lib/canvas-context"
 
 import {
   type FilePosition,

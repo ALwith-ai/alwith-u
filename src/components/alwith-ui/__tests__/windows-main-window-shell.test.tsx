@@ -1,3 +1,4 @@
+import { DesktopExtensionControlsContext as WindowsExtensionControlsContext } from "@alwith/module-desktop-shell/react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { type ReactElement, useContext } from "react"
 import { createPortal } from "react-dom"
@@ -5,7 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { zoomStore } from "@/lib/zoom"
 
-import { WindowsExtensionControlsContext, WindowsMainWindowShell } from "../windows-main-window-shell"
+import { WindowsMainWindowShell } from "../windows-main-window-shell"
 
 const native = vi.hoisted(() => ({ os: "windows", tauri: true }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => native.tauri }))

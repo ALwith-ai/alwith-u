@@ -1,6 +1,5 @@
+import { resolveDesktopCanvasGeometry as resolveMainCanvasGeometry } from "@alwith/module-desktop-shell/react"
 import { expect, test } from "vitest"
-
-import { resolveMainCanvasGeometry } from "../canvas-geometry"
 
 test.each([true, false])("the lounge exposes exactly its width after chat with pinned=%s", (pinned) => {
   const geometry = resolveMainCanvasGeometry({ viewport: 1200, navigation: 248, pinned, chat: 0, preview: 0 }, true)

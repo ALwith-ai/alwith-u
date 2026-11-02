@@ -75,17 +75,11 @@ pre,
   --canvas-page-indicator: oklch(0.985 0 0);
   --success: var(--color-green-500);
   --link: oklch(0.42 0.17 264);
-  --sidebar-floating-shadow: oklch(0 0 0 / 16%);
-  /* Main chat panel: match Desktop's main-screen geometry. Leave the edges to the native backdrop;
-     the card does not rely on borders or shadows to stand out from the background. */
-  --main-surface-gutter: var(--atlas-gutter, 4px);
-  --main-surface-border-width: 1px;
 }
 
 .dark {
   --success: var(--color-green-500);
   --link: oklch(0.64 0.13 255);
-  --sidebar-floating-shadow: oklch(0 0 0 / 32%);
 }
 
 @layer base {
@@ -106,215 +100,16 @@ pre,
     background: transparent;
   }
 }
-/* Stabilize contrast over Windows Acrylic while retaining the native backdrop texture. */
-html[data-window-backdrop="acrylic"] body {
-  background-color: color-mix(in srgb, var(--sidebar) 60%, transparent);
-}
-html[data-window-backdrop="acrylic"] {
-  --tauri-plugin-decoration-z-index: 60;
-}
-/* The native recovery frame already supplies its own title bar. */
-html[data-window-backdrop="acrylic"]:not(:has([data-tauri-plugin-decoration-active])) .windows-main-titlebar {
-  display: none;
-}
-html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control] {
-  width: calc(46px / var(--main-window-zoom, 1));
-  min-width: 0;
-  height: var(--tauri-plugin-decoration-titlebar-height, 32px);
-  color: var(--foreground);
-}
-html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control]:hover,
-html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-hover] {
-  background: color-mix(in srgb, var(--foreground) 10%, transparent);
-}
-html[data-window-backdrop="acrylic"] [data-tauri-plugin-decoration-root] [data-tauri-decoration-control="close"]:hover,
-html[data-window-backdrop="acrylic"]
-  [data-tauri-plugin-decoration-root]
-  [data-tauri-decoration-control="close"][data-tauri-decoration-hover] {
-  color: var(--primary-foreground);
-  background: var(--destructive);
-}
-/* Login and startup screens share the space below the custom title bar. */
-.windows-main-content > :first-child {
-  height: 100%;
-}
-/* Match Desktop: native vibrancy shows through around the persistent navigation and main panel. */
-[data-slot="sidebar-wrapper"] {
-  background-color: transparent;
-}
-[data-slot="sidebar"] {
-  background-color: transparent;
-}
-/* Give floating navigation its own surface when it overlays chat, keeping content readable. */
-[data-sidebar-mode="floating"] [data-slot="sidebar"] {
-  background-color: var(--background);
-}
-[data-slot="sidebar-inner"],
-[data-slot="sidebar-inner"] > div {
-  background-color: transparent;
-}
-
-/* Window chrome owns full-width rows; only the middle row participates in screen layout. */
-.main-window-titlebar {
-  flex: none;
-  -webkit-app-region: drag;
-}
-.windows-main-content .main-window-titlebar {
-  display: none;
-}
-.main-window-body {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  overflow: clip;
-}
-/* Keep outer gutters outside the measured canvas; adjacent slabs each contribute 4px. */
-.main-canvas-viewport {
-  position: relative;
-  height: 100%;
-  overflow: clip;
-}
-.main-window-statusbar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding-inline: 12px 4px;
-  -webkit-app-region: no-drag;
-}
-.main-chat-surface {
-  width: auto;
-  min-width: 0;
-  margin-inline: var(--atlas-gutter);
-  margin-block: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: var(--main-surface-radius);
-  background-color: var(--background);
-  box-shadow: none;
-}
-/* Docked navigation already supplies the 4px inset at the content-facing edge. */
-[data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
-  margin-inline-start: 0;
-}
-[data-sidebar-mode="pinned"] .main-screen-leading > .main-chat-surface {
-  margin-inline-end: 0;
-}
 /* All sidebar tabs share the host's horizontal inset, including the shared drive launcher. */
 .main-sidebar-panel .alwith-drive-launcher {
   padding-inline: 0;
   padding-block-start: 0;
 }
 
-/* Screen transitions apply only within the window body. */
-[data-sidebar-presentation] {
-  --sidebar-resize-duration: 200ms;
-  --sidebar-fade-duration: 150ms;
-  --screen-slide-duration: 240ms;
-}
-/* One shared navigation panel sits between the two screens; all three stay mounted. */
-.main-screen-track {
-  position: relative;
-  display: flex;
-  flex: none;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  touch-action: pan-y pinch-zoom;
-}
-.main-screen-leading,
-.main-screen-content {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-/* Anchor the main screen at zero; only entering the leading screen translates the track. */
-.main-screen-leading {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 100%;
-  flex-direction: row;
-  width: calc(100% - var(--leading-sidebar-width));
-}
-.leading-navigation {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 48px;
-  padding-block: 12px;
-  /* Balance the canvas's outer 4px gutter against the adjacent content surface. */
-  padding-inline-end: 4px;
-  overflow: hidden;
-}
-.main-screen-leading > .main-chat-surface {
-  flex: 1;
-  margin-inline-start: 0;
-}
-.main-screen-content {
-  flex: 1;
-}
 /* Anchor the toolbar after native controls on both screens, independent of sidebar width. */
 .main-extension-toolbar {
   left: calc(var(--sidebar-toggle-left) + 32px);
   right: 12px;
-}
-.windows-extension-controls [role="toolbar"] {
-  width: calc(100% * var(--main-window-zoom, 1));
-  zoom: calc(1 / var(--main-window-zoom, 1));
-}
-.windows-extension-controls [data-extension-alignment] {
-  -webkit-app-region: no-drag;
-}
-
-/* Only a pinned sidebar reserves space; the same mounted panel is reused for hover preview. */
-.main-sidebar-shell {
-  --sidebar-scrollbar-extension: 0px;
-  position: relative;
-  z-index: 30;
-  flex-shrink: 0;
-  width: var(--active-sidebar-width);
-  height: 100%;
-  transition: width var(--sidebar-resize-duration) ease-in-out;
-}
-/* Measure from the chat surface's visible edge, including its gutter and border. */
-[data-sidebar-mode="pinned"] .main-sidebar-shell {
-  --sidebar-scrollbar-extension: calc(var(--main-surface-gutter) / 2 + var(--main-surface-border-width));
-}
-/* Clip a full-width sidebar instead of squeezing its contents during resize. */
-.main-sidebar-viewport {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: calc(var(--sidebar-width) + var(--sidebar-scrollbar-extension));
-  overflow: clip;
-  opacity: 1;
-  visibility: visible;
-}
-
-.main-sidebar-panel {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: var(--sidebar-width);
-}
-[data-sidebar-mode="hidden"] .main-sidebar-viewport {
-  pointer-events: none;
-}
-[data-sidebar-mode="floating"] .main-sidebar-shell[data-atlas-floating] > .main-sidebar-viewport {
-  /* Atlas paints this outer surface; include the canvas's 4px window gutter. */
-  inset-inline-start: 4px;
-  padding-inline: 0;
-  overflow: clip;
-  border-radius: var(--main-surface-radius);
-}
-[data-sidebar-mode="floating"] .main-sidebar-panel {
-  overflow: clip;
-  border-radius: var(--main-surface-radius);
 }
 @keyframes activity-notification-pulse {
   0%,
@@ -326,15 +121,6 @@ html[data-window-backdrop="acrylic"]
   }
 }
 
-.main-sidebar-toggle {
-  --spacing: 4px;
-  --radius: 10px;
-  position: absolute;
-  display: flex;
-  top: 0;
-  left: var(--sidebar-toggle-left);
-  z-index: 31;
-}
 /* Fixed chrome uses pixel tokens so WebKit's rem metrics at extreme page zoom cannot resize it. */
 .zoom-feedback {
   --spacing: 4px;
@@ -342,19 +128,6 @@ html[data-window-backdrop="acrylic"]
   --text-sm: 14px;
   --text-sm--line-height: 20px;
   zoom: var(--window-zoom-correction);
-}
-.windows-sidebar-toggle {
-  display: flex;
-  align-items: center;
-}
-.windows-sidebar-toggle [data-slot="button"] {
-  transform: scale(calc(1 / var(--main-window-zoom, 1)));
-  transform-origin: top left;
-}
-/* Pin/preview state is conveyed by ARIA; only pointer hover paints this control. */
-.main-sidebar-toggle [data-slot="button"],
-.windows-sidebar-toggle [data-slot="button"] {
-  background-color: transparent;
 }
 /* Application controls use a hover overlay; conversations and Vibemon keep their own presentation. */
 @media (hover: hover) {
@@ -413,20 +186,10 @@ html[data-window-backdrop="acrylic"]
 
 /* Host chrome shares one hover overlay, including selected rows and dark-mode buttons. */
 :root {
-  --native-viewport-width: 100vw;
-  /* The renderer updates 100vw with native page zoom; no React/IPC timing participates in compensation. */
-  --window-zoom-correction: calc(100vw / var(--native-viewport-width));
-  --chrome-hover-background: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 /* Trigger composition replaces data-slot, but preserves the shadcn button class. */
-.main-sidebar-panel :is([class~="group/button"], .chrome-hover):hover,
-.leading-navigation [class~="group/button"]:hover,
-.main-sidebar-toggle [data-slot="button"]:hover,
-.windows-sidebar-toggle [data-slot="button"]:hover,
 .main-extension-toolbar button:hover,
-.windows-extension-controls button:hover,
-.main-workspace-toolbar .file-workspace-toolbar button:hover,
-.main-window-statusbar button:not([data-atlas-footer-navigation] button):is(:hover, [aria-expanded="true"]) {
+.main-workspace-toolbar .file-workspace-toolbar button:hover {
   background-color: var(--chrome-hover-background);
 }
 
@@ -436,20 +199,6 @@ html[data-window-backdrop="acrylic"]
   background-image: none !important;
 }
 
-.main-sidebar-panel [role="tablist"] [role="tab"]:enabled:hover {
-  background-color: transparent;
-  background-image: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .main-screen-track,
-  .main-screen-leading,
-  .main-screen-content,
-  .main-sidebar-shell,
-  [data-sidebar-presentation] .main-sidebar-viewport {
-    transition: none;
-  }
-}
 :root {
   --chat-font-size: 14px;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;

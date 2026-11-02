@@ -49,7 +49,6 @@ import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
-import { NavigationAds } from "@/features/layout/components/navigation-ads"
 import { UpdateStatusButton } from "@/features/updater/components/update-status-button"
 import { useApp } from "@/lib/client"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
@@ -389,9 +388,6 @@ function SidebarPanels({
       </SidebarContent>
       <SidebarFooter className="desktop-shell-navigation-footer shrink-0 gap-1">
         <UpdateStatusButton />
-        <div className="px-1" data-slot="navigation-ads-padding">
-          <NavigationAds onOpenVibemon={onOpenVibemon} />
-        </div>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

@@ -1,10 +1,11 @@
+import { useDesktopCanvas } from "@alwith/module-desktop-shell/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
-import { useMainCanvas } from "../use-main-canvas"
+import { type MainScreen, MainSidebarLayout } from "../main-sidebar-layout"
 
 const carousel = vi.hoisted(() => {
   const api = {
@@ -30,27 +31,35 @@ vi.mock("@nyssance/atlas/react", () => ({
 vi.mock("@/lib/trackpad-preference", () => ({ useThreeFingerSwipeEnabled: () => false }))
 await initI18n("en")
 
-function Harness() {
-  const canvas = useMainCanvas("main", true)
+function Controls({ onLeading }: { onLeading?: () => void }) {
+  const canvas = useDesktopCanvas()
+  if (!canvas) throw new Error("Missing desktop canvas")
   return (
-    <div ref={canvas.ref} data-testid="canvas" data-moving={canvas.moving}>
-      <div ref={canvas.navigationRef} />
-      <button onClick={() => canvas.context.navigate("chat")}>Chat</button>
-      <button onClick={() => canvas.context.setDividerDragging(true)}>Start</button>
-      <button
-        onClick={() =>
-          canvas.context.setWorkspace({
-            chat: 1000,
-            preview: 1000,
-            visible: true,
-            maximized: false
-          })
-        }
-      >
+    <>
+      <button onClick={onLeading}>1</button>
+      <button onClick={() => canvas.navigate("chat")}>2</button>
+      <button onClick={() => canvas.navigate("trailing")}>3</button>
+      <button onClick={() => canvas.setDividerDragging(true)}>Start</button>
+      <button onClick={() => canvas.setWorkspace({ chat: 1000, preview: 1000, visible: true, maximized: false })}>
         Resize
       </button>
-      <button onClick={() => canvas.context.setDividerDragging(false)}>End</button>
-    </div>
+      <button onClick={() => canvas.setDividerDragging(false)}>End</button>
+    </>
+  )
+}
+
+function Harness({ pinned = true, initial = "main" }: { pinned?: boolean; initial?: MainScreen }) {
+  const [screen, setScreen] = useState<MainScreen>(initial)
+  return (
+    <MainSidebarLayout
+      initialPinned={pinned}
+      screen={screen}
+      onScreenChange={setScreen}
+      sidebar={null}
+      leading={null}
+      main={<Controls onLeading={() => setScreen("leading")} />}
+      trailing={<div />}
+    />
   )
 }
 
@@ -68,10 +77,10 @@ test("semantic navigation does not rebuild unchanged canvas geometry", () => {
   const view = render(<Harness />)
   const before = carousel.api.refresh.mock.calls.length
   expect(before).toBeGreaterThan(0)
-  fireEvent.click(view.getByText("Chat"))
-  fireEvent.click(view.getByText("Chat"))
+  fireEvent.click(view.getByText("2"))
+  fireEvent.click(view.getByText("2"))
   expect(carousel.api.refresh).toHaveBeenCalledTimes(before)
-  expect(view.getByTestId("canvas")).toHaveAttribute("data-moving", "false")
+  expect(view.container.querySelector("[data-canvas-moving]")).toHaveAttribute("data-canvas-moving", "false")
 })
 
 test("divider movement rebuilds live and release does not rebuild again", () => {
@@ -85,23 +94,8 @@ test("divider movement rebuilds live and release does not rebuild again", () => 
   expect(carousel.api.refresh).toHaveBeenCalledTimes(before + 1)
 })
 
-function PagingHarness({ pinned }: { pinned: boolean }) {
-  const [screen, setScreen] = useState<"leading" | "main">("leading")
-  const canvas = useMainCanvas(screen, pinned, setScreen, true)
-  return (
-    <div ref={canvas.ref}>
-      <div ref={canvas.navigationRef} />
-      {[0, 1, 2].map((index) => (
-        <button key={index} onClick={() => canvas.select(index)}>
-          {index + 1}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 test.each([false, true])("offscreen navigation remains eligible for hover with pinned=%s", async (pinned) => {
-  const view = render(<PagingHarness pinned={pinned} />)
+  const view = render(<Harness pinned={pinned} initial="leading" />)
   const geometry = vi.spyOn(carousel.api, "getGeometry")
   for (const index of [1, 2, 0, 1]) {
     fireEvent.click(view.getByText(String(index + 1)))
@@ -116,20 +110,10 @@ test.each([false, true])("offscreen navigation remains eligible for hover with p
   }
 })
 
-test("repeated clicks on the selected target leave its animation running", () => {
-  const view = render(<PagingHarness pinned={false} />)
-  carousel.api.cancelInput.mockClear()
-  carousel.api.goToSnap.mockClear()
-  fireEvent.click(view.getByText("2"))
-  fireEvent.click(view.getByText("2"))
-  expect(carousel.api.cancelInput).not.toHaveBeenCalled()
-  expect(carousel.api.goToSnap).not.toHaveBeenCalled()
-})
-
 test("selection during motion defers docking changes until settle", async () => {
   const geometry = vi.spyOn(carousel.api, "getGeometry")
   geometry.mockReturnValue({ selected: 0, snaps: [0, 1, 2] })
-  const view = render(<PagingHarness pinned />)
+  const view = render(<Harness initial="leading" />)
   fireEvent.click(view.getByText("2"))
   geometry.mockReturnValue({ selected: 1, snaps: [0, 1, 2] })
   const select = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
