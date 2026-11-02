@@ -124,3 +124,21 @@ test("selection during motion defers docking changes until settle", async () => 
   await act(() => Promise.resolve(settle()))
   expect(carousel.options.mock.calls.at(-1)?.[0].navigationPinned).toBe(true)
 })
+
+test.each([false, true])(
+  "an instant overview selection activates the leading screen without settle (pinned=%s)",
+  async (pinned) => {
+    const geometry = vi.spyOn(carousel.api, "getGeometry")
+    geometry.mockReturnValue({ selected: 1, snaps: [0, 1, 2] })
+    const view = render(<Harness pinned={pinned} />)
+    const panel = view.container.querySelector('[data-screen-panel="leading"]')
+    expect(panel).toHaveAttribute("aria-hidden", "true")
+    geometry.mockReturnValue({ selected: 0, snaps: [0, 1, 2] })
+    const select = carousel.api.on.mock.calls.findLast(([event]) => event === "select")?.[1]
+    if (!select) throw new Error("Missing Atlas selection subscription")
+    await act(() => Promise.resolve(select()))
+    expect(panel).toHaveAttribute("aria-hidden", "false")
+    expect(panel).not.toHaveAttribute("inert")
+    expect(view.container.querySelector("[data-main-screen]")).toHaveAttribute("data-main-screen", "leading")
+  }
+)

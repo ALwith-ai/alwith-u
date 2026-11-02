@@ -209,6 +209,7 @@
     "remove": "Retirer"
   },
   "updater": {
+    "installing": "Installation...",
     "relaunchConfirmTitle": "Relancer pour mettre à jour ?",
     "relaunchConfirmDesc": "L'application va se fermer et redémarrer pour appliquer la mise à jour.",
     "relaunchNow": "Relancer maintenant",

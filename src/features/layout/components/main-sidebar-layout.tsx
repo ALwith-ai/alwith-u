@@ -66,6 +66,14 @@ export function MainSidebarLayout({
   )
   const persistPinned = useCallback((pinned: boolean) => savePreference("sidebarPinned", pinned), [])
   const openLink = useCallback((url: string) => void openExternal(url).catch(report), [])
+  const regionChanged = useCallback(
+    (region: "leading" | "chat" | "preview" | "trailing") => {
+      // Overview exits settle instantly and do not emit the animated screen-change event.
+      const next = region === "leading" ? "leading" : "main"
+      if (next !== screen) onScreenChange?.(next)
+    },
+    [screen, onScreenChange]
+  )
   return (
     <DesktopWorkspace
       navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
@@ -76,6 +84,7 @@ export function MainSidebarLayout({
       overlays={children}
       screen={screen}
       onScreenChange={onScreenChange}
+      onRegionChange={regionChanged}
       initialNavigationPinned={initialPinned}
       onNavigationPinnedChange={persistPinned}
       labels={labels}

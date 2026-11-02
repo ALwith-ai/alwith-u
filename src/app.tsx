@@ -135,14 +135,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setLeadingPage("archives")
     setView("archives")
   }, [])
-  const [pluginsVisited, setPluginsVisited] = useState(false)
   const openPlugins = useCallback(() => {
-    setPluginsVisited(true)
     setLeadingPage("plugins")
     setView("plugins")
   }, [])
   const openExtensions = useCallback(() => {
-    setPluginsVisited(true)
     setLeadingPage("extensions")
     setView("extensions")
   }, [])
@@ -658,32 +655,31 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
                 {leading && actionCards}
                 {view === "archives" && <ArchivedChatsPage />}
-                {pluginsVisited && (
-                  <div
-                    className={
-                      (leadingPage === "plugins" || leadingPage === "extensions") && view !== "extension"
-                        ? "flex min-h-0 flex-1 flex-col"
-                        : "hidden"
-                    }
-                  >
-                    <PluginsPage
-                      cwd={session?.cwd ?? lastDirectory}
-                      active={view === "plugins"}
-                      onOpenCatalog={openPlugins}
-                      extensions={{
-                        active: leadingPage === "extensions",
-                        onOpen: openExtensions,
-                        content: (
-                          <Pane className="pe-0" viewportClassName="pe-0">
-                            <div className={`${toolboxContentClassName} pt-8`}>
-                              <ExtensionsSection onOpenSurface={openExtension} />
-                            </div>
-                          </Pane>
-                        )
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Atlas gestures and overview previews need the default page before navigation settles. */}
+                <div
+                  className={
+                    (leadingPage === "plugins" || leadingPage === "extensions") && view !== "extension"
+                      ? "flex min-h-0 flex-1 flex-col"
+                      : "hidden"
+                  }
+                >
+                  <PluginsPage
+                    cwd={session?.cwd ?? lastDirectory}
+                    active={view === "plugins"}
+                    onOpenCatalog={openPlugins}
+                    extensions={{
+                      active: leadingPage === "extensions",
+                      onOpen: openExtensions,
+                      content: (
+                        <Pane className="pe-0" viewportClassName="pe-0">
+                          <div className={`${toolboxContentClassName} pt-8`}>
+                            <ExtensionsSection onOpenSurface={openExtension} />
+                          </div>
+                        </Pane>
+                      )
+                    }}
+                  />
+                </div>
                 {vibemonVisited && (
                   <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
                     <VibemonCenter />

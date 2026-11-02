@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
+import { sidebarFooterMenuRow } from "@/components/alwith-ui/sidebar-footer-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
@@ -24,8 +25,7 @@ export function GuideButton(): ReactNode {
         open={open}
         onOpenChange={(next) => {
           if (next) {
-            const row = trigger.current?.parentElement
-            if (!row) throw new Error("Help trigger must be mounted in its footer row")
+            const row = sidebarFooterMenuRow(trigger.current)
             setMenuWidth(row.clientWidth)
           }
           setOpen(next)

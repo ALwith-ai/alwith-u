@@ -289,6 +289,7 @@
     "remove": "يزيل"
   },
   "updater": {
+    "installing": "جارٍ التثبيت...",
     "upToDate": "محدّث",
     "relaunchConfirmTitle": "هل تريد إعادة التشغيل للتحديث؟",
     "relaunchConfirmDesc": "سيتم إغلاق التطبيق وإعادة تشغيله لتطبيق التحديث.",

@@ -365,7 +365,7 @@ function SidebarPanels({
         ) : view === "activity" ? (
           <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <Pane className="session-list-scroll" viewportRef={setViewport} viewportClassName="ps-2 pe-0 pb-1">
+          <Pane className="session-list-scroll" viewportRef={setViewport} viewportClassName="px-0 pb-1">
             {/* Observe content height as groups expand, collapse or reveal more rows. */}
             <ScrollArea.Content render={<NavigationStack />} style={{ minWidth: 0 }}>
               <SessionList
@@ -402,7 +402,7 @@ function SidebarPanels({
             {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
           </Button>
         </div>
-        <div className="flex h-[var(--navigation-row-height)] items-center gap-0.5">
+        <div data-sidebar-footer-row className="flex h-[var(--navigation-row-height)] items-center gap-0.5">
           <div className="min-w-0 flex-1">
             <SidebarAccountMenu onOpenSettings={onOpenSettings} onCreated={onNewProjectChat} />
           </div>

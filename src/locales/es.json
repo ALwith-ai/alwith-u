@@ -210,6 +210,7 @@
     "remove": "Quitar"
   },
   "updater": {
+    "installing": "Instalando...",
     "relaunchConfirmTitle": "¿Reiniciar para actualizar?",
     "relaunchConfirmDesc": "La aplicación se cerrará y reiniciará para aplicar la actualización.",
     "relaunchNow": "Reiniciar ahora",

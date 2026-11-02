@@ -8,11 +8,12 @@ import {
   SettingsIcon,
   SmartphoneIcon
 } from "lucide-react"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
+import { sidebarFooterMenuRow } from "@/components/alwith-ui/sidebar-footer-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -46,6 +47,22 @@ export function SidebarAccountMenu({
   const user = usePlatformAuth((state) => state.user)
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const [menuGeometry, setMenuGeometry] = useState({ width: 0, offset: 0 })
+  const changeOpen = (next: boolean): void => {
+    if (next) {
+      const anchor = trigger.current
+      const sidebar = sidebarFooterMenuRow(anchor)
+      if (!anchor) throw new Error("Account menu requires a mounted trigger")
+      const bounds = sidebar.getBoundingClientRect()
+      const button = anchor.getBoundingClientRect()
+      setMenuGeometry({
+        width: sidebar.clientWidth,
+        offset: i18n.dir() === "rtl" ? bounds.right - button.right : button.left - bounds.left
+      })
+    }
+    setOpen(next)
+  }
   const [createOpen, setCreateOpen] = useState(false)
   const vibemon = useVibemonControl()
   useSidebarOverlay(open)
@@ -64,8 +81,9 @@ export function SidebarAccountMenu({
   return (
     <>
       <CreateWorkBuddy open={createOpen} onOpenChange={setCreateOpen} onCreated={onCreated} />
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenu open={open} onOpenChange={changeOpen}>
         <DropdownMenuTrigger
+          ref={trigger}
           render={
             <NavigationItemButton
               disabled={busy}
@@ -76,7 +94,13 @@ export function SidebarAccountMenu({
           <NavigationLeading>{avatar}</NavigationLeading>
           <span className="min-w-0 truncate">{displayName}</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[calc(var(--anchor-width)+36px)]">
+        <DropdownMenuContent
+          side="top"
+          align="start"
+          alignOffset={-menuGeometry.offset}
+          sideOffset={8}
+          style={{ width: menuGeometry.width }}
+        >
           <DropdownMenuGroup>
             <DropdownMenuLabel className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-popover-foreground">
               <NavigationLeading>{avatar}</NavigationLeading>
@@ -100,10 +124,16 @@ export function SidebarAccountMenu({
               <AppWindowIcon className="text-muted-foreground" />
               {t("workbuddy.create")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="h-[var(--navigation-row-height,30px)] py-0" onClick={onOpenSettings}>
-              <SettingsIcon className="text-muted-foreground" />
-              {t("sidebar.settings")}
-              <ShortcutKey shortcut="CmdOrCtrl+," className="ml-auto shrink-0" />
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              disabled={busy || vibemon.disabled}
+              className="h-[var(--navigation-row-height,30px)] py-0"
+              onClick={() => void vibemon.toggle()}
+            >
+              <PawPrintIcon className="text-muted-foreground" />
+              {t(vibemon.enabled ? "pet.hide" : "pet.show")}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="h-[var(--navigation-row-height,30px)] py-0"
@@ -112,6 +142,20 @@ export function SidebarAccountMenu({
               <SmartphoneIcon className="text-muted-foreground" />
               {t("settings.mobile")}
             </DropdownMenuItem>
+            <DropdownMenuItem
+              className="h-[var(--navigation-row-height,30px)] py-0"
+              onClick={() =>
+                void openGamepadWindow().catch((error: unknown) =>
+                  toast.error(error instanceof Error ? error.message : String(error))
+                )
+              }
+            >
+              <Gamepad2Icon className="text-muted-foreground" />
+              {t("settings.gamepad")}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="h-[var(--navigation-row-height,30px)] py-0">
                 <GlobeIcon className="text-muted-foreground" />
@@ -136,27 +180,10 @@ export function SidebarAccountMenu({
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              disabled={busy || vibemon.disabled}
-              className="h-[var(--navigation-row-height,30px)] py-0"
-              onClick={() => void vibemon.toggle()}
-            >
-              <PawPrintIcon className="text-muted-foreground" />
-              {t(vibemon.enabled ? "pet.hide" : "pet.show")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="h-[var(--navigation-row-height,30px)] py-0"
-              onClick={() =>
-                void openGamepadWindow().catch((error: unknown) =>
-                  toast.error(error instanceof Error ? error.message : String(error))
-                )
-              }
-            >
-              <Gamepad2Icon className="text-muted-foreground" />
-              {t("settings.gamepad")}
+            <DropdownMenuItem className="h-[var(--navigation-row-height,30px)] py-0" onClick={onOpenSettings}>
+              <SettingsIcon className="text-muted-foreground" />
+              {t("sidebar.settings")}
+              <ShortcutKey shortcut="CmdOrCtrl+," className="ml-auto shrink-0" />
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

@@ -20,8 +20,8 @@ export function LeadingNavigation({
 }): ReactElement {
   const { t } = useTranslation()
   const items = [
-    { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
     { id: "plugins", label: t("plugins.catalog.customize"), icon: LayoutGridIcon, onClick: onOpenPlugins },
+    { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
     { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
   ] as const
 

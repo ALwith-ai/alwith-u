@@ -268,7 +268,7 @@ export function CollectionPanel({
   }
   return (
     <>
-      <Pane className="session-list-scroll" viewportClassName="ps-2 pe-0 pb-1">
+      <Pane className="session-list-scroll" viewportClassName="px-0 pb-1">
         <NavigationStack>
           <NavigationItemButton
             className={cn(MENU_HIGHLIGHT, "font-normal")}

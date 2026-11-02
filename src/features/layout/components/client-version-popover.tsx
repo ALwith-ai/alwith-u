@@ -38,15 +38,17 @@ export function ClientVersionPopover() {
   const url = new URL(appEnv.apiBaseUrl)
   const nonProduction = url.hostname !== "api.alwith.ai"
   return (
-    <DesktopStatusItem
-      server={{ url: appEnv.apiBaseUrl, label: nonProduction ? labels.development : url.host, nonProduction }}
-      signing={null}
-      appVersion={clientVersion}
-      cli={cli}
-      labels={labels}
-      openUrl={openExternal}
-      revealPath={revealItemsInDir}
-      onError={(error) => toast.error(String(error))}
-    />
+    <div className="client-version-status flex h-8 shrink-0 items-center [&>button]:h-6 [&>button]:rounded-[min(var(--radius-md),10px)] [&>button]:border [&>button]:border-transparent [&>button]:px-2.5 [&>button]:font-medium [&>button]:whitespace-nowrap [&>button]:outline-none [&>button]:select-none [&>button]:focus-visible:border-ring [&>button]:focus-visible:ring-3 [&>button]:focus-visible:ring-ring/50">
+      <DesktopStatusItem
+        server={{ url: appEnv.apiBaseUrl, label: nonProduction ? labels.development : url.host, nonProduction }}
+        signing={null}
+        appVersion={clientVersion}
+        cli={cli}
+        labels={labels}
+        openUrl={openExternal}
+        revealPath={revealItemsInDir}
+        onError={(error) => toast.error(String(error))}
+      />
+    </div>
   )
 }

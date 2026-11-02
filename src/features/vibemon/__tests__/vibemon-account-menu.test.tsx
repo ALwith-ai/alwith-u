@@ -91,12 +91,45 @@ function fixture(enabled: boolean, failure?: Error) {
 }
 
 async function openMenu() {
-  const view = render(<SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />)
+  const view = render(
+    <div data-sidebar-footer-row>
+      <SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />
+    </div>
+  )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   return view
 }
 
-test("the account menu groups settings and language above tools and sign out", async () => {
+test("the account popover uses the shared footer row width rather than the sidebar or account button", async () => {
+  await initI18n("en")
+  fixture(false)
+  let width = 248
+  const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement
+  ) {
+    if (this.matches("[data-sidebar-footer-row]")) return new DOMRect(104, 0, width, 700)
+    if (this.matches('[data-slot="dropdown-menu-trigger"]')) return new DOMRect(104, 650, width - 36, 30)
+    return new DOMRect()
+  })
+  const clientWidth = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (
+    this: HTMLElement
+  ) {
+    return this.matches("[data-sidebar-footer-row]") ? width : 0
+  })
+  try {
+    const view = await openMenu()
+    expect(view.getByRole("menu")).toHaveStyle({ width: "248px" })
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+    width = 304
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+    expect(view.getByRole("menu")).toHaveStyle({ width: "304px" })
+  } finally {
+    bounds.mockRestore()
+    clientWidth.mockRestore()
+  }
+})
+
+test("the account menu groups creation, companion tools, preferences and sign out", async () => {
   await initI18n("en")
   const f = fixture(false)
   const view = await openMenu()
@@ -104,7 +137,7 @@ test("the account menu groups settings and language above tools and sign out", a
     expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
   )
   expect(view.getAllByRole("menuitem")).toEqual(
-    ["Create your ALwith", "Settings", "Mobile connection", "Language", "Show Vibémon", "Gamepad", "Sign out"].map(
+    ["Create your ALwith", "Show Vibémon", "Mobile connection", "Gamepad", "Language", "Settings", "Sign out"].map(
       (name) => view.getByRole("menuitem", { name })
     )
   )

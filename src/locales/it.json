@@ -210,6 +210,7 @@
     "remove": "Rimuovi"
   },
   "updater": {
+    "installing": "Installazione...",
     "relaunchConfirmTitle": "Riavviare per aggiornare?",
     "relaunchConfirmDesc": "L'app si chiuderà e si riavvierà per applicare l'aggiornamento.",
     "relaunchNow": "Riavvia ora",

@@ -62,6 +62,6 @@ test("reports installation errors", async () => {
 test("keeps installation feedback visible until restart", () => {
   useUpdaterStore.setState({ state: { type: "restarting", update } })
   const view = render(<UpdateStatusButton />)
-  expect(view.getByRole("status")).toHaveTextContent("Installing update")
+  expect(view.getByRole("status")).toHaveTextContent("Installing...")
   expect(view.queryByRole("button")).toBeNull()
 })

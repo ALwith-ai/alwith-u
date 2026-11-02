@@ -201,6 +201,7 @@
     "remove": "Hapus"
   },
   "updater": {
+    "installing": "Memasang...",
     "relaunchConfirmTitle": "Luncurkan ulang untuk memperbarui?",
     "relaunchConfirmDesc": "Aplikasi akan ditutup dan dimulai ulang untuk menerapkan pembaruan.",
     "relaunchNow": "Luncurkan ulang sekarang",

@@ -269,7 +269,7 @@ body,
 .session-list-scroll {
   --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
   margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
-  padding-inline-end: calc(8px + var(--sidebar-scrollbar-extension, 0px));
+  padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
 }
 .session-list-scroll > [data-slot="scroll-area-scrollbar"] {
   padding-inline: var(--app-scrollbar-edge-gap);
@@ -365,7 +365,22 @@ body,
 }
 .main-screen-track > .main-sidebar-shell {
   width: var(--sidebar-width);
+  padding-inline: 0;
   transition: none;
+}
+/* The measured navigation width includes its gutters on either side of the canvas. */
+.main-sidebar-panel {
+  padding-inline: var(--atlas-gutter);
+}
+.main-sidebar-panel [data-slot="sidebar"] {
+  width: 100%;
+}
+/* Match the window-facing inset: the page gutter and navigation padding each contribute 4px. */
+[data-sidebar-mode="pinned"] .main-screen-leading > .main-chat-surface {
+  margin-inline-end: var(--atlas-gutter);
+}
+[data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
+  margin-inline-start: var(--atlas-gutter);
 }
 .main-screen-content > .main-workspace-surface {
   margin-inline: 0;

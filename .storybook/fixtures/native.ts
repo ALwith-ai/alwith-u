@@ -132,6 +132,7 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   nativeCalls.push({ command, payload })
   if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
   if (command === "plugin:app|version") return version
+  if (command === "plugin:app|identifier") return "ai.alwith.u.storybook"
   if (command === "plugin:window|get_all_windows") return ["main", "settings", "gamepad", "guide", "chat"]
   if (command === "plugin:webview|get_all_webviews")
     return ["main", "settings", "gamepad", "guide", "chat"].map((label) => ({ label, windowLabel: label }))

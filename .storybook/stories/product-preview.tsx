@@ -279,9 +279,7 @@ export function ProductPreview({
                     </div>
                     <DriveStatus />
                   </div>
-                  <div className="flex size-8 items-center justify-center">
-                    <ClientVersionPopover />
-                  </div>
+                  <ClientVersionPopover />
                 </>
               }
               sidebar={

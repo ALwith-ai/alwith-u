@@ -214,6 +214,7 @@
     "remove": "削除"
   },
   "updater": {
+    "installing": "インストール中...",
     "relaunchConfirmTitle": "更新のため再起動しますか?",
     "relaunchConfirmDesc": "更新を適用するためにアプリを閉じて再起動します。",
     "relaunchNow": "今すぐ再起動",

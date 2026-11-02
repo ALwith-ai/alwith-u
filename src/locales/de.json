@@ -208,6 +208,7 @@
     "remove": "Entfernen"
   },
   "updater": {
+    "installing": "Installation...",
     "relaunchConfirmTitle": "Neu starten zum Aktualisieren?",
     "relaunchConfirmDesc": "Die App wird geschlossen und neu gestartet, um das Update anzuwenden.",
     "relaunchNow": "Jetzt neu starten",

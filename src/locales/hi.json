@@ -214,6 +214,7 @@
     "remove": "हटाएँ"
   },
   "updater": {
+    "installing": "इंस्टॉल हो रहा है...",
     "relaunchConfirmTitle": "अपडेट के लिए फिर से लॉन्च करें?",
     "relaunchConfirmDesc": "अपडेट लागू करने के लिए ऐप बंद होकर पुनः आरंभ होगा।",
     "relaunchNow": "अभी फिर से लॉन्च करें",

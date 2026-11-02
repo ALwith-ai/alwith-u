@@ -38,6 +38,12 @@ test("leading navigation switches pages and is inaccessible on the main screen",
     )
   }
   const view = render(<Screen />)
+  expect(
+    view
+      .getAllByRole("button")
+      .slice(0, 3)
+      .map((button) => button.getAttribute("aria-label"))
+  ).toEqual(["Toolbox", "Vibémon", "Archived chats"])
   expect(view.getByRole("button", { name: "Toolbox" })).toHaveAttribute("aria-current", "page")
   for (const [name, page] of [
     ["Vibémon", "vibemon"],

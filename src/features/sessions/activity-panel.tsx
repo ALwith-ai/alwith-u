@@ -166,7 +166,7 @@ export function ActivityPanel({
   }
 
   return (
-    <Pane className="session-list-scroll" viewportClassName="ps-2 pe-0 pb-1">
+    <Pane className="session-list-scroll" viewportClassName="px-0 pb-1">
       <NavigationStack>
         {groups.map((group) =>
           group.key === "foreground" ? (

@@ -16,7 +16,11 @@ afterEach(() => {
 
 test("help opens an ordered menu and keyboard shortcuts open the existing reference", async () => {
   await initI18n("zh-CN")
-  const view = render(<GuideButton />)
+  const view = render(
+    <div data-sidebar-footer-row>
+      <GuideButton />
+    </div>
+  )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "帮助" }))))
   expect(view.getAllByRole("menuitem")).toEqual(
     ["键盘快捷键", "用户指南"].map((name) => view.getByRole("menuitem", { name }))
@@ -32,7 +36,11 @@ test("the user guide menu action opens the guide and reports failures", async ()
   await initI18n("en")
   const open = vi.mocked(openGuideWindow).mockResolvedValueOnce()
   const report = vi.spyOn(toast, "error").mockImplementation(() => "toast")
-  const view = render(<GuideButton />)
+  const view = render(
+    <div data-sidebar-footer-row>
+      <GuideButton />
+    </div>
+  )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Help" }))))
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "User guide" }))))
   await waitFor(() => expect(open).toHaveBeenCalledOnce())

@@ -214,6 +214,7 @@
     "remove": "제거"
   },
   "updater": {
+    "installing": "설치 중...",
     "relaunchConfirmTitle": "업데이트를 위해 다시 시작할까요?",
     "relaunchConfirmDesc": "업데이트를 적용하기 위해 앱이 닫히고 다시 시작됩니다.",
     "relaunchNow": "지금 다시 시작",
