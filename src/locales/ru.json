@@ -63,7 +63,9 @@
     "loadMore": "Загрузить ещё",
     "deleteTitle": "Удалить этот чат?",
     "deleteDescription": "Этот чат будет удалён навсегда. Это действие нельзя отменить.",
-    "noResults": "Чаты не найдены"
+    "noResults": "Чаты не найдены",
+    "filter": "Фильтр",
+    "collapseAllGroups": "Свернуть все группы"
   },
   "welcome": {
     "chooseFolder": "Выбрать папку",

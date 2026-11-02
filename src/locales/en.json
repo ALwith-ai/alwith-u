@@ -114,7 +114,9 @@
     "search": "Search chats",
     "noResults": "No chats found",
     "stop": "Stop",
-    "settings": "Settings"
+    "settings": "Settings",
+    "filter": "Filter",
+    "collapseAllGroups": "Collapse all groups"
   },
   "welcome": {
     "title": "What would you like to build?",

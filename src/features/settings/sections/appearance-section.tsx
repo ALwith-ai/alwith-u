@@ -1,3 +1,4 @@
+import { ThemeModePicker } from "@alwith/module-desktop-shell/settings"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -10,8 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/alwith-ui/select"
-import { type Theme, useTheme } from "@/components/theme-provider"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useTheme } from "@/components/theme-provider"
 import {
   NAVIGATION_INSTRUMENT_GROUPS,
   NAVIGATION_SOUND_MODES,
@@ -36,27 +36,15 @@ export function AppearanceSection() {
   const navigationInstrumentGroup = NAVIGATION_INSTRUMENT_GROUPS.find((group) =>
     (group.instruments as readonly NavigationInstrument[]).includes(navigationInstrument)
   ) as (typeof NAVIGATION_INSTRUMENT_GROUPS)[number]
-  const themeOptions: Array<[Theme, string]> = [
-    ["light", t("settings.themeLight")],
-    ["system", t("settings.themeSystem")],
-    ["dark", t("settings.themeDark")]
-  ]
   return (
     <SettingGroup>
-      <SettingRow title={t("settings.theme")} aligned>
-        <ToggleGroup
-          className="grid w-full grid-cols-3"
-          value={[theme]}
-          onValueChange={(values) => values[0] && setTheme(values[0] as Theme)}
-          variant="outline"
-          aria-label={t("settings.theme")}
-        >
-          {themeOptions.map(([value, label]) => (
-            <ToggleGroupItem key={value} value={value}>
-              {label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+      <SettingRow title={t("settings.theme")}>
+        <ThemeModePicker
+          value={theme}
+          onChange={setTheme}
+          labels={{ light: t("settings.themeLight"), system: t("settings.themeSystem"), dark: t("settings.themeDark") }}
+          label={t("settings.theme")}
+        />
       </SettingRow>
       <SettingRow title={t("zoom.label")} aligned>
         <Select

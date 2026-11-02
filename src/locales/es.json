@@ -62,7 +62,9 @@
     "loadMore": "Cargar más",
     "deleteTitle": "¿Eliminar este chat?",
     "deleteDescription": "Este chat se eliminará permanentemente. Esta acción no se puede deshacer.",
-    "noResults": "No se encontraron chats"
+    "noResults": "No se encontraron chats",
+    "filter": "Filtrar",
+    "collapseAllGroups": "Contraer todos los grupos"
   },
   "welcome": {
     "chooseFolder": "Elegir carpeta",

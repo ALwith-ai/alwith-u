@@ -62,7 +62,9 @@
     "loadMore": "Mehr laden",
     "deleteTitle": "Diesen Chat löschen?",
     "deleteDescription": "Dieser Chat wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
-    "noResults": "Keine Chats gefunden"
+    "noResults": "Keine Chats gefunden",
+    "filter": "Filtern",
+    "collapseAllGroups": "Alle Gruppen einklappen"
   },
   "welcome": {
     "chooseFolder": "Ordner wählen",

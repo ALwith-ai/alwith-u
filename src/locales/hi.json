@@ -63,7 +63,9 @@
     "loadMore": "और लोड करें",
     "deleteTitle": "यह चैट हटाएँ?",
     "deleteDescription": "यह चैट स्थायी रूप से हटा दी जाएगी। इसे पूर्ववत नहीं किया जा सकता।",
-    "noResults": "कोई चैट नहीं मिली"
+    "noResults": "कोई चैट नहीं मिली",
+    "filter": "फ़िल्टर",
+    "collapseAllGroups": "सभी समूह संक्षिप्त करें"
   },
   "welcome": {
     "chooseFolder": "फ़ोल्डर चुनें",

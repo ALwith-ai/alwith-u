@@ -28,6 +28,7 @@ import {
   PictureInPicture2Icon,
   PlusIcon,
   SearchIcon,
+  SlidersHorizontalIcon,
   StarIcon
 } from "lucide-react"
 import { motion } from "motion/react"
@@ -54,6 +55,7 @@ import type { MainScreen } from "@/features/layout/components/main-sidebar-layou
 import { useApp } from "@/lib/client"
 import { updateLabels } from "@/lib/update-labels"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 import { ActivityPanel } from "./activity-panel"
@@ -201,7 +203,7 @@ function SidebarPanels({
     <Sidebar
       collapsible="none"
       // Keep spacing aligned with the panel's pixel gutters when WebKit clamps rem-based fonts at low zoom.
-      className="h-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
+      className="h-full w-full min-h-0 shrink-0 bg-transparent [--navigation-row-height:30px] [--spacing:4px]"
     >
       <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-0.5" data-tauri-drag-region>
         <div className="flex h-[var(--navigation-row-height)] items-center gap-0.5" data-tauri-drag-region>
@@ -293,7 +295,7 @@ function SidebarPanels({
         <div className="relative mb-2 flex h-[var(--navigation-row-height)] shrink-0 items-center gap-0.5">
           <div
             role="tablist"
-            className={`${MENU_HIGHLIGHT} flex h-[var(--navigation-row-height)] w-full flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]`}
+            className="flex h-[var(--navigation-row-height)] w-52 flex-none items-center gap-0.5 rounded-[10px] bg-foreground/5 [corner-shape:superellipse(1.5)]"
           >
             {tabs
               .filter((tab) => tab.key !== "drive" || driveVisible)
@@ -318,7 +320,7 @@ function SidebarPanels({
                         : undefined
                     }
                     className={cn(
-                      "relative isolate h-[var(--navigation-row-height)] min-w-[var(--navigation-row-height)] justify-start rounded-[10px] px-2 text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-4 [&_svg]:shrink-0",
+                      "relative isolate h-[var(--navigation-row-height)] min-w-[var(--navigation-row-height)] justify-start rounded-[10px] px-[6px] text-sm [corner-shape:superellipse(1.5)] [&_svg]:relative [&_svg]:z-10 [&_svg]:size-[18px] [&_svg]:shrink-0",
                       active ? "grow transition-[flex-grow] duration-200 ease-out" : "grow-0 duration-0"
                     )}
                   >
@@ -342,7 +344,7 @@ function SidebarPanels({
                       className={cn(
                         "relative z-10 grid",
                         active
-                          ? "ms-2 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
+                          ? "ms-1.5 grid-cols-[1fr] transition-[grid-template-columns,margin-inline-start] duration-200 ease-out"
                           : "ms-0 grid-cols-[0fr] duration-0"
                       )}
                     >
@@ -351,6 +353,27 @@ function SidebarPanels({
                   </NavigationMenuIconButton>
                 )
               })}
+          </div>
+          <div className="ms-auto flex shrink-0 items-center gap-0.5">
+            {view === "sessions" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<NavigationMenuIconButton aria-label={t("sidebar.filter")} title={t("sidebar.filter")} />}
+                >
+                  <SlidersHorizontalIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setProjectOpen(new Map())
+                      setAllProjectsShown(false)
+                    }}
+                  >
+                    {t("sidebar.collapseAllGroups")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
         {driveVisible && (driveVisited || view === "drive") && (
@@ -397,20 +420,14 @@ function SidebarPanels({
           />
         }
       >
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            className={cn(
-              "h-[var(--navigation-row-height)] min-w-0 flex-1 rounded-[10px] px-2 [corner-shape:superellipse(1.5)] hover:bg-foreground/5",
-              screen === "main" ? "justify-start" : "justify-end"
-            )}
-            aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-            title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
-            onClick={onSwitchScreen}
-          >
-            {screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}
-          </Button>
-        </div>
+        <NavigationItemButton
+          className={cn(MENU_HIGHLIGHT, screen === "main" ? "justify-start" : "justify-end")}
+          aria-label={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          title={t(screen === "main" ? "sidebar.openLeading" : "sidebar.backToMain")}
+          onClick={onSwitchScreen}
+        >
+          <NavigationLeading>{screen === "main" ? <ArrowLeftIcon /> : <ArrowRightIcon />}</NavigationLeading>
+        </NavigationItemButton>
         <div data-sidebar-footer-row className="flex h-[var(--navigation-row-height)] items-center gap-0.5">
           <div className="min-w-0 flex-1">
             <SidebarAccountMenu onOpenSettings={onOpenSettings} onCreated={onNewProjectChat} />

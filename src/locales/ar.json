@@ -71,7 +71,9 @@
     "loadMore": "تحميل المزيد",
     "deleteTitle": "حذف هذه الدردشة؟",
     "deleteDescription": "ستُحذف هذه الدردشة نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
-    "noResults": "لم يتم العثور على دردشات"
+    "noResults": "لم يتم العثور على دردشات",
+    "filter": "تصفية",
+    "collapseAllGroups": "طي كل المجموعات"
   },
   "welcome": {
     "chooseFolder": "اختر المجلد",

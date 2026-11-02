@@ -63,7 +63,9 @@
     "loadMore": "Carica altro",
     "deleteTitle": "Eliminare questa chat?",
     "deleteDescription": "Questa chat verrà eliminata definitivamente. L’azione non può essere annullata.",
-    "noResults": "Nessuna chat trovata"
+    "noResults": "Nessuna chat trovata",
+    "filter": "Filtra",
+    "collapseAllGroups": "Comprimi tutti i gruppi"
   },
   "welcome": {
     "chooseFolder": "Scegli cartella",

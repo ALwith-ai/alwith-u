@@ -62,7 +62,9 @@
     "loadMore": "Muat lebih banyak",
     "deleteTitle": "Hapus obrolan ini?",
     "deleteDescription": "Obrolan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
-    "noResults": "Tidak ada obrolan ditemukan"
+    "noResults": "Tidak ada obrolan ditemukan",
+    "filter": "Filter",
+    "collapseAllGroups": "Ciutkan semua grup"
   },
   "welcome": {
     "chooseFolder": "Pilih folder",

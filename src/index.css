@@ -129,29 +129,6 @@ pre,
   --text-sm--line-height: 20px;
   zoom: var(--window-zoom-correction);
 }
-/* Application controls use a hover overlay; conversations and Vibemon keep their own presentation. */
-@media (hover: hover) {
-  :is(button, [role="button"], [class~="group/button"]):not(:disabled):not([aria-disabled="true"]):not(
-      [data-disabled]
-    ):not(
-      :where(
-        .codex-timeline-content *,
-        .timeline-user-message-navigation *,
-        .codex-assistant-turn *,
-        .chat-project-picker *,
-        .vibemon-content *,
-        .vibemon-lounge-pet,
-        .pet-lounge button[aria-label="Vibémon"],
-        .window-card-hit,
-        [data-atlas-footer-navigation] *
-      )
-    ):hover {
-    background-image: linear-gradient(
-      color-mix(in oklab, currentColor 8%, transparent),
-      color-mix(in oklab, currentColor 8%, transparent)
-    );
-  }
-}
 
 .window-card {
   /* Native window-control roles match the Desktop miniature window chrome. */
@@ -261,8 +238,10 @@ body,
   display: none;
 }
 
+/* Navigation lists keep rows the full column width, as in ALwith Desktop: the track overlays the rows. */
 .session-list-scroll {
   --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
+  padding-inline-end: 0;
 }
 .session-list-scroll > [data-slot="scroll-area-scrollbar"] {
   padding-inline: var(--app-scrollbar-edge-gap);

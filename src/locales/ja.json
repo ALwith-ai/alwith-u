@@ -63,7 +63,9 @@
     "loadMore": "さらに読み込む",
     "deleteTitle": "このチャットを削除しますか？",
     "deleteDescription": "このチャットは完全に削除されます。この操作は取り消せません。",
-    "noResults": "チャットが見つかりません"
+    "noResults": "チャットが見つかりません",
+    "filter": "フィルター",
+    "collapseAllGroups": "すべてのグループを折りたたむ"
   },
   "welcome": {
     "chooseFolder": "フォルダを選択",

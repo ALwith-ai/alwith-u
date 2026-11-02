@@ -62,7 +62,9 @@
     "loadMore": "Carregar mais",
     "deleteTitle": "Excluir esta conversa?",
     "deleteDescription": "Esta conversa será excluída permanentemente. Esta ação não pode ser desfeita.",
-    "noResults": "Nenhuma conversa encontrada"
+    "noResults": "Nenhuma conversa encontrada",
+    "filter": "Filtrar",
+    "collapseAllGroups": "Recolher todos os grupos"
   },
   "welcome": {
     "chooseFolder": "Escolher pasta",

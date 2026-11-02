@@ -1,6 +1,7 @@
 import {
   OverflowMarquee,
   relativeTime,
+  ROW_HIGHLIGHT,
   TRAILING_GROUP,
   TrailingSwap,
   useProjectSessions,
@@ -310,13 +311,14 @@ function ProjectContents({
               key={sessionRow.sessionId}
               className={cn(
                 TRAILING_GROUP,
-                "flex h-8 w-full items-center gap-2 rounded-sm px-2 focus-within:bg-accent hover:bg-accent"
+                ROW_HIGHLIGHT,
+                "flex h-7 w-full items-center gap-2 rounded-sm ps-3 pe-3"
               )}
             >
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 min-w-0 flex-1 justify-start gap-2 rounded-sm border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
+                className="h-7 min-w-0 flex-1 justify-start gap-2 rounded-sm border-0 p-0 font-normal hover:bg-transparent dark:hover:bg-transparent"
                 data-hover-background="none"
                 aria-label={sessionRow.title ?? t("sidebar.untitled")}
                 onClick={() => onSelect(sessionRow)}
@@ -350,7 +352,7 @@ function ProjectContents({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 justify-start rounded-sm border-0 ps-8 pe-2 font-normal text-muted-foreground hover:bg-accent"
+          className="h-7 justify-start ps-9 pe-3 text-muted-foreground"
           onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
@@ -381,10 +383,10 @@ function ProjectContents({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-start gap-2 rounded-sm border-0 px-2 font-normal hover:bg-accent"
+        className="justify-start gap-2 px-3 has-data-[icon=inline-start]:pl-3"
         onClick={onNewChat}
       >
-        <PlusIcon />
+        <PlusIcon data-icon="inline-start" />
         {t("sidebar.newChat")}
       </Button>
     </>

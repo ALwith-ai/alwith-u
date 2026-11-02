@@ -114,7 +114,9 @@
     "search": "搜索聊天…",
     "noResults": "未找到聊天",
     "stop": "停止",
-    "settings": "设置"
+    "settings": "设置",
+    "filter": "筛选",
+    "collapseAllGroups": "折叠全部分组"
   },
   "welcome": {
     "title": "想做点什么?",

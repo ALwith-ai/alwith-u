@@ -63,7 +63,9 @@
     "loadMore": "Charger plus",
     "deleteTitle": "Supprimer cette discussion ?",
     "deleteDescription": "Cette discussion sera définitivement supprimée. Cette action est irréversible.",
-    "noResults": "Aucune discussion trouvée"
+    "noResults": "Aucune discussion trouvée",
+    "filter": "Filtrer",
+    "collapseAllGroups": "Réduire tous les groupes"
   },
   "welcome": {
     "chooseFolder": "Choisir un dossier",

@@ -63,7 +63,9 @@
     "loadMore": "더 불러오기",
     "deleteTitle": "이 채팅을 삭제할까요?",
     "deleteDescription": "이 채팅은 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
-    "noResults": "채팅을 찾을 수 없습니다"
+    "noResults": "채팅을 찾을 수 없습니다",
+    "filter": "필터",
+    "collapseAllGroups": "모든 그룹 접기"
   },
   "welcome": {
     "chooseFolder": "폴더 선택",
