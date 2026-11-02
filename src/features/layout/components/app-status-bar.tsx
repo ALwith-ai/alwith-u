@@ -1,4 +1,8 @@
-import { DesktopStatusBar, type DesktopStatusItemProps, desktopStatusLabels } from "@alwith/module-desktop-shell/status-item"
+import {
+  DesktopStatusBar,
+  type DesktopStatusItemProps,
+  desktopStatusLabels
+} from "@alwith/module-desktop-shell/status-item"
 import { invoke } from "@tauri-apps/api/core"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import type { ReactNode } from "react"
@@ -15,7 +19,11 @@ export function AppStatusBar({ start, end }: { start?: ReactNode; end?: ReactNod
   const nonProduction = url.hostname !== "api.alwith.ai"
   return (
     <DesktopStatusBar
-      server={{ url: appEnv.apiBaseUrl, label: nonProduction ? desktopStatusLabels(i18n.language).development : url.host, nonProduction }}
+      server={{
+        url: appEnv.apiBaseUrl,
+        label: nonProduction ? desktopStatusLabels(i18n.language).development : url.host,
+        nonProduction
+      }}
       readCli={() => invoke<DesktopStatusItemProps["cli"]>("codex_status")}
       openUrl={openExternal}
       revealPath={revealItemsInDir}

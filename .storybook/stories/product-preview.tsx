@@ -270,7 +270,12 @@ export function ProductPreview({
               toolbar={<div ref={setToolbar} className="flex flex-1 items-center" />}
               statusBar={
                 <AppStatusBar
-                  start={<ExtensionStatusBar views={extensions.views} renderView={(view) => <ExtensionMount id={view.id} />} />}
+                  start={
+                    <ExtensionStatusBar
+                      views={extensions.views}
+                      renderView={(view) => <ExtensionMount id={view.id} />}
+                    />
+                  }
                   end={<DriveStatus />}
                 />
               }

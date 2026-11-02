@@ -187,12 +187,7 @@ export function WorkspacePanels({
               className="file-workspace-slide file-workspace-preview-slide"
               style={{ width: fileWidth }}
             >
-              <div
-                className="file-workspace-slab"
-                data-atlas-pane
-                inert={!visible}
-                aria-hidden={!visible}
-              >
+              <div className="file-workspace-slab" data-atlas-pane inert={!visible} aria-hidden={!visible}>
                 {panel}
               </div>
               {(draggingPreview || (visible && !maximized)) && (

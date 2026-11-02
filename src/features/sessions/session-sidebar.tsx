@@ -51,8 +51,8 @@ import { DriveArchiveAction } from "@/features/drive/archive-action"
 import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
-import { updateLabels } from "@/lib/update-labels"
 import { useApp } from "@/lib/client"
+import { updateLabels } from "@/lib/update-labels"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
 
@@ -388,12 +388,15 @@ function SidebarPanels({
           </Pane>
         )}
       </SidebarContent>
-      <DesktopNavigationFooter className="flex shrink-0 flex-col gap-1 p-2" status={
+      <DesktopNavigationFooter
+        className="flex shrink-0 flex-col gap-1 p-2"
+        status={
           <DesktopUpdateStatus
             labels={updateLabels(t)}
             onError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
           />
-        }>
+        }
+      >
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

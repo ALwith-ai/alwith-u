@@ -1,6 +1,6 @@
 import {
-  DesktopCanvasContext as CanvasContext,
   type DesktopCanvas,
+  DesktopCanvasContext as CanvasContext,
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
 import type { TextEditorProps } from "@alwith/module-editor"

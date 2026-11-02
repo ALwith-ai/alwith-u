@@ -699,7 +699,9 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           statusBar={
             <AppStatusBar
-              start={<ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />}
+              start={
+                <ExtensionStatusBar views={extensions.views} renderView={(item) => <ExtensionMount id={item.id} />} />
+              }
               end={<DriveStatus />}
             />
           }

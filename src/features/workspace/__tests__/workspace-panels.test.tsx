@@ -1,4 +1,4 @@
-import { DesktopCanvasContext as CanvasContext, type DesktopCanvas } from "@alwith/module-desktop-shell/react"
+import { type DesktopCanvas, DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { cleanup, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
