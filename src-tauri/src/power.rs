@@ -56,7 +56,9 @@ impl PreventSleep {
 pub fn sync(app: &tauri::AppHandle, active: bool) {
     if let Err(error) = app.state::<PreventSleep>().update(None, Some(active)) {
         log::error!("Sleep inhibition failed: {error}");
-        let _ = app.emit("power:error", error);
+        if let Err(error) = app.emit("power:error", error) {
+            log::error!("Cannot emit event: {error}");
+        }
     }
 }
 

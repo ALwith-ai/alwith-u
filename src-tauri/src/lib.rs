@@ -13,7 +13,6 @@ mod bundled_extensions;
 mod chat_files;
 mod chat_window;
 mod computer;
-mod desktop_shell;
 mod device;
 mod diagnostics;
 mod draft_directory;
@@ -75,7 +74,7 @@ pub fn run() {
     }
 
     let builder = tauri::Builder::default()
-        .plugin(desktop_shell::init())
+        .plugin(tauri_plugin_alwith_desktop_shell::init_native())
         .plugin(alwith_module_store::tauri::init())
         .plugin(alwith_auth_client::tauri::init(native::development_directory()))
         .manage(login_launch)
@@ -179,14 +178,18 @@ pub fn run() {
                 return;
             }
             if event.id().0 == "vibemon-close" {
-                let _ = app.emit_to("main", "vibemon:close", ());
+                if let Err(error) = app.emit_to("main", "vibemon:close", ()) {
+                    log::error!("Cannot emit event: {error}");
+                }
                 return;
             }
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
             if let Some(focused) = app.webview_windows().into_values().find(|w| w.is_focused().unwrap_or(false)) {
-                let _ = app.emit_to(focused.label(), event_name, ());
+                if let Err(error) = app.emit_to(focused.label(), event_name, ()) {
+                    log::error!("Cannot emit event: {error}");
+                }
             }
         })
         .setup(|app| {
@@ -202,7 +205,6 @@ pub fn run() {
             app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
-            tauri_plugin_alwith_desktop_shell::install_native(app.handle())?;
             computer::initialize(app.handle())?;
             device::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));

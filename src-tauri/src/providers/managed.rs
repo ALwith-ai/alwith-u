@@ -219,7 +219,9 @@ pub async fn providers_account_bind(window: tauri::WebviewWindow, account: Accou
         BTreeSet::new()
     };
     inner.applied_revision = None;
-    let _ = inner.snapshot().emit(app);
+    if let Err(error) = inner.snapshot().emit(app) {
+        log::error!("Cannot emit event: {error}");
+    }
     Ok(generation)
 }
 
@@ -252,7 +254,9 @@ pub async fn providers_refresh_managed(
             Ok(provider) => provider,
             Err(error) => {
                 inner.error = Some("ALwith model configuration refresh failed".into());
-                let _ = inner.snapshot().emit(app);
+                if let Err(error) = inner.snapshot().emit(app) {
+                    log::error!("Cannot emit event: {error}");
+                }
                 return Err(error);
             }
         };
@@ -276,7 +280,9 @@ pub async fn providers_refresh_managed(
         inner.error = None;
     }
     let snapshot = inner.snapshot();
-    let _ = snapshot.emit(app);
+    if let Err(error) = snapshot.emit(app) {
+        log::error!("Cannot emit event: {error}");
+    }
     drop(inner);
     schedule_apply(app);
     Ok(snapshot)
@@ -313,7 +319,9 @@ pub(super) async fn clear(app: &AppHandle) -> Result<(), String> {
     {
         let mut gate = state.managed.gate.lock().unwrap();
         gate.invalidate()?;
-        let _ = RevokedSessions { session_ids: gate.routes.keys().cloned().collect() }.emit(app);
+        if let Err(error) = (RevokedSessions { session_ids: gate.routes.keys().cloned().collect() }).emit(app) {
+            log::error!("Cannot emit event: {error}");
+        }
     }
     let _transition = tokio::time::timeout(Duration::from_secs(10), state.managed.transition.lock())
         .await
@@ -328,7 +336,9 @@ pub(super) async fn clear(app: &AppHandle) -> Result<(), String> {
         inner.saved.managed = None;
         inner.saved.revision = inner.saved.revision.checked_add(1).ok_or("Provider revision exhausted")?;
         let error = persist(&state.path, &inner.saved).err();
-        let _ = inner.snapshot().emit(app);
+        if let Err(error) = inner.snapshot().emit(app) {
+            log::error!("Cannot emit event: {error}");
+        }
         error
     };
     let cleanup = cleanup(app).await;
@@ -476,7 +486,9 @@ pub(crate) fn observe(app: &AppHandle, agent: &str, session: &str, value: &Value
         if admitted_generation.is_some() || !gate.routes.contains_key(session) {
             gate.routes.insert(session.into(), Route { agent: agent.into(), generation, model: model.into() });
             if gate.account.is_none() || generation != gate.generation || !gate.models.contains(model) {
-                let _ = RevokedSessions { session_ids: vec![session.into()] }.emit(app);
+                if let Err(error) = (RevokedSessions { session_ids: vec![session.into()] }).emit(app) {
+                    log::error!("Cannot emit event: {error}");
+                }
             }
         }
     } else if admitted_generation == Some(gate.generation) {

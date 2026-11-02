@@ -463,7 +463,9 @@ pub async fn providers_save(
         log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = snapshot.emit(&app);
+    if let Err(error) = snapshot.emit(&app) {
+        log::error!("Cannot emit event: {error}");
+    }
     Ok(snapshot)
 }
 #[tauri3_specta::command]
@@ -485,7 +487,9 @@ pub async fn providers_save_custom(
         log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = snapshot.emit(&app);
+    if let Err(error) = snapshot.emit(&app) {
+        log::error!("Cannot emit event: {error}");
+    }
     Ok(snapshot)
 }
 #[tauri3_specta::command]
@@ -507,7 +511,9 @@ pub async fn providers_remove_custom(
         log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
-    let _ = snapshot.emit(&app);
+    if let Err(error) = snapshot.emit(&app) {
+        log::error!("Cannot emit event: {error}");
+    }
     Ok(snapshot)
 }
 
@@ -584,7 +590,9 @@ pub fn schedule_apply(app: &AppHandle) {
         {
             let mut inner = providers.inner.lock().await;
             inner.error = Some(error);
-            let _ = inner.snapshot().emit(&app);
+            if let Err(error) = inner.snapshot().emit(&app) {
+                log::error!("Cannot emit event: {error}");
+            }
             return;
         }
         let runtime = app.state::<crate::runtime::RuntimeState>();
@@ -610,7 +618,9 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
         state.managed.gate.lock().unwrap().targets.insert("codex".into());
     }
     let outcome = reconcile(&mut inner, client, &resource_dir).await;
-    let _ = inner.snapshot().emit(app);
+    if let Err(error) = inner.snapshot().emit(app) {
+        log::error!("Cannot emit event: {error}");
+    }
     let saved = inner.saved.clone();
     let active = inner.managed_active;
     drop(inner);

@@ -389,7 +389,9 @@ pub fn init(app: &tauri::App) {
 
     let app_handle = app.handle().clone();
     let svc = std::sync::Arc::new(UpdaterService::new(move |state| {
-        let _ = state.emit(&app_handle);
+        if let Err(error) = state.emit(&app_handle) {
+            log::error!("Cannot emit event: {error}");
+        }
     }));
     app.manage(svc.clone());
 

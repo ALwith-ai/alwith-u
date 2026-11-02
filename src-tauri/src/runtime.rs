@@ -275,11 +275,15 @@ pub async fn runtime_start(
                         }
                         app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
                         if !lines.is_empty() {
-                            let _ = RuntimeLines(std::mem::take(&mut lines)).emit(&app);
+                            if let Err(error) = RuntimeLines(std::mem::take(&mut lines)).emit(&app) {
+                                log::error!("Cannot emit event: {error}");
+                            }
                         }
                         log::info!("alwith-runtime exited: {reason}");
                         state.client.lock().unwrap().take();
-                        let _ = RuntimeExit { code: None, signal: None }.emit(&app);
+                        if let Err(error) = (RuntimeExit { code: None, signal: None }).emit(&app) {
+                            log::error!("Cannot emit event: {error}");
+                        }
                         break 'events;
                     }
                     // Wire diagnostics belong to the native host. Private configuration frames
@@ -343,7 +347,9 @@ pub async fn runtime_start(
                 }
             }
             if !lines.is_empty() {
-                let _ = RuntimeLines(lines).emit(&app);
+                if let Err(error) = RuntimeLines(lines).emit(&app) {
+                    log::error!("Cannot emit event: {error}");
+                }
             }
         }
         if let Some(client) = identity.upgrade()

@@ -33,7 +33,9 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), String> {
                 Ok(next) if next != revision => {
                     revision = next;
                     if let Ok(attachments) = host.attachments() {
-                        let _ = DeviceAttachments { revision, attachments }.emit(&handle);
+                        if let Err(error) = (DeviceAttachments { revision, attachments }).emit(&handle) {
+                            log::error!("Cannot emit event: {error}");
+                        }
                     }
                 }
                 Ok(_) => {}
