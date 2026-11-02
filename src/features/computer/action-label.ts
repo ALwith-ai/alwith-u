@@ -12,6 +12,9 @@ const actionKeys: Record<string, string> = {
   drag: "drag",
   scroll: "scroll",
   type_text: "type",
+  set_value: "type",
+  select_text: "select",
+  perform_secondary_action: "steps",
   press_key: "key",
   hotkey: "key",
   run_steps: "steps"

@@ -1162,6 +1162,7 @@
       "drag": "Dragging",
       "scroll": "Scrolling",
       "type": "Typing",
+      "select": "Selecting text",
       "key": "Pressing keys",
       "steps": "Operating application",
       "working": "Using computer"
@@ -1170,7 +1171,7 @@
     "title": "Computer use",
     "active": "Computer use enabled",
     "description": "Allow all U conversations to view the screen and operate local applications.",
-    "scope": "Applies to existing, new and forked conversations. Open conversations refresh tools before their next message. Disabling immediately revokes all computer connections.",
+    "scope": "Enabled automatically when both system permissions are granted. You can turn it off at any time; your choice is remembered. Applies to all conversations. Disabling immediately revokes all computer connections.",
     "unsupported": "Computer use currently supports macOS and Windows.",
     "missing": "The bundled driver is missing. Reinstall the app or run staging in development.",
     "permissions": "Allow ALwith U in System Settings → Privacy & Security → Accessibility and Screen Recording. You may need to restart the app after changing permissions.",

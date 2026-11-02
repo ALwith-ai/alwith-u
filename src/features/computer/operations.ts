@@ -47,14 +47,16 @@ export function stopComputer(): Promise<void> {
   )
 }
 
-/** Restore a saved choice only when the OS still grants both required permissions. */
+/** Default to enabled once permissions are granted, unless the user explicitly disabled access. */
 export function restoreComputer(): Promise<void> {
   return transition(
     Effect.gen(function* () {
-      if (settingsStore.get<boolean>("computer.enabled") !== true) return
+      if (settingsStore.get<boolean>("computer.enabled") === false) return
       const status = yield* attempt(() => commands.computerStatus())
       if (status.enabled || !status.available || !status.permissions.supported) return
       if (!status.permissions.accessibility || !status.permissions.screenCapture) return
+      // Failed verification needs an explicit reconnect, not another automatic polling attempt.
+      if (status.phase !== "disabled") return
       yield* attempt(() => commands.computerStart())
     })
   )

@@ -48,6 +48,7 @@ test("restart restores the saved switch only while system permissions remain gra
   settings.get.mockReturnValue(true)
   const status = {
     enabled: false,
+    phase: "disabled",
     available: true,
     permissions: { supported: true, accessibility: true, screenCapture: true }
   }
@@ -123,6 +124,7 @@ test("a delayed restore check cannot start the driver after global stop complete
     await pending.promise
     return {
       enabled: false,
+      phase: "disabled",
       available: true,
       permissions: { supported: true, accessibility: true, screenCapture: true }
     }
