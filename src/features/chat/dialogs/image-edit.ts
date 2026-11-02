@@ -77,15 +77,14 @@ export function strokePath(stroke: Stroke, width: number, height: number): strin
     return `M${x} ${y}L${ex} ${ey}M${ex - head * Math.cos(angle - Math.PI / 6)} ${ey - head * Math.sin(angle - Math.PI / 6)}L${ex} ${ey}L${ex - head * Math.cos(angle + Math.PI / 6)} ${ey - head * Math.sin(angle + Math.PI / 6)}`
   }
   // A tiny segment also makes a single brush click visible with round line caps.
-  return (
-    `M${x} ${y}` +
-    (stroke.points.length === 1
-      ? `l0.01 0`
+  const segments =
+    stroke.points.length === 1
+      ? "l0.01 0"
       : stroke.points
           .slice(1)
           .map((point) => `L${point.x * width} ${point.y * height}`)
-          .join(""))
-  )
+          .join("")
+  return `M${x} ${y}${segments}`
 }
 
 export async function renderImageEdit(source: string, strokes: Stroke[], mask: boolean): Promise<string> {

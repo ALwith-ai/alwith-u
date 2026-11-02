@@ -79,7 +79,7 @@ test("custom model metadata exposes only effective effort levels and supported C
     "mimo-v2.6-pro": [],
     "mimo-v2.6-flash": []
   }
-  expect(catalog.models.map((model) => model.slug).sort()).toEqual(Object.keys(expected).sort())
+  expect(catalog.models.map((model) => model.slug).toSorted()).toEqual(Object.keys(expected).toSorted())
   for (const model of catalog.models) {
     const efforts = model.supported_reasoning_levels.map((level) => level.effort)
     expect(efforts, model.slug).toEqual(expected[model.slug])

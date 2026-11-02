@@ -33,9 +33,37 @@ function checkpointUrl(
 }
 
 function pageTitle(config: WorkflowConfig, index: number) {
-  if (index === 0) return config.labels[index]!.replace(/^初始页面 · /, "")
-  if (index === config.labels.length - 1) return config.labels[index]!.replace(/^完成 · /, "")
-  return config.labels[index]!.replace(/^(点击|双击|输入|清空|选择) · /, "")
+  if (index === 0) return config.labels[index].replace(/^初始页面 · /, "")
+  if (index === config.labels.length - 1) return config.labels[index].replace(/^完成 · /, "")
+  return config.labels[index].replace(/^(点击|双击|输入|清空|选择) · /, "")
+}
+
+interface CheckpointMessage {
+  type: "workflow-checkpoint"
+  id: string
+  target: number
+  finished: boolean
+  error: string | null
+}
+function isStorybookChannelMessage(data: unknown) {
+  if (typeof data === "string") return /"key"\s*:\s*"storybook-channel"/.test(data)
+  return typeof data === "object" && data !== null && "key" in data && data.key === "storybook-channel"
+}
+function isCheckpointMessage(data: unknown): data is CheckpointMessage {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "type" in data &&
+    data.type === "workflow-checkpoint" &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "target" in data &&
+    typeof data.target === "number" &&
+    "finished" in data &&
+    typeof data.finished === "boolean" &&
+    "error" in data &&
+    (data.error === null || typeof data.error === "string")
+  )
 }
 
 function WorkflowStep({
@@ -60,19 +88,16 @@ function WorkflowStep({
   const previewHeight = height - 2
   const scale = Math.min((width - 2) / pageWidth, previewHeight / pageHeight)
   useEffect(() => {
-    function receive(event: MessageEvent) {
+    function receive(event: MessageEvent<unknown>) {
       const current = frame.current
-      if (!current || event.source !== current.contentWindow || event.origin !== new URL(current.src).origin) return
+      if (!current) return
+      if (event.source !== current.contentWindow || event.origin !== new URL(current.src).origin) return
       // Nested previews must not send navigation or global updates into the outer Storybook manager.
-      if (
-        event.data?.key === "storybook-channel" ||
-        (typeof event.data === "string" && /"key"\s*:\s*"storybook-channel"/.test(event.data))
-      ) {
+      if (isStorybookChannelMessage(event.data)) {
         event.stopImmediatePropagation()
         return
       }
-      if (event.data?.type !== "workflow-checkpoint" || event.data.id !== config.id || event.data.target !== index)
-        return
+      if (!isCheckpointMessage(event.data) || event.data.id !== config.id || event.data.target !== index) return
       setResult({ ready: event.data.finished, error: event.data.error })
       if (event.data.finished || event.data.error) onSettled(index)
     }
@@ -145,7 +170,7 @@ function WorkflowDiagram({
   const position = (index: number) => ({ x: padding + index * (cardWidth + columnGap), y: padding })
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
-      setSize({ width: entry!.contentRect.width, height: entry!.contentRect.height })
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height })
     )
     observer.observe(viewport.current!)
     return () => observer.disconnect()
@@ -202,7 +227,7 @@ function WorkflowDiagram({
         }}
         onPointerMoveCapture={(event) => {
           const start = pan.current
-          if (!start || start.pointerId !== event.pointerId) return
+          if (start?.pointerId !== event.pointerId) return
           const dx = event.clientX - start.x,
             dy = event.clientY - start.y
           if (!start.moved && Math.hypot(dx, dy) < 5) return
@@ -217,7 +242,7 @@ function WorkflowDiagram({
         }}
         onPointerUpCapture={(event) => {
           const start = pan.current
-          if (!start || start.pointerId !== event.pointerId) return
+          if (start?.pointerId !== event.pointerId) return
           pan.current = null
           setDragging(false)
           if (event.currentTarget.hasPointerCapture(event.pointerId))
@@ -324,7 +349,13 @@ function WorkflowCheckpoint({
   const state = useSyncExternalStore(playback.subscribe, playback.snapshot)
   useEffect(() => {
     window.parent.postMessage(
-      { type: "workflow-checkpoint", id: config.id, target, finished: state.finished, error: state.error },
+      {
+        type: "workflow-checkpoint",
+        id: config.id,
+        target,
+        finished: state.finished,
+        error: state.error
+      } satisfies CheckpointMessage,
       new URL(document.referrer || window.location.href).origin
     )
   }, [config.id, target, state])

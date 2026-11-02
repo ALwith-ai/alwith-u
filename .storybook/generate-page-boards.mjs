@@ -52,7 +52,7 @@ function storyBlocks(source) {
 function storyLabel(source, name) {
   const block = storyBlocks(source).get(name) ?? ""
   const explicit = block.match(/\bname:\s*(["'])(.*?)\1/)
-  return explicit?.[2] ?? name.replace(/([a-z])([A-Z])/g, "$1 $2")
+  return explicit?.[2] ?? name.replaceAll(/([a-z])([A-Z])/g, "$1 $2")
 }
 
 function caseGroups(source, order) {
@@ -82,7 +82,7 @@ function caseGroups(source, order) {
 }
 
 await mkdir(boards, { recursive: true })
-for (const filename of (await readdir(pages)).filter((name) => name.endsWith(".stories.tsx")).sort()) {
+for (const filename of (await readdir(pages)).filter((name) => name.endsWith(".stories.tsx")).toSorted()) {
   const source = await readFile(path.join(pages, filename), "utf8")
   const metaSource = source.slice(source.indexOf("const meta"))
   const sourceTitle = metaSource.match(/\btitle:\s*(["'])(.*?)\1/)?.[2]

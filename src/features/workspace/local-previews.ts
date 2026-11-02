@@ -14,7 +14,7 @@ async function parseSpreadsheet(
   signal?.throwIfAborted()
   if (!path) throw new Error("Spreadsheet path is required to identify the format")
   const extension = path.split(".").at(-1)!.toLowerCase()
-  const result = await commands.parseSpreadsheet({ bytes: Array.from(bytes), extension })
+  const result = await commands.parseSpreadsheet({ bytes: [...bytes], extension })
   signal?.throwIfAborted()
   return result
 }

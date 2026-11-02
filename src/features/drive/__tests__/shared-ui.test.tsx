@@ -709,7 +709,7 @@ it("project session actions receive the row's path without opening a new project
 
 it.each([{ metaKey: true }, { ctrlKey: true }])(
   "a host can release the Drive search shortcut %j without disabling manual search",
-  async (modifiers) => {
+  (modifiers) => {
     const f = fixture()
     f.host.searchShortcut = false
     const view = render(
@@ -719,7 +719,7 @@ it.each([{ metaKey: true }, { ctrlKey: true }])(
         mode="launcher"
         locale="en"
         onOpenProject={async () => {}}
-        confirm={async () => true}
+        confirm={() => Promise.resolve(true)}
       />
     )
     const input = view.container.querySelector<HTMLInputElement>(".alwith-drive-search input")!

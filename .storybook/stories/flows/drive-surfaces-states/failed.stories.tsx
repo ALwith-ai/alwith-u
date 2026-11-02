@@ -2,7 +2,7 @@
 import type { Meta } from "@storybook/react-vite"
 
 import base, { Failed as source } from "../../flow-definitions/drive-surfaces-states"
-import { prepareWorkflow, workflowStory } from "../../workflow-driver"
+import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = ["初始页面 · 归纳知识 · 失败与重试", "点击 · 沉淀为知识", "完成 · 归纳知识 · 失败与重试"]
@@ -15,7 +15,7 @@ const meta = {
   render: (args, context) => (
     <WorkflowPreview
       args={args}
-      config={context.parameters.workflow}
+      config={workflowConfig(context.parameters)}
       globals={context.globals}
       Preview={base.component}
     />

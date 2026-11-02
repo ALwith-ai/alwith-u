@@ -14,7 +14,7 @@ beforeEach(() => {
 
 test("top-up opens pricing through the account SSO route", async () => {
   await openPlatformTopUp()
-  const url = new URL(vi.mocked(openUrl).mock.calls[0]![0])
+  const url = new URL(vi.mocked(openUrl).mock.calls[0][0])
   expect(url.origin).toBe("https://www-dev.alwith.ai")
   expect(url.pathname).toBe("/sso")
   expect(url.searchParams.get("otp")).toBe("one-time-code")
@@ -29,7 +29,7 @@ test("top-up opens pricing directly when SSO is unavailable", async () => {
 
 test("existing account navigation retains its destination", async () => {
   await openPlatformAccount()
-  const url = new URL(vi.mocked(openUrl).mock.calls[0]![0])
+  const url = new URL(vi.mocked(openUrl).mock.calls[0][0])
   expect(url.searchParams.get("redirect")).toBe("/account")
 })
 

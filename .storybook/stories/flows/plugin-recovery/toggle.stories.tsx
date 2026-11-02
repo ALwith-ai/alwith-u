@@ -2,7 +2,7 @@
 import type { Meta } from "@storybook/react-vite"
 
 import base, { Toggle as source } from "../../flow-definitions/plugin-recovery"
-import { prepareWorkflow, workflowStory } from "../../workflow-driver"
+import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = ["初始页面 · 停用插件", "点击 · Spreadsheets", "点击 · 禁用Spreadsheets", "点击 · 禁用Spreadsheets"]
@@ -15,7 +15,7 @@ const meta = {
   render: (args, context) => (
     <WorkflowPreview
       args={args}
-      config={context.parameters.workflow}
+      config={workflowConfig(context.parameters)}
       globals={context.globals}
       Preview={base.component}
     />

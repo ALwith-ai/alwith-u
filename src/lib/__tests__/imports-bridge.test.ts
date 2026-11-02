@@ -25,7 +25,7 @@ test("prepares empty Cursor MCP files before detection but leaves Claude Code al
   const { api, controller, prepareCursor } = fixture()
   await controller.dispatch({ action: "detect", source: "cursor" })
   expect(prepareCursor).toHaveBeenCalledWith(["/project"])
-  expect(prepareCursor.mock.invocationCallOrder[0]).toBeLessThan(api.detectImports.mock.invocationCallOrder[0]!)
+  expect(prepareCursor.mock.invocationCallOrder[0]).toBeLessThan(api.detectImports.mock.invocationCallOrder[0])
   prepareCursor.mockClear()
   await controller.dispatch({ action: "detect", source: "claude-code" })
   expect(prepareCursor).not.toHaveBeenCalled()

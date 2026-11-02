@@ -2,7 +2,7 @@
 import type { Meta } from "@storybook/react-vite"
 
 import base, { SearchChat as source } from "../../flow-definitions/chat"
-import { prepareWorkflow, workflowStory } from "../../workflow-driver"
+import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = ["初始页面 · 已有聊天", "点击 · 更多操作", "点击 · 查找", "输入 · 在聊天中查找", "完成 · 定位结果"]
@@ -15,7 +15,7 @@ const meta = {
   render: (args, context) => (
     <WorkflowPreview
       args={args}
-      config={context.parameters.workflow}
+      config={workflowConfig(context.parameters)}
       globals={context.globals}
       Preview={base.component}
     />

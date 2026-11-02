@@ -1,5 +1,5 @@
 import type { StoryObj } from "@storybook/react-vite"
-import type { LoaderFunction } from "storybook/internal/types"
+import type { LoaderFunction, Parameters } from "storybook/internal/types"
 import { expect, waitFor, within } from "storybook/test"
 
 import {
@@ -41,6 +41,25 @@ export const playback = {
     }
   }
 }
+function isWorkflowConfig(value: unknown): value is WorkflowConfig {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "labels" in value &&
+    Array.isArray(value.labels) &&
+    value.labels.every((label) => typeof label === "string") &&
+    "target" in value &&
+    (value.target === null || typeof value.target === "number") &&
+    "id" in value &&
+    typeof value.id === "string"
+  )
+}
+/** Storybook parameters are untyped; validate the configuration that workflowStory stored. */
+export function workflowConfig(parameters: Parameters): WorkflowConfig {
+  const config: unknown = parameters.workflow
+  if (!isWorkflowConfig(config)) throw new Error("Workflow story parameters are missing")
+  return config
+}
 export function workflowTarget(config: WorkflowConfig): number | null {
   const value = new URLSearchParams(window.location.search).get("workflowStep")
   if (value === null) return import.meta.env.STORYBOOK_TEST ? 0 : config.target
@@ -56,7 +75,8 @@ export const prepareWorkflow: LoaderFunction = async (context) => {
   disposePlaybackClock()
   update({ index: 0, finished: false, error: null })
   await preparePreview(context)
-  if (!import.meta.env.STORYBOOK_TEST && workflowTarget(context.parameters.workflow) !== null) installPlaybackClock()
+  if (!import.meta.env.STORYBOOK_TEST && workflowTarget(workflowConfig(context.parameters)) !== null)
+    installPlaybackClock()
   return {}
 }
 export async function workflowAction(_label: string, action: () => unknown) {
@@ -90,7 +110,7 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
         // Exercise each journey once with its complete assertions. Diagram layout and
         // iframe checkpoint isolation are covered by verify-player.mjs against the build.
         const page = context.canvasElement.querySelector<HTMLElement>("#workflow-page")!
-        await source.play?.({ ...context, canvasElement: page, canvas: within(page) as typeof context.canvas })
+        await source.play?.({ ...context, canvasElement: page, canvas: within(page) })
         return
       }
       const currentGeneration = generation
@@ -117,11 +137,11 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
       checkpoint = gate
       const userEvent = new Proxy(context.userEvent, {
         get(target, property, receiver) {
-          const value = Reflect.get(target, property, receiver)
+          const value: unknown = Reflect.get(target, property, receiver)
           if (typeof value !== "function") return value
           return async (...args: unknown[]) => {
             await begin()
-            const result = await Reflect.apply(value, target, args)
+            const result: unknown = await Reflect.apply(value, target, args)
             if (property === "type" && args[0] instanceof HTMLElement && args[0].closest("[data-chat-search]")) {
               await waitFor(() => expect(CSS.highlights.get("chat-search-current")?.size ?? 0).toBeGreaterThan(0))
             }
@@ -136,7 +156,7 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
           await source.play({
             ...context,
             canvasElement: page,
-            canvas: within(page) as typeof context.canvas,
+            canvas: within(page),
             userEvent
           })
         await begin()

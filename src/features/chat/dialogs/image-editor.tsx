@@ -160,7 +160,7 @@ export function useImageEditor(
     const next = point(event)
     setCursor(next)
     const current = active.current
-    if (!current || current.pointer !== event.pointerId) return
+    if (current?.pointer !== event.pointerId) return
     current.stroke = {
       ...current.stroke,
       points: current.stroke.tool === "pen" ? [...current.stroke.points, next] : [current.stroke.points[0], next]
@@ -169,7 +169,7 @@ export function useImageEditor(
   }
   const pointerEnd = (event: PointerEvent<SVGSVGElement>, cancel = false): void => {
     const current = active.current
-    if (!current || current.pointer !== event.pointerId) return
+    if (current?.pointer !== event.pointerId) return
     if (!cancel) {
       pointerMove(event)
       setStrokes((previous) => [...previous, current.stroke])
@@ -373,8 +373,9 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
                     if (offset === undefined) return
                     event.preventDefault()
                     const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')]
-                    const index = buttons.findIndex((button) => button === event.target)
-                    if (index < 0) return
+                    if (!(event.target instanceof HTMLButtonElement)) return
+                    const index = buttons.indexOf(event.target)
+                    if (index === -1) return
                     const next = (index + offset + ANNOTATION_COLORS.length) % ANNOTATION_COLORS.length
                     editor.setColor(ANNOTATION_COLORS[next].value)
                     buttons[next].focus()

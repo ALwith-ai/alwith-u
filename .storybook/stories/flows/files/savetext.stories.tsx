@@ -2,7 +2,7 @@
 import type { Meta } from "@storybook/react-vite"
 
 import base, { SaveText as source } from "../../flow-definitions/files"
-import { prepareWorkflow, workflowStory } from "../../workflow-driver"
+import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = ["初始页面 · 打开文本", "编辑文件", "保存文件", "完成 · 保存"]
@@ -15,7 +15,7 @@ const meta = {
   render: (args, context) => (
     <WorkflowPreview
       args={args}
-      config={context.parameters.workflow}
+      config={workflowConfig(context.parameters)}
       globals={context.globals}
       Preview={base.component}
     />

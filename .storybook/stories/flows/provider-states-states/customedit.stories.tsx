@@ -2,7 +2,7 @@
 import type { Meta } from "@storybook/react-vite"
 
 import base, { CustomEdit as source } from "../../flow-definitions/provider-states-states"
-import { prepareWorkflow, workflowStory } from "../../workflow-driver"
+import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = ["初始页面 · 编辑已有自定义供应商", "点击 · 团队模型网关"]
@@ -15,7 +15,7 @@ const meta = {
   render: (args, context) => (
     <WorkflowPreview
       args={args}
-      config={context.parameters.workflow}
+      config={workflowConfig(context.parameters)}
       globals={context.globals}
       Preview={base.component}
     />

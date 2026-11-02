@@ -154,7 +154,6 @@ export function MermaidDiagram({ source }: { source: string }) {
       ) : (
         <div
           className="overflow-x-auto rounded-lg px-3 pt-10 pb-3 [&_svg]:mx-auto [&_svg]:max-w-full"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid returns sanitized SVG markup.
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       )}

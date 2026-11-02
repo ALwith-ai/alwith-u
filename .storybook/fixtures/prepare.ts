@@ -197,19 +197,19 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   if (state.archiveCase === "empty") client.store.setState({ archivedSessions: [] })
   if (state.archiveCase === "loading") client.listArchived = async () => new Promise(() => {})
   if (state.archiveCase === "loadError")
-    client.listArchived = async () => {
-      throw new Error("归档加载失败，请检查连接后重试。")
+    client.listArchived = () => {
+      return Promise.reject(new Error("归档加载失败，请检查连接后重试。"))
     }
   const remove = client.delete.bind(client)
   if (state.archiveCase === "restoring") client.unarchive = async () => new Promise(() => {})
   if (state.archiveCase === "restoreError")
-    client.unarchive = async () => {
-      throw new Error("恢复失败，请稍后重试。")
+    client.unarchive = () => {
+      return Promise.reject(new Error("恢复失败，请稍后重试。"))
     }
   if (state.archiveCase === "deleting") client.delete = async () => new Promise(() => {})
   if (state.archiveCase === "deleteError")
-    client.delete = async () => {
-      throw new Error("删除失败，请稍后重试。")
+    client.delete = () => {
+      return Promise.reject(new Error("删除失败，请稍后重试。"))
     }
   if (state.archiveCase === "partialDelete") {
     const failedId = client.state.archivedSessions[0]?.sessionId
@@ -221,7 +221,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   if (state.archiveCase === "many")
     client.store.setState((previous) => ({
       archivedSessions: Array.from({ length: 60 }, (_, index) => ({
-        ...previous.archivedSessions[index % previous.archivedSessions.length]!,
+        ...previous.archivedSessions[index % previous.archivedSessions.length],
         sessionId: `archived-${index}`
       }))
     }))

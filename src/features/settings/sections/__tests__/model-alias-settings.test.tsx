@@ -37,8 +37,9 @@ test("alias editor is collapsed until requested and clearing saves the original 
   const input = await view.findByRole("textbox", { name: "Account name" })
   expect(input).toHaveValue("My DeepSeek")
   fireEvent.change(input, { target: { value: "" } })
-  await act(async () => {
+  await act(() => {
     fireEvent.click(view.getByRole("button", { name: "Save" }))
+    return Promise.resolve()
   })
   expect(saveModelAlias).toHaveBeenCalledWith(id, "")
 })

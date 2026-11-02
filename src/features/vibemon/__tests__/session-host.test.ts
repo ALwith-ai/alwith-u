@@ -49,7 +49,7 @@ async function fixture() {
     })
   })
   const openChat = vi.fn(async (_id: string | null, _window: "main" | "chat") => {})
-  const agentForSession = vi.fn(async () => agent)
+  const agentForSession = vi.fn(() => Promise.resolve(agent))
   const cancel = vi.fn(async (_id: string) => {})
   const markRead = vi.fn(async (_id: string) => {})
   const respond = vi.fn(client.respond.bind(client))
@@ -345,11 +345,9 @@ test("a completion remains observable before another task's pending permission i
     { ...f.run(f.b.id), state: "done", since: 20 }
   ])
   await f.host.refresh()
-  expect(f.host.snapshot()?.taskFeed?.tasks[1]).toMatchObject({
-    state: "done",
-    source: "event",
-    completion: expect.any(String)
-  })
+  const completed = must(f.host.snapshot()?.taskFeed, "task feed").tasks[1]
+  expect(completed).toMatchObject({ state: "done", source: "event" })
+  expect(typeof completed.completion).toBe("string")
   expect(f.host.snapshot()?.taskFeed?.tasks[0].state).toBe("requires_action")
 })
 

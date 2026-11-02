@@ -14,7 +14,8 @@ export function parseAppEnv(values: Record<string, string | undefined>): AppEnv 
   function endpoint(key: (typeof keys)[number]): string {
     const value = values[key]
     try {
-      if (!value || value.trim() !== value) throw new Error()
+      if (!value) throw new Error()
+      if (value.trim() !== value) throw new Error()
       const url = new URL(value)
       if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) throw new Error()
       return url.href.replace(/\/$/, "")

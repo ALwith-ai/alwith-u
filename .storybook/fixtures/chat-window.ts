@@ -29,11 +29,11 @@ export const previewPreferences: Preferences = {
   navigationInstrument: "acoustic_grand_piano",
   externalEditor: null
 }
-export async function serveChatSurface(callback: NonNullable<typeof handler>) {
+export function serveChatSurface(callback: NonNullable<typeof handler>) {
   handler = callback
-  return () => {
+  return Promise.resolve(() => {
     handler = null
-  }
+  })
 }
 export async function announceChatReady() {
   await handler?.({ type: "present", transfer: initial })
@@ -56,11 +56,12 @@ export async function requestChatSurface(target: string, action: Action): Promis
 }
 export async function presentChatWindow() {}
 export async function publishChatWindowSurface() {}
-export async function openChatWindow() {
+export function openChatWindow() {
   navigatePreview("floating")
+  return Promise.resolve()
 }
-export async function releaseChatWindow() {
-  return initial
+export function releaseChatWindow() {
+  return Promise.resolve(initial)
 }
 export async function syncChatWindowSurface() {}
 export async function focusChatSession(sessionId: string) {

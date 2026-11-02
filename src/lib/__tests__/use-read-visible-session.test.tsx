@@ -91,7 +91,7 @@ test("drafts, running chats and action requests are never marked read; routing u
 })
 
 test("an unread session stays unread while replaying and becomes readable only after its content is attached", async () => {
-  const loaded = clientModule.client.state.sessions.selected!
+  const loaded = clientModule.client.state.sessions.selected
   clientModule.client.store.setState({ sessions: { selected: { ...loaded, restoring: true, attached: false } } })
   clientModule.client.applyRunStates([runState("selected", "done")])
   renderHook(() => useReadVisibleSession("selected", true))

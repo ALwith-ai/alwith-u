@@ -35,7 +35,7 @@ export function modelTriggerLabel(model: ModelOption): string {
 
 /** Order subscription, account, built-in and custom groups; preserve order within each tier. */
 export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
-  const ordered = [...groups].sort((a, b) => (groupPriorities.get(a.id) ?? 3) - (groupPriorities.get(b.id) ?? 3))
+  const ordered = groups.toSorted((a, b) => (groupPriorities.get(a.id) ?? 3) - (groupPriorities.get(b.id) ?? 3))
   return ordered.map((group) => {
     const native = group.id === NATIVE_MODEL_GROUP.id
     const Logo = PROVIDERS.find((provider) => provider.id === group.id)?.logo ?? Bot

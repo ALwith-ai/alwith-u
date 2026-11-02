@@ -12,7 +12,7 @@ const layout = (board: string) => {
 const files = [...new Bun.Glob(".storybook/stories/page-boards/*.stories.tsx").scanSync(".")]
   .filter(layout)
   .filter((file) => filters.length === 0 || filters.some((filter) => file.includes(filter)))
-  .sort()
+  .toSorted()
 if (files.length === 0) throw new Error("No layout Storybook files matched the requested filters")
 const child = Bun.spawn(
   [process.execPath, "x", "--no-install", "vitest", "run", "--config", ".storybook/vitest.config.ts", ...files],

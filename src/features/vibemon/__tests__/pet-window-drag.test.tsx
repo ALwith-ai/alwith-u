@@ -244,8 +244,9 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   }
   const publish = async (panel: "expanded" | "hidden") => {
     observation = { ...task, taskFeed: { tasks: [task], panel, mainMinimized: false } }
-    await act(async () => {
+    await act(() => {
       observe?.(observation)
+      return Promise.resolve()
     })
     expect(sprite.style.transform).toBe(initialTransform)
   }
@@ -276,7 +277,7 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
     null
   ]) {
     observation = value
-    await act(async () => observe?.(observation))
+    await act(() => Promise.resolve(observe?.(observation)))
     expect(sprite.style.transform).toBe(initialTransform)
     expect(view.queryByRole("button", { name: /tasks/i })).toBeNull()
   }

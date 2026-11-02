@@ -18,7 +18,7 @@ test("copy confirmation waits for the host clipboard operation", async () => {
   fireEvent.click(view.getByRole("button", { name: "Copy" }))
   expect(copyText).toHaveBeenCalledWith("Exact message")
   expect(view.container.querySelector(".codex-message-action-confirmed")).toBeNull()
-  await act(async () => complete())
+  await act(() => Promise.resolve(complete()))
   expect(view.container.querySelector(".codex-message-action-confirmed")).not.toBeNull()
 })
 
@@ -30,8 +30,8 @@ test("a failed clipboard write reports failure without confirming the copy", asy
       text="Message"
       label="Copy"
       host={{
-        copyText: async () => {
-          throw error
+        copyText: () => {
+          return Promise.reject(error)
         },
         onCopyError
       }}

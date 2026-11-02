@@ -264,7 +264,7 @@ function SidebarPanels({
         <div className="flex flex-col gap-0.5">
           <NavigationItemButton
             active={screen === "leading" && (leadingPage === "plugins" || leadingPage === "extensions")}
-            className={`${MENU_HIGHLIGHT}`}
+            className={MENU_HIGHLIGHT}
             onClick={onOpenPlugins}
           >
             <NavigationLeading>
@@ -275,7 +275,7 @@ function SidebarPanels({
           {onOpenVibemon && (
             <NavigationItemButton
               active={screen === "leading" && leadingPage === "vibemon"}
-              className={`${MENU_HIGHLIGHT}`}
+              className={MENU_HIGHLIGHT}
               onClick={onOpenVibemon}
             >
               <NavigationLeading>

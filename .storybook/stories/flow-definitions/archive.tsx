@@ -20,7 +20,7 @@ export const Restore: Story = {
   name: "归档列表 → 恢复聊天 → 返回列表",
   play: async ({ canvas, userEvent }) => {
     const count = client.state.archivedSessions.length
-    await userEvent.click((await canvas.findAllByRole("button", { name: "取消归档" }))[0]!)
+    await userEvent.click((await canvas.findAllByRole("button", { name: "取消归档" }))[0])
     await waitFor(() => expect(client.state.archivedSessions).toHaveLength(count - 1))
   }
 }
@@ -29,7 +29,7 @@ export const DeleteOne: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     const count = client.state.archivedSessions.length
-    await userEvent.click((await body.findAllByRole("button", { name: "删除" }))[0]!)
+    await userEvent.click((await body.findAllByRole("button", { name: "删除" }))[0])
     const dialog = within(await body.findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: "永久删除" }))
     await waitFor(() => expect(client.state.archivedSessions).toHaveLength(count - 1))

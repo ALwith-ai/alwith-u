@@ -24,15 +24,15 @@ const roots = new Set<Root>()
 let failRender = true
 let mode: ExtensionCase = "installed"
 let native: Snapshot = { protocolVersion: 1, sequence: 1, serviceId: "storybook", installations: [], pending: [] }
-export async function extensionRequest(request: Request): Promise<Response> {
-  if (request.type === "snapshot") return { type: "snapshot", snapshot: native }
+export function extensionRequest(request: Request): Promise<Response> {
+  if (request.type === "snapshot") return Promise.resolve({ type: "snapshot", snapshot: native })
   if (request.type === "enable") {
     native = {
       ...native,
       sequence: native.sequence + 1,
       installations: native.installations.map((item) => (item.id === request.id ? { ...item, enabled: true } : item))
     }
-    return { type: "ok" }
+    return Promise.resolve({ type: "ok" })
   }
   if (request.type === "beginTransition") {
     native = {
@@ -42,13 +42,13 @@ export async function extensionRequest(request: Request): Promise<Response> {
         .filter((item) => request.action !== "uninstall" || item.id !== request.id)
         .map((item) => (item.id === request.id ? { ...item, enabled: false } : item))
     }
-    return { type: "ok" }
+    return Promise.resolve({ type: "ok" })
   }
   if (request.type === "installLocal") {
     const { expectedId: id, expectedVersion: version, expectedDigest: digest } = request
-    if (!id || !version || !digest) throw new Error("Incomplete extension package selection")
+    if (!id || !version || !digest) return Promise.reject(new Error("Incomplete extension package selection"))
     const template = native.installations[0]
-    if (!template) throw new Error("Missing extension package fixture")
+    if (!template) return Promise.reject(new Error("Missing extension package fixture"))
     native = {
       ...native,
       sequence: native.sequence + 1,
@@ -64,10 +64,10 @@ export async function extensionRequest(request: Request): Promise<Response> {
         }
       ]
     }
-    return { type: "ok" }
+    return Promise.resolve({ type: "ok" })
   }
   if (request.type === "register")
-    return {
+    return Promise.resolve({
       type: "token",
       activation: {
         dataGeneration: native.installations.find((item) => item.id === request.id)?.dataGeneration ?? 1,
@@ -75,11 +75,11 @@ export async function extensionRequest(request: Request): Promise<Response> {
         packageRevision: native.installations.find((item) => item.id === request.id)?.packageRevision ?? "1",
         token: request.id
       }
-    }
+    })
   if (request.type === "readData")
-    return { type: "data", data: { generation: 1, revision: 1, schemaVersion: 1, value: {} } }
-  if (request.type === "readResource") return { type: "resource", bytes: [], mime: "text/javascript" }
-  return { type: "ok" }
+    return Promise.resolve({ type: "data", data: { generation: 1, revision: 1, schemaVersion: 1, value: {} } })
+  if (request.type === "readResource") return Promise.resolve({ type: "resource", bytes: [], mime: "text/javascript" })
+  return Promise.resolve({ type: "ok" })
 }
 function createRuntime(): ExtensionRuntime {
   return createTauriExtensionRuntime({
@@ -94,9 +94,9 @@ function createRuntime(): ExtensionRuntime {
       topBar: "1.0.0",
       statusBar: "1.0.0"
     },
-    evaluate: async () => {
-      if (mode === "failed") throw new Error("模拟扩展启动失败，请重载后重试。")
-      return (context) => ({
+    evaluate: () => {
+      if (mode === "failed") return Promise.reject(new Error("模拟扩展启动失败，请重载后重试。"))
+      return Promise.resolve((context) => ({
         onload() {
           if (mode !== "content" && mode !== "renderError") return
           for (const [kind, id, title, component] of [
@@ -152,7 +152,7 @@ function createRuntime(): ExtensionRuntime {
             }
           })
         }
-      })
+      }))
     }
   })
 }

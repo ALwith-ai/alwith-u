@@ -39,7 +39,7 @@ test("a failed fetch exposes a retry that waits for the real refresh result", as
   fireEvent.click(view.getByRole("button", { name: "Retry" }))
   expect(view.getByRole("button", { name: "Retry" })).toBeDisabled()
   expect(refresh).toHaveBeenCalledTimes(2)
-  await act(async () => finish())
+  await act(() => Promise.resolve(finish()))
   expect(view.queryByRole("alert")).toBeNull()
   expect(view.queryByRole("button", { name: "Retry" })).toBeNull()
 })

@@ -75,8 +75,8 @@ export const petSessions: PetSessionHost = {
       listeners.delete(listener)
     }
   },
-  send: async (_binding, _requestId, text) => {
-    if (!current) throw new Error("Pet conversation unavailable")
+  send: (_binding, _requestId, text) => {
+    if (!current) return Promise.reject(new Error("Pet conversation unavailable"))
     publish({
       ...current,
       source: "event",
@@ -93,8 +93,9 @@ export const petSessions: PetSessionHost = {
           reply: { messageId: "pet-answer", text: "已更新交付清单，可以继续打开项目查看。" }
         })
     }, 450)
+    return Promise.resolve()
   },
-  answer: async () => {
+  answer: () => {
     if (current)
       publish({
         ...current,
@@ -102,18 +103,21 @@ export const petSessions: PetSessionHost = {
         prompt: null,
         reply: { messageId: "pet-confirmed", text: "已收到确认，继续处理项目任务。" }
       })
+    return Promise.resolve()
   },
-  openChat: async () => {
+  openChat: () => {
     resetChatWindow(current?.binding.sessionId ?? null, current?.cwd ?? PROJECT_DIRECTORY)
     navigatePreview("floating")
+    return Promise.resolve()
   },
-  activate: async () => {
+  activate: () => {
     navigatePreview("chat")
+    return Promise.resolve()
   },
   select: async () => {}
 }
 export const petWindows: PetWindowHost = {
-  call: async <T>(action: string): Promise<T> => {
+  call: <T>(action: string): Promise<T> => {
     let value: unknown
     if (action === "monitors")
       value = [{ position: { x: 0, y: 0 }, size: { width: 1920, height: 1080 }, scaleFactor: 1 }]
@@ -121,12 +125,12 @@ export const petWindows: PetWindowHost = {
     else if (action === "size") value = { width: 200, height: 200 }
     else if (action === "scale") value = 1
     else if (action === "session-menu") value = null
-    return value as T
+    return Promise.resolve(value as T)
   },
-  openPet: async () => "shown",
+  openPet: () => Promise.resolve("shown"),
   closePet: async () => {},
   openRecharge: async () => {},
-  geometry: async () => () => {},
-  moved: async () => () => {},
+  geometry: () => Promise.resolve(() => {}),
+  moved: () => Promise.resolve(() => {}),
   commands: () => () => {}
 }

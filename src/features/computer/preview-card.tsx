@@ -112,7 +112,7 @@ export function ComputerPreviewCard({
           }}
           onPointerMove={(event) => {
             const state = drag.current
-            if (!state || state.pointer !== event.pointerId) return
+            if (state?.pointer !== event.pointerId) return
             const left = Math.max(
               state.bounds.left + 8,
               Math.min(state.left + event.clientX - state.x, state.bounds.right - state.width - 8)

@@ -11,9 +11,9 @@ import {
 } from "../model-catalog"
 
 test("Windows catalog lists preserve quoted paths containing semicolons", () => {
-  expect(splitModelCatalogPaths('"C:\\Users\\A;B\\models.json";D:\\app\\custom.json', "win32")).toEqual([
-    "C:\\Users\\A;B\\models.json",
-    "D:\\app\\custom.json"
+  expect(splitModelCatalogPaths(String.raw`"C:\Users\A;B\models.json";D:\app\custom.json`, "win32")).toEqual([
+    String.raw`C:\Users\A;B\models.json`,
+    String.raw`D:\app\custom.json`
   ])
   expect(splitModelCatalogPaths("/Users/A;B/models.json:/tmp/custom.json", "darwin")).toEqual([
     "/Users/A;B/models.json",
@@ -22,11 +22,11 @@ test("Windows catalog lists preserve quoted paths containing semicolons", () => 
 })
 
 test("script catalog lists use the same Windows quoting as the native host", () => {
-  const paths = ["C:\\Users\\A;B\\models.json", "D:\\app\\custom.json"]
+  const paths = [String.raw`C:\Users\A;B\models.json`, String.raw`D:\app\custom.json`]
   const joined = joinModelCatalogPaths(paths, "win32")
-  expect(joined).toBe('"C:\\Users\\A;B\\models.json";D:\\app\\custom.json')
+  expect(joined).toBe(String.raw`"C:\Users\A;B\models.json";D:\app\custom.json`)
   expect(splitModelCatalogPaths(joined, "win32")).toEqual(paths)
-  expect(() => joinModelCatalogPaths(['C:\\bad"name.json'], "win32")).toThrow("cannot contain a quote")
+  expect(() => joinModelCatalogPaths([String.raw`C:\bad"name.json`], "win32")).toThrow("cannot contain a quote")
 })
 
 const catalogs: ReturnType<typeof prepare>[] = []

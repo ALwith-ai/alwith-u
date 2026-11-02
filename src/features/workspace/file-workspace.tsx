@@ -581,7 +581,7 @@ export function FileWorkspace({
         })
         .catch(report)
     }
-  }, [cwd, ensure, visible])
+  }, [cwd, ensure, pane, visible])
   const showProjectTree = useCallback((): void => {
     const generation = ++requestGeneration.current,
       owner = cwd

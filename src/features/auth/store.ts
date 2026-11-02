@@ -77,7 +77,7 @@ async function clearAccountProviders(): Promise<void> {
 async function loadAccountProviders(): Promise<void> {
   if (!isMain()) throw new Error("ALwith model refresh belongs to the main window")
   const user = usePlatformAuth.getState().user
-  if (!user || user.user_uuid !== validatedAccount) throw new Error("ALwith account is not ready; retry shortly")
+  if (user?.user_uuid !== validatedAccount) throw new Error("ALwith account is not ready; retry shortly")
   await managedProviders.refresh(user.user_uuid)
 }
 function refreshAccountProviders(): void {

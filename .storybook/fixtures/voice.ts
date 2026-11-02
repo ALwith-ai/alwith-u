@@ -1,5 +1,5 @@
 import type { AudioCapture, VoiceEvent } from "@alwith/module-voice"
-import { Channel } from "@tauri-apps/api/core"
+import type { Channel } from "@tauri-apps/api/core"
 export type VoiceCase =
   "disabled" | "idle" | "starting" | "recording" | "transcribing" | "error" | "unconfigured" | "noSpeech"
 let mode: VoiceCase = "disabled"
@@ -36,17 +36,18 @@ export function voiceRequest(command: string, args: Record<string, unknown>): un
   throw new Error(`Unimplemented voice boundary: ${command}`)
 }
 // Synthetic capture replaces microphone hardware only; the shared voice interaction remains real.
-export async function prepareCapture(_options: unknown, signal: AbortSignal): Promise<AudioCapture> {
+export function prepareCapture(_options: unknown, signal: AbortSignal): Promise<AudioCapture> {
   signal.throwIfAborted()
   let timer: ReturnType<typeof setInterval> | undefined
-  const stop = async () => {
+  const stop = () => {
     clearInterval(timer)
+    return Promise.resolve()
   }
-  return {
+  return Promise.resolve({
     start(consume) {
       timer = setInterval(() => consume(new Uint8Array(640).fill(24)), 20)
     },
     stop,
     cancel: stop
-  }
+  })
 }

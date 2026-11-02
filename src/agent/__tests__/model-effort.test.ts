@@ -95,9 +95,10 @@ test.each(["medium", "low"])("resume repairs invalid effort but preserves suppor
   const { client, fake } = await make("max")
   const id = await client.newSession("/tmp/effort", glm)
   await client.stopSession(id)
-  fake.resumeResponse.current = async () => ({
-    configOptions: options(glm, saved)
-  })
+  fake.resumeResponse.current = () =>
+    Promise.resolve({
+      configOptions: options(glm, saved)
+    })
   await client.open(id, "/tmp/effort")
   expect(effort(client, id)).toBe(saved === "medium" ? "max" : saved)
 })
@@ -107,7 +108,7 @@ test("resume repairs inherited medium using the current valid selection", async 
   const id = await client.newSession("/tmp/effort", glm)
   await client.setConfig(id, "reasoning_effort", "low")
   await client.stopSession(id)
-  fake.resumeResponse.current = async () => ({ configOptions: options(glm, "medium") })
+  fake.resumeResponse.current = () => Promise.resolve({ configOptions: options(glm, "medium") })
   await client.open(id, "/tmp/effort")
   expect(effort(client, id)).toBe("low")
 })
@@ -209,7 +210,7 @@ test.each(["prompt", "config"])("%s waits for effort repair during replay", asyn
   const { client, fake, port } = await make("max")
   const id = await client.newSession("/tmp/effort", glm)
   await client.stopSession(id)
-  fake.resumeResponse.current = async () => ({ configOptions: options(glm, "medium") })
+  fake.resumeResponse.current = () => Promise.resolve({ configOptions: options(glm, "medium") })
   let release: (() => void) | undefined
   let calls = 0
   fake.configDelay.current = () =>
@@ -243,7 +244,7 @@ test("failed hidden effort repair leaves replay detached and retryable", async (
   fake.configResponse.current = () => ({ configOptions: hidden() })
   const id = await client.newSession("/tmp/effort", model)
   await client.stopSession(id)
-  fake.resumeResponse.current = async () => ({ configOptions: hidden() })
+  fake.resumeResponse.current = () => Promise.resolve({ configOptions: hidden() })
   fake.configResponse.current = () => {
     throw new Error("hidden effort repair failed")
   }

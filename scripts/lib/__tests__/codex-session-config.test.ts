@@ -4,8 +4,8 @@ import { interactiveSessionConfig } from "../codex-session-config"
 
 test("default-mode questions remain enabled in the session feature table", () => {
   for (const source of [undefined, ""]) {
-    const config = JSON.parse(interactiveSessionConfig(source))
-    expect(config.features.default_mode_request_user_input).toBe(true)
+    const config: unknown = JSON.parse(interactiveSessionConfig(source))
+    expect(config).toMatchObject({ features: { default_mode_request_user_input: true } })
   }
 })
 
@@ -17,7 +17,7 @@ test("enabling interactive questions preserves host and provider configuration",
     model_provider: "private-gateway",
     plugins: { "unified-computer-use@openai-bundled": { enabled: false } }
   }
-  const prepared = JSON.parse(interactiveSessionConfig(JSON.stringify(config)))
+  const prepared: unknown = JSON.parse(interactiveSessionConfig(JSON.stringify(config)))
   expect(prepared).toEqual({
     ...config,
     features: { ...config.features, default_mode_request_user_input: true },

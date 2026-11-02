@@ -37,10 +37,11 @@ const spriteUrl = new URL(
   import.meta.url
 ).href
 const storage = {
-  get: async <T>(key: string): Promise<T | undefined> => storageValues[key] as T | undefined,
-  set: async (key: string, value: unknown) => {
+  get: <T>(key: string): Promise<T | undefined> => Promise.resolve(storageValues[key] as T | undefined),
+  set: (key: string, value: unknown) => {
     storageValues[key] = value
     for (const listener of listeners) listener()
+    return Promise.resolve()
   }
 }
 export type PetCase =
@@ -114,10 +115,10 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
   const assets = createPetAssets({
     account: () => account,
     storage,
-    request: async <T>(path: string, _method: string, data?: unknown): Promise<T> => {
+    request: <T>(path: string, _method: string, data?: unknown): Promise<T> => {
       let value: unknown
       if (path.includes("/mine")) {
-        if (kind === "offline") throw new Error("模拟离线")
+        if (kind === "offline") return Promise.reject(new Error("模拟离线"))
         value = owned
       } else if (path.endsWith("/catalog")) value = catalog
       else if (path.endsWith("/first-visit")) value = { first_visit: kind === "firstVisit" }
@@ -179,7 +180,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
           first_draw_discount: false
         }
       else if (path.endsWith("/draw")) {
-        if (kind === "drawError") throw new Error("模拟抽取失败，请重试。")
+        if (kind === "drawError") return Promise.reject(new Error("模拟抽取失败，请重试。"))
         const count = (data as { draw_type?: string })?.draw_type === "MULTI" ? 10 : 1
         value = {
           order_no: "DEMO-20261023",
@@ -219,18 +220,18 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
             total_draw_count: count
           }
         }
-      } else throw new Error(`Unimplemented Storybook pet endpoint: ${path}`)
-      return value as T
+      } else return Promise.reject(new Error(`Unimplemented Storybook pet endpoint: ${path}`))
+      return Promise.resolve(value as T)
     },
     resources: {
-      exists: async () => false,
-      read: async () => null,
+      exists: () => Promise.resolve(false),
+      read: () => Promise.resolve(null),
       write: async () => {},
       replace: async () => {},
       remove: async () => {}
     },
-    download: async () => {
-      throw new Error("No remote pet resource in Storybook")
+    download: () => {
+      return Promise.reject(new Error("No remote pet resource in Storybook"))
     }
   })
   const localResource = async () => ({

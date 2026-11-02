@@ -161,7 +161,6 @@ export function MermaidPreview({
       <section
         ref={setViewport}
         aria-label="图表预览"
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: The scrollable viewport supports keyboard panning and zoom.
         tabIndex={0}
         className="min-h-0 min-w-0 flex-1 overflow-scroll overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onKeyDown={(event) => {

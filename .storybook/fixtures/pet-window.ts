@@ -9,17 +9,17 @@ export async function collapseChatToPet(): Promise<PetCollapseResult> {
   const owned = await vibemonHost().assets.getMyVibemons()
   return { type: "setup", view: owned.length > 0 ? "equip" : "pull" }
 }
-export async function petWindowCall<T>(): Promise<T> {
-  return undefined as T
+export function petWindowCall<T>(): Promise<T> {
+  return Promise.resolve(undefined as T)
 }
 export function createPetWindowClient(): PetWindowHost {
   return {
     call: petWindowCall,
-    openPet: async () => "unavailable",
+    openPet: () => Promise.resolve("unavailable"),
     closePet: async () => {},
     openRecharge: async () => {},
-    geometry: async () => () => {},
-    moved: async () => () => {},
+    geometry: () => Promise.resolve(() => {}),
+    moved: () => Promise.resolve(() => {}),
     commands: () => () => {}
   }
 }

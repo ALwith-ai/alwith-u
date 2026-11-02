@@ -66,7 +66,7 @@ export const SendError: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const input = () => canvasElement.querySelector<HTMLElement>('textarea[placeholder="发送消息"]')!
     await waitFor(() => expect(input()).toBeVisible())
-    await userEvent.type(input()!, "检查项目页面")
+    await userEvent.type(input(), "检查项目页面")
     await userEvent.click(within(canvasElement).getByRole("button", { name: "发送" }))
     await within(canvasElement).findByText(/模型当前繁忙/)
   }

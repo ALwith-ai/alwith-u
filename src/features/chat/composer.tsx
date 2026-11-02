@@ -75,27 +75,19 @@ function ComposerFileDrop() {
   const composer = useComposer()
   const register = useWorkspace()?.registerFileReference
   const { t } = useTranslation()
+  const sessionId = composer.session.id
+  const { inputReady, sending, shellMode, addMention, textareaRef } = composer
   useLayoutEffect(
     () =>
       register?.({
-        sessionId: composer.session.id,
+        sessionId,
         add: (path) => {
-          if (!composer.inputReady || composer.sending || composer.shellMode)
-            throw new Error(t("chat.input.dropUnavailable"))
-          composer.addMention(path)
-          composer.textareaRef.current?.focus()
+          if (!inputReady || sending || shellMode) throw new Error(t("chat.input.dropUnavailable"))
+          addMention(path)
+          textareaRef.current?.focus()
         }
       }),
-    [
-      register,
-      composer.session.id,
-      composer.inputReady,
-      composer.sending,
-      composer.shellMode,
-      composer.addMention,
-      composer.textareaRef,
-      t
-    ]
+    [register, sessionId, inputReady, sending, shellMode, addMention, textareaRef, t]
   )
   return (
     <NativeFileDrop

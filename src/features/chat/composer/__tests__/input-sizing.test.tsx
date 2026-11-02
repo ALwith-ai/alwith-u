@@ -60,7 +60,7 @@ test("native sizing never measures layout during typing or dictation", () => {
 test("fallback coalesces writes, ignores height notifications and resizes external drafts", () => {
   setup(false)
   const view = render(<Input />)
-  const input = screen.getByRole("textbox") as HTMLTextAreaElement
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox")
   const read = vi.fn(() => 80)
   Object.defineProperty(input, "scrollHeight", { get: read })
   const resize = (width: number, height: number) =>

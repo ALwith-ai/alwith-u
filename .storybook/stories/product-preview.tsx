@@ -74,13 +74,13 @@ export interface ProductPreviewProps extends PreviewState {
 }
 
 function OpenFixtureFile({ file }: { file?: string | null }) {
-  const workspace = useWorkspace()
+  const openFile = useWorkspace()?.openFile
   useEffect(() => {
-    if (file && workspace)
-      void workspace
-        .openFile(`${PROJECT_DIRECTORY}/${file}`, PROJECT_DIRECTORY)
-        .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
-  }, [file, workspace?.openFile])
+    if (file && openFile)
+      void openFile(`${PROJECT_DIRECTORY}/${file}`, PROJECT_DIRECTORY).catch((error: unknown) =>
+        toast.error(error instanceof Error ? error.message : String(error))
+      )
+  }, [file, openFile])
   return null
 }
 
@@ -364,7 +364,10 @@ export function ProductPreview({
                       <div className="flex min-h-0 flex-1 flex-col">{chat}</div>
                       {driveTarget &&
                         createPortal(
-                          <DrivePage currentProject={cwd} onOpenProject={async (root) => newChat(root.localPath)} />,
+                          <DrivePage
+                            currentProject={cwd}
+                            onOpenProject={(root) => Promise.resolve(newChat(root.localPath))}
+                          />,
                           driveTarget
                         )}
                     </FileWorkspace>

@@ -11,9 +11,9 @@ export function consumeTextAttachmentFault() {
 }
 export function resetComposer(kind: ComposerCase = "ready"): void {
   textFault = kind === "textPending" ? "pending" : kind === "textError" ? "error" : null
-  client.fuzzyFileSearch = async ({ query }) => {
-    if (kind === "mentionError") throw new Error("模拟文件搜索失败")
-    return {
+  client.fuzzyFileSearch = ({ query }) => {
+    if (kind === "mentionError") return Promise.reject(new Error("模拟文件搜索失败"))
+    return Promise.resolve({
       files:
         kind === "mentionEmpty"
           ? []
@@ -27,12 +27,12 @@ export function resetComposer(kind: ComposerCase = "ready"): void {
                 score: 100,
                 indices: null
               }))
-    }
+    })
   }
-  client.requestPrediction = async (id, sourceTurnId) => {
+  client.requestPrediction = (id, sourceTurnId) => {
     actionsTaken.push({ type: "prediction", id })
-    if (kind === "predictionError") throw new Error("模拟输入预测服务不可用")
-    if (kind !== "prediction") return
+    if (kind === "predictionError") return Promise.reject(new Error("模拟输入预测服务不可用"))
+    if (kind !== "prediction") return Promise.resolve()
     const session = client.session(id)
     client.store.setState((state) => ({
       sessions: {
@@ -43,5 +43,6 @@ export function resetComposer(kind: ComposerCase = "ready"): void {
         }
       }
     }))
+    return Promise.resolve()
   }
 }

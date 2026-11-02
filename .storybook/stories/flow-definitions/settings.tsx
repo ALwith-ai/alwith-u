@@ -54,7 +54,7 @@ export const ComputerPermission: Story = {
   name: "缺少系统权限 → 打开权限设置",
   args: { settingsSection: "computer", computerCase: "permissions" },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click((await canvas.findAllByRole("button", { name: "打开系统设置" }))[0]!)
+    await userEvent.click((await canvas.findAllByRole("button", { name: "打开系统设置" }))[0])
     await waitFor(() => expect(nativeCalls.some((call) => call.command === "computer_request_permissions")).toBe(true))
   }
 }

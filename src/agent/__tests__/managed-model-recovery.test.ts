@@ -10,8 +10,10 @@ test("revoked account sessions remain readable and need an explicit model before
   const port = new FakeHubPort(() => fake.app)
   const requests = vi.spyOn(port, "acpRequest")
   const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
-  fake.resumeResponse.current = async () => {
-    throw RequestError.invalidRequest(undefined, "The ALwith account changed. Select a model before sending")
+  fake.resumeResponse.current = () => {
+    return Promise.reject(
+      RequestError.invalidRequest(undefined, "The ALwith account changed. Select a model before sending")
+    )
   }
   try {
     await client.connect()
@@ -27,7 +29,7 @@ test("revoked account sessions remain readable and need an explicit model before
     expect(client.state.sessions["old-account"]).toMatchObject({ attached: true, readOnly: false, error: null })
     expect(fake.modelHints.get("old-account")).toBe("gpt-6.1-sol")
     expect(fake.deleted.size).toBe(2)
-    expect(requests.mock.calls.filter((call) => call[1] === "session/resume").at(-1)?.[2]).toMatchObject({
+    expect(requests.mock.calls.findLast((call) => call[1] === "session/resume")?.[2]).toMatchObject({
       sessionId: "old-account",
       _meta: { alwith: { model: "gpt-6.1-sol", accountModelSelection: true } }
     })

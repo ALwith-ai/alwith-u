@@ -15,8 +15,9 @@ function bus() {
         bucket.delete(callback as EventCallback<unknown>)
       }
     },
-    emitTo: async (_target: unknown, event: EventName, payload?: unknown): Promise<void> => {
+    emitTo: (_target: unknown, event: EventName, payload?: unknown): Promise<void> => {
       for (const listener of listeners.get(event) ?? []) listener({ event, id: 0, payload })
+      return Promise.resolve()
     }
   }
   return { events, count: (): number => [...listeners.values()].reduce((count, bucket) => count + bucket.size, 0) }

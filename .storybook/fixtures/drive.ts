@@ -204,32 +204,34 @@ export const drive: DriveController = {
   attach: async () => {},
   refresh: async () => {},
   dispose: () => {},
-  request: async (request): Promise<DriveResponse> => {
-    if (request.type === "collabSession") return { type: "collabSession", data: null }
-    if (request.type === "commentContext") return { type: "commentContext", data: null }
+  request: (request): Promise<DriveResponse> => {
+    if (request.type === "collabSession") return Promise.resolve({ type: "collabSession", data: null })
+    if (request.type === "commentContext") return Promise.resolve({ type: "commentContext", data: null })
     if (request.type === "proposedCondense")
-      return { type: "jobs", data: mode === "condenseProposed" ? [currentJob] : [] }
+      return Promise.resolve({ type: "jobs", data: mode === "condenseProposed" ? [currentJob] : [] })
     if (request.type === "condensePreflight")
-      return {
+      return Promise.resolve({
         type: "unsynced",
         data: {
           pending: mode === "condenseUnsynced" ? 3 : 0,
           failed: mode === "condenseUnsynced" ? 1 : 0,
           paths: mode === "condenseUnsynced" ? ["README.md", "docs/交付清单.md", "notes.txt"] : []
         }
-      }
-    if (request.type === "condenseStart" || request.type === "job") return { type: "job", data: currentJob }
+      })
+    if (request.type === "condenseStart" || request.type === "job")
+      return Promise.resolve({ type: "job", data: currentJob })
     if (request.type === "approveJob") {
       currentJob = { ...currentJob, status: "RUNNING" }
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
     if (request.type === "cancelJob") {
       currentJob = { ...currentJob, status: "CANCELLED" }
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
-    if (request.type === "localPath") return { type: "path", data: `${PROJECT_DIRECTORY}/docs/交付清单.md` }
+    if (request.type === "localPath")
+      return Promise.resolve({ type: "path", data: `${PROJECT_DIRECTORY}/docs/交付清单.md` })
     if (request.type === "archiveStatus")
-      return {
+      return Promise.resolve({
         type: "archiveStatus",
         data: {
           enabled: true,
@@ -241,22 +243,22 @@ export const drive: DriveController = {
           lastError: null,
           mode: "automatic"
         }
-      }
+      })
     if (request.type === "confirmDeletes" || request.type === "cancelDeletes") {
-      if (mode === "deleteError") throw new Error("模拟删除确认失败，请重试。")
+      if (mode === "deleteError") return Promise.reject(new Error("模拟删除确认失败，请重试。"))
       state = { ...state, snapshot: { ...state.snapshot!, pendingDeletes: [] } }
       for (const listener of listeners) listener()
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
-    if (request.type === "snapshot") return { type: "snapshot", data: state.snapshot! }
-    if (request.type === "preferences") return { type: "preferences", data: preferences }
+    if (request.type === "snapshot") return Promise.resolve({ type: "snapshot", data: state.snapshot! })
+    if (request.type === "preferences") return Promise.resolve({ type: "preferences", data: preferences })
     if (request.type === "setPreferences") {
       preferences = { sessionArchive: request.sessionArchive, knowledgeInject: request.knowledgeInject }
-      return { type: "preferences", data: preferences }
+      return Promise.resolve({ type: "preferences", data: preferences })
     }
-    if (request.type === "roots") return { type: "roots", data: state.snapshot!.roots }
+    if (request.type === "roots") return Promise.resolve({ type: "roots", data: state.snapshot!.roots })
     if (request.type === "templates")
-      return {
+      return Promise.resolve({
         type: "templates",
         data: [
           {
@@ -270,22 +272,25 @@ export const drive: DriveController = {
           },
           { id: 2, name: "知识库", kind: "KNOWLEDGE", builtin: true, code: "knowledge", description: null, icon: null }
         ]
-      }
+      })
     if (request.type === "departments" || request.type === "searchDepartments")
-      return {
+      return Promise.resolve({
         type: "departments",
         data: [{ id: 1, name: "产品与研发", code: "PRODUCT", parentId: null, type: "DEPARTMENT", path: "/PRODUCT" }]
-      }
-    if (request.type === "cloudFolders") return { type: "cloudFolders", data: [] }
+      })
+    if (request.type === "cloudFolders") return Promise.resolve({ type: "cloudFolders", data: [] })
     if (request.type === "failedUploads")
-      return { type: "failedUploads", data: mode === "failedUploads" ? failures : [] }
+      return Promise.resolve({ type: "failedUploads", data: mode === "failedUploads" ? failures : [] })
     if (request.type === "diskUsage")
-      return { type: "diskUsage", data: { totalBytes: 24140, totalFiles: 11, projects: [], files: [] } }
-    if (request.type === "archivePrivateSessions") return { type: "archivePrivateSessions", data: [] }
-    if (request.type === "grantTarget") return { type: "grantTarget", data: { kind: "FOLDER", id: 1 } }
+      return Promise.resolve({
+        type: "diskUsage",
+        data: { totalBytes: 24140, totalFiles: 11, projects: [], files: [] }
+      })
+    if (request.type === "archivePrivateSessions") return Promise.resolve({ type: "archivePrivateSessions", data: [] })
+    if (request.type === "grantTarget") return Promise.resolve({ type: "grantTarget", data: { kind: "FOLDER", id: 1 } })
     if (request.type === "grants") {
-      if (mode === "sharingError") throw new Error("模拟权限列表加载失败")
-      return { type: "grants", data: grantList }
+      if (mode === "sharingError") return Promise.reject(new Error("模拟权限列表加载失败"))
+      return Promise.resolve({ type: "grants", data: grantList })
     }
     if (request.type === "removeGrant") {
       grantList = {
@@ -294,7 +299,7 @@ export const drive: DriveController = {
           (grant) => !(grant.subjectType === request.subjectType && grant.subjectId === request.subjectId)
         )
       }
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
     if (request.type === "setGrant") {
       const input = request.request
@@ -318,10 +323,10 @@ export const drive: DriveController = {
           }
         ]
       }
-      return {
+      return Promise.resolve({
         type: "grantWrite",
         data: { kind: "applied", list: grantList }
-      }
+      })
     }
     if (request.type === "pin") {
       state = {
@@ -334,7 +339,7 @@ export const drive: DriveController = {
         }
       }
       for (const listener of listeners) listener()
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
     if (request.type === "pause") {
       state = {
@@ -357,7 +362,7 @@ export const drive: DriveController = {
         }
       }
       for (const listener of listeners) listener()
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
     if (request.type === "createProject") {
       const name = request.request.name
@@ -387,35 +392,36 @@ export const drive: DriveController = {
       }
       state = { ...state, snapshot: { ...state.snapshot!, roots: [...state.snapshot!.roots, root] } }
       for (const listener of listeners) listener()
-      return { type: "root", data: root }
+      return Promise.resolve({ type: "root", data: root })
     }
-    if (request.type === "file") return { type: "file", data: null }
+    if (request.type === "file") return Promise.resolve({ type: "file", data: null })
     if (request.type === "configuration")
-      return {
+      return Promise.resolve({
         type: "configuration",
         data: { userId: "storybook-user", deviceId: "storybook-device", userName: "林然", clientConfig: null }
-      }
-    if (request.type === "shared") return { type: "shared", data: [] }
+      })
+    if (request.type === "shared") return Promise.resolve({ type: "shared", data: [] })
     if (request.type === "ownershipGuard")
-      return {
+      return Promise.resolve({
         type: "ownershipGuard",
         data: { unknownPersonalRoots: 0, threshold: 10, syncAllPersonal: false, active: false }
-      }
-    if (request.type === "maxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: 50 }
-    if (request.type === "setMaxAutoDownloadMb") return { type: "maxAutoDownloadMb", data: request.megabytes }
+      })
+    if (request.type === "maxAutoDownloadMb") return Promise.resolve({ type: "maxAutoDownloadMb", data: 50 })
+    if (request.type === "setMaxAutoDownloadMb")
+      return Promise.resolve({ type: "maxAutoDownloadMb", data: request.megabytes })
     if (request.type === "start" || request.type === "stop") {
       state = { ...state, snapshot: { ...state.snapshot!, running: request.type === "start" } }
       for (const listener of listeners) listener()
-      return { type: "done" }
+      return Promise.resolve({ type: "done" })
     }
     if (request.type === "searchUsers")
-      return {
+      return Promise.resolve({
         type: "users",
         data: [
           { id: "demo-colleague", name: "周宁", employeeNo: "DEMO002" },
           { id: "demo-reviewer", name: "陈晓", employeeNo: "DEMO003" }
         ]
-      }
+      })
     if (
       [
         "refreshClientConfig",
@@ -434,8 +440,8 @@ export const drive: DriveController = {
         "commentWatch"
       ].includes(request.type)
     )
-      return { type: "done" }
-    throw new Error(`Unimplemented Storybook Drive request: ${request.type}`)
+      return Promise.resolve({ type: "done" })
+    return Promise.reject(new Error(`Unimplemented Storybook Drive request: ${request.type}`))
   }
 }
-export const driveTransport: DriveTransport = { request: drive.request, subscribe: async () => () => {} }
+export const driveTransport: DriveTransport = { request: drive.request, subscribe: () => Promise.resolve(() => {}) }

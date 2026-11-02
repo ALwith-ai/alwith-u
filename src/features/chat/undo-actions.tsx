@@ -39,7 +39,7 @@ export function UndoActions({ sessionId, items }: { sessionId: string; items: To
     (listener) => client.store.subscribe(listener),
     () => client.state.sessions[sessionId]
   )
-  const blocked = !session || session.state !== "idle" || session.restoring || session.readOnly
+  const blocked = session?.state !== "idle" || session.restoring || session.readOnly
   const set = (value: ActionState) =>
     actions.setState({
       entries: { ...actions.getState().entries, [key]: value }
@@ -54,7 +54,7 @@ export function UndoActions({ sessionId, items }: { sessionId: string; items: To
     set({ ...current, pending: true, error: null })
     try {
       const live = client.state.sessions[sessionId]
-      if (!live || live.state !== "idle" || live.restoring || live.readOnly) throw new Error(t("undo.busy"))
+      if (live?.state !== "idle" || live.restoring || live.readOnly) throw new Error(t("undo.busy"))
       const result = await invoke<PatchResult>("workspace_apply_patches", {
         root: live.cwd,
         patches: selected.map((index) => batch.patches[index]),

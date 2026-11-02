@@ -227,7 +227,9 @@ export class CodexClient extends CodexAcpClient<AppState> {
       try {
         await this.delete(id)
       } catch (cleanupError) {
-        throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the custom model session")
+        throw new AggregateError([error, cleanupError], "Failed to initialize and clean up the custom model session", {
+          cause: cleanupError
+        })
       }
       throw error
     }

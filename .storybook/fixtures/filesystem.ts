@@ -59,7 +59,7 @@ export async function resetFiles(empty = false, binary = false, kind: FileCase =
       }
     if (!empty && binary) {
       folders.add(`${root}/samples`)
-      for (const [name, bytes] of binaryAssets) virtualFiles.set(`${root}/${name}`, bytes.slice())
+      for (const [name, bytes] of binaryAssets) virtualFiles.set(`${root}/${name}`, new Uint8Array(bytes))
       virtualFiles.set(`${root}/samples/legacy.doc`, new Uint8Array([0, 1, 2]))
       virtualFiles.set(`${root}/samples/unsupported.bin`, new Uint8Array([0, 255, 0, 255]))
       virtualFiles.set(`${root}/samples/corrupt.pdf`, new TextEncoder().encode("Invalid PDF fixture"))
@@ -88,15 +88,15 @@ export function fileRequest(request: NativeRequest): unknown {
   if (operation === "readDirectory") {
     const direct = (candidate: string) =>
       candidate.startsWith(`${path}/`) && !candidate.slice(path.length + 1).includes("/")
-    return [...folders]
-      .filter(direct)
-      .map((path) => ({ path, name: path.slice(path.lastIndexOf("/") + 1), kind: "directory" }))
-      .concat(
-        [...virtualFiles.keys()]
-          .filter(direct)
-          .filter((file) => request.showHidden || !file.split("/").at(-1)!.startsWith("."))
-          .map((path) => ({ path, name: path.slice(path.lastIndexOf("/") + 1), kind: "file" }))
-      )
+    return [
+      ...[...folders]
+        .filter(direct)
+        .map((path) => ({ path, name: path.slice(path.lastIndexOf("/") + 1), kind: "directory" })),
+      ...[...virtualFiles.keys()]
+        .filter(direct)
+        .filter((file) => request.showHidden || !file.split("/").at(-1)!.startsWith("."))
+        .map((path) => ({ path, name: path.slice(path.lastIndexOf("/") + 1), kind: "file" }))
+    ]
   }
   if (operation === "readFile") {
     const bytes = virtualFiles.get(path)
@@ -121,7 +121,7 @@ export function fileRequest(request: NativeRequest): unknown {
   if ((operation === "move" || operation === "copy") && request.to) {
     for (const [candidate, bytes] of [...virtualFiles])
       if (candidate === path || candidate.startsWith(`${path}/`)) {
-        virtualFiles.set(request.to + candidate.slice(path.length), bytes.slice())
+        virtualFiles.set(request.to + candidate.slice(path.length), new Uint8Array(bytes))
         if (operation === "move") virtualFiles.delete(candidate)
       }
     return

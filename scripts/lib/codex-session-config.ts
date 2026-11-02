@@ -14,7 +14,7 @@ export function interactiveSessionConfig(source: string | undefined): string {
     throw new Error("Invalid Codex session configuration")
   return JSON.stringify({
     ...config,
-    features: { ...(config.features as Record<string, unknown> | undefined), default_mode_request_user_input: true },
+    features: { ...config.features, default_mode_request_user_input: true },
     ...("features.default_mode_request_user_input" in config
       ? { "features.default_mode_request_user_input": true }
       : {})

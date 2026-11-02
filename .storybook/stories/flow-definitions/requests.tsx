@@ -103,7 +103,7 @@ export const Question: Story = {
   args: { chatCase: "question" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("radio", { name: "全部页面与流程" }))
-    await userEvent.click(canvas.getAllByRole("button", { name: "提交回答" })[0]!)
+    await userEvent.click(canvas.getAllByRole("button", { name: "提交回答" })[0])
     await waitFor(() => expect(actionsTaken.some((action) => action.type === "prompt")).toBe(true))
   }
 }

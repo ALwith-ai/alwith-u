@@ -9,7 +9,7 @@ import { openPathInApp } from "@/lib/open-with-app"
 import * as files from "../../file-actions"
 
 vi.mock("@/lib/open-with-app", () => ({
-  readAppsInfo: async () => [{ name: "Preview", bundle_id: "com.apple.Preview", icon: null }],
+  readAppsInfo: () => Promise.resolve([{ name: "Preview", bundle_id: "com.apple.Preview", icon: null }]),
   openPathInApp: vi.fn().mockResolvedValue(undefined)
 }))
 vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
@@ -178,7 +178,7 @@ test("a pending edit remains locked after its source conversation is remounted",
   expect(view.getByRole("button", { name: "Remove background" })).toBeDisabled()
   expect(view.getByRole("button", { name: "Close" })).toBeDisabled()
   expect(send).toHaveBeenCalledOnce()
-  await act(async () => pending.resolve())
+  await act(() => Promise.resolve(pending.resolve()))
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
 

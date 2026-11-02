@@ -213,10 +213,10 @@ test("native authenticated operations retry once with the refreshed account toke
     () => Promise.resolve(fresh)
   )
   const tokens: string[] = []
-  const result = await transport.authenticated(async (token: string) => {
+  const result = await transport.authenticated((token: string) => {
     tokens.push(token)
-    if (token === "old-access") throw Object.assign(new Error("Unauthorized"), { status: 401 })
-    return { models: ["account-model"] }
+    if (token === "old-access") return Promise.reject(Object.assign(new Error("Unauthorized"), { status: 401 }))
+    return Promise.resolve({ models: ["account-model"] })
   })
   expect(result).toEqual({ models: ["account-model"] })
   expect(tokens).toEqual(["old-access", "new-access"])

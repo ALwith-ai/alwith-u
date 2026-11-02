@@ -123,7 +123,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     const make = (choice: PetSessionChoice): PetObservation => {
       const id = choice.sessionId
       const run = state.runStates[id]
-      const session = state.sessions[id]
+      const session: AppState["sessions"][string] | undefined = state.sessions[id]
       const previous = previousStates.get(id)
       const userId = session?.items.findLast((item) => item.kind === "user")?.id
       const newTurn = userId !== undefined && userMessages.has(id) && userMessages.get(id) !== userId
@@ -141,7 +141,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         completions.set(id, `${epoch}/stopped/${run.since}`)
       }
       previousStates.set(id, run.state)
-      const attached = session?.attached === true
+      const attached = session?.attached ?? false
       if (attachments.has(id) && attachments.get(id) !== attached) incarnations.delete(id)
       attachments.set(id, attached)
       let incarnation = incarnations.get(id)

@@ -21,7 +21,7 @@ export const Modules: Story = {
   play: async ({ canvas, userEvent, step }) => {
     for (const name of ["工具箱", "项目工具", "Vibémon"])
       await step(name, async () => {
-        await userEvent.click(canvas.getAllByRole("button", { name })[0]!)
+        await userEvent.click(canvas.getAllByRole("button", { name })[0])
         await expect(canvas.getAllByRole("button", { name }).length).toBeGreaterThan(0)
       })
     await userEvent.click(canvas.getByRole("button", { name: "返回主屏" }))
@@ -62,7 +62,7 @@ export const Guide: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "帮助" }))
     await userEvent.click(await body.findByRole("menuitem", { name: "用户指南" }))
     const chapters = await body.findByRole("navigation", { name: "Guide chapters" })
-    await userEvent.click(within(chapters).getAllByRole("button")[1]!)
-    await expect(within(chapters).getAllByRole("button")[1]!).toHaveAttribute("aria-current", "page")
+    await userEvent.click(within(chapters).getAllByRole("button")[1])
+    await expect(within(chapters).getAllByRole("button")[1]).toHaveAttribute("aria-current", "page")
   }
 }

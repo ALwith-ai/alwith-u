@@ -5,6 +5,7 @@ import { expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
 
 import { ImageEditOverlay, ImageEditToolbar, useImageEditor } from "../image-editor"
+import { promptText } from "./prompt-text"
 
 await initI18n("en")
 
@@ -19,19 +20,20 @@ function Editor({ send, close }: { send: (prompt: acp.ContentBlock[]) => Promise
 }
 
 test("background removal sends immediately to the supplied destination without touching a composer draft", async () => {
-  const send = vi.fn().mockResolvedValue(undefined)
+  const send = vi.fn<(prompt: acp.ContentBlock[]) => Promise<void>>().mockResolvedValue(undefined)
   const close = vi.fn()
   const view = render(<Editor send={send} close={close} />)
   fireEvent.click(view.getByRole("button", { name: "Remove background" }))
   await waitFor(() => expect(close).toHaveBeenCalledOnce())
-  expect(send).toHaveBeenCalledWith([
-    { type: "image", mimeType: "image/png", data: "b3JpZw==" },
-    { type: "text", text: expect.stringContaining("transparent") }
-  ])
+  expect(send).toHaveBeenCalledOnce()
+  const [prompt] = send.mock.calls[0]
+  expect(prompt).toHaveLength(2)
+  expect(prompt[0]).toEqual({ type: "image", mimeType: "image/png", data: "b3JpZw==" })
+  expect(promptText(prompt[1])).toContain("transparent")
 })
 
 test("resize lists the five aspect ratios and choosing one sends immediately", async () => {
-  const send = vi.fn().mockResolvedValue(undefined)
+  const send = vi.fn<(prompt: acp.ContentBlock[]) => Promise<void>>().mockResolvedValue(undefined)
   const close = vi.fn()
   const view = render(<Editor send={send} close={close} />)
   fireEvent.click(view.getByRole("button", { name: "Resize" }))
@@ -40,10 +42,9 @@ test("resize lists the five aspect ratios and choosing one sends immediately", a
     expect(view.getByRole("menuitem", { name: new RegExp(ratio) })).toBeDefined()
   fireEvent.click(view.getByRole("menuitem", { name: /Widescreen.*16:9/ }))
   await waitFor(() => expect(close).toHaveBeenCalledOnce())
-  expect(send.mock.calls[0][0]).toMatchObject([
-    { type: "image", data: "b3JpZw==" },
-    { type: "text", text: expect.stringContaining("16:9") }
-  ])
+  const [prompt] = send.mock.calls[0]
+  expect(prompt).toMatchObject([{ type: "image", data: "b3JpZw==" }, { type: "text" }])
+  expect(promptText(prompt[1])).toContain("16:9")
 })
 
 test("direct-action failures stay visible and can retry without a confirmation form", async () => {

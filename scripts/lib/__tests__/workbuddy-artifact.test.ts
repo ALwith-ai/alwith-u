@@ -3,6 +3,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
+import { validateConfig } from "@alwith/module-desktop-shell/build"
+
 import { stageWorkBuddy } from "../workbuddy-artifact"
 
 test.each(["alwith", "none"])("the bundled %s generator works offline and preserves existing output", async (auth) => {
@@ -35,8 +37,9 @@ test.each(["alwith", "none"])("the bundled %s generator works offline and preser
       directory: destination
     })
     const brand = await readFile(join(destination, "alwith.app.json"), "utf8")
-    expect(JSON.parse(brand).productName).toBe("My Buddy")
-    expect(JSON.parse(brand).modules.includes("auth")).toBe(auth === "alwith")
+    const app = validateConfig(JSON.parse(brand))
+    expect(app.productName).toBe("My Buddy")
+    expect(app.modules.includes("auth")).toBe(auth === "alwith")
     expect(await Bun.file(join(destination, "bun.lock")).exists()).toBe(true)
     const existing = Bun.spawnSync(args, { cwd: directory, env: { PATH: "", NODE_PATH: "" } })
     expect(existing.exitCode).not.toBe(0)

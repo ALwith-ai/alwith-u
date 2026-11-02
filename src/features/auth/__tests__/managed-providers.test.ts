@@ -15,13 +15,14 @@ test("same-account refreshes share one request and logout invalidates its result
   let requests = 0
   let cleared = false
   const controller = createManagedProviders({
-    bind: async () => 1,
+    bind: () => Promise.resolve(1),
     refresh: async () => {
       requests++
       await pending.promise
     },
-    clear: async () => {
+    clear: () => {
       cleared = true
+      return Promise.resolve()
     }
   })
   const first = controller.refresh("account-a")
@@ -40,9 +41,9 @@ test("refresh after account replacement never joins the previous account request
   const owners: string[] = []
   let generation = 0
   const controller = createManagedProviders({
-    bind: async (owner: string) => {
+    bind: (owner: string) => {
       owners.push(owner)
-      return ++generation
+      return Promise.resolve(++generation)
     },
     refresh: async (current: number) => {
       if (current === 1) await pending.promise
@@ -68,15 +69,16 @@ test("logout waits for an in-flight login and the next login runs after a failed
     identity = "a"
     writes.push("login-a")
   })
-  const logout = transition(async () => {
+  const logout = transition(() => {
     identity = null
     writes.push("logout")
-    throw new Error("remote logout failed")
+    return Promise.reject(new Error("remote logout failed"))
   })
   const failed = expect(logout).rejects.toThrow("remote logout failed")
-  const next = transition(async () => {
+  const next = transition(() => {
     identity = "b"
     writes.push("login-b")
+    return Promise.resolve()
   })
   await Promise.resolve()
   expect(writes).toEqual([])

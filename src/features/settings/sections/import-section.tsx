@@ -153,7 +153,7 @@ export function ImportSection() {
                             checked={selected.includes(index)}
                             onCheckedChange={(checked) =>
                               setSelected((current) =>
-                                checked === true ? [...current, index] : current.filter((value) => value !== index)
+                                checked ? [...current, index] : current.filter((value) => value !== index)
                               )
                             }
                           />

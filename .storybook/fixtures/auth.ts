@@ -21,11 +21,13 @@ export const usePlatformAuth = create<AuthState & AuthActions>((set) => ({
   isLoading: false,
   _initialized: true,
   init: () => {},
-  login: async (user) => {
+  login: (user) => {
     set({ user, isAuthenticated: true })
+    return Promise.resolve()
   },
-  logout: async () => {
+  logout: () => {
     set({ user: null, isAuthenticated: false })
+    return Promise.resolve()
   },
   refreshUser: async () => {},
   updateUser: (partial) => set((state) => ({ user: state.user ? { ...state.user, ...partial } : null }))
@@ -48,7 +50,7 @@ async function loginResponse(): Promise<LoginResponse> {
   return { ...demoUser, access_token: "storybook", refresh_token: "storybook", status: "ACTIVE" }
 }
 export const authClient = {
-  emailExists: async () => ({ registered: mode === "registered" }),
+  emailExists: () => Promise.resolve({ registered: mode === "registered" }),
   sendVerificationCode: async () => {
     if (mode === "sending") return new Promise<void>(() => {})
     if (mode === "network") throw new Error("网络连接失败，请稍后重试。")
@@ -61,8 +63,8 @@ export const authClient = {
 export const loginPlatform = async (response: LoginResponse) => usePlatformAuth.getState().login(response)
 export const logoutPlatform = async () => usePlatformAuth.getState().logout()
 export const initPlatformAuth = async () => {}
-export async function platformApiRequest<T>(): Promise<T> {
-  throw new Error("Live platform requests are disabled in Storybook")
+export function platformApiRequest<T>(): Promise<T> {
+  return Promise.reject(new Error("Live platform requests are disabled in Storybook"))
 }
 
 export async function requestAccountProviderRefresh(): Promise<void> {}

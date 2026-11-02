@@ -14,7 +14,7 @@ const controls = vi.hoisted(() => ({
   error: vi.fn(),
   openSettings: vi.fn(),
   pending: false,
-  runState: "idle" as "idle" | "running" | "requires_action"
+  runState: "idle"
 }))
 vi.mock("@/lib/client", () => ({
   client: {
@@ -531,7 +531,7 @@ test("changing effort keeps the model trigger and menu stable until the confirme
   expect(view.getByTestId("model-trigger")).toHaveAttribute("aria-busy", "false")
   expect(view.queryByTestId("model-switch-loading")).not.toBeInTheDocument()
   expect(view.getByRole("slider", { name: "Effort" })).toHaveAttribute("aria-valuetext", "High")
-  await act(() => {
+  act(() => {
     finish()
   })
 })

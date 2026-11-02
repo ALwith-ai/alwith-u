@@ -70,9 +70,9 @@ afterEach(() => {
 test("collects repeated edits in order and refuses incomplete or failed change data", () => {
   const items = [item("a"), item("b")]
   expect(filePatches(items)).toHaveLength(2)
-  expect(() => filePatches([{ ...items[0]!, status: "failed" }])).toThrow()
+  expect(() => filePatches([{ ...items[0], status: "failed" }])).toThrow()
   const missing = item("missing")
-  const entry = missing.content[0]!
+  const entry = missing.content[0]
   if (isDiffEntry(entry)) delete entry.patch
   expect(() => filePatches([missing])).toThrow()
   expect(() => filePatches([])).toThrow()
@@ -91,7 +91,7 @@ test("undo and reapply use the originating session, survive remounts and block r
     () =>
       new Promise((resolve) => {
         complete = resolve
-      }) as ReturnType<typeof invoke>
+      })
   )
   const items = [item("single")]
   const { id, view } = mount(items)
@@ -104,12 +104,12 @@ test("undo and reapply use the originating session, survive remounts and block r
     expect.objectContaining({ root: "/project", reverse: true })
   )
   view.unmount()
-  await act(async () => complete({ applied: [0], failed: null }))
+  await act(() => Promise.resolve(complete({ applied: [0], failed: null })))
   render(<UndoActions sessionId={id} items={items} />)
   expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Reapply" }))
   expect(invoke).toHaveBeenLastCalledWith("workspace_apply_patches", expect.objectContaining({ reverse: false }))
-  await act(async () => complete({ applied: [0], failed: null }))
+  await act(() => Promise.resolve(complete({ applied: [0], failed: null })))
   expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
 })
 
@@ -137,7 +137,7 @@ test("running or read-only sessions and missing patches disable mutation", () =>
     client.store.setState({
       sessions: {
         ...client.state.sessions,
-        [id]: { ...client.state.sessions[id]!, state: "running" }
+        [id]: { ...client.state.sessions[id], state: "running" }
       }
     })
   )
@@ -146,7 +146,7 @@ test("running or read-only sessions and missing patches disable mutation", () =>
     client.store.setState({
       sessions: {
         ...client.state.sessions,
-        [id]: { ...client.state.sessions[id]!, state: "idle", readOnly: true }
+        [id]: { ...client.state.sessions[id], state: "idle", readOnly: true }
       }
     })
   )
@@ -193,7 +193,7 @@ test("rejects mutation when the session disappears and keeps other cards indepen
   const buttons = screen.getAllByRole("button", { name: "Undo" })
   expect(buttons[0]).toBeDisabled()
   expect(buttons[1]).toBeEnabled()
-  fireEvent.click(buttons[1]!)
+  fireEvent.click(buttons[1])
   await waitFor(() => expect(screen.getByRole("button", { name: "Reapply" })).toBeEnabled())
   expect(client.state.sessions[other.id]).toBeDefined()
 })

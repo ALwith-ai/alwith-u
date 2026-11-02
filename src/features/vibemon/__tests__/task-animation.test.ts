@@ -68,7 +68,7 @@ test("drag interrupts celebration and resumes the latest task state without repl
   dispose = configureVibemon({
     account: () => null,
     assets: {} as VibemonHost["assets"],
-    storage: { get: async () => undefined, set: async () => {} },
+    storage: { get: () => Promise.resolve(undefined), set: async () => {} },
     subscribeStorage: () => () => {},
     sessions: {
       snapshot: () => null,
@@ -80,14 +80,14 @@ test("drag interrupts celebration and resumes the latest task state without repl
       select: async () => {}
     },
     windows: {
-      call: async <T>(action: string): Promise<T> => {
+      call: <T>(action: string): Promise<T> => {
         expect(action).toBe("position")
-        return { x: 0, y: 0 } as T
+        return Promise.resolve({ x: 0, y: 0 } as T)
       },
-      geometry: async () => () => {},
-      moved: async () => () => {},
+      geometry: () => Promise.resolve(() => {}),
+      moved: () => Promise.resolve(() => {}),
       commands: () => () => {},
-      openPet: async () => "shown",
+      openPet: () => Promise.resolve("shown"),
       closePet: async () => {},
       openRecharge: async () => {}
     },

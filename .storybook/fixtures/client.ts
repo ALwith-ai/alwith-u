@@ -19,8 +19,8 @@ import {
 
 // Only the UI projection is used. No preview can acquire a native Runtime connection.
 export const client = new CodexClient(
-  async () => {
-    throw new Error("Native Runtime is disabled in Storybook")
+  () => {
+    return Promise.reject(new Error("Native Runtime is disabled in Storybook"))
   },
   {
     agentId: "storybook",
@@ -163,13 +163,14 @@ client.connect = async () => {
 }
 client.listSessions = async () => {}
 client.listArchived = async () => {}
-client.refreshProjectContext = async () => projectContext
-client.listProjectSessions = async (cwd) => client.state.sessionList.filter((thread) => thread.cwd === cwd)
-client.listHistorySessions = async () => [...client.state.sessionList, ...client.state.archivedSessions]
-client.readSessionSummary = async (id) => client.state.sessionList.find((thread) => thread.sessionId === id) ?? null
-client.activityReply = async () => "页面与交互检查已完成，交付资料已经更新。"
-client.prepareDraft = async (owner, cwd, model) => {
-  if (draftFailure) throw Object.assign(new Error(draftFailure), { code: -32000 })
+client.refreshProjectContext = () => Promise.resolve(projectContext)
+client.listProjectSessions = (cwd) => Promise.resolve(client.state.sessionList.filter((thread) => thread.cwd === cwd))
+client.listHistorySessions = () => Promise.resolve([...client.state.sessionList, ...client.state.archivedSessions])
+client.readSessionSummary = (id) =>
+  Promise.resolve(client.state.sessionList.find((thread) => thread.sessionId === id) ?? null)
+client.activityReply = () => Promise.resolve("页面与交互检查已完成，交付资料已经更新。")
+client.prepareDraft = (owner, cwd, model) => {
+  if (draftFailure) return Promise.reject(Object.assign(new Error(draftFailure), { code: -32000 }))
   const previous = Object.keys(client.state.draftSessions).find(
     (id) =>
       client.state.draftSessions[id] === owner &&
@@ -179,15 +180,13 @@ client.prepareDraft = async (owner, cwd, model) => {
           (option) => option.category === "model" && option.currentValue === model
         ))
   )
-  if (previous) return previous
+  if (previous) return Promise.resolve(previous)
   const id = `draft-${owner}-${++sequence}`
   const session = {
     ...createSession(id, cwd ?? QUICK_DIRECTORY),
     attached: true,
     configOptions: configOptions.map((option) =>
-      isSelectOption(option) && option.category === "model" && model
-        ? ({ ...option, currentValue: model } as typeof option)
-        : option
+      isSelectOption(option) && option.category === "model" && model ? { ...option, currentValue: model } : option
     )
   }
   client.store.setState((state) => {
@@ -203,28 +202,31 @@ client.prepareDraft = async (owner, cwd, model) => {
       }
     }
   })
-  return id
+  return Promise.resolve(id)
 }
-client.discardDraft = async (owner) => {
+client.discardDraft = (owner) => {
   client.store.setState((state) => ({
     draftSessions: Object.fromEntries(Object.entries(state.draftSessions).filter(([, current]) => current !== owner))
   }))
+  return Promise.resolve()
 }
-client.transferDraft = async (id, owner) => {
-  if (!(id in client.state.draftSessions)) return
+client.transferDraft = (id, owner) => {
+  if (!(id in client.state.draftSessions)) return Promise.resolve()
   client.store.setState((state) => ({
     draftSessions: {
       ...Object.fromEntries(Object.entries(state.draftSessions).filter(([, value]) => value !== owner)),
       [id]: owner
     }
   }))
+  return Promise.resolve()
 }
 client.newSession = async (cwd, model, owner = "main") =>
   client.prepareDraft(owner, cwd, typeof model === "string" ? model : null)
-client.open = async (id, cwd) => {
+client.open = (id, cwd) => {
   publish({ ...(client.state.sessions[id] ?? makeSession("conversation", id)), cwd, attached: true, restoring: false })
+  return Promise.resolve()
 }
-client.prompt = async (id, prompt) => {
+client.prompt = (id, prompt) => {
   const current = client.session(id)
   const text = prompt
     .filter(isText)
@@ -262,21 +264,22 @@ client.prompt = async (id, prompt) => {
     if (response === "permission") {
       client.store.setState((state) => ({
         actions: [...state.actions, pendingAction("permission", id)],
-        runStates: { ...state.runStates, [id]: { ...state.runStates[id]!, state: "requires_action" } }
+        runStates: { ...state.runStates, [id]: { ...state.runStates[id], state: "requires_action" } }
       }))
     } else if (response === "question") publish({ ...makeSession("question", id), cwd: current.cwd })
     else if (response === "error") publish({ ...makeSession("error", id), cwd: current.cwd })
     else finish(id)
   }, 1300)
-  return `${id}-user-${index}`
+  return Promise.resolve(`${id}-user-${index}`)
 }
-client.cancel = async (id) => {
+client.cancel = (id) => {
   publish({ ...client.session(id), state: "idle" })
   client.store.setState((state) => ({
     actions: state.actions.filter((action) => action.sessionId !== id),
     runStates: { ...state.runStates, [id]: runState(id, "done") }
   }))
   actionsTaken.push({ type: "cancel", id })
+  return Promise.resolve()
 }
 client.stopSession = async (id) => {
   await client.cancel(id)
@@ -294,7 +297,7 @@ client.respond = (id, value) => {
         : "已收到确认，交付清单已更新。"
     )
 }
-client.setConfig = async (id, configId, value) => {
+client.setConfig = (id, configId, value) => {
   publish({
     ...client.session(id),
     configOptions: client
@@ -303,35 +306,40 @@ client.setConfig = async (id, configId, value) => {
         option.configId === configId ? ({ ...option, currentValue: value } as typeof option) : option
       )
   })
+  return Promise.resolve()
 }
-client.renameSession = async (id, title) => {
+client.renameSession = (id, title) => {
   if (client.state.sessions[id]) publish({ ...client.session(id), title })
   client.store.setState((state) => ({
     sessionList: state.sessionList.map((thread) => (thread.sessionId === id ? { ...thread, title } : thread))
   }))
+  return Promise.resolve()
 }
-client.archive = async (id) => {
+client.archive = (id) => {
   const thread = client.state.sessionList.find((thread) => thread.sessionId === id)
   client.store.setState((state) => ({
     sessionList: state.sessionList.filter((thread) => thread.sessionId !== id),
     archivedSessions: thread ? [{ ...thread, archived: true }, ...state.archivedSessions] : state.archivedSessions
   }))
+  return Promise.resolve()
 }
-const unarchive: typeof client.unarchive = async (id) => {
+const unarchive: typeof client.unarchive = (id) => {
   const thread = client.state.archivedSessions.find((thread) => thread.sessionId === id)
   client.store.setState((state) => ({
     archivedSessions: state.archivedSessions.filter((thread) => thread.sessionId !== id),
     sessionList: thread ? [{ ...thread, archived: false }, ...state.sessionList] : state.sessionList
   }))
+  return Promise.resolve()
 }
-const deleteSession: typeof client.delete = async (id) => {
+const deleteSession: typeof client.delete = (id) => {
   client.store.setState((state) => ({
     sessionList: state.sessionList.filter((thread) => thread.sessionId !== id),
     archivedSessions: state.archivedSessions.filter((thread) => thread.sessionId !== id)
   }))
   actionsTaken.push({ type: "delete", id })
+  return Promise.resolve()
 }
-client.fork = async (id, cwd) => {
+client.fork = (id, cwd) => {
   const next = `${id}-fork-${++sequence}`
   publish({
     ...client.session(id),
@@ -348,29 +356,31 @@ client.fork = async (id, cwd) => {
     updatedAt: FIXED_TIME,
     archived: false
   })
-  return next
+  return Promise.resolve(next)
 }
 client.loadOlderHistory = async () => {}
 client.loadHistoryNavigation = async () => {}
 client.previewHistoryTurn = async () => {}
 client.loadHistoryTurn = async () => {}
 client.requestPrediction = async () => {}
-client.retrySession = async (id) => finish(id, "重试成功，页面检查已完成。")
-client.readAccount = async () => ({
-  account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus" },
-  requiresOpenaiAuth: true
-})
-client.readRateLimits = async () => ({
-  limitId: null,
-  limitName: null,
-  primary: { usedPercent: 36, windowDurationMins: 300, resetsAt: 1792731600 },
-  secondary: { usedPercent: 18, windowDurationMins: 10080, resetsAt: 1793163600 },
-  credits: null,
-  planType: "plus",
-  spendControlReached: false
-})
-client.listSkills = async () => ({ data: [] })
-client.fuzzyFileSearch = async () => ({ files: [] })
+client.retrySession = (id) => Promise.resolve(finish(id, "重试成功，页面检查已完成。"))
+client.readAccount = () =>
+  Promise.resolve({
+    account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus" },
+    requiresOpenaiAuth: true
+  })
+client.readRateLimits = () =>
+  Promise.resolve({
+    limitId: null,
+    limitName: null,
+    primary: { usedPercent: 36, windowDurationMins: 300, resetsAt: 1792731600 },
+    secondary: { usedPercent: 18, windowDurationMins: 10080, resetsAt: 1793163600 },
+    credits: null,
+    planType: "plus",
+    spendControlReached: false
+  })
+client.listSkills = () => Promise.resolve({ data: [] })
+client.fuzzyFileSearch = () => Promise.resolve({ files: [] })
 client.login = async () => {}
 client.logout = async () => {}
 export function useApp<T>(selector: (state: AppState) => T): T {
@@ -379,14 +389,15 @@ export function useApp<T>(selector: (state: AppState) => T): T {
 export function useSession(id: string | null): Session | null {
   return useApp((state) => (id === null ? null : (state.sessions[id] ?? null)))
 }
-export async function markRead(id: string): Promise<void> {
+export function markRead(id: string): Promise<void> {
   actionsTaken.push({ type: "markRead", id })
+  return Promise.resolve()
 }
 export async function stopSession(id: string): Promise<void> {
   await client.stopSession(id)
 }
-export async function watchRunStates(): Promise<() => void> {
-  return () => {}
+export function watchRunStates(): Promise<() => void> {
+  return Promise.resolve(() => {})
 }
 
 client.unarchive = unarchive

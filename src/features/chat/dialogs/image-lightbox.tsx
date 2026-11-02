@@ -65,7 +65,7 @@ function localPath(uri: string | undefined): string | null {
     if (url.hostname && url.hostname !== "localhost") return `//${url.hostname}${path}`
     return /^\/[A-Za-z]:\//.test(path) ? path.slice(1) : path
   }
-  return uri.startsWith("/") || /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") ? uri : null
+  return uri.startsWith("/") || /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith(String.raw`\\`) ? uri : null
 }
 
 type SendImageEdit = (prompt: acp.ContentBlock[]) => Promise<void>

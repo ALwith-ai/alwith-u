@@ -32,7 +32,7 @@ export const RestoreError: Story = {
   play: async ({ canvas, userEvent }) => {
     const buttons = await canvas.findAllByRole("button", { name: "取消归档" })
     await waitFor(() => expect(buttons[0]).toBeEnabled())
-    await userEvent.click(buttons[0]!)
+    await userEvent.click(buttons[0])
     await canvas.findByRole("alert")
   }
 }
@@ -43,7 +43,7 @@ export const Restoring: Story = {
   play: async ({ canvas, userEvent }) => {
     const buttons = await canvas.findAllByRole("button", { name: "取消归档" })
     await waitFor(() => expect(buttons[0]).toBeEnabled())
-    await userEvent.click(buttons[0]!)
+    await userEvent.click(buttons[0])
     await expect(buttons[0]).toBeDisabled()
   }
 }
@@ -53,7 +53,7 @@ export const DeleteError: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     const buttons = await canvas.findAllByRole("button", { name: "删除" })
     await waitFor(() => expect(buttons[0]).toBeEnabled())
-    await userEvent.click(buttons[0]!)
+    await userEvent.click(buttons[0])
     const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: /删除/ }))
     await dialog.findByRole("alert")
@@ -66,7 +66,7 @@ export const Deleting: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     const buttons = await canvas.findAllByRole("button", { name: "删除" })
     await waitFor(() => expect(buttons[0]).toBeEnabled())
-    await userEvent.click(buttons[0]!)
+    await userEvent.click(buttons[0])
     const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"))
     await userEvent.click(dialog.getByRole("button", { name: /删除/ }))
     await expect(dialog.getByRole("button", { name: /删除/ })).toBeDisabled()

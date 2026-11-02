@@ -64,7 +64,7 @@ export async function initializeMobile(): Promise<void> {
       useChatWindowSurface.getState()
     )
     const last = previous
-    if (last && sessionIds.length === last.length && sessionIds.every((id, i) => id === last[i])) return
+    if (last?.length === sessionIds.length && sessionIds.every((id, i) => id === last[i])) return
     previous = sessionIds
     sync = sync
       .catch((error: unknown) => reportBackgroundError("mobile-activity", error))

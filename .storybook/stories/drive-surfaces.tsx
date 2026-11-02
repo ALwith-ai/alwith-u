@@ -31,8 +31,8 @@ export function DriveSurfaces(args: ProductPreviewProps & { surface?: "sharing" 
               controls={driveControls}
               locale={locale}
               onClose={() => setOpen(false)}
-              onOpenFile={async () => setOpen(false)}
-              onOpenExternal={async () => setOpen(false)}
+              onOpenFile={() => Promise.resolve(setOpen(false))}
+              onOpenExternal={() => Promise.resolve(setOpen(false))}
             />
           </DialogContent>
         </Dialog>

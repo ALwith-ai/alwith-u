@@ -52,7 +52,7 @@ const config: StorybookConfig = {
             const target = source.startsWith("@/")
               ? path.resolve(import.meta.dirname, "../src", source.slice(2))
               : source.startsWith(".") && importer
-                ? path.resolve(path.dirname(importer.split("?")[0]!), source)
+                ? path.resolve(path.dirname(importer.split("?")[0]), source)
                 : source
             for (const [module, fixture] of Object.entries(boundaries)) {
               const file = path.resolve(import.meta.dirname, "../src", module)

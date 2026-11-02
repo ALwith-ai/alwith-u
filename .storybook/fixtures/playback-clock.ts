@@ -3,8 +3,14 @@ const nativeTimeout = window.setTimeout.bind(window)
 const nativeClearTimeout = window.clearTimeout.bind(window)
 const nativeInterval = window.setInterval.bind(window)
 const nativeClearInterval = window.clearInterval.bind(window)
-// eslint-disable-next-line @typescript-eslint/unbound-method -- Save the prototype method for call(this) and restoration below.
-const nativeFocus = HTMLElement.prototype.focus
+// Read the prototype slot itself, so the saved method is restored unchanged and called with call(this).
+const focusDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "focus")
+function isFocusMethod(value: unknown): value is HTMLElement["focus"] {
+  return typeof value === "function"
+}
+if (!focusDescriptor || !isFocusMethod(focusDescriptor.value))
+  throw new Error("HTMLElement.prototype.focus is unavailable")
+const nativeFocus = focusDescriptor.value
 export const playbackDelay = (ms: number) => new Promise<void>((resolve) => nativeTimeout(resolve, ms))
 interface Task {
   callback: () => void
@@ -28,8 +34,11 @@ function arm(id: number, task: Task) {
     if (task.repeat && tasks.has(id) && !paused) arm(id, task)
   }, task.remaining)
 }
+function isTimerFunction(callback: TimerHandler): callback is (...args: unknown[]) => unknown {
+  return typeof callback === "function"
+}
 function schedule(callback: TimerHandler, delay = 0, repeat = false, args: unknown[] = []) {
-  if (typeof callback !== "function") throw new Error("Playback requires function timers")
+  if (!isTimerFunction(callback)) throw new Error("Playback requires function timers")
   const id = ++sequence
   const task: Task = { callback: () => callback(...args), delay, remaining: delay, due: 0, repeat }
   tasks.set(id, task)
@@ -83,9 +92,9 @@ export function disposePlaybackClock() {
   pausePlaybackClock(false)
   for (const task of tasks.values()) nativeClearTimeout(task.handle)
   tasks.clear()
-  window.setTimeout = nativeTimeout as typeof window.setTimeout
+  window.setTimeout = nativeTimeout
   window.clearTimeout = nativeClearTimeout
-  window.setInterval = nativeInterval as typeof window.setInterval
+  window.setInterval = nativeInterval
   window.clearInterval = nativeClearInterval
   HTMLElement.prototype.focus = nativeFocus
   installed = false

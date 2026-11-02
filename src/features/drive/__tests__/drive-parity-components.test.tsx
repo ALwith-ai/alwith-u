@@ -283,9 +283,9 @@ test("sync icon spins immediately, throughout engine work, and stops when idle",
     await request.promise
   })
   expect(icon).toHaveClass("alwith-drive-spin")
-  await act(async () => f.update({ status: { ...status, state: { kind: "syncing" } } }))
+  await act(() => Promise.resolve(f.update({ status: { ...status, state: { kind: "syncing" } } })))
   expect(icon).toHaveClass("alwith-drive-spin")
-  await act(async () => f.update({ status: { ...status, state: { kind: "idle" } } }))
+  await act(() => Promise.resolve(f.update({ status: { ...status, state: { kind: "idle" } } })))
   expect(icon).not.toHaveClass("alwith-drive-spin")
 })
 

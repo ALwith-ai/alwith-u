@@ -62,7 +62,7 @@ const runtime = await startTestRuntime({ binary: staged("alwith-runtime"), engin
 const client = new CodexClient(() => Promise.resolve(runtime.client), {
   agentId: "codex",
   launch: { engine: "codex" },
-  resolveModel: async (model) => model ?? gateway("one")
+  resolveModel: (model) => Promise.resolve(model ?? gateway("one"))
 })
 const ids: string[] = []
 const catalog = resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")

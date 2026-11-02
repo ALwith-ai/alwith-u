@@ -90,7 +90,7 @@ export function marketplace(): PluginMarketplaceEntry {
   return { name: "openai-primary-runtime", path: null, interface: { displayName: "OpenAI" }, plugins }
 }
 export function pluginEntry(index = 0) {
-  return { plugin: plugins[index]!, marketplace: marketplace() }
+  return { plugin: plugins[index], marketplace: marketplace() }
 }
 function detail(summary: PluginSummary): PluginDetail {
   return {
@@ -123,9 +123,9 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
     mode === "empty"
       ? []
       : names.map(([name, displayName, description, longDescription], index): PluginSummary => ({
-          id: name!,
-          name: name!,
-          remotePluginId: name!,
+          id: name,
+          name,
+          remotePluginId: name,
           version: "26.1020.11618",
           localVersion: index < 2 ? "26.1020.11618" : null,
           source: { type: "remote" },
@@ -142,9 +142,9 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
           eligiblePlanTypes: [],
           keywords: ["工作效率", "文档"],
           interface: {
-            displayName: displayName!,
-            shortDescription: description!,
-            longDescription: longDescription!,
+            displayName,
+            shortDescription: description,
+            longDescription,
             developerName: "OpenAI",
             category: "Productivity",
             capabilities: ["搜索", "读取文档"],
@@ -172,20 +172,21 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
       featuredPluginIds: plugins.map((plugin) => plugin.id)
     }
   }
-  client.installedPlugins = async () => ({ marketplaces: [marketplace()], marketplaceLoadErrors: [] })
-  client.listSkills = async () => ({ data: [{ cwd: "/demo", skills: mode === "empty" ? [] : skills, errors: [] }] })
-  client.setSkillEnabled = async ({ path, enabled }) => {
+  client.installedPlugins = () => Promise.resolve({ marketplaces: [marketplace()], marketplaceLoadErrors: [] })
+  client.listSkills = () =>
+    Promise.resolve({ data: [{ cwd: "/demo", skills: mode === "empty" ? [] : skills, errors: [] }] })
+  client.setSkillEnabled = ({ path, enabled }) => {
     if (operation === "skillError") {
       operation = "ready"
-      throw new Error("模拟技能启停失败")
+      return Promise.reject(new Error("模拟技能启停失败"))
     }
     const skill = skills.find((skill) => skill.path === path)
     if (skill) skill.enabled = enabled
-    return { effectiveEnabled: enabled }
+    return Promise.resolve({ effectiveEnabled: enabled })
   }
-  client.readPlugin = async ({ pluginName }) => {
-    if (mode === "detailError") throw new Error("插件详情暂时不可用。重新加载后可继续。")
-    return { plugin: detail(plugins.find((plugin) => plugin.name === pluginName) ?? plugins[0]!) }
+  client.readPlugin = ({ pluginName }) => {
+    if (mode === "detailError") return Promise.reject(new Error("插件详情暂时不可用。重新加载后可继续。"))
+    return Promise.resolve({ plugin: detail(plugins.find((plugin) => plugin.name === pluginName) ?? plugins[0]) })
   }
   client.installPlugin = async ({ pluginName }) => {
     await operationGate("installing", "installError")
@@ -205,13 +206,15 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
     await operationGate("uninstalling", "uninstallError")
     plugins = plugins.map((plugin) => (plugin.id === id ? { ...plugin, installed: false, enabled: false } : plugin))
   }
-  client.addMarketplace = async () => ({
-    marketplaceName: "openai-primary-runtime",
-    installedRoot: "/demo/catalog",
-    alreadyAdded: false
-  })
-  client.removeMarketplace = async () => {
+  client.addMarketplace = () =>
+    Promise.resolve({
+      marketplaceName: "openai-primary-runtime",
+      installedRoot: "/demo/catalog",
+      alreadyAdded: false
+    })
+  client.removeMarketplace = () => {
     plugins = []
+    return Promise.resolve()
   }
   client.upgradeMarketplaces = async () => {
     await operationGate("upgrading", "upgradeError")

@@ -90,7 +90,7 @@ test("shell acceptance materializes only the owning draft and failure preserves 
 })
 
 test("new sessions resolve the configured default before asking the agent to create them", async () => {
-  const resolve = vi.fn(async (model: string | null) => model ?? "configured-default")
+  const resolve = vi.fn((model: string | null) => Promise.resolve(model ?? "configured-default"))
   const { client, fake } = await make(undefined, undefined, resolve)
   const id = await client.newSession("/tmp/configured-default")
   expect(resolve).toHaveBeenCalledWith(null)

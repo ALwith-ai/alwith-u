@@ -46,7 +46,7 @@ test("one submission opens exactly the generated project and does not duplicate 
     auth: "alwith",
     github: null
   })
-  await act(async () => complete("/projects/my-buddy"))
+  await act(() => Promise.resolve(complete("/projects/my-buddy")))
   expect(onCreated).toHaveBeenCalledExactlyOnceWith("/projects/my-buddy")
 })
 

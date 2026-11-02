@@ -99,7 +99,7 @@ export const UnsavedDialog: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     const editor = await body.findByRole("textbox", { name: "Editor content" }, { timeout: 15000 })
-    await typeInEditor(editor, "待保存的交付记录")
+    typeInEditor(editor, "待保存的交付记录")
     await userEvent.click(body.getByRole("tab", { name: /^notes\.txt/ }))
     await userEvent.keyboard("{Delete}")
     await body.findByRole("dialog")

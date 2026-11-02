@@ -7,11 +7,11 @@ const bus = vi.hoisted(() => ({
   emit: vi.fn().mockResolvedValue(undefined)
 }))
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(async (name: string, handler: EventCallback<unknown>) => {
+  listen: vi.fn((name: string, handler: EventCallback<unknown>) => {
     bus.handlers.set(name, handler)
-    return () => {
+    return Promise.resolve(() => {
       if (bus.handlers.get(name) === handler) bus.handlers.delete(name)
-    }
+    })
   }),
   emitTo: bus.emit
 }))

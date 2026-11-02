@@ -189,8 +189,8 @@ export function CreateWorkBuddy({
                   onClick={() => {
                     const suggested = productName
                       .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/^-+|-+$/g, "")
+                      .replaceAll(/[^a-z0-9]+/g, "-")
+                      .replaceAll(/^-+|-+$/g, "")
                     void save({
                       title: t("workbuddy.chooseLocation"),
                       defaultPath: projectPath || (/^[a-z]/.test(suggested) ? suggested : "my-alwith")
