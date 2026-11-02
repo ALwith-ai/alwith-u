@@ -383,6 +383,8 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 chat_files::chat_read_image,
                 chat_files::chat_preview_file,
                 chat_files::chat_read_dropped_file,
+                chat_files::chat_clipboard_file_paths,
+                chat_files::chat_write_pasted_file,
                 workspace::workspace_open,
                 workspace::workspace_list_files,
                 workspace::workspace_import,

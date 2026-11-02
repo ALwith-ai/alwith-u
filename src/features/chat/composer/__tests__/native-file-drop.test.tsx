@@ -1,6 +1,7 @@
 import { PromptInput } from "@alwith/module-chat/composer"
 import { PromptInputProvider, usePromptInputAttachments } from "@alwith/module-chat/composer-context"
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
+import { PromptInputTextarea } from "@alwith/module-chat/composer-textarea"
+import { act, cleanup, createEvent, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest"
 
@@ -49,6 +50,7 @@ function Harness({ sessionId = "main-session", enabled = true }: { sessionId?: s
             onMention={(path) => setMentions((previous) => [...new Set([...previous, path])])}
           />
           <Probe />
+          <PromptInputTextarea />
         </PromptInput>
       </PromptInputProvider>
       <output data-testid="mentions">{mentions.join("|")}</output>
@@ -83,6 +85,82 @@ beforeEach(() => {
   })
 })
 afterEach(() => cleanup())
+
+function paste(view: ReturnType<typeof render>, files: File[], types = ["Files"]) {
+  const event = createEvent.paste(view.getByRole("textbox"), {
+    clipboardData: {
+      files,
+      types,
+      items: files.map((file) => ({ kind: "file", type: file.type, getAsFile: () => file })),
+      getData: () => ""
+    }
+  })
+  fireEvent(view.getByRole("textbox"), event)
+  return event
+}
+
+test("pastes native copied files and images together without inserting their path as text", async () => {
+  host.read.mockImplementation((command: string, args: { path?: string } | undefined) => {
+    if (command === "chat_clipboard_file_paths") return Promise.resolve(["/tmp/qa.png", "/tmp/中文 #1.pdf"])
+    return Promise.resolve(
+      args?.path?.endsWith(".png") ? image() : { path: "/tmp/中文 #1.pdf", name: "中文 #1.pdf", image: null }
+    )
+  })
+  const view = render(<Harness />)
+  expect(paste(view, []).defaultPrevented).toBe(true)
+  await waitFor(() => expect(view.getByRole("button", { name: "qa.png" })).toBeVisible())
+  await waitFor(() => expect(view.getByTestId("mentions")).toHaveTextContent("/tmp/中文 #1.pdf"))
+  expect(view.getByRole("textbox")).toHaveValue("")
+  expect(view.getByTestId("busy")).toHaveTextContent("false")
+})
+
+test("image-only clipboard data uses the shared image attachment flow", async () => {
+  const view = render(<Harness />)
+  const file = new File(["png"], "clipboard.png", { type: "image/png" })
+  expect(paste(view, [file]).defaultPrevented).toBe(true)
+  await waitFor(() => expect(view.getByRole("button", { name: "clipboard.png" })).toBeVisible())
+  expect(host.read).not.toHaveBeenCalled()
+})
+
+test("browser file bytes are materialized when the OS clipboard has no local paths", async () => {
+  host.read.mockImplementation((command: string) => {
+    if (command === "chat_clipboard_file_paths") return Promise.resolve([])
+    if (command === "chat_write_pasted_file") return Promise.resolve("/tmp/cache/report.pdf")
+    return Promise.resolve({ path: "/tmp/cache/report.pdf", name: "report.pdf", image: null })
+  })
+  const view = render(<Harness />)
+  const file = new File([new Uint8Array([0, 255, 3])], "report.pdf", { type: "application/pdf" })
+  Object.defineProperty(file, "arrayBuffer", { value: () => Promise.resolve(new Uint8Array([0, 255, 3]).buffer) })
+  paste(view, [file])
+  await waitFor(() => expect(view.getByTestId("mentions")).toHaveTextContent("/tmp/cache/report.pdf"))
+  expect(host.read).toHaveBeenCalledWith("chat_write_pasted_file", { name: "report.pdf", data: [0, 255, 3] })
+})
+
+test("paste reads are bound to the original session and errors always release the busy state", async () => {
+  let finish!: (paths: string[]) => void
+  host.read.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve
+    })
+  )
+  const view = render(<Harness sessionId="original" />)
+  paste(view, [])
+  view.rerender(<Harness sessionId="other" />)
+  await act(() => Promise.try(() => finish(["/tmp/original.pdf"])))
+  expect(host.read).toHaveBeenCalledTimes(1)
+  expect(view.getByTestId("mentions")).toHaveTextContent("")
+  host.read.mockRejectedValueOnce(new Error("clipboard unavailable"))
+  paste(view, [])
+  await waitFor(() => expect(host.error).toHaveBeenCalledWith("clipboard unavailable"))
+  expect(view.getByTestId("busy")).toHaveTextContent("false")
+})
+
+test("plain text and copied web links retain normal browser paste behavior", () => {
+  const view = render(<Harness />)
+  expect(paste(view, [], ["text/plain"]).defaultPrevented).toBe(false)
+  expect(paste(view, [], ["text/uri-list"]).defaultPrevented).toBe(false)
+  expect(host.read).not.toHaveBeenCalled()
+})
 
 test.each(["main-session", "floating-session"])(
   "%s receives image and Unicode file references through the native bridge",

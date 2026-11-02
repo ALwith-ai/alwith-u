@@ -1,6 +1,25 @@
 use super::*;
 
 #[test]
+fn pasted_files_preserve_binary_bytes_and_names_without_overwriting_each_other() {
+    let directory = tempfile::tempdir().unwrap();
+    let bytes = [0, 255, 128, 10];
+    let first = write_pasted_file(directory.path(), "../中文 #1.pdf", &bytes).unwrap();
+    let second = write_pasted_file(directory.path(), "C:\\reports\\中文 #1.pdf", &bytes).unwrap();
+    assert_ne!(first, second);
+    for path in [first, second] {
+        let path = Path::new(&path);
+        assert!(path.starts_with(directory.path()));
+        assert_eq!(path.file_name().unwrap(), "中文 #1.pdf");
+        assert_eq!(std::fs::read(path).unwrap(), bytes);
+        assert_eq!(read_dropped_file(path).unwrap().name, "中文 #1.pdf");
+    }
+    assert!(write_pasted_file(directory.path(), "..", &bytes).is_err());
+    assert!(write_pasted_file(directory.path(), "", &bytes).is_err());
+    assert!(write_pasted_file(directory.path(), "huge.bin", &vec![0; 32 * 1024 * 1024 + 1]).is_err());
+}
+
+#[test]
 fn saves_exact_binary_bytes_and_propagates_write_failures() {
     let directory = tempfile::tempdir().unwrap();
     let file = directory.path().join("report.bin");

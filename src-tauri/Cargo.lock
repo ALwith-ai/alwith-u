@@ -211,6 +211,7 @@ dependencies = [
  "alwith-module-store",
  "alwith-native-client",
  "alwith-voice",
+ "arboard",
  "atlas-tauri",
  "base64 0.23.1",
  "hex",

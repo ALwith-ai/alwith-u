@@ -171,6 +171,12 @@ export const commands = {
   chatReadDroppedFile: (args: { path: string }): Promise<ChatDroppedFile_Serialize> =>
     __t3Invoke<ChatDroppedFile_Serialize>("chat_read_dropped_file", args),
   /**
+   *  Read native file references that WebKit/WebView2 may omit from the DOM clipboard.
+   */
+  chatClipboardFilePaths: (): Promise<string[]> => __t3Invoke<string[]>("chat_clipboard_file_paths"),
+  chatWritePastedFile: (args: { name: string; data: number[] }): Promise<string> =>
+    __t3Invoke<string>("chat_write_pasted_file", args),
+  /**
    *  Opening a project in the main window establishes its scoped filesystem session.
    */
   workspaceOpen: (args: { path: string }): Promise<string> => __t3Invoke<string>("workspace_open", args),
@@ -429,6 +435,8 @@ export type CommandErrors = {
   chatReadImage: string
   chatPreviewFile: string
   chatReadDroppedFile: string
+  chatClipboardFilePaths: string
+  chatWritePastedFile: string
   workspaceOpen: string
   workspaceListFiles: string
   workspaceImport: string

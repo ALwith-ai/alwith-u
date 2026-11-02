@@ -50,29 +50,32 @@ export function NativeFileDrop({
     let pending = 0
     const writable = () => !disposed && current.current.sessionId === sessionId && current.current.enabled
     current.current.onBusyChange(false)
-    const listener = getCurrentWebview().onDragDropEvent((event) => {
-      if (disposed || event.payload.type !== "drop") return
-      const { paths, position } = event.payload
-      const target = document.elementFromPoint(
-        position.x / window.devicePixelRatio,
-        position.y / window.devicePixelRatio
-      )
-      // Only the conversation owns these drops. The file tree retains its import behavior.
-      if (!target?.closest("[data-chat-drop-zone]") || target.closest('[role="dialog"]')) return
-      if (!writable()) {
-        toast.error(current.current.t("chat.input.dropUnavailable"))
-        return
-      }
+    const enqueue = (read: () => Promise<Array<string | File>>) => {
       pending++
       flushSync(() => current.current.onBusyChange(true))
       queue = queue
         .then(async () => {
           try {
             const imagePaths = new Set(current.current.attachments.files.map((file) => file.sourcePath))
-            for (const path of new Set(paths)) {
+            for (const source of new Set(await read())) {
+              const path = typeof source === "string" ? source : source.name
               if (!writable()) return
               try {
-                const file = await commands.chatReadDroppedFile({ path })
+                if (typeof source !== "string" && source.type.startsWith("image/")) {
+                  flushSync(() => current.current.attachments.add([source]))
+                  continue
+                }
+                if (typeof source !== "string" && source.size > 32 * 1024 * 1024)
+                  throw new Error("Pasted file exceeds the 32 MiB limit")
+                const sourcePath =
+                  typeof source === "string"
+                    ? source
+                    : await commands.chatWritePastedFile({
+                        name: source.name,
+                        data: Array.from(new Uint8Array(await source.arrayBuffer()))
+                      })
+                if (!writable()) return
+                const file = await commands.chatReadDroppedFile({ path: sourcePath })
                 if (!writable()) return
                 if (file.image === null) {
                   flushSync(() => current.current.onMention(file.path))
@@ -99,7 +102,62 @@ export function NativeFileDrop({
         .catch((error) => {
           if (!disposed) toast.error(error instanceof Error ? error.message : String(error))
         })
+    }
+    const listener = getCurrentWebview().onDragDropEvent((event) => {
+      if (disposed || event.payload.type !== "drop") return
+      const { paths, position } = event.payload
+      const target = document.elementFromPoint(
+        position.x / window.devicePixelRatio,
+        position.y / window.devicePixelRatio
+      )
+      if (!target?.closest("[data-chat-drop-zone]") || target.closest('[role="dialog"]')) return
+      if (!writable()) {
+        toast.error(current.current.t("chat.input.dropUnavailable"))
+        return
+      }
+      enqueue(() => Promise.resolve(paths))
     })
+    const paste = (event: ClipboardEvent) => {
+      const target = event.target
+      if (!(target instanceof Element) || !target.matches("[data-chat-input]")) return
+      if (!target.closest("[data-chat-drop-zone]") || target.closest('[role="dialog"]')) return
+      const clipboard = event.clipboardData
+      if (!clipboard) return
+      const files = Array.from(clipboard.files ?? [])
+      const items = Array.from(clipboard.items ?? [])
+      // Image-only clipboard data already belongs to the shared textarea's image handler.
+      const nativeFiles =
+        clipboard.types.includes("Files") && !files.length && !items.some((item) => item.type.startsWith("image/"))
+      if (
+        !nativeFiles &&
+        !files.some((file) => !file.type.startsWith("image/")) &&
+        !items.some((item) => item.kind === "file" && !item.type.startsWith("image/")) &&
+        !["text/uri-list", "x-special/gnome-copied-files"].some(
+          (type) => clipboard.types.includes(type) && /^file:\/\//m.test(clipboard.getData(type))
+        )
+      )
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      if (!writable()) {
+        toast.error(current.current.t("chat.input.dropUnavailable"))
+        return
+      }
+      // Start the native read at the paste event, rather than after an earlier drop finishes.
+      const paths = commands.chatClipboardFilePaths().then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error })
+      )
+      enqueue(async () => {
+        const result = await paths
+        if ("error" in result) throw result.error
+        const native = result.value
+        if (native.length) return native
+        if (files.length) return files
+        throw new Error("The clipboard contains no readable local files")
+      })
+    }
+    document.addEventListener("paste", paste, true)
     void listener
       .then((unlisten) => {
         if (disposed) unlisten()
@@ -110,6 +168,7 @@ export function NativeFileDrop({
       })
     return () => {
       disposed = true
+      document.removeEventListener("paste", paste, true)
       stop?.()
     }
   }, [sessionId])

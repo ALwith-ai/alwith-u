@@ -168,6 +168,13 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
       image: path.endsWith(".svg") ? { data: btoa(new TextDecoder().decode(bytes)), mimeType: "image/svg+xml" } : null
     }
   }
+  if (command === "chat_clipboard_file_paths") return []
+  if (command === "chat_write_pasted_file") {
+    const name = String(args.name).split(/[\\/]/).at(-1)!
+    const path = `${PROJECT_DIRECTORY}/attachments/${name}`
+    virtualFiles.set(path, Uint8Array.from(args.data as number[]))
+    return path
+  }
   if (command === "chat_preview_file") {
     const path = String(args.path)
     const bytes = virtualFiles.get(path)

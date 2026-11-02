@@ -72,6 +72,59 @@ pub async fn chat_read_dropped_file(window: tauri::WebviewWindow, path: String) 
         .map_err(|error| error.to_string())?
 }
 
+/// Read native file references that WebKit/WebView2 may omit from the DOM clipboard.
+#[tauri3_specta::command]
+pub async fn chat_clipboard_file_paths(window: tauri::WebviewWindow) -> Result<Vec<String>, String> {
+    if !matches!(window.label(), "main" | "chat") {
+        return Err("Only chat windows can paste files".into());
+    }
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut clipboard = arboard::Clipboard::new().map_err(|error| error.to_string())?;
+        let paths = match clipboard.get().file_list() {
+            Ok(paths) => paths,
+            Err(arboard::Error::ContentNotAvailable) => return Ok(Vec::new()),
+            Err(error) => return Err(error.to_string()),
+        };
+        log::info!("Chat clipboard file references: count={}", paths.len());
+        paths
+            .into_iter()
+            .map(|path| path.into_os_string().into_string().map_err(|_| "Invalid clipboard file path".into()))
+            .collect()
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn write_pasted_file(directory: &Path, name: &str, data: &[u8]) -> Result<String, String> {
+    if data.len() > 32 * 1024 * 1024 {
+        return Err("Pasted file exceeds the 32 MiB limit".into());
+    }
+    let name = name
+        .rsplit(['/', '\\'])
+        .next()
+        .filter(|name| !matches!(*name, "" | "." | ".."))
+        .ok_or("Invalid pasted file name")?;
+    let directory = directory.join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let path = directory.join(name);
+    std::fs::write(&path, data).map_err(|error| error.to_string())?;
+    path.to_str().map(str::to_owned).ok_or_else(|| "Invalid attachment path".into())
+}
+
+#[tauri3_specta::command]
+pub async fn chat_write_pasted_file(
+    window: tauri::WebviewWindow, name: String, data: Vec<u8>,
+) -> Result<String, String> {
+    if !matches!(window.label(), "main" | "chat") {
+        return Err("Only chat windows can paste files".into());
+    }
+    let directory =
+        window.app_handle().path().app_cache_dir().map_err(|error| error.to_string())?.join("chat-attachments");
+    tauri::async_runtime::spawn_blocking(move || write_pasted_file(&directory, &name, &data))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 fn read_image(path: &Path, roots: &[PathBuf]) -> Result<ChatImage, String> {
     let path = path.canonicalize().map_err(|error| error.to_string())?;
     let mut allowed = false;

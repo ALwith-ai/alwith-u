@@ -68,6 +68,7 @@ tauri-plugin-updater = { version = "3.0.0-alpha.3", default-features = false, fe
 tauri-plugin-window-state = "3.0.0-alpha.2"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 base64 = "0.23"
+arboard = { version = "3.7", features = ["wayland-data-control"] }
 minisign-verify = "0.3"
 semver = "1"
 sys-locale = "0.3"
