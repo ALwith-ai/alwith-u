@@ -526,7 +526,14 @@ async function verifyAsyncUserInput(client: CodexClient, directory: string): Pro
     if (item.replayed || codexTurnId(item._meta) === null)
       throw new Error("Live asynchronous question is missing its active turn identity")
     const question = asyncQuestions(item._meta)[0]
-    if (client.session(id).state === "idle" || client.state.actions.some((action) => action.sessionId === id))
+    // ACP can keep a non-blocking async form pending while the native turn continues.
+    const blockingRequest = client.state.actions.some((action) => {
+      if (action.sessionId !== id) return false
+      if (action.kind !== "elicitation" || !isFormElicitation(action.params)) return true
+      const codex = action.params._meta?.codex
+      return !(typeof codex === "object" && codex !== null && "delivery" in codex && codex.delivery === "async")
+    })
+    if (client.session(id).state !== "running" || blockingRequest)
       throw new Error("Asynchronous question blocked or ended the turn")
     const reply = { questionItemId: asyncQuestionId(item.id, 0), question: question.title, answer: "Beta" }
     await client.prompt(id, [

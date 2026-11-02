@@ -9,7 +9,7 @@
         "@alwith/api": "~0.5.4",
         "@alwith/module-auth": "~0.5.13",
         "@alwith/module-browser": "^0.5.0",
-        "@alwith/module-chat": "^0.5.20",
+        "@alwith/module-chat": "^0.5.22",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.5.1",
         "@alwith/module-desktop-shell": "^0.5.9",
@@ -148,7 +148,7 @@
     "vite@8.3.5": "patches/vite@8.3.5.patch",
   },
   "overrides": {
-    "@alwith/module-chat": "~0.5.20",
+    "@alwith/module-chat": "~0.5.22",
     "effect": "^4.0.6",
   },
   "packages": {
@@ -162,7 +162,7 @@
 
     "@alwith/module-browser": ["@alwith/module-browser@0.5.0", "", { "peerDependencies": { "react": "^19.3.1" } }, "sha512-K1wbnoS+WsCGWTbCoF5/kVBDUWjGpaH54q9ymOtGP9h2YKf8gkj7qi5gitzMTo2Xlb4V++LGpJRKvj6B6woiOA=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.5.20", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.49", "@nyssance/shadcn": "^4.23.2", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.3", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "marked": "^18.1.2", "marked-linkify-it": "^4.0.2", "motion": "^14.9.0", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.5.4", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-B3WedjthO1VJ6HfP9gAw6mLoDh4SAkrphTHhsd+z/JL+phO+Tfy728IAtw2jZtAaA9jZ8iZwdPxFkNY+uwErkg=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.5.22", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.50", "@nyssance/shadcn": "^4.23.2", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.3", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.1", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "marked": "^18.1.2", "marked-linkify-it": "^4.0.2", "motion": "^14.9.0", "smplr": "^1.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.5.4", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-KyMCLarTveYA4UzGJ6IQ9PtoRW3rHkFo6sE8uBG8v41ups6iVcxQj+VM/3d9JwwzQz8bJeaiZHoMuG9YDyM2oQ=="],
 
     "@alwith/module-collection": ["@alwith/module-collection@0.5.0", "", {}, "sha512-7QQuhJOZfLCo89VGsvpv7G+i9PPUhgb79eiZeTwsy4u9hHG+qyU7QdhUHyXIqC13s6+oIqc3HmNwd2I2WIdaEg=="],
 
@@ -550,7 +550,7 @@
 
     "@nyssance/atlas": ["@nyssance/atlas@0.1.10", "", { "dependencies": { "embla-carousel": "^8.6.0", "motion": "^14.9.0" }, "peerDependencies": { "@angular/core": ">=20 <24", "@tauri-apps/api": ">=2 <4", "react": "^19.0.0", "svelte": "^5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["@angular/core", "@tauri-apps/api", "react", "svelte", "vue"] }, "sha512-nMpssIseGt211b9Nj1vCkdJ3dzVUwSNHqX5nLK2jcXLc+W7n9/o3bxmLOf5p5EXhy/eJnw2mnjQyS5gAkrDNvQ=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.49", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@openai/codex": "^0.166.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.0", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-96JFTQIHR6SnUUxaA2Qni1rwj0dfwLKNdmamDXnT3Q/Aa2UNerbla0FrSjxYbW3UV38/AcN+3TdkUXag3ldWqQ=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.50", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@openai/codex": "^0.166.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.1", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.0", "ws": "^8.22.1", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-81fIKoOrBqL6SHaFglszAgkNyhTgRbUd1RYzkv3kYYHYSX56M7n5rwx5sL0Qko/8T6dkWYg6NHbTtuSuRXTmwg=="],
 
     "@nyssance/shadcn": ["@nyssance/shadcn@4.23.2", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@shadcn/react": "^0.3.1", "class-variance-authority": "^0.7.1", "cmdk": "^1.1.1", "cn": "^0.5.1", "embla-carousel-react": "^8.6.0", "input-otp": "^1.5.0", "lucide-react": "^1.66.0", "next-themes": "^0.4.6", "react-day-picker": "^10.0.2", "react-resizable-panels": "^4.16.0", "recharts": "3.8.0", "shiki": "^4.5.0", "sonner": "^2.0.8" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "vite": ">=6" }, "optionalPeers": ["vite"] }, "sha512-Jirz6lg7KdOH7CmdRr6sMVB6fvFf8Ocr1trpvEiApv1BBKKtuOMyuckqsyDfqIZBrWXEIKvKHh3iBJ3ZWBm4nw=="],
 
