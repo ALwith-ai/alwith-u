@@ -202,7 +202,7 @@ export function FileWorkspace({
   const paneSessionId = useContext(WorkspaceSessionContext)
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
-  const showMainControls = canvas === null || canvas.selected === 1
+  const showMainControls = canvas === null || canvas.region === "chat" || canvas.region === "preview"
   const previousChatRevealRequest = useRef(chatRevealRequest)
   useEffect(() => {
     if (previousChatRevealRequest.current === chatRevealRequest) return

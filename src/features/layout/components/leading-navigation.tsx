@@ -1,10 +1,9 @@
+import { LeadingNavigation as DesktopLeadingNavigation } from "@alwith/module-desktop-shell/react"
 import { ArchiveIcon, LayoutGridIcon, PawPrintIcon } from "lucide-react"
-import type { ReactElement, ReactNode } from "react"
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-
+/** U's pages on the shell's leading rail; extensions live under the plugins entry. */
 export function LeadingNavigation({
   activePage,
   onOpenVibemon,
@@ -17,37 +16,19 @@ export function LeadingNavigation({
   onOpenVibemon: () => void
   onOpenPlugins: () => void
   onOpenArchives: () => void
-}): ReactElement {
+}): ReactNode {
   const { t } = useTranslation()
-  const items = [
-    { id: "plugins", label: t("plugins.catalog.customize"), icon: LayoutGridIcon, onClick: onOpenPlugins },
-    { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
-    { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
-  ] as const
-
   return (
-    <nav aria-label={t("sidebar.leadingNavigation")} className="leading-navigation">
-      {items.map(({ id, label, icon: Icon, onClick }) => {
-        const button = (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={label}
-            aria-current={activePage === id || (id === "plugins" && activePage === "extensions") ? "page" : undefined}
-            onClick={onClick}
-            className="size-9 rounded-[10px] text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground/5 aria-[current=page]:text-foreground motion-reduce:transition-none"
-          >
-            <Icon aria-hidden="true" className="size-[18px]" />
-          </Button>
-        )
-        return (
-          <Tooltip key={id}>
-            <TooltipTrigger render={button} />
-            <TooltipContent side="inline-end">{label}</TooltipContent>
-          </Tooltip>
-        )
-      })}
+    <DesktopLeadingNavigation
+      label={t("sidebar.leadingNavigation")}
+      activePage={activePage === "extensions" ? "plugins" : activePage}
+      items={[
+        { id: "plugins", label: t("plugins.catalog.customize"), icon: LayoutGridIcon, onClick: onOpenPlugins },
+        { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
+        { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
+      ]}
+    >
       {children}
-    </nav>
+    </DesktopLeadingNavigation>
   )
 }

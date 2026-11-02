@@ -13,7 +13,7 @@ import {
   useRef,
   useState
 } from "react"
-import { flushSync } from "react-dom"
+import { createPortal, flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ export function WorkspacePanels({
   preview,
   visible,
   maximized,
+  onVisibleChange,
   onMaximizedChange,
   controlsRef
 }: {
@@ -66,7 +67,7 @@ export function WorkspacePanels({
   const widths = resolvePanelWidths(budget, visible, previewWidth, fullViewportWidth, manuallySeparated)
   const chatWidth = maximized ? 0 : widths.chat
   const fileWidth = maximized ? budget : widths.preview
-  const expanded = maximized || (visible && budget > 0 && widths.chat + widths.preview > budget)
+  const expanded = maximized || (!unified && visible && budget > 0 && widths.chat + widths.preview > budget)
   const toggleExpanded = (): void => {
     if (expanded) {
       setPreviewWidth(0)
@@ -78,11 +79,11 @@ export function WorkspacePanels({
     }
   }
   useImperativeHandle(controlsRef, () => ({ expanded, toggleExpanded }))
-  const reportWorkspace = canvas?.setWorkspace
+  const setCanvasPreview = canvas?.setPreview
   const navigate = canvas?.navigate
   useLayoutEffect(() => {
-    reportWorkspace?.({ chat: chatWidth, preview: fileWidth, visible, maximized })
-  }, [reportWorkspace, chatWidth, fileWidth, visible, maximized])
+    setCanvasPreview?.({ open: visible, maximized, onOpenChange: onVisibleChange })
+  }, [setCanvasPreview, visible, maximized, onVisibleChange])
   useEffect(() => {
     if (!navigate) return
     if (visible && (!previousVisible.current || (maximized && !previousMaximized.current))) navigate("preview")
@@ -135,6 +136,20 @@ export function WorkspacePanels({
     if (snap !== -1) atlas.goToSnap(snap, { instant: true })
   }, [atlas, unified, chatWidth, fileWidth, visible, maximized, draggingPreview])
 
+  const panel = (
+    <aside id="file-workspace-panel" className="file-workspace-panel" aria-label={t("workspace.files")}>
+      {preview}
+    </aside>
+  )
+  // In the main window the shell's Atlas canvas owns the preview region, its divider and every gutter.
+  if (unified)
+    return (
+      <PanelControlsContext.Provider value={{ expanded, toggleExpanded }}>
+        <div className="file-workspace-chat">{chat}</div>
+        {canvas.previewSlot && createPortal(panel, canvas.previewSlot)}
+      </PanelControlsContext.Provider>
+    )
+
   return (
     <PanelControlsContext.Provider value={{ expanded, toggleExpanded }}>
       <div
@@ -159,7 +174,7 @@ export function WorkspacePanels({
               data-atlas-region="chat"
               data-atlas-collapsed={chatWidth === 0 && (visible || maximized || unified)}
               style={{ width: !visible && !maximized && !canvas ? "100%" : chatWidth }}
-              inert={maximized || (canvas?.split && canvas.selected === 2)}
+              inert={maximized}
               aria-hidden={maximized}
             >
               <div className="file-workspace-slab" data-atlas-pane>
@@ -175,12 +190,10 @@ export function WorkspacePanels({
               <div
                 className="file-workspace-slab"
                 data-atlas-pane
-                inert={!visible || (canvas?.split && canvas.selected !== 2)}
+                inert={!visible}
                 aria-hidden={!visible}
               >
-                <aside id="file-workspace-panel" className="file-workspace-panel" aria-label={t("workspace.files")}>
-                  {preview}
-                </aside>
+                {panel}
               </div>
               {(draggingPreview || (visible && !maximized)) && (
                 <PanelDivider
@@ -193,7 +206,6 @@ export function WorkspacePanels({
                     dragStart.current = previewWidth || fileWidth
                     dragging.current = true
                     setDraggingPreview(true)
-                    canvas?.setDividerDragging(true)
                   }}
                   onDrag={(dx) => {
                     // Zero means automatic sizing; retain a positive request across the split threshold.
@@ -207,11 +219,8 @@ export function WorkspacePanels({
                     setManuallySeparated(next.chat + next.preview > budget)
                   }}
                   onEnd={() => {
-                    // A manual resize on main overrides preview intent retained from an earlier merged layout.
-                    if (canvas?.selected === 1 && !maximized) canvas.navigate("chat")
                     dragging.current = false
                     setDraggingPreview(false)
-                    canvas?.setDividerDragging(false)
                   }}
                 />
               )}

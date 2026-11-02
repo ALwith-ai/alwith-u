@@ -17,7 +17,7 @@ export const driveDialogClassName = "alwith-drive-dialog max-h-[80vh] overflow-a
 
 export const driveControls: DriveControls = {
   NavigationScroll: ({ className, children }) => (
-    <Pane className={`${className} session-list-scroll`} viewportClassName="ps-2 pe-0 pb-1">
+    <Pane className={`${className} session-list-scroll`} viewportClassName="pb-1">
       {children}
     </Pane>
   ),

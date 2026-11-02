@@ -261,15 +261,8 @@ body,
   display: none;
 }
 
-/* Extend only the scroll track into the adjacent gutter; keep tabs and rows aligned. */
-.session-list-content {
-  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
-  padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
-}
 .session-list-scroll {
   --app-scrollbar-track-size: calc(var(--app-scrollbar-size) + 2 * var(--app-scrollbar-edge-gap));
-  margin-inline-end: calc(-1 * var(--sidebar-scrollbar-extension, 0px));
-  padding-inline-end: var(--sidebar-scrollbar-extension, 0px);
 }
 .session-list-scroll > [data-slot="scroll-area-scrollbar"] {
   padding-inline: var(--app-scrollbar-edge-gap);
@@ -343,60 +336,6 @@ body,
 .main-sidebar-toggle {
   height: 32px;
   align-items: center;
-  padding-inline: 4px;
-}
-
-/* One canvas owns all screen translation; anchors describe legal stops without duplicating content. */
-.canvas-snap {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  pointer-events: none;
-}
-.main-screen-leading {
-  overflow: hidden;
-  width: var(--canvas-leading-width);
-  inset-inline-start: 0;
-  inset-inline-end: auto;
-}
-.main-screen-content {
-  flex: none;
-  width: var(--canvas-content-width);
-}
-.main-screen-track > .main-sidebar-shell {
-  width: var(--sidebar-width);
-  padding-inline: 0;
-  transition: none;
-}
-/* The measured navigation width includes its gutters on either side of the canvas. */
-.main-sidebar-panel {
-  padding-inline: var(--atlas-gutter);
-}
-.main-sidebar-panel [data-slot="sidebar"] {
-  width: 100%;
-}
-/* Match the window-facing inset: the page gutter and navigation padding each contribute 4px. */
-[data-sidebar-mode="pinned"] .main-screen-leading > .main-chat-surface {
-  margin-inline-end: var(--atlas-gutter);
-}
-[data-sidebar-mode="pinned"] .main-screen-content > .main-chat-surface {
-  margin-inline-start: var(--atlas-gutter);
-}
-.main-screen-content > .main-workspace-surface {
-  margin-inline: 0;
-  overflow: visible;
-}
-
-.main-screen-track {
-  will-change: transform;
-  padding-inline-start: var(--canvas-leading-width);
-}
-
-.main-screen-trailing {
-  position: relative;
-  flex: none;
-  width: var(--sidebar-width);
-  height: 100%;
   padding-inline: 4px;
 }
 

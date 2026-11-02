@@ -1,5 +1,6 @@
 import {
   DesktopCanvasContext as CanvasContext,
+  type DesktopCanvas,
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
 import type { TextEditorProps } from "@alwith/module-editor"
@@ -865,104 +866,99 @@ test("native new-tab menu opens the workspace and close-tab preserves the chat",
   expect(native.invoke.mock.calls.some(([command]) => command === "workspace_exit")).toBe(false)
 })
 
-test("chat reveal navigates the unified canvas back from a split preview", async () => {
-  const navigate = vi.fn()
-  const context = {
-    viewportWidth: 1000,
-    budget: 744,
-    selected: 1,
-    split: true,
+function canvasContext(overrides: Partial<DesktopCanvas> = {}): DesktopCanvas {
+  return {
+    viewportWidth: 1256,
+    budget: 1000,
+    region: "chat",
+    trailingActive: false,
     moving: false,
-    setWorkspace: vi.fn(),
-    navigate,
-    setDividerDragging: vi.fn()
+    previewSlot: null,
+    setPreview: vi.fn(),
+    navigate: vi.fn(),
+    ...overrides
   }
+}
+
+test("chat reveal navigates the unified canvas back from the preview", async () => {
+  const navigate = vi.fn()
+  const slot = document.createElement("div")
+  document.body.append(slot)
+  const context = canvasContext({ navigate, previewSlot: slot })
   const surface = (request: number) => (
     <CanvasContext.Provider value={context}>
       <Surface cwd="/a" chatRevealRequest={request} />
     </CanvasContext.Provider>
   )
-  const view = render(surface(0))
-  expect(navigate).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
-  await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("preview"))
-  context.selected = 2
-  view.rerender(surface(0))
-  fireEvent.click(await screen.findByRole("button", { name: "Maximize" }))
-  view.rerender(surface(1))
-  await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("chat"))
+  try {
+    const view = render(surface(0))
+    expect(navigate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+    await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("preview"))
+    context.region = "preview"
+    view.rerender(surface(0))
+    fireEvent.click(await screen.findByRole("button", { name: "Maximize" }))
+    view.rerender(surface(1))
+    await waitFor(() => expect(navigate).toHaveBeenLastCalledWith("chat"))
+    view.unmount()
+  } finally {
+    slot.remove()
+  }
 })
 
-test("the titlebar restores a third-screen workspace before closing it on the next click", async () => {
-  const setWorkspace = vi.fn()
-  const navigate = vi.fn()
-  render(
-    <CanvasContext.Provider
-      value={{
-        viewportWidth: 1256,
-        budget: 1000,
-        selected: 1,
-        split: false,
-        moving: false,
-        setWorkspace,
-        navigate,
-        setDividerDragging: vi.fn()
-      }}
-    >
-      <Surface cwd="/a" />
-    </CanvasContext.Provider>
-  )
-  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
-  fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
-  fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), { target: { value: "retained edit" } })
-  const divider = screen.getByRole("separator", { name: "Resize workspace" })
-  for (let i = 0; i < 6; i++) fireEvent.keyDown(divider, { key: "ArrowRight" })
-  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 1000, preview: 1256, visible: true, maximized: false })
-  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
-  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 500, preview: 500, visible: true, maximized: false })
-  expect(navigate).toHaveBeenLastCalledWith("chat")
-  expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained edit")
-  expect(screen.getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
-  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
-  expect(setWorkspace).toHaveBeenLastCalledWith({ chat: 1000, preview: 0, visible: false, maximized: false })
-  expect(screen.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+test("the preview renders in the shell's preview region and reports its state to the canvas", async () => {
+  const setPreview = vi.fn()
+  const slot = document.createElement("div")
+  document.body.append(slot)
+  try {
+    const view = render(
+      <CanvasContext.Provider value={canvasContext({ setPreview, previewSlot: slot })}>
+        <Surface cwd="/a" />
+      </CanvasContext.Provider>
+    )
+    expect(setPreview).toHaveBeenLastCalledWith(expect.objectContaining({ open: false, maximized: false }))
+    fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+    fireEvent.click(await within(slot).findByRole("treeitem", { name: "one.txt" }))
+    fireEvent.change(await within(slot).findByRole("textbox", { name: "Code" }), { target: { value: "retained edit" } })
+    expect(setPreview).toHaveBeenLastCalledWith(expect.objectContaining({ open: true, maximized: false }))
+    fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
+    expect(setPreview).toHaveBeenLastCalledWith(expect.objectContaining({ open: false, maximized: false }))
+    expect(screen.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
+    view.unmount()
+  } finally {
+    slot.remove()
+  }
 })
 
 test("Windows workspace controls follow the actual canvas screen without resetting workspace state", async () => {
   const target = document.createElement("div")
-  document.body.append(target)
-  const context = {
-    viewportWidth: 1256,
-    budget: 1000,
-    split: true,
-    moving: false,
-    setWorkspace: vi.fn(),
-    navigate: vi.fn(),
-    setDividerDragging: vi.fn()
-  }
-  const layout = (selected: number) => (
-    <CanvasContext.Provider value={{ ...context, selected }}>
+  const slot = document.createElement("div")
+  document.body.append(target, slot)
+  const context = canvasContext({ previewSlot: slot })
+  const layout = (region: DesktopCanvas["region"]) => (
+    <CanvasContext.Provider value={{ ...context, region }}>
       <WindowsWorkspaceControlsContext.Provider value={target}>
         <Surface cwd="/a" />
       </WindowsWorkspaceControlsContext.Provider>
     </CanvasContext.Provider>
   )
   try {
-    const view = render(layout(1))
+    const view = render(layout("chat"))
     fireEvent.click(within(target).getByRole("button", { name: "Open preview area" }))
-    fireEvent.click(await screen.findByRole("treeitem", { name: "one.txt" }))
-    fireEvent.change(await screen.findByRole("textbox", { name: "Code" }), {
+    fireEvent.click(await within(slot).findByRole("treeitem", { name: "one.txt" }))
+    fireEvent.change(await within(slot).findByRole("textbox", { name: "Code" }), {
       target: { value: "retained across screens" }
     })
-    for (const selected of [0, 2, 1, 0, 1]) {
-      view.rerender(layout(selected))
-      if (selected === 1)
+    for (const region of ["leading", "trailing", "preview", "leading", "chat"] as const) {
+      view.rerender(layout(region))
+      if (region === "chat" || region === "preview")
         expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
       else expect(target).toBeEmptyDOMElement()
     }
-    expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained across screens")
+    expect(within(slot).getByRole("textbox", { name: "Code" })).toHaveValue("retained across screens")
     view.unmount()
   } finally {
     target.remove()
+    slot.remove()
   }
 })
