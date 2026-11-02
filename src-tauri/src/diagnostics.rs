@@ -502,7 +502,7 @@ impl Collector {
         );
     }
 
-    fn report(&self) -> io::Result<Value> {
+    fn report(&self) -> Value {
         let mut inner = self.inner.lock().expect("diagnostic lock poisoned");
         let at = now();
         self.cleanup(at, &mut inner);
@@ -538,7 +538,7 @@ impl Collector {
         }
         // Preserve causal order within a launch even when the system clock moves backwards.
         events.sort_by_key(|event| (launches[&event.launch_id], event.sequence));
-        Ok(json!({
+        json!({
             "schema": "alwith-u-diagnostics-v1", "exportedAtMs": now(),
             "app": {"version":env!("CARGO_PKG_VERSION"),"os":std::env::consts::OS,"arch":std::env::consts::ARCH},
             "recording": {"retentionDays":RETENTION_DAYS,"cleanupIntervalSeconds":CLEANUP_INTERVAL.as_secs(),
@@ -546,7 +546,7 @@ impl Collector {
                 "cleanupFailed":inner.cleanup_failed,"discardedRecords":inner.discarded_records,"incompleteRecords":incomplete_files},
             "privacy": "Metadata only, including model proxy target hostnames and upstream request IDs. No conversation, credentials, raw protocol frames, full URLs, file paths or original error messages.",
             "events": events,
-        }))
+        })
     }
 }
 
@@ -792,8 +792,7 @@ pub async fn diagnostics_export(window: tauri::WebviewWindow) -> Result<bool, St
         let Some(selected) = selected else {
             return Ok(false);
         };
-        let report =
-            COLLECTOR.get().ok_or("Diagnostics are not initialized")?.report().map_err(|error| error.to_string())?;
+        let report = COLLECTOR.get().ok_or("Diagnostics are not initialized")?.report();
         let path = selected.into_path().map_err(|error| error.to_string())?;
         write_report(&path, &report).map_err(|error| error.to_string())?;
         Ok(true)

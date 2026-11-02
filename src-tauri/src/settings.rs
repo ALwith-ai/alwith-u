@@ -29,8 +29,8 @@ pub fn settings_request(
     };
     let mut store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
     if action != "read" {
-        let changes: BTreeMap<String, Value> =
-            serde_json::from_value(input["changes"].clone()).map_err(|_| "Invalid settings changes")?;
+        let changes: BTreeMap<String, Value> = serde_json::from_value(input["changes"].clone())
+            .map_err(|error| format!("Invalid settings changes: {error}"))?;
         match action {
             "update" => store.update(changes, expected)?,
             "importBrowser" => store.import_browser(changes)?,

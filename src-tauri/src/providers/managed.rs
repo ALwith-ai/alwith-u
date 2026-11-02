@@ -259,7 +259,8 @@ pub async fn providers_refresh_managed(
         let mut next = inner.saved.clone();
         next.managed = Some(Cache { account, provider });
         next.revision = next.revision.checked_add(1).ok_or_else(|| json!({"message":"Provider revision exhausted"}))?;
-        persist(&state.path, &next).map_err(|_| json!({"message":"Cannot save ALwith model configuration"}))?;
+        persist(&state.path, &next)
+            .map_err(|error| json!({"message": format!("Cannot save ALwith model configuration: {error}")}))?;
         gate.models = model_ids(next.managed.as_ref().and_then(|cache| cache.provider.as_ref()));
         let _ = RevokedSessions {
             session_ids: gate

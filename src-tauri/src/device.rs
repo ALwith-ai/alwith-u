@@ -187,8 +187,7 @@ pub async fn device_save_screenshot(window: WebviewWindow, udid: String) -> Resu
         .attachments()?
         .into_iter()
         .find(|info| info.udid == udid)
-        .map(|info| info.device_name)
-        .unwrap_or_else(|| "Simulator".into());
+        .map_or_else(|| "Simulator".into(), |info| info.device_name);
     let path = directory.join(format!("{name} {}.png", file_stamp()));
     let target = path.clone();
     tauri::async_runtime::spawn_blocking(move || std::fs::write(&target, png))

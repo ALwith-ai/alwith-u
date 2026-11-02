@@ -913,7 +913,7 @@ mod tests {
         assert!(validate_entry(&main, &old, &digest(source.as_bytes()), &modules).is_ok());
         assert!(validate_entry(&main, &old, &digest(b"changed"), &modules).is_err());
         assert!(validate_entry(&main, &old, &digest(source.as_bytes()), &BTreeMap::new()).is_err());
-        let mut changed = old.clone();
+        let mut changed = old;
         changed["name"] = json!("Forged");
         assert!(validate_entry(&main, &changed, &digest(source.as_bytes()), &modules).is_err());
     }
@@ -990,7 +990,7 @@ mod tests {
         let mut malformed = old.clone();
         malformed["dependencies"] = Value::Null;
         assert!(is_legacy_manifest(&malformed).is_err());
-        malformed = old.clone();
+        malformed = old;
         malformed["manifestVersion"] = json!(3);
         assert!(is_legacy_manifest(&malformed).is_err());
         assert!(is_legacy_manifest(&json!({"id":"unknown","name":"Unknown","version":"1.0.0"})).is_err());

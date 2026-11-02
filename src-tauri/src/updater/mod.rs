@@ -94,9 +94,8 @@ impl UpdaterService {
     pub async fn download_update(
         self: &std::sync::Arc<Self>, downloader: &dyn Downloader, updater_dir: &std::path::Path,
     ) -> Result<(), String> {
-        let update = match self.state() {
-            State::AvailableForDownload { update } => update,
-            _ => return Err("not in AvailableForDownload state".into()),
+        let State::AvailableForDownload { update } = self.state() else {
+            return Err("not in AvailableForDownload state".into());
         };
 
         self.set_state(State::Downloading {
@@ -115,7 +114,7 @@ impl UpdaterService {
             use std::sync::atomic::Ordering;
             let now = downloaded.fetch_add(chunk, Ordering::Relaxed) + chunk;
             let total = total.or(progress_update.content_length);
-            let threshold = total.map(|t| (t / 100).max(65_536)).unwrap_or(262_144);
+            let threshold = total.map_or(262_144, |t| (t / 100).max(65_536));
             let prev = last_emit.load(Ordering::Relaxed);
             let done = total.is_some_and(|t| now >= t);
             if now.saturating_sub(prev) >= threshold || done {
@@ -216,7 +215,7 @@ impl UpdaterService {
     /// Startup recovery: a downloaded archive is offered again only when it is newer than the
     /// running version, its minisign signature checks out, and the remote still publishes the
     /// same release (a network error keeps the verified archive).
-    pub async fn init_recover(
+    pub fn init_recover(
         &self, updater_dir: &std::path::Path, current_version: &str, verifier: &dyn SignatureVerifier,
         checker: &dyn UpdateChecker,
     ) {
@@ -281,7 +280,7 @@ impl UpdateChecker for PluginChecker {
         Ok(Some(UpdateInfo {
             version: update.version.clone(),
             filename,
-            signature: update.signature.clone(),
+            signature: update.signature,
             content_length: None,
         }))
     }
@@ -416,7 +415,7 @@ pub fn init(app: &tauri::App) {
             return;
         };
         let checker = PluginChecker::new(app.clone());
-        svc.init_recover(&updater_dir, env!("CARGO_PKG_VERSION"), &MinisignVerifier::new(public_key), &checker).await;
+        svc.init_recover(&updater_dir, env!("CARGO_PKG_VERSION"), &MinisignVerifier::new(public_key), &checker);
 
         let svc_overwrite = svc.clone();
         let app_overwrite = app.clone();
@@ -765,62 +764,61 @@ mod tests {
 
     // ── recover ──
 
-    #[tokio::test]
-    async fn recover_no_state_goes_idle() {
+    #[test]
+    fn recover_no_state_goes_idle() {
         let svc = Arc::new(UpdaterService::new(|_| {}));
         let tmp = TempDir::new();
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(None))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(None)));
         assert!(matches!(svc.state(), State::Idle));
     }
 
-    #[tokio::test]
-    async fn recover_valid_archive_matching_remote_goes_ready() {
+    #[test]
+    fn recover_valid_archive_matching_remote_goes_ready() {
         let (svc, tmp, update) = ready_on_disk("1.1.0");
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update))));
         assert!(matches!(svc.state(), State::Ready { update } if update.version == "1.1.0"));
     }
 
-    #[tokio::test]
-    async fn recover_network_error_keeps_verified_archive_ready() {
+    #[test]
+    fn recover_network_error_keeps_verified_archive_ready() {
         let (svc, tmp, _) = ready_on_disk("1.1.0");
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Err("offline".into()))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Err("offline".into())));
         assert!(matches!(svc.state(), State::Ready { .. }));
         assert!(tmp.path().join(persist::STATE_FILE).exists());
     }
 
-    #[tokio::test]
-    async fn recover_discards_bad_signature_missing_archive_and_changed_remote() {
+    #[test]
+    fn recover_discards_bad_signature_missing_archive_and_changed_remote() {
         let (svc, tmp, update) = ready_on_disk("1.1.0");
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(false), &MockChecker(Ok(Some(update)))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(false), &MockChecker(Ok(Some(update))));
         assert!(matches!(svc.state(), State::Idle));
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
 
         let (svc, tmp, update) = ready_on_disk("1.1.0");
         std::fs::remove_file(tmp.path().join(&update.filename)).unwrap();
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update))));
         assert!(matches!(svc.state(), State::Idle));
 
         let (svc, tmp, _) = ready_on_disk("1.1.0");
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(sample_update("1.2.0")))))
-            .await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(sample_update("1.2.0")))));
         assert!(matches!(svc.state(), State::Idle));
 
         let (svc, tmp, _) = ready_on_disk("28.0.0");
-        svc.init_recover(tmp.path(), "26.7.31", &MockVerifier(true), &MockChecker(Ok(None))).await;
+        svc.init_recover(tmp.path(), "26.7.31", &MockVerifier(true), &MockChecker(Ok(None)));
         assert!(matches!(svc.state(), State::Idle));
         assert!(!tmp.path().join(persist::STATE_FILE).exists());
 
         let (svc, tmp, mut update) = ready_on_disk("1.1.0");
         update.signature = "replacement".into();
-        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
+        svc.init_recover(tmp.path(), "1.0.0", &MockVerifier(true), &MockChecker(Ok(Some(update))));
         assert!(matches!(svc.state(), State::Idle));
     }
 
-    #[tokio::test]
-    async fn recover_discards_archives_not_newer_than_running_or_unparseable() {
+    #[test]
+    fn recover_discards_archives_not_newer_than_running_or_unparseable() {
         for (cached, current) in [("1.1.0", "1.1.0"), ("1.1.0", "1.2.0"), ("invalid-version", "1.0.0")] {
             let (svc, tmp, update) = ready_on_disk(cached);
-            svc.init_recover(tmp.path(), current, &MockVerifier(true), &MockChecker(Ok(Some(update)))).await;
+            svc.init_recover(tmp.path(), current, &MockVerifier(true), &MockChecker(Ok(Some(update))));
             assert!(matches!(svc.state(), State::Idle), "{cached} vs {current}");
             assert!(!tmp.path().join(persist::STATE_FILE).exists());
         }

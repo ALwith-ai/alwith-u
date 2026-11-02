@@ -233,13 +233,13 @@ pub async fn workspace_import(
         let parent = source.parent().ok_or("Import source has no parent")?;
         let name = source.file_name().ok_or("Import source has no name")?.to_str().ok_or("Import name is not UTF-8")?;
         let directory = source.is_dir();
-        let (stem, extension) = if !directory {
+        let (stem, extension) = if directory {
+            (name, "")
+        } else {
             match name.rfind('.') {
                 Some(index) if index > 0 => (&name[..index], &name[index..]),
                 _ => (name, ""),
             }
-        } else {
-            (name, "")
         };
         let mut target = destination.join(name);
         let mut counter = 1;

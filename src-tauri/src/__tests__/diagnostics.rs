@@ -75,10 +75,10 @@ fn reports_survive_restarts_and_do_not_duplicate_the_memory_tail() {
     let directory = tempfile::tempdir().unwrap();
     let first = Collector::new(directory.path().into());
     first.record("app", "started", Context::default());
-    assert_eq!(first.report().unwrap()["events"].as_array().unwrap().len(), 1);
+    assert_eq!(first.report()["events"].as_array().unwrap().len(), 1);
     let second = Collector::new(directory.path().into());
     second.record("app", "started", Context::default());
-    let report = second.report().unwrap();
+    let report = second.report();
     let events = report["events"].as_array().unwrap();
     assert_eq!(events.len(), 2);
     assert_ne!(events[0]["launchId"], events[1]["launchId"]);
@@ -96,7 +96,7 @@ fn disk_rotation_is_bounded_and_corrupt_records_are_not_exported() {
     for file in fs::read_dir(directory.path()).unwrap() {
         assert!(file.unwrap().metadata().unwrap().len() <= FILE_BYTES);
     }
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert!(report["recording"]["discardedRecords"].as_u64().unwrap() > 0);
     assert!(report["events"].as_array().unwrap().iter().all(|event| event["phase"] == "started"));
 }
@@ -110,7 +110,7 @@ fn disk_failure_keeps_a_bounded_memory_report_and_can_recover() {
     for _ in 0..MEMORY_EVENTS + 4 {
         collector.record("app", "started", Context::default());
     }
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert_eq!(report["recording"]["writeFailed"], true);
     assert_eq!(report["events"].as_array().unwrap().len(), MEMORY_EVENTS);
     fs::remove_file(&path).unwrap();
@@ -126,7 +126,7 @@ fn repeated_runtime_states_do_not_displace_diagnostic_history() {
         collector.state("one-session", "running");
     }
     collector.state("one-session", "done");
-    let report = collector.report().unwrap();
+    let report = collector.report();
     let events = report["events"].as_array().unwrap();
     assert_eq!(events.len(), 2);
     assert_eq!(events[0]["context"]["sessionRef"], events[1]["context"]["sessionRef"]);
@@ -193,7 +193,7 @@ fn startup_and_export_clear_old_records_and_abandoned_cleanup_files() {
     collector.append(&fixture_event(now() - RETENTION_MS - 1000, 1)).unwrap();
     fs::write(directory.path().join("events-0.cleanup"), b"interrupted cleanup").unwrap();
     collector.record("app", "started", Context::default());
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert_eq!(report["recording"]["retentionDays"], 7);
     assert_eq!(report["events"].as_array().unwrap().len(), 1);
     assert!(!directory.path().join("events-0.cleanup").exists());
@@ -208,7 +208,7 @@ fn future_timestamps_and_untrusted_field_values_never_enter_an_export() {
     let mut modified = fixture_event(now(), 2);
     modified.context.session_ref = Some("Bearer private-key".into());
     collector.append(&modified).unwrap();
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert!(report["events"].as_array().unwrap().is_empty());
     assert!(!report.to_string().contains("private-key"));
     assert_eq!(report["recording"]["discardedRecords"], 2);
@@ -221,7 +221,7 @@ fn a_partial_last_line_does_not_swallow_the_next_event() {
     let collector = Collector::new(directory.path().into());
     fs::write(collector.file(0), b"{\"timestampMs\":").unwrap();
     collector.append(&fixture_event(now(), 2)).unwrap();
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert_eq!(report["events"].as_array().unwrap().len(), 1);
     assert_eq!(report["events"][0]["sequence"], 2);
     assert_eq!(report["recording"]["discardedRecords"], 1);
@@ -235,7 +235,7 @@ fn maintenance_runs_without_another_event_and_reports_cleanup_failure() {
     collector.maintain();
     assert!(!collector.file(0).exists());
     fs::create_dir(collector.file(0)).unwrap();
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert_eq!(report["recording"]["cleanupFailed"], true);
     assert!(report["recording"]["incompleteRecords"].as_u64().unwrap() > 0);
 }
@@ -256,11 +256,11 @@ fn concurrent_recording_and_exports_preserve_complete_unique_events() {
         let collector = collector.clone();
         scope.spawn(move || {
             for _ in 0..10 {
-                assert!(collector.report().is_ok());
+                collector.report();
             }
         });
     });
-    let report = collector.report().unwrap();
+    let report = collector.report();
     let events = report["events"].as_array().unwrap();
     assert_eq!(events.len(), 160);
     let ids = events.iter().map(|event| event["sequence"].as_u64().unwrap()).collect::<std::collections::HashSet<_>>();
@@ -277,7 +277,7 @@ fn clock_changes_do_not_reorder_requests_within_a_launch() {
     second.launch_id = first.launch_id.clone();
     collector.append(&first).unwrap();
     collector.append(&second).unwrap();
-    let report = collector.report().unwrap();
+    let report = collector.report();
     assert_eq!(report["events"][0]["sequence"], 1);
     assert_eq!(report["events"][1]["sequence"], 2);
 }
@@ -301,7 +301,7 @@ fn model_proxy_events_survive_bounded_export_with_transport_evidence() {
     let directory = tempfile::tempdir().unwrap();
     let collector = Collector::new(directory.path().into());
     collector.record("agent_stderr", "failed", context);
-    let report = collector.report().unwrap();
+    let report = collector.report();
     let event = &report["events"][0];
     assert_eq!(event["context"]["proxy"]["stage"], "connect_upstream");
     assert_eq!(event["context"]["proxy"]["errors"][0], "ECONNRESET");

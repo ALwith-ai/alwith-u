@@ -30,8 +30,7 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Erro
     })
     .map(DriveService::with_existing_default_root)
     .and_then(|service| {
-        let codex_home =
-            std::env::var_os("CODEX_HOME").map(std::path::PathBuf::from).unwrap_or_else(|| home.join(".codex"));
+        let codex_home = std::env::var_os("CODEX_HOME").map_or_else(|| home.join(".codex"), std::path::PathBuf::from);
         tauri::async_runtime::block_on(service.set_skills_directory(codex_home.join("skills")))?;
         Ok(Arc::new(service))
     });

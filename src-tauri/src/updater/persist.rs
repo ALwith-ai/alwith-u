@@ -10,7 +10,7 @@ pub struct PersistedState {
 }
 
 pub fn filename_from_url(url: &str) -> Option<String> {
-    url.rsplit('/').next().filter(|s| !s.is_empty()).map(|s| s.to_string())
+    url.rsplit('/').next().filter(|s| !s.is_empty()).map(std::string::ToString::to_string)
 }
 
 /// A missing or corrupt file means "no pending update": the file is a regenerable cache

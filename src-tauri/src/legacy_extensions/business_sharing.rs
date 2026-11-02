@@ -113,7 +113,7 @@ fn publish_in_config(config: &Path, owner: &str, id: &str, file: &str, value: &V
                 return Err("Business sharing target must be a bounded regular file".into());
             }
             let existing: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?)
-                .map_err(|_| "Business sharing target contains invalid JSON".to_string())?;
+                .map_err(|error| format!("Business sharing target contains invalid JSON: {error}"))?;
             if existing.get("_alwithU") != Some(&json!(owner)) {
                 return Err(format!("共享配置冲突：{} 已有其他来源的数据，未覆盖", path.display()));
             }

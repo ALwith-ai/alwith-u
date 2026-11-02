@@ -167,10 +167,10 @@ fn append_path(path: &CGMutablePath, height: f64, commands: &[BackdropPathComman
         for command in commands {
             match *command {
                 BackdropPathCommand::Move { x, y } => {
-                    CGMutablePath::move_to_point(Some(path), ptr::null(), x, height - y)
+                    CGMutablePath::move_to_point(Some(path), ptr::null(), x, height - y);
                 }
                 BackdropPathCommand::Line { x, y } => {
-                    CGMutablePath::add_line_to_point(Some(path), ptr::null(), x, height - y)
+                    CGMutablePath::add_line_to_point(Some(path), ptr::null(), x, height - y);
                 }
                 BackdropPathCommand::Curve { control1_x, control1_y, control2_x, control2_y, x, y } => {
                     CGMutablePath::add_curve_to_point(
@@ -182,7 +182,7 @@ fn append_path(path: &CGMutablePath, height: f64, commands: &[BackdropPathComman
                         height - control2_y,
                         x,
                         height - y,
-                    )
+                    );
                 }
                 BackdropPathCommand::Close => CGMutablePath::close_subpath(Some(path)),
             }

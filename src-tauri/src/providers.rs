@@ -304,7 +304,7 @@ fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u6
 }
 
 fn normalize_base_url(value: &str) -> Result<String, String> {
-    let mut url = reqwest::Url::parse(value.trim()).map_err(|_| "API base URL is invalid".to_string())?;
+    let mut url = reqwest::Url::parse(value.trim()).map_err(|error| format!("API base URL is invalid: {error}"))?;
     let local_http = url.scheme() == "http" && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"));
     if url.scheme() != "https" && !local_http {
         return Err("API base URL must use HTTPS (HTTP is allowed only for localhost)".into());
@@ -457,8 +457,10 @@ pub async fn providers_save(
         inner.saved = next;
         inner.error = None;
     }
-    if let Ok(client) = runtime.current() {
-        let _ = apply_locked(&app, &client).await;
+    if let Ok(client) = runtime.current()
+        && let Err(error) = apply_locked(&app, &client).await
+    {
+        log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
     let _ = snapshot.emit(&app);
@@ -477,8 +479,10 @@ pub async fn providers_save_custom(
         inner.saved = next;
         inner.error = None;
     }
-    if let Ok(client) = runtime.current() {
-        let _ = apply_locked(&app, &client).await;
+    if let Ok(client) = runtime.current()
+        && let Err(error) = apply_locked(&app, &client).await
+    {
+        log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
     let _ = snapshot.emit(&app);
@@ -497,8 +501,10 @@ pub async fn providers_remove_custom(
         inner.saved = next;
         inner.error = None;
     }
-    if let Ok(client) = runtime.current() {
-        let _ = apply_locked(&app, &client).await;
+    if let Ok(client) = runtime.current()
+        && let Err(error) = apply_locked(&app, &client).await
+    {
+        log::error!("providers: saved configuration was not applied: {error}");
     }
     let snapshot = state.inner.lock().await.snapshot();
     let _ = snapshot.emit(&app);
@@ -585,8 +591,10 @@ pub fn schedule_apply(app: &AppHandle) {
         // The last idle notification may arrive while another admission still owns
         // the lock. Queue the retry so a saved revision cannot remain pending forever.
         let _admission = runtime.admission.lock().await;
-        if let Ok(client) = runtime.current() {
-            let _ = apply_locked(&app, &client).await;
+        if let Ok(client) = runtime.current()
+            && let Err(error) = apply_locked(&app, &client).await
+        {
+            log::error!("providers: scheduled configuration apply failed: {error}");
         }
     });
 }
@@ -709,7 +717,7 @@ async fn reconcile_target(
                         Some(region) => provider["regions"].as_array().and_then(|regions| regions.iter().find(|r| r["id"] == region)).map(|r| r["baseUrl"].clone()).ok_or("Unknown provider region")?,
                         None => provider["baseUrl"].clone(),
                     };
-                    (provider["name"].clone(), key.base_url.clone().map(Value::String).unwrap_or(default_url), key.api_key.clone(), provider["models"].clone(), provider.get("config").cloned().unwrap_or(json!({})), provider["catalog"].as_str().map(str::to_string))
+                    (provider["name"].clone(), key.base_url.clone().map_or(default_url, Value::String), key.api_key.clone(), provider["models"].clone(), provider.get("config").cloned().unwrap_or(json!({})), provider["catalog"].as_str().map(str::to_string))
                 }
                 AppliedProvider::Custom(provider) => {
                     let known = has_custom_model_metadata(provider);
@@ -1559,7 +1567,7 @@ mod managed_tests {
         let provider = managed::parse_catalog(&body.to_string()).unwrap().unwrap();
         assert_eq!(provider.id, "litellm");
         assert_eq!(provider.models[0].context_window, Some(1000000));
-        let mut hidden = body.clone();
+        let mut hidden = body;
         hidden[0]["hidden"] = json!(true);
         assert!(managed::parse_catalog(&hidden.to_string()).unwrap().is_none());
         hidden[0]["hidden"] = json!(false);

@@ -186,7 +186,7 @@ pub(crate) fn prepare(window: &NSWindow) {
         sel!(windowWillClose:),
     ] {
         let method = class.instance_method(selector);
-        originals.insert(selector, method.map(|method| method.implementation()));
+        originals.insert(selector, method.map(objc2::runtime::Method::implementation));
         // Add an override for inherited/missing methods; never mutate NSObject's implementation.
         // SAFETY: the replacement preserves the method ABI and forwards the retained original IMP.
         unsafe {
