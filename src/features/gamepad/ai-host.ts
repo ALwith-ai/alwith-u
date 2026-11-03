@@ -1,7 +1,6 @@
 import { inSessionTree, isText } from "@alwith/module-chat/client"
 import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/module-gamepad/ai"
 import type { GamepadHost } from "@alwith/module-gamepad/react"
-import { invoke } from "@tauri-apps/api/core"
 import { platform } from "@tauri-apps/plugin-os"
 
 import { CodexClient } from "@/agent/client"
@@ -36,7 +35,7 @@ async function openContext(): Promise<GamepadAiContext> {
     client,
     cwd,
     platform: os,
-    prepare: () => invoke("gamepad_ai_prepare", { agentId }),
+    prepare: () => commands.gamepadAiPrepare({ agentId }).then(() => undefined),
     model: resolveSessionModel(preferences.modelSelections.main, providers),
     dispose: async () => {
       stop()

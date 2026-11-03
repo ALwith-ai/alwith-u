@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "installed-apps-open",
+  "description": "Launch applications and open files in them from the application board and open-with menus",
+  "windows": ["main", "chat"],
+  "permissions": ["alwith-installed-apps:allow-open-app-by-id", "alwith-installed-apps:allow-open-path-in-app"]
+}

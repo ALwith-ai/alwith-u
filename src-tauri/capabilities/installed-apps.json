@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "installed-apps",
+  "description": "Installed application discovery and icons for running apps, Gamepad catalogs and open-with",
+  "windows": ["main", "chat", "settings", "gamepad"],
+  "permissions": ["alwith-installed-apps:default"]
+}

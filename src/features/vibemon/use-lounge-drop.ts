@@ -10,8 +10,8 @@ import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { type RefObject, useEffect, useState } from "react"
 
-import { reportPetError } from "./display-error"
-import { requestPet } from "./transport"
+import { reportVibemonError } from "./display-error"
+import { requestVibemon } from "./transport"
 
 export function useLoungeDrop(pane: RefObject<HTMLDivElement | null>) {
   const [highlighted, setHighlighted] = useState(false)
@@ -34,8 +34,8 @@ export function useLoungeDrop(pane: RefObject<HTMLDivElement | null>) {
       )
       return isStationFullyVisible(element) ? value : null
     }
-    const bounds = async (pet: WebviewWindow) => {
-      const [position, size] = await Promise.all([pet.outerPosition(), pet.outerSize()])
+    const bounds = async (vibemon: WebviewWindow) => {
+      const [position, size] = await Promise.all([vibemon.outerPosition(), vibemon.outerSize()])
       return { ...position, ...size }
     }
     const start = listen("vibemon:drag-start", () => {
@@ -46,18 +46,18 @@ export function useLoungeDrop(pane: RefObject<HTMLDivElement | null>) {
         if (sampling) return
         sampling = true
         try {
-          const pet = await WebviewWindow.getByLabel("vibemon")
+          const vibemon = await WebviewWindow.getByLabel("vibemon")
           const station = await geometry()
-          const rect = pet && station ? await bounds(pet) : null
+          const rect = vibemon && station ? await bounds(vibemon) : null
           if (generations.isCurrent(generation))
             setHighlighted(station !== null && rect !== null && isWindowCenterInside(rect, station.pane))
         } finally {
           sampling = false
         }
       }
-      void sample().catch(reportPetError)
+      void sample().catch(reportVibemonError)
       interval = setInterval(() => {
-        void sample().catch(reportPetError)
+        void sample().catch(reportVibemonError)
       }, 50)
     })
     const end = listen("vibemon:drag-end", () => {
@@ -65,19 +65,19 @@ export function useLoungeDrop(pane: RefObject<HTMLDivElement | null>) {
       stop()
       setHighlighted(false)
       void (async () => {
-        const pet = await WebviewWindow.getByLabel("vibemon")
-        if (!pet) return
-        const rect = await bounds(pet)
+        const vibemon = await WebviewWindow.getByLabel("vibemon")
+        if (!vibemon) return
+        const rect = await bounds(vibemon)
         const station = await geometry()
         if (station && generations.isCurrent(generation) && coversHalfOfTarget(rect, station.nest))
-          await requestPet("close-pet")
-      })().catch(reportPetError)
+          await requestVibemon("close-vibemon")
+      })().catch(reportVibemonError)
     })
     return () => {
       generations.invalidate()
       stop()
-      void start.then((unlisten) => unlisten()).catch(reportPetError)
-      void end.then((unlisten) => unlisten()).catch(reportPetError)
+      void start.then((unlisten) => unlisten()).catch(reportVibemonError)
+      void end.then((unlisten) => unlisten()).catch(reportVibemonError)
     }
   }, [pane])
   return highlighted

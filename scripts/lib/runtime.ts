@@ -2,7 +2,8 @@
 import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 
-import providerCatalog from "../../src/lib/provider-catalog.json"
+import providerCatalog from "@alwith/module-chat/assets/provider-catalog.json"
+
 import { joinModelCatalogPaths } from "./model-catalog"
 
 const root = resolve(import.meta.dirname, "../..")

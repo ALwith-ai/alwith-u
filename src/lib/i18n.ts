@@ -1,4 +1,4 @@
-import { vibemonLocales } from "@alwith/module-auth/pets/locales"
+import { vibemonLocales } from "@alwith/module-auth/vibemon/locales"
 import { chatLocales } from "@alwith/module-chat/locales"
 import { gamepadResources } from "@alwith/module-gamepad/locales"
 import i18n, { type Resource } from "i18next"
@@ -81,14 +81,14 @@ export function initI18n(language: string | null): Promise<unknown> {
     ])
   )
 
-  // Window actions belong to U; pet catalogs are supplied by the shared module.
+  // Window actions belong to U; vibemon catalogs are supplied by the shared module.
   resources.en = {
     ...resources.en,
     common: {
       ...vibemonLocales.en.common,
       navigation: { mainWindow: "Main window", chatWindow: "Floating window" },
-      petMode: {
-        ...vibemonLocales.en.common.petMode,
+      vibemonMode: {
+        ...vibemonLocales.en.common.vibemonMode,
         enter: "Collapse to Vibémon",
         openMain: "Open conversation in main window",
         openChat: "Open conversation in floating window"
@@ -100,8 +100,8 @@ export function initI18n(language: string | null): Promise<unknown> {
     common: {
       ...vibemonLocales["zh-CN"].common,
       navigation: { mainWindow: "主窗", chatWindow: "独立浮窗" },
-      petMode: {
-        ...vibemonLocales["zh-CN"].common.petMode,
+      vibemonMode: {
+        ...vibemonLocales["zh-CN"].common.vibemonMode,
         enter: "收起到 Vibémon",
         openMain: "在主窗中打开会话",
         openChat: "在独立浮窗中打开会话"

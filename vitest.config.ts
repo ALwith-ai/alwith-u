@@ -14,10 +14,14 @@ export default mergeConfig(
       // Browser storage belongs to each jsdom window, not Node's process-global Web Storage.
       execArgv: ["--no-experimental-webstorage"],
       server: {
-        // Shared UI packages import CSS; Vite must transform these imports for Node tests.
+        // Shared UI packages import CSS; Vite must transform these imports for Node tests. Inlined
+        // packages also resolve @tauri-apps/api through the test's mocks, which their generated
+        // plugin commands call.
         deps: {
           inline: [
             "@nyssance/atlas",
+            "@alwith/module-fs",
+            "@alwith/module-installed-apps",
             "@alwith/module-gamepad",
             "@alwith/module-auth",
             "@alwith/module-chat",

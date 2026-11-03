@@ -1,111 +1,51 @@
-//! Application policy around the shared Drive service.
-use alwith_drive::contract::{DriveEvent, DriveRequest, Payload};
-use alwith_drive::service::{DriveService, ServiceOptions};
-use serde_json::Value;
+//! Application policy around the shared Drive plugin: U's directories and names, its read-only
+//! existence check and its place in the ordered exit.
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
+use alwith_drive::{Config, Drive, DriveService, NativeError, ServiceOptions};
 use tauri_plugin_opener::OpenerExt;
 
 #[path = "drive_paths.rs"]
 mod paths;
 
-pub struct DriveState {
-    service: Result<Arc<DriveService>, String>,
-    closing: AtomicBool,
-    stopped: AtomicBool,
+fn failed(error: impl std::fmt::Display) -> NativeError {
+    NativeError::new("failed", error)
 }
 
-pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let home = app.path().home_dir()?;
-    let opener = app.clone();
-    let service = DriveService::new(ServiceOptions {
-        data_directory: app.path().app_data_dir()?.join("drive"),
-        ownership_directory: home.join(".alwith-drive").join("owners"),
-        default_root: home.join("YUP Drive"),
-        reserved_roots: vec![],
-        device_name: "ALwith U".into(),
-        client_version: env!("CARGO_PKG_VERSION").into(),
-        open_url: Arc::new(move |url| opener.opener().open_url(url, None::<&str>).map_err(|error| error.to_string())),
-    })
-    .map(DriveService::with_existing_default_root)
-    .and_then(|service| {
-        let codex_home = std::env::var_os("CODEX_HOME").map_or_else(|| home.join(".codex"), std::path::PathBuf::from);
-        tauri::async_runtime::block_on(service.set_skills_directory(codex_home.join("skills")))?;
-        Ok(Arc::new(service))
-    });
-    app.manage(DriveState {
-        service: service.clone(),
-        closing: AtomicBool::new(false),
-        stopped: AtomicBool::new(false),
-    });
-    if let Ok(service) = service {
-        let app = app.clone();
-        let mut events = service.subscribe();
-        tauri::async_runtime::spawn(async move {
-            loop {
-                let event = match events.recv().await {
-                    Ok(event) => event,
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                        let snapshot = service.snapshot();
-                        DriveEvent {
-                            version: snapshot.version,
-                            generation: snapshot.generation,
-                            sequence: snapshot.sequence,
-                            payload: Payload::Snapshot(snapshot),
-                        }
-                    }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                };
-                for label in ["main", "settings"] {
-                    if let Err(error) = app.emit_to(label, "drive:event", &event) {
-                        log::error!("Cannot forward Drive event to {label}: {error}");
-                    }
-                }
-            }
-        });
-    }
-    Ok(())
-}
-
-impl DriveState {
-    pub fn is_closing(&self) -> bool {
-        self.closing.load(Ordering::Acquire)
-    }
-
-    pub fn service(&self) -> Result<&DriveService, String> {
-        if self.closing.load(Ordering::Acquire) {
-            return Err("Application is closing".into());
-        }
-        self.service.as_deref().map_err(Clone::clone)
-    }
-}
-
-#[tauri3_specta::command]
-pub async fn drive_request(
-    window: tauri::WebviewWindow, state: tauri::State<'_, DriveState>, request: Value,
-) -> Result<Value, String> {
-    if !matches!(window.label(), "main" | "settings") {
-        return Err("Drive access is limited to the main and settings windows".into());
-    }
-    let request: DriveRequest = serde_json::from_value(request).map_err(|error| error.to_string())?;
-    if window.label() != "main"
-        && matches!(&request, DriveRequest::McpSessionConfig | DriveRequest::CollabSession { .. })
-    {
-        return Err("Drive session credentials are available only to the main window".into());
-    }
-    let response = state.service()?.execute(request).await?;
-    serde_json::to_value(response).map_err(|error| error.to_string())
+/// Start Drive from U's directories; `drive:event` reaches the main and settings windows.
+pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::DynRuntime> {
+    alwith_drive::init(
+        Config::new(|app| {
+            let home = app.path().home_dir().map_err(failed)?;
+            let opener = app.clone();
+            let service = DriveService::new(ServiceOptions {
+                data_directory: app.path().app_data_dir().map_err(failed)?.join("drive"),
+                ownership_directory: home.join(".alwith-drive").join("owners"),
+                default_root: home.join("YUP Drive"),
+                reserved_roots: vec![],
+                device_name: "ALwith U".into(),
+                client_version: env!("CARGO_PKG_VERSION").into(),
+                open_url: Arc::new(move |url| opener.opener().open_url(url, None::<&str>).map_err(failed)),
+            })?
+            .with_existing_default_root()?;
+            let codex_home =
+                std::env::var_os("CODEX_HOME").map_or_else(|| home.join(".codex"), std::path::PathBuf::from);
+            tauri::async_runtime::block_on(service.set_skills_directory(codex_home.join("skills")))?;
+            Ok(service)
+        })
+        .event_windows(["main", "settings"])
+        .development_directory(crate::native::development_directory()),
+    )
 }
 
 #[tauri3_specta::command]
 pub async fn drive_path_exists(
-    window: tauri::WebviewWindow, state: tauri::State<'_, DriveState>, path: std::path::PathBuf,
+    window: tauri::WebviewWindow, state: tauri::State<'_, Drive>, path: std::path::PathBuf,
 ) -> Result<bool, String> {
     if window.label() != "main" {
         return Err("Drive filesystem access is limited to the main window".into());
     }
-    let snapshot = state.service()?.snapshot();
+    let snapshot = state.service().map_err(|error| error.message)?.snapshot().map_err(|error| error.message)?;
     let roots = snapshot
         .roots
         .iter()
@@ -115,14 +55,14 @@ pub async fn drive_path_exists(
     paths::exists(std::path::Path::new(&snapshot.local_root), &roots, &path)
 }
 
+/// Runs after the dirty-buffer confirmation: hide the windows, drain and stop Drive, then exit.
 pub fn prevent_exit(app: &tauri::AppHandle, code: Option<i32>) -> bool {
-    let state = app.state::<DriveState>();
-    if state.stopped.load(Ordering::Acquire) {
+    let drive = app.state::<Drive>();
+    if drive.is_stopped() {
         return false;
     }
-    if !state.closing.swap(true, Ordering::AcqRel) {
-        // Dirty-buffer approval precedes this irreversible shutdown phase. On macOS,
-        // set_enabled(false) creates an animated sheet; hiding keeps cleanup invisible
+    if drive.begin_shutdown() {
+        // On macOS, set_enabled(false) creates an animated sheet; hiding keeps cleanup invisible
         // without destroying the webviews needed to drain outstanding IPC replies.
         for window in app.webview_windows().into_values() {
             if let Err(error) = window.hide() {
@@ -133,14 +73,10 @@ pub fn prevent_exit(app: &tauri::AppHandle, code: Option<i32>) -> bool {
         tauri::async_runtime::spawn(async move {
             let started = std::time::Instant::now();
             log::info!("Stopping Drive before application exit");
-            let state = app.state::<DriveState>();
-            if let Ok(service) = &state.service
-                && let Err(error) = service.shutdown().await
-            {
+            if let Err(error) = app.state::<Drive>().shutdown().await {
                 log::error!("Drive shutdown failed: {error}");
             }
             log::info!("Drive shutdown completed in {:?}", started.elapsed());
-            state.stopped.store(true, Ordering::Release);
             app.exit(code.unwrap_or(0));
         });
     }

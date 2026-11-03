@@ -104,7 +104,7 @@ pub(super) async fn download(url: reqwest::Url) -> Result<Vec<u8>, String> {
     let mut resource = url.clone();
     resource.set_query(None);
     resource.set_fragment(None);
-    log::info!("[pet-download] started resource={resource}");
+    log::info!("[vibemon-download] started resource={resource}");
     retry(|number| {
         let client = &client;
         let url = &url;
@@ -114,14 +114,14 @@ pub(super) async fn download(url: reqwest::Url) -> Result<Vec<u8>, String> {
             let result = attempt(client, url).await;
             if let Ok(bytes) = &result {
                 log::info!(
-                    "[pet-download] completed resource={resource} bytes={} elapsed_ms={}",
+                    "[vibemon-download] completed resource={resource} bytes={} elapsed_ms={}",
                     bytes.len(),
                     started.elapsed().as_millis()
                 );
             }
             if let Err(error) = &result {
                 log::warn!(
-                    "[pet-download] resource={resource} attempt={number}/{ATTEMPTS} retryable={} cause={}",
+                    "[vibemon-download] resource={resource} attempt={number}/{ATTEMPTS} retryable={} cause={}",
                     error.retryable,
                     error.message
                 );

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "mobile",
+  "description": "The phone bridge: status, pairing, trusted devices, active session and prompt receipts",
+  "windows": ["main", "settings"],
+  "permissions": ["alwith-mobile:default"]
+}

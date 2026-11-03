@@ -24,7 +24,7 @@ const controlLabels = {
   globalAction: "全局请求",
   inputHeader: "项目选择",
   paletteOpen: "全局搜索",
-  petCase: "宠物伙伴",
+  vibemonCase: "Vibémon伙伴",
   platform: "窗口外观",
   pluginCase: "插件列表",
   pluginOperation: "插件操作",

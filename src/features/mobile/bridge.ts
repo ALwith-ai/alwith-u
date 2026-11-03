@@ -1,3 +1,4 @@
+import { commands as mobile } from "@alwith/module-mobile/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 
@@ -8,6 +9,7 @@ import { reportBackgroundError } from "@/lib/background-errors"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
 import { settingsStore, updateSettings } from "@/lib/settings-store"
+import { text } from "@/lib/text"
 
 import { type MobilePermission, type MobilePrompt, respondMobilePermission, sendMobilePrompt } from "./actions"
 
@@ -16,8 +18,8 @@ export function mobileEnabled(): boolean {
   return settingsStore.get<boolean>("mobile.bridgeEnabled") ?? false
 }
 export async function setMobileEnabled(enabled: boolean): Promise<void> {
-  if (enabled) await commands.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
-  else await commands.mobileBridgeStop()
+  if (enabled) await mobile.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
+  else await mobile.mobileBridgeStop()
   await updateSettings({ "mobile.bridgeEnabled": enabled })
 }
 
@@ -31,11 +33,11 @@ export async function initializeMobile(): Promise<void> {
       try {
         messageId = await sendMobilePrompt(client, payload)
       } catch (error: unknown) {
-        failure = error instanceof Error ? error.message : String(error)
+        failure = text(error)
         reportBackgroundError("mobile-prompt", error)
       }
       if (payload.deviceId && payload.clientRequestId) {
-        await commands.bridgePromptResult({
+        await mobile.bridgePromptResult({
           deviceId: payload.deviceId,
           sessionId: payload.sessionId,
           clientRequestId: payload.clientRequestId,
@@ -76,5 +78,5 @@ export async function initializeMobile(): Promise<void> {
   useChatWindowSurface.subscribe(publishOrder)
   publishOrder()
   await sync
-  if (mobileEnabled()) await commands.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
+  if (mobileEnabled()) await mobile.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
 }

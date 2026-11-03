@@ -1,13 +1,13 @@
-//! U-owned macOS panel lifecycle shared by chat, pet, and bubble windows.
+//! U-owned macOS panel lifecycle shared by chat, vibemon, and bubble windows.
 use std::{cell::RefCell, collections::HashSet};
 use tauri::{Manager, WebviewWindow};
 
 thread_local! {
-    static PRESENTED_PETS: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
+    static PRESENTED_VIBEMON: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
 }
 
 pub fn set_presented(label: &str, visible: bool) {
-    PRESENTED_PETS.with_borrow_mut(|windows| {
+    PRESENTED_VIBEMON.with_borrow_mut(|windows| {
         if visible {
             windows.insert(label.to_owned());
         } else {
@@ -19,7 +19,7 @@ pub fn set_presented(label: &str, visible: bool) {
 pub fn should_restore(label: &str, visible: bool) -> bool {
     match label {
         "chat" => visible,
-        "vibemon" | "bubble-menu-vibemon" => PRESENTED_PETS.with_borrow(|windows| windows.contains(label)),
+        "vibemon" | "bubble-menu-vibemon" => PRESENTED_VIBEMON.with_borrow(|windows| windows.contains(label)),
         _ => false,
     }
 }
@@ -30,7 +30,7 @@ pub fn is_overlay(label: &str) -> bool {
 
 pub fn is_input_panel(window: &objc2_app_kit::NSWindow) -> bool {
     use objc2::ClassType;
-    window.isKindOfClass(RawDesktopChatPanel::class()) || window.isKindOfClass(RawPetBubblePanel::class())
+    window.isKindOfClass(RawDesktopChatPanel::class()) || window.isKindOfClass(RawVibemonBubblePanel::class())
 }
 
 pub fn closed(app: &tauri::AppHandle, label: &str) {
@@ -52,14 +52,14 @@ tauri_nspanel::tauri_panel! {
             hides_on_deactivate: false
         }
     })
-    panel!(PetPanel {
+    panel!(VibemonPanel {
         config: {
             can_become_key_window: false,
             can_become_main_window: false,
             hides_on_deactivate: false
         }
     })
-    panel!(PetBubblePanel {
+    panel!(VibemonBubblePanel {
         config: {
             can_become_key_window: true,
             can_become_main_window: false,
@@ -91,8 +91,8 @@ pub fn prepare(window: &WebviewWindow) -> Result<(), String> {
         }
         let converted = match window.label() {
             "chat" => window.to_panel::<DesktopChatPanel>(),
-            "vibemon" => window.to_panel::<PetPanel>(),
-            "bubble-menu-vibemon" => window.to_panel::<PetBubblePanel>(),
+            "vibemon" => window.to_panel::<VibemonPanel>(),
+            "bubble-menu-vibemon" => window.to_panel::<VibemonBubblePanel>(),
             _ => unreachable!("validated overlay label"),
         };
         for view in views.iter() {
@@ -131,7 +131,7 @@ pub fn restore(window: &WebviewWindow) -> Result<(), String> {
     objc2::MainThreadMarker::new().expect("Overlay policy requires the main thread");
     let panel =
         window.app_handle().get_webview_panel(window.label()).expect("Overlay must be initialized before display");
-    let is_pet = window.label() == "vibemon";
+    let is_vibemon = window.label() == "vibemon";
     let window = panel.as_panel();
     window.setAcceptsMouseMovedEvents(true);
     {
@@ -160,7 +160,7 @@ pub fn restore(window: &WebviewWindow) -> Result<(), String> {
     if window.collectionBehavior() != behavior {
         window.setCollectionBehavior(behavior);
     }
-    if is_pet {
+    if is_vibemon {
         use objc2::{msg_send, sel};
         use objc2_foundation::NSObjectProtocol;
         // SAFETY: optional AppKit selector, called on its main thread.

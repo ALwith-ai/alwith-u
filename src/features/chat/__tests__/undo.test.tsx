@@ -100,7 +100,7 @@ test("undo and reapply use the originating session, survive remounts and block r
   fireEvent.click(screen.getByRole("button", { name: "Working…" }))
   expect(invoke).toHaveBeenCalledTimes(1)
   expect(invoke).toHaveBeenCalledWith(
-    "workspace_apply_patches",
+    "plugin:alwith-fs|workspace_apply_patches",
     expect.objectContaining({ root: "/project", reverse: true })
   )
   view.unmount()
@@ -108,7 +108,10 @@ test("undo and reapply use the originating session, survive remounts and block r
   render(<UndoActions sessionId={id} items={items} />)
   expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Reapply" }))
-  expect(invoke).toHaveBeenLastCalledWith("workspace_apply_patches", expect.objectContaining({ reverse: false }))
+  expect(invoke).toHaveBeenLastCalledWith(
+    "plugin:alwith-fs|workspace_apply_patches",
+    expect.objectContaining({ reverse: false })
+  )
   await act(() => Promise.resolve(complete({ applied: [0], failed: null })))
   expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
 })

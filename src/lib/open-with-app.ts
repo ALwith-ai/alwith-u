@@ -1,12 +1,12 @@
 // Opening a project folder in an installed app (ALwith Desktop's open-with-app + the chat
-// header's OpenInEditorButton). Candidates are English bundle names; Rust answers with the
+// header's OpenInEditorButton). Candidates are English bundle names; the installed-apps plugin answers with the
 // localized display name, the bundle id (Windows: exe path) and the icon.
 
-import type { AppInfo } from "@/bindings"
-import { commands } from "@/bindings"
+import { type AppInfo_Serialize as AppInfo, commands } from "@alwith/module-installed-apps/commands"
+
 import { isMac } from "@/lib/platform"
 
-export type { AppInfo } from "@/bindings"
+export type { AppInfo }
 
 /** macOS: `.app` names resolved from the application folders; Windows: uninstall-table names. */
 export function externalAppCandidates(): string[] {

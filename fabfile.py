@@ -1,10 +1,8 @@
 """Small Fabric entry points for the alwith-u development workflow."""
 
 import json
-import os
 import re
 import shutil
-import subprocess
 import sys
 lazy import tomllib
 lazy import urllib.request
@@ -14,7 +12,7 @@ from fabric import task
 lazy from InquirerPy import inquirer
 lazy from InquirerPy.base.control import Choice
 lazy from invoke import Context
-lazy from invoke.exceptions import Exit
+lazy from invoke.exceptions import Exit, UnexpectedExit
 
 
 ROOT = Path(__file__).resolve().parent
@@ -36,10 +34,6 @@ CODEX_PLATFORM_PACKAGES = (
     "@openai/codex-linux-x64",
     "@openai/codex-win32-x64",
 )
-
-
-def run(*command: str, cwd: Path = ROOT) -> None:
-    subprocess.run(command, cwd=cwd, check=True)
 
 
 def update_version(root: Path, new_version: str) -> None:
@@ -190,14 +184,13 @@ def check_tauri_versions(root: Path) -> None:
 
 
 @task
-def tauri(_context: object) -> None:
+def tauri(c: Context) -> None:
     """Start the dev instance through Tauri's build hooks."""
-    os.chdir(ROOT)
-    os.execvp("bun", ["bun", "run", "dev:tauri"])
+    c.run("bun run dev:tauri")
 
 
 @task
-def story(_context: object) -> None:
+def story(c: Context) -> None:
     """Select Storybook preview, browser tests, or a static share archive."""
     action = inquirer.select(
         message="Storybook",
@@ -210,21 +203,21 @@ def story(_context: object) -> None:
         ],
     ).execute()
     if action == "build":
-        build_story_archive()
+        build_story_archive(c)
         return
     commands = {
-        "dev": ["bun", "run", "storybook"],
-        "test": ["bun", "run", "storybook:test"],
-        "watch": ["bun", "x", "--bun", "vitest", "--config", ".storybook/vitest.config.ts"],
-        "browsers": ["bun", "x", "--bun", "playwright", "install", "chromium"],
+        "dev": "bun run storybook",
+        "test": "bun run storybook:test",
+        "watch": "bun x --bun vitest --config .storybook/vitest.config.ts",
+        "browsers": "bun x --bun playwright install chromium",
     }
-    run(*commands[action])
+    c.run(commands[action])
 
 
-def build_story_archive() -> None:
+def build_story_archive(c: Context) -> None:
     """Build and zip the static Storybook site for sharing without the repository."""
-    run("bun", "run", "storybook:check")
-    run("bun", "run", "storybook:build")
+    c.run("bun run storybook:check")
+    c.run("bun run storybook:build")
     site = ROOT / "storybook-static"
     if not (site / "index.html").is_file():
         raise Exit("Storybook build did not produce index.html", code=1)
@@ -238,45 +231,41 @@ def build_story_archive() -> None:
     print("Extract and serve with a static web server. Browser JavaScript remains inspectable.")
 
 
-def workspace_packages() -> list[str]:
+def workspace_packages(c: Context) -> str:
     """`-p` arguments for cargo fmt: every workspace member. Not `--all`, which follows path
     dependencies into the third-party snapshots under patches/ that the workspace excludes."""
-    metadata = subprocess.run(
-        ("cargo", "metadata", "--no-deps", "--format-version", "1"),
-        cwd=ROOT / "src-tauri",
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    return [arg for package in json.loads(metadata)["packages"] for arg in ("-p", package["name"])]
+    with c.cd("src-tauri"):
+        metadata = c.run("cargo metadata --no-deps --format-version 1", hide=True, pty=False).stdout
+    return " ".join(f"-p {package['name']}" for package in json.loads(metadata)["packages"])
 
 
 @task
-def check(_context: object) -> None:
+def check(c: Context) -> None:
     """Run the CI gates shared by Desktop, U and Board, reporting every failure at the end.
 
     Same table in all three repos: types, lint (`bun lint`, `bun ts7-lint`), dead code, tests, then the Rust side
     (rustfmt, clippy, the whole workspace's compile surface, lib tests). Repo-specific gates follow."""
     steps = [
-        ("types", ["bun", "check", "--no-script", "-b"], ROOT),
-        ("lint", ["bun", "lint"], ROOT),
-        ("ts7-lint", ["bun", "ts7-lint"], ROOT),
+        ("types", "bun check --no-script -b", "."),
+        ("lint", "bun lint", "."),
+        ("ts7-lint", "bun ts7-lint", "."),
         # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
-        ("lint suppressions", ["sh", "-c", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx"], ROOT),
-        ("knip", ["bun", "run", "knip"], ROOT),
-        ("tests", ["bun", "run", "test"], ROOT),
-        ("rustfmt", ["cargo", "fmt", *workspace_packages(), "--", "--check"], ROOT / "src-tauri"),
-        ("clippy", ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--", "-D", "warnings"], ROOT / "src-tauri"),
-        ("rust compile surface", ["cargo", "check", "--locked", "--workspace", "--all-targets"], ROOT / "src-tauri"),
-        ("rust tests", ["cargo", "test", "--locked", "--workspace", "--lib"], ROOT / "src-tauri"),
-        ("Python tests", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "scripts/__tests__"], ROOT),
-        ("toolchain", ["bun", "run", "check:toolchain"], ROOT),
+        ("lint suppressions", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx", "."),
+        ("knip", "bun run knip", "."),
+        ("tests", "bun run test", "."),
+        ("rustfmt", f"cargo fmt {workspace_packages(c)} -- --check", "src-tauri"),
+        ("clippy", "cargo clippy --locked --workspace --all-targets -- -D warnings", "src-tauri"),
+        ("rust compile surface", "cargo check --locked --workspace --all-targets", "src-tauri"),
+        ("rust tests", "cargo test --locked --workspace --lib", "src-tauri"),
+        ("Python tests", f"{sys.executable} -B -m unittest discover -s scripts/__tests__", "."),
+        ("toolchain", "bun run check:toolchain", "."),
     ]
     failures = []
     for name, command, directory in steps:
-        result = subprocess.run(command, cwd=directory, check=False)
-        print(f"{'✓' if result.returncode == 0 else '✗'} {name}", flush=True)
-        if result.returncode != 0:
+        with c.cd(directory):
+            result = c.run(command, warn=True)
+        print(f"{'✓' if result.ok else '✗'} {name}", flush=True)
+        if not result.ok:
             failures.append(name)
     if failures:
         raise SystemExit(f"Checks failed: {', '.join(failures)}")
@@ -292,9 +281,6 @@ def build(context: Context) -> None:
 def upgrade(context: Context) -> None:
     """Pull the current branch, update dependencies, and report newer releases."""
     context.run("git pull --ff-only")
-    # Cargo path dependencies live in node_modules, including their Rust manifests.
-    # Restore the locked packages first so a fresh checkout can run this task.
-    context.run("bun install --frozen-lockfile")
     context.run("bun outdated")
     context.run("bun update")
     # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
@@ -340,11 +326,13 @@ def clean(context: Context) -> None:
 
 
 @task(name="format", aliases=["f"])
-def format_code(_context: object) -> None:
+def format_code(c: Context) -> None:
     """Format Rust, TypeScript, TSX, and CSS sources: rustfmt, then Bun's built-in `bun fmt`
     (configured in bunfig.toml's [fmt]; import sorting and Tailwind class sorting are its built-in options)."""
-    run("cargo", "fmt", *workspace_packages(), cwd=ROOT / "src-tauri")
-    run("bun", "fmt")
+    packages = workspace_packages(c)
+    with c.cd("src-tauri"):
+        c.run(f"cargo fmt {packages}")
+    c.run("bun fmt")
     print("✓ Formatted")
 
 
@@ -364,7 +352,7 @@ def version(_context: object) -> None:
 
 
 @task
-def toolchain(_context: object) -> None:
+def toolchain(c: Context) -> None:
     """Update the bundled Bun and Codex pins, then install and stage the toolchain."""
     try:
         manifest = json.loads((ROOT / "package.json").read_text())
@@ -375,17 +363,17 @@ def toolchain(_context: object) -> None:
         check_toolchain_prerequisites(ROOT, bun_version)
         update_toolchain_pins(ROOT, bun_version, codex_version)
         steps = [
-            ("Dependency install", ("bun", "install")),
-            ("Toolchain check", ("bun", "scripts/check-toolchain.ts")),
-            ("Sidecar staging", ("bun", "run", "stage")),
+            ("Dependency install", "bun install"),
+            ("Toolchain check", "bun scripts/check-toolchain.ts"),
+            ("Sidecar staging", "bun run stage"),
         ]
         # Hasgard CLI drives the dev instance (MCP, smoke scripts); the same crates.io release everywhere.
         if shutil.which("tauri-hasgard") is None:
-            steps.append(("Hasgard CLI install", ("cargo", "install", "tauri-hasgard-cli")))
+            steps.append(("Hasgard CLI install", "cargo install tauri-hasgard-cli"))
         for step, command in steps:
             try:
-                run(*command)
-            except subprocess.CalledProcessError as error:
+                c.run(command)
+            except UnexpectedExit as error:
                 raise RuntimeError(f"{step} failed; fix the cause and rerun fab toolchain with the same versions") from error
     except (ValueError, RuntimeError, OSError) as error:
         raise Exit(f"Toolchain failed: {error}", code=1) from None

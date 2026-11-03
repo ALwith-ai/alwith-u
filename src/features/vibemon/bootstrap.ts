@@ -1,16 +1,16 @@
-import { configureVibemon, initializeSettings } from "@alwith/module-auth/pets/core"
+import { configureVibemon, initializeSettings } from "@alwith/module-auth/vibemon/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 
-import { createPlatformPetAssets } from "@/features/auth/pet-assets"
 import { usePlatformAuth } from "@/features/auth/store"
+import { createPlatformVibemonAssets } from "@/features/auth/vibemon-assets"
 
-import { reportPetError } from "./display-error"
+import { reportVibemonError } from "./display-error"
 import { preventVibemonImageDragging } from "./image-drag"
-import { createPetSessionClient } from "./session-client"
+import { createVibemonSessionClient } from "./session-client"
 import { sessionIcons } from "./session-icons"
-import { requestPet } from "./transport"
-import { createPetWindowClient } from "./window-client"
+import { requestVibemon } from "./transport"
+import { createVibemonWindowClient } from "./window-client"
 
 export async function bootstrapVibemonWindow(): Promise<void> {
   const stopImageDragging = preventVibemonImageDragging()
@@ -28,15 +28,15 @@ export async function bootstrapVibemonWindow(): Promise<void> {
       }
     })
   if (usePlatformAuth.getState().user === null) throw new Error("Sign in to use Vibemon")
-  const assets = createPlatformPetAssets()
-  const sessions = await createPetSessionClient()
+  const assets = createPlatformVibemonAssets()
+  const sessions = await createVibemonSessionClient()
   configureVibemon({
     sessionIcons,
     ...assets,
     sessions,
-    windows: createPetWindowClient(),
-    synchronizeResources: () => requestPet("sync-resources"),
-    onError: reportPetError
+    windows: createVibemonWindowClient(),
+    synchronizeResources: () => requestVibemon("sync-resources"),
+    onError: reportVibemonError
   })
   await initializeSettings()
   const window = getCurrentWebviewWindow()

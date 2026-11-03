@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from "vitest"
 import { useRunningApps } from "../use-running-apps"
 
 const mocks = vi.hoisted(() => ({
-  browser: vi.fn(() => Promise.resolve("Google Chrome")),
+  browser: vi.fn(() => Promise.resolve({ name: "Google Chrome", bundle_id: "com.google.Chrome" })),
   read: vi.fn(),
   running: vi.fn(),
   error: vi.fn(),
@@ -19,14 +19,14 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
     }
   })
 }))
-vi.mock("@/bindings", () => ({
+vi.mock("@alwith/module-installed-apps/commands", () => ({
   commands: {
     defaultBrowser: mocks.browser,
     readAppsInfo: mocks.read,
     isAppRunning: mocks.running
   }
 }))
-vi.mock("@/features/vibemon/display-error", () => ({ reportPetError: mocks.error }))
+vi.mock("@/features/vibemon/display-error", () => ({ reportVibemonError: mocks.error }))
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()

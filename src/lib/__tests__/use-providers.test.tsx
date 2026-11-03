@@ -1,20 +1,12 @@
-import * as events from "@tauri-apps/api/event"
 import { act, renderHook } from "@testing-library/react"
-import { afterEach, expect, type MockInstance, test, vi } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 
-import type { ProviderSnapshot } from "../providers"
-import * as providers from "../providers"
+import { type ProviderSnapshot, providersPort } from "../providers"
 import { useProviders } from "../use-providers"
 
-// Package exports are frozen ESM namespaces; mock the module so the export can be spied on.
-vi.mock("@tauri-apps/api/event", async (importOriginal) => ({ ...(await importOriginal<object>()), listen: vi.fn() }))
-
 afterEach(() => {
-  providersRead?.mockRestore()
-  eventListen?.mockRestore()
+  vi.restoreAllMocks()
 })
-let providersRead: MockInstance<typeof providers.loadProviders> | undefined
-let eventListen: MockInstance<typeof events.listen> | undefined
 function snapshot(revision: number, status: ProviderSnapshot["status"] = "applied"): ProviderSnapshot {
   return {
     revision,
@@ -32,13 +24,13 @@ for (const [eventRevision, readRevision, expectedRevision] of [
   [2, 2, 2]
 ] as const) {
   test(`provider read ${readRevision} and event ${eventRevision} preserve the newest configuration`, async () => {
-    let receive!: (event: events.Event<ProviderSnapshot>) => void
+    let receive!: (snapshot: ProviderSnapshot) => void
     let finish!: (value: ProviderSnapshot) => void
-    eventListen = vi.spyOn(events, "listen").mockImplementation((_event, callback) => {
-      receive = callback
+    vi.spyOn(providersPort, "onChanged").mockImplementation((listener) => {
+      receive = listener
       return Promise.resolve(() => {})
     })
-    providersRead = vi.spyOn(providers, "loadProviders").mockImplementation(
+    vi.spyOn(providersPort, "read").mockImplementation(
       () =>
         new Promise((resolve) => {
           finish = resolve
@@ -48,7 +40,7 @@ for (const [eventRevision, readRevision, expectedRevision] of [
     await act(async () => {})
     await act(() => {
       return Promise.try(() => {
-        receive({ event: providers.PROVIDERS_CHANGED, id: 1, payload: snapshot(eventRevision, "pending") })
+        receive(snapshot(eventRevision, "pending"))
       })
     })
     await act(() => {
@@ -60,7 +52,7 @@ for (const [eventRevision, readRevision, expectedRevision] of [
     if (eventRevision === readRevision) expect(view.result.current?.status).toBe("pending")
     await act(() => {
       return Promise.try(() => {
-        receive({ event: providers.PROVIDERS_CHANGED, id: 2, payload: snapshot(0) })
+        receive(snapshot(0))
       })
     })
     expect(view.result.current?.revision).toBe(expectedRevision)

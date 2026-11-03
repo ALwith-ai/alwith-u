@@ -1,7 +1,8 @@
+import { commands, type ComputerStatus_Serialize as ComputerStatus } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
 
-import { commands, type ComputerStatus } from "@/bindings"
+import { text } from "@/lib/text"
 
 import { restoreComputer } from "./operations"
 
@@ -16,14 +17,14 @@ export function useComputerStatus() {
     let timer: ReturnType<typeof setTimeout>
     const refresh = async () => {
       try {
-        let next = await commands.computerStatus()
+        let next = await commands.status()
         if (disposed) return
         const permitted = next.permissions.accessibility && next.permissions.screenCapture
         const newlyPermitted = permitted && !hadPermissions
         hadPermissions = permitted
         if (newlyPermitted) {
           await restoreComputer()
-          next = await commands.computerStatus()
+          next = await commands.status()
         }
         if (!disposed) {
           setStatus(next)
@@ -32,7 +33,7 @@ export function useComputerStatus() {
       } catch (error) {
         if (!disposed) {
           setStatus(null)
-          setError(String(error))
+          setError(text(error))
         }
       } finally {
         if (!disposed) timer = setTimeout(() => void refresh(), 1000)

@@ -34,7 +34,7 @@ function CreationFlow() {
             <dt>默认能力</dt>
             <dd>
               {result.auth === "alwith"
-                ? "聊天、ALwith 登录、账号设置、宠物中心与桌面宠物"
+                ? "聊天、ALwith 登录、账号设置、Vibémon中心与桌面Vibémon"
                 : "独立使用；模型认证单独设置"}
             </dd>
           </dl>
@@ -55,7 +55,7 @@ function CreationFlow() {
 }
 
 const meta = {
-  title: "页面/负一屏/宠物伙伴/创建伙伴",
+  title: "页面/负一屏/Vibémon伙伴/创建伙伴",
   component: CreationFlow,
   globals: { locale: "zh-CN" },
   parameters: { layout: "fullscreen" },
@@ -100,7 +100,7 @@ async function fill(
 export const Start: Story = { name: "开始创建" }
 export const WithAccount: Story = {
   parameters: { a11y: { test: "todo" } },
-  name: "带账号与宠物",
+  name: "带账号与Vibémon",
   play: async ({ canvasElement, userEvent }) => {
     await fill(canvasElement, false, userEvent)
   }

@@ -1,10 +1,11 @@
-import { accountKey, type PetAccount } from "@alwith/module-auth/pets"
-import { configureVibemon, type VibemonHost } from "@alwith/module-auth/pets/core"
+import { accountKey, type VibemonAccount } from "@alwith/module-auth/vibemon"
+import { configureVibemon, type VibemonHost } from "@alwith/module-auth/vibemon/core"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { usePlatformAuth } from "@/features/auth/store"
+import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { SidebarAccountMenu } from "@/features/sessions/sidebar-account-menu"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -28,25 +29,25 @@ afterEach(async () => {
 })
 
 function fixture(enabled: boolean, failure?: Error) {
-  let account: PetAccount = { apiHost: "api.example.test", userId: "first", revision: 1 }
-  const accounts: Record<string, { pet: string; enabled: boolean; position: null }> = {
-    [accountKey(account)]: { pet: "selected-pet", enabled, position: null }
+  let account: VibemonAccount = { apiHost: "api.example.test", userId: "first", revision: 1 }
+  const accounts: Record<string, { vibemon: string; enabled: boolean; position: null }> = {
+    [accountKey(account)]: { vibemon: "selected-vibemon", enabled, position: null }
   }
   const listeners = new Set<() => void>()
   const changed = () => {
     for (const listener of listeners) listener()
   }
-  const openPet = vi.fn(() => {
+  const openVibemon = vi.fn(() => {
     return Promise.try(() => {
       if (failure) throw failure
-      must(accounts[accountKey(account)], "pet account").enabled = true
+      must(accounts[accountKey(account)], "vibemon account").enabled = true
       changed()
       return "shown" as const
     })
   })
-  const closePet = vi.fn(() => {
+  const closeVibemon = vi.fn(() => {
     return Promise.try(() => {
-      must(accounts[accountKey(account)], "pet account").enabled = false
+      must(accounts[accountKey(account)], "vibemon account").enabled = false
       changed()
     })
   })
@@ -64,26 +65,26 @@ function fixture(enabled: boolean, failure?: Error) {
       }
     },
     sessions: {} as VibemonHost["sessions"],
-    windows: { openPet, closePet } as unknown as VibemonHost["windows"],
+    windows: { openVibemon, closeVibemon } as unknown as VibemonHost["windows"],
     onError: (error) => {
       throw error
     }
   })
   const signIn = () =>
     usePlatformAuth.setState({
-      user: { user_uuid: account.userId, nickname: "Pet tester", login_email: "pet@example.test" }
+      user: { user_uuid: account.userId, nickname: "Vibemon tester", login_email: "vibemon@example.test" }
     })
   signIn()
   return {
-    openPet,
-    closePet,
+    openVibemon,
+    closeVibemon,
     closeExternally() {
-      must(accounts[accountKey(account)], "pet account").enabled = false
+      must(accounts[accountKey(account)], "vibemon account").enabled = false
       changed()
     },
     switchAccount() {
       account = { ...account, userId: "second", revision: 2 }
-      accounts[accountKey(account)] = { pet: "other-pet", enabled: false, position: null }
+      accounts[accountKey(account)] = { vibemon: "other-vibemon", enabled: false, position: null }
       signIn()
       changed()
     }
@@ -92,11 +93,13 @@ function fixture(enabled: boolean, failure?: Error) {
 
 async function openMenu() {
   const view = render(
-    <div data-sidebar-footer-row>
-      <SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />
-    </div>
+    <SessionListHostProvider>
+      <div data-sidebar-footer-row>
+        <SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />
+      </div>
+    </SessionListHostProvider>
   )
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Vibemon tester/ }))))
   return view
 }
 
@@ -119,9 +122,9 @@ test("the account popover uses the shared footer row width rather than the sideb
   try {
     const view = await openMenu()
     expect(view.getByRole("menu")).toHaveStyle({ width: "248px" })
-    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Vibemon tester/ }))))
     width = 304
-    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Vibemon tester/ }))))
     expect(view.getByRole("menu")).toHaveStyle({ width: "304px" })
   } finally {
     bounds.mockRestore()
@@ -156,14 +159,14 @@ test("the account menu groups creation, companion tools, preferences and sign ou
     "separator"
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" }))))
-  expect(f.openPet).toHaveBeenCalledTimes(1)
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+  expect(f.openVibemon).toHaveBeenCalledTimes(1)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Vibemon tester/ }))))
   await waitFor(() => expect(view.getByRole("menuitem", { name: "Close Vibémon" })).toBeTruthy())
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Close Vibémon" }))))
-  expect(f.closePet).toHaveBeenCalledTimes(1)
+  expect(f.closeVibemon).toHaveBeenCalledTimes(1)
 })
 
-test("closing from the pet updates the account menu and language changes translate its action", async () => {
+test("closing from the vibemon updates the account menu and language changes translate its action", async () => {
   await initI18n("en")
   const f = fixture(true)
   const view = await openMenu()
@@ -174,8 +177,8 @@ test("closing from the pet updates the account menu and language changes transla
     await i18n.changeLanguage("zh-CN")
   })
   expect(view.getByRole("menuitem", { name: "开启 Vibémon" })).toBeTruthy()
-  expect(f.openPet).not.toHaveBeenCalled()
-  expect(f.closePet).not.toHaveBeenCalled()
+  expect(f.openVibemon).not.toHaveBeenCalled()
+  expect(f.closeVibemon).not.toHaveBeenCalled()
 })
 
 test("account changes display the new account's switch state", async () => {
@@ -197,9 +200,12 @@ test("failed presentation reports the error and keeps the saved switch disabled"
       expect(view.getByRole("menuitem", { name: "Show Vibémon" }).getAttribute("aria-disabled")).not.toBe("true")
     )
     await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Show Vibémon" }))))
-    expect(f.openPet).toHaveBeenCalledTimes(1)
-    expect(error).toHaveBeenCalledWith("Vibémon display unavailable", expect.objectContaining({ id: "pet-operation" }))
-    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
+    expect(f.openVibemon).toHaveBeenCalledTimes(1)
+    expect(error).toHaveBeenCalledWith(
+      "Vibémon display unavailable",
+      expect.objectContaining({ id: "vibemon-operation" })
+    )
+    await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Vibemon tester/ }))))
     expect(view.getByRole("menuitem", { name: "Show Vibémon" })).toBeTruthy()
   } finally {
     error.mockRestore()

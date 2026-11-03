@@ -330,7 +330,7 @@ test("switching screens keeps the same sidebar, chat draft and scroll nodes, wit
   const draft = view.getByRole("textbox", { name: "Draft" }) as HTMLTextAreaElement
   const chatScroll = view.getByTestId("chat-scroll")
   const sidebarScroll = view.getByTestId("list")
-  const mainPanel = must(view.container.querySelector('[data-screen-panel="main"]'), "main screen")
+  const mainPanel = must(view.container.querySelector('[data-screen-panel="chat"]'), "main screen")
   const leadingPanel = must(view.container.querySelector('[data-screen-panel="leading"]'), "leading screen")
   fireEvent.input(draft, { target: { value: "Unsent draft" } })
   expect(draft.value).toBe("Unsent draft")

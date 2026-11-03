@@ -1,4 +1,4 @@
-import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
 import { importDraft } from "@alwith/module-chat/conversation"
 
 import type { ChatTransfer } from "../../src/lib/chat-window"

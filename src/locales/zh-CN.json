@@ -15,7 +15,7 @@
   },
   "platformAuth": {
     "intro": "登录你的 ALwith 账号",
-    "independent": "U 与 Desktop 分别登录，同一 ALwith 账号的宠物和权益不变。模型供应商登录单独设置。",
+    "independent": "U 与 Desktop 分别登录，同一 ALwith 账号的Vibémon和权益不变。模型供应商登录单独设置。",
     "accountHint": "这是 ALwith 账号，不是 Codex 账号。这里退出只清除 U 的平台登录。",
     "codeLogin": "验证码登录",
     "passwordLogin": "密码登录",
@@ -87,7 +87,7 @@
     "title": "已归档的聊天"
   },
   "sidebar": {
-    "pets": "Vibémon",
+    "vibemon": "Vibémon",
     "leadingNavigation": "功能导航",
     "quickChats": "随聊",
     "pin": "固定侧边栏",
@@ -430,8 +430,8 @@
     "extensions": "应用扩展",
     "general": "通用",
     "versionLabel": "版本",
-    "petAutostart": "开机启动 Vibémon",
-    "petAutostartInstalled": "请在安装版中开启。登录账户并装配桌宠后，开机时会自动恢复。",
+    "vibemonAutostart": "开机启动 Vibémon",
+    "vibemonAutostartInstalled": "请在安装版中开启。登录账户并装配桌宠后，开机时会自动恢复。",
     "accountDesc": "登录状态由 Codex 保存在本机。",
     "updates": "更新",
     "engine": "引擎",
@@ -1091,8 +1091,8 @@
     "tutorialTitle": "了解 ALwith U",
     "tutorialLink": "ALwith U 指南"
   },
-  "pet": {
-    "restoreFailed": "未能恢复 Vibémon，请重试或前往宠物中心检查。",
+  "vibemon": {
+    "restoreFailed": "未能恢复 Vibémon，请重试或前往Vibémon中心检查。",
     "syncFailed": "部分 Vibémon 资源未能更新，已下载的资源会保留。",
     "retry": "重试",
     "collapse": "收起",
@@ -1344,7 +1344,7 @@
   },
   "workbuddy": {
     "auth": "集成 ALwith 账号",
-    "authEnabled": "包含登录、宠物等账号能力。",
+    "authEnabled": "包含登录、Vibémon等账号能力。",
     "authDisabled": "不集成 ALwith 账号服务。模型认证单独设置。",
     "create": "创建你的 ALwith",
     "description": "创建自己的桌面应用，然后在项目聊天中定制。",
@@ -1363,7 +1363,7 @@
     "edition": "选择你的起点",
     "accountEdition": "集成 ALwith 账号",
     "bareEdition": "不集成 ALwith 账号",
-    "accountCaption": "登录、桌面宠物与 ALwith 账号服务。",
+    "accountCaption": "登录、桌面Vibémon与 ALwith 账号服务。",
     "bareCaption": "无需 ALwith 账号，独立使用与定制。",
     "location": "项目位置",
     "chooseLocation": "选择新项目路径"

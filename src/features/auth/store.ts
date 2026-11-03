@@ -11,7 +11,7 @@ import {
 } from "@alwith/module-auth"
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
-import { invoke } from "@tauri-apps/api/core"
+import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -19,7 +19,6 @@ import { arch, platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 import { create } from "zustand"
 
-import { commands } from "@/bindings"
 import { appEnv } from "@/lib/app-env"
 import { openStore } from "@/lib/store"
 
@@ -39,7 +38,7 @@ const storage = createTokenStorage({
 })
 const expiredListeners = new Set<() => void>()
 const stateListeners = new Set<(event: AuthStateEvent) => void>()
-const refreshTokens = createTauriAuthRefresh(invoke)
+const refreshTokens = createTauriAuthRefresh()
 const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
   fetch,
@@ -56,14 +55,13 @@ const transport = createAuthTransport({
     await emit(STATE_EVENT, { action: "logout" } satisfies AuthStateEvent)
   }
 })
+const accountProviders = createManagedProvidersPort()
 const managedProviders = createManagedProviders({
-  bind: (userUuid) => commands.providersAccountBind({ account: { apiBaseUrl: API_BASE_URL, userUuid } }),
+  bind: (userUuid) => accountProviders.bind({ apiBaseUrl: API_BASE_URL, userUuid }),
   refresh: async (generation) => {
-    await transport.authenticated((accessToken) => commands.providersRefreshManaged({ generation, accessToken }))
+    await transport.authenticated((accessToken) => accountProviders.refresh(generation, accessToken))
   },
-  clear: async () => {
-    await commands.providersClearManaged()
-  }
+  clear: () => accountProviders.clear()
 })
 let validatedAccount: string | null = null
 async function clearAccountProviders(): Promise<void> {

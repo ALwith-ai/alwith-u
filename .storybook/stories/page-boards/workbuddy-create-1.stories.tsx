@@ -4,7 +4,7 @@ import * as source from "../pages/workbuddy-create.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-workbuddy-create-1",
-  title: "页面/负一屏/宠物伙伴/创建伙伴/默认状态"
+  title: "页面/负一屏/Vibémon伙伴/创建伙伴/默认状态"
 }
 export default meta
 

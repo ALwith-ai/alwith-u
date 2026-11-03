@@ -324,9 +324,9 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
       const value: unknown =
         command === "draft_directory"
           ? "/tmp"
-          : command === "providers_apply"
+          : command === "plugin:alwith-chat|providers_apply"
             ? providers
-            : command === "read_apps_info"
+            : command === "plugin:alwith-installed-apps|read_apps_info"
               ? []
               : command === "settings_request"
                 ? { revision: 1, values: {}, browserMigrated: true }

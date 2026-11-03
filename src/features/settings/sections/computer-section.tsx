@@ -1,12 +1,13 @@
+import { commands } from "@alwith/module-computer/commands"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { useComputerStatus } from "@/features/computer/computer-control"
 import { enableComputer, reconnectComputer, stopComputer } from "@/features/computer/operations"
 import { isMac } from "@/lib/platform"
+import { text } from "@/lib/text"
 
 import { SettingGroup, SettingRow } from "./shared"
 
@@ -22,7 +23,7 @@ export function ComputerSection() {
     try {
       await operation()
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error))
+      setError(text(error))
     }
   }
   const toggle = async (enabled: boolean) => {
@@ -69,7 +70,7 @@ export function ComputerSection() {
                       className="h-9"
                       onClick={() =>
                         void perform(() =>
-                          commands.computerRequestPermissions({
+                          commands.requestPermissions({
                             permission,
                             request: true
                           })
@@ -85,7 +86,7 @@ export function ComputerSection() {
                     className="h-9"
                     onClick={() =>
                       void perform(() =>
-                        commands.computerRequestPermissions({
+                        commands.requestPermissions({
                           permission,
                           request: false
                         })

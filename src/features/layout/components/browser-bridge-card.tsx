@@ -1,11 +1,11 @@
 import { ALWITH_EXTENSION_ID, BRIDGE_PING_URL, type BrowserBridgeHost, useBrowserBridge } from "@alwith/module-browser"
+import { commands } from "@alwith/module-browser/commands"
 import { fetch as httpFetch } from "@tauri-apps/plugin-http"
 import { ExternalLinkIcon } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
@@ -15,11 +15,11 @@ import { cn } from "@/lib/utils"
 import { WindowCard } from "./window-card"
 
 const nativeHost: BrowserBridgeHost = {
-  extensionInstalled: () => commands.chromeExtensionInstalled(),
-  bridgeInstalled: () => commands.chromeBridgeInstalled(),
+  extensionInstalled: () => commands.extensionInstalled(),
+  bridgeInstalled: () => commands.bridgeInstalled(),
   ping: async (signal) => (await httpFetch(BRIDGE_PING_URL, { method: "GET", connectTimeout: 1500, signal })).ok,
   setEnabled: async (enabled) => {
-    await commands.setChromeBridgeEnabled({ enabled })
+    await commands.setBridgeEnabled({ enabled })
   }
 }
 

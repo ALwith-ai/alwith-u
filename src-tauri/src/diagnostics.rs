@@ -754,40 +754,20 @@ fn operation(method: &str) -> Option<&str> {
     }
 }
 
-pub enum ComputerOperation {
-    Start,
-    Stop,
-    Reconnect,
-    Ready,
-    Bind,
-}
-
-impl ComputerOperation {
-    fn name(&self) -> &'static str {
-        match self {
-            Self::Start => "computer/start",
-            Self::Stop => "computer/stop",
-            Self::Reconnect => "computer/reconnect",
-            Self::Ready => "computer/ready",
-            Self::Bind => "computer/bind",
-        }
-    }
-}
-
-pub fn computer_result<T>(
-    operation: ComputerOperation, session: Option<&str>, result: Result<T, String>,
-) -> Result<T, String> {
-    record(
-        "computer",
-        if result.is_ok() { "succeeded" } else { "failed" },
-        Context {
-            operation: Some(operation.name().into()),
-            session_ref: session.map(reference),
-            error: result.as_ref().err().map(|error| signature(error)),
-            ..Context::default()
-        },
-    );
-    result
+/// Records every computer host transition; registered as the computer plugin's observer.
+pub fn computer_observer() -> alwith_computer::Observer {
+    std::sync::Arc::new(|operation, session, error| {
+        record(
+            "computer",
+            if error.is_none() { "succeeded" } else { "failed" },
+            Context {
+                operation: Some(operation.name().into()),
+                session_ref: session.map(reference),
+                error: error.map(|error| signature(&error.message)),
+                ..Context::default()
+            },
+        );
+    })
 }
 
 fn model_context(model: &str, context: &mut Context) {

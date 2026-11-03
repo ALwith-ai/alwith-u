@@ -12,8 +12,8 @@ const native = vi.hoisted(() => ({
   enabled: false,
   permitted: false
 }))
-vi.mock("@/bindings", () => ({
-  commands: { computerRequestPermissions: native.permission }
+vi.mock("@alwith/module-computer/commands", () => ({
+  commands: { requestPermissions: native.permission }
 }))
 vi.mock("@/lib/platform", () => ({ isMac: () => true }))
 vi.mock("@/features/computer/computer-control", () => ({

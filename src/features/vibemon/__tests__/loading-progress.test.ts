@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 
-import { advanceLoadingProgress } from "../../../../node_modules/@alwith/module-auth/dist/pets/core/lib/loading-progress.js"
+import { advanceLoadingProgress } from "../../../../node_modules/@alwith/module-auth/dist/vibemon/core/lib/loading-progress.js"
 
 function advance(real: number, seconds: number, displayed = 0): number {
   for (let frame = 0; frame < seconds * 60; frame++) {

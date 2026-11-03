@@ -1,26 +1,26 @@
-export type PetCollapseResult = { type: "shown" } | { type: "setup"; view: "pull" | "equip" }
+export type VibemonCollapseResult = { type: "shown" } | { type: "setup"; view: "pull" | "equip" }
 
-export interface PetCollapseHost {
+export interface VibemonCollapseHost {
   validate: () => void
-  equippedPet: () => Promise<string>
-  hasPets: () => Promise<boolean>
-  showPet: () => Promise<void>
+  equippedVibemon: () => Promise<string>
+  hasVibemon: () => Promise<boolean>
+  showVibemon: () => Promise<void>
   bindSession: () => Promise<void>
   hideChat: () => Promise<void>
   restoreChat: () => Promise<void>
 }
 
-/** Keep the chat visible until its replacement is ready; never bind an unprepared pet. */
-export async function collapseToPet(host: PetCollapseHost): Promise<PetCollapseResult> {
+/** Keep the chat visible until its replacement is ready; never bind an unprepared vibemon. */
+export async function collapseToVibemon(host: VibemonCollapseHost): Promise<VibemonCollapseResult> {
   host.validate()
-  const equipped = await host.equippedPet()
+  const equipped = await host.equippedVibemon()
   host.validate()
   if (!equipped) {
-    const hasPets = await host.hasPets()
+    const hasVibemon = await host.hasVibemon()
     host.validate()
-    return { type: "setup", view: hasPets ? "equip" : "pull" }
+    return { type: "setup", view: hasVibemon ? "equip" : "pull" }
   }
-  await host.showPet()
+  await host.showVibemon()
   host.validate()
   await host.bindSession()
   host.validate()

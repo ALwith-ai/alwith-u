@@ -1,11 +1,10 @@
+import { commands } from "@alwith/module-editor/commands"
 import {
   createPreviewProviders,
   type NativeSpreadsheetWorkbook,
   type PreviewHost
 } from "@alwith/module-editor/previews"
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"
-
-import { commands } from "@/bindings"
 async function parseSpreadsheet(
   bytes: Uint8Array,
   signal?: AbortSignal,

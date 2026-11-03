@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "computer",
+  "description": "Computer use settings, conversation wiring and the live preview",
+  "windows": ["main", "chat", "settings"],
+  "permissions": ["alwith-computer:default"]
+}

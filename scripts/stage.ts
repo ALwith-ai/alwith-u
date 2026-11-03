@@ -17,17 +17,7 @@ import { join, resolve } from "node:path"
 
 import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
-import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
-import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
-import { stageNative as stageNativeDevice } from "@alwith/native-device/stage"
-import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
-import { stageNative as stageNativeEditor } from "@alwith/native-editor/stage"
-import { stageNative as stageNativeExtension } from "@alwith/native-extension/stage"
-import { stageNative as stageNativeFs } from "@alwith/native-fs/stage"
-import { stageNative as stageNativeGamepad } from "@alwith/native-gamepad/stage"
-import { stageNative as stageNativeInstalledApps } from "@alwith/native-installed-apps/stage"
-import { stageNative as stageNativeMobile } from "@alwith/native-mobile/stage"
-import { stageNative as stageNativeVoice } from "@alwith/native-voice/stage"
+import { stageNativeModule } from "@alwith/module-desktop-shell/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
 
@@ -107,7 +97,7 @@ if (triple === nativeTriple) {
   assertVersion("staged Bun", (await $`${bunDestination} --version`.text()).trim(), versions.bun)
 }
 console.log(`bun ${versions.bun} -> ${bunDestination}`)
-// Voice is compiled into the host; only its licence notices need staging.
+// The voice package's frontend licences; its native library carries its own below.
 const voicePackage = join(root, "node_modules/@alwith/module-voice")
 const voiceLicenses = join(licenses, "alwith-voice")
 mkdirSync(voiceLicenses, { recursive: true })
@@ -120,29 +110,35 @@ for (const entry of readdirSync(licenses)) {
   if (entry === "alwith-native" || entry.startsWith("alwith-native-"))
     rmSync(join(licenses, entry), { recursive: true, force: true })
 }
-const nativeLibraries = [
-  stageNativeEditor,
-  stageNativeMobile,
-  stageNativeAuth,
-  stageNativeInstalledApps,
-  stageNativeVoice,
-  stageNativeFs,
-  stageNativeGamepad,
-  stageNativeComputer,
-  stageNativeDrive,
-  stageNativeExtension,
-  stageNativeDevice
-].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
+// Every module plugin's library comes from its installed @alwith/module-<module> package, which must
+// match the plugin crates enabled in src-tauri/Cargo.toml.
+const MODULES = [
+  "editor",
+  "mobile",
+  "auth",
+  "installed-apps",
+  "voice",
+  "gamepad",
+  "computer",
+  "extension",
+  "device",
+  "chat",
+  "fs",
+  "drive"
+]
+const nativeDirectory = join(root, "src-tauri/resources/native")
+const staged = MODULES.flatMap((module) =>
+  stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)
+)
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
-  // A hardened application must load a library signed by the same team. Verify
-  // the distributed bytes first, then sign the staged copy using the app's identity.
-  for (const library of nativeLibraries)
-    await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${library}`
-  const deviceHelper = join(root, "src-tauri/resources/native/alwith-device-helper")
-  if (existsSync(deviceHelper))
-    await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${deviceHelper}`
+  // A hardened application must load libraries and helpers signed by the same team. The stager
+  // verified the distributed bytes; sign the staged copies with the application's identity.
+  // Codex and its code-mode host are never among them: they keep their vendor signature.
+  for (const file of staged)
+    if (file.signing === "resign")
+      await $`codesign --force --timestamp --options runtime --sign ${process.env.APPLE_SIGNING_IDENTITY} ${file.path}`
 }
-for (const library of nativeLibraries) console.log(`native module -> ${library}`)
+for (const file of staged) if (file.signing === "resign") console.log(`native module -> ${file.path}`)
 
 const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8")) as {
   version: string

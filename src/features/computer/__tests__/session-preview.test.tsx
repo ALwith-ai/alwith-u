@@ -1,7 +1,7 @@
+import type { ComputerPreview_Serialize } from "@alwith/module-computer/commands"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { ComputerPreview_Serialize } from "@/bindings"
 const native = vi.hoisted(() => ({
   subscribe: vi.fn<(request: { subscriptionId: string }) => Promise<unknown>>(),
   unsubscribe: vi.fn(),
@@ -11,11 +11,11 @@ const native = vi.hoisted(() => ({
   unlisten: vi.fn()
 }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
-vi.mock("@/bindings", () => ({
+vi.mock("@alwith/module-computer/commands", () => ({
   commands: {
-    computerFocus: native.focus,
-    computerSubscribe: native.subscribe,
-    computerUnsubscribe: native.unsubscribe
+    focus: native.focus,
+    subscribe: native.subscribe,
+    unsubscribe: native.unsubscribe
   },
   events: { "computer:preview": { listen: native.listen } }
 }))

@@ -5,7 +5,7 @@ Run `bun run storybook` and open <http://127.0.0.1:6007>. The sidebar has exactl
 - **页面**: reachable pages and their feature groups. Each **状态总览** contains only peer states of one control.
 - **流程**: module → individual journey → **完整流程图**. Each diagram contains the source pages for its checkpoints, connected in order.
 
-Use Controls to change the page, conversation state, response behavior, project data, selected file, connection, account, plugin/extension state, cloud state, settings section, pet state, window width, operating-system shell, wallpaper, zoom, global elicitation, composer behavior, binary file preview, or operation failures. Switching stories or changing Controls resets the in-memory preview state. Theme and language remain available in the Storybook toolbar.
+Use Controls to change the page, conversation state, response behavior, project data, selected file, connection, account, plugin/extension state, cloud state, settings section, vibemon state, window width, operating-system shell, wallpaper, zoom, global elicitation, composer behavior, binary file preview, or operation failures. Switching stories or changing Controls resets the in-memory preview state. Theme and language remain available in the Storybook toolbar.
 
 ## Page and feature stories
 
@@ -25,7 +25,7 @@ Sidebar workflow titles use concise purpose names from `workflow-names.json`; in
 
 ## Source ownership
 
-The catalog imports current components from `src/`, the shared packages pinned by `bun.lock`, and `src/index.css`. `product-preview.tsx` composes the same source layout, navigation, chat, and workspace components as `src/app.tsx`. Auxiliary previews mount `SettingsPage`, `ChatWindow`, `GamepadWindow`, `GuidePage`, `AuthGate`, `PetWindow`, and `PetQuickReply` directly. This covers all seven Vite window entrypoints, including the desktop pet and its reply bubble.
+The catalog imports current components from `src/`, the shared packages pinned by `bun.lock`, and `src/index.css`. `product-preview.tsx` composes the same source layout, navigation, chat, and workspace components as `src/app.tsx`. Auxiliary previews mount `SettingsPage`, `ChatWindow`, `GamepadWindow`, `GuidePage`, `AuthGate`, `VibemonWindow`, and `VibemonQuickReply` directly. This covers all seven Vite window entrypoints, including the desktop vibemon and its reply bubble.
 
 The app bootstrap is replaced because it starts native services. Only host boundaries are substituted in `.storybook/main.ts`: the client/runtime, native IPC, authentication, cloud transport, extension runtime, window handoff, native HTML URL transport, and native wallpaper resource URL transport. No business component or shared UI primitive is replaced. No production source or design tokens are modified.
 
@@ -40,7 +40,7 @@ The directory review checked main navigation in `src/app.tsx`, all seven Vite wi
 | Story demo | `src/features/story/story-page.tsx` identifies it as a demo. `src/app.tsx` retains a `view === "story"` render branch but no action sets that view. | Removed five page examples, three journeys and their 13 checkpoints, the direct preview selector, reset data and host substitution. |
 | MCP startup diagnostics menu | `src/features/chat/chat-actions-menu.tsx` sets `showMcpDiagnostics = false`. | Removed two isolated examples, their custom menu wrapper and diagnostic-only Controls/data. Plugin MCP server details remain part of the reachable plugin detail page. |
 
-Guide, gamepad, floating chat, and desktop pet windows retain real product paths: help menu, account/recommendation entries, chat window handoff, and pet controls respectively. Component and layout detail examples remain for rendering and geometry checks; they do not establish additional product modules. Product source is preserved.
+Guide, gamepad, floating chat, and desktop vibemon windows retain real product paths: help menu, account/recommendation entries, chat window handoff, and vibemon controls respectively. Component and layout detail examples remain for rendering and geometry checks; they do not establish additional product modules. Product source is preserved.
 
 ## Coverage map
 
@@ -55,8 +55,8 @@ Guide, gamepad, floating chat, and desktop pet windows retain real product paths
 | `SettingsPage` and its source sections | General, appearance, editor, account, providers, voice, computer, extensions, cloud, about; alternate account and permission states | Traverse all sections; change theme; configure provider; enable/disable computer; open system permissions; sign out |
 | `AuthGate` | Code/password/register; invalid input; code cooldown; waitlist/disabled account; dark mode | Register and sign in; input correction; waitlist/disabled responses; sign out |
 | `DrivePage`, `DriveSettings`, `DriveStatus` | Project libraries, empty, unconfigured, offline, errors, paused | Open project, creation entry, project management, sync and failure states |
-| `VibemonCenter` and bundled pet UI | Home, pull, equipment, album, empty/offline/sync errors/onboarding/insufficient points/draw error | Home navigation, album/equipment, single/multiple draws, insufficient points and errors |
-| `PetWindow`, `PetQuickReply` | Actual sprite canvas; idle/running/permission; bubble idle/running/permission/question/error/read-only/no-session/dark | Send and receive; allow/reject; answer a question |
+| `VibemonCenter` and bundled vibemon UI | Home, pull, equipment, album, empty/offline/sync errors/onboarding/insufficient points/draw error | Home navigation, album/equipment, single/multiple draws, insufficient points and errors |
+| `VibemonWindow`, `VibemonQuickReply` | Actual sprite canvas; idle/running/permission; bubble idle/running/permission/question/error/read-only/no-session/dark | Send and receive; allow/reject; answer a question |
 | Auxiliary product windows | Guide; floating draft/conversation/permission; disconnected/connected/running/error gamepad | Main/floating handoff; guide entry and chapter navigation; gamepad entry from the account menu or recommendation |
 
 Full-page stories also expose dark mode, narrow windows and source Controls. The retained detail stories include RTL, scrolling, content retention, panel boundaries and continuous resize checks.
@@ -75,11 +75,11 @@ Synthetic binary assets are kept under `assets/` and served at `/storybook-fixtu
 
 ## Simulation contract
 
-Preview data includes projects, recent and archived conversations, a 32-turn history, tool output, plans, permissions, files and differences, an ALwith profile, Codex usage, six plugins, three skills and three pets. Desktop geometry and movement are simulated in the browser. Pet art, sprites and animation come from the installed package; account and catalog data are simulated.
+Preview data includes projects, recent and archived conversations, a 32-turn history, tool output, plans, permissions, files and differences, an ALwith profile, Codex usage, six plugins, three skills and three vibemon. Desktop geometry and movement are simulated in the browser. Vibemon art, sprites and animation come from the installed package; account and catalog data are simulated.
 
 File operations and edits write to `fixtures/filesystem.ts` in memory. Login, model requests, installation, cloud requests, and window handoffs use isolated preview state. Browser stories do not connect to the user's Runtime, send verification messages, install real extensions, or write project files to disk. External links are mocked. OS dialogs and permissions are represented by their source frontend and mocked responses.
 
-Monaco uses Chromium EditContext. Automated editing dispatches its OS text-update event to the real editor; source save and close handlers still perform the operation. Error toasts stay visible for checkpoint inspection and are cleared between examples. Pet flow tests complete the source video's `ended` event to reach the actual result UI without waiting for the entire clip.
+Monaco uses Chromium EditContext. Automated editing dispatches its OS text-update event to the real editor; source save and close handlers still perform the operation. Error toasts stay visible for checkpoint inspection and are cleared between examples. Vibemon flow tests complete the source video's `ended` event to reach the actual result UI without waiting for the entire clip.
 
 ## CI recovery (2026-10-30)
 
@@ -91,13 +91,13 @@ Browser tests run in batches of eight files with one worker and a fresh Chromium
 
 The catalog is integrated with `main` at `a94ded5`. It retains Chinese page/feature navigation, complete source page states, 144 workflow diagrams, and shared theme/language controls. New upstream browser bridge, mobile settings, extension controls, plugin catalog, subagent, and app-creation examples are included in the page groups. The current index contains **369 page/component examples + 144 workflow diagrams = 513 sidebar stories**, with 492 embedded workflow checkpoints across 246 generated story files.
 
-The integration adapts adapter-owned session types and list state, shared chat components and drafts, project grouping, host fixtures, the settings-backed theme, and newer drive/pet contracts. Production source, dependencies, and application configuration match the main branch. The synthetic user-agent fixture includes Chromium brand metadata required by the accessibility matcher.
+The integration adapts adapter-owned session types and list state, shared chat components and drafts, project grouping, host fixtures, the settings-backed theme, and newer drive/vibemon contracts. Production source, dependencies, and application configuration match the main branch. The synthetic user-agent fixture includes Chromium brand metadata required by the accessibility matcher.
 
 Results recorded at the baseline commit, before the CI recovery above:
 
 - Storybook and application type checks, both static builds, knip, and scoped formatting pass.
 - All 1,482 source frontend/engine tests pass across 239 files.
-- A browser smoke check passes for 13 representative page families in both light and dark modes (26 checks), including chat, settings, archives, plugins, files, extensions, pets, gamepad, floating chat, mobile settings, browser bridge, and subagents.
+- A browser smoke check passes for 13 representative page families in both light and dark modes (26 checks), including chat, settings, archives, plugins, files, extensions, vibemon, gamepad, floating chat, mobile settings, browser bridge, and subagents.
 - All 38 targeted interaction checks pass across eight generated story files, covering the migrated model menu, app creation, plugin operations, composer recovery, plugin details, image preview, gamepad, and floating chat. Existing contrast findings in the open model menu and app-creation choices are explicit accessibility TODOs; product colors are unchanged.
 - The broader page run is not a passing full-catalog result: it encountered browser connection closure and stale canvas/layout assertions against the newer Atlas geometry. The targeted workflow verifier passes navigation geometry/panning/zoom, plugin installation, Guide navigation, and plugin failure recovery, but times out on the later all-settings checkpoint batch. These remaining checks need follow-up before claiming full interaction coverage.
 - The aggregate application test command stops at three native-artifact fixture failures caused by encoded Chinese/space path segments (86 script tests pass). This Bun installation has no `lint` command. Neither limitation was fixed as part of the Storybook integration.

@@ -25,12 +25,12 @@ struct BackdropLayers {
 
 define_class!(
     #[unsafe(super = NSVisualEffectView)]
-    #[name = "ALwithUPetBackdropView"]
+    #[name = "ALwithUVibemonBackdropView"]
     #[thread_kind = MainThreadOnly]
     #[ivars = BackdropLayers]
-    struct PetBackdropView;
+    struct VibemonBackdropView;
 
-    impl PetBackdropView {
+    impl VibemonBackdropView {
         #[unsafe(method(hitTest:))]
         fn hit_test(&self, _point: NSPoint) -> *mut NSView {
             ptr::null_mut()
@@ -53,7 +53,7 @@ define_class!(
     }
 );
 
-impl PetBackdropView {
+impl VibemonBackdropView {
     fn new(mtm: MainThreadMarker, frame: NSRect, outline: Vec<BackdropPathCommand>) -> Retained<Self> {
         let backdrop_class = AnyClass::get(c"CABackdropLayer").expect("macOS CABackdropLayer is required");
         let filter_class = AnyClass::get(c"CAFilter").expect("macOS CAFilter is required");
@@ -134,20 +134,20 @@ impl PetBackdropView {
     }
 }
 thread_local! {
- static BACKDROPS: RefCell<HashMap<usize, Retained<PetBackdropView>>> = RefCell::new(HashMap::new());
+ static BACKDROPS: RefCell<HashMap<usize, Retained<VibemonBackdropView>>> = RefCell::new(HashMap::new());
 }
 pub(super) fn apply(native: &NSWindow, radius: u32, outline: Option<Vec<BackdropPathCommand>>) -> Result<(), String> {
     // Opaque task cards still publish measured geometry for presentation readiness.
     // A zero radius must not create or expose a native material behind their animation.
     let outline = if radius == 0 { None } else { outline };
-    let mtm = MainThreadMarker::new().ok_or("Pet backdrop requires the main thread")?;
+    let mtm = MainThreadMarker::new().ok_or("Vibemon backdrop requires the main thread")?;
     let handle = native as *const _ as usize;
     BACKDROPS.with_borrow_mut(|backdrops| {
   if let Some(view) = backdrops.get(&handle) { view.update(radius, outline); return Ok(()) }
   let Some(outline) = outline else { return Ok(()) };
-  let content = native.contentView().ok_or("Pet bubble requires its content view")?;
-  let parent = unsafe { content.superview() }.ok_or("Pet bubble content must be attached")?;
-  let view = PetBackdropView::new(mtm, content.frame(), outline);
+  let content = native.contentView().ok_or("Vibemon bubble requires its content view")?;
+  let parent = unsafe { content.superview() }.ok_or("Vibemon bubble content must be attached")?;
+  let view = VibemonBackdropView::new(mtm, content.frame(), outline);
   unsafe { let _: () = msg_send![&*view.ivars().backdrop, setValue: &*NSNumber::new_f64(f64::from(radius)), forKeyPath: ns_string!("filters.gaussianBlur.inputRadius")]; }
   parent.addSubview_positioned_relativeTo(&view, NSWindowOrderingMode::Below, Some(&content));
   backdrops.insert(handle, view);

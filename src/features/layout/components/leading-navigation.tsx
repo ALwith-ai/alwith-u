@@ -24,7 +24,7 @@ export function LeadingNavigation({
       activePage={activePage === "extensions" ? "plugins" : activePage}
       items={[
         { id: "plugins", label: t("plugins.catalog.customize"), icon: LayoutGridIcon, onClick: onOpenPlugins },
-        { id: "vibemon", label: t("sidebar.pets"), icon: PawPrintIcon, onClick: onOpenVibemon },
+        { id: "vibemon", label: t("sidebar.vibemon"), icon: PawPrintIcon, onClick: onOpenVibemon },
         { id: "archives", label: t("archives.title"), icon: ArchiveIcon, onClick: onOpenArchives }
       ]}
     >

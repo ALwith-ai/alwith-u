@@ -1,7 +1,7 @@
 use crate::extension_wire::{HttpRequest, HttpResponse};
-use alwith_extension::http;
 use reqwest::Url;
 use tauri::Manager;
+use alwith_extension::http;
 
 use super::require_installation;
 

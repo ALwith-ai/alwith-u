@@ -35,8 +35,8 @@ vi.mock("@nyssance/atlas/station", async (original) => ({
       nest: { left: 100, top: 100, right: 200, bottom: 200 }
     })
 }))
-vi.mock("../transport", () => ({ requestPet: f.request }))
-vi.mock("../display-error", () => ({ reportPetError: f.error }))
+vi.mock("../transport", () => ({ requestVibemon: f.request }))
+vi.mock("../display-error", () => ({ reportVibemonError: f.error }))
 afterEach(() => {
   cleanup()
   f.handlers.clear()
@@ -45,17 +45,17 @@ afterEach(() => {
   f.rect = { x: 100, y: 100, width: 100, height: 100 }
 })
 
-test("a native release returns a pet only when it covers the visible nest", async () => {
+test("a native release returns a vibemon only when it covers the visible nest", async () => {
   renderHook(() => useLoungeDrop({ current: document.createElement("div") }))
   await act(() =>
     Promise.try(() => {
       f.handlers.get("vibemon:drag-end")?.()
     })
   )
-  await waitFor(() => expect(f.request).toHaveBeenCalledExactlyOnceWith("close-pet"))
+  await waitFor(() => expect(f.request).toHaveBeenCalledExactlyOnceWith("close-vibemon"))
 })
 
-test.each(["hidden", "outside"])("a %s lounge cannot consume the desktop pet", async (reason) => {
+test.each(["hidden", "outside"])("a %s lounge cannot consume the desktop vibemon", async (reason) => {
   f.visible = reason !== "hidden"
   if (reason === "outside") f.rect.x = 250
   renderHook(() => useLoungeDrop({ current: document.createElement("div") }))

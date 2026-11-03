@@ -9,8 +9,11 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 beforeEach(() => vi.clearAllMocks())
 
 test("background logging preserves the cause without showing a notice", () => {
-  logBackgroundError("pet-sync/resource/pet-id", new Error("Download failed", { cause: new Error("TLS failure") }))
-  expect(logError).toHaveBeenCalledWith(expect.stringContaining("pet-sync/resource/pet-id"))
+  logBackgroundError(
+    "vibemon-sync/resource/vibemon-id",
+    new Error("Download failed", { cause: new Error("TLS failure") })
+  )
+  expect(logError).toHaveBeenCalledWith(expect.stringContaining("vibemon-sync/resource/vibemon-id"))
   expect(logError).toHaveBeenCalledWith(expect.stringContaining("TLS failure"))
   expect(toast.error).not.toHaveBeenCalled()
 })

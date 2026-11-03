@@ -1,13 +1,13 @@
-import type { PetObservation, PetSessionHost } from "@alwith/module-auth/pets/core"
+import type { VibemonObservation, VibemonSessionHost } from "@alwith/module-auth/vibemon/core"
 import { listen } from "@tauri-apps/api/event"
 
-import { inspectPet, requestPet } from "./transport"
+import { inspectVibemon, requestVibemon } from "./transport"
 
-export async function createPetSessionClient(): Promise<PetSessionHost & { dispose: () => void }> {
-  let snapshot: PetObservation | null = null
+export async function createVibemonSessionClient(): Promise<VibemonSessionHost & { dispose: () => void }> {
+  let snapshot: VibemonObservation | null = null
   let revision = 0
-  const listeners = new Set<(value: PetObservation | null) => void>()
-  const stop = await listen<PetObservation | null>("vibemon:observation", ({ payload }) => {
+  const listeners = new Set<(value: VibemonObservation | null) => void>()
+  const stop = await listen<VibemonObservation | null>("vibemon:observation", ({ payload }) => {
     if (
       payload !== null &&
       snapshot !== null &&
@@ -25,9 +25,9 @@ export async function createPetSessionClient(): Promise<PetSessionHost & { dispo
   }
   listeners.add(unregister)
   const baseline = updates
-  let initial: PetObservation | null
+  let initial: VibemonObservation | null
   try {
-    initial = await inspectPet<PetObservation | null>()
+    initial = await inspectVibemon<VibemonObservation | null>()
   } catch (error) {
     stop()
     listeners.clear()
@@ -46,14 +46,14 @@ export async function createPetSessionClient(): Promise<PetSessionHost & { dispo
         listeners.delete(listener)
       }
     },
-    panel: (level) => requestPet("task-panel", { level }),
-    cancel: (binding, requestId) => requestPet("cancel-task", { binding, requestId }),
-    dismiss: (binding) => requestPet("dismiss-task", { binding }),
-    send: (binding, requestId, text) => requestPet("send", { binding, requestId, text }),
-    answer: (binding, requestId, token, optionId) => requestPet("answer", { binding, requestId, token, optionId }),
-    openChat: (binding) => requestPet("open-chat", { binding }),
-    activate: () => requestPet("activate"),
-    select: (binding, sessionId) => requestPet("select-session", { binding, sessionId }),
+    panel: (level) => requestVibemon("task-panel", { level }),
+    cancel: (binding, requestId) => requestVibemon("cancel-task", { binding, requestId }),
+    dismiss: (binding) => requestVibemon("dismiss-task", { binding }),
+    send: (binding, requestId, text) => requestVibemon("send", { binding, requestId, text }),
+    answer: (binding, requestId, token, optionId) => requestVibemon("answer", { binding, requestId, token, optionId }),
+    openChat: (binding) => requestVibemon("open-chat", { binding }),
+    activate: () => requestVibemon("activate"),
+    select: (binding, sessionId) => requestVibemon("select-session", { binding, sessionId }),
     dispose() {
       stop()
       listeners.clear()

@@ -21,17 +21,18 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-test("reads the actual skill file through the shared filesystem adapter", async () => {
+test("reads the actual skill file through the shared filesystem plugin", async () => {
   const invoke = vi.mocked(core.invoke).mockImplementation((command) => {
-    if (command === "workspace_open") return Promise.resolve("/skills/research")
-    if (command === "workspace_file")
+    if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills/research")
+    if (command === "plugin:alwith-fs|workspace_read_file")
       return Promise.resolve([...new TextEncoder().encode("# Instructions\nUse evidence.")])
     return Promise.reject(new Error("Unexpected command"))
   })
   expect(await readSkillDocument("/skills/research/SKILL.md")).toBe("# Instructions\nUse evidence.")
-  expect(invoke).toHaveBeenCalledWith("workspace_open", { path: "/skills/research" })
-  expect(invoke).toHaveBeenCalledWith("workspace_file", {
-    request: { root: "/skills/research", operation: "readFile", path: "/skills/research/SKILL.md" }
+  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_open", { path: "/skills/research" })
+  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_read_file", {
+    root: "/skills/research",
+    path: "/skills/research/SKILL.md"
   })
 })
 
@@ -46,7 +47,7 @@ test("shows read errors and retries into rendered Markdown", async () => {
   let failed = true
   vi.mocked(core.invoke).mockImplementation((command) => {
     if (failed) return Promise.reject(new Error("File unavailable"))
-    if (command === "workspace_open") return Promise.resolve("/skills")
+    if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills")
     return Promise.resolve([
       ...new TextEncoder().encode("---\nname: hidden-metadata\n---\n# Instructions\n\nUse **evidence**.")
     ])

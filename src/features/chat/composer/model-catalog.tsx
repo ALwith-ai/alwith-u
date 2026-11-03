@@ -1,12 +1,11 @@
+import providerCatalog from "@alwith/module-chat/assets/provider-catalog.json"
 import type { ModelMenuProps } from "@alwith/module-chat/conversation"
 import type { ChatModelOption } from "@alwith/module-chat/model-select"
 import { Bot } from "lucide-react"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import openaiLogo from "@/components/icons/openai-logo.svg"
-import modelPresentation from "@/lib/model-presentation.json"
-import providerCatalog from "@/lib/provider-catalog.json"
-import { gatewayModelId, PROVIDERS } from "@/lib/providers"
+import { gatewayModelId, MODEL_PRESENTATION, PROVIDERS } from "@/lib/providers"
 
 import alwithLogo from "../../../../src-tauri/icons/32x32.png"
 import { ModelSettingsAction } from "./model-settings-action"
@@ -22,7 +21,7 @@ const managedLabels = new Map(
     )
 )
 
-const presentation: Record<string, { shortLabel: string } | undefined> = modelPresentation
+const presentation = MODEL_PRESENTATION
 const groupPriorities = new Map<string, number>([
   ...providerCatalog.map((provider): [string, number] => [provider.id, provider.source === "account" ? 1 : 2]),
   [NATIVE_MODEL_GROUP.id, 0]

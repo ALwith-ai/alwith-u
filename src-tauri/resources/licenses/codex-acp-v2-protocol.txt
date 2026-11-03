@@ -44,7 +44,7 @@ You must not misrepresent authorship or imply ALwith endorses your application.
 4. Accounts and services
 This license does not supply platform credentials, paid entitlements, hosting,
 support, updates or a service-availability guarantee. Use of ALwith accounts,
-pets, relay or other hosted services is separately subject to the applicable
+Vibemon, relay or other hosted services is separately subject to the applicable
 service terms and authorization. Do not bypass service access controls or use
 another person's credentials without authorization. Choosing or replacing an
 authentication provider for your own application is not prohibited by this

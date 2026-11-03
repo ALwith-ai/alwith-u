@@ -105,17 +105,17 @@ mod observer {
             if crate::window::is_closing(&handle) {
                 return;
             }
-            let mut pet_restored = false;
+            let mut vibemon_restored = false;
             // Child layout must use the repaired parent frame, never HashMap iteration order.
             for label in ["chat", "vibemon", "bubble-menu-vibemon"] {
-                if label == "bubble-menu-vibemon" && !pet_restored {
+                if label == "bubble-menu-vibemon" && !vibemon_restored {
                     continue;
                 }
                 let Some(window) = handle.get_webview_window(label) else { continue };
                 match restore_window(&window) {
                     Ok(restored) => {
                         if label == "vibemon" {
-                            pet_restored = restored;
+                            vibemon_restored = restored;
                         }
                     }
                     Err(error) => log::error!("Could not restore overlay {label}: {error}"),

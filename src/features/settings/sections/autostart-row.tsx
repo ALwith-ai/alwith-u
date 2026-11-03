@@ -48,11 +48,14 @@ export function AutostartRow() {
     }
   }, [read])
   return (
-    <SettingRow title={t("settings.petAutostart")} desc={supported ? undefined : t("settings.petAutostartInstalled")}>
+    <SettingRow
+      title={t("settings.vibemonAutostart")}
+      desc={supported ? undefined : t("settings.vibemonAutostartInstalled")}
+    >
       <div className="flex items-center gap-2">
         {pending && <LoaderCircleIcon className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />}
         <Switch
-          aria-label={t("settings.petAutostart")}
+          aria-label={t("settings.vibemonAutostart")}
           checked={enabled === true}
           disabled={pending || enabled === null || !supported}
           onCheckedChange={(value) => void read(value)}

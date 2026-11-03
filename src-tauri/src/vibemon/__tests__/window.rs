@@ -28,7 +28,7 @@ fn backdrop_rejects_invalid_radius_role_and_nonfinite_coordinates() {
     backdrop.radius = None;
     assert!(validate(&backdrop).is_err());
     backdrop.radius = Some(20);
-    backdrop.role = "pet".into();
+    backdrop.role = "vibemon".into();
     assert!(validate(&backdrop).is_err());
     backdrop.role = "bubble".into();
     backdrop.path = Some(vec![BackdropPathCommand::Line { x: f64::NAN, y: 0. }]);

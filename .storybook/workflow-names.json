@@ -112,13 +112,13 @@
     "account": "账户资料访问",
     "guide": "用户指南阅读"
   },
-  "pet-reply": {
-    "send": "宠物快捷对话",
-    "allow": "宠物权限批准",
-    "reject": "宠物权限拒绝",
-    "answer": "宠物问题回答"
+  "vibemon-reply": {
+    "send": "Vibémon快捷对话",
+    "allow": "Vibémon权限批准",
+    "reject": "Vibémon权限拒绝",
+    "answer": "Vibémon问题回答"
   },
-  "pets": {
+  "vibemon": {
     "wish": "卡池浏览",
     "album": "伙伴图鉴浏览",
     "equip": "伙伴选择",

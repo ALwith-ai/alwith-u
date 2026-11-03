@@ -2,8 +2,9 @@ import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
+import providers from "@alwith/module-chat/assets/provider-catalog.json"
+
 import tauri from "../../../src-tauri/tauri.conf.json"
-import providers from "../../../src/lib/provider-catalog.json"
 
 interface CatalogModel {
   slug: string

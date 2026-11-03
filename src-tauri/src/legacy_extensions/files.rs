@@ -5,12 +5,12 @@ use std::{
     sync::Mutex,
 };
 
+use serde::{Deserialize, Serialize};
+use tauri::Manager;
 use alwith_extension::filesystem::{FileEntry, FileOperation, FileRequest, FileResponse, perform_file};
 #[cfg(test)]
 use alwith_extension::filesystem::{MAX_BYTES, read_scoped};
 pub(super) use alwith_extension::filesystem::{open_scope, scoped_path};
-use serde::{Deserialize, Serialize};
-use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
 use super::require_installation;
@@ -143,7 +143,7 @@ fn perform_private_file(
             _ => {}
         }
     }
-    perform_file(root, request)
+    Ok(perform_file(root, request)?)
 }
 
 pub(super) fn with_file_lock<T>(
@@ -249,7 +249,7 @@ async fn file_command(
             let files = super::importer::package_files(&app, &extension_id)?;
             return perform_private_file(&root, request, &files);
         }
-        perform_file(&root, request)
+        Ok(perform_file(&root, request)?)
     })
     .await
     .map_err(|error| format!("Extension file task failed: {error}"))?

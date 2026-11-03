@@ -65,8 +65,9 @@ function environment(nativeWindow = false) {
         let result: unknown
         if (command === "draft_directory")
           result = (args as { cwd: string | null }).cwd ?? "/Users/mac/Documents/ALwith"
-        else if (command === "providers_apply" || command === "providers_read") result = providers
-        else if (command === "read_apps_info") result = []
+        else if (command === "plugin:alwith-chat|providers_apply" || command === "plugin:alwith-chat|providers_read")
+          result = providers
+        else if (command === "plugin:alwith-installed-apps|read_apps_info") result = []
         else if (nativeWindow) return invokeHost<T>(command, args)
         else throw new Error(`Unexpected host command: ${command}`)
         return result as T
@@ -1077,7 +1078,7 @@ test("packaged Plugin SDK fills the real U composer through the public chat brid
     name: "Chat",
     version: "1.0.0",
     entry: "main.js",
-    dependencies: { "@alwith/module-extension": "^0.5.0" },
+    dependencies: { "@alwith/module-extension": "^0.6.0" },
     hosts: {},
     dataSchemaVersion: 1
   }

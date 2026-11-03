@@ -1,9 +1,9 @@
 import { defaultPreferences, type Provider } from "@alwith/module-voice"
+import { commands } from "@alwith/module-voice/commands"
 import { VoiceSettingsForm, type VoiceSettingsHost, type VoiceSettingsSlots } from "@alwith/module-voice/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { commands } from "@/bindings"
 import { VoiceSection } from "@/features/settings/sections/voice-section"
 import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 import { mockOf } from "@/test/mock-of"
@@ -74,7 +74,7 @@ function fixture() {
 test("saving without a key commits settings and shows a reminder, while a configured key shows success", async () => {
   const native = settingsFixture()
   const profiles = { doubao: false, vui: false }
-  vi.spyOn(commands, "voiceProfiles").mockImplementation(() => Promise.resolve(profiles))
+  vi.spyOn(commands, "profiles").mockImplementation(() => Promise.resolve(profiles))
   fixture()
   render(<VoiceSection />)
   fireEvent.click(await screen.findByRole("button", { name: "voice.save" }))

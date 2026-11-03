@@ -406,7 +406,7 @@ pub(crate) async fn prepare_install_from_directory(
         if snapshot_manifest != manifest {
             return Err("Extension manifest changed during import".into());
         }
-        alwith_extension::plugin::grant_install(&app, window.label(), &directory, "local")
+        alwith_extension::grant_install(&app, window.label(), &directory, "local")
             .map_err(|e| e.to_string())?;
         return Ok(PreparedInstall::Current {
             path: directory.to_str().ok_or("Invalid extension directory path")?.into(),
@@ -489,7 +489,8 @@ fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String>
     } else if let Some(icon) = old.get("icon").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) {
         let candidate = if icon.contains(':') { icon.to_owned() } else { format!("lucide:{icon}") };
         manifest["icon"] = json!(candidate);
-        let typed: alwith_extension::Manifest = serde_json::from_value(manifest.clone()).map_err(|e| e.to_string())?;
+        let typed: alwith_extension::Manifest =
+            serde_json::from_value(manifest.clone()).map_err(|e| e.to_string())?;
         // Old Obsidian icon names and local icon paths are optional metadata;
         // keep only forms the public package metadata model can represent.
         if alwith_extension::validate_manifest(&typed).is_err() {
@@ -597,7 +598,7 @@ fn stage_import_from_ticket(
     let revision = package_revision(&files);
     registry.entry(id.into()).or_default().entry(revision.clone()).or_insert(certificate);
     save_registry(&registry_path, &registry)?;
-    alwith_extension::plugin::grant_install(window.app_handle(), window.label(), staging.path(), SOURCE)
+    alwith_extension::grant_install(window.app_handle(), window.label(), staging.path(), SOURCE)
         .map_err(|e| e.to_string())?;
     let result = StagedImport {
         path: staging.path().to_str().ok_or("Invalid legacy staging path")?.into(),
@@ -640,7 +641,7 @@ fn check_installation(
 
 fn installed_files(app: &tauri::AppHandle, extension_id: &str) -> Result<(String, PackageFiles), String> {
     let (identity, files) =
-        alwith_extension::plugin::installed_package(app, extension_id, SOURCE).map_err(|e| e.to_string())?;
+        alwith_extension::installed_package(app, extension_id, SOURCE).map_err(|e| e.to_string())?;
     let registry = read_registry(&registry_path(app)?)?;
     let revision = check_installation(&identity, &files, &registry)?;
     Ok((revision, files))
@@ -698,7 +699,7 @@ pub fn legacy_ack_initial_data(window: tauri::Window, extension_id: String) -> R
 #[tauri3_specta::command]
 pub fn legacy_cleanup_import(window: tauri::Window, extension_id: String) -> Result<(), String> {
     require_main(&window)?;
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
     if snapshot.installations.iter().any(|i| i.id == extension_id)
         || snapshot.pending.iter().any(|p| p.id == extension_id)
     {
@@ -1054,7 +1055,7 @@ mod tests {
             service.dispatch("main", serde_json::from_value::<Request>(value).unwrap()).unwrap()
         };
         dispatch(&mut service, json!({"type":"installLocal", "path":package.path(), "source":SOURCE}));
-        assert_eq!(service.snapshot().installations[0].package_revision, revision);
+        assert_eq!(service.snapshot().unwrap().installations[0].package_revision, revision);
         assert!(
             service
                 .installed_package(&p.id, SOURCE)

@@ -1,4 +1,4 @@
-import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
+import { CONTRACT_VERSION, type DriveRequest, type DriveResponse } from "@alwith/module-drive"
 import { expect, test, vi } from "vitest"
 
 import { createDriveArchive } from "../archive"
@@ -37,7 +37,7 @@ test("private conversations are excluded before export and profile changes stop 
         return {
           type: "snapshot",
           data: {
-            version: 1,
+            version: CONTRACT_VERSION,
             generation: ++snapshots,
             sequence: 0,
             configured: true,
@@ -81,7 +81,7 @@ test("a profile change during export discards the exported conversation", async 
         return {
           type: "snapshot",
           data: {
-            version: 1,
+            version: CONTRACT_VERSION,
             generation,
             sequence: 0,
             configured: true,
@@ -120,7 +120,7 @@ test("archive uploads carry the initial profile generation for native atomic val
         return {
           type: "snapshot",
           data: {
-            version: 1,
+            version: CONTRACT_VERSION,
             generation: 17,
             sequence: 0,
             configured: true,

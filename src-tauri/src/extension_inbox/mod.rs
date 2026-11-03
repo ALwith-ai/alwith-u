@@ -158,7 +158,7 @@ pub(crate) async fn extension_inbox_scan(window: tauri::Window) -> Result<Scan> 
 
 #[tauri3_specta::command]
 pub(crate) async fn extension_inbox_scan_extension(window: tauri::Window, extension_id: String) -> Result<Scan> {
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
     let installed = snapshot.installations.iter().find(|i| i.id == extension_id).ok_or("Extension is not installed")?;
     if !installed.enabled || snapshot.pending.iter().any(|p| p.id == extension_id) {
         return Err("Extension is disabled or transitioning".into());
@@ -334,7 +334,7 @@ async fn scan_for_owned(
 
 fn verify_selected(window: &tauri::Window, task: &Task) -> Result<()> {
     let pkg = task.package.as_ref().ok_or("Task has no prepared package")?;
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
     if snapshot.pending.iter().any(|p| p.id == pkg.id) {
         return Err("Extension is still transitioning".into());
     }
@@ -422,7 +422,7 @@ pub(crate) async fn extension_inbox_prepare(
     if tree(&package_path)?.fingerprint != package.fingerprint {
         return Err("Prepared package changed; retained for inspection".into());
     }
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|e| e.to_string())?;
     if snapshot.pending.iter().any(|p| p.id == package.id) {
         return Err("Extension is transitioning".into());
     }
@@ -435,7 +435,7 @@ pub(crate) async fn extension_inbox_prepare(
     {
         return Err("Installation changed since this task started; automatic replay refused".into());
     }
-    alwith_extension::plugin::grant_install(window.app_handle(), window.label(), &package_path, &package.source)
+    alwith_extension::grant_install(window.app_handle(), window.label(), &package_path, &package.source)
         .map_err(|e| e.to_string())?;
     let result = PreparedTask {
         id: task_id,

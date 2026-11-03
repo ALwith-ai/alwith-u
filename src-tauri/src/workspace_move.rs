@@ -1,11 +1,19 @@
 //! Explicit Move To routing without granting the webview an additional filesystem root.
 
-use alwith_drive::ownership::canonical_target;
-use alwith_drive::sync::{ProjectKind, RootInfo};
-use alwith_fs::FileSystem;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
+use alwith_drive::types::{ProjectKind, RootInfo};
+use alwith_drive::{Drive, NativeError};
+use alwith_fs::{FileSystem, Workspace};
+
+fn message(error: NativeError) -> String {
+    error.message
+}
+
+fn canonical_target(path: &Path) -> Result<PathBuf, String> {
+    alwith_drive::canonical_target(path).map_err(message)
+}
 
 #[derive(Clone, serde::Serialize, specta::Type)]
 pub struct CompletedMove {
@@ -54,7 +62,7 @@ fn move_plan(
         if metadata.file_type().is_symlink() {
             return Err("Symbolic links cannot be moved with Move To".into());
         }
-        let source = source_fs.authorize_path(source)?;
+        let source = source_fs.authorize_path(source).map_err(message)?;
         if source == root || directory.starts_with(&source) {
             return Err("Cannot move a workspace root or move a directory into itself".into());
         }
@@ -86,13 +94,14 @@ pub async fn workspace_move_to(
     if window.label() != "main" {
         return Err("Workspace access is limited to the main window".into());
     }
-    let root = crate::workspace::authorize_preview_root(&root)?;
-    let _operation = crate::workspace::OPERATIONS.lock().await;
-    let source_fs = FileSystem::new([root.clone()])?;
+    let root = crate::workspace::authorize_preview_root(window.app_handle(), &root)?;
+    let workspace = window.app_handle().state::<Workspace>();
+    let _operation = workspace.lock().await;
+    let source_fs = FileSystem::new([root.clone()]).map_err(message)?;
     let directory = canonical_target(&destination)?;
-    let state = window.app_handle().state::<crate::drive::DriveState>();
-    let service = state.service()?;
-    let snapshot = service.snapshot();
+    let state = window.app_handle().state::<Drive>();
+    let service = state.service().map_err(message)?;
+    let snapshot = service.snapshot().map_err(message)?;
     let drive_root = canonical_target(Path::new(&snapshot.local_root))?;
     let target = drive_destination(&snapshot.roots, &directory, &drive_root)?;
     if !directory.starts_with(&root) && target.is_none() {
@@ -123,7 +132,7 @@ pub async fn workspace_move_to(
     }
     let sources = plan.iter().map(|(from, _)| from.clone()).collect::<Vec<_>>();
     if cloud {
-        let (moved, error) = service.move_to_cloud_directory(&sources, &directory).await?;
+        let (moved, error) = service.move_to_cloud_directory(&sources, &directory).await.map_err(message)?;
         return Ok(MoveToOutcome { moves: moves.into_iter().take(moved).collect(), cloud: true, error });
     }
     if !directory.is_dir() {
@@ -136,7 +145,7 @@ pub async fn workspace_move_to(
             granted.push(target_root);
         }
     }
-    let filesystem = FileSystem::new(granted)?;
+    let filesystem = FileSystem::new(granted).map_err(message)?;
     let mut completed_moves = Vec::new();
     let mut started = false;
     let result = service
@@ -144,7 +153,10 @@ pub async fn workspace_move_to(
             started = true;
             for (index, ((from, to), completed)) in plan.iter().zip(&moves).enumerate() {
                 filesystem.move_between_roots(from.clone(), to.clone()).await.map_err(|error| {
-                    format!("Moved {index} of {} items; remaining items were not moved: {error}", plan.len())
+                    NativeError::new(
+                        &error.code,
+                        format!("Moved {index} of {} items; remaining items were not moved: {error}", plan.len()),
+                    )
                 })?;
                 completed_moves.push(completed.clone());
             }
@@ -153,8 +165,8 @@ pub async fn workspace_move_to(
         .await;
     match result {
         Ok(()) => Ok(MoveToOutcome { moves: completed_moves, cloud: false, error: None }),
-        Err(error) if started => Ok(MoveToOutcome { moves: completed_moves, cloud: false, error: Some(error) }),
-        Err(error) => Err(error),
+        Err(error) if started => Ok(MoveToOutcome { moves: completed_moves, cloud: false, error: Some(error.message) }),
+        Err(error) => Err(error.message),
     }
 }
 

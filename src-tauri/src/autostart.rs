@@ -1,4 +1,4 @@
-//! Login launches keep the host hidden until an authenticated, equipped pet is restored.
+//! Login launches keep the host hidden until an authenticated, equipped vibemon is restored.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 

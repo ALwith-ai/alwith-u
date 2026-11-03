@@ -1,10 +1,15 @@
+import {
+  commands,
+  type MobileBridgeStatus,
+  type PairingInfo,
+  type TrustedDevice_Serialize as TrustedDevice
+} from "@alwith/module-mobile/commands"
 import { listen } from "@tauri-apps/api/event"
 import { SmartphoneIcon } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
 
-import { commands, type MobileBridgeStatus, type PairingInfo, type TrustedDevice } from "@/bindings"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -17,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { SettingGroup, SettingLabel, SettingRow } from "@/features/settings/sections/shared"
 import { settingsStore } from "@/lib/settings-store"
+import { text } from "@/lib/text"
 
 import { MOBILE_RELAY_URL, mobileEnabled, setMobileEnabled } from "./bridge"
 
@@ -51,7 +57,7 @@ export function MobileSection({ onOpenAccount }: { onOpenAccount?: () => void })
       } catch (error) {
         if (!disposed) {
           setStatus(null)
-          setLoadError(String(error))
+          setLoadError(text(error))
         }
       } finally {
         polling = false
@@ -90,7 +96,7 @@ export function MobileSection({ onOpenAccount }: { onOpenAccount?: () => void })
     try {
       await action()
     } catch (error) {
-      setError(String(error))
+      setError(text(error))
     } finally {
       setPending(false)
     }

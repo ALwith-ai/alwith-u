@@ -1,7 +1,7 @@
 {
   "platformAuth": {
     "intro": "Sign in to your ALwith account",
-    "independent": "U and Desktop sign in independently. Your ALwith account, pets and entitlements remain the same. Model provider login is configured separately.",
+    "independent": "U and Desktop sign in independently. Your ALwith account, vibemon and entitlements remain the same. Model provider login is configured separately.",
     "accountHint": "This is your ALwith account, not your Codex account. Signing out here clears U's platform login only.",
     "codeLogin": "Email code",
     "passwordLogin": "Password",
@@ -87,7 +87,7 @@
     "title": "Archived chats"
   },
   "sidebar": {
-    "pets": "Vibémon",
+    "vibemon": "Vibémon",
     "leadingNavigation": "Feature navigation",
     "quickChats": "Quick chats",
     "pin": "Pin sidebar",
@@ -430,8 +430,8 @@
     "extensions": "App extensions",
     "general": "General",
     "versionLabel": "Version",
-    "petAutostart": "Start Vibémon at login",
-    "petAutostartInstalled": "Available in the installed app. Sign in and equip a Vibémon to restore it at login.",
+    "vibemonAutostart": "Start Vibémon at login",
+    "vibemonAutostartInstalled": "Available in the installed app. Sign in and equip a Vibémon to restore it at login.",
     "accountDesc": "Codex keeps the login on this machine.",
     "updates": "Updates",
     "engine": "Engine",
@@ -1091,8 +1091,8 @@
     "tutorialTitle": "Discover ALwith U",
     "tutorialLink": "ALwith U Guide"
   },
-  "pet": {
-    "restoreFailed": "Could not restore Vibémon. Retry or check the pet center.",
+  "vibemon": {
+    "restoreFailed": "Could not restore Vibémon. Retry or check the vibemon center.",
     "syncFailed": "Some Vibémon resources could not be updated. Downloaded resources are preserved.",
     "retry": "Retry",
     "collapse": "Collapse",
@@ -1101,8 +1101,8 @@
     "disable": "Hide Vibémon",
     "show": "Show Vibémon",
     "hide": "Close Vibémon",
-    "selectFirst": "Select a pet from the equip page first",
-    "unavailable": "Desktop pets are supported on macOS and Windows",
+    "selectFirst": "Select a vibemon from the equip page first",
+    "unavailable": "Desktop vibemon are supported on macOS and Windows",
     "lounge": "Vibémon lounge",
     "recall": "Return to lounge"
   },
@@ -1344,7 +1344,7 @@
   },
   "workbuddy": {
     "auth": "Include ALwith account",
-    "authEnabled": "Login, pets and account features.",
+    "authEnabled": "Login, vibemon and account features.",
     "authDisabled": "No ALwith account services. Model provider authentication is separate.",
     "create": "Create your ALwith",
     "description": "Create your own desktop app, then customize it in a project chat.",
@@ -1363,7 +1363,7 @@
     "edition": "Choose your starting point",
     "accountEdition": "With an ALwith account",
     "bareEdition": "Without an ALwith account",
-    "accountCaption": "Sign-in, desktop pets and ALwith account services.",
+    "accountCaption": "Sign-in, desktop vibemon and ALwith account services.",
     "bareCaption": "Use and customize your app independently, without an ALwith account.",
     "location": "Project location",
     "chooseLocation": "Choose a new project path"

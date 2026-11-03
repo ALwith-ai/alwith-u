@@ -4,11 +4,11 @@ import * as source from "../pages/workbuddy-create.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-workbuddy-create-2",
-  title: "页面/负一屏/宠物伙伴/创建伙伴/页面操作"
+  title: "页面/负一屏/Vibémon伙伴/创建伙伴/页面操作"
 }
 export default meta
 
-export const WithAccount = { ...source.WithAccount, name: "带账号与宠物" }
+export const WithAccount = { ...source.WithAccount, name: "带账号与Vibémon" }
 export const BareChat = { ...source.BareChat, name: "不集成账号" }
 export const AccountComplete = { ...source.AccountComplete, name: "带账号：完整创建流程" }
 export const BareComplete = { ...source.BareComplete, name: "不集成账号：完整创建流程" }

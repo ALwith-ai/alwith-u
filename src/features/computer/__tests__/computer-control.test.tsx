@@ -1,7 +1,6 @@
+import type { ComputerStatus_Serialize as ComputerStatus } from "@alwith/module-computer/commands"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
-
-import type { ComputerStatus } from "@/bindings"
 
 const native = vi.hoisted(() => ({
   computerStatus: vi.fn(),
@@ -10,7 +9,9 @@ const native = vi.hoisted(() => ({
 }))
 const settings = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn() }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
-vi.mock("@/bindings", () => ({ commands: native }))
+vi.mock("@alwith/module-computer/commands", () => ({
+  commands: { status: native.computerStatus, start: native.computerStart, stop: native.computerStop }
+}))
 vi.mock("@/lib/settings-store", () => ({
   settingsStore: { get: settings.get },
   updateSettings: settings.update

@@ -1,14 +1,15 @@
 import { createStore } from "@alwith/api/client"
 import type { ToolItem } from "@alwith/module-chat/client"
-import { invoke } from "@tauri-apps/api/core"
+import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { Redo2Icon, Undo2Icon } from "lucide-react"
 import { useMemo, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { client } from "@/lib/client"
+import { text } from "@/lib/text"
 
-import { filePatches, type PatchResult, updateUndone } from "./undo"
+import { filePatches, updateUndone } from "./undo"
 
 interface ActionState {
   pending: boolean
@@ -55,7 +56,7 @@ export function UndoActions({ sessionId, items }: { sessionId: string; items: To
     try {
       const live = client.state.sessions[sessionId]
       if (live?.state !== "idle" || live.restoring || live.readOnly) throw new Error(t("undo.busy"))
-      const result = await invoke<PatchResult>("workspace_apply_patches", {
+      const result = await fsCommands.workspaceApplyPatches({
         root: live.cwd,
         patches: selected.map((index) => batch.patches[index]),
         reverse
@@ -74,7 +75,7 @@ export function UndoActions({ sessionId, items }: { sessionId: string; items: To
       set({
         ...current,
         pending: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: text(error)
       })
     }
   }

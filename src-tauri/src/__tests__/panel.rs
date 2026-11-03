@@ -2,7 +2,7 @@ use super::{is_overlay, set_presented, should_restore, with_restored_responder};
 use std::cell::Cell;
 
 #[test]
-fn environment_repairs_keep_pet_visibility_intent_without_reopening_hidden_bubbles() {
+fn environment_repairs_keep_vibemon_visibility_intent_without_reopening_hidden_bubbles() {
     set_presented("vibemon", true);
     set_presented("bubble-menu-vibemon", false);
     assert!(should_restore("vibemon", false));

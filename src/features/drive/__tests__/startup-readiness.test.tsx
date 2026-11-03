@@ -1,4 +1,4 @@
-import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import { CONTRACT_VERSION, type DriveRequest, type DriveResponse, type Snapshot } from "@alwith/module-drive"
 import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
@@ -23,7 +23,7 @@ import { DriveStatus } from "../drive"
 import { DriveIntegrations } from "../integrations"
 
 const snapshot: Snapshot = {
-  version: 1,
+  version: CONTRACT_VERSION,
   generation: 1,
   sequence: 0,
   configured: true,

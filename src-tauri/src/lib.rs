@@ -1,4 +1,3 @@
-mod browser_bridge;
 #[cfg(test)]
 mod codex_launcher;
 mod power;
@@ -12,12 +11,9 @@ mod autostart;
 mod bundled_extensions;
 mod chat_files;
 mod chat_window;
-mod computer;
-mod device;
 mod diagnostics;
 mod draft_directory;
 mod drive;
-mod editor;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
@@ -26,7 +22,6 @@ mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
 mod imports;
-mod installed_apps;
 mod legacy_extensions;
 mod menu;
 mod mobile;
@@ -34,7 +29,6 @@ mod native;
 #[cfg(target_os = "macos")]
 mod panel;
 mod panic_report;
-mod providers;
 mod runtime;
 mod secret_store;
 mod settings;
@@ -42,8 +36,6 @@ mod settings_store;
 use atlas_tauri as trackpad;
 mod tray;
 mod vibemon;
-mod voice;
-mod voice_credentials;
 mod window;
 #[cfg(target_os = "windows")]
 mod windows_frame;
@@ -72,10 +64,15 @@ pub fn run() {
         main.focus = false;
     }
 
+    let voice_credentials = settings::VoiceCredentials::default();
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_alwith_desktop_shell::init_native())
-        .plugin(alwith_module_store::tauri::init())
-        .plugin(alwith_auth_client::tauri::init(native::development_directory()))
+        .plugin(alwith_desktop_shell::init_native())
+        .plugin(alwith_store::init())
+        // U keeps its own vibemon windows; the auth plugin only refreshes tokens here.
+        .plugin(alwith_auth::init(alwith_auth::Config {
+            development_directory: native::development_directory(),
+            vibemon: None,
+        }))
         .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
@@ -125,8 +122,54 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(alwith_extension::plugin::init_with_paths(None, native::development_directory()))
+        .plugin(alwith_extension::init(alwith_extension::Config {
+            root: None,
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_fs::init(alwith_fs::Config {
+            coordinator: Some(std::sync::Arc::new(workspace::Coordinator)),
+            development_directory: native::development_directory(),
+        }))
+        .plugin(drive::plugin())
         .plugin(appearance::wallpaper::plugin())
+        .plugin(alwith_editor::init(alwith_editor::Config {
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_computer::init(alwith_computer::Config {
+            development_directory: native::development_directory(),
+            proxy: native::development_resources().map(|resources| resources.join("computer/stdio.mjs")),
+            observer: Some(diagnostics::computer_observer()),
+            ..Default::default()
+        }))
+        .plugin(alwith_device::init(alwith_device::DeviceConfig {
+            resources: native::development_resources(),
+            development_directory: native::development_directory(),
+            ..Default::default()
+        }))
+        .plugin(alwith_voice::init(
+            voice_credentials.clone(),
+            alwith_voice::Config { development_directory: native::development_directory() },
+        ))
+        .plugin(alwith_gamepad::init(alwith_gamepad::Config {
+            development_directory: native::development_directory(),
+            ..Default::default()
+        }))
+        .plugin(alwith_installed_apps::init(alwith_installed_apps::Config {
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_mobile::init(
+            alwith_mobile::MobileConfig {
+                host_app: alwith_mobile::HostApp::U,
+                development_directory: native::development_directory(),
+            },
+            mobile::Host,
+        ))
+        .plugin(alwith_browser::init(
+            |_| runtime::sidecar_path("bun"),
+            native::development_resources()
+                .map(|resources| resources.join(alwith_browser::BRIDGE_RESOURCE)),
+        ))
+        .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -153,6 +196,7 @@ pub fn run() {
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default())
+        .manage(voice_credentials)
         .manage(power::PreventSleep::default())
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
@@ -164,9 +208,8 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             fullscreen_controls::on_window_event(window, event);
-            if matches!(event, tauri::WindowEvent::Destroyed) {
-                voice::detach(window.app_handle(), window.label());
-            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (window, event);
         })
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
@@ -185,10 +228,10 @@ pub fn run() {
             let Some(event_name) = menu::event_name(event.id().0.as_str()) else {
                 return;
             };
-            if let Some(focused) = app.webview_windows().into_values().find(|w| w.is_focused().unwrap_or(false)) {
-                if let Err(error) = app.emit_to(focused.label(), event_name, ()) {
-                    log::error!("Cannot emit event: {error}");
-                }
+            if let Some(focused) = app.webview_windows().into_values().find(|w| w.is_focused().unwrap_or(false))
+                && let Err(error) = app.emit_to(focused.label(), event_name, ())
+            {
+                log::error!("Cannot emit event: {error}");
             }
         })
         .setup(|app| {
@@ -197,15 +240,7 @@ pub fn run() {
                 Ok(directory) => panic_report::install(directory.join("panic.log")),
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
-            app.manage(native::Native::load(app.handle())?);
-            mobile::initialize(app.handle())?;
             settings::initialize(app.handle())?;
-            voice::initialize(app.handle())?;
-            app.manage(providers::Providers::load(app.handle())?);
-            drive::initialize(app.handle())?;
-            gamepad::initialize(app.handle())?;
-            computer::initialize(app.handle())?;
-            device::initialize(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             #[cfg(target_os = "windows")]
             app.get_webview_window("main").expect("main window exists at setup").hide()?;
@@ -218,10 +253,6 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
-            match payload.event() {
-                tauri::webview::PageLoadEvent::Started => voice::detach(webview.app_handle(), webview.label()),
-                tauri::webview::PageLoadEvent::Finished => voice::document_ready(webview.app_handle(), webview.label()),
-            }
             #[cfg(target_os = "windows")]
             if webview.label() == "main" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let window = webview.app_handle().get_webview_window("main").expect("main window exists on page load");
@@ -242,16 +273,12 @@ pub fn run() {
         .invoke_handler({
             let typed = bindings().invoke_handler();
             #[cfg(target_os = "macos")]
-            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
-                voice::voice_push,
-                settings::settings_request,
-                fullscreen_controls::set_traffic_light_zoom
-            ];
-            #[cfg(not(target_os = "macos"))]
             let binary: fn(tauri::ipc::Invoke) -> bool =
-                tauri::generate_handler![voice::voice_push, settings::settings_request];
+                tauri::generate_handler![settings::settings_request, fullscreen_controls::set_traffic_light_zoom];
+            #[cfg(not(target_os = "macos"))]
+            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![settings::settings_request];
             move |invoke| {
-                if matches!(invoke.message.command(), "voice_push" | "settings_request" | "set_traffic_light_zoom") {
+                if matches!(invoke.message.command(), "settings_request" | "set_traffic_light_zoom") {
                     binary(invoke)
                 } else {
                     typed(invoke)
@@ -283,15 +310,12 @@ pub fn run() {
         }
         tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
             if label == "vibemon" {
-                tray::set_pet_checked(app, false);
+                tray::set_vibemon_checked(app, false);
             }
             #[cfg(target_os = "macos")]
             panel::closed(app, &label);
             extension_inbox::window_closed(app, &label);
             gamepad::window_destroyed(app, &label);
-        }
-        tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Focused(false), .. } => {
-            gamepad::window_inactive(app, &label);
         }
         tauri::RunEvent::ExitRequested { api, code, .. } => {
             let closing = window::is_closing(app);
@@ -303,9 +327,10 @@ pub fn run() {
             }
         }
         tauri::RunEvent::Exit => {
-            app.state::<alwith_computer::ComputerHost>().kill_on_exit();
-            voice::shutdown(app);
-            gamepad::shutdown(app);
+            // Last resort when native termination bypassed the ordered shutdown in ExitRequested.
+            if let Err(error) = app.state::<alwith_computer::Computer>().kill_on_exit() {
+                log::error!("Computer driver kill failed: {error}");
+            }
             power::sync(app, false);
             app.state::<runtime::RuntimeState>().kill_on_exit();
         }
@@ -320,45 +345,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
             tauri3_specta::commands![
                 $($platform,)*
                 autostart::autostart_status,
-                editor::parse_spreadsheet,
                 diagnostics::diagnostics_export,
-                computer::computer_status,
-                computer::computer_start,
-                computer::computer_reconnect,
-                computer::computer_stop,
-                computer::computer_context,
-                computer::computer_revision,
-                computer::computer_bind,
-                computer::computer_ready,
-                computer::computer_stop_session,
-                computer::computer_subscribe,
-                computer::computer_focus,
-                computer::computer_unsubscribe,
-                computer::computer_request_permissions,
-                device::device_context,
-                device::device_bind,
-                device::device_stop_session,
-                device::device_list,
-                device::device_attachments,
-                device::device_attach,
-                device::device_detach,
-                device::device_frame,
-                device::device_gesture,
-                device::device_appearance,
-                device::device_set_appearance,
-                device::device_set_status_bar,
-                device::device_shutdown,
-                device::device_restart,
-                device::device_save_screenshot,
-                device::device_record_start,
-                device::device_record_stop,
-                device::device_logs,
-                device::device_crash_report,
                 autostart::autostart_set,
                 autostart::autostart_launch,
                 autostart::autostart_complete,
                 window::show_main_window,
-                tray::tray_pet_ready,
+                tray::tray_vibemon_ready,
                 extension_inbox::extension_inbox_scan,
                 extension_inbox::extension_inbox_scan_extension,
                 extension_inbox::extension_inbox_finish,
@@ -368,17 +360,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
                 imports::prepare_cursor_import,
-                voice::voice_start,
-                voice::voice_control,
-                voice::voice_profiles,
-                voice::voice_save_credential,
-                voice::voice_delete_credential,
-                gamepad::gamepad_request,
-                gamepad::gamepad_permission,
-                gamepad::gamepad_capture,
-                gamepad::gamepad_catalog,
-                providers::gamepad_ai_prepare,
-                drive::drive_request,
                 drive::drive_path_exists,
                 chat_files::chat_save_file,
                 chat_files::chat_write_text_attachment,
@@ -387,12 +368,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 chat_files::chat_read_dropped_file,
                 chat_files::chat_clipboard_file_paths,
                 chat_files::chat_write_pasted_file,
-                workspace::workspace_open,
-                workspace::workspace_list_files,
                 workspace::workspace_import,
-                workspace::workspace_file,
-                workspace::workspace_apply_patches,
-                workspace::workspace_watch,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,
                 html_preview::html_preview_open,
@@ -428,41 +404,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::codex_version,
                 runtime::codex_status,
                 mobile::mobile_set_activity_sessions,
-                mobile::mobile_bridge_start,
-                mobile::mobile_bridge_stop,
-                mobile::mobile_bridge_status,
-                mobile::bridge_set_active_session,
-                mobile::bridge_prompt_result,
-                mobile::bridge_pairing_start,
-                mobile::bridge_identity,
-                mobile::bridge_trusted_list,
-                mobile::bridge_trusted_revoke,
-                providers::managed::providers_account_bind,
-                providers::managed::providers_refresh_managed,
-                providers::managed::providers_clear_managed,
-                providers::providers_read,
-                providers::providers_save,
-                providers::providers_save_custom,
-                providers::providers_remove_custom,
-                providers::providers_test,
-                providers::providers_apply,
+                gamepad::gamepad_ai_prepare,
                 window::attach_window_to_main,
-                installed_apps::read_apps_info,
-                browser_bridge::chrome_extension_installed,
-                browser_bridge::chrome_bridge_installed,
-                browser_bridge::set_chrome_bridge_enabled,
-                installed_apps::default_browser,
-                installed_apps::is_app_running,
-                installed_apps::open_app_by_id,
-                installed_apps::open_path_in_app
             ]
             .event::<trackpad::TrackpadGesture>()
             .event::<runtime::RuntimeLines>()
-            .event::<computer::ComputerPreview>()
-            .event::<device::DeviceAttachments>()
             .event::<runtime::RuntimeExit>()
-            .event::<providers::Snapshot>()
-            .event::<providers::managed::RevokedSessions>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()
             .event::<menu::NewTab>()

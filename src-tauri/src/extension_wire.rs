@@ -104,9 +104,13 @@ impl From<alwith_extension::filesystem::FileResponse> for FileResponse {
             alwith_extension::filesystem::FileResponse::List { entries } => {
                 Self::List { entries: entries.into_iter().map(Into::into).collect() }
             }
-            alwith_extension::filesystem::FileResponse::Stat { exists, size, mtime, is_file, is_directory } => {
-                Self::Stat { exists, size, mtime, is_file, is_directory }
-            }
+            alwith_extension::filesystem::FileResponse::Stat {
+                exists,
+                size,
+                mtime,
+                is_file,
+                is_directory,
+            } => Self::Stat { exists, size, mtime, is_file, is_directory },
             alwith_extension::filesystem::FileResponse::Ok => Self::Ok,
         }
     }

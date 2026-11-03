@@ -6,7 +6,7 @@
 @import "@alwith/module-desktop-shell/theme.css";
 @import "diff2html/bundles/css/diff2html.min.css";
 @import "./features/chat/codex/styles.css";
-@import "@alwith/module-auth/pets/styles.css";
+@import "@alwith/module-auth/vibemon/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
 @source "../node_modules/@alwith/module-drive/dist";
@@ -22,7 +22,7 @@ pre,
   unicode-bidi: isolate;
 }
 
-/* Published pet components also live in shared chunks at the dist root. */
+/* Published vibemon components also live in shared chunks at the dist root. */
 @source "../node_modules/@alwith/module-auth/dist";
 
 @custom-variant dark (&:is(.dark *));
@@ -346,7 +346,7 @@ body,
     :where(
       [data-atlas-footer-navigation] *,
       .main-sidebar-panel [role="tablist"] [role="tab"],
-      .pet-lounge button[aria-label="Vibémon"],
+      .vibemon-lounge button[aria-label="Vibémon"],
       .codex-assistant-turn [data-codex-disclosure],
       .codex-assistant-turn .codex-edited-files-more
     )

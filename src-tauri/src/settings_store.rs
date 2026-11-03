@@ -294,7 +294,7 @@ fn validate_secret_key(key: &str) -> Result<(), String> {
 }
 fn validate_secret(key: &str, value: &str) -> Result<(), String> {
     validate_secret_key(key)?;
-    crate::voice_credentials::validate(value)
+    alwith_voice::validate_credential(value).map_err(|error| error.code)
 }
 fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
     for (key, value) in values {

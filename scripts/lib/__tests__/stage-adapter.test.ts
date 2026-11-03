@@ -3,9 +3,9 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync 
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
+import providers from "@alwith/module-chat/assets/provider-catalog.json"
 import { chatAdapterArtifact } from "@alwith/module-chat/stage"
 
-import providers from "../../../src/lib/provider-catalog.json"
 import { codexSidecars } from "../toolchain"
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {

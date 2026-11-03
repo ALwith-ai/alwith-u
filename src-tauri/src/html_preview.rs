@@ -1,11 +1,12 @@
 //! Isolated HTML previews use revocable capabilities scoped to an authorized workspace.
 
-use alwith_fs::FileSystem;
 use base64::Engine;
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
+use tauri::Manager;
 use tauri::http::{Method, Request, Response};
+use alwith_fs::FileSystem;
 
 #[derive(Clone)]
 struct Preview {
@@ -34,9 +35,9 @@ pub fn html_preview_open(
     if window.label() != "main" {
         return Err("HTML previews are limited to the main window".into());
     }
-    let root = crate::workspace::authorize_preview_root(&root)?;
-    let filesystem = FileSystem::new([root.clone()])?;
-    let document = filesystem.authorize_path(&path)?;
+    let root = crate::workspace::authorize_preview_root(window.app_handle(), &root)?;
+    let filesystem = FileSystem::new([root.clone()]).map_err(|error| error.message)?;
+    let document = filesystem.authorize_path(&path).map_err(|error| error.message)?;
     if !document.is_file() {
         return Err("HTML preview must reference a file".into());
     }

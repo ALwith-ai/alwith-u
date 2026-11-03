@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 
 import { type PanelControls, PanelControlsContext } from "./panel-controls-context"
 import { PanelDivider } from "./panel-divider"
+import { PreviewPaneContext } from "./preview-pane-context"
 import "./workspace.css"
 
 // Desktop's two main Atlas regions, in chat/preview order. Both remain mounted.
@@ -28,7 +29,6 @@ export function WorkspacePanels({
   preview,
   visible,
   maximized,
-  onVisibleChange,
   onMaximizedChange,
   controlsRef
 }: {
@@ -37,12 +37,12 @@ export function WorkspacePanels({
   preview: ReactNode
   visible: boolean
   maximized: boolean
-  onVisibleChange: (visible: boolean) => void
   onMaximizedChange: (maximized: boolean) => void
 }): ReactNode {
   const { t, i18n } = useTranslation()
   const canvas = useContext(CanvasContext)
-  const unified = canvas !== null
+  const previewPane = useContext(PreviewPaneContext)
+  const unified = canvas !== null && previewPane !== null
   const root = useRef<HTMLDivElement | null>(null)
   const dragging = useRef(false)
   const dragStart = useRef(0)
@@ -79,11 +79,11 @@ export function WorkspacePanels({
     }
   }
   useImperativeHandle(controlsRef, () => ({ expanded, toggleExpanded }))
-  const setCanvasPreview = canvas?.setPreview
+  const showPreviewPane = previewPane?.show
   const navigate = canvas?.navigate
   useLayoutEffect(() => {
-    setCanvasPreview?.({ open: visible, maximized, onOpenChange: onVisibleChange })
-  }, [setCanvasPreview, visible, maximized, onVisibleChange])
+    showPreviewPane?.({ hidden: !visible, maximized: visible && maximized })
+  }, [showPreviewPane, visible, maximized])
   useEffect(() => {
     if (!navigate) return
     if (visible && (!previousVisible.current || (maximized && !previousMaximized.current))) navigate("preview")
@@ -141,12 +141,12 @@ export function WorkspacePanels({
       {preview}
     </aside>
   )
-  // In the main window the shell's Atlas canvas owns the preview region, its divider and every gutter.
+  // In the main window the shell's Atlas canvas owns the preview pane, its divider and every gutter.
   if (unified)
     return (
       <PanelControlsContext.Provider value={{ expanded, toggleExpanded }}>
         <div className="file-workspace-chat">{chat}</div>
-        {canvas.previewSlot && createPortal(panel, canvas.previewSlot)}
+        {previewPane.slot && createPortal(panel, previewPane.slot)}
       </PanelControlsContext.Provider>
     )
 

@@ -1,4 +1,4 @@
-//! U pet host. Shared packages own pet state, rendering, and assets.
+//! U vibemon host. Shared packages own vibemon state, rendering, and assets.
 mod claims;
 mod download;
 pub(crate) mod window;
@@ -237,7 +237,7 @@ pub async fn vibemon_claim(
     window: WebviewWindow, request_id: String, scope: String, session_id: String, owner: String,
 ) -> Result<bool, String> {
     if window.label() != "main" {
-        return Err("Only main may execute a pet request".into());
+        return Err("Only main may execute a vibemon request".into());
     }
     let client = window.state::<crate::runtime::RuntimeState>().current()?;
     let states = client.run_states().await.map_err(crate::runtime::request_error)?;
@@ -253,7 +253,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
     allowed(&window)?;
     let app = window.app_handle();
     match action.as_str() {
-        "create-pet" | "create-bubble" => {
+        "create-vibemon" | "create-bubble" => {
             crate::window::ensure_open(app)?;
             if window.label() != "main" {
                 return Err("Only main creates Vibemon windows".into());
@@ -262,7 +262,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Vibemon native windows are not supported on Linux".into());
             }
             let (label, url, width, height) = match action.as_str() {
-                "create-pet" => ("vibemon", "vibemon.html", 200., 200.),
+                "create-vibemon" => ("vibemon", "vibemon.html", 200., 200.),
                 _ => ("bubble-menu-vibemon", "vibemon-bubble.html", 320., 220.),
             };
             if app.get_webview_window(label).is_some() {
@@ -305,21 +305,22 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
         "size" => Ok(json!(window.outer_size().map_err(|e| e.to_string())?)),
         "scale" => Ok(json!(window.scale_factor().map_err(|e| e.to_string())?)),
         "resize" => {
-            let size = payload["size"].as_f64().ok_or("Missing pet size")?;
+            let size = payload["size"].as_f64().ok_or("Missing vibemon size")?;
             if window.label() != "vibemon" || !(32. ..=1024.).contains(&size) {
-                return Err("Invalid pet size".into());
+                return Err("Invalid vibemon size".into());
             }
-            let bottom_inset =
-                payload.get("bottomInset").map_or(Ok(0.), |value| value.as_f64().ok_or("Invalid pet bottom inset"))?;
+            let bottom_inset = payload
+                .get("bottomInset")
+                .map_or(Ok(0.), |value| value.as_f64().ok_or("Invalid vibemon bottom inset"))?;
             if !(0. ..=64.).contains(&bottom_inset) {
-                return Err("Invalid pet bottom inset".into());
+                return Err("Invalid vibemon bottom inset".into());
             }
             window.set_size(LogicalSize::new(size, size + bottom_inset)).map_err(|e| e.to_string())?;
             Ok(Value::Null)
         }
         "move" => {
             if window.label() != "vibemon" {
-                return Err("Only pet may move itself".into());
+                return Err("Only vibemon may move itself".into());
             }
             let x = payload["x"].as_f64().ok_or("Missing x")? as i32;
             let y = payload["y"].as_f64().ok_or("Missing y")? as i32;
@@ -345,7 +346,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             let parent = if action == "drag" { app.get_webview_window("bubble-menu-vibemon") } else { None };
             window_action(&window, &action, parent, Value::Null).await?;
             if window.label() == "vibemon" && matches!(action.as_str(), "present" | "hide" | "focus") {
-                crate::tray::set_pet_checked(app, window.is_visible().map_err(|error| error.to_string())?);
+                crate::tray::set_vibemon_checked(app, window.is_visible().map_err(|error| error.to_string())?);
             }
             if action == "drag" {
                 app.emit_to("main", "vibemon:position", window.outer_position().map_err(|e| e.to_string())?)
@@ -354,7 +355,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             Ok(Value::Null)
         }
         "focus-bubble" => {
-            let bubble = app.get_webview_window("bubble-menu-vibemon").ok_or("Pet bubble unavailable")?;
+            let bubble = app.get_webview_window("bubble-menu-vibemon").ok_or("Vibemon bubble unavailable")?;
             {
                 let state = bubble.state::<BubblePresentation>();
                 let mut state = state.0.lock().expect("bubble presentation lock");
@@ -365,7 +366,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
         }
         "bubble" => {
             if window.label() != "vibemon" {
-                return Err("Only pet controls the bubble".into());
+                return Err("Only vibemon controls the bubble".into());
             }
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 let visible = {
@@ -416,10 +417,10 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if window.label() != "bubble-menu-vibemon" {
                 return Err("Only bubble may set its background".into());
             }
-            let enabled = payload["enabled"].as_bool().ok_or("Missing pet blur state")?;
-            let radius = payload["radius"].as_u64().ok_or("Missing pet blur radius")?;
+            let enabled = payload["enabled"].as_bool().ok_or("Missing vibemon blur state")?;
+            let radius = payload["radius"].as_u64().ok_or("Missing vibemon blur radius")?;
             if radius > 20 || enabled != payload["path"].is_array() {
-                return Err("Invalid pet backdrop".into());
+                return Err("Invalid vibemon backdrop".into());
             }
             let generation =
                 window.state::<BubblePresentation>().0.lock().expect("bubble presentation lock").generation;
@@ -450,34 +451,34 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 window_action(&bubble, "hide", None, Value::Null).await?;
             }
-            app.emit_to("vibemon", "vibemon:command", json!({"type":"bubble-close","petId":"","requestId":""}))
+            app.emit_to("vibemon", "vibemon:command", json!({"type":"bubble-close","vibemonId":"","requestId":""}))
                 .map_err(|e| e.to_string())?;
             app.emit_to("bubble-menu-vibemon", "vibemon:dismiss", ()).map_err(|e| e.to_string())?;
             Ok(Value::Null)
         }
-        "destroy-pet" => {
+        "destroy-vibemon" => {
             if window.label() != "main" {
-                return Err("Only main destroys pet windows".into());
+                return Err("Only main destroys vibemon windows".into());
             }
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 window_action(&bubble, "detach", None, Value::Null).await?;
                 window_action(&bubble, "forget", None, Value::Null).await?;
                 bubble.destroy().map_err(|e| e.to_string())?;
             }
-            if let Some(pet) = app.get_webview_window("vibemon") {
-                window_action(&pet, "forget", None, Value::Null).await?;
-                pet.destroy().map_err(|e| e.to_string())?;
+            if let Some(vibemon) = app.get_webview_window("vibemon") {
+                window_action(&vibemon, "forget", None, Value::Null).await?;
+                vibemon.destroy().map_err(|e| e.to_string())?;
             }
             Ok(Value::Null)
         }
         "menu" => {
             if window.label() != "vibemon" {
-                return Err("Only pet has this menu".into());
+                return Err("Only vibemon has this menu".into());
             }
             let label = payload["closeLabel"]
                 .as_str()
                 .filter(|label| !label.trim().is_empty())
-                .ok_or("Missing pet menu label")?;
+                .ok_or("Missing vibemon menu label")?;
             let item = tauri::menu::MenuItem::with_id(app, "vibemon-close", label, true, None::<&str>)
                 .map_err(|e| e.to_string())?;
             let menu = tauri::menu::Menu::with_items(app, &[&item]).map_err(|e| e.to_string())?;

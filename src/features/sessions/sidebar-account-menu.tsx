@@ -50,7 +50,7 @@ export function SidebarAccountMenu({
         <AccountMenuGroup>
           <AccountMenuItem disabled={vibemon.disabled} onClick={() => void vibemon.toggle()}>
             <PawPrintIcon />
-            {t(vibemon.enabled ? "pet.hide" : "pet.show")}
+            {t(vibemon.enabled ? "vibemon.hide" : "vibemon.show")}
           </AccountMenuItem>
           <AccountMenuItem onClick={() => void openSettingsWindow("mobile")}>
             <SmartphoneIcon />

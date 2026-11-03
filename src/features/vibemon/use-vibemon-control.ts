@@ -1,11 +1,11 @@
-import { accountKey } from "@alwith/module-auth/pets"
-import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-auth/pets/core"
+import { accountKey } from "@alwith/module-auth/vibemon"
+import { getVibemonState, refreshSettings, vibemonHost } from "@alwith/module-auth/vibemon/core"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { usePlatformAuth } from "@/features/auth/store"
 
-import { reportPetError } from "./display-error"
+import { reportVibemonError } from "./display-error"
 
 export function useVibemonControl() {
   const { t } = useTranslation()
@@ -46,13 +46,13 @@ export function useVibemonControl() {
       const host = vibemonHost()
       await refreshSettings()
       const state = await getVibemonState()
-      if (state.enabled) await host.windows.closePet()
+      if (state.enabled) await host.windows.closeVibemon()
       else {
-        if (!state.pet) throw new Error(t("pet.selectFirst"))
-        if ((await host.windows.openPet()) === "unavailable") throw new Error(t("pet.unavailable"))
+        if (!state.vibemon) throw new Error(t("vibemon.selectFirst"))
+        if ((await host.windows.openVibemon()) === "unavailable") throw new Error(t("vibemon.unavailable"))
       }
     } catch (error) {
-      reportPetError(error)
+      reportVibemonError(error)
     } finally {
       pending.current = false
       setBusy(false)

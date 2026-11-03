@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "fs",
+  "description": "The main window opens, reads, watches and edits workspaces and applies conversation patches",
+  "windows": ["main"],
+  "permissions": ["alwith-fs:default", "alwith-fs:workspace-write", "alwith-fs:patches"]
+}

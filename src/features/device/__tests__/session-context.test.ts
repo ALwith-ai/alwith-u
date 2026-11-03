@@ -1,17 +1,23 @@
-import { beforeEach, expect, test, vi } from "vitest"
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-const native = vi.hoisted(() => ({
-  context: vi.fn(),
-  bind: vi.fn(),
-  tauri: vi.fn(() => true)
-}))
-vi.mock("@tauri-apps/api/core", () => ({ isTauri: native.tauri }))
-vi.mock("@/bindings", () => ({ commands: { deviceContext: native.context, deviceBind: native.bind } }))
 import { deviceSessionContext } from "../session-context"
 
+const native = { context: vi.fn(), bind: vi.fn() }
+
+// The package's generated commands reach the device plugin through Tauri IPC.
 beforeEach(() => {
   vi.clearAllMocks()
-  native.tauri.mockReturnValue(true)
+  mockIPC((command, args) => {
+    if (command === "plugin:alwith-device|context") return native.context()
+    if (command === "plugin:alwith-device|bind") return native.bind(args)
+    throw new Error(`unexpected command ${command}`)
+  })
+  Object.assign(globalThis, { isTauri: true })
+})
+afterEach(() => {
+  clearMocks()
+  Reflect.deleteProperty(globalThis, "isTauri")
 })
 test("a registration becomes one stdio server bound to the session later", async () => {
   native.context.mockResolvedValue({
@@ -31,6 +37,6 @@ test("no platform support or a failing host yields no server", async () => {
   expect(await deviceSessionContext()).toEqual({ mcpServers: [] })
   native.context.mockRejectedValue(new Error("no native module"))
   expect(await deviceSessionContext()).toEqual({ mcpServers: [] })
-  native.tauri.mockReturnValue(false)
+  Reflect.deleteProperty(globalThis, "isTauri")
   expect(await deviceSessionContext()).toEqual({ mcpServers: [] })
 })

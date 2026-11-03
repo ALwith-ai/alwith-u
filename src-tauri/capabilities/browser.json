@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "browser",
+  "description": "The browser extension and bridge registration card",
+  "windows": ["main", "settings"],
+  "permissions": ["alwith-browser:default"]
+}

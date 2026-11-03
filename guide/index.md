@@ -51,7 +51,7 @@ The left sidebar contains plugins, extensions, Vibémon, and your conversations.
 - **+ button:** start a new conversation.
 - **Project groups:** expand a folder to find its conversations.
 - **Sidebar toggle:** pin or collapse the navigation panel. When unpinned, hovering near its edge can preview it.
-- **Account menu:** open settings, manage the pet, or sign out.
+- **Account menu:** open settings, manage the vibemon, or sign out.
 - **Question-mark button:** open this guide directly. Opening it again brings the existing guide window forward.
 
 The guide ships with the application. Its content can be read without accessing an external documentation website.
@@ -245,7 +245,7 @@ Cloud features appear when enabled and available to your account. Use the cloud 
 
 If synchronization fails, inspect the affected item and its error, confirm connectivity and account access, and retry through the available controls. Keep a local copy of important work while resolving a transfer problem.
 
-Vibémon provides the pet experience associated with your ALwith account. Open **Vibémon** from the sidebar to see the available options. Use the account menu to enable or disable the pet.
+Vibémon provides the vibemon experience associated with your ALwith account. Open **Vibémon** from the sidebar to see the available options. Use the account menu to enable or disable the vibemon.
 
 ### Check a transfer from beginning to end
 
@@ -263,9 +263,9 @@ Keep the local content while investigating. Check whether the failure concerns a
 
 ### Manage the companion
 
-Open **Vibémon** to browse the experience available to your account. The account menu's pet control enables or disables the companion. This setting is separate from model access and conversation history.
+Open **Vibémon** to browse the experience available to your account. The account menu's vibemon control enables or disables the companion. This setting is separate from model access and conversation history.
 
-If the companion is unavailable, check ALwith account access and any error displayed in its own interface. Changing a conversation's model is not a pet-account configuration step.
+If the companion is unavailable, check ALwith account access and any error displayed in its own interface. Changing a conversation's model is not a vibemon-account configuration step.
 
 ## Settings and shortcuts
 

@@ -10,7 +10,7 @@ const host = vi.hoisted(() => ({
   revoke: vi.fn(),
   enable: vi.fn()
 }))
-vi.mock("@/bindings", () => ({
+vi.mock("@alwith/module-mobile/commands", () => ({
   commands: {
     mobileBridgeStatus: host.status,
     bridgeTrustedList: host.devices,

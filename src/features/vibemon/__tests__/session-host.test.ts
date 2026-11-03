@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { type SessionRunState } from "@alwith/api"
-import type { PetObservation } from "@alwith/module-auth/pets/core"
+import type { VibemonObservation } from "@alwith/module-auth/vibemon/core"
 import { createSession, isText, runStateSource } from "@alwith/module-chat/client"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -10,7 +10,7 @@ import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
 import { must } from "@/lib/__tests__/must"
 
-import { createPetSessionOwner } from "../session-host"
+import { createVibemonSessionOwner } from "../session-host"
 
 const clients: CodexClient[] = []
 afterEach(() => {
@@ -53,7 +53,7 @@ async function fixture() {
   const cancel = vi.fn(async (_id: string) => {})
   const markRead = vi.fn(async (_id: string) => {})
   const respond = vi.fn(client.respond.bind(client))
-  const host = createPetSessionOwner({
+  const host = createVibemonSessionOwner({
     state: () => client.state,
     agentId: "codex",
     source: () => runStateSource(client.state.runStates),
@@ -92,7 +92,7 @@ test("the explicit binding survives an unrelated selected-chat change and cannot
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.b.id, visible: true })
   await f.host.collapse(f.a.id)
-  const binding = must(f.host.snapshot(), "pet observation").binding
+  const binding = must(f.host.snapshot(), "vibemon observation").binding
   await f.host.send(binding, "request-a", "hello")
   await expect(f.host.send(binding, "request-a", "hello")).rejects.toThrow("already submitted")
   expect(f.prompt).toHaveBeenCalledTimes(1)
@@ -103,19 +103,19 @@ test("the explicit binding survives an unrelated selected-chat change and cannot
 test("Runtime execution and foreign ownership stay read-only without attaching an agent", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  const binding = must(f.host.snapshot(), "pet observation").binding
+  const binding = must(f.host.snapshot(), "vibemon observation").binding
   f.setAgent("another-agent")
   await expect(f.host.send(binding, "foreign", "hello")).rejects.toThrow("read-only")
   f.setAgent("codex")
   f.client.applyRunStates([{ ...f.run(f.a.id), executionId: "execution", executionRole: "child" }])
   await f.host.refresh()
-  expect(must(f.host.snapshot(), "pet observation").access).toBe("readOnly")
+  expect(must(f.host.snapshot(), "vibemon observation").access).toBe("readOnly")
   expect(f.prompt).not.toHaveBeenCalled()
 })
 test("epoch invalidation rejects old requests and a missing session remains idle", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  const old = must(f.host.snapshot(), "pet observation").binding
+  const old = must(f.host.snapshot(), "vibemon observation").binding
   f.host.invalidate()
   await f.host.refresh()
   await expect(f.host.send(old, "old", "hello")).rejects.toThrow("changed")
@@ -142,7 +142,7 @@ test("permission answers use the original request token and options", async () =
   })
   await f.host.refresh()
   await f.host.minimized(true)
-  const observation = must(f.host.snapshot(), "pet observation")
+  const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.options).toEqual([{ id: "approve", label: "Allow once", decision: "allow" }])
   await expect(f.host.answer(observation.binding, "invalid", "permission", "invented")).rejects.toThrow(
     "expired or changed"
@@ -158,13 +158,13 @@ test("session choices include background sessions and selection does not invalid
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
   f.client.store.setState({ sessionWindows: { [f.b.id]: "chat" } })
   await f.host.surface("chat", { sessionId: f.b.id, visible: false })
-  const chat = must(f.host.snapshot(), "pet observation")
+  const chat = must(f.host.snapshot(), "vibemon observation")
   expect(chat.candidates.map((item) => [item.sessionId, item.windowLabel])).toEqual([
     [f.a.id, "main"],
     [f.b.id, "chat"]
   ])
   await f.host.select(chat.binding, f.a.id)
-  const main = must(f.host.snapshot(), "pet observation")
+  const main = must(f.host.snapshot(), "vibemon observation")
   expect(main.binding.sessionId).toBe(f.a.id)
   expect(main.windowLabel).toBe("main")
   await f.host.select(chat.binding, f.b.id)
@@ -174,7 +174,7 @@ test("session choices include background sessions and selection does not invalid
 test("activation preserves the existing float conversation, while explicit open follows the binding", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  const binding = must(f.host.snapshot(), "pet observation").binding
+  const binding = must(f.host.snapshot(), "vibemon observation").binding
   await f.host.activate()
   expect(f.openChat).toHaveBeenLastCalledWith(null, "chat")
   await f.host.openChat(binding)
@@ -194,8 +194,8 @@ test("a changed or closed float cannot be hidden by a pending collapse", async (
 test("opening a background binding targets its own main conversation", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  await f.host.select(must(f.host.snapshot(), "pet observation").binding, f.a.id)
-  const binding = must(f.host.snapshot(), "pet observation").binding
+  await f.host.select(must(f.host.snapshot(), "vibemon observation").binding, f.a.id)
+  const binding = must(f.host.snapshot(), "vibemon observation").binding
   await f.host.surface("main", { sessionId: f.b.id, visible: false })
   await f.host.openChat(binding)
   expect(f.openChat).toHaveBeenCalledWith(f.a.id, "main")
@@ -204,7 +204,7 @@ test("opening a background binding targets its own main conversation", async () 
 test("every live transition is published before a pending ownership lookup completes", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  const observed: PetObservation[] = []
+  const observed: VibemonObservation[] = []
   f.host.subscribe((value) => {
     if (value !== null) observed.push(value)
   })
@@ -226,15 +226,15 @@ test("surface replacement preserves an unrelated task binding", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
   await f.host.surface("chat", { sessionId: f.b.id, visible: false })
-  await f.host.select(must(f.host.snapshot(), "pet observation").binding, f.a.id)
-  const old = must(f.host.snapshot(), "pet observation").binding
+  await f.host.select(must(f.host.snapshot(), "vibemon observation").binding, f.a.id)
+  const old = must(f.host.snapshot(), "vibemon observation").binding
   await f.host.surface("main", { sessionId: f.b.id, visible: false })
-  expect(must(f.host.snapshot(), "pet observation").binding.sessionId).toBe(f.a.id)
+  expect(must(f.host.snapshot(), "vibemon observation").binding.sessionId).toBe(f.a.id)
   await f.host.send(old, "background", "hello")
   expect(f.prompt).toHaveBeenCalledWith(f.a.id, expect.anything())
 })
 
-test("a once-only pet answer resolves the original fake agent approval and keeps session ownership", async () => {
+test("a once-only vibemon answer resolves the original fake agent approval and keeps session ownership", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
   await f.client.prompt(f.a.id, [{ type: "text", text: "permission" }])
@@ -245,8 +245,8 @@ test("a once-only pet answer resolves the original fake agent approval and keeps
   }
   await f.host.refresh()
   await f.host.minimized(true)
-  const observation = must(f.host.snapshot(), "pet observation")
-  const approval = must(observation.prompt, "pet approval")
+  const observation = must(f.host.snapshot(), "vibemon observation")
+  const approval = must(observation.prompt, "vibemon approval")
   await f.host.answer(observation.binding, "allow-request", approval.token, "allow_once")
   while (!f.client.state.sessions[f.a.id]?.items.some((item) => item.kind === "assistant")) {
     if (Date.now() >= deadline) throw new Error("Approval response did not arrive")
@@ -439,7 +439,7 @@ test("an authorization is answered once while its Runtime action remains pending
   expect(f.client.state.actions).toHaveLength(1)
 })
 
-test("a child permission is shown and answered through its parent's pet binding", async () => {
+test("a child permission is shown and answered through its parent's vibemon binding", async () => {
   const f = await fixture()
   const child = {
     ...createSession("child", "/tmp"),
@@ -463,7 +463,7 @@ test("a child permission is shown and answered through its parent's pet binding"
   }))
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
   await f.host.minimized(true)
-  const observation = must(f.host.snapshot(), "pet observation")
+  const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.token).toBe("child-permission")
   f.respond.mockImplementation(() => {})
   await f.host.answer(observation.binding, "child-answer", "child-permission", "allow")

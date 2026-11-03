@@ -1,7 +1,7 @@
 import { defaultPreferences, parsePreferences, type Provider, type VoicePreferences } from "@alwith/module-voice"
+import { commands } from "@alwith/module-voice/commands"
 import type { VoiceSettingsHost } from "@alwith/module-voice/react"
 
-import { commands } from "@/bindings"
 import { settingsStore, updateSettings } from "@/lib/settings-store"
 export type VoiceSettings = VoicePreferences
 const keys: Record<keyof VoiceSettings, string> = {
@@ -52,10 +52,10 @@ export async function loadVoiceSettings(): Promise<VoiceSettings> {
   return decode(snapshot.values)
 }
 export function voiceProfiles(): Promise<Record<Provider, boolean>> {
-  return commands.voiceProfiles()
+  return commands.profiles()
 }
 function deleteVoiceCredential(provider: Provider): Promise<void> {
-  return commands.voiceDeleteCredential({ input: { provider } }).then(() => undefined)
+  return commands.deleteCredential({ input: { provider } }).then(() => undefined)
 }
 /** The shared form calls saveCredential immediately before save. Stage only for that submit;
  * Rust commits the configuration and credential together. A host instance belongs to one form. */

@@ -1,13 +1,15 @@
 import { observeRunStates } from "@alwith/api"
 import type { Session } from "@alwith/module-chat/client"
+import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 // The app-wide CodexClient instance and the React bindings to its store.
+import { commands as computer } from "@alwith/module-computer/commands"
+import { commands as device } from "@alwith/module-device/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { commands, events } from "@/bindings"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
 import { RemoteChatClient } from "@/lib/chat-window-client"
@@ -33,15 +35,15 @@ export const client =
         sessionContextRevision: computerContextRevision,
         prepareSessionTools: prepareComputerTools,
         revokeSessionAccess: async (sessionId) => {
-          await commands.computerStopSession({ sessionId })
-          await commands.deviceStopSession({ sessionId }).catch(() => undefined)
+          await computer.stopSession({ sessionId })
+          await device.stopSession({ sessionId }).catch(() => undefined)
         }
       })
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {
-  const stopRevoked = await events["providers:managed-revoked"].listen((event) =>
-    client.markAccountModelsUnavailable(event.payload.sessionIds)
+  const stopRevoked = await createManagedProvidersPort().onRevoked((sessionIds) =>
+    client.markAccountModelsUnavailable(sessionIds)
   )
   try {
     const port = await runtimeClient()

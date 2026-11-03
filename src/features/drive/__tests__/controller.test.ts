@@ -1,4 +1,4 @@
-import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import { CONTRACT_VERSION, type DriveRequest, type DriveResponse, type Snapshot } from "@alwith/module-drive"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
@@ -12,7 +12,7 @@ vi.mock("sonner", () => ({ toast: { success: mocks.success } }))
 import { drive } from "../controller"
 
 const snapshot: Snapshot = {
-  version: 1,
+  version: CONTRACT_VERSION,
   generation: 1,
   sequence: 0,
   configured: true,

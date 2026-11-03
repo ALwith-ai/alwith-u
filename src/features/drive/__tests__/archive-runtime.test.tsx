@@ -1,4 +1,4 @@
-import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
+import { CONTRACT_VERSION, type DriveRequest, type DriveResponse, type Snapshot } from "@alwith/module-drive"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -41,7 +41,7 @@ import { DRIVE_ARCHIVE_SYNC, useDriveArchive } from "../archive-runtime"
 import { drive } from "../controller"
 
 const snapshot: Snapshot = {
-  version: 1,
+  version: CONTRACT_VERSION,
   generation: 1,
   sequence: 0,
   configured: true,

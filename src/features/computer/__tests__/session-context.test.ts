@@ -9,13 +9,8 @@ const native = vi.hoisted(() => ({
   tauri: vi.fn(() => true)
 }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: native.tauri }))
-vi.mock("@/bindings", () => ({
-  commands: {
-    computerReady: native.ready,
-    computerContext: native.context,
-    computerRevision: native.revision,
-    computerBind: native.bind
-  }
+vi.mock("@alwith/module-computer/commands", () => ({
+  commands: { ready: native.ready, context: native.context, revision: native.revision, bind: native.bind }
 }))
 vi.mock("@/features/drive/session-context", () => ({
   driveSessionContext: () => Promise.resolve({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })

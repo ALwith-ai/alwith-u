@@ -1,6 +1,6 @@
 //! Host authorization for optional capabilities shared by modern and legacy extensions.
-use alwith_extension::{Installation, Snapshot};
 use tauri::Manager;
+use alwith_extension::{Installation, Snapshot};
 
 fn selected_installation(snapshot: Snapshot, window: &str, id: &str) -> Result<Installation, String> {
     if !matches!(window, "main" | "settings") {
@@ -17,7 +17,7 @@ fn selected_installation(snapshot: Snapshot, window: &str, id: &str) -> Result<I
 }
 
 pub(crate) fn require_installation(window: &tauri::Window, id: &str) -> Result<Installation, String> {
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|error| error.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|error| error.to_string())?;
     selected_installation(snapshot, window.label(), id)
 }
 
@@ -33,7 +33,7 @@ pub async fn extension_cleanup_grants(window: tauri::Window, extension_id: Strin
     if !matches!(window.label(), "main" | "settings") {
         return Err("Only extension host windows can clear directory grants".into());
     }
-    let snapshot = alwith_extension::plugin::snapshot(window.app_handle()).map_err(|error| error.to_string())?;
+    let snapshot = alwith_extension::snapshot(window.app_handle()).map_err(|error| error.to_string())?;
     require_removed(&snapshot, &extension_id)?;
     crate::legacy_extensions::files::clear_grants(window.app_handle(), &extension_id)
 }

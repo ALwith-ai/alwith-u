@@ -145,7 +145,7 @@ Windows and Linux distributions support x64 only; do not build, stage, or publis
 
 ## Vibémon context menu
 
-- The pet context menu must use `pet.recall`: "叫回休息室" / "Return to lounge". Keep this distinct from the account menu's show/hide labels; do not replace it with `pet.hide`.
+- The vibemon context menu must use `vibemon.recall`: "叫回休息室" / "Return to lounge". Keep this distinct from the account menu's show/hide labels; do not replace it with `vibemon.hide`.
 - Origin: explicit user instruction (2026-10-28).
 
 ## Test Runtime isolation

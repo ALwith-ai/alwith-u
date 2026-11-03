@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "gamepad",
+  "description": "The Gamepad engine, key capture, permissions and microphones",
+  "windows": ["main", "settings", "gamepad"],
+  "permissions": ["alwith-gamepad:default"]
+}

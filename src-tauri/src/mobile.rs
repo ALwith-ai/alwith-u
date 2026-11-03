@@ -1,12 +1,12 @@
-//! U supplies Runtime facts; the shared module owns pairing and mobile transport.
+//! U supplies Runtime facts; the shared mobile plugin owns pairing and transport.
 use alwith_api::{RuntimeEvent, SessionRunState};
-pub use alwith_mobile::host::*;
 use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     sync::{LazyLock, Mutex},
 };
 use tauri::{AppHandle, Manager};
+use alwith_mobile::{HostFuture, MobileExt, MobileHost};
 mod history;
 
 #[derive(Default)]
@@ -17,110 +17,104 @@ struct Projection {
 static PROJECTION: LazyLock<Mutex<Projection>> = LazyLock::new(|| Mutex::new(Projection::default()));
 
 #[tauri3_specta::command]
-pub fn mobile_set_activity_sessions(session_ids: Vec<String>) {
-    let mut projection = PROJECTION.lock().unwrap();
-    projection.activity = session_ids;
-    publish_run_states(project_states(projection.states.clone(), &projection.activity).to_string());
+pub fn mobile_set_activity_sessions(app: AppHandle, session_ids: Vec<String>) -> Result<(), String> {
+    let states = {
+        let mut projection = PROJECTION.lock().unwrap();
+        projection.activity = session_ids;
+        project_states(projection.states.clone(), &projection.activity)
+    };
+    app.mobile().publish_run_states(&states).map_err(|error| error.message)
 }
 
-fn project_snapshot(states: Vec<SessionRunState>) -> Value {
+fn project_snapshot(states: Vec<SessionRunState>) -> Vec<Value> {
     let mut projection = PROJECTION.lock().unwrap();
     projection.states = states;
     project_states(projection.states.clone(), &projection.activity)
 }
 
-pub fn initialize(app: &AppHandle) -> Result<(), String> {
-    let host = app.clone();
-    alwith_mobile::host::init(app, alwith_mobile::HostApp::U, move |method, params| {
-        let app = host.clone();
+/// Answers the phone bridge's questions from U's Runtime.
+pub struct Host;
+impl MobileHost for Host {
+    fn run_states(&self, app: AppHandle) -> HostFuture<Vec<Value>> {
         Box::pin(async move {
             let client = app.state::<crate::runtime::RuntimeState>().current()?;
-            let session_id = || params["sessionId"].as_str().ok_or_else(|| "Missing mobile sessionId".to_string());
-            match method.as_str() {
-                "runStates" => Ok(project_snapshot(client.run_states().await.map_err(crate::runtime::request_error)?)),
-                "agentForSession" => {
-                    // U's conversations belong to its Codex adapter, including retained activity
-                    // whose Runtime attachment has ended. Reading history must not resume or select it.
-                    session_id()?;
-                    Ok(json!("codex"))
-                }
-                "sessionReplay" => {
-                    let id = session_id()?;
-                    let mut lines = history::read(id, |params| {
-                        let client = client.clone();
-                        async move {
-                            client
-                                .acp_request("codex", "_codex/session_history", params, None, None)
-                                .await
-                                .map_err(crate::runtime::request_error)
-                        }
-                    })
-                    .await?;
-                    // Fetch after history so pending permissions reflect the latest Runtime snapshot.
-                    let replay = client.session_replay(id).await.map_err(crate::runtime::request_error)?;
-                    lines.extend(history::pending_permissions(id, replay)?);
-                    Ok(json!(lines))
-                }
-                "markRead" => {
-                    client.mark_read(session_id()?, None).await.map_err(crate::runtime::request_error)?;
-                    Ok(Value::Null)
-                }
-                _ => Err(format!("Unknown mobile host request: {method}")),
-            }
+            Ok(project_snapshot(client.run_states().await.map_err(crate::runtime::request_error)?))
         })
-    })
+    }
+    fn agent_for_session(&self, _app: AppHandle, _session_id: String) -> HostFuture<Option<String>> {
+        // U's conversations belong to its Codex adapter, including retained activity whose
+        // Runtime attachment has ended. Reading history must not resume or select it.
+        Box::pin(async move { Ok(Some("codex".to_owned())) })
+    }
+    fn session_replay(&self, app: AppHandle, session_id: String) -> HostFuture<Vec<String>> {
+        Box::pin(async move {
+            let client = app.state::<crate::runtime::RuntimeState>().current()?;
+            let mut lines = history::read(&session_id, |params| {
+                let client = client.clone();
+                async move {
+                    client
+                        .acp_request("codex", "_codex/session_history", params, None, None)
+                        .await
+                        .map_err(crate::runtime::request_error)
+                }
+            })
+            .await?;
+            // Fetch after history so pending permissions reflect the latest Runtime snapshot.
+            let replay = client.session_replay(&session_id).await.map_err(crate::runtime::request_error)?;
+            lines.extend(history::pending_permissions(&session_id, replay)?);
+            Ok(lines)
+        })
+    }
+    fn mark_read(&self, app: AppHandle, session_id: String) -> HostFuture<()> {
+        Box::pin(async move {
+            let client = app.state::<crate::runtime::RuntimeState>().current()?;
+            client.mark_read(&session_id, None).await.map_err(crate::runtime::request_error)?;
+            Ok(())
+        })
+    }
 }
-fn project_states(states: Vec<SessionRunState>, activity: &[String]) -> Value {
+
+fn project_states(states: Vec<SessionRunState>, activity: &[String]) -> Vec<Value> {
     // The UI supplies display membership and order; every session fact still comes from Runtime.
     let mut by_id: HashMap<_, _> = states.into_iter().map(|state| (state.session_id.clone(), state)).collect();
-    let states: Vec<_> = activity.iter().filter_map(|id| by_id.remove(id)).collect();
-    let mut states = serde_json::to_value(states).expect("serialize Runtime states");
-    for state in states.as_array_mut().expect("Runtime state list") {
-        state["windowLabel"] = state["owner"].clone();
-    }
-    states
+    activity
+        .iter()
+        .filter_map(|id| by_id.remove(id))
+        .map(|state| {
+            let mut state = serde_json::to_value(state).expect("serialize Runtime state");
+            state["windowLabel"] = state["owner"].clone();
+            state
+        })
+        .collect()
 }
-pub fn publish(event: &RuntimeEvent) {
-    match event {
-        RuntimeEvent::RunStates { sessions } => publish_run_states(project_snapshot(sessions.clone()).to_string()),
+pub fn publish(app: &AppHandle, event: &RuntimeEvent) {
+    let mobile = app.mobile();
+    let result = match event {
+        RuntimeEvent::RunStates { sessions } => mobile.publish_run_states(&project_snapshot(sessions.clone())),
         // ACP notifications are the confirmed conversation stream. Publishing outbound prompts
         // as well would display both the request and its user_message echo on the phone.
         RuntimeEvent::AcpNotification { agent_id, method, params, .. }
             if method == "session/update" && !params["update"]["_meta"]["replay"]["id"].is_string() =>
         {
             let line = json!({"jsonrpc":"2.0", "method":method, "params":params}).to_string();
-            publish_session_lines(agent_id.clone(), json!([line]).to_string());
+            mobile.publish_session_lines(agent_id, &[line])
         }
         RuntimeEvent::AcpAgentRequest { agent_id, id, method, params, .. }
             if method == "session/request_permission" =>
         {
             let line = json!({"jsonrpc":"2.0", "id":id, "method":method, "params":params}).to_string();
-            publish_session_lines(agent_id.clone(), json!([line]).to_string());
+            mobile.publish_session_lines(agent_id, &[line])
         }
-        _ => {}
+        _ => Ok(()),
+    };
+    if let Err(error) = result {
+        log::error!("Mobile publication failed: {error}");
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn staged_mobile_library_preserves_identity_and_rejects_offline_pairing() {
-        let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/native");
-        alwith_native_client::configure(&directory).unwrap();
-        let storage = tempfile::tempdir().unwrap();
-        let mobile = alwith_mobile::Mobile::new(storage.path(), alwith_mobile::HostApp::U).unwrap();
-        let status: alwith_mobile::MobileBridgeStatus = mobile.call("status", json!({})).unwrap();
-        assert!(!status.running);
-        assert_eq!(mobile.call::<Value>("pairing", json!({})).unwrap_err(), "relay disconnected");
-        let identity: alwith_mobile::BridgeIdentity = mobile.call("identity", json!({})).unwrap();
-        assert!(!identity.device_id.is_empty());
-        assert!(!identity.public_key_b64.is_empty());
-        let again: alwith_mobile::BridgeIdentity = mobile.call("identity", json!({})).unwrap();
-        assert_eq!(identity.device_id, again.device_id);
-        mobile.close().unwrap();
-    }
 
     #[test]
     fn projects_runtime_owner_without_changing_run_state_or_read_version() {
@@ -156,7 +150,7 @@ mod tests {
         unread.state = alwith_api::RunState::Done;
         let projected =
             project_states(vec![retired, active, unread], &["unread".into(), "active".into(), "missing".into()]);
-        assert_eq!(projected.as_array().unwrap().len(), 2);
+        assert_eq!(projected.len(), 2);
         assert_eq!(projected[0]["sessionId"], "unread");
         assert_eq!(projected[1]["sessionId"], "active");
         assert_eq!(projected[0]["state"], "done");

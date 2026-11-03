@@ -1,6 +1,6 @@
+import { commands } from "@alwith/module-computer/commands"
 import { Cause, Effect, Exit, Semaphore } from "effect"
 
-import { commands } from "@/bindings"
 import { settingsStore, updateSettings } from "@/lib/settings-store"
 
 // Native owns application authority. This permit serializes this client's transitions and saves.
@@ -27,21 +27,21 @@ async function transition(work: Effect.Effect<unknown, unknown>): Promise<void> 
 const enable = Effect.fn("Computer.enable")(function* (start: () => Promise<unknown>) {
   // Until the preference is saved, failure owns a rollback. Success leaves authority with native.
   yield* Effect.acquireRelease(attempt(start), (_, exit) =>
-    Exit.isFailure(exit) ? attempt(() => commands.computerStop()).pipe(Effect.orDie) : Effect.void
+    Exit.isFailure(exit) ? attempt(() => commands.stop()).pipe(Effect.orDie) : Effect.void
   )
   yield* attempt(() => updateSettings({ "computer.enabled": true }))
 }, Effect.scoped)
 
 /** Native authority is application-wide; every session refreshes tools before its next prompt. */
 export function enableComputer(): Promise<void> {
-  return transition(enable(() => commands.computerStart()))
+  return transition(enable(() => commands.start()))
 }
 
 /** Closing the shared driver revokes every MCP connection without cancelling unrelated chat work. */
 export function stopComputer(): Promise<void> {
   return transition(
     Effect.gen(function* () {
-      yield* attempt(() => commands.computerStop())
+      yield* attempt(() => commands.stop())
       yield* attempt(() => updateSettings({ "computer.enabled": false }))
     })
   )
@@ -52,17 +52,17 @@ export function restoreComputer(): Promise<void> {
   return transition(
     Effect.gen(function* () {
       if (settingsStore.get<boolean>("computer.enabled") === false) return
-      const status = yield* attempt(() => commands.computerStatus())
+      const status = yield* attempt(() => commands.status())
       if (status.enabled || !status.available || !status.permissions.supported) return
       if (!status.permissions.accessibility || !status.permissions.screenCapture) return
       // Failed verification needs an explicit reconnect, not another automatic polling attempt.
       if (status.phase !== "disabled") return
-      yield* attempt(() => commands.computerStart())
+      yield* attempt(() => commands.start())
     })
   )
 }
 
 /** Reconnect replaces the driver generation without replaying any previous action. */
 export function reconnectComputer(): Promise<void> {
-  return transition(enable(() => commands.computerReconnect()))
+  return transition(enable(() => commands.reconnect()))
 }

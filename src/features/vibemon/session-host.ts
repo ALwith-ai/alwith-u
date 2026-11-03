@@ -1,42 +1,42 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import {
-  type PetBinding,
-  type PetObservation,
-  type PetPanelLevel,
-  type PetSessionChoice,
-  type PetSurface,
-  sameBinding
-} from "@alwith/module-auth/pets/core"
+  sameBinding,
+  type VibemonBinding,
+  type VibemonObservation,
+  type VibemonPanelLevel,
+  type VibemonSessionChoice,
+  type VibemonSurface
+} from "@alwith/module-auth/vibemon/core"
 import { inSessionTree, isText, isToolCallSubject } from "@alwith/module-chat/client"
 
 import type { AppState } from "@/agent/client"
 
-import { petAnswer, petPrompt } from "./pet-prompt"
+import { vibemonAnswer, vibemonPrompt } from "./vibemon-prompt"
 
-export interface PetSessionOwner {
+export interface VibemonSessionOwner {
   state: () => AppState
   agentId: string
   source(): "snapshot" | "event"
   agentForSession(id: string): Promise<string | null>
-  claim(requestId: string, binding: PetBinding, owner: string): Promise<boolean>
+  claim(requestId: string, binding: VibemonBinding, owner: string): Promise<boolean>
   prompt(id: string, content: acp.ContentBlock[]): Promise<void>
   cancel(id: string): Promise<void>
   markRead(id: string): Promise<void>
   respond(token: string, answer: acp.RequestPermissionResponse | acp.CreateElicitationResponse): void
   openChat(id: string | null, windowLabel: "main" | "chat"): Promise<void>
 }
-export type { PetSurface } from "@alwith/module-auth/pets/core"
+export type { VibemonSurface } from "@alwith/module-auth/vibemon/core"
 
 /** A transient projection of the existing client. It never attaches or owns a session. */
-export function createPetSessionOwner(owner: PetSessionOwner) {
+export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
   let epoch = crypto.randomUUID()
   let connection = owner.state().connection
   let bindingRevision = 0
   let revision = 0
   const signatures = new Map<string, string>()
   const agents = new Map<string, string | null>()
-  let observations: PetObservation[] = []
-  const bindings = new Map<string, PetBinding>()
+  let observations: VibemonObservation[] = []
+  const bindings = new Map<string, VibemonBinding>()
   const hidden = new Set<string>()
   const stopping = new Set<string>()
   const answered = new Set<string>()
@@ -48,19 +48,19 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
   const previousStates = new Map<string, string>()
   const attachments = new Map<string, boolean>()
   const incarnations = new Map<string, string>()
-  const surfaces: Record<"main" | "chat", PetSurface> = {
+  const surfaces: Record<"main" | "chat", VibemonSurface> = {
     main: { sessionId: null, visible: false },
     chat: { sessionId: null, visible: false }
   }
-  let panel: PetPanelLevel = "hidden"
+  let panel: VibemonPanelLevel = "hidden"
   let focusedSessionId: string | undefined
   let mainMinimized = false
   let selected: string | null = null
-  let snapshot: PetObservation | null = null
+  let snapshot: VibemonObservation | null = null
   let sequence = 0
   let order = 0
-  const listeners = new Set<(value: PetObservation | null) => void>()
-  function candidates(state: AppState): PetSessionChoice[] {
+  const listeners = new Set<(value: VibemonObservation | null) => void>()
+  function candidates(state: AppState): VibemonSessionChoice[] {
     return Object.values(state.runStates)
       .filter((run) => !run.reusableDraft)
       .map((run) => ({
@@ -70,7 +70,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         windowLabel: state.sessionWindows[run.sessionId] ?? "main"
       }))
   }
-  function publish(value: PetObservation | null) {
+  function publish(value: VibemonObservation | null) {
     snapshot = value
     for (const listener of listeners) listener(value)
   }
@@ -120,7 +120,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     for (const token of answered) if (!actionIds.has(token)) answered.delete(token)
     for (const token of promptOrders.keys()) if (!actionIds.has(token)) promptOrders.delete(token)
     for (const action of state.actions) if (!promptOrders.has(action.id)) promptOrders.set(action.id, ++order)
-    const make = (choice: PetSessionChoice): PetObservation => {
+    const make = (choice: VibemonSessionChoice): VibemonObservation => {
       const id = choice.sessionId
       const run = state.runStates[id]
       const session: AppState["sessions"][string] | undefined = state.sessions[id]
@@ -163,7 +163,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         })
       }
       const binding = bindings.get(id)
-      if (binding === undefined) throw new Error("Pet binding unavailable")
+      if (binding === undefined) throw new Error("Vibemon binding unavailable")
       const action =
         state.actions.findLast(
           (item) => inSessionTree(state.sessions, id, item.sessionId) && item.kind === "permission"
@@ -174,7 +174,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         tool === null || action?.sessionId == null
           ? undefined
           : state.sessions[action.sessionId]?.items.find((item) => item.id === tool.toolCallId && item.kind === "tool")
-      const prompt = petPrompt(
+      const prompt = vibemonPrompt(
         action,
         tool?.rawInput !== undefined ? tool.rawInput : storedTool?.kind === "tool" ? storedTool.rawInput : undefined
       )
@@ -267,16 +267,16 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     }
     if (changed) publishAll()
   }
-  function requireBinding(binding: PetBinding): PetObservation {
+  function requireBinding(binding: VibemonBinding): VibemonObservation {
     const value = observations.find((task) => sameBinding(task.binding, binding))
-    if (value === undefined) throw new Error("The pet conversation changed; open the conversation before retrying")
+    if (value === undefined) throw new Error("The vibemon conversation changed; open the conversation before retrying")
     const state = owner.state()
     const run = state.runStates[binding.sessionId]
     if (run?.owner !== value.owner || run.executionId !== value.executionId || state.connection !== "ready")
-      throw new Error("The pet conversation is unavailable")
+      throw new Error("The vibemon conversation is unavailable")
     return value
   }
-  async function claim(binding: PetBinding, requestId: string): Promise<PetObservation> {
+  async function claim(binding: VibemonBinding, requestId: string): Promise<VibemonObservation> {
     await refresh()
     const current = requireBinding(binding)
     if (current.access !== "writable" || current.executionId !== null)
@@ -284,7 +284,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     if ((await owner.agentForSession(binding.sessionId)) !== owner.agentId)
       throw new Error("This conversation is read-only; the execution owner changed")
     if (!(await owner.claim(requestId, binding, current.owner)))
-      throw new Error("This pet request was already submitted; check the conversation")
+      throw new Error("This vibemon request was already submitted; check the conversation")
     const latest = requireBinding(binding)
     const session = owner.state().sessions[binding.sessionId]
     if (!session?.attached || session.readOnly || session.restoring)
@@ -294,13 +294,13 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
   return {
     refresh,
     snapshot: () => snapshot,
-    subscribe(listener: (value: PetObservation | null) => void) {
+    subscribe(listener: (value: VibemonObservation | null) => void) {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
       }
     },
-    surface(label: "main" | "chat", value: PetSurface) {
+    surface(label: "main" | "chat", value: VibemonSurface) {
       surfaces[label] = value
       return refresh()
     },
@@ -313,9 +313,9 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
     },
     requireSurface(label: "main" | "chat", sessionId: string | null) {
       if (!surfaces[label].visible || surfaces[label].sessionId !== sessionId)
-        throw new Error("The conversation window changed during pet presentation")
+        throw new Error("The conversation window changed during vibemon presentation")
     },
-    async select(binding: PetBinding, sessionId: string) {
+    async select(binding: VibemonBinding, sessionId: string) {
       await refresh()
       requireBinding(binding)
       if (!candidates(owner.state()).some((item) => item.sessionId === sessionId))
@@ -350,13 +350,13 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       mainMinimized = value
       return refresh()
     },
-    panel(level: PetPanelLevel) {
-      if (!["hidden", "stacked", "expanded"].includes(level)) throw new Error("Invalid pet panel level")
+    panel(level: VibemonPanelLevel) {
+      if (!["hidden", "stacked", "expanded"].includes(level)) throw new Error("Invalid vibemon panel level")
       panel = level
       focusedSessionId = undefined
       return refresh()
     },
-    async cancel(binding: PetBinding, requestId: string) {
+    async cancel(binding: VibemonBinding, requestId: string) {
       const value = await claim(binding, requestId)
       if (stopping.has(binding.sessionId)) return
       if (value.state !== "running") throw new Error("This conversation is not running")
@@ -369,7 +369,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       }
       await refresh()
     },
-    async dismiss(binding: PetBinding) {
+    async dismiss(binding: VibemonBinding) {
       const value = requireBinding(binding)
       if (hidden.has(binding.sessionId)) return
       hidden.add(binding.sessionId)
@@ -387,7 +387,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
       }
       await refresh()
     },
-    async send(binding: PetBinding, requestId: string, text: string) {
+    async send(binding: VibemonBinding, requestId: string, text: string) {
       if (!text.trim()) throw new Error("A reply cannot be empty")
       const value = await claim(binding, requestId)
       const state = owner.state()
@@ -399,7 +399,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         throw new Error("This conversation is busy or requires an answer")
       await owner.prompt(binding.sessionId, [{ type: "text", text }])
     },
-    async answer(binding: PetBinding, requestId: string, token: string, optionId: string) {
+    async answer(binding: VibemonBinding, requestId: string, token: string, optionId: string) {
       if (!mainMinimized) throw new Error("Open the main window to answer this permission")
       const value = await claim(binding, requestId)
       if (answered.has(token)) return
@@ -416,7 +416,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         !value.prompt.options.some((option) => option.id === optionId)
       )
         throw new Error("This permission request expired or changed")
-      const answer = petAnswer(action, optionId)
+      const answer = vibemonAnswer(action, optionId)
       answered.add(token)
       try {
         owner.respond(token, answer)
@@ -425,7 +425,7 @@ export function createPetSessionOwner(owner: PetSessionOwner) {
         throw error
       }
     },
-    async openChat(binding: PetBinding | null) {
+    async openChat(binding: VibemonBinding | null) {
       await refresh()
       const value = binding === null ? null : requireBinding(binding)
       await owner.openChat(binding?.sessionId ?? null, value?.windowLabel ?? "chat")

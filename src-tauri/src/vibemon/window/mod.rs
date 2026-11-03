@@ -1,4 +1,4 @@
-//! U-owned pet window operations. Rendering and assets stay in the shared frontend packages.
+//! U-owned vibemon window operations. Rendering and assets stay in the shared frontend packages.
 use serde::Deserialize;
 use serde_json::{Value, json};
 use tauri::{Manager, WebviewWindow};
@@ -60,19 +60,19 @@ pub(super) enum BackdropPathCommand {
 
 fn validate(action: &WindowAction) -> Result<(), String> {
     if matches!(action.action.as_str(), "blur" | "focus") && action.role != "bubble" {
-        return Err("Only the pet bubble may focus or set its background".into());
+        return Err("Only the vibemon bubble may focus or set its background".into());
     }
     if action.action == "blur" && action.radius.is_none() {
-        return Err("Missing pet blur radius".into());
+        return Err("Missing vibemon blur radius".into());
     }
     if let Some(radius) = action.radius
         && radius > 20
     {
-        return Err("Invalid pet blur radius".into());
+        return Err("Invalid vibemon blur radius".into());
     }
     if let Some(path) = &action.path {
         if path.is_empty() || path.len() > 128 {
-            return Err("Invalid pet background outline".into());
+            return Err("Invalid vibemon background outline".into());
         }
         for command in path {
             let finite = match command {
@@ -85,12 +85,12 @@ fn validate(action: &WindowAction) -> Result<(), String> {
                 BackdropPathCommand::Close => true,
             };
             if !finite {
-                return Err("Pet background coordinates must be finite".into());
+                return Err("Vibemon background coordinates must be finite".into());
             }
         }
     }
     if action.width.is_some() != action.height.is_some() {
-        return Err("Pet bubble dimensions must be supplied together".into());
+        return Err("Vibemon bubble dimensions must be supplied together".into());
     }
     if let Some((width, height)) = action.width.zip(action.height)
         && (!width.is_finite()
@@ -98,7 +98,7 @@ fn validate(action: &WindowAction) -> Result<(), String> {
             || !(160. ..=640.).contains(&width)
             || !(32. ..=600.).contains(&height))
     {
-        return Err("Invalid pet bubble dimensions".into());
+        return Err("Invalid vibemon bubble dimensions".into());
     }
     Ok(())
 }
@@ -111,7 +111,7 @@ pub async fn perform(
     window: &WebviewWindow, action: &str, parent: Option<WebviewWindow>, extra: Value,
 ) -> Result<Value, String> {
     if !allows_action(window.label(), action) {
-        return Err("Invalid pet window".into());
+        return Err("Invalid vibemon window".into());
     }
     let host = window.clone();
     let operation = action.to_owned();
@@ -159,12 +159,12 @@ fn apply(host: &WebviewWindow, operation: &str, parent: Option<WebviewWindow>, e
     let mut params = match extra {
         Value::Null => serde_json::Map::new(),
         Value::Object(fields) => fields,
-        _ => return Err("Invalid pet window parameters".into()),
+        _ => return Err("Invalid vibemon window parameters".into()),
     };
     params.insert("action".into(), json!(operation));
     params.insert("handle".into(), json!(handle));
     params.insert("parent".into(), json!(parent));
-    params.insert("role".into(), json!(if host.label() == "vibemon" { "pet" } else { "bubble" }));
+    params.insert("role".into(), json!(if host.label() == "vibemon" { "vibemon" } else { "bubble" }));
     let action: WindowAction = serde_json::from_value(Value::Object(params)).map_err(|error| error.to_string())?;
     validate(&action)?;
     #[cfg(target_os = "macos")]

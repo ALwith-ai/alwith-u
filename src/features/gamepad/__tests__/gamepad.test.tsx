@@ -35,7 +35,7 @@ async function mount(state: GamepadSnapshot): Promise<{ host: GamepadHost; emit:
     request: vi.fn((request: Parameters<GamepadHost["request"]>[0]) => {
       return Promise.try(() => {
         if (request.type === "selectDevice") {
-          state = { ...state, sequence: state.sequence + 1, activeDevice: request.id }
+          state = { ...state, sequence: state.sequence + 1, activeDevice: request.id ?? null }
           for (const listener of listeners) listener({ type: "snapshot", snapshot: state })
         }
         if (request.type === "loadProfile")

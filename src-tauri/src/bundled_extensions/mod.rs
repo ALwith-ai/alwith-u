@@ -75,7 +75,7 @@ pub fn extension_bundles(window: tauri::Window) -> Result<Vec<BundledExtension>,
     };
     let bundles = resolve_bundles(&root)?;
     for bundle in &bundles {
-        alwith_extension::plugin::grant_install(
+        alwith_extension::grant_install(
             window.app_handle(),
             window.label(),
             Path::new(&bundle.path),

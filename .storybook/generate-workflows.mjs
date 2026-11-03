@@ -35,8 +35,8 @@ const completionCheckpointIds = new Set([
   "workflow-files-cancelnewfile",
   "workflow-files-dirtydiscard",
   "workflow-files-dirtysave",
-  "workflow-pets-draw",
-  "workflow-pet-reply-send",
+  "workflow-vibemon-draw",
+  "workflow-vibemon-reply-send",
   "workflow-drive-surfaces-states-failed"
 ])
 const unwrap = (node) =>

@@ -1,4 +1,4 @@
-import { PetQuickReply, PetWindow } from "@alwith/module-auth/pets/react"
+import { VibemonQuickReply, VibemonWindow } from "@alwith/module-auth/vibemon/react"
 import { isFormElicitation } from "@alwith/module-chat/client"
 import { exportDraft } from "@alwith/module-chat/conversation"
 import type { FormAction } from "@alwith/module-chat/conversation"
@@ -39,7 +39,7 @@ import { ArchivedChatsPage } from "../../src/features/sessions/archived-chats-pa
 import { SessionSidebar } from "../../src/features/sessions/session-sidebar"
 import { HotkeysDialog } from "../../src/features/settings/hotkeys-dialog"
 import { SettingsPage } from "../../src/features/settings/settings-page"
-import { VibemonCenter } from "../../src/features/vibemon/pet-center"
+import { VibemonCenter } from "../../src/features/vibemon/vibemon-center"
 import { useWorkspace, WorkspaceHeaderContext } from "../../src/features/workspace/context"
 import { FileWorkspace } from "../../src/features/workspace/file-workspace"
 import { PROJECT_DIRECTORY } from "../fixtures/catalog"
@@ -64,8 +64,8 @@ export interface ProductPreviewProps extends PreviewState {
     | "vibemon"
     | "login"
     | "floating"
-    | "petWindow"
-    | "petBubble"
+    | "vibemonWindow"
+    | "vibemonBubble"
   settingsSection?: string
   paletteOpen?: boolean
   hotkeysOpen?: boolean
@@ -238,10 +238,10 @@ export function ProductPreview({
       </>
     )
   const fullPage =
-    page === "petWindow" ? (
-      <PetWindow />
-    ) : page === "petBubble" ? (
-      <PetQuickReply />
+    page === "vibemonWindow" ? (
+      <VibemonWindow />
+    ) : page === "vibemonBubble" ? (
+      <VibemonQuickReply />
     ) : page === "settings" ? (
       <SettingsPage key={settingsSection} />
     ) : page === "guide" ? (
@@ -257,7 +257,7 @@ export function ProductPreview({
     ) : null
   return (
     <div
-      className={`h-dvh overflow-hidden ${page === "petWindow" || page === "petBubble" ? "bg-transparent" : "bg-sidebar"}`}
+      className={`h-dvh overflow-hidden ${page === "vibemonWindow" || page === "vibemonBubble" ? "bg-transparent" : "bg-sidebar"}`}
       style={{ ...(width ? { width, maxWidth: "100vw" } : {}), ...(height ? { height } : {}) }}
     >
       {fullPage ?? (
@@ -391,7 +391,7 @@ export function ProductPreview({
           </WallpaperBackground>
         </WindowsMainWindowShell>
       )}
-      {!["petWindow", "petBubble", "login"].includes(page) && <ZoomFeedback />}
+      {!["vibemonWindow", "vibemonBubble", "login"].includes(page) && <ZoomFeedback />}
       <DriveDeleteConfirmation />
       <Toaster duration={Infinity} />
     </div>

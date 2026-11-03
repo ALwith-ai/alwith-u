@@ -11,6 +11,7 @@ use std::sync::{
 };
 use std::time::Duration;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
+use alwith_mobile::MobileExt;
 use tauri3_specta::Event;
 
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
@@ -83,6 +84,17 @@ impl RuntimeState {
     }
 }
 
+/// The chat plugin reaches the Runtime and orders provider changes with U's session admission.
+pub struct ChatRuntime;
+impl alwith_chat::RuntimeAccess for ChatRuntime {
+    fn current(&self, app: &AppHandle) -> Result<Arc<RuntimeClient>, String> {
+        app.state::<RuntimeState>().current()
+    }
+    fn admission<'a>(&'a self, app: &'a AppHandle) -> &'a tokio::sync::Mutex<()> {
+        &app.state::<RuntimeState>().inner().admission
+    }
+}
+
 /// Keep the native event loop alive while IPC replies and Runtime shutdown drain.
 /// Blocking this thread can strand a Tokio worker waiting for a WebKit response.
 pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
@@ -93,10 +105,31 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
     if state.begin_shutdown() {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Err(error) = app.state::<alwith_computer::ComputerHost>().shutdown().await {
+            // Module shutdown is ordered and awaited before the Runtime closes.
+            let computer = app.state::<alwith_computer::Computer>();
+            if let Err(error) = computer.shutdown().await {
                 log::error!("Computer shutdown failed: {error}");
             }
-            if let Err(error) = crate::mobile::shutdown().await {
+            if let Err(error) = computer.kill_on_exit() {
+                log::error!("Computer driver kill failed: {error}");
+            }
+            let modules = app.clone();
+            let stopped = tauri::async_runtime::spawn_blocking(move || {
+                if let Err(error) = alwith_voice::shutdown(&modules) {
+                    log::error!("Voice shutdown failed: {error}");
+                }
+                if let Err(error) = alwith_gamepad::shutdown(&modules) {
+                    log::error!("Gamepad shutdown failed: {error}");
+                }
+                if let Err(error) = alwith_device::shutdown_host(&modules) {
+                    log::error!("Device shutdown failed: {error}");
+                }
+            })
+            .await;
+            if let Err(error) = stopped {
+                log::error!("Module shutdown task failed: {error}");
+            }
+            if let Err(error) = app.mobile().shutdown().await {
                 log::error!("Mobile shutdown failed: {error}");
             }
             app.state::<RuntimeState>().shutdown().await;
@@ -143,12 +176,11 @@ fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Resu
     let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
     #[cfg(not(debug_assertions))]
     let resources = app.path().resource_dir().map_err(|error| error.to_string())?;
-    let _ = app;
     let adapter = resources.join("adapter/codex-bootstrap.mjs");
     if !adapter.is_file() {
         return Err(format!("ACP adapter missing at {}", adapter.display()));
     }
-    let catalogs = std::env::join_paths(crate::providers::bundled_model_catalogs(&resources)?)
+    let catalogs = std::env::join_paths(alwith_chat::bundled_model_catalogs(app)?)
         .map_err(|error| error.to_string())?;
     let mut engines = json!({"codex": {
         "command": sidecar_path("bun")?,
@@ -217,7 +249,7 @@ pub async fn runtime_start(
     let cache = app.path().app_cache_dir().map_err(|error| error.to_string())?;
     let data = app.path().app_data_dir().map_err(|error| error.to_string())?;
     #[cfg(windows)]
-    let native_network = tauri_plugin_alwith_chat::native_network::NativeNetwork::start()
+    let native_network = alwith_chat::native_network::NativeNetwork::start()
         .await
         .map_err(|error| format!("Cannot start native network transport: {error}"))?;
     #[cfg(windows)]
@@ -243,7 +275,7 @@ pub async fn runtime_start(
     };
     let mut events = client.events();
     *state.client.lock().unwrap() = Some(Arc::clone(&client));
-    app.state::<crate::providers::Providers>().reset().await;
+    app.state::<alwith_chat::Providers>().reset().await;
     let identity = Arc::downgrade(&client);
     tauri::async_runtime::spawn(async move {
         #[cfg(windows)]
@@ -270,14 +302,13 @@ pub async fn runtime_start(
                     ClientEvent::Closed { reason } => {
                         crate::diagnostics::runtime_closed(&reason);
                         crate::power::sync(&app, false);
-                        if let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await {
+                        if let Err(error) = app.state::<alwith_computer::Computer>().release().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
                         }
-                        app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
-                        if !lines.is_empty() {
-                            if let Err(error) = RuntimeLines(std::mem::take(&mut lines)).emit(&app) {
-                                log::error!("Cannot emit event: {error}");
-                            }
+                        if !lines.is_empty()
+                            && let Err(error) = RuntimeLines(std::mem::take(&mut lines)).emit(&app)
+                        {
+                            log::error!("Cannot emit event: {error}");
                         }
                         log::info!("alwith-runtime exited: {reason}");
                         state.client.lock().unwrap().take();
@@ -293,10 +324,10 @@ pub async fn runtime_start(
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
                         crate::diagnostics::runtime_event(&event);
-                        crate::providers::managed::observe_event(&app, &event);
-                        crate::mobile::publish(&event);
+                        alwith_chat::observe_event(&app, &event);
+                        crate::mobile::publish(&app, &event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
-                            && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
+                            && let Err(error) = app.state::<alwith_computer::Computer>().release().await
                         {
                             log::error!("Computer cleanup after Codex exit failed: {error}");
                         }
@@ -305,28 +336,28 @@ pub async fn runtime_start(
                                 &app,
                                 crate::power::has_active_tasks(sessions.iter().map(|session| &session.state)),
                             );
-                            app.state::<crate::computer::ComputerGateway>().gateway.sync_running(
-                                sessions
-                                    .iter()
-                                    .filter(|s| {
-                                        matches!(
-                                            s.state,
-                                            alwith_api::RunState::Running | alwith_api::RunState::RequiresAction
-                                        )
-                                    })
-                                    .map(|s| s.session_id.clone())
-                                    .collect(),
-                            );
-                        }
-                        if matches!(&event, alwith_api::RuntimeEvent::Exit {agent_id} if agent_id=="codex") {
-                            app.state::<crate::computer::ComputerGateway>().gateway.stop_all();
+                            let running = sessions
+                                .iter()
+                                .filter(|s| {
+                                    matches!(
+                                        s.state,
+                                        alwith_api::RunState::Running | alwith_api::RunState::RequiresAction
+                                    )
+                                })
+                                .map(|s| s.session_id.clone())
+                                .collect();
+                            if let Err(error) =
+                                app.state::<alwith_computer::Computer>().sync_running(&running)
+                            {
+                                log::error!("Computer lease update failed: {error}");
+                            }
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
                         if resets_provider_catalog(&event) {
-                            app.state::<crate::providers::Providers>().reset().await;
+                            app.state::<alwith_chat::Providers>().reset().await;
                         }
                         if retry {
-                            crate::providers::schedule_apply(&app);
+                            alwith_chat::schedule_apply(&app);
                         }
                         let value = serde_json::to_value(event).expect("serialize Runtime event");
                         lines.push(value.to_string());
@@ -346,10 +377,10 @@ pub async fn runtime_start(
                     ClientEvent::Other(value) => lines.push(value.to_string()),
                 }
             }
-            if !lines.is_empty() {
-                if let Err(error) = RuntimeLines(lines).emit(&app) {
-                    log::error!("Cannot emit event: {error}");
-                }
+            if !lines.is_empty()
+                && let Err(error) = RuntimeLines(lines).emit(&app)
+            {
+                log::error!("Cannot emit event: {error}");
             }
         }
         if let Some(client) = identity.upgrade()
@@ -395,7 +426,8 @@ pub async fn runtime_send(
     }
     let client = state.current()?;
     let lifecycle = is_admission(&request)
-        || crate::providers::managed::requires_admission(&request.method, request.params.as_ref())
+        || alwith_chat::requires_admission(window.app_handle(), &request.method, request.params.as_ref())
+            .map_err(|error| error.message)?
         || matches!(request.method.as_str(), "sessionNew")
         || (request.method == "acpRequest"
             && matches!(
@@ -419,25 +451,35 @@ pub async fn runtime_send(
     if requires_provider_application(&request)
         && !temporary_gamepad
         && !active_prompt
-        && let Err(error) = crate::providers::apply_locked(window.app_handle(), &client).await
-        && !crate::providers::application_pending(&error)
+        && let Err(error) = alwith_chat::apply_locked(window.app_handle(), &client).await
+        && !alwith_chat::application_pending(&error)
     {
         return Err(error);
     }
     if !current_connection() {
         return Err("Window connection replaced".into());
     }
-    let generation = crate::providers::managed::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let generation = alwith_chat::check(window.app_handle(), &request.method, request.params.as_ref())
+        .map_err(|error| error.message)?;
     let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
     diagnostic.finish(&outcome);
     if let (Some(params), Ok(value)) = (&original, &outcome) {
-        crate::providers::managed::observe_realtime(window.app_handle(), &request.method, params);
+        if let Err(error) = alwith_chat::observe_realtime(window.app_handle(), &request.method, params) {
+            log::error!("Cannot record realtime stream: {error}");
+        }
         let body = if request.method == "acpRequest" { &params["params"] } else { params };
         if let Some(session) = value["sessionId"].as_str().or_else(|| body["sessionId"].as_str()) {
             let agent = params["agentId"].as_str().unwrap_or("codex");
-            let confirmed = crate::providers::managed::confirms_model(&request.method, params).then_some(generation);
-            crate::providers::managed::observe(window.app_handle(), agent, session, value, confirmed);
+            let confirmed = match alwith_chat::confirms_model(window.app_handle(), &request.method, params)
+            {
+                Ok(confirms) => confirms.then_some(generation),
+                Err(error) => {
+                    log::error!("Cannot classify the session model request: {error}");
+                    None
+                }
+            };
+            alwith_chat::observe(window.app_handle(), agent, session, value, confirmed);
         }
     }
     if !state.owns(&client) {
@@ -448,7 +490,7 @@ pub async fn runtime_send(
     }
     drop(_admission);
     if lifecycle && !temporary_gamepad {
-        crate::providers::schedule_apply(window.app_handle());
+        alwith_chat::schedule_apply(window.app_handle());
     }
     let response = match outcome {
         Ok(result) => json!({"connectionId":connection_id,"id":request.id,"result":result,"error":null}),
@@ -596,6 +638,6 @@ mod binding_tests {
 /// Inspect the exact bundled CLI selected by Runtime without starting a session.
 #[tauri3_specta::command]
 pub async fn codex_status() -> Result<serde_json::Value, String> {
-    let status = tauri_plugin_alwith_desktop_shell::bundled_cli_status("codex").await?;
+    let status = alwith_desktop_shell::bundled_cli_status("codex").await?;
     serde_json::to_value(status).map_err(|error| error.to_string())
 }

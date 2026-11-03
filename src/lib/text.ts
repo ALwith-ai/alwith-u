@@ -1,7 +1,13 @@
-/** 把任意值变成可展示的文字:字符串原样,Error 取 message,原始类型按 String,其余 JSON;空值为空串。 */
+import { isNativeError } from "@alwith/module-chat/commands"
+
+/**
+ * Any value as displayable text: strings as is, an Error or a native module error (`{code, message}`)
+ * by its message, primitives by String, everything else as JSON; null and undefined are empty.
+ */
 export function text(value: unknown): string {
   if (typeof value === "string") return value
   if (value instanceof Error) return value.message
+  if (isNativeError(value)) return value.message
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") return String(value)
   if (value === null || value === undefined) return ""
   try {
@@ -11,7 +17,7 @@ export function text(value: unknown): string {
   }
 }
 
-/** 把 catch 到的任意值变成 Error:已是 Error 原样,否则用 text() 做 message。jsdom 的 DOMException 不继承 Error,单独认。 */
+/** Any caught value as an Error: an Error as is, otherwise text() as the message. jsdom's DOMException does not extend Error. */
 export function asError(value: unknown): Error {
   return value instanceof Error || value instanceof DOMException ? value : new Error(text(value))
 }

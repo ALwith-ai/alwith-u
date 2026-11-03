@@ -26,9 +26,9 @@ function ImagePreviewExample() {
   )
 }
 
-function PetImageExample() {
+function VibemonImageExample() {
   useEffect(() => preventVibemonImageDragging(), [])
-  return <img src={image} alt="Pet image" />
+  return <img src={image} alt="Vibemon image" />
 }
 
 const meta = {
@@ -62,11 +62,11 @@ export const PreviewCloseButton: Story = {
   }
 }
 
-export const PetImagesDoNotDrag: Story = {
-  name: "宠物图片禁止拖动",
-  render: () => <PetImageExample />,
+export const VibemonImagesDoNotDrag: Story = {
+  name: "Vibémon图片禁止拖动",
+  render: () => <VibemonImageExample />,
   play: async ({ canvas }) => {
-    const image = canvas.getByRole("img", { name: "Pet image" })
+    const image = canvas.getByRole("img", { name: "Vibemon image" })
     await waitFor(async () => expect(getComputedStyle(image).getPropertyValue("-webkit-user-drag")).toBe("none"))
     await expect(image.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true }))).toBe(false)
   }

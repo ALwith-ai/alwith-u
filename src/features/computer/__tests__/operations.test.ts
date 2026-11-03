@@ -7,7 +7,14 @@ const native = vi.hoisted(() => ({
   computerStatus: vi.fn()
 }))
 const settings = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn() }))
-vi.mock("@/bindings", () => ({ commands: native }))
+vi.mock("@alwith/module-computer/commands", () => ({
+  commands: {
+    start: native.computerStart,
+    reconnect: native.computerReconnect,
+    stop: native.computerStop,
+    status: native.computerStatus
+  }
+}))
 vi.mock("@/lib/settings-store", () => ({
   settingsStore: { get: settings.get },
   updateSettings: settings.update

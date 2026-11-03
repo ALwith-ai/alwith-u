@@ -8,7 +8,7 @@ const boundaries = {
   "lib/client": "client.ts",
   "features/appearance/wallpaper/controller": "wallpaper.ts",
   "lib/chat-window": "chat-window.ts",
-  "features/vibemon/window-client": "pet-window.ts",
+  "features/vibemon/window-client": "vibemon-window.ts",
   "lib/runtime": "runtime.ts",
   "lib/settings-bridge": "settings-bridge.ts",
   "features/auth/store": "auth.ts",
@@ -26,7 +26,7 @@ const config: StorybookConfig = {
   staticDirs: [
     "../public",
     { from: "./assets", to: "/storybook-fixtures" },
-    { from: "../node_modules/@alwith/module-auth/assets/pets", to: "/storybook-pets" }
+    { from: "../node_modules/@alwith/module-auth/assets/vibemon", to: "/storybook-vibemon" }
   ],
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-themes", "@storybook/addon-vitest"],
   framework: {

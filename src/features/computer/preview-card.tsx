@@ -1,3 +1,4 @@
+import type { ComputerPreview_Serialize } from "@alwith/module-computer/commands"
 import {
   ArrowUpRightIcon,
   ChevronDownIcon,
@@ -9,7 +10,6 @@ import {
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { ComputerPreview_Serialize } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"

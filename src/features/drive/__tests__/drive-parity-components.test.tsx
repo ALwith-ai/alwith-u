@@ -1,4 +1,11 @@
-import type { DriveController, DriveRequest, DriveResponse, Job, Snapshot } from "@alwith/module-drive"
+import {
+  CONTRACT_VERSION,
+  type DriveController,
+  type DriveRequest,
+  type DriveResponse,
+  type Job,
+  type Snapshot
+} from "@alwith/module-drive"
 import { DriveCondense, DriveMoveDialog } from "@alwith/module-drive/content"
 import {
   DriveBadge,
@@ -58,7 +65,7 @@ function fixture(
   handle?: (request: DriveRequest) => Promise<DriveResponse>
 ): { controller: DriveController; requests: DriveRequest[]; update: (patch: Partial<Snapshot>) => void } {
   const snapshot: Snapshot = {
-    version: 1,
+    version: CONTRACT_VERSION,
     generation: 1,
     sequence: 0,
     configured: true,

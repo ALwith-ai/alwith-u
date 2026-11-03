@@ -5,13 +5,13 @@ import { TrailingBoard } from "../../components/trailing-board"
 
 const open = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 vi.mock("@/lib/chat-window", () => ({ openChatWindow: vi.fn() }))
-vi.mock("@/features/vibemon/transport", () => ({ requestPet: vi.fn() }))
-vi.mock("@/bindings", () => ({
+vi.mock("@/features/vibemon/transport", () => ({ requestVibemon: vi.fn() }))
+vi.mock("@alwith/module-installed-apps/commands", () => ({ commands: { openAppById: open } }))
+vi.mock("@alwith/module-browser/commands", () => ({
   commands: {
-    openAppById: open,
-    chromeExtensionInstalled: () => Promise.resolve(false),
-    chromeBridgeInstalled: () => Promise.resolve(false),
-    setChromeBridgeEnabled: () => Promise.resolve(null)
+    extensionInstalled: () => Promise.resolve(false),
+    bridgeInstalled: () => Promise.resolve(false),
+    setBridgeEnabled: () => Promise.resolve(null)
   }
 }))
 vi.mock("@/features/auth/store", () => ({ usePlatformAuth: () => null }))

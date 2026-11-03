@@ -1,4 +1,5 @@
 import { DevicePanel } from "@alwith/module-device/preview"
+import { deviceBridge } from "@alwith/module-device/tauri"
 import { isTauri } from "@tauri-apps/api/core"
 import { MoreHorizontalIcon, SmartphoneIcon } from "lucide-react"
 import { useContext, useMemo } from "react"
@@ -14,8 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useWorkspace } from "@/features/workspace/context"
 import { PanelControlsContext } from "@/features/workspace/panel-controls-context"
-
-import { deviceBridge } from "./bridge"
 
 /** Keep device controls behind a compact workspace overflow menu. */
 export function DeviceWorkspaceMenu() {

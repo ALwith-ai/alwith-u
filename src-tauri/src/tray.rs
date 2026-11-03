@@ -4,14 +4,14 @@ use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
-const PET: &str = "tray-pet";
+const VIBEMON: &str = "tray-vibemon";
 
-struct TrayPet(CheckMenuItem<tauri::DynRuntime>);
+struct TrayVibemon(CheckMenuItem<tauri::DynRuntime>);
 
 /// Native window transitions own the checkmark, including closes outside the tray.
-pub fn set_pet_checked(app: &tauri::AppHandle, checked: bool) {
-    if let Err(error) = app.state::<TrayPet>().0.set_checked(checked) {
-        log::error!("Cannot update tray pet state: {error}");
+pub fn set_vibemon_checked(app: &tauri::AppHandle, checked: bool) {
+    if let Err(error) = app.state::<TrayVibemon>().0.set_checked(checked) {
+        log::error!("Cannot update tray vibemon state: {error}");
     }
 }
 
@@ -24,7 +24,7 @@ pub fn initialize(app: &tauri::AppHandle) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let pet = CheckMenuItem::with_id(app, PET, "Vibémon", false, false, None::<&str>)?;
+    let vibemon = CheckMenuItem::with_id(app, VIBEMON, "Vibémon", false, false, None::<&str>)?;
     let quit = MenuItem::with_id(
         app,
         "tray-quit",
@@ -33,7 +33,7 @@ pub fn initialize(app: &tauri::AppHandle) -> tauri::Result<()> {
         None::<&str>,
     )?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&show, &pet, &separator, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &vibemon, &separator, &quit])?;
     #[cfg(target_os = "macos")]
     let icon = tauri::include_image!("icons/tray-icon.png");
     #[cfg(not(target_os = "macos"))]
@@ -51,13 +51,13 @@ pub fn initialize(app: &tauri::AppHandle) -> tauri::Result<()> {
             }
             let result = match event.id().as_ref() {
                 "tray-show" => crate::window::show_main_window(app.clone()),
-                PET => {
+                VIBEMON => {
                     // Check items toggle automatically; retain actual visibility until the action succeeds.
-                    let visible = app.get_webview_window("vibemon").map(|pet| pet.is_visible()).transpose();
+                    let visible = app.get_webview_window("vibemon").map(|vibemon| vibemon.is_visible()).transpose();
                     match visible {
                         Ok(visible) => {
-                            set_pet_checked(app, visible.unwrap_or(false));
-                            app.emit_to("main", "tray:toggle-pet", ()).map_err(|error| error.to_string())
+                            set_vibemon_checked(app, visible.unwrap_or(false));
+                            app.emit_to("main", "tray:toggle-vibemon", ()).map_err(|error| error.to_string())
                         }
                         Err(error) => Err(error.to_string()),
                     }
@@ -83,14 +83,14 @@ pub fn initialize(app: &tauri::AppHandle) -> tauri::Result<()> {
             }
         })
         .build(app)?;
-    app.manage(TrayPet(pet));
+    app.manage(TrayVibemon(vibemon));
     Ok(())
 }
 
 #[tauri3_specta::command]
-pub fn tray_pet_ready(window: tauri::WebviewWindow) -> Result<(), String> {
+pub fn tray_vibemon_ready(window: tauri::WebviewWindow) -> Result<(), String> {
     if window.label() != "main" {
-        return Err("Only main may register the pet host".into());
+        return Err("Only main may register the vibemon host".into());
     }
-    window.state::<TrayPet>().0.set_enabled(true).map_err(|error| error.to_string())
+    window.state::<TrayVibemon>().0.set_enabled(true).map_err(|error| error.to_string())
 }

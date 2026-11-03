@@ -1,7 +1,7 @@
 import { CodexMarkdownRenderer } from "@alwith/module-chat/markdown"
 import { dirname, normalizePath } from "@alwith/module-fs"
+import { commands as fs } from "@alwith/module-fs/commands"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
-import { invoke } from "@tauri-apps/api/core"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { MoreHorizontalIcon } from "lucide-react"
@@ -15,16 +15,14 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { openExternal } from "@/lib/open"
+import { text } from "@/lib/text"
 
 import "./skill-document.css"
 
 export async function readSkillDocument(path: string): Promise<string> {
-  const root = await invoke<string>("workspace_open", { path: dirname(path) })
-  const fs = createTauriAdapter({
-    root,
-    transport: { invoke: (request) => invoke("workspace_file", { request }) }
-  })
-  return new TextDecoder("utf-8", { fatal: true }).decode(await fs.readFile(path))
+  const root = await fs.workspaceOpen({ path: dirname(path) })
+  const adapter = createTauriAdapter({ root, watch: false })
+  return new TextDecoder("utf-8", { fatal: true }).decode(await adapter.readFile(path))
 }
 
 /** Hide metadata already represented by the catalog, preserving the original document for copying. */
@@ -55,14 +53,14 @@ export function SkillDocument({
         if (!cancelled) setDocument(value)
       },
       (reason: unknown) => {
-        if (!cancelled) setError(String(reason))
+        if (!cancelled) setError(text(reason))
       }
     )
     return () => {
       cancelled = true
     }
   }, [path, description, attempt])
-  const report = (action: Promise<unknown>) => void action.catch((reason: unknown) => toast.error(String(reason)))
+  const report = (action: Promise<unknown>) => void action.catch((reason: unknown) => toast.error(text(reason)))
   const actions =
     path === null ? null : (
       <DropdownMenu>

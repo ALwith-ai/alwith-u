@@ -91,7 +91,7 @@ async function bootstrap(): Promise<void> {
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
   await startupStep("auth listeners", initPlatformAuth)
-  await startupStep("pet host", initializeVibemonMain)
+  await startupStep("vibemon host", initializeVibemonMain)
   const root = document.getElementById("root")
   if (!root) throw new Error("index.html has no #root")
   createRoot(root).render(

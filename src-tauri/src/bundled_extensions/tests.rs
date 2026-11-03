@@ -24,7 +24,7 @@ fn bundled_extension_installs_and_serves_real_jpeg_resources() {
         &mut service,
         serde_json::json!({"type":"installLocal", "path": package, "source": BUNDLED_SOURCE, "expectedId": EXTENSION_ID, "expectedVersion": "1.0.0"}),
     );
-    let snapshot = service.snapshot();
+    let snapshot = service.snapshot().unwrap();
     let installation = &snapshot.installations[0];
     assert_eq!(installation.manifest.name, EXTENSION_ID);
     assert_eq!(installation.source, BUNDLED_SOURCE);
@@ -51,7 +51,7 @@ fn bundled_extension_installs_and_serves_real_jpeg_resources() {
     assert!(service.resource_for_window("main", &activation.token, "assets/test.jpg").is_err());
     dispatch(&mut service, serde_json::json!({"type":"release", "token": activation.token}));
     dispatch(&mut service, serde_json::json!({"type":"commitTransition", "id": EXTENSION_ID}));
-    assert!(!service.snapshot().installations[0].enabled);
+    assert!(!service.snapshot().unwrap().installations[0].enabled);
 }
 
 fn fixture_package(root: &Path, id: &str) {

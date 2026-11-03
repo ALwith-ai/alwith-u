@@ -3,16 +3,64 @@ use crate::settings_store::SettingsStore;
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 use tauri::{Emitter, Manager, State};
+use alwith_voice::{NativeError, Provider};
 pub struct SharedSettings(pub Arc<Mutex<SettingsStore>>);
 pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let store = SettingsStore::load(app.path().app_data_dir()?)?;
     app.state::<crate::power::PreventSleep>()
         .set_enabled(store.values.get("system.preventSleep").and_then(Value::as_bool).unwrap_or(false))?;
-    app.manage(SharedSettings(Arc::new(Mutex::new(store))));
+    let store = Arc::new(Mutex::new(store));
+    if app.state::<VoiceCredentials>().0.set(store.clone()).is_err() {
+        return Err("Voice credentials are already bound to the settings store".into());
+    }
+    app.manage(SharedSettings(store));
     Ok(())
+}
+
+/// Voice provider keys stay in the private settings store; the voice plugin reads them under its lock.
+/// The plugin is registered before setup loads the store, so the store is bound here once.
+#[derive(Clone, Default)]
+pub struct VoiceCredentials(Arc<OnceLock<Arc<Mutex<SettingsStore>>>>);
+impl VoiceCredentials {
+    fn with<T>(&self, run: impl FnOnce(&mut SettingsStore) -> Result<T, NativeError>) -> Result<T, NativeError> {
+        let store = self.0.get().ok_or_else(|| NativeError::new("unavailable", "Settings are not loaded"))?;
+        let mut store = store
+            .lock()
+            .map_err(|_| NativeError::new("voice_credentials_poisoned", "Voice credentials are poisoned"))?;
+        run(&mut store)
+    }
+}
+fn credential_key(provider: Provider) -> String {
+    format!("voice.{}.apiKey", provider.as_str())
+}
+fn store_error(error: String) -> NativeError {
+    NativeError::new("failed", error)
+}
+impl alwith_voice::Credentials for VoiceCredentials {
+    fn read(
+        &self, provider: Provider, accept: &mut dyn FnMut(Option<&str>) -> Result<(), NativeError>,
+    ) -> Result<(), NativeError> {
+        self.with(|store| accept(store.secret(&credential_key(provider)).map_err(store_error)?.as_deref()))
+    }
+    fn save(
+        &self, provider: Provider, key: &str, commit: &mut dyn FnMut() -> Result<(), NativeError>,
+    ) -> Result<(), NativeError> {
+        self.with(|store| {
+            store.set_secret(&credential_key(provider), key).map_err(store_error)?;
+            commit()
+        })
+    }
+    fn delete(
+        &self, provider: Provider, commit: &mut dyn FnMut() -> Result<(), NativeError>,
+    ) -> Result<(), NativeError> {
+        self.with(|store| {
+            store.remove_secret(&credential_key(provider)).map_err(store_error)?;
+            commit()
+        })
+    }
 }
 #[tauri::command]
 pub fn settings_request(
@@ -53,7 +101,10 @@ pub fn settings_request(
                 };
                 store.save_voice(changes, key, expected.ok_or("Missing settings revision")?, || {
                     if let Some(provider) = provider {
-                        crate::voice::cancel_provider(window.app_handle(), &provider)?;
+                        let provider: Provider =
+                            serde_json::from_value(Value::String(provider)).map_err(|e| e.to_string())?;
+                        alwith_voice::cancel_provider(window.app_handle(), provider)
+                            .map_err(|error| error.message)?;
                     }
                     Ok(())
                 })?;

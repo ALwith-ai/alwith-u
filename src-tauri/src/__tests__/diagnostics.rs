@@ -5,11 +5,11 @@ fn computer_lifecycle_records_survive_export_without_session_ids_or_error_text()
     let directory = tempfile::tempdir().unwrap();
     let collector = Collector::new(directory.path().into());
     for action in [
-        ComputerOperation::Start,
-        ComputerOperation::Stop,
-        ComputerOperation::Reconnect,
-        ComputerOperation::Ready,
-        ComputerOperation::Bind,
+        alwith_computer::Operation::Start,
+        alwith_computer::Operation::Stop,
+        alwith_computer::Operation::Reconnect,
+        alwith_computer::Operation::Ready,
+        alwith_computer::Operation::Bind,
     ] {
         collector.record(
             "computer",

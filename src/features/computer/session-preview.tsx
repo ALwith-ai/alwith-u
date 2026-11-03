@@ -1,9 +1,10 @@
+import { commands, type ComputerPreview_Serialize, events } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { commands, type ComputerPreview_Serialize, events } from "@/bindings"
 import { client } from "@/lib/client"
+import { text } from "@/lib/text"
 
 import { ComputerPreviewCard } from "./preview-card"
 
@@ -26,16 +27,16 @@ export function SessionPreview({ sessionId }: { sessionId: string }) {
         unlisten()
         return
       }
-      await commands.computerSubscribe({ sessionId, subscriptionId })
-      if (disposed) await commands.computerUnsubscribe({ subscriptionId })
+      await commands.subscribe({ sessionId, subscriptionId })
+      if (disposed) await commands.unsubscribe({ subscriptionId })
     }
     void subscribe().catch((error: unknown) => {
-      if (!disposed) toast.error(String(error))
+      if (!disposed) toast.error(text(error))
     })
     return () => {
       disposed = true
       unlisten?.()
-      void commands.computerUnsubscribe({ subscriptionId }).catch(() => {})
+      void commands.unsubscribe({ subscriptionId }).catch(() => {})
     }
   }, [sessionId])
   if (preview?.activity.sessionId !== sessionId || preview.activity.phase === "idle") return null
@@ -44,16 +45,16 @@ export function SessionPreview({ sessionId }: { sessionId: string }) {
     try {
       await client.cancel(sessionId)
     } catch (error) {
-      toast.error(String(error))
+      toast.error(text(error))
     } finally {
       setStopping(false)
     }
   }
   const focus = async () => {
     try {
-      await commands.computerFocus({ sessionId, revision: preview.activity.revision })
+      await commands.focus({ sessionId, revision: preview.activity.revision })
     } catch (error) {
-      toast.error(String(error))
+      toast.error(text(error))
     }
   }
   return (

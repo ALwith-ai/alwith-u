@@ -58,7 +58,7 @@ fn bubble_frame(parent: NSRect, size: NSSize, screen: NSRect) -> NSRect {
 }
 
 fn layout_bubble(window: &NSWindow, parent: &NSWindow, size: NSSize) -> Result<(), String> {
-    let screen = parent.screen().ok_or("Pet screen unavailable")?.visibleFrame();
+    let screen = parent.screen().ok_or("Vibemon screen unavailable")?.visibleFrame();
     window.setFrame_display(bubble_frame(parent.frame(), size, screen), true);
     Ok(())
 }
@@ -73,7 +73,7 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
     // SAFETY: the app supplies a retained live NSWindow and executes synchronously on its UI thread.
     let window = unsafe { &*(action.handle as *const NSWindow) };
     match action.action.as_str() {
-        "blur" => backdrop::apply(window, action.radius.ok_or("Missing pet blur radius")?, action.path)?,
+        "blur" => backdrop::apply(window, action.radius.ok_or("Missing vibemon blur radius")?, action.path)?,
         "focus" => {
             if window.isVisible() {
                 window.makeKeyWindow();
@@ -96,11 +96,11 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
         "present" => {
             crate::panel::prepare(host)?;
             crate::panel::set_presented(host.label(), true);
-            if action.role == "pet" {
+            if action.role == "vibemon" {
                 ensure_visible(window)?;
             }
             window.orderFrontRegardless();
-            if action.role != "pet" {
+            if action.role != "vibemon" {
                 window.makeKeyWindow();
             }
         }
@@ -135,10 +135,10 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
         }
         "drag" => {
             let app = NSApplication::sharedApplication(marker);
-            let event = app.currentEvent().ok_or("No native mouse event for pet drag")?;
+            let event = app.currentEvent().ok_or("No native mouse event for vibemon drag")?;
             window.performWindowDragWithEvent(&event);
         }
-        _ => return Err("Unsupported native pet action".into()),
+        _ => return Err("Unsupported native vibemon action".into()),
     }
     Ok(())
 }

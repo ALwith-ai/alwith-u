@@ -1,6 +1,7 @@
-import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
 import { hasAccount, isFormElicitation } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
+import { commands as mobile } from "@alwith/module-mobile/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
@@ -12,7 +13,7 @@ import { useShallow } from "zustand/react/shallow"
 
 import type { SessionSummary } from "@/agent/client"
 import { watchSessionList } from "@/agent/session-list-refresh"
-import { commands, events } from "@/bindings"
+import { events } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -48,8 +49,8 @@ import { selectSession } from "@/features/sessions/select-session"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
-import { updateMainPetSurface } from "@/features/vibemon/main-host"
-import { VibemonCenter } from "@/features/vibemon/pet-center"
+import { updateMainVibemonSurface } from "@/features/vibemon/main-host"
+import { VibemonCenter } from "@/features/vibemon/vibemon-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
@@ -100,7 +101,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   useEffect(() => {
-    if (isTauri()) void commands.bridgeSetActiveSession({ sessionId: selectedId })
+    if (isTauri()) void mobile.bridgeSetActiveSession({ sessionId: selectedId })
   }, [selectedId])
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
@@ -202,7 +203,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       if (!cancelled) {
         setMainVisible(visible)
         useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" && chatForeground })
-        await updateMainPetSurface(selectedId, visible && view === "chat" && chatForeground)
+        await updateMainVibemonSurface(selectedId, visible && view === "chat" && chatForeground)
       }
     })().catch((error) => toast.error(describe(error)))
     return () => {

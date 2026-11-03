@@ -22,30 +22,30 @@ use windows_sys::Win32::{
 };
 
 unsafe fn bubble(window: HWND, parent: HWND, dimensions: Option<(f64, f64)>) -> Result<(), String> {
-    let mut pet: RECT = unsafe { std::mem::zeroed() };
+    let mut vibemon: RECT = unsafe { std::mem::zeroed() };
     let mut child: RECT = unsafe { std::mem::zeroed() };
-    if unsafe { GetWindowRect(parent, &mut pet) } == 0 || unsafe { GetWindowRect(window, &mut child) } == 0 {
+    if unsafe { GetWindowRect(parent, &mut vibemon) } == 0 || unsafe { GetWindowRect(window, &mut child) } == 0 {
         return Err("Native window bounds unavailable".into());
     }
     let mut monitor: MONITORINFO = unsafe { std::mem::zeroed() };
     monitor.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
     if unsafe { GetMonitorInfoW(MonitorFromWindow(parent, MONITOR_DEFAULTTONEAREST), &mut monitor) } == 0 {
-        return Err("Pet monitor unavailable".into());
+        return Err("Vibemon monitor unavailable".into());
     }
     let dpi = unsafe { windows_sys::Win32::UI::HiDpi::GetDpiForWindow(parent) };
     if dpi == 0 {
-        return Err("Pet window scale unavailable".into());
+        return Err("Vibemon window scale unavailable".into());
     }
     let dpi = dpi as f64 / 96.0;
     let (width, height) = dimensions
         .map(|(w, h)| ((w * dpi).round() as i32, (h * dpi).round() as i32))
         .unwrap_or((child.right - child.left, child.bottom - child.top));
-    let x = (pet.left + (pet.right - pet.left - width) / 2)
+    let x = (vibemon.left + (vibemon.right - vibemon.left - width) / 2)
         .clamp(monitor.rcWork.left, (monitor.rcWork.right - width).max(monitor.rcWork.left));
-    let y = (if pet.top - height >= monitor.rcWork.top { pet.top - height } else { pet.bottom })
+    let y = (if vibemon.top - height >= monitor.rcWork.top { vibemon.top - height } else { vibemon.bottom })
         .clamp(monitor.rcWork.top, (monitor.rcWork.bottom - height).max(monitor.rcWork.top));
     if unsafe { SetWindowPos(window, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE) } == 0 {
-        return Err("Could not position pet bubble".into());
+        return Err("Could not position vibemon bubble".into());
     }
     Ok(())
 }
@@ -68,7 +68,7 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
             }
             "prepare" => {
                 let mut style = GetWindowLongPtrW(window, GWL_EXSTYLE) | WS_EX_TOOLWINDOW as isize;
-                if action.role == "pet" {
+                if action.role == "vibemon" {
                     style |= WS_EX_NOACTIVATE as isize;
                 }
                 SetWindowLongPtrW(window, GWL_EXSTYLE, style);
@@ -82,7 +82,7 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED,
                 ) == 0
                 {
-                    return Err("Could not prepare pet window".into());
+                    return Err("Could not prepare vibemon window".into());
                 }
             }
             "present" => {
@@ -117,7 +117,7 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
                     SWP_NOSIZE | SWP_NOACTIVATE,
                 ) == 0
                 {
-                    return Err("Could not move pet".into());
+                    return Err("Could not move vibemon".into());
                 }
                 if let Some(child) = action.parent {
                     bubble(child as HWND, window, None)?;
@@ -137,13 +137,13 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
                 let mut cursor: POINT = std::mem::zeroed();
                 let mut rect: RECT = std::mem::zeroed();
                 if GetCursorPos(&mut cursor) == 0 || GetWindowRect(window, &mut rect) == 0 {
-                    return Err("Pet drag position unavailable".into());
+                    return Err("Vibemon drag position unavailable".into());
                 }
                 let dx = cursor.x - rect.left;
                 let dy = cursor.y - rect.top;
                 while GetAsyncKeyState(VK_LBUTTON as i32) < 0 {
                     if GetCursorPos(&mut cursor) == 0 {
-                        return Err("Pet drag cursor unavailable".into());
+                        return Err("Vibemon drag cursor unavailable".into());
                     }
                     SetWindowPos(window, HWND_TOPMOST, cursor.x - dx, cursor.y - dy, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
                     if let Some(child) = action.parent {
@@ -152,7 +152,7 @@ pub(super) fn apply(action: WindowAction) -> Result<(), String> {
                     std::thread::sleep(std::time::Duration::from_millis(16));
                 }
             }
-            _ => return Err("Unsupported native pet action".into()),
+            _ => return Err("Unsupported native vibemon action".into()),
         }
     }
     Ok(())
