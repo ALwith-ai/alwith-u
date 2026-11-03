@@ -72,23 +72,31 @@ pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Res
     }
     request.root = root.clone();
     let fs = FileSystem::new([root])?;
-    execute_workspace_request(
+    let operation = request.operation.clone();
+    let path = request.path.clone();
+    let result = execute_workspace_request(
         &fs,
         request,
         collaboration_owner,
-        window.app_handle().state::<crate::drive::DriveState>().service()?,
+        window.app_handle().state::<crate::drive::DriveState>().service(),
     )
-    .await
+    .await;
+    if let Err(error) = &result {
+        log::error!("[workspace-file] operation={operation} path={} error={error}", path.display());
+    }
+    result
 }
 
 async fn execute_workspace_request(
-    fs: &FileSystem, request: Request, collaboration_owner: Option<String>, drive: &alwith_drive::service::DriveService,
+    fs: &FileSystem, request: Request, collaboration_owner: Option<String>,
+    drive: Result<&alwith_drive::service::DriveService, String>,
 ) -> Result<Value, String> {
     // Preview reads must not queue behind mutations waiting for a whole Drive sync round.
     // The filesystem still enforces the authorized root; writes keep their existing coordination.
     if matches!(request.operation.as_str(), "stat" | "readFile" | "readDirectory") {
         return execute(fs, request).await;
     }
+    let drive = drive?;
     let _operation = OPERATIONS.lock().await;
     let mut writes = Vec::new();
     let mut removed = Vec::new();
@@ -312,7 +320,7 @@ mod workspace_tests {
         for (operation, target) in [("stat", &path), ("readFile", &path), ("readDirectory", &root)] {
             let value = timeout(
                 Duration::from_millis(100),
-                execute_workspace_request(&fs, request(operation, target), None, &drive),
+                execute_workspace_request(&fs, request(operation, target), None, Ok(&drive)),
             )
             .await
             .expect("Preview reads must not wait for synchronization")
@@ -324,10 +332,28 @@ mod workspace_tests {
                 _ => unreachable!(),
             }
         }
-        assert!(execute_workspace_request(&fs, request("stat", root.parent().unwrap()), None, &drive).await.is_err());
+        assert!(
+            execute_workspace_request(&fs, request("stat", root.parent().unwrap()), None, Ok(&drive)).await.is_err()
+        );
+        let unavailable = Err("Drive initialization failed".to_string());
+        assert_eq!(
+            execute_workspace_request(&fs, request("readFile", &path), None, unavailable).await.unwrap(),
+            serde_json::json!(b"preview")
+        );
+        assert_eq!(
+            execute_workspace_request(
+                &fs,
+                request("createDirectory", &root.join("unavailable")),
+                None,
+                Err("Drive initialization failed".to_string())
+            )
+            .await
+            .unwrap_err(),
+            "Drive initialization failed"
+        );
         let destination = root.join("created");
         let mut mutation =
-            Box::pin(execute_workspace_request(&fs, request("createDirectory", &destination), None, &drive));
+            Box::pin(execute_workspace_request(&fs, request("createDirectory", &destination), None, Ok(&drive)));
         assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());
         drop(mutation_guard);
         assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());

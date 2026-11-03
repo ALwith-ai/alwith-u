@@ -399,3 +399,37 @@ test("Markdown native undo and redo use Milkdown history and publish changes wit
     else Reflect.deleteProperty(document, "execCommand")
   }
 })
+
+test("Markdown displays local content while collaboration initialization is pending", async () => {
+  const editors = captureEditors()
+  const context = contextFixture()
+  const gate = deferred<void>()
+  const ready = vi.fn(() => gate.promise)
+  const provider = providerFor(
+    hostFixture({
+      createMarkdownIntegration: () => ({
+        configure: () => {},
+        ready,
+        dispose: () => {},
+        editable: () => false,
+        serialize: (text) => text,
+        applyExternal: () => false,
+        render: () => null
+      })
+    }),
+    "markdown"
+  )
+  const rendered = render(provider.render(documentFixture("/repo/local.md", "# Local\n\nAvailable offline"), context))
+  await markdownReady(editors)
+  expect(ready).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole("heading", { name: "Local" })).toBeVisible()
+  expect(screen.getByText("Available offline")).toBeVisible()
+  expect(context.onChange).not.toHaveBeenCalled()
+  expect(context.onSave).not.toHaveBeenCalled()
+  rendered.unmount()
+  await act(async () => {
+    gate.resolve(undefined)
+    await gate.promise
+  })
+  expect(context.onError).not.toHaveBeenCalled()
+})

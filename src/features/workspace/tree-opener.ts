@@ -1,5 +1,7 @@
 import type { EditorController, EditorWorkspaceController } from "@alwith/module-editor"
 
+import { traceFileOpen } from "./file-open-diagnostics"
+
 /** Desktop selectFile policy: one transient preview; double-click and edits pin it. */
 export function createTreeOpener(
   editor: EditorController,
@@ -16,30 +18,35 @@ export function createTreeOpener(
   })
   return {
     open(path, pinned = false) {
-      const open = async (): Promise<void> => {
-        const destination = await prepare(path)
-        if (destination === null) return
-        path = destination
-        const existing = editor.getSnapshot().documents.find((doc) => doc.path === path)
-        const previous = tabs?.getSnapshot().tabs.at(-1)?.kind === "new" ? null : preview
-        const document = await editor.open(path)
-        if (pinned) {
-          editor.pin(document.id)
-          if (preview === document.id) preview = null
-          return
-        }
-        if (existing) return
-        if (previous !== null && preview === previous) {
-          const old = editor.getSnapshot().documents.find((doc) => doc.id === previous)
-          if (old && !old.pinned && !old.dirty && !old.saving) {
-            tabs?.reorder(document.id, previous)
-            await editor.requestClose(previous)
+      return traceFileOpen(path, pinned ? "tree-pin" : "tree", async (stage) => {
+        stage("queued")
+        const open = async (): Promise<void> => {
+          stage("prepare")
+          const destination = await prepare(path)
+          if (destination === null) return
+          path = destination
+          const existing = editor.getSnapshot().documents.find((doc) => doc.path === path)
+          const previous = tabs?.getSnapshot().tabs.at(-1)?.kind === "new" ? null : preview
+          stage("editor-open")
+          const document = await editor.open(path)
+          if (pinned) {
+            editor.pin(document.id)
+            if (preview === document.id) preview = null
+            return
+          }
+          if (existing) return
+          if (previous !== null && preview === previous) {
+            const old = editor.getSnapshot().documents.find((doc) => doc.id === previous)
+            if (old && !old.pinned && !old.dirty && !old.saving) {
+              tabs?.reorder(document.id, previous)
+              await editor.requestClose(previous)
+            }
           }
         }
-      }
-      // Both branches run the next user action; each returned rejection is still reported by the caller.
-      pending = pending.then(open, open)
-      return pending
+        // Both branches run the next user action; each returned rejection is still reported by the caller.
+        pending = pending.then(open, open)
+        return pending
+      })
     },
     dispose: unsubscribe
   }

@@ -1,5 +1,6 @@
 import { prepareDriveFile } from "@alwith/module-drive"
 import { driveFileWebUrl, isYuplinkName, parseYuplink } from "@alwith/module-drive/content"
+import type { FileStat } from "@alwith/module-fs"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { toast } from "sonner"
 
@@ -9,6 +10,7 @@ import { drive } from "./controller"
 import { driveFileSystem } from "./filesystem"
 
 export interface WorkspaceFileHost {
+  stat?: (path: string) => Promise<FileStat | null>
   readFile: (path: string) => Promise<Uint8Array>
   openTarget: (path: string) => Promise<void>
 }
@@ -34,13 +36,17 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
   let redirected = false
   for (let hops = 0; hops < 16; hops++) {
     const local = await prepareDriveFile(drive, path, {
+      localFileSize: host?.stat
+        ? async (target) => {
+            const stat = await host.stat!(target)
+            return stat?.kind === "file" ? stat.size : null
+          }
+        : undefined,
       maxEditorBytes: 16 * 1024 * 1024,
       confirmDownload: async (name, bytes) => {
         const accepted = await confirm(
           `Download ${name} (${bytes} bytes)? Files larger than 16 MiB open in the system application.`,
-          {
-            title: "Drive"
-          }
+          { title: "Drive" }
         )
         checkProfile()
         return accepted

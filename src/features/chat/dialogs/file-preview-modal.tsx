@@ -8,6 +8,7 @@ import { create } from "zustand"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { FilePosition } from "@/features/workspace/context"
+import { logBackgroundError } from "@/lib/background-errors"
 
 type Request = { path: string; position?: FilePosition }
 type Preview =
@@ -30,6 +31,7 @@ function PreviewContent({ request }: { request: Request }) {
         if (active) setResult(value)
       },
       (error: unknown) => {
+        logBackgroundError(`file-preview ${JSON.stringify({ path: request.path })}`, error)
         if (active) setError(error instanceof Error ? error.message : String(error))
       }
     )

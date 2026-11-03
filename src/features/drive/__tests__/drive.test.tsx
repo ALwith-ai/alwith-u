@@ -342,3 +342,66 @@ test("download settings reject fractional limits and preserve zero as unlimited"
   await waitFor(() => expect(requests).toContainEqual({ type: "setMaxAutoDownloadMb", megabytes: 0 }))
   controller.dispose()
 })
+
+test.each([true, false])("sync conflict notice follows the application language (copy: %s)", async (hasCopy) => {
+  const state = snapshot()
+  const localPath = "/drive/One/report.md"
+  const conflictCopyPath = hasCopy ? "/drive/One/report (conflict).md" : null
+  state.status = {
+    state: { kind: "syncing" },
+    pending: 0,
+    uploading: 0,
+    downloading: 0,
+    synced: 1,
+    failed: 0,
+    conflicts: [
+      {
+        projectId: "one",
+        path: "report.md",
+        localPath,
+        conflictCopyPath,
+        remoteUpdatedBy: null,
+        at: "2026-11-03T00:00:00Z"
+      }
+    ],
+    errors: [],
+    lastSyncAt: null,
+    pushConnected: false
+  }
+  const { controller } = await fixture(state, async () => {
+    throw new Error("Unexpected request")
+  })
+  const onRevealPath = vi.fn(async () => {})
+  const host = {
+    readDirectory: vi.fn(async () => []),
+    pathExists: vi.fn(async () => true),
+    onOpenEntry: vi.fn(async () => {}),
+    onRevealPath,
+    onOpenExternal: vi.fn(async () => {}),
+    pinnedDocs: [],
+    onPinnedDocsChange: vi.fn(async () => {})
+  }
+  const props = {
+    controller,
+    host,
+    controls: driveControls,
+    mode: "status" as const,
+    onOpenProject: vi.fn(),
+    confirm: async () => false
+  }
+  try {
+    const rendered = render(<DrivePanel {...props} locale="zh-CN" />)
+    expect(screen.getByText("1 个文件存在同步冲突")).toBeInTheDocument()
+    expect(screen.queryByText(/Conflict:/)).not.toBeInTheDocument()
+    if (hasCopy) expect(screen.getByText(/本地改动已保存为冲突副本/)).toBeInTheDocument()
+    else expect(screen.queryByText(/本地改动已保存为冲突副本/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: hasCopy ? "查看本地副本" : "查看文件" }))
+    await waitFor(() => expect(onRevealPath).toHaveBeenCalledWith(conflictCopyPath ?? localPath))
+    rendered.rerender(<DrivePanel {...props} locale="en" />)
+    expect(screen.getByText("Sync conflicts: 1")).toBeInTheDocument()
+    expect(screen.queryByText("1 个文件存在同步冲突")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: hasCopy ? "Show local copy" : "Show file" })).toBeInTheDocument()
+  } finally {
+    controller.dispose()
+  }
+})

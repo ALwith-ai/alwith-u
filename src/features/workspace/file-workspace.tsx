@@ -41,6 +41,7 @@ import { prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
+import { logBackgroundError } from "@/lib/background-errors"
 import { openExternal } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
@@ -84,6 +85,7 @@ import {
   WorkspaceSessionContext
 } from "./context"
 import { connectExplorerSettings } from "./explorer-settings"
+import { traceFileOpen } from "./file-open-diagnostics"
 import { useHostDialog } from "./host-dialog"
 import type { PanelControls } from "./panel-controls-context"
 import { PreviewSurface } from "./preview-surface"
@@ -117,6 +119,7 @@ interface Workspace {
 const emptyEditorSnapshot = (): null => null
 const noEditorSubscription = (): (() => void) => () => {}
 function report(error: unknown): void {
+  logBackgroundError("workspace", error)
   toast.error(error instanceof Error ? error.message : String(error))
 }
 export function FileWorkspace({
@@ -472,6 +475,7 @@ export function FileWorkspace({
             editor,
             (path) =>
               prepareWorkspaceFile(path, {
+                stat: async (target) => (containsPath(root, target) ? fs : await driveFileSystem(target)).stat(target),
                 readFile: async (target) =>
                   (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
                 openTarget: (target) => routeDriveTarget.current(target)
@@ -525,29 +529,35 @@ export function FileWorkspace({
     [ask, t, stateStore]
   )
   const openFile = useCallback(
-    async (path: string, root: string | null, position?: FilePosition): Promise<void> => {
-      const generation = ++requestGeneration.current,
-        owner = currentCwd.current
-      const authorized = [...workspaces.current.values()].find(
-        (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
-      )
-      const target = authorized ?? (await ensure(root))
-      if (!containsPath(target.root, path)) {
-        openFilePreview(path, position)
-        return
-      }
-      const destination = await prepareWorkspaceFile(path, {
-        readFile: async (value) =>
-          (containsPath(target.root, value) ? target.fs : await driveFileSystem(value)).readFile(value),
-        openTarget: (value) => routeDriveTarget.current(value)
-      })
-      if (destination === null) return
-      await target.editor.open(destination)
-      if (generation !== requestGeneration.current || owner !== currentCwd.current) return
-      setWorkspace(target)
-      setNavigation(position ? { path: destination, position } : null)
-      setVisible(true)
-    },
+    (path: string, root: string | null, position?: FilePosition): Promise<void> =>
+      traceFileOpen(path, "workspace", async (stage) => {
+        stage("workspace-open")
+        const generation = ++requestGeneration.current,
+          owner = currentCwd.current
+        const authorized = [...workspaces.current.values()].find(
+          (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
+        )
+        const target = authorized ?? (await ensure(root))
+        if (!containsPath(target.root, path)) {
+          openFilePreview(path, position)
+          return
+        }
+        stage("prepare")
+        const destination = await prepareWorkspaceFile(path, {
+          stat: async (value) =>
+            (containsPath(target.root, value) ? target.fs : await driveFileSystem(value)).stat(value),
+          readFile: async (value) =>
+            (containsPath(target.root, value) ? target.fs : await driveFileSystem(value)).readFile(value),
+          openTarget: (value) => routeDriveTarget.current(value)
+        })
+        if (destination === null) return
+        stage("editor-open")
+        await target.editor.open(destination)
+        if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+        setWorkspace(target)
+        setNavigation(position ? { path: destination, position } : null)
+        setVisible(true)
+      }),
     [ensure]
   )
   routeDriveTarget.current = async (path) => {
@@ -1084,7 +1094,13 @@ export function FileWorkspace({
                           reveal: t("workspace.reveal")
                         }}
                         actionsLabel={t("workspace.more")}
-                        onError={report}
+                        onError={(error) => {
+                          logBackgroundError(
+                            `workspace-preview ${JSON.stringify({ path: activeDocument?.path })}`,
+                            error
+                          )
+                          report(error)
+                        }}
                         onOpenExternal={(document) => openExternal(document.path)}
                         previews={previews}
                         requestSaveAs={async (document) =>
