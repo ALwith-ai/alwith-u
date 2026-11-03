@@ -1,6 +1,106 @@
 use super::*;
 
 #[test]
+fn computer_driver_and_gateway_errors_are_bundled_in_the_same_zip() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    let mut report = export_report(&collector, directory.path(), "ALwith U");
+    add_computer_logs(&mut report,
+        Ok("Driver ready\nCMUX_CUA_SOCKET_AUTH_TOKEN=private-driver-token\nCMUX_CUA_SOCKET_HOST_AUTH_TOKEN=private-host-token\n".into()),
+        "MCP waiting for initialize response\nTransport ended: MCP process exited: exit code 1\n".into());
+    let path = directory.path().join("computer.zip");
+    write_report(&path, &report).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let metadata: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
+    for (name, evidence) in [("computer-driver.log", "Driver ready"), ("computer-gateway.log", "initialize response")] {
+        let file =
+            metadata["nativeLogs"]["files"].as_array().unwrap().iter().find(|file| file["name"] == name).unwrap();
+        let mut content = String::new();
+        archive.by_name(file["archivePath"].as_str().unwrap()).unwrap().read_to_string(&mut content).unwrap();
+        assert!(content.contains(evidence));
+        assert!(!content.contains("private-driver-token"));
+        assert!(!content.contains("private-host-token"));
+    }
+}
+
+#[test]
+fn one_zip_contains_metadata_and_separate_redacted_native_logs() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    collector.record("app", "started", Context::default());
+    fs::write(directory.path().join("ALwith U.log"), "bridge failed ECONNRESET Authorization: Bearer secret-auth\n")
+        .unwrap();
+    fs::write(directory.path().join("panic.log"), "panicked at native_network.rs:66\n").unwrap();
+    fs::write(directory.path().join("ALwith U_2026-11-03_11-48-00.log"), "previous launch\n").unwrap();
+    let path = directory.path().join("export.zip");
+    write_report(&path, &export_report(&collector, directory.path(), "ALwith U")).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let report: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
+    assert_eq!(report["events"][0]["source"], "app");
+    assert_eq!(report["nativeLogs"]["files"][0]["name"], "ALwith U.log");
+    assert!(report["nativeLogs"]["files"][0].get("content").is_none());
+    assert_eq!(report["nativeLogs"]["files"][0]["archivePath"], "logs/ALwith U.log");
+    for (name, evidence) in [
+        ("logs/ALwith U.log", "ECONNRESET"),
+        ("logs/panic.log", "native_network.rs:66"),
+        ("logs/ALwith U_2026-11-03_11-48-00.log", "previous launch"),
+    ] {
+        let mut file = archive.by_name(name).unwrap();
+        assert_eq!(file.compression(), zip::CompressionMethod::Deflated);
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        assert!(content.contains(evidence));
+        assert!(!content.contains("secret-auth"));
+    }
+    assert_eq!(archive.len(), 4);
+}
+
+#[test]
+fn drive_state_and_file_open_failures_travel_in_the_same_redacted_zip() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    fs::write(directory.path().join("ALwith U.log"),
+        "[workspace-file-open] stage=prepare path=/Users/alice/Drive/report.md Start Drive before opening its files\n[drive-request] operation=start phase=failed ownership conflict\n").unwrap();
+    let mut exported = export_report(&collector, directory.path(), "ALwith U");
+    add_drive_state(
+        &mut exported,
+        json!({
+            "configured": true, "running": false, "roots": 0, "files": 0,
+            "localRoot": "/Users/alice/Drive", "error": "token=secret-drive-token"
+        }),
+    );
+    let path = directory.path().join("drive.zip");
+    write_report(&path, &exported).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let report: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
+    assert_eq!(report["drive"]["running"], false);
+    assert_eq!(report["drive"]["roots"], 0);
+    assert!(!report.to_string().contains("secret-drive-token"));
+    assert!(!report.to_string().contains("/Users/alice"));
+    let mut logs = String::new();
+    archive.by_name("logs/ALwith U.log").unwrap().read_to_string(&mut logs).unwrap();
+    assert!(logs.contains("stage=prepare"));
+    assert!(logs.contains("Start Drive before opening its files"));
+    assert!(logs.contains("ownership conflict"));
+    assert!(!logs.contains("/Users/alice"));
+}
+
+#[test]
+fn missing_logs_remain_explicit_in_the_zip_manifest() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    let path = directory.path().join("export.zip");
+    write_report(&path, &export_report(&collector, directory.path(), "ALwith U")).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    assert_eq!(archive.len(), 1);
+    let report: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
+    for file in report["nativeLogs"]["files"].as_array().unwrap() {
+        assert_eq!(file["readErrorKind"], "NotFound");
+        assert!(file["archivePath"].is_null());
+    }
+}
+
+#[test]
 fn computer_lifecycle_records_survive_export_without_session_ids_or_error_text() {
     let directory = tempfile::tempdir().unwrap();
     let collector = Collector::new(directory.path().into());
@@ -181,13 +281,19 @@ fn repeated_runtime_states_do_not_displace_diagnostic_history() {
 #[test]
 fn exporting_atomically_replaces_a_report_and_cleans_up_temporary_files() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("report.json");
+    let path = directory.path().join("report.zip");
     fs::write(&path, b"old report").unwrap();
-    write_report(&path, &json!({"schema":"test","events":[]})).unwrap();
-    let report: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let exported = ExportReport {
+        metadata: json!({"schema":"test","events":[]}),
+        logs: native_logs::collect(directory.path(), "ALwith U"),
+    };
+    write_report(&path, &exported).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(&path).unwrap()).unwrap();
+    let report: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
     assert_eq!(report["schema"], "test");
+    drop(archive);
     assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
-    assert!(write_report(&directory.path().join("missing/report.json"), &report).is_err());
+    assert!(write_report(&directory.path().join("missing/report.zip"), &exported).is_err());
     assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
 }
 
@@ -342,16 +448,19 @@ fn proxy_line() -> String {
 
 #[test]
 fn model_proxy_events_survive_bounded_export_with_transport_evidence() {
-    let context = model_proxy_context(&proxy_line()).unwrap();
-    let directory = tempfile::tempdir().unwrap();
-    let collector = Collector::new(directory.path().into());
-    collector.record("agent_stderr", "failed", context);
-    let report = collector.report();
-    let event = &report["events"][0];
-    assert_eq!(event["context"]["proxy"]["stage"], "connect_upstream");
-    assert_eq!(event["context"]["proxy"]["errors"][0], "ECONNRESET");
-    assert_eq!(event["context"]["proxy"]["targetHost"], "api.deepseek.com");
-    assert_eq!(event["context"]["requestRef"], "0123456789abcdef01234567");
+    for stage in ["connect_native", "connect_upstream"] {
+        let line = proxy_line().replace("connect_upstream", stage);
+        let context = model_proxy_context(&line).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let collector = Collector::new(directory.path().into());
+        collector.record("agent_stderr", "failed", context);
+        let report = collector.report();
+        let event = &report["events"][0];
+        assert_eq!(event["context"]["proxy"]["stage"], stage);
+        assert_eq!(event["context"]["proxy"]["errors"][0], "ECONNRESET");
+        assert_eq!(event["context"]["proxy"]["targetHost"], "api.deepseek.com");
+        assert_eq!(event["context"]["requestRef"], "0123456789abcdef01234567");
+    }
 }
 
 #[test]
@@ -412,5 +521,20 @@ fn native_network_projection_rejects_private_and_unbounded_fields() {
         let mut invalid = original.clone();
         invalid[field] = value;
         assert!(native_network_context(&format!("[alwith-native-network] {invalid}")).is_none(), "accepted {field}");
+    }
+}
+
+#[test]
+fn local_bridge_failure_metadata_survives_export() {
+    let mut network: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    network["targetHost"] = json!("127.0.0.1");
+    network["tlsBackend"] = json!("none");
+    network["stage"] = json!("read_request");
+    network["errorCode"] = json!("NATIVE_NETWORK_PROTOCOL_ERROR");
+    for kind in ["http_protocol", "task_panic", "task_cancelled"] {
+        network["errorKind"] = json!(kind);
+        let context = native_network_context(&format!("[alwith-native-network] {network}")).unwrap();
+        assert_eq!(context.network.unwrap().error_kind.as_deref(), Some(kind));
     }
 }

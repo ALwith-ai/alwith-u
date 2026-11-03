@@ -220,8 +220,6 @@
     "image": {
       "edit": {
         "tools": "Edit image",
-        "annotate": "Annotate",
-        "background": "Remove background",
         "addComment": "Add comment",
         "commentNumber": "Comment {{number}}",
         "deleteComment": "Delete comment",
@@ -229,6 +227,8 @@
         "commentDone": "Done",
         "moveToolbar": "Move toolbar",
         "commentHint": "Click the image to add a comment",
+        "annotate": "Annotate",
+        "background": "Remove background",
         "erase": "Erase",
         "resize": "Resize",
         "cancel": "Cancel editing",
@@ -489,9 +489,9 @@
     "licenses": "Bundles the OpenAI Codex CLI (Apache-2.0) and codex-acp-v2 (Apache-2.0). Not affiliated with OpenAI.",
     "editor": "Editor",
     "voice": "Voice",
+    "images": "Images",
     "computer": "Computer use",
     "threeFingerSwipe": "Three-finger horizontal swipe",
-    "images": "Images",
     "threeFingerSwipeGuidance": {
       "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
       "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",
@@ -507,7 +507,7 @@
     "explorer": "Explorer",
     "explorerHiddenDescription": "Show hidden files and directories whose names start with a dot (.)",
     "diagnosticsTitle": "Diagnostic logs",
-    "diagnosticsDescription": "Keep up to 7 days of diagnostic metadata, within 5 MB. Export a local copy without conversation content, credentials or raw protocol messages.",
+    "diagnosticsDescription": "Keep up to 7 days of diagnostic metadata, within 5 MB. The ZIP export includes application logs, recent rotated logs and panic traces, with common credential formats redacted.",
     "diagnosticsExport": "Export diagnostic logs",
     "diagnosticsExporting": "Exporting…",
     "diagnosticsExported": "Diagnostic logs exported"
@@ -1392,8 +1392,6 @@
       "open": "Show simulator",
       "close": "Hide simulator"
     }
-  }
-}
   },
   "images": {
     "discover": "Start with an idea",
@@ -1486,3 +1484,5 @@
     "invalidFile": "Use PNG, JPEG or WebP images smaller than 8 MiB.",
     "openPage": "Open images in this conversation",
     "noResult": "No image was produced. Your prompt is ready to retry."
+  }
+}

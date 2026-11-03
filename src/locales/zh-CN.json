@@ -220,8 +220,6 @@
     "image": {
       "edit": {
         "tools": "图片编辑",
-        "annotate": "标注",
-        "background": "移除背景",
         "addComment": "添加评论",
         "commentNumber": "评论 {{number}}",
         "deleteComment": "删除评论",
@@ -229,6 +227,8 @@
         "commentDone": "完成",
         "moveToolbar": "拖动工具栏",
         "commentHint": "点击图片添加评论",
+        "annotate": "标注",
+        "background": "移除背景",
         "erase": "擦除",
         "resize": "调整大小",
         "cancel": "取消编辑",
@@ -489,9 +489,9 @@
     "licenses": "内置 OpenAI Codex CLI(Apache-2.0)与 codex-acp-v2(Apache-2.0)。与 OpenAI 无关联。",
     "editor": "编辑器",
     "voice": "语音",
+    "images": "图像",
     "computer": "操作电脑",
     "threeFingerSwipe": "三指横向滑动",
-    "images": "图像",
     "threeFingerSwipeGuidance": {
       "mac": "系统三指横滑手势会优先响应,请先在系统设置→触控板中改掉。",
       "windows": "使用精确式触控板三指横滑切换页面。系统手势可能同时触发，请在 Windows 设置 > 蓝牙和设备 > 触摸板中将三指轻扫设为“无”。",
@@ -507,7 +507,7 @@
     "explorer": "资源管理器",
     "explorerHiddenDescription": "显示以 . 开头的隐藏文件和目录",
     "diagnosticsTitle": "诊断日志",
-    "diagnosticsDescription": "本机最多保留最近 7 天、约 5 MB 的诊断信息。可导出到本地文件，不包含聊天内容、凭据或原始协议报文。",
+    "diagnosticsDescription": "本机保留最近 7 天、约 5 MB 的诊断元数据。导出的 ZIP 包含应用日志、近期轮转日志和崩溃堆栈，并对常见凭据脱敏。",
     "diagnosticsExport": "导出诊断日志",
     "diagnosticsExporting": "正在导出…",
     "diagnosticsExported": "诊断日志已导出"
@@ -1392,8 +1392,6 @@
       "open": "显示模拟器",
       "close": "隐藏模拟器"
     }
-  }
-}
   },
   "images": {
     "discover": "从一个灵感开始",
@@ -1486,3 +1484,5 @@
     "invalidFile": "请使用小于 8 MiB 的 PNG、JPEG 或 WebP 图片。",
     "openPage": "在图像页打开此对话",
     "noResult": "本次未生成图片，输入已保留，可以重试。"
+  }
+}
