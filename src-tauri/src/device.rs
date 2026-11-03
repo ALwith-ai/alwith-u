@@ -140,13 +140,14 @@ pub fn device_attachments(window: WebviewWindow) -> Result<Vec<AttachmentInfo>, 
     let host = host(&window)?;
     host.attachments()
 }
-/// The panel attaches on behalf of its conversation so the agent's tools see the same device.
+/// The panel opens a device for its conversation so the agent's tools see the same one; a device another
+/// conversation holds moves to this one.
 #[tauri3_specta::command]
 pub async fn device_attach(
     window: WebviewWindow, session_id: String, platform: String, udid: Option<String>,
 ) -> Result<AttachmentInfo, String> {
     let host = host(&window)?;
-    host.attach(Owner::DevelopmentSession(session_id), &platform, udid.as_deref(), true).await
+    host.take_over(Owner::DevelopmentSession(session_id), &platform, udid.as_deref(), true).await
 }
 #[tauri3_specta::command]
 pub async fn device_detach(window: WebviewWindow, udid: String) -> Result<(), String> {
