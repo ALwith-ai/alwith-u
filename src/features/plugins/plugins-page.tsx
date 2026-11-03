@@ -427,6 +427,14 @@ export function PluginsPage({
     ].toSorted()
   )
   const installed = useStore(pluginsStore, (state) => state.installed)
+  // Bundled catalogs and policy-installed plugins are supplied by Codex, not personal installs.
+  const personalInstalled = installed.filter(
+    ({ plugin, marketplace }) =>
+      marketplace.name !== "openai-bundled" &&
+      marketplace.name !== "openai-primary-runtime" &&
+      plugin.installPolicy !== "INSTALLED_BY_DEFAULT" &&
+      plugin.installPolicySource !== "IMPLICIT_CANONICAL_APP"
+  )
   const searchLabel = t(kind === "skills" ? "plugins.skills.search" : "plugins.search")
   const [selected, setSelected] = useState<PluginEntry | null>(null)
   const ready = usePluginsReady()
@@ -494,15 +502,15 @@ export function PluginsPage({
         <Pane className="min-h-0 flex-1 pe-0" viewportClassName="pe-0">
           <nav aria-label={t("plugins.sections.installed")} className="px-2 pb-4">
             <NavigationStack>
-              {!ready || (loading && installed.length === 0) ? (
+              {!ready || (loading && personalInstalled.length === 0) ? (
                 <div role="status" className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
                   <Spinner className="size-3.5" role="presentation" aria-hidden="true" />
                   {t("plugins.detail.loading")}
                 </div>
-              ) : installed.length === 0 ? (
+              ) : personalInstalled.length === 0 ? (
                 <p className="px-3 py-2 text-xs text-muted-foreground">{t("plugins.sections.installedEmpty")}</p>
               ) : (
-                installed.map((entry) => (
+                personalInstalled.map((entry) => (
                   <NavigationItemButton
                     key={entry.plugin.id}
                     title={pluginTitle(entry.plugin)}
