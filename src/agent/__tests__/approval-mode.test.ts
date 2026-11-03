@@ -75,11 +75,21 @@ test.each(["revision", "preflight", "reopen", "fork"] as const)(
         await client.stopSession(id)
         await client.open(id, "/tmp/approval-mode")
       } else if (trigger === "fork") target = await client.fork(id, "/tmp/approval-mode", "turn-one")
-      await client.prompt(target, [{ type: "text", text: "permission" }])
+      const prompt = [{ type: "text" as const, text: "permission" }]
+      if (trigger === "preflight") {
+        await expect(client.prompt(target, prompt)).rejects.toThrow("Connection needs refresh")
+        expect(client.session(target).attached).toBe(true)
+      }
+      await client.prompt(target, prompt)
       const open = requests.mock.calls.findLast(
         (call) => call[1] === (trigger === "fork" ? "session/fork" : "session/resume")
       )
-      expect(open?.[2]).toMatchObject({ sessionId: id, _meta: { codex: { mode: "read-only" }, alwith: { model } } })
+      if (trigger === "preflight") {
+        expect(open).toBeUndefined()
+        expect(requests.mock.calls.some((call) => call[1] === "session/close")).toBe(false)
+      } else {
+        expect(open?.[2]).toMatchObject({ sessionId: id, _meta: { codex: { mode: "read-only" }, alwith: { model } } })
+      }
       if (trigger === "fork") expect(open?.[2]).toMatchObject({ _meta: { codex: { lastTurnId: "turn-one" } } })
       expect(client.session(target).configOptions.find((option) => option.configId === "mode")?.currentValue).toBe(
         "read-only"

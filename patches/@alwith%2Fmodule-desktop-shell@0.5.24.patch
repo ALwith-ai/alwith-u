@@ -1,0 +1,122 @@
+diff --git a/styles.css b/styles.css
+index 5dba397068846fddcec9ae6076dd999d63d5817b..a8aedefea7156ebdf7d4a743c3ed6f2e88a14536 100644
+--- a/styles.css
++++ b/styles.css
+@@ -333,6 +333,11 @@ html[data-window-backdrop="acrylic"]
+   flex-direction: column;
+   height: 100%;
+ }
++/* Floating navigation is an independent rounded surface on both sides. */
++.main-sidebar-shell[data-atlas-floating] > .main-sidebar-viewport[data-atlas-navigation-surface] {
++  border-radius: var(--main-surface-radius);
++  overflow: clip;
++}
+ /* The host's navigation fills the column above ALwith's campaign slot. */
+ .main-sidebar-content {
+   display: flex;
+diff --git a/workspace.d.ts b/workspace.d.ts
+index f97e03eb9a3d9814bae86ef97ba0265713b3baca..c038a4c16db81d20ce013caae51ab10ffaaebf42 100644
+--- a/workspace.d.ts
++++ b/workspace.d.ts
+@@ -60,6 +60,8 @@ export declare function DesktopWorkspace(props: {
+   /** The region the canvas settled on (leading, chat, preview or trailing). */
+   onRegionChange?: (region: DesktopCanvasRegion) => void;
+   initialNavigationPinned?: boolean;
++  /** Minimum chat width while sharing a screen with a preview. The divider cannot close chat. */
++  minimumChatWidth?: number;
+   /** Persists the pin choice; calls are serialized so a rapid toggle cannot restore an older value. */
+   onNavigationPinnedChange?: (pinned: boolean) => void | Promise<void>;
+   /** Overrides for `desktopNavigationLabels(navigator.language)`. */
+diff --git a/workspace.js b/workspace.js
+index ebcce4491113bf38ea4f2dc9a3e0f558d69d3f5e..dee7569fb50fcc812d2fae14bcf894c053f7559c 100644
+--- a/workspace.js
++++ b/workspace.js
+@@ -1,5 +1,5 @@
+ import { jsx as jsx_w77yafs4, jsxs as jsxs_eh6c78nj } from "react/jsx-runtime";
+-import { connectTrackpad, isViewportResize } from "@nyssance/atlas/dom";
++import { connectTrackpad } from "@nyssance/atlas/dom";
+ import { desktopDefaults, MIN_BLOCK_WIDTH, MIN_PREVIEW_WIDTH, resolveAtlasBlocks } from "@nyssance/atlas/layout";
+ import { useAtlas } from "@nyssance/atlas/react";
+ import { attachWindowDrag, tauriTrackpad } from "@nyssance/atlas/tauri";
+@@ -17,7 +17,7 @@ import {
+   useRef,
+   useState
+ } from "react";
+-import { createPortal } from "react-dom";
++import { createPortal, flushSync } from "react-dom";
+ import { Button } from "@nyssance/shadcn/vega/components/ui/button";
+ import { SidebarProvider } from "@nyssance/shadcn/vega/components/ui/sidebar";
+ import { vibemonBanner } from "./campaigns.js";
+@@ -153,6 +153,7 @@ function groupRegion(api, index) {
+ function useWorkspaceCanvas({
+   screen,
+   pinned,
++  minimumChatWidth,
+   onScreenChange,
+   onRegionChange,
+   trailing,
+@@ -192,11 +193,7 @@ function useWorkspaceCanvas({
+     flickMinIndex: pinned ? 1 : 0,
+     trackpadEnabled: trackpad,
+     blocked: () => divider.current,
+-    watchResize: (node, entries) => {
+-      if (divider.current || !isViewportResize(node, entries))
+-        return;
+-      setViewportWidth(node.clientWidth);
+-    }
++    watchResize: false
+   });
+   const ref = useCallback((node) => {
+     root.current = node;
+@@ -210,15 +207,22 @@ function useWorkspaceCanvas({
+   }, [api, trackpad, onError]);
+   useEffect(() => api ? connectDesktopOverview(api, { openLink }) : undefined, [api, openLink]);
+   useLayoutEffect(() => {
+-    if (api)
+-      setViewportWidth(api.root.clientWidth);
++    if (!api)
++      return;
++    setViewportWidth(api.root.clientWidth);
++    // Keep observation alive across Atlas refreshes and commit geometry before paint.
++    const observer = new ResizeObserver(() => {
++      flushSync(() => setViewportWidth(api.root.clientWidth));
++    });
++    observer.observe(api.root);
++    return () => observer.disconnect();
+   }, [api]);
+   const screenWidth = Math.max(0, viewportWidth - (pinned ? NAVIGATION_WIDTH : 0));
+   const blocks = resolveAtlasBlocks({
+     screen: screenWidth,
+     nextScreen: viewportWidth,
+     blocks: [
+-      { name: "chat", min: MIN_BLOCK_WIDTH },
++      { name: "chat", min: minimumChatWidth },
+       ...preview.open ? [{ name: "preview", min: MIN_PREVIEW_WIDTH, width: preview.maximized ? screenWidth : previewWidth }] : []
+     ]
+   });
+@@ -314,7 +318,8 @@ function useWorkspaceCanvas({
+       api?.cancelInput();
+     },
+     drag: (dx) => {
+-      setPreviewWidth(Math.max(0, Math.min(widths.screen, dragStart.current - dx)));
++      // Keep the chat surface open while the divider resizes the preview.
++      setPreviewWidth(Math.max(0, Math.min(Math.max(MIN_PREVIEW_WIDTH, widths.screen - minimumChatWidth), dragStart.current - dx)));
+     },
+     end: () => {
+       divider.current = false;
+@@ -454,6 +459,7 @@ export function DesktopWorkspace({
+   onScreenChange,
+   onRegionChange,
+   initialNavigationPinned = true,
++  minimumChatWidth = MIN_BLOCK_WIDTH,
+   onNavigationPinnedChange,
+   labels: labelOverrides,
+   direction = "ltr",
+@@ -471,6 +477,7 @@ export function DesktopWorkspace({
+   const canvas = useWorkspaceCanvas({
+     screen,
+     pinned,
++    minimumChatWidth,
+     onScreenChange,
+     onRegionChange,
+     trailing: trailing !== undefined && trailing !== null && trailing !== false,

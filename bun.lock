@@ -70,7 +70,6 @@
         "marked": "^18.1.2",
         "mermaid": "12.2.0",
         "monaco-editor": "^0.57.0",
-        "motion": "^14.9.0",
         "pdfjs-dist": "^6.5.438",
         "qrcode.react": "^4.2.0",
         "react": "^19.3.1",
@@ -142,7 +141,13 @@
     },
   },
   "patchedDependencies": {
+    "@alwith/module-computer@0.5.2": "patches/@alwith%2Fmodule-computer@0.5.2.patch",
+    "@alwith/module-chat@0.5.28": "patches/@alwith%2Fmodule-chat@0.5.28.patch",
+    "@alwith/module-editor@0.5.4": "patches/@alwith%2Fmodule-editor@0.5.4.patch",
     "vite@8.3.5": "patches/vite@8.3.5.patch",
+    "@alwith/module-desktop-shell@0.5.24": "patches/@alwith%2Fmodule-desktop-shell@0.5.24.patch",
+    "@alwith/module-drive@0.5.3": "patches/@alwith%2Fmodule-drive@0.5.3.patch",
+    "@nyssance/codex-acp-v2@0.7.51": "patches/@nyssance%2Fcodex-acp-v2@0.7.51.patch",
   },
   "overrides": {
     "effect": "^4.0.6",

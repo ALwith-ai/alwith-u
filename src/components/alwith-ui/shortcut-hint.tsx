@@ -13,7 +13,7 @@ export function ShortcutKey({ shortcut, ...props }: { shortcut: string } & Compo
 }
 
 /** Keep the action label and its keyboard badge visually distinct in every surface. */
-export function ShortcutHint({ label, shortcut }: { label: ReactNode; shortcut: string }) {
+function ShortcutHint({ label, shortcut }: { label: ReactNode; shortcut: string }) {
   return (
     <>
       <span className="min-w-0">{label}</span>

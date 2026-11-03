@@ -1,6 +1,10 @@
-# stage.ts rewrites these artifacts before the frontend server is ready.
+# stage.ts rewrites these generated artifacts during development and tests.
 # They must not restart the concurrent Tauri development process.
 /binaries/
 /resources/adapter/
+/resources/chrome-bridge/
+/resources/computer/
+/resources/create-alwith/
+/resources/device/
 /resources/native/
 /resources/licenses/

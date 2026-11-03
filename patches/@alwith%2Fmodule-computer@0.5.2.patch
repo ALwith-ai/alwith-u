@@ -1,0 +1,78 @@
+diff --git a/rust/src/__tests__/connection.rs b/rust/src/__tests__/connection.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..987b4f3e8cf20e749c375fe29aa41f97072c4841
+--- /dev/null
++++ b/rust/src/__tests__/connection.rs
+@@ -0,0 +1,30 @@
++use super::*;
++
++fn descriptor(embedded: bool) -> Value {
++    let mut args = vec!["mcp", "--socket", "private-endpoint", "--host-bundle-id", "test.host"];
++    if embedded {
++        args.insert(1, "--embedded");
++    }
++    json!({
++        "generation":"host-generation", "command":"bundled-driver", "args":args,
++        "env":[
++            {"name":"CMUX_CUA_MCP_FORCE_PROXY","value":"1"},
++            {"name":"CMUX_CUA_SOCKET_AUTH_TOKEN","value":"driver-credential"},
++            {"name":"CMUX_CUA_SOCKET_HOST_AUTH_TOKEN","value":"host-credential"}
++        ]
++    })
++}
++
++#[test]
++fn legacy_native_descriptor_connects_to_the_existing_host_with_the_same_credentials() {
++    let legacy: Connection = serde_json::from_value(descriptor(true)).unwrap();
++    let corrected = legacy.host_proxy();
++    assert_eq!(serde_json::to_value(corrected).unwrap(), descriptor(false));
++}
++
++#[test]
++fn corrected_native_descriptor_is_unchanged() {
++    let current = descriptor(false);
++    let connection: Connection = serde_json::from_value(current.clone()).unwrap();
++    assert_eq!(serde_json::to_value(connection.host_proxy()).unwrap(), current);
++}
+diff --git a/rust/src/lib.rs b/rust/src/lib.rs
+index 7451a23f651eb51564b5d324234b125f0af0e3f6..0cbbe03c7198ed786ae16a98bf8f7b280d58a25f 100644
+--- a/rust/src/lib.rs
++++ b/rust/src/lib.rs
+@@ -32,6 +32,19 @@ pub struct Connection {
+     pub env: Vec<Environment>,
+ }
+ 
++impl Connection {
++    fn host_proxy(mut self) -> Self {
++        // ABI v1 native bundles may still return --embedded for MCP children.
++        // It overrides FORCE_PROXY on Windows/Linux and starts an independent driver.
++        if self.args.first().is_some_and(|arg| arg == "mcp")
++            && self.env.iter().any(|entry| entry.name == "CMUX_CUA_MCP_FORCE_PROXY" && entry.value == "1")
++        {
++            self.args.retain(|arg| arg != "--embedded");
++        }
++        self
++    }
++}
++
+ pub struct ComputerHost {
+     handle: Handle,
+     options: Value,
+@@ -51,7 +64,8 @@ impl ComputerHost {
+         self.handle.call("status", json!({}))
+     }
+     pub fn connection(&self, session: &str) -> Result<Option<Connection>, String> {
+-        self.handle.call("connection", json!({"session":session}))
++        let connection: Option<Connection> = self.handle.call("connection", json!({"session":session}))?;
++        Ok(connection.map(Connection::host_proxy))
+     }
+     pub async fn start(&self, session: String) -> Result<Status, String> {
+         self.handle.call_async("start", json!({"session":session})).await
+@@ -69,3 +83,7 @@ impl ComputerHost {
+         self.handle.call::<()>("kill_on_exit", json!({})).expect("Native computer exit failed");
+     }
+ }
++
++#[cfg(test)]
++#[path = "__tests__/connection.rs"]
++mod connection_tests;

@@ -1,0 +1,2262 @@
+diff --git a/dist/client.js b/dist/client.js
+index d7a9f04461d6f70b0255d9322b93d0c3be24946d..eb7f9cdb1d4c21f6eb8fb45a101e1b5e7561971d 100644
+--- a/dist/client.js
++++ b/dist/client.js
+@@ -1,6 +1,9 @@
+ // src/client/CodexCapabilitiesClient.ts
+ class CodexCapabilitiesClient {
+   connection;
++  generateImage(params) {
++    return this.request("_codex/images/generate", params);
++  }
+   executeShell(sessionId, command) {
+     return this.request("_codex/shell/execute", { sessionId, command });
+   }
+@@ -4690,6 +4693,7 @@ class SessionClient {
+   stopGap;
+   openPort;
+   contextRevisions = new Map;
++  draftMetadata = new Map;
+   listRequest = null;
+   listGeneration = 0;
+   retiredChildren = new Set;
+@@ -5095,11 +5099,13 @@ class SessionClient {
+         configRevision: configRevisionOf(response)
+       };
+       this.publishSession(session);
+-      if (options.draft)
++      if (options.draft) {
++        if (response._meta)
++          this.draftMetadata.set(session.id, response._meta);
+         this.patch((state) => ({
+           drafts: { ...state.drafts, [session.id]: true }
+         }));
+-      else
++      } else
+         this.listSession({
+           ...this.summaryOf({
+             sessionId: session.id,
+@@ -5120,6 +5126,8 @@ class SessionClient {
+   materializeDraft(id) {
+     if (!this.state.drafts[id])
+       return;
++    const meta = this.draftMetadata.get(id);
++    this.draftMetadata.delete(id);
+     this.patch((state) => {
+       const { [id]: _draft, ...drafts } = state.drafts;
+       return { drafts };
+@@ -5129,7 +5137,8 @@ class SessionClient {
+       ...this.summaryOf({
+         sessionId: id,
+         cwd: session.cwd,
+-        title: session.title
++        title: session.title,
++        ...meta ? { _meta: meta } : {}
+       }),
+       updatedAt: new Date().toISOString()
+     });
+@@ -5238,7 +5247,7 @@ class SessionClient {
+     }, () => this.dispatchPrompt(id, prompt, options).receipt, (operation) => this.enqueueSession(id, operation, false));
+   }
+   async preparePrompt(id, prompt, checkpoint) {
+-    let session = this.sessions.get(id);
++    const session = this.sessions.get(id);
+     if (!session.attached)
+       throw new Error("Open the session before sending");
+     if (prompt.length === 0)
+@@ -5252,7 +5261,6 @@ class SessionClient {
+       this.publishSession({ ...this.sessions.get(id), attached: false });
+       checkpoint();
+       await this.replay(id, session.cwd);
+-      session = this.sessions.get(id);
+     }
+     checkpoint();
+     if (this.options.prepareSessionTools) {
+@@ -5260,20 +5268,9 @@ class SessionClient {
+       if (run !== "running" && run !== "requires_action") {
+         try {
+           await this.options.prepareSessionTools(id);
+-        } catch {
+-          checkpoint();
+-          await this.live().request("session/close", {
+-            sessionId: id
+-          });
+-          checkpoint();
+-          this.updates.remove(id);
+-          this.publishSession({
+-            ...this.sessions.get(id),
+-            attached: false
+-          });
++        } catch (error) {
+           checkpoint();
+-          await this.replay(id, session.cwd);
+-          await this.options.prepareSessionTools(id);
++          throw error;
+         }
+       }
+     }
+@@ -5512,6 +5509,7 @@ class SessionClient {
+     this.dropChildren(id);
+     this.lifecycle.retire(id);
+     this.contextRevisions.delete(id);
++    this.draftMetadata.delete(id);
+     this.updates.remove(id);
+     this.requests.cancelSession(id);
+     if (this.sessions.sessions.get(id)?.subagent)
+@@ -6390,8 +6388,12 @@ class CodexClient extends SessionClient {
+     const projectId = typeof codex === "object" && codex !== null ? codex.projectId : null;
+     if (projectId !== undefined && projectId !== null && typeof projectId !== "string")
+       throw new Error("Invalid Codex project ID");
++    const threadSource = typeof codex === "object" && codex !== null ? codex.threadSource : undefined;
++    if (threadSource != null && typeof threadSource !== "string")
++      throw new Error("Invalid Codex thread source");
+     return {
+       ...super.summaryOf(info),
++      ...threadSource != null ? { threadSource } : {},
+       archived,
+       projectId: projectId ?? null
+     };
+@@ -6495,7 +6497,11 @@ class CodexClient extends SessionClient {
+     if (sourceId === null)
+       return;
+     const mode = this.sessions.sessions.get(sourceId)?.configOptions.find((option) => option.category === "mode" && isSelectOption(option));
+-    return mode && isSelectOption(mode) ? { codex: { mode: mode.currentValue } } : undefined;
++    const threadSource = operation.kind === "fork" ? [
++      ...this.state.sessionList,
++      ...this.state.archivedSessions
++    ].find((item) => item.sessionId === sourceId)?.threadSource : undefined;
++    return mergeMeta(mode && isSelectOption(mode) ? { codex: { mode: mode.currentValue } } : undefined, threadSource !== undefined ? { codex: { threadSource } } : undefined);
+   }
+   promptMeta(_id, options) {
+     return mergeMeta({ codex: { messageSentAt: Date.now() } }, options.meta);
+@@ -6863,6 +6869,18 @@ class CodexClient extends SessionClient {
+       ...new Map([...current, ...archived].map((item) => [item.sessionId, item])).values()
+     ];
+   }
++  async readSessionHistory(threadId, cwd, cursor = null) {
++    if (!this.historyCapability("browse"))
++      throw new Error("Session history browsing is unavailable");
++    const agent = this.live();
++    const page = await readHistoryPage(threadId, cwd, cursor, (params) => agent.request("_codex/session_history", params));
++    if (this.agent !== agent)
++      throw new Error("Codex disconnected during history load");
++    return { session: page.session, cursor: page.cursor };
++  }
++  async readSubagentHistory(threadId, cwd, cursor = null) {
++    return this.readSessionHistory(threadId, cwd, cursor);
++  }
+   async exportHistory(sessionId, check, signal) {
+     this.requireHistory();
+     return exportConversation(sessionId, (params) => this.live().request("_codex/session_history_items", params, {
+diff --git a/dist/index.js b/dist/index.js
+index f39cc7c1974aad6e496a6f75ecaa47489c6999e2..d47a0bda216ccedd8f4b84e94d10177765e0a7a0 100755
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -17217,11 +17217,19 @@ function providerConnections(primary, spawn) {
+   }
+   function observe(connection) {
+     connection.onUnhandledNotification((notification) => {
+-      if (notification["method"] !== "thread/started" || !isRecord2(notification.params))
++      if (!isRecord2(notification.params))
+         return;
+-      const thread = notification.params["thread"];
+-      if (isRecord2(thread) && typeof thread["id"] === "string")
+-        owners.set(thread["id"], connection);
++      const method = notification["method"];
++      if (method === "thread/started") {
++        const thread = notification.params["thread"];
++        if (isRecord2(thread) && typeof thread["id"] === "string")
++          owners.set(thread["id"], connection);
++        return;
++      }
++      const threadId = notification.params["threadId"];
++      const status = notification.params["status"];
++      if (typeof threadId === "string" && owners.get(threadId) === connection && (method === "thread/closed" || method === "thread/status/changed" && isRecord2(status) && status["type"] === "notLoaded"))
++        owners.delete(threadId);
+     });
+   }
+   observe(primary);
+@@ -17267,7 +17275,10 @@ function providerConnections(primary, spawn) {
+     if (method === "initialize")
+       initialization = args;
+     let target = primary;
+-    if (typeof method === "string" && opening.has(method) && typeof params["modelProvider"] === "string") {
++    const owner = typeof params["threadId"] === "string" ? owners.get(params["threadId"]) : undefined;
++    if (method === "thread/resume" && owner !== undefined) {
++      target = owner;
++    } else if (typeof method === "string" && opening.has(method) && typeof params["modelProvider"] === "string") {
+       const config = params["config"];
+       const catalog = isRecord2(config) && typeof config["model_catalog_json"] === "string" ? config["model_catalog_json"] : undefined;
+       const definitions = isRecord2(config) ? config["model_providers"] : undefined;
+@@ -17328,6 +17339,8 @@ function providerConnections(primary, spawn) {
+     if (typeof method === "string" && opening.has(method) && isRecord2(result) && isRecord2(result["thread"]) && typeof result["thread"]["id"] === "string") {
+       owners.set(result["thread"]["id"], target);
+     }
++    if (method === "thread/unsubscribe" && isRecord2(result) && result["status"] === "notLoaded" && typeof params["threadId"] === "string" && owners.get(params["threadId"]) === target)
++      owners.delete(params["threadId"]);
+     return result;
+   }
+   return new Proxy(primary, {
+@@ -21557,7 +21570,7 @@ import { createInterface } from "readline";
+ var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+ var SOURCES = new Set(["cli", "vscode", "exec", "appServer", "unknown"]);
+ var missing = (error) => error?.code === "ENOENT";
+-async function nativeForks(codexHome, archived, cwd, read) {
++async function nativeHistoryMetadata(codexHome, archived, cwd, read) {
+   const root = path2.join(codexHome, archived ? "archived_sessions" : "sessions");
+   const wantedCwd = cwd === null ? null : await realpath(cwd).catch((error) => {
+     if (missing(error))
+@@ -21565,20 +21578,14 @@ async function nativeForks(codexHome, archived, cwd, read) {
+     throw error;
+   });
+   const result = [];
++  const sources = new Map;
+   for await (const file of rolloutFiles(root)) {
+-    const header = await firstLine(file);
+-    if (header === null)
+-      continue;
+-    let value;
+-    try {
+-      value = JSON.parse(header);
+-    } catch {
+-      continue;
+-    }
+-    if (!value || typeof value !== "object" || !("type" in value) || value.type !== "session_meta" || !("payload" in value))
++    const meta = await nativeHeader(file);
++    if (!meta || typeof meta["id"] !== "string" || !UUID.test(meta["id"]) || typeof meta["source"] !== "string" || !SOURCES.has(meta["source"]) || wantedCwd !== null && meta["cwd"] !== wantedCwd && meta["cwd"] !== cwd)
+       continue;
+-    const meta = value.payload;
+-    if (!meta || typeof meta["id"] !== "string" || !UUID.test(meta["id"]) || typeof meta["forked_from_id"] !== "string" || !UUID.test(meta["forked_from_id"]) || typeof meta["source"] !== "string" || !SOURCES.has(meta["source"]) || wantedCwd !== null && meta["cwd"] !== wantedCwd && meta["cwd"] !== cwd)
++    if (typeof meta["thread_source"] === "string" && meta["thread_source"].length > 0)
++      sources.set(meta["id"], meta["thread_source"]);
++    if (typeof meta["forked_from_id"] !== "string" || !UUID.test(meta["forked_from_id"]))
+       continue;
+     const thread = await read(meta["id"]).catch(async (error) => {
+       try {
+@@ -21600,7 +21607,7 @@ async function nativeForks(codexHome, archived, cwd, read) {
+       result.push(cwd === null ? thread : { ...thread, cwd });
+     }
+   }
+-  return result;
++  return { forks: result, sources };
+ }
+ async function* rolloutFiles(directory) {
+   let entries;
+@@ -21635,6 +21642,25 @@ async function firstLine(file) {
+     stream.destroy();
+   }
+ }
++async function nativeThreadSource(file, threadId) {
++  const meta = await nativeHeader(file);
++  return meta?.["id"] === threadId && typeof meta["thread_source"] === "string" && meta["thread_source"].length > 0 ? meta["thread_source"] : null;
++}
++async function nativeHeader(file) {
++  const line = await firstLine(file);
++  if (line === null)
++    return null;
++  let value;
++  try {
++    value = JSON.parse(line);
++  } catch {
++    return null;
++  }
++  if (!value || typeof value !== "object" || !("type" in value) || value.type !== "session_meta" || !("payload" in value))
++    return null;
++  const meta = value.payload;
++  return meta !== null && typeof meta === "object" && !Array.isArray(meta) ? meta : null;
++}
+ 
+ // src/SessionTitle.ts
+ var MAX_SESSION_TITLE_LENGTH = 256;
+@@ -21971,7 +21997,7 @@ async function readSessionList(client, params, all) {
+   const home = client.getCodexHome();
+   if (home === null)
+     throw RequestError.internalError(undefined, "Codex home is unavailable after initialize");
+-  const forks = await run(() => nativeForks(home, archived, cwd, async (id) => (await client.threadRead({ threadId: id, includeTurns: false })).thread));
++  const { forks, sources } = await run(() => nativeHistoryMetadata(home, archived, cwd, async (id) => (await client.threadRead({ threadId: id, includeTurns: false })).thread));
+   const byId = new Map(forks.map((thread) => [thread.id, thread]));
+   response.data = response.data.map((thread) => byId.get(thread.id) ?? thread);
+   if (!params.cursor) {
+@@ -22008,6 +22034,9 @@ async function readSessionList(client, params, all) {
+       _meta: {
+         codex: {
+           projectId: thread.projectId ?? null,
++          ...(thread.threadSource ?? sources.get(thread.id)) != null ? {
++            threadSource: thread.threadSource ?? sources.get(thread.id)
++          } : {},
+           archived,
+           nativeSessionId: thread.sessionId,
+           forkedFromId: thread.forkedFromId
+@@ -22109,6 +22138,165 @@ function abortable(operation, signal) {
+   });
+ }
+ 
++// src/alwith/codex/nativeFetch.ts
++import { randomBytes } from "crypto";
++
++// src/alwith/codex/nativeNetworkTransport.ts
++class NativeNetworkTransport {
++  endpoint;
++  constructor(endpoint) {
++    this.endpoint = endpoint;
++  }
++  static fromEnvironment() {
++    const raw = process.env["CODEX_ACP_NATIVE_NETWORK_ENDPOINT"];
++    if (raw === undefined)
++      return null;
++    const value = JSON.parse(raw);
++    if (!value || typeof value !== "object")
++      throw new Error("Invalid native network endpoint");
++    const v = value;
++    if (v["version"] !== 1 || v["host"] !== "127.0.0.1" || !Number.isInteger(v["port"]) || Number(v["port"]) < 1 || Number(v["port"]) > 65535 || typeof v["token"] !== "string" || !/^[a-f0-9]{64}$/.test(v["token"]))
++      throw new Error("Invalid native network endpoint");
++    return new NativeNetworkTransport(value);
++  }
++  route(target, websocket = false, requestId) {
++    return {
++      url: new URL(`http://127.0.0.1:${this.endpoint.port}/v1/${websocket ? "websocket" : "http"}`),
++      headers: {
++        "x-alwith-native-token": this.endpoint.token,
++        "x-alwith-native-target": target.href,
++        ...requestId ? { "x-alwith-native-request-id": requestId } : {}
++      }
++    };
++  }
++}
++function nativeNetworkError(value) {
++  const codes = [
++    "NATIVE_NETWORK_CONNECT_FAILED",
++    "NATIVE_PROXY_RESOLUTION_FAILED",
++    "NATIVE_NETWORK_AUTH_FAILED",
++    "NATIVE_NETWORK_PROTOCOL_ERROR",
++    "NATIVE_NETWORK_CANCELLED",
++    "ETIMEDOUT"
++  ];
++  return typeof value === "string" && codes.includes(value) ? Object.assign(new Error("Native network request failed"), {
++    code: value
++  }) : null;
++}
++
++// src/alwith/codex/nativeFetch.ts
++async function nativeFetch(input, init = {}) {
++  const native = NativeNetworkTransport.fromEnvironment();
++  if (!native)
++    return fetch(input, init);
++  let target = new URL(input);
++  let method = init.method ?? "GET";
++  let body = init.body;
++  const headers = new Headers(init.headers);
++  const requestId = randomBytes(12).toString("hex");
++  for (let redirects = 0;; redirects++) {
++    if (!["http:", "https:"].includes(target.protocol) || target.username || target.password)
++      throw new Error("Invalid native HTTP target");
++    const route = native.route(target, false, requestId);
++    const requestHeaders = new Headers(headers);
++    for (const [name, value] of Object.entries(route.headers))
++      requestHeaders.set(name, value);
++    const response = await fetch(route.url, {
++      ...init,
++      method,
++      body,
++      headers: requestHeaders,
++      redirect: "manual",
++      proxy: false
++    });
++    const error = nativeNetworkError(response.headers.get("x-alwith-native-error"));
++    if (error) {
++      await response.body?.cancel();
++      throw error;
++    }
++    if (![301, 302, 303, 307, 308].includes(response.status) || init.redirect === "manual")
++      return response;
++    const location = response.headers.get("location");
++    if (!location)
++      return response;
++    await response.body?.cancel();
++    if (init.redirect === "error" || redirects === 20)
++      throw new Error("Native HTTP redirect rejected");
++    const next = new URL(location, target);
++    if (next.origin !== target.origin) {
++      for (const header of [
++        "authorization",
++        "cookie",
++        "proxy-authorization",
++        "host"
++      ])
++        headers.delete(header);
++    }
++    if (response.status === 303 && method !== "HEAD" || [301, 302].includes(response.status) && method === "POST") {
++      method = "GET";
++      body = undefined;
++      headers.delete("content-type");
++      headers.delete("content-length");
++    }
++    target = next;
++  }
++}
++
++// src/alwith/codex/images.ts
++async function generateImage(codex, params, signal) {
++  const prompt = params["prompt"];
++  const images = params["images"] ?? [];
++  if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 32000 || !Array.isArray(images) || images.length > 16 || images.some((image) => typeof image !== "string" || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image)) || JSON.stringify(images).length > 12 * 1024 * 1024)
++    throw new Error("Expected an image prompt and up to 16 inline image references (12 MiB total)");
++  const account = await codex.accountRead({ refreshToken: false });
++  const routing = account.workspaceRouting;
++  if (account.account?.type !== "chatgpt" || !routing)
++    throw new Error("Sign in to ChatGPT to generate images");
++  const origin = new URL(routing.backendOrigin);
++  if (origin.protocol !== "https:" || origin.hostname !== "chatgpt.com" && !origin.hostname.endsWith(".chatgpt.com"))
++    throw new Error("Unsupported ChatGPT image backend");
++  const url = new URL(`/backend-api/wham/images/${images.length ? "edits" : "generations"}`, origin);
++  for (const refreshToken of [false, true]) {
++    const auth = await codex.getAuthStatus({ includeToken: true, refreshToken });
++    if (auth.authMethod !== "chatgpt" && auth.authMethod !== "chatgptAuthTokens" || !auth.authToken)
++      throw new Error("ChatGPT credentials are unavailable; sign in again");
++    const response = await nativeFetch(url, {
++      method: "POST",
++      redirect: "error",
++      headers: { Authorization: `Bearer ${auth.authToken}`, "ChatGPT-Account-ID": routing.chatgptAccountId, "Content-Type": "application/json", originator: "alwith-u" },
++      body: JSON.stringify({ prompt, ...images.length ? { images: images.map((image_url) => ({ image_url })) } : {} }),
++      signal: AbortSignal.any([codex.disconnectSignal, AbortSignal.timeout(180000), ...signal ? [signal] : []])
++    });
++    if (response.status === 401 && !refreshToken) {
++      await response.body?.cancel();
++      continue;
++    }
++    if (!response.ok) {
++      await response.body?.cancel();
++      throw new Error(`Image generation failed (HTTP ${response.status})`);
++    }
++    const text = await response.text();
++    if (text.length > 15 * 1024 * 1024)
++      throw new Error("Image result exceeds the ACP media limit");
++    const result = JSON.parse(text);
++    if (!result || typeof result !== "object" || !("data" in result) || !Array.isArray(result.data) || !result.data.length)
++      throw new Error("Image service returned no images");
++    const format = "output_format" in result ? result.output_format : "png";
++    if (format !== "png" && format !== "jpeg" && format !== "webp")
++      throw new Error("Unsupported image format");
++    const output = result.data.map((item) => {
++      if (!item || typeof item !== "object" || !("b64_json" in item) || typeof item.b64_json !== "string" || !/^[A-Za-z0-9+/=]+$/.test(item.b64_json))
++        throw new Error("Invalid image service result");
++      return { mimeType: `image/${format}`, data: item.b64_json };
++    });
++    const current = await codex.accountRead({ refreshToken: false });
++    if (current.workspaceRouting?.chatgptAccountId !== routing.chatgptAccountId)
++      throw new Error("ChatGPT account changed during image generation");
++    return { images: output };
++  }
++  throw new Error("ChatGPT authentication failed");
++}
++
+ // src/projects/registry.ts
+ import { mkdir } from "fs/promises";
+ import { homedir } from "os";
+@@ -22665,110 +22853,6 @@ class AppServerClient {
+   }
+ }
+ 
+-// src/alwith/codex/nativeFetch.ts
+-import { randomBytes } from "crypto";
+-
+-// src/alwith/codex/nativeNetworkTransport.ts
+-class NativeNetworkTransport {
+-  endpoint;
+-  constructor(endpoint) {
+-    this.endpoint = endpoint;
+-  }
+-  static fromEnvironment() {
+-    const raw = process.env["CODEX_ACP_NATIVE_NETWORK_ENDPOINT"];
+-    if (raw === undefined)
+-      return null;
+-    const value = JSON.parse(raw);
+-    if (!value || typeof value !== "object")
+-      throw new Error("Invalid native network endpoint");
+-    const v = value;
+-    if (v["version"] !== 1 || v["host"] !== "127.0.0.1" || !Number.isInteger(v["port"]) || Number(v["port"]) < 1 || Number(v["port"]) > 65535 || typeof v["token"] !== "string" || !/^[a-f0-9]{64}$/.test(v["token"]))
+-      throw new Error("Invalid native network endpoint");
+-    return new NativeNetworkTransport(value);
+-  }
+-  route(target, websocket = false, requestId) {
+-    return {
+-      url: new URL(`http://127.0.0.1:${this.endpoint.port}/v1/${websocket ? "websocket" : "http"}`),
+-      headers: {
+-        "x-alwith-native-token": this.endpoint.token,
+-        "x-alwith-native-target": target.href,
+-        ...requestId ? { "x-alwith-native-request-id": requestId } : {}
+-      }
+-    };
+-  }
+-}
+-function nativeNetworkError(value) {
+-  const codes = [
+-    "NATIVE_NETWORK_CONNECT_FAILED",
+-    "NATIVE_PROXY_RESOLUTION_FAILED",
+-    "NATIVE_NETWORK_AUTH_FAILED",
+-    "NATIVE_NETWORK_PROTOCOL_ERROR",
+-    "NATIVE_NETWORK_CANCELLED",
+-    "ETIMEDOUT"
+-  ];
+-  return typeof value === "string" && codes.includes(value) ? Object.assign(new Error("Native network request failed"), {
+-    code: value
+-  }) : null;
+-}
+-
+-// src/alwith/codex/nativeFetch.ts
+-async function nativeFetch(input, init = {}) {
+-  const native = NativeNetworkTransport.fromEnvironment();
+-  if (!native)
+-    return fetch(input, init);
+-  let target = new URL(input);
+-  let method = init.method ?? "GET";
+-  let body = init.body;
+-  const headers = new Headers(init.headers);
+-  const requestId = randomBytes(12).toString("hex");
+-  for (let redirects = 0;; redirects++) {
+-    if (!["http:", "https:"].includes(target.protocol) || target.username || target.password)
+-      throw new Error("Invalid native HTTP target");
+-    const route = native.route(target, false, requestId);
+-    const requestHeaders = new Headers(headers);
+-    for (const [name, value] of Object.entries(route.headers))
+-      requestHeaders.set(name, value);
+-    const response = await fetch(route.url, {
+-      ...init,
+-      method,
+-      body,
+-      headers: requestHeaders,
+-      redirect: "manual",
+-      proxy: false
+-    });
+-    const error = nativeNetworkError(response.headers.get("x-alwith-native-error"));
+-    if (error) {
+-      await response.body?.cancel();
+-      throw error;
+-    }
+-    if (![301, 302, 303, 307, 308].includes(response.status) || init.redirect === "manual")
+-      return response;
+-    const location = response.headers.get("location");
+-    if (!location)
+-      return response;
+-    await response.body?.cancel();
+-    if (init.redirect === "error" || redirects === 20)
+-      throw new Error("Native HTTP redirect rejected");
+-    const next = new URL(location, target);
+-    if (next.origin !== target.origin) {
+-      for (const header of [
+-        "authorization",
+-        "cookie",
+-        "proxy-authorization",
+-        "host"
+-      ])
+-        headers.delete(header);
+-    }
+-    if (response.status === 303 && method !== "HEAD" || [301, 302].includes(response.status) && method === "POST") {
+-      method = "GET";
+-      body = undefined;
+-      headers.delete("content-type");
+-      headers.delete("content-length");
+-    }
+-    target = next;
+-  }
+-}
+-
+ // src/alwith/codex/remotePluginEnablement.ts
+ async function setRemotePluginEnabled(codex, remotePluginId, enabled) {
+   const account = await codex.accountRead({ refreshToken: false });
+@@ -23062,6 +23146,86 @@ function encode2(text) {
+   return Buffer.from(text, "utf8").toString("base64");
+ }
+ 
++// src/ToolCallName.ts
++function functionToolName(name, namespace) {
++  return `${namespace ?? ""}${name}`;
++}
++function commandToolName(source) {
++  switch (source) {
++    case "unifiedExecStartup":
++      return "exec_command";
++    case "unifiedExecInteraction":
++      return "write_stdin";
++    case "agent":
++    case "userShell":
++      return;
++  }
++}
++
++// src/tool-calls/reporters/ToolStatus.ts
++function toToolStatus(status) {
++  switch (status) {
++    case "inProgress":
++      return "in_progress";
++    case "completed":
++      return "completed";
++    case "failed":
++    case "declined":
++    case "interrupted":
++      return "failed";
++  }
++}
++function toTerminalToolStatus(status) {
++  return status === "completed" ? "completed" : "failed";
++}
++
++// src/tool-calls/reporters/DynamicToolReporter.ts
++class DynamicToolReporter {
++  static started(item) {
++    return {
++      toolCallId: item.id,
++      report: "start",
++      name: functionToolName(item.tool, item.namespace),
++      kind: "execute",
++      title: item.tool,
++      status: toToolStatus(item.status),
++      input: { arguments: item.arguments },
++      ...resultFacts(item)
++    };
++  }
++  static completed(item) {
++    return {
++      toolCallId: item.id,
++      report: "update",
++      name: functionToolName(item.tool, item.namespace),
++      status: toTerminalToolStatus(item.status),
++      ...resultFacts(item)
++    };
++  }
++}
++function resultFacts(item) {
++  if (item.contentItems === null)
++    return {};
++  return {
++    result: item.contentItems.map((contentItem) => ({
++      type: "content",
++      content: displayBlock(contentItem)
++    }))
++  };
++}
++function displayBlock(item) {
++  switch (item.type) {
++    case "inputText":
++      return { type: "text", text: item.text };
++    case "inputImage": {
++      const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/.exec(item.imageUrl);
++      return match ? { type: "image", mimeType: match[1], data: match[2] } : { type: "resource_link", uri: item.imageUrl, name: "image" };
++    }
++    case "inputAudio":
++      return { type: "resource_link", uri: item.audioUrl, name: "audio" };
++  }
++}
++
+ // src/alwith/bridge/toolCalls.ts
+ import path6 from "path";
+ 
+@@ -24063,9 +24227,9 @@ function dynamicToolCallCompleted(item) {
+     status: toAcpStatus(item.status),
+     rawOutput: {
+       success: item.success,
+-      contentItems: item.contentItems,
+       durationMs: item.durationMs
+-    }
++    },
++    content: (item.contentItems ?? []).map((item) => ({ type: "content", content: displayBlock(item) }))
+   });
+ }
+ function webSearchStarted(item) {
+@@ -24586,6 +24750,7 @@ var CATALOG_METHODS = {
+ };
+ var ALWITH_METHODS = [
+   "_codex/project_context",
++  "_codex/images/generate",
+   ...Object.keys(CATALOG_METHODS),
+   "_codex/plugin_set_enabled",
+   "_codex/session_history",
+@@ -24664,6 +24829,8 @@ class AlwithExtensions {
+   }
+   async request(method, params, signal) {
+     signal?.throwIfAborted();
++    if (method === "_codex/images/generate")
++      return generateImage(this.codex, params, signal);
+     if (method === "_codex/project_context")
+       return projectsFor(this.current()).context(params["createChatDirectory"] === true);
+     if (method === "_codex/session_list")
+@@ -25141,6 +25308,9 @@ var AIR_CUSTOM_ANSWER_KEY = "customAnswer";
+ var LEGACY_AIR_CUSTOM_ANSWER_KEY = "_askUserQuestionCustomAnswer";
+ var AIR_EXTENSION_VERSION = 1;
+ function withAirMeta(meta, key, value) {
++  return withAirMetadata(meta, { [key]: value });
++}
++function withAirMetadata(meta, fields) {
+   const root = asRecord(meta);
+   const jetbrains = asRecord(root[JETBRAINS_META_KEY]);
+   const air = asRecord(jetbrains[AIR_META_KEY]);
+@@ -25151,11 +25321,22 @@ function withAirMeta(meta, key, value) {
+       [AIR_META_KEY]: {
+         ...air,
+         [AIR_EXTENSION_VERSION_KEY]: AIR_EXTENSION_VERSION,
+-        [key]: value
++        ...fields
+       }
+     }
+   };
+ }
++function publishAirSessionMetadata(session, key, value) {
++  if (session.protocolVersion === 2) {
++    return session.patchSessionMetadata((current) => ({
++      [JETBRAINS_META_KEY]: withAirMeta(current, key, value)[JETBRAINS_META_KEY]
++    }));
++  }
++  return session.update({
++    sessionUpdate: "session_info_update",
++    _meta: withAirMeta(undefined, key, value)
++  });
++}
+ function airOnlyMeta(airClient, key, value) {
+   return airClient ? withAirMeta(undefined, key, value) : undefined;
+ }
+@@ -25422,13 +25603,15 @@ class AcpV2SessionInfo {
+       await this.publish(copy.update, copy._meta);
+     });
+   }
+-  patchMetadata(change) {
++  patchMetadata(change, fields = {}) {
++    const copy = JSON.parse(JSON.stringify(fields));
+     return this.enqueue(async () => {
+       const current = JSON.parse(JSON.stringify(Object.fromEntries(this.metadata)));
+       const patch = change(current);
+       if (patch === null)
+         return;
+       const update = JSON.parse(JSON.stringify({
++        ...copy,
+         sessionUpdate: "session_info_update",
+         _meta: patch
+       }));
+@@ -26194,8 +26377,8 @@ class AcpV2Connection {
+   snapshotSessionInfo(sessionId, title) {
+     return this.sessionInfoFor(sessionId).snapshot(title);
+   }
+-  patchSessionMetadata(sessionId, change) {
+-    return this.sessionInfoFor(sessionId).patchMetadata(change);
++  patchSessionMetadata(sessionId, change, fields = {}) {
++    return this.sessionInfoFor(sessionId).patchMetadata(change, fields);
+   }
+   startForegroundItem(sessionId, itemId) {
+     return this.foregroundFor(sessionId).startItem(itemId);
+@@ -26207,11 +26390,14 @@ class AcpV2Connection {
+     this.foregroundFor(sessionId, running);
+   }
+   forgetSession(sessionId) {
+-    this.foreground.get(sessionId)?.dispose();
+-    this.foreground.delete(sessionId);
++    this.forgetForegroundState(sessionId);
+     this.sessionInfo.get(sessionId)?.dispose();
+     this.sessionInfo.delete(sessionId);
+   }
++  forgetForegroundState(sessionId) {
++    this.foreground.get(sessionId)?.dispose();
++    this.foreground.delete(sessionId);
++  }
+   sessionInfoFor(sessionId, metadata = null) {
+     if (this.sessionDelivery && !this.sessionDelivery.canPublishSession(sessionId)) {
+       const closed = new AcpV2SessionInfo(async () => {});
+@@ -26367,8 +26553,8 @@ class ACPSessionConnection {
+       throw RequestError.internalError(undefined, "This update requires ACP v2");
+     await this.v2Connection.client.notify(methods2.client.session.update, { sessionId, update });
+   }
+-  patchSessionMetadata(change) {
+-    return this.v2Connection?.patchSessionMetadata(this.sessionId, change) ?? Promise.resolve();
++  patchSessionMetadata(change, fields = {}) {
++    return this.v2Connection?.patchSessionMetadata(this.sessionId, change, fields) ?? Promise.resolve();
+   }
+   replayUpdate(update, initialized) {
+     return this.v2Connection ? this.v2Connection.replaySessionUpdate(this.sessionId, update, initialized) : this.update(update);
+@@ -26677,22 +26863,6 @@ function locationsField(paths) {
+   return paths === undefined || paths.length === 0 ? {} : { locations: paths.map((path) => ({ path })) };
+ }
+ 
+-// src/ToolCallName.ts
+-function functionToolName(name, namespace) {
+-  return `${namespace ?? ""}${name}`;
+-}
+-function commandToolName(source) {
+-  switch (source) {
+-    case "unifiedExecStartup":
+-      return "exec_command";
+-    case "unifiedExecInteraction":
+-      return "write_stdin";
+-    case "agent":
+-    case "userShell":
+-      return;
+-  }
+-}
+-
+ // src/tool-calls/reporters/SandboxPermissionReporter.ts
+ class SandboxPermissionReporter {
+   static permission(itemId, cwd, environmentId, permissions) {
+@@ -26741,23 +26911,6 @@ function permissionProfileContent(permissions) {
+ `))] : [];
+ }
+ 
+-// src/tool-calls/reporters/ToolStatus.ts
+-function toToolStatus(status) {
+-  switch (status) {
+-    case "inProgress":
+-      return "in_progress";
+-    case "completed":
+-      return "completed";
+-    case "failed":
+-    case "declined":
+-    case "interrupted":
+-      return "failed";
+-  }
+-}
+-function toTerminalToolStatus(status) {
+-  return status === "completed" ? "completed" : "failed";
+-}
+-
+ // src/tool-calls/reporters/CommandReporter.ts
+ class CommandReporter {
+   nonTerminalCommands = new Set;
+@@ -27056,51 +27209,6 @@ function facts(item, report) {
+   };
+ }
+ 
+-// src/tool-calls/reporters/DynamicToolReporter.ts
+-class DynamicToolReporter {
+-  static started(item) {
+-    return {
+-      toolCallId: item.id,
+-      report: "start",
+-      name: functionToolName(item.tool, item.namespace),
+-      kind: "execute",
+-      title: item.tool,
+-      status: toToolStatus(item.status),
+-      input: { arguments: item.arguments },
+-      ...resultFacts(item)
+-    };
+-  }
+-  static completed(item) {
+-    return {
+-      toolCallId: item.id,
+-      report: "update",
+-      name: functionToolName(item.tool, item.namespace),
+-      status: toTerminalToolStatus(item.status),
+-      ...resultFacts(item)
+-    };
+-  }
+-}
+-function resultFacts(item) {
+-  if (item.contentItems === null)
+-    return {};
+-  return {
+-    result: item.contentItems.map((contentItem) => ({
+-      type: "content",
+-      content: displayBlock(contentItem)
+-    }))
+-  };
+-}
+-function displayBlock(item) {
+-  switch (item.type) {
+-    case "inputText":
+-      return { type: "text", text: item.text };
+-    case "inputImage":
+-      return { type: "resource_link", uri: item.imageUrl, name: "image" };
+-    case "inputAudio":
+-      return { type: "resource_link", uri: item.audioUrl, name: "audio" };
+-  }
+-}
+-
+ // src/GitPatch.ts
+ var DIFF_PATCH_MAX_BYTES = 1024 * 1024;
+ var BINARY_PROBE_LENGTH = 8000;
+@@ -28370,6 +28478,18 @@ function goalSessionInfoUpdate(goal, airClient, v2 = false) {
+     _meta: withAirMeta(undefined, AIR_GOAL_KEY, goal)
+   };
+ }
++function publishGoalSessionInfo(session, goal, airClient) {
++  if (session.protocolVersion === 2) {
++    return session.patchSessionMetadata((current) => ({
++      ...airClient ? {
++        [JETBRAINS_META_KEY]: withAirMeta(current, AIR_GOAL_KEY, goal)[JETBRAINS_META_KEY]
++      } : {},
++      codex: { ...recordOrNull(current["codex"]), goal }
++    }));
++  }
++  const update = goalSessionInfoUpdate(goal, airClient);
++  return update === null ? Promise.resolve() : session.update(update);
++}
+ 
+ // src/tool-calls/ClientCapabilities.ts
+ class ClientCapabilities {
+@@ -29435,6 +29555,56 @@ function withSubagentUserAction(sessionId, request, itemId, signal) {
+   return context.foreground ? context.foreground.withUserAction(itemId ?? context.itemId, send, cancellation) : send();
+ }
+ 
++// src/PathUtils.ts
++import path10 from "path";
++function isAbsoluteProtocolPath(value) {
++  return !value.includes("\x00") && (path10.posix.isAbsolute(value) || isWindowsAbsolutePath(value));
++}
++function isAbsolutePathLike(value) {
++  return isAbsoluteProtocolPath(value.trim());
++}
++function arePathsEqual(left, right) {
++  return normalizePathForComparison(left) === normalizePathForComparison(right);
++}
++function arePathBasenamesEqual(left, right) {
++  const leftBase = path10.posix.basename(normalizePathForComparison(left));
++  const rightBase = path10.posix.basename(normalizePathForComparison(right));
++  if (shouldComparePathCaseInsensitive(left) || shouldComparePathCaseInsensitive(right)) {
++    return leftBase.toLowerCase() === rightBase.toLowerCase();
++  }
++  return leftBase === rightBase;
++}
++function normalizePathForComparison(value) {
++  const trimmed = value.trim();
++  if (trimmed.length === 0) {
++    return "";
++  }
++  if (isWindowsAbsolutePath(trimmed)) {
++    const normalized = path10.win32.normalize(trimmed).replaceAll("\\", "/");
++    return trimTrailingPathSeparators(normalized).toLowerCase();
++  }
++  const pathForComparison = path10.isAbsolute(trimmed) ? trimmed : trimmed.replaceAll("\\", "/");
++  const normalized = path10.posix.normalize(pathForComparison);
++  return trimTrailingPathSeparators(normalized);
++}
++function isWindowsAbsolutePath(value) {
++  const portableValue = value.replaceAll("\\", "/");
++  return /^[A-Za-z]:\//.test(portableValue) || /^\/\/[^/]+\/[^/]+/.test(portableValue);
++}
++function shouldComparePathCaseInsensitive(value) {
++  return isWindowsAbsolutePath(value) || /^[A-Za-z]:/.test(value) || value.includes("\\");
++}
++function trimTrailingPathSeparators(value) {
++  let trimmed = value;
++  while (trimmed.endsWith("/") && !isRootPath(trimmed)) {
++    trimmed = trimmed.slice(0, -1);
++  }
++  return trimmed;
++}
++function isRootPath(value) {
++  return value === "/" || /^[A-Za-z]:\/$/.test(value) || /^\/\/[^/]+\/[^/]+\/$/.test(value);
++}
++
+ // src/subagents/StandardSubagentEventRouter.ts
+ class StandardSubagentEventRouter {
+   rootSessionId;
+@@ -29492,7 +29662,11 @@ class StandardSubagentEventRouter {
+     if (notification.method === "thread/settings/updated" && !this.appliedSettings.has(notification.params)) {
+       this.appliedSettings.add(notification.params);
+       const settings = notification.params.threadSettings;
+-      await this.observeConfiguration(threadId, { model: settings.model, effort: settings.effort }, "settings");
++      await this.observeConfiguration(threadId, {
++        model: settings.model,
++        effort: settings.effort,
++        ...this.children.has(threadId) ? { cwd: settings.cwd } : {}
++      }, "settings");
+     }
+     if (this.deferLive) {
+       this.deferredLive.push(notification);
+@@ -29538,6 +29712,7 @@ class StandardSubagentEventRouter {
+             continue;
+           const pending = this.pendingFor(id);
+           pending.parentThreadId = item.senderThreadId;
++          pending.parentTurnId ??= notification.params.turnId;
+           if (item.prompt)
+             pending.description = item.prompt;
+         }
+@@ -29549,6 +29724,7 @@ class StandardSubagentEventRouter {
+           return true;
+         const child = this.children.get(item.agentThreadId);
+         if (child) {
++          await this.announce(child.threadId, child.parentSessionId, undefined, undefined, false, notification.params.turnId);
+           await this.ensureAnnounced(child);
+           child.path = normalizeAgentPath(item.agentPath);
+           const title = nameFromAgentPath(item.agentPath, child.title ?? "Agent");
+@@ -29560,8 +29736,11 @@ class StandardSubagentEventRouter {
+               title
+             }, child.parentSessionId);
+           }
+-        } else
+-          this.pendingFor(item.agentThreadId).path = normalizeAgentPath(item.agentPath);
++        } else {
++          const pending = this.pendingFor(item.agentThreadId);
++          pending.path = normalizeAgentPath(item.agentPath);
++          pending.parentTurnId ??= notification.params.turnId;
++        }
+         await this.observeConfiguration(item.agentThreadId, { model: item.model, effort: item.reasoningEffort }, "activity");
+         await this.materializePending();
+         return true;
+@@ -29728,7 +29907,7 @@ class StandardSubagentEventRouter {
+         const parent = this.parentFor(pending);
+         if (parent === undefined)
+           continue;
+-        await this.announce(threadId, parent, pending.path, pending.description, true);
++        await this.announce(threadId, parent, pending.path, pending.description, true, pending.parentTurnId);
+         this.pending.delete(threadId);
+         this.replayQueue.push(...pending.notifications.take());
+         changed = true;
+@@ -29759,6 +29938,12 @@ class StandardSubagentEventRouter {
+     await this.session.update({
+       sessionUpdate: "subagent_update",
+       sessionId: child.sessionId,
++      _meta: {
++        codex: {
++          threadId: child.threadId,
++          ...child.parentTurnId ? { parentTurnId: child.parentTurnId } : {}
++        }
++      },
+       capabilities: {},
+       ...child.title !== undefined ? { title: child.title } : {},
+       ...child.description !== undefined ? { description: child.description } : {}
+@@ -29770,14 +29955,25 @@ class StandardSubagentEventRouter {
+         await this.publishConfiguration(child);
+     }
+   }
+-  async announce(threadId, parentSessionId, path, description, live = false) {
++  async announce(threadId, parentSessionId, path, description, live = false, parentTurnId) {
+     const existing = this.children.get(threadId);
+     if (existing) {
+       existing.live ||= live;
++      if (parentTurnId && !existing.parentTurnId) {
++        existing.parentTurnId = parentTurnId;
++        this.associations.get(existing.sessionId).parentTurnId = parentTurnId;
++        await this.session.update({
++          sessionUpdate: "subagent_update",
++          sessionId: existing.sessionId,
++          _meta: { codex: { threadId, parentTurnId } }
++        }, existing.parentSessionId);
++      }
+       await this.ensureAnnounced(existing);
+       return existing.sessionId;
+     }
+     const association = this.associations.register(this.rootSessionId, parentSessionId, threadId);
++    if (parentTurnId !== undefined)
++      association.parentTurnId ??= parentTurnId;
+     const child = {
+       ...association,
+       turnId: null,
+@@ -29833,7 +30029,8 @@ class StandardSubagentEventRouter {
+   }
+   async observeConfiguration(threadId, observed, source) {
+     const previous = this.configurations.get(threadId);
+-    if (this.retired || !previous && !observed.model && observed.effort === null && source !== "settings")
++    const cwd = observed.cwd !== undefined && isAbsoluteProtocolPath(observed.cwd) ? observed.cwd : null;
++    if (this.retired || !previous && !observed.model && observed.effort === null && cwd === null && source !== "settings")
+       return;
+     this.configurationRequests.delete(threadId);
+     const next = { ...previous };
+@@ -29842,6 +30039,9 @@ class StandardSubagentEventRouter {
+         model: observed.model,
+         source
+       });
++    if (cwd !== null && (!previous?.cwd || MODEL_SOURCE_RANK[source] >= MODEL_SOURCE_RANK[previous.cwd.source])) {
++      next.cwd = { value: cwd, source };
++    }
+     const changedModel = next.model?.model !== previous?.model?.model;
+     if (changedModel || !previous?.effort || MODEL_SOURCE_RANK[source] >= MODEL_SOURCE_RANK[previous.effort.source]) {
+       next.effort = { value: observed.effort, source };
+@@ -29860,6 +30060,14 @@ class StandardSubagentEventRouter {
+     const configuration = this.configurations.get(child.threadId);
+     if (!configuration || this.retired)
+       return;
++    if (configuration.cwd && configuration.cwd.value !== configuration.publishedCwd) {
++      await this.session.update({
++        sessionUpdate: "subagent_update",
++        sessionId: child.sessionId,
++        cwd: configuration.cwd.value
++      }, child.parentSessionId);
++      configuration.publishedCwd = configuration.cwd.value;
++    }
+     const options = subagentConfigurationOptions(this.rootModels(), {
+       model: configuration.model?.model ?? null,
+       effort: configuration.effort?.value ?? null
+@@ -30319,7 +30527,7 @@ function mergeRateLimitSnapshot(previous, update) {
+ 
+ // src/AgentFileChangeReport.ts
+ import fs3 from "fs";
+-import path10 from "path";
++import path11 from "path";
+ var AGENT_FILE_CHANGE_REPORT_VERSION = 1;
+ var AGENT_FILE_CHANGE_REPORT_MAX_PATHS = 1024;
+ var AGENT_FILE_CHANGE_REPORT_MAX_PATH_LENGTH = 4096;
+@@ -30515,43 +30723,43 @@ function parseWorkspaceRoot(value) {
+   if (!isValidPathText(trimmed)) {
+     return null;
+   }
+-  if (isWindowsAbsolutePath(trimmed)) {
++  if (isWindowsAbsolutePath2(trimmed)) {
+     return {
+-      value: path10.win32.normalize(trimmed.replaceAll("/", "\\")),
++      value: path11.win32.normalize(trimmed.replaceAll("/", "\\")),
+       flavor: "windows"
+     };
+   }
+-  if (path10.posix.isAbsolute(trimmed)) {
++  if (path11.posix.isAbsolute(trimmed)) {
+     return {
+-      value: path10.posix.normalize(trimmed.replaceAll("\\", "/")),
++      value: path11.posix.normalize(trimmed.replaceAll("\\", "/")),
+       flavor: "posix"
+     };
+   }
+   return null;
+ }
+ function normalizeReportedPath(value, relativeRoot, roots) {
+-  if (!isValidPathText(value) || /^[A-Za-z]:[^\\/]/.test(value) || /^\\\\[?.]\\/.test(value) || /^(?:\\\\|\/\/)/.test(value) && !isWindowsAbsolutePath(value) || relativeRoot.flavor === "windows" && /^\\(?!\\)/.test(value) || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value)) {
++  if (!isValidPathText(value) || /^[A-Za-z]:[^\\/]/.test(value) || /^\\\\[?.]\\/.test(value) || /^(?:\\\\|\/\/)/.test(value) && !isWindowsAbsolutePath2(value) || relativeRoot.flavor === "windows" && /^\\(?!\\)/.test(value) || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value)) {
+     return null;
+   }
+   let candidate;
+-  if (isWindowsAbsolutePath(value)) {
++  if (isWindowsAbsolutePath2(value)) {
+     candidate = {
+-      value: path10.win32.normalize(value.replaceAll("/", "\\")),
++      value: path11.win32.normalize(value.replaceAll("/", "\\")),
+       flavor: "windows"
+     };
+-  } else if (path10.posix.isAbsolute(value)) {
++  } else if (path11.posix.isAbsolute(value)) {
+     candidate = {
+-      value: path10.posix.normalize(value.replaceAll("\\", "/")),
++      value: path11.posix.normalize(value.replaceAll("\\", "/")),
+       flavor: "posix"
+     };
+   } else if (relativeRoot.flavor === "windows") {
+     candidate = {
+-      value: path10.win32.resolve(relativeRoot.value, value.replaceAll("/", "\\")),
++      value: path11.win32.resolve(relativeRoot.value, value.replaceAll("/", "\\")),
+       flavor: "windows"
+     };
+   } else {
+     candidate = {
+-      value: path10.posix.resolve(relativeRoot.value, value.replaceAll("\\", "/")),
++      value: path11.posix.resolve(relativeRoot.value, value.replaceAll("\\", "/")),
+       flavor: "posix"
+     };
+   }
+@@ -30561,7 +30769,7 @@ function normalizeReportedPath(value, relativeRoot, roots) {
+ function findDiffDisplayRoot(cwd) {
+   if (!isNativePathFlavor(cwd.flavor))
+     return cwd;
+-  const pathImplementation = cwd.flavor === "windows" ? path10.win32 : path10.posix;
++  const pathImplementation = cwd.flavor === "windows" ? path11.win32 : path11.posix;
+   let current = cwd.value;
+   while (true) {
+     if (fs3.existsSync(pathImplementation.join(current, ".git"))) {
+@@ -30586,28 +30794,28 @@ function canonicalizeReportedPath(candidate) {
+   if (!isNativePathFlavor(candidate.flavor)) {
+     return candidate;
+   }
+-  const parent = canonicalizeFromExistingAncestor(path10.dirname(candidate.value));
++  const parent = canonicalizeFromExistingAncestor(path11.dirname(candidate.value));
+   return {
+     ...candidate,
+-    value: path10.resolve(parent, path10.basename(candidate.value))
++    value: path11.resolve(parent, path11.basename(candidate.value))
+   };
+ }
+ function canonicalizeFromExistingAncestor(value) {
+-  const original = path10.resolve(value);
++  const original = path11.resolve(value);
+   let current = original;
+   const missingSegments = [];
+   while (true) {
+     try {
+       const canonical = fs3.realpathSync.native(current);
+-      return path10.resolve(canonical, ...missingSegments.toReversed());
++      return path11.resolve(canonical, ...missingSegments.toReversed());
+     } catch (error) {
+       if (!isMissingPathError(error))
+         return original;
+     }
+-    const parent = path10.dirname(current);
++    const parent = path11.dirname(current);
+     if (parent === current)
+       return original;
+-    missingSegments.push(path10.basename(current));
++    missingSegments.push(path11.basename(current));
+     current = parent;
+   }
+ }
+@@ -30623,11 +30831,11 @@ function pathIsStrictlyInside(root, candidate) {
+   if (root.flavor !== candidate.flavor) {
+     return false;
+   }
+-  const pathImplementation = root.flavor === "windows" ? path10.win32 : path10.posix;
++  const pathImplementation = root.flavor === "windows" ? path11.win32 : path11.posix;
+   const relative = pathImplementation.relative(root.value, candidate.value);
+   return relative.length > 0 && !pathImplementation.isAbsolute(relative) && relative !== ".." && !relative.startsWith(`..${pathImplementation.sep}`);
+ }
+-function isWindowsAbsolutePath(value) {
++function isWindowsAbsolutePath2(value) {
+   const portable = value.replaceAll("\\", "/");
+   return /^[A-Za-z]:\//.test(portable) || /^\/\/[^/]+\/[^/]+(?:\/|$)/.test(portable);
+ }
+@@ -30657,7 +30865,7 @@ function createSessionNotice(severity, title, description) {
+ }
+ 
+ // src/SessionIndexMutations.ts
+-import path11 from "path";
++import path12 from "path";
+ var ARCHIVED_SESSIONS_DIR = "archived_sessions";
+ function isMissingThreadError(err) {
+   return isUnknownThreadError(err) || isThreadNotFoundError(err);
+@@ -30738,8 +30946,8 @@ async function readThreadArchived(client, threadId, codexHome) {
+ }
+ function isArchivedRolloutPath(threadPath, codexHome) {
+   if (codexHome !== null) {
+-    const relative = path11.relative(path11.join(codexHome, ARCHIVED_SESSIONS_DIR), threadPath);
+-    if (relative !== "" && !relative.startsWith("..") && !path11.isAbsolute(relative))
++    const relative = path12.relative(path12.join(codexHome, ARCHIVED_SESSIONS_DIR), threadPath);
++    if (relative !== "" && !relative.startsWith("..") && !path12.isAbsolute(relative))
+       return true;
+   }
+   return threadPath.replaceAll("\\", "/").split("/").includes(ARCHIVED_SESSIONS_DIR);
+@@ -31043,11 +31251,11 @@ ${diff}`, "");
+     if (this.isAuthenticationRequiredError(notification.params.error.codexErrorInfo))
+       return;
+     if (notification.params.willRetry) {
+-      await this.session.update(this.createSessionFailureUpdate(this.recordRetryWarning(notification.params, false)));
++      await this.publishUpdate(this.createSessionFailureUpdate(this.recordRetryWarning(notification.params, false)));
+       return;
+     }
+     const failure = this.recordSessionFailure(this.sessionFailureKind(notification.params.error), notification.params.turnId, "error", notification.params.error.message, undefined, false);
+-    await this.session.update(this.createSessionFailureUpdate(failure));
++    await this.publishUpdate(this.createSessionFailureUpdate(failure));
+   }
+   async flushPendingErrors() {
+     if (this.sessionState.currentTurnId === null || this.pendingErrors.length === 0) {
+@@ -31057,7 +31265,7 @@ ${diff}`, "");
+     for (const error of errors) {
+       const update = await this.createErrorEvent(error);
+       if (update) {
+-        await this.session.update(update);
++        await this.publishUpdate(update);
+       }
+     }
+   }
+@@ -31193,7 +31401,7 @@ ${diff}`, "");
+           }
+         };
+       }
+-      await this.session.update(updateEvent, this.subagents.notificationSessionId(notification));
++      await this.publishUpdate(updateEvent, this.subagents.notificationSessionId(notification));
+     }
+   }
+   async waitForNativeSubagentSession(childThreadId) {
+@@ -31506,6 +31714,25 @@ ${params.turnId}`;
+         });
+     }
+   }
++  publishUpdate(update, sessionId = this.sessionState.sessionId) {
++    if (this.session.protocolVersion !== 2 || update.sessionUpdate !== "session_info_update" || update._meta == null) {
++      return this.session.update(update, sessionId);
++    }
++    const { _meta, sessionUpdate: _tag, ...fields } = update;
++    return this.session.forSession(sessionId).patchSessionMetadata((current) => {
++      const metadata = { ..._meta };
++      const codex = recordOrNull(_meta["codex"]);
++      if (codex)
++        metadata["codex"] = {
++          ...recordOrNull(current["codex"]),
++          ...codex
++        };
++      const air = recordOrNull(recordOrNull(_meta[JETBRAINS_META_KEY])?.[AIR_META_KEY]);
++      if (air)
++        metadata[JETBRAINS_META_KEY] = withAirMetadata(current, air)[JETBRAINS_META_KEY];
++      return metadata;
++    }, fields);
++  }
+   createCodexSessionInfoUpdate(codexMetadata) {
+     return {
+       sessionUpdate: "session_info_update",
+@@ -33658,8 +33885,10 @@ function parseMcpStartupAwaitTimeoutMs(meta) {
+ 
+ // src/alwith/sessionLineage.ts
+ async function readSessionLineage(client, thread) {
++  const threadSource = thread.threadSource ?? (thread.path ? await nativeThreadSource(thread.path, thread.id) : null);
+   const lineage = {
+     projectId: thread.projectId ?? null,
++    ...threadSource != null ? { threadSource } : {},
+     nativeSessionId: thread.sessionId,
+     forkedFromId: thread.forkedFromId
+   };
+@@ -33936,6 +34165,14 @@ function hostThreadOptions(meta, initialMode) {
+     sandbox: mode.sandboxMode
+   };
+ }
++function hostThreadSource(meta) {
++  const source = meta?.codex?.threadSource;
++  if (source === undefined || source === null)
++    return;
++  if (typeof source !== "string" || source.trim().length === 0)
++    throw RequestError.invalidParams(undefined, "threadSource must be a non-empty string");
++  return source;
++}
+ function seedHistory(meta) {
+   const raw = meta?.codex?.seedHistory;
+   if (raw === undefined || raw === null)
+@@ -34475,21 +34712,28 @@ Content-Length: 0\r
+     this.aborts.add(abort);
+     response.once("close", () => abort.abort());
+     diagnostic.sent(body.length);
+-    diagnostic.stage("connect_upstream");
+     const native = this.nativeNetwork?.route(target, false, diagnostic.requestId);
+     if (native)
+       diagnostic.nativeNetwork();
++    diagnostic.stage(native ? "connect_native" : "connect_upstream");
+     try {
+-      if ("Bun" in globalThis && !native) {
++      if ("Bun" in globalThis) {
+         const options = {
+           method: request.method,
+-          headers,
++          headers: native ? { ...headers, ...native.headers } : headers,
++          ...native ? { proxy: false } : {},
+           ...request.method === "GET" ? {} : { body: new Uint8Array(body) },
+           signal: abort.signal,
+           redirect: "manual",
+           decompress: false
+         };
+-        const incoming = await fetch(target, options);
++        const incoming = await fetch(native?.url ?? target, options);
++        const nativeError = native && nativeNetworkError(incoming.headers.get("x-alwith-native-error"));
++        if (nativeError) {
++          diagnostic.stage("connect_upstream");
++          await incoming.body?.cancel();
++          throw nativeError;
++        }
+         diagnostic.headers(incoming.status, incoming.headers.get("x-request-id"));
+         response.writeHead(incoming.status, forwardingHeaders(Object.fromEntries(incoming.headers), false));
+         const responseBody = incoming.body;
+@@ -34513,6 +34757,7 @@ Content-Length: 0\r
+         }, (incoming) => {
+           const nativeError = native && nativeNetworkError(incoming.headers["x-alwith-native-error"]);
+           if (nativeError) {
++            diagnostic.stage("connect_upstream");
+             incoming.resume();
+             reject(nativeError);
+             return;
+@@ -34531,10 +34776,10 @@ Content-Length: 0\r
+     }
+   }
+   upgradeWebsocket(request, socket, head, target, diagnostic) {
+-    diagnostic.stage("connect_upstream");
+     const native = this.nativeNetwork?.route(target, true, diagnostic.requestId);
+     if (native)
+       diagnostic.nativeNetwork();
++    diagnostic.stage(native ? "connect_native" : "connect_upstream");
+     const upstreamTarget = native?.url ?? new URL(target);
+     upstreamTarget.protocol = upstreamTarget.protocol === "https:" ? "wss:" : "ws:";
+     const upstream = new wrapper_default(upstreamTarget, {
+@@ -34564,8 +34809,10 @@ Content-Length: 0\r
+     upstream.once("unexpected-response", (_sent, incoming) => {
+       rejected = true;
+       const nativeError = native && nativeNetworkError(incoming.headers["x-alwith-native-error"]);
+-      if (nativeError)
++      if (nativeError) {
++        diagnostic.stage("connect_upstream");
+         diagnostic.end("failed", nativeError);
++      }
+       const requestId = incoming.headers["x-request-id"];
+       diagnostic.headers(incoming.statusCode ?? 502, typeof requestId === "string" ? requestId : null);
+       incoming.once("end", () => diagnostic.end("completed"));
+@@ -34775,7 +35022,7 @@ class ResponsesRoutes {
+ // src/alwith/agent/providers.ts
+ import { readFileSync as readFileSync2 } from "fs";
+ import os from "os";
+-import path12 from "path";
++import path13 from "path";
+ var OPENAI_PROVIDER_ID = "openai";
+ var GATEWAY_MODEL_PROVIDER = "custom-gateway";
+ var DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+@@ -35099,7 +35346,7 @@ function readGatewayId(meta) {
+   return raw;
+ }
+ function readCatalogFile(catalogPath) {
+-  const resolved = catalogPath.startsWith("~/") ? path12.join(os.homedir(), catalogPath.slice(2)) : catalogPath;
++  const resolved = catalogPath.startsWith("~/") ? path13.join(os.homedir(), catalogPath.slice(2)) : catalogPath;
+   let parsed;
+   try {
+     parsed = JSON.parse(readFileSync2(resolved, "utf8"));
+@@ -35162,13 +35409,13 @@ function gatewayModel(model, isDefault, template, entry) {
+ 
+ // node_modules/open/index.js
+ import process9 from "process";
+-import path14 from "path";
++import path15 from "path";
+ import { fileURLToPath as fileURLToPath2 } from "url";
+ import childProcess3 from "child_process";
+ import fs8, { constants as fsConstants2 } from "fs/promises";
+ 
+ // node_modules/wsl-utils/index.js
+-import path13 from "path";
++import path14 from "path";
+ import { promisify as promisify2 } from "util";
+ import childProcess2 from "child_process";
+ import fs7, { constants as fsConstants } from "fs/promises";
+@@ -35346,7 +35593,7 @@ var wslDefaultBrowser = async () => {
+   const command = String.raw`(Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice").ProgId`;
+   const { stdout } = await executePowerShell(command, {
+     powerShellPath: psPath,
+-    cwd: path13.dirname(psPath)
++    cwd: path14.dirname(psPath)
+   });
+   return stdout.trim();
+ };
+@@ -35514,8 +35761,8 @@ var is_in_ssh_default = isInSsh;
+ 
+ // node_modules/open/index.js
+ var fallbackAttemptSymbol = Symbol("fallbackAttempt");
+-var __dirname2 = import.meta.url ? path14.dirname(fileURLToPath2(import.meta.url)) : "";
+-var localXdgOpenPath = path14.join(__dirname2, "xdg-open");
++var __dirname2 = import.meta.url ? path15.dirname(fileURLToPath2(import.meta.url)) : "";
++var localXdgOpenPath = path15.join(__dirname2, "xdg-open");
+ var { platform, arch } = process9;
+ var tryEachApp = async (apps, opener) => {
+   if (apps.length === 0) {
+@@ -35657,7 +35904,7 @@ var baseOpen = async (options) => {
+       childProcessOptions.stdio = "ignore";
+     }
+     if (is_wsl_default) {
+-      childProcessOptions.cwd = path14.dirname(command);
++      childProcessOptions.cwd = path15.dirname(command);
+     }
+   } else {
+     if (app) {
+@@ -35976,56 +36223,6 @@ function createCodexCollaborationMode(mode, currentModelId) {
+   };
+ }
+ 
+-// src/PathUtils.ts
+-import path15 from "path";
+-function isAbsoluteProtocolPath(value) {
+-  return !value.includes("\x00") && (path15.posix.isAbsolute(value) || isWindowsAbsolutePath2(value));
+-}
+-function isAbsolutePathLike(value) {
+-  return isAbsoluteProtocolPath(value.trim());
+-}
+-function arePathsEqual(left, right) {
+-  return normalizePathForComparison(left) === normalizePathForComparison(right);
+-}
+-function arePathBasenamesEqual(left, right) {
+-  const leftBase = path15.posix.basename(normalizePathForComparison(left));
+-  const rightBase = path15.posix.basename(normalizePathForComparison(right));
+-  if (shouldComparePathCaseInsensitive(left) || shouldComparePathCaseInsensitive(right)) {
+-    return leftBase.toLowerCase() === rightBase.toLowerCase();
+-  }
+-  return leftBase === rightBase;
+-}
+-function normalizePathForComparison(value) {
+-  const trimmed = value.trim();
+-  if (trimmed.length === 0) {
+-    return "";
+-  }
+-  if (isWindowsAbsolutePath2(trimmed)) {
+-    const normalized = path15.win32.normalize(trimmed).replaceAll("\\", "/");
+-    return trimTrailingPathSeparators(normalized).toLowerCase();
+-  }
+-  const pathForComparison = path15.isAbsolute(trimmed) ? trimmed : trimmed.replaceAll("\\", "/");
+-  const normalized = path15.posix.normalize(pathForComparison);
+-  return trimTrailingPathSeparators(normalized);
+-}
+-function isWindowsAbsolutePath2(value) {
+-  const portableValue = value.replaceAll("\\", "/");
+-  return /^[A-Za-z]:\//.test(portableValue) || /^\/\/[^/]+\/[^/]+/.test(portableValue);
+-}
+-function shouldComparePathCaseInsensitive(value) {
+-  return isWindowsAbsolutePath2(value) || /^[A-Za-z]:/.test(value) || value.includes("\\");
+-}
+-function trimTrailingPathSeparators(value) {
+-  let trimmed = value;
+-  while (trimmed.endsWith("/") && !isRootPath(trimmed)) {
+-    trimmed = trimmed.slice(0, -1);
+-  }
+-  return trimmed;
+-}
+-function isRootPath(value) {
+-  return value === "/" || /^[A-Za-z]:\/$/.test(value) || /^\/\/[^/]+\/[^/]+\/$/.test(value);
+-}
+-
+ // src/subagents/CodexSubagentSubscriptions.ts
+ class CodexSubagentSubscriptions {
+   client;
+@@ -36261,8 +36458,10 @@ async function forkSession(request, additionalDirectories, dependencies, instruc
+   await dependencies.refreshSkills(request.cwd, additionalDirectories);
+   const lastTurnId = await resolveForkTurnId(request, dependencies.codexClient);
+   const sessionConfig = await dependencies.createSessionConfig(request.cwd, additionalDirectories, request.mcpServers ?? []);
++  const threadSource = hostThreadSource(request._meta);
+   const response = await dependencies.codexClient.threadFork({
+     ...hostThreadOptions(request._meta),
++    ...threadSource !== undefined ? { threadSource } : {},
+     excludeTurns: true,
+     config: sessionConfig.config,
+     cwd: request.cwd,
+@@ -36359,6 +36558,97 @@ function isUnknownRecord(value) {
+   return typeof value === "object" && value !== null && !Array.isArray(value);
+ }
+ 
++// src/RequestCancellation.ts
++function throwIfRequestCancelled(signal) {
++  if (signal?.aborted)
++    throw RequestError.requestCancelled();
++}
++function withRequestCancellation(operation, signal) {
++  if (!signal)
++    return operation;
++  return new Promise((resolve, reject) => {
++    const cancelled = () => {
++      signal.removeEventListener("abort", cancelled);
++      reject(RequestError.requestCancelled());
++    };
++    if (signal.aborted)
++      cancelled();
++    else
++      signal.addEventListener("abort", cancelled, { once: true });
++    operation.then((value) => {
++      signal.removeEventListener("abort", cancelled);
++      if (signal.aborted)
++        cancelled();
++      else
++        resolve(value);
++    }, (error) => {
++      signal.removeEventListener("abort", cancelled);
++      reject(error);
++    });
++  });
++}
++
++// src/CodexAccountLogin.ts
++async function runAccountLogin(client, params, show, signal) {
++  throwIfRequestCancelled(signal);
++  let expectedId;
++  const buffered = [];
++  let complete;
++  let endWait;
++  const notified = new Promise((resolve, reject) => {
++    complete = resolve;
++    endWait = reject;
++  });
++  const accept = (event) => {
++    if (expectedId === undefined)
++      buffered.push(event);
++    else if ((event.loginId ?? null) === expectedId)
++      complete(event);
++  };
++  const listener = client.connection.onNotification("account/login/completed", accept);
++  const completed = client.waitWhileConnected("account/login/completed", notified);
++  completed.catch(() => {});
++  let response = null;
++  let finished = false;
++  try {
++    response = await client.accountLogin(params);
++    expectedId = "loginId" in response ? response.loginId : null;
++    for (const event of buffered)
++      accept(event);
++    buffered.length = 0;
++    throwIfRequestCancelled(signal);
++    const first = await withRequestCancellation(Promise.race([
++      completed.then((result) => ({
++        type: "completed",
++        result
++      })),
++      show(response).then((accepted) => ({
++        type: "shown",
++        accepted
++      }))
++    ]), signal);
++    if (first.type === "completed") {
++      finished = true;
++      return first.result.success;
++    }
++    if (!first.accepted)
++      return false;
++    const result = await withRequestCancellation(completed, signal);
++    finished = true;
++    return result.success;
++  } finally {
++    if (!finished && response && "loginId" in response) {
++      await client.accountLoginCancel({ loginId: response.loginId }).catch((error) => {
++        logger.error("Failed to cancel Codex account login", error);
++      });
++    } else if (signal?.aborted && response && expectedId === null) {
++      await completed.catch(() => {});
++    }
++    endWait(new Error("Account login has ended"));
++    listener.dispose();
++  }
++}
++
+ // src/ClientSystemPrompt.ts
+ function clientSystemPromptText(value) {
+   if (value == null)
+@@ -36532,7 +36822,7 @@ class CodexAcpClient {
+   providerCatalog;
+   gatewayConfig;
+   gatewayConfigSource;
+-  pendingLoginCompleted = null;
++  authenticationTail = Promise.resolve();
+   pendingAccountUpdated = null;
+   readOnlySessions = new Set;
+   catalogSessions = new Set;
+@@ -36599,48 +36889,45 @@ class CodexAcpClient {
+   getHomePath() {
+     return this.configPath;
+   }
+-  async authenticate(authRequest, urlElicitationRequester) {
++  authenticate(authRequest, urlElicitationRequester, signal) {
+     if (!isCodexAuthRequest(authRequest)) {
+-      throw RequestError.invalidParams();
++      return Promise.reject(RequestError.invalidParams());
+     }
++    const run = this.authenticationTail.then(() => this.authenticateOnce(authRequest, urlElicitationRequester, signal));
++    this.authenticationTail = run.then(() => {}, () => {});
++    return withRequestCancellation(run, signal);
++  }
++  async authenticateOnce(authRequest, urlElicitationRequester, signal) {
++    throwIfRequestCancelled(signal);
+     this.gatewayConfig = null;
+     this.gatewayConfigSource = null;
+     switch (authRequest.methodId) {
+       case "api-key":
+-        return await this.authenticateWithApiKey(authRequest);
++        return await this.authenticateWithApiKey(authRequest, signal);
+       case "chat-gpt":
+-        return await this.authenticateWithChatGpt();
++        return await this.authenticateWithChatGpt(signal);
+       case "chat-gpt-device-code":
+-        return await this.authenticateWithChatGptDeviceCode(urlElicitationRequester);
++        return await this.authenticateWithChatGptDeviceCode(urlElicitationRequester, signal);
+       case "gateway":
+         return this.authenticateWithGateway(authRequest);
+     }
+   }
+-  async authenticateWithApiKey(authRequest) {
++  async authenticateWithApiKey(authRequest, signal) {
+     const apiKey = authRequest._meta?.["api-key"]?.apiKey ?? this.readApiKeyFromEnv();
+-    const loginCompletedPromise = this.awaitNextLoginCompleted();
+-    loginCompletedPromise.catch(() => {});
+-    await this.codexClient.accountLogin({
+-      type: "apiKey",
+-      apiKey
+-    });
+-    const result = await loginCompletedPromise;
+-    return result.success;
++    return runAccountLogin(this.codexClient, { type: "apiKey", apiKey }, async () => true, signal);
+   }
+-  async authenticateWithChatGpt() {
++  async authenticateWithChatGpt(signal) {
+     if (await this.hasWorkingChatGptLogin()) {
++      throwIfRequestCancelled(signal);
+       return true;
+     }
+-    const loginCompletedPromise = this.awaitNextLoginCompleted();
+-    loginCompletedPromise.catch(() => {});
+-    const loginResponse = await this.codexClient.accountLogin({
+-      type: "chatgpt"
+-    });
+-    if (loginResponse.type == "chatgpt") {
+-      await open_default(loginResponse.authUrl);
+-    }
+-    const result = await loginCompletedPromise;
+-    return result.success;
++    return runAccountLogin(this.codexClient, { type: "chatgpt" }, async (response) => {
++      if (response.type !== "chatgpt")
++        return false;
++      throwIfRequestCancelled(signal);
++      await open_default(response.authUrl);
++      return true;
++    }, signal);
+   }
+   async hasWorkingChatGptLogin() {
+     try {
+@@ -36660,58 +36947,27 @@ class CodexAcpClient {
+       throw error;
+     }
+   }
+-  async authenticateWithChatGptDeviceCode(urlElicitationRequester) {
++  async authenticateWithChatGptDeviceCode(urlElicitationRequester, signal) {
+     if (await this.hasWorkingChatGptLogin()) {
++      throwIfRequestCancelled(signal);
+       return true;
+     }
+     if (!urlElicitationRequester) {
+       throw RequestError.invalidRequest(undefined, "Device code authentication requires URL elicitation support");
+     }
+-    const loginCompletedPromise = this.awaitNextLoginCompleted();
+-    loginCompletedPromise.catch(() => {});
+-    const loginResponse = await this.codexClient.accountLogin({
+-      type: "chatgptDeviceCode"
+-    });
+-    if (loginResponse.type !== "chatgptDeviceCode") {
+-      return false;
+-    }
+-    const elicitationResponsePromise = Promise.resolve(urlElicitationRequester.elicitUrl({
+-      url: loginResponse.verificationUrl,
+-      message: `Sign in to ChatGPT and enter this code: ${loginResponse.userCode}`,
+-      elicitationId: loginResponse.loginId
+-    }));
+     try {
+-      const first = await Promise.race([
+-        loginCompletedPromise.then((result) => ({
+-          type: "loginCompleted",
+-          result
+-        })),
+-        elicitationResponsePromise.then((response) => ({
+-          type: "elicitationResponse",
+-          response
+-        }))
+-      ]);
+-      if (first.type === "loginCompleted") {
+-        await urlElicitationRequester.completeElicitation();
+-        return first.result.success;
+-      }
+-      if (!CreateElicitationResponse.isAccept(first.response)) {
+-        await this.codexClient.accountLoginCancel({
+-          loginId: loginResponse.loginId
++      return await runAccountLogin(this.codexClient, { type: "chatgptDeviceCode" }, async (response) => {
++        if (response.type !== "chatgptDeviceCode")
++          return false;
++        const answer = await urlElicitationRequester.elicitUrl({
++          url: response.verificationUrl,
++          message: `Sign in to ChatGPT and enter this code: ${response.userCode}`,
++          elicitationId: response.loginId
+         });
+-        throw RequestError.requestCancelled({
+-          methodId: "chat-gpt-device-code",
+-          action: first.response.action
+-        }, "ChatGPT device code sign-in was cancelled");
+-      }
+-      const result = await loginCompletedPromise;
+-      await urlElicitationRequester.completeElicitation();
+-      return result.success;
+-    } catch (error) {
+-      if (this.codexClient.connectionLoss.lost) {
+-        await Promise.resolve(urlElicitationRequester.completeElicitation()).catch(() => {});
+-      }
+-      throw error;
++        return CreateElicitationResponse.isAccept(answer);
++      }, signal);
++    } finally {
++      await urlElicitationRequester.completeElicitation().catch(() => {});
+     }
+   }
+   authenticateWithGateway(authRequest) {
+@@ -37210,7 +37466,9 @@ class CodexAcpClient {
+     const route = await this.sessionRoute(request);
+     const sessionConfig = await this.createSessionConfig(request.cwd, additionalDirectories, request.mcpServers ?? [], route.gatewayId, route.modelProvider, route.catalog === true);
+     const projectId = await projectsFor(this.codexClient).resolve(request.cwd, request._meta);
++    const threadSource = hostThreadSource(request._meta);
+     const response = await this.codexClient.threadStart({
++      ...threadSource !== undefined ? { threadSource } : {},
+       ...hostThreadOptions(request._meta, AgentMode.getInitialAgentMode()),
+       ...tools ? { dynamicTools: dynamicTools(tools) } : {},
+       projectId,
+@@ -37770,17 +38028,6 @@ class CodexAcpClient {
+   async listSkills(params) {
+     return withoutUnsupportedSkills(await this.codexClient.listSkills(params ?? {}));
+   }
+-  async awaitNextLoginCompleted() {
+-    if (this.pendingLoginCompleted !== null) {
+-      return await this.pendingLoginCompleted;
+-    }
+-    this.pendingLoginCompleted = this.awaitSingleNotification("account/login/completed", (event) => event);
+-    try {
+-      return await this.pendingLoginCompleted;
+-    } finally {
+-      this.pendingLoginCompleted = null;
+-    }
+-  }
+   async awaitNextAccountUpdated() {
+     if (this.pendingAccountUpdated !== null) {
+       return await this.pendingAccountUpdated;
+@@ -44714,10 +44961,7 @@ class SessionIndexService {
+         }
+       });
+       if (archived ? open : this.host.session(sessionId) !== undefined) {
+-        await new ACPSessionConnection(this.host.connection(), sessionId).update({
+-          sessionUpdate: "session_info_update",
+-          _meta: withAirMeta(undefined, AIR_ARCHIVED_KEY, archived)
+-        });
++        await publishAirSessionMetadata(new ACPSessionConnection(this.host.connection(), sessionId), AIR_ARCHIVED_KEY, archived);
+       }
+     } finally {
+       if (archived)
+@@ -45326,6 +45570,7 @@ class CodexAcpServer {
+   mcpServerSignIn;
+   clientDelivery;
+   setupResponseOrdering = false;
++  initializeResponseDelivery = "direct";
+   protocolVersion;
+   v2Connection;
+   defaultAuthRequest;
+@@ -45460,7 +45705,11 @@ class CodexAcpServer {
+     const thread = await this.codexAcpClient.readSubagentThread(threadId);
+     if (thread?.id !== threadId || thread.parentThreadId !== parentThreadId || thread.status.type === "notLoaded")
+       return null;
+-    return { model: thread.model, effort: thread.reasoningEffort };
++    return {
++      model: thread.model,
++      effort: thread.reasoningEffort,
++      cwd: thread.cwd
++    };
+   }
+   getSubagentInteractionHandlers(router, rootSessionId) {
+     const existing = this.subagentInteractionHandlers.get(router);
+@@ -46277,7 +46526,7 @@ You have been logged out. Please try again.`);
+     if (!fence || --fence.count > 0)
+       return;
+     for (const closed of fence.closedSessions)
+-      this.clientDelivery.closeSession(closed);
++      this.sealSessionDelivery(closed);
+     this.closingSessions.delete(sessionId);
+   }
+   finishSessionDelivery(sessionId, children) {
+@@ -46286,9 +46535,13 @@ You have been logged out. Please try again.`);
+       if (fence)
+         fence.closedSessions.add(closed);
+       else
+-        this.clientDelivery.closeSession(closed);
++        this.sealSessionDelivery(closed);
+     }
+   }
++  sealSessionDelivery(sessionId) {
++    this.clientDelivery.closeSession(sessionId);
++    AcpV2Connection.of(this.connection)?.forgetSession(sessionId);
++  }
+   getSessionGeneration(sessionId) {
+     return this.sessionGenerations.get(sessionId) ?? 0;
+   }
+@@ -46961,7 +47214,7 @@ You have been logged out. Please try again.`);
+           this.sessionOpenOwners.delete(params.sessionId);
+         this.asyncQuestions.get(params.sessionId)?.dispose();
+         this.asyncQuestions.delete(params.sessionId);
+-        AcpV2Connection.of(this.connection)?.forgetSession(params.sessionId);
++        AcpV2Connection.of(this.connection)?.forgetForegroundState(params.sessionId);
+         this.mcpSessionStartup.close(params.sessionId);
+         this.codexAcpClient.appServerClient.mcpStartup.forgetThread(params.sessionId);
+         this.pendingTurnStarts.delete(params.sessionId);
+@@ -47047,42 +47300,54 @@ You have been logged out. Please try again.`);
+       ...this.createSessionSetupResponseV2(this.getSessionState(sessionId))
+     };
+   }
+-  async authenticate(_params, requestId) {
++  async authenticate(_params, requestId, signal) {
+     logger.log("Authenticate request received");
++    throwIfRequestCancelled(signal);
+     const appServer = this.ensureAppServer();
+     if (appServer)
+-      await appServer;
+-    const elicitationRequester = this.createUrlElicitationRequester(requestId);
+-    const isAuthenticated = await this.runWithProcessCheck(() => this.codexAcpClient.authenticate(_params, elicitationRequester));
+-    if (!isAuthenticated) {
+-      logger.log("Authenticate request failed");
+-      throw RequestError.authRequired({ methodId: _params.methodId }, "Sign-in did not complete");
+-    }
+-    await this.refreshAuthState(this.getAuthProviderForAuthenticateRequest(_params));
+-    logger.log("Authenticate request completed");
+-    return {};
++      await withRequestCancellation(appServer, signal);
++    const elicitationRequester = this.createUrlElicitationRequester(requestId, signal);
++    try {
++      const isAuthenticated = await this.runWithProcessCheck(() => this.codexAcpClient.authenticate(_params, elicitationRequester, signal));
++      throwIfRequestCancelled(signal);
++      if (!isAuthenticated) {
++        logger.log("Authenticate request failed");
++        throw RequestError.authRequired({ methodId: _params.methodId }, "Sign-in did not complete");
++      }
++      await withRequestCancellation(this.refreshAuthState(this.getAuthProviderForAuthenticateRequest(_params)), signal);
++      logger.log("Authenticate request completed");
++      return {};
++    } finally {
++      await elicitationRequester?.completeElicitation().catch(() => {});
++    }
+   }
+-  createUrlElicitationRequester(requestId) {
++  createUrlElicitationRequester(requestId, signal) {
+     if (requestId == null || !clientSupportsUrlElicitation(this.clientCapabilities)) {
+       return;
+     }
++    const lifetime = new AbortController;
++    const cancellationSignal = signal ? AbortSignal.any([signal, lifetime.signal]) : lifetime.signal;
+     let elicitationId = null;
+     return {
+-      elicitUrl: (request) => {
++      elicitUrl: async (request) => {
+         elicitationId = request.elicitationId;
+-        return this.connection.request(methods.client.elicitation.create, {
++        const response = await this.connection.request(methods.client.elicitation.create, {
+           mode: "url",
+           requestId,
+           ...request
+-        });
++        }, { cancellationSignal });
++        if (!CreateElicitationResponse.isAccept(response))
++          elicitationId = null;
++        return response;
+       },
+       completeElicitation: async () => {
+         if (elicitationId === null) {
+           return;
+         }
+-        await this.connection.notify(methods.client.elicitation.complete, {
+-          elicitationId
+-        });
++        const completedId = elicitationId;
++        elicitationId = null;
++        lifetime.abort();
++        await this.connection.notify(methods.client.elicitation.complete, { elicitationId: completedId });
+       }
+     };
+   }
+@@ -47095,11 +47360,11 @@ You have been logged out. Please try again.`);
+     await this.refreshAuthState(null);
+     logger.log("Logout request completed");
+   }
+-  async authenticateV2(params, requestId) {
++  async authenticateV2(params, requestId, signal) {
+     if (!getCodexAuthMethodsV2(this.clientCapabilities).some((method) => method.methodId === params.methodId)) {
+       throw RequestError.invalidParams(undefined, `Unsupported authentication method: ${params.methodId}`);
+     }
+-    return await this.authenticate(params, requestId);
++    return await this.authenticate(params, requestId, signal);
+   }
+   async logoutV2(params) {
+     await this.logout(params);
+@@ -47589,7 +47854,16 @@ You have been logged out. Please try again.`);
+     }
+   }
+   publishFirstAuthStatusAfterResponse() {
+-    setImmediate(() => void this.publishAuthStatusRead());
++    if (this.initializeResponseDelivery === "direct") {
++      setImmediate(() => void this.publishAuthStatusRead());
++    }
++  }
++  observeInitializeResponse() {
++    this.initializeResponseDelivery = "pending";
++  }
++  afterInitializeResponse() {
++    this.initializeResponseDelivery = "written";
++    this.publishAuthStatusRead();
+   }
+   async publishAuthStatusRead() {
+     let authStatus;
+@@ -47643,6 +47917,8 @@ You have been logged out. Please try again.`);
+   }
+   async applyAccountUpdated(notification) {
+     this.lastReadAccount = accountFromUpdated(notification, this.lastReadAccount);
++    if (this.initializeResponseDelivery === "pending")
++      return;
+     try {
+       if (this.codexAcpClient.getAuthGatewayProviderName() !== null) {
+         return;
+@@ -47663,6 +47939,8 @@ You have been logged out. Please try again.`);
+   }
+   async setAuthStatus(next) {
+     this.authStatusVersion += 1;
++    if (this.initializeResponseDelivery === "pending")
++      return;
+     if (sameAuthStatus(this.currentAuthStatus, next)) {
+       return;
+     }
+@@ -48139,6 +48417,9 @@ You have been logged out. Please try again.`);
+         _meta: {
+           codex: {
+             projectId: sessionState.lineage.projectId ?? null,
++            ...sessionState.lineage.threadSource !== undefined ? {
++              threadSource: sessionState.lineage.threadSource
++            } : {},
+             ...sessionState.lineage.forkedAtTurnId !== undefined ? sessionState.lineage : {}
+           }
+         }
+@@ -48224,10 +48505,7 @@ You have been logged out. Please try again.`);
+       return;
+     }
+     sessionState.currentGoal = snapshot;
+-    const update = goalSessionInfoUpdate(snapshot, sessionState.clientCapabilities.airClient, this.protocolVersion === 2);
+-    if (update === null)
+-      return;
+-    await new ACPSessionConnection(this.connection, sessionState.sessionId).update(update);
++    await publishGoalSessionInfo(new ACPSessionConnection(this.connection, sessionState.sessionId), snapshot, sessionState.clientCapabilities.airClient);
+   }
+   subagentModels(sessionState) {
+     if (!this.isSessionConfigEnabled())
+@@ -48726,17 +49004,7 @@ You have been logged out. Please try again.`);
+     }
+     try {
+       const session = new ACPSessionConnection(this.connection, sessionState.sessionId);
+-      await session.update({
+-        sessionUpdate: "session_info_update",
+-        _meta: {
+-          [JETBRAINS_META_KEY]: {
+-            [AIR_META_KEY]: {
+-              [AIR_EXTENSION_VERSION_KEY]: AIR_EXTENSION_VERSION,
+-              [AIR_AGENT_FILE_CHANGE_REPORT_KEY]: report
+-            }
+-          }
+-        }
+-      });
++      await publishAirSessionMetadata(session, AIR_AGENT_FILE_CHANGE_REPORT_KEY, report);
+     } catch (error) {
+       logger.error("Failed to publish agent file-change report", error);
+     }
+@@ -49101,12 +49369,15 @@ You have been logged out. Please try again.`);
+     cancellers.clear();
+   }
+   async interruptPromptTurn(sessionState, turn, requestName) {
++    const activePrompt = this.activePrompts.get(sessionState.sessionId);
+     this.codexAcpClient.markTurnStale({
+       threadId: turn.threadId,
+       turnId: turn.turnId
+     });
+     try {
+       await this.interruptStandardChildren(sessionState);
++      if (this.activePrompts.get(sessionState.sessionId) !== activePrompt)
++        return;
+       await this.requestTurnInterrupt(sessionState, turn.threadId, turn.turnId, requestName);
+     } finally {
+       this.codexAcpClient.resolveTurnInterrupted({
+@@ -49120,7 +49391,10 @@ You have been logged out. Please try again.`);
+       logger.log(`${requestName} - turnInterrupt skipped: the app-server of the turn is gone`, { sessionId: threadId });
+       return;
+     }
+-    let turnId = codexRunningTurnId(sessionState, completionTurnId);
++    const activePrompt = this.activePrompts.get(sessionState.sessionId);
++    const ownsRegisteredTurn = activePrompt?.currentTurn?.threadId === threadId && activePrompt.currentTurn.turnId === completionTurnId;
++    const stillOwnsPrompt = () => ownsRegisteredTurn && activePrompt !== undefined && this.activePrompts.get(sessionState.sessionId) === activePrompt;
++    let turnId = ownsRegisteredTurn ? codexRunningTurnId(sessionState, completionTurnId) : completionTurnId;
+     for (let attempt = 0;; attempt++) {
+       try {
+         await this.runWithProcessCheck(() => this.codexAcpClient.turnInterrupt({
+@@ -49133,15 +49407,16 @@ You have been logged out. Please try again.`);
+         });
+         return;
+       } catch (err) {
+-        const promptStillActive = this.activePrompts.has(threadId);
+         const mismatch = parseExpectedActiveTurnMismatch(err);
+         const isMismatch = mismatch !== null && mismatch.expected === sessionState.currentTurnId && mismatch.found !== "";
+-        const retryable = promptStillActive && (isNoActiveTurnError(err) || isMismatch) && attempt < NO_ACTIVE_TURN_RETRY_DELAYS_MS.length;
++        const retryable = stillOwnsPrompt() && (isNoActiveTurnError(err) || isMismatch) && attempt < NO_ACTIVE_TURN_RETRY_DELAYS_MS.length;
+         if (!retryable) {
+           logger.error(`${requestName} - turnInterrupt failed`, err);
+           return;
+         }
+         await new Promise((resolve) => setTimeout(resolve, NO_ACTIVE_TURN_RETRY_DELAYS_MS[attempt]));
++        if (!stillOwnsPrompt())
++          return;
+         turnId = sessionState.interruptTurnId ?? (isMismatch ? mismatch.found : completionTurnId);
+         logger.log(`${requestName} - turn not interruptible yet, retrying`, {
+           sessionId: threadId,
+@@ -49164,9 +49439,12 @@ You have been logged out. Please try again.`);
+     return activePrompt.signal.aborted || this.activePrompts.get(sessionId) !== activePrompt || this.sessionIsClosing(sessionId);
+   }
+   async interruptSessionTurn(sessionState, requestName, resolveInterruptedTurn) {
++    const activePrompt = this.activePrompts.get(sessionState.sessionId);
+     await this.interruptStandardChildren(sessionState);
++    if (this.activePrompts.get(sessionState.sessionId) !== activePrompt)
++      return;
+     const turnId = await this.getInterruptibleTurnId(sessionState, requestName);
+-    if (!turnId) {
++    if (!turnId || this.activePrompts.get(sessionState.sessionId) !== activePrompt) {
+       return;
+     }
+     logger.log(`${requestName} session requested`, {
+@@ -49434,7 +49712,7 @@ You have been logged out. Please try again.`);
+         signal?.removeEventListener("abort", dropPendingRequest);
+         reservation.release();
+         if (!this.sessions.has(sessionId))
+-          AcpV2Connection.of(this.connection)?.forgetSession(sessionId);
++          AcpV2Connection.of(this.connection)?.forgetForegroundState(sessionId);
+       });
+     });
+   }
+@@ -50561,6 +50839,7 @@ function createRouter(createAgent, responses) {
+   };
+   const attachAgent = (agent, signal) => {
+     codexAcpServer = agent;
++    agent.observeInitializeResponse();
+     const stopSetupPublication = agent.observeSessionSetupResponses();
+     signal.addEventListener("abort", () => {
+       setups.clear();
+@@ -50571,8 +50850,17 @@ function createRouter(createAgent, responses) {
+       }
+     });
+   };
+-  let v1Agent = agent({ name: package_default.name }).onConnect((connection) => attachAgent(createAgent(connection.client), connection.signal)).onRequest(methods.agent.initialize, (ctx) => getAgent().initialize(ctx.params)).onRequest(methods.agent.session.new, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).newSession(ctx.params))).onRequest(methods.agent.session.load, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).loadSession(ctx.params), ctx.signal)).onRequest(methods.agent.session.fork, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).forkSession(ctx.params))).onRequest(methods.agent.session.list, (ctx) => getAgentForPaths({ cwd: ctx.params.cwd ?? null }).listSessions(ctx.params)).onRequest(methods.agent.session.delete, (ctx) => getAgent(ctx.params).deleteSession(ctx.params)).onRequest(methods.agent.session.resume, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).resumeSession(ctx.params), ctx.signal)).onRequest(methods.agent.session.close, (ctx) => getAgent(ctx.params).closeSession(ctx.params)).onRequest(methods.agent.session.setMode, (ctx) => getAgent(ctx.params).setSessionMode(ctx.params)).onRequest(methods.agent.session.setConfigOption, (ctx) => getAgent(ctx.params).setSessionConfigOption(ctx.params)).onRequest(methods.agent.authenticate, (ctx) => getAgent().authenticate(ctx.params, ctx.requestId)).onRequest(methods.agent.logout, (ctx) => getAgent().logout(ctx.params)).onRequest(methods.agent.providers.list, (ctx) => getAgent().listProviders(ctx.params)).onRequest(methods.agent.providers.set, (ctx) => getAgent().setProvider(ctx.params)).onRequest(methods.agent.providers.disable, (ctx) => getAgent().disableProvider(ctx.params)).onRequest(methods.agent.session.prompt, (ctx) => getAgent(ctx.params).prompt(ctx.params, ctx.signal)).onNotification(methods.agent.session.cancel, (ctx) => getAgent().cancel(ctx.params)).onRequest("authentication/status", emptyExtensionParamsParser, (ctx) => getAgent().extMethod("authentication/status", ctx.params)).onRequest("authentication/logout", emptyExtensionParamsParser, (ctx) => getAgent().extMethod("authentication/logout", ctx.params)).onRequest(LEGACY_SET_SESSION_MODEL_METHOD, legacySetSessionModelParamsParser, (ctx) => getAgent(ctx.params).extMethod(LEGACY_SET_SESSION_MODEL_METHOD, ctx.params)).onRequest(SESSION_STEERING_METHOD, sessionSteerParamsParser, (ctx) => getAgent(ctx.params).extMethod(SESSION_STEERING_METHOD, ctx.params)).onRequest(ASYNC_TASK_STOP_METHOD, asyncTaskStopParamsParser, (ctx) => getAgent(ctx.params).extMethod(ASYNC_TASK_STOP_METHOD, ctx.params)).onRequest(CODEX_HOOKS_LIST_METHOD, hooksListParamsParser, (ctx) => getAgent().listHooks(ctx.params.cwd)).onRequest(CODEX_HOOKS_TRUST_METHOD, hooksTrustParamsParser, (ctx) => getAgent().trustHooks(ctx.params.cwd, ctx.params.hooks)).onRequest(GOAL_CONTROL_METHOD, goalControlParamsParser, (ctx) => getAgent(ctx.params).extMethod(GOAL_CONTROL_METHOD, ctx.params)).onRequest(SESSION_RENAME_METHOD, sessionRenameParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.rename(ctx.params)).onRequest(SESSION_BATCH_GET_METHOD, sessionBatchGetParamsParser, (ctx) => getAgent().sessionIndex.batchGet(ctx.params)).onRequest(SESSION_ARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, true)).onRequest(SESSION_UNARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, false)).onRequest(SESSION_LIST_SUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.subscribeList(ctx.params)).onRequest(SESSION_LIST_UNSUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.unsubscribeList(ctx.params));
+-  let v2Agent = agent2({ name: package_default.name }).onConnect((connection) => attachAgent(createAgent(new AcpV2Connection(connection.client)), connection.signal)).onRequest(methods2.agent.initialize, (ctx) => getAgent().initializeV2(ctx.params)).onRequest(methods2.agent.session.new, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).newSessionV2(ctx.params)))).onRequest(methods2.agent.session.list, (ctx) => getAgentForPaths({ cwd: ctx.params.cwd ?? null }).listSessions(ctx.params)).onRequest(methods2.agent.session.delete, (ctx) => getAgent(ctx.params).deleteSession(ctx.params)).onRequest(methods2.agent.session.resume, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).resumeSessionV2(ctx.params)), ctx.signal)).onRequest(methods2.agent.session.fork, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).forkSessionV2(ctx.params)))).onRequest(methods2.agent.session.close, (ctx) => getAgent(ctx.params).closeSession(ctx.params)).onRequest(methods2.agent.session.setConfigOption, (ctx) => getAgent(ctx.params).setSessionConfigOptionV2(ctx.params)).onRequest(methods2.agent.auth.login, (ctx) => getAgent().authenticateV2(ctx.params, ctx.requestId)).onRequest(methods2.agent.auth.logout, (ctx) => getAgent().logoutV2(ctx.params)).onRequest(methods2.agent.session.prompt, (ctx) => getAgent(ctx.params).promptV2(ctx.params, ctx.signal)).onNotification(methods2.agent.session.cancel, (ctx) => getAgent().cancel(ctx.params)).onRequest(methods2.agent.providers.list, (ctx) => getAgent().listProviders(ctx.params)).onRequest(methods2.agent.providers.set, (ctx) => getAgent().setProvider(ctx.params)).onRequest(methods2.agent.providers.disable, (ctx) => getAgent().disableProvider(ctx.params)).onRequest(CODEX_HOOKS_LIST_METHOD, hooksListParamsParser, (ctx) => getAgent().listHooks(ctx.params.cwd)).onRequest(CODEX_HOOKS_TRUST_METHOD, hooksTrustParamsParser, (ctx) => getAgent().trustHooks(ctx.params.cwd, ctx.params.hooks)).onRequest(SESSION_STEERING_METHOD, sessionSteerParamsParser, (ctx) => getAgent(ctx.params).extMethod(SESSION_STEERING_METHOD, ctx.params)).onRequest(GOAL_CONTROL_METHOD, goalControlParamsParser, (ctx) => getAgent(ctx.params).extMethod(GOAL_CONTROL_METHOD, ctx.params)).onRequest(ASYNC_TASK_STOP_METHOD, asyncTaskStopParamsParser, (ctx) => getAgent(ctx.params).extMethod(ASYNC_TASK_STOP_METHOD, ctx.params)).onRequest(SESSION_RENAME_METHOD, sessionRenameParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.rename(ctx.params)).onRequest(SESSION_BATCH_GET_METHOD, sessionBatchGetParamsParser, (ctx) => getAgent().sessionIndex.batchGet(ctx.params)).onRequest(SESSION_ARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, true)).onRequest(SESSION_UNARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, false)).onRequest(SESSION_LIST_SUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.subscribeList(ctx.params)).onRequest(SESSION_LIST_UNSUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.unsubscribeList(ctx.params));
++  const initialize = async (requestId, operation) => {
++    const agent = getAgent();
++    const result = await operation();
++    responses.afterWrite(requestId, (successful) => {
++      if (successful)
++        agent.afterInitializeResponse();
++    });
++    return result;
++  };
++  let v1Agent = agent({ name: package_default.name }).onConnect((connection) => attachAgent(createAgent(connection.client), connection.signal)).onRequest(methods.agent.initialize, (ctx) => initialize(ctx.requestId, () => getAgent().initialize(ctx.params))).onRequest(methods.agent.session.new, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).newSession(ctx.params))).onRequest(methods.agent.session.load, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).loadSession(ctx.params), ctx.signal)).onRequest(methods.agent.session.fork, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).forkSession(ctx.params))).onRequest(methods.agent.session.list, (ctx) => getAgentForPaths({ cwd: ctx.params.cwd ?? null }).listSessions(ctx.params)).onRequest(methods.agent.session.delete, (ctx) => getAgent(ctx.params).deleteSession(ctx.params)).onRequest(methods.agent.session.resume, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).resumeSession(ctx.params), ctx.signal)).onRequest(methods.agent.session.close, (ctx) => getAgent(ctx.params).closeSession(ctx.params)).onRequest(methods.agent.session.setMode, (ctx) => getAgent(ctx.params).setSessionMode(ctx.params)).onRequest(methods.agent.session.setConfigOption, (ctx) => getAgent(ctx.params).setSessionConfigOption(ctx.params)).onRequest(methods.agent.authenticate, (ctx) => getAgent().authenticate(ctx.params, ctx.requestId, ctx.signal)).onRequest(methods.agent.logout, (ctx) => getAgent().logout(ctx.params)).onRequest(methods.agent.providers.list, (ctx) => getAgent().listProviders(ctx.params)).onRequest(methods.agent.providers.set, (ctx) => getAgent().setProvider(ctx.params)).onRequest(methods.agent.providers.disable, (ctx) => getAgent().disableProvider(ctx.params)).onRequest(methods.agent.session.prompt, (ctx) => getAgent(ctx.params).prompt(ctx.params, ctx.signal)).onNotification(methods.agent.session.cancel, (ctx) => getAgent().cancel(ctx.params)).onRequest("authentication/status", emptyExtensionParamsParser, (ctx) => getAgent().extMethod("authentication/status", ctx.params)).onRequest("authentication/logout", emptyExtensionParamsParser, (ctx) => getAgent().extMethod("authentication/logout", ctx.params)).onRequest(LEGACY_SET_SESSION_MODEL_METHOD, legacySetSessionModelParamsParser, (ctx) => getAgent(ctx.params).extMethod(LEGACY_SET_SESSION_MODEL_METHOD, ctx.params)).onRequest(SESSION_STEERING_METHOD, sessionSteerParamsParser, (ctx) => getAgent(ctx.params).extMethod(SESSION_STEERING_METHOD, ctx.params)).onRequest(ASYNC_TASK_STOP_METHOD, asyncTaskStopParamsParser, (ctx) => getAgent(ctx.params).extMethod(ASYNC_TASK_STOP_METHOD, ctx.params)).onRequest(CODEX_HOOKS_LIST_METHOD, hooksListParamsParser, (ctx) => getAgent().listHooks(ctx.params.cwd)).onRequest(CODEX_HOOKS_TRUST_METHOD, hooksTrustParamsParser, (ctx) => getAgent().trustHooks(ctx.params.cwd, ctx.params.hooks)).onRequest(GOAL_CONTROL_METHOD, goalControlParamsParser, (ctx) => getAgent(ctx.params).extMethod(GOAL_CONTROL_METHOD, ctx.params)).onRequest(SESSION_RENAME_METHOD, sessionRenameParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.rename(ctx.params)).onRequest(SESSION_BATCH_GET_METHOD, sessionBatchGetParamsParser, (ctx) => getAgent().sessionIndex.batchGet(ctx.params)).onRequest(SESSION_ARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, true)).onRequest(SESSION_UNARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, false)).onRequest(SESSION_LIST_SUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.subscribeList(ctx.params)).onRequest(SESSION_LIST_UNSUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.unsubscribeList(ctx.params));
++  let v2Agent = agent2({ name: package_default.name }).onConnect((connection) => attachAgent(createAgent(new AcpV2Connection(connection.client)), connection.signal)).onRequest(methods2.agent.initialize, (ctx) => initialize(ctx.requestId, () => getAgent().initializeV2(ctx.params))).onRequest(methods2.agent.session.new, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).newSessionV2(ctx.params)))).onRequest(methods2.agent.session.list, (ctx) => getAgentForPaths({ cwd: ctx.params.cwd ?? null }).listSessions(ctx.params)).onRequest(methods2.agent.session.delete, (ctx) => getAgent(ctx.params).deleteSession(ctx.params)).onRequest(methods2.agent.session.resume, (ctx) => setup(ctx.params.sessionId, ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).resumeSessionV2(ctx.params)), ctx.signal)).onRequest(methods2.agent.session.fork, (ctx) => createdSetup(ctx.requestId, () => getAgentForPaths(ctx.params).runSessionOpen(ctx.signal, () => getAgentForPaths(ctx.params).forkSessionV2(ctx.params)))).onRequest(methods2.agent.session.close, (ctx) => getAgent(ctx.params).closeSession(ctx.params)).onRequest(methods2.agent.session.setConfigOption, (ctx) => getAgent(ctx.params).setSessionConfigOptionV2(ctx.params)).onRequest(methods2.agent.auth.login, (ctx) => getAgent().authenticateV2(ctx.params, ctx.requestId, ctx.signal)).onRequest(methods2.agent.auth.logout, (ctx) => getAgent().logoutV2(ctx.params)).onRequest(methods2.agent.session.prompt, (ctx) => getAgent(ctx.params).promptV2(ctx.params, ctx.signal)).onNotification(methods2.agent.session.cancel, (ctx) => getAgent().cancel(ctx.params)).onRequest(methods2.agent.providers.list, (ctx) => getAgent().listProviders(ctx.params)).onRequest(methods2.agent.providers.set, (ctx) => getAgent().setProvider(ctx.params)).onRequest(methods2.agent.providers.disable, (ctx) => getAgent().disableProvider(ctx.params)).onRequest(CODEX_HOOKS_LIST_METHOD, hooksListParamsParser, (ctx) => getAgent().listHooks(ctx.params.cwd)).onRequest(CODEX_HOOKS_TRUST_METHOD, hooksTrustParamsParser, (ctx) => getAgent().trustHooks(ctx.params.cwd, ctx.params.hooks)).onRequest(SESSION_STEERING_METHOD, sessionSteerParamsParser, (ctx) => getAgent(ctx.params).extMethod(SESSION_STEERING_METHOD, ctx.params)).onRequest(GOAL_CONTROL_METHOD, goalControlParamsParser, (ctx) => getAgent(ctx.params).extMethod(GOAL_CONTROL_METHOD, ctx.params)).onRequest(ASYNC_TASK_STOP_METHOD, asyncTaskStopParamsParser, (ctx) => getAgent(ctx.params).extMethod(ASYNC_TASK_STOP_METHOD, ctx.params)).onRequest(SESSION_RENAME_METHOD, sessionRenameParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.rename(ctx.params)).onRequest(SESSION_BATCH_GET_METHOD, sessionBatchGetParamsParser, (ctx) => getAgent().sessionIndex.batchGet(ctx.params)).onRequest(SESSION_ARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, true)).onRequest(SESSION_UNARCHIVE_METHOD, sessionArchiveParamsParser, (ctx) => getAgent(ctx.params).sessionIndex.setArchived(ctx.params, false)).onRequest(SESSION_LIST_SUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.subscribeList(ctx.params)).onRequest(SESSION_LIST_UNSUBSCRIBE_METHOD, sessionListSubscriptionParamsParser, (ctx) => getAgent().sessionIndex.unsubscribeList(ctx.params));
+   for (const method of Object.keys(CODEX_NATIVE_METHODS)) {
+     v1Agent = v1Agent.onRequest(method, { parse: objectParams }, (ctx) => getAgent().nativeRequest(method, ctx.params));
+     v2Agent = v2Agent.onRequest(method, { parse: objectParams }, (ctx) => getAgent().nativeRequest(method, ctx.params));
+diff --git a/dist/types/client/CodexCapabilitiesClient.d.ts b/dist/types/client/CodexCapabilitiesClient.d.ts
+index 1a2f79fa05ae882a2c0ff1d4ebd2fb3d2306b175..beac21cda64634621926695acf55c601bb8c3519 100644
+--- a/dist/types/client/CodexCapabilitiesClient.d.ts
++++ b/dist/types/client/CodexCapabilitiesClient.d.ts
+@@ -30,6 +30,15 @@ export interface CodexCapabilitiesConnection {
+ /** Shared by U and TV. All session routing is explicit and subscriptions belong to this connection. */
+ export declare class CodexCapabilitiesClient {
+     private readonly connection;
++    generateImage(params: {
++        prompt: string;
++        images?: string[];
++    }): Promise<{
++        images: {
++            mimeType: string;
++            data: string;
++        }[];
++    }>;
+     executeShell(sessionId: string, command: string): Promise<Record<string, never>>;
+     private readonly realtimeListeners;
+     private readonly goalListeners;
+diff --git a/dist/types/client/CodexClient.d.ts b/dist/types/client/CodexClient.d.ts
+index 38aa752afd13b1a11c32041af16e79ee8d8a4c35..6e60a144795352dda716dce7bb2c362a1755ffff 100644
+--- a/dist/types/client/CodexClient.d.ts
++++ b/dist/types/client/CodexClient.d.ts
+@@ -106,6 +106,16 @@ export declare class CodexClient<State extends CodexClientState = CodexClientSta
+     activityReply(sessionId: string): Promise<string | null>;
+     private requireHistory;
+     listHistorySessions(check: () => void): Promise<SessionSummary[]>;
++    /** Bounded transcript browsing never acquires a writer or opens another conversation. */
++    readSessionHistory(threadId: string, cwd: string, cursor?: string | null): Promise<{
++        session: Session;
++        cursor: string | null;
++    }>;
++    /** Child transcripts use the same read-only history projection. */
++    readSubagentHistory(threadId: string, cwd: string, cursor?: string | null): Promise<{
++        session: Session;
++        cursor: string | null;
++    }>;
+     exportHistory(sessionId: string, check: () => void, signal?: AbortSignal): Promise<string>;
+     fork(id: string, cwd: string, options?: ForkOptions): Promise<string>;
+     /** One fork at a time; an application subclass wraps this to name the fork from what it already lists. */
+diff --git a/dist/types/client/protocol/client/session-client.d.ts b/dist/types/client/protocol/client/session-client.d.ts
+index 4aaeb9feda56ac5105fdf51a94093309690be5c5..27a8be6125b75855525da8dabf9fcf5b02eba31a 100644
+--- a/dist/types/client/protocol/client/session-client.d.ts
++++ b/dist/types/client/protocol/client/session-client.d.ts
+@@ -14,6 +14,8 @@ export type Launch = {
+ /** One row of the session list: what `session/list` says about a session, before it is opened. */
+ export type SessionSummary = {
+     projectId?: string | null;
++    /** Native source classification, retained when a session is rediscovered. */
++    threadSource?: string;
+     sessionId: string;
+     cwd: string;
+     title: string | null;
+@@ -146,6 +148,8 @@ export declare class SessionClient<State extends ClientState = ClientState> {
+     private stopGap;
+     private readonly openPort;
+     private readonly contextRevisions;
++    /** Retain native response metadata until a draft enters the catalog. */
++    private readonly draftMetadata;
+     private listRequest;
+     private listGeneration;
+     private readonly retiredChildren;
+diff --git a/docs/acp-client.md b/docs/acp-client.md
+index bf1e7a33a9ec9c440a3c74dd4ae9a404a0723382..f9156e7559ee9f17ae13f9473ab79da27f052c31 100644
+--- a/docs/acp-client.md
++++ b/docs/acp-client.md
+@@ -101,6 +101,11 @@ waiting for a receipt or a whole turn. Use `continueAfterFailure: false` (the th
+ argument to `enqueue`) when work depends on a preceding configuration change.
+ Cancellation and permission responses do not enter this queue.
+ 
++A rejected `prepareSessionTools` callback leaves the conversation attached and the
++message unsent. Its original error reaches the caller. Retrying runs preparation
++again for the same session; preparation failures never close or resume the thread.
++This also preserves unsent threads whose history has not been persisted yet.
++
+ Each coordinator accepts `maxPendingPerSession` (default 256) as an explicit
+ operational ceiling. Overflow rejects the new operation; it never drops accepted
+ mutations. Tune this ceiling to the application's measured workload. Closing an
+@@ -187,3 +192,23 @@ Child streams need no open/resume call. Prompt, configuration, fork, close and
+ delete are rejected on children. `cancel(childId)` sends only `session/cancel`,
+ and only when the child is attached and advertises cancellation. Cancelling a
+ parent answers pending requests throughout its subtree before cancelling it.
++
++Child metadata includes `_meta.codex.threadId` and, when native delegation
++provides it, `_meta.codex.parentTurnId`. The client retains this metadata on
++`Session.subagent._meta`. The origin is the parent native turn, including when
++later steering messages share that turn. Clients can place child activity beside
++the originating request instead of collecting historical children under the
++latest turn. Recorded collaboration items provide the same association
++when no live child stream exists.
++
++`readSubagentHistory(threadId, cwd, cursor?)` returns a bounded, read-only session
++projection and the next history cursor through the existing agent connection. It
++does not open, attach, select or register the child as a top-level conversation.
++The client rejects a result if that connection was replaced while reading.
++
++
++`SessionSummary.threadSource` exposes Codex's native source classification. The
++client preserves a listed source when forking, so product-specific conversations
++remain on their originating surface. `readSessionHistory(id, cwd, cursor?)` reads
++one bounded history page without attaching a writer or changing the selected
++conversation. `readSubagentHistory` delegates to the same projection.
+diff --git a/docs/protocol.md b/docs/protocol.md
+index 4cb879b56ebe05b8002d278a4b78883c86d693af..255ca908089f7ef97b9a6bf64b244ae7008e4b0c 100644
+--- a/docs/protocol.md
++++ b/docs/protocol.md
+@@ -64,3 +64,52 @@ WebSocket transports. An empty or unknown error code is recorded as `UNKNOWN`.
+ The host must validate the schema before including these events in diagnostic exports.
+ These observations locate the failed stage but cannot identify which remote network
+ component reset a connection without additional network or server evidence.
++
++## ChatGPT image generation
++
++`_codex/images/generate` accepts `{ prompt: string, images?: string[] }` and
++returns `{ images: Array<{ mimeType: string, data: string }> }`, with base64 media.
++References must be inline PNG, JPEG or WebP data URLs. The adapter validates the
++prompt, reference count and media budget before contacting the image service.
++Without references it uses Wham generations; with references it uses edits.
++
++The existing Codex ChatGPT account owns authentication and workspace routing.
++Clients never supply or receive account tokens. A 401 permits one token refresh;
++ambiguous provider failures are not retried automatically. Account changes and
++connection cancellation invalidate pending results. API-key accounts are rejected.
++
++The host may expose image generation through its versioned client tool set and
++handle `_alwith/tool/call` on the same ACP connection. Tool results use standard
++image content blocks, including during history replay. Dynamic tool image data
++URLs are converted into inline ACP images, while other URLs remain resource links.
++Codex retains conversation and media history; the extension creates no image store.
++
++### Native session source
++
++`session/new` accepts optional `_meta.codex.threadSource`, a non-empty string
++passed to Codex `thread/start`. Omitted or null leaves the source unset; invalid
++values return an invalid-parameters error. Codex persists this classification with
++the conversation. Both ACP versions return a non-null native source in
++`_meta.codex.threadSource` on creation, resume, fork and session listing. Sources
++do not change conversation ownership, archive state or history storage. Clients
++may use the field to choose the surface where a conversation is listed.
++
++## Subagent turn origins and reload routing
++
++Standard ACP `subagent_update` carries `_meta.codex.threadId` and the originating
++`_meta.codex.parentTurnId` when native delegation provides them. Late origin
++information patches the complete `codex` metadata entry so its thread ID is
++preserved. Omitted metadata is unchanged; null clears it, following ACP metadata
++patch semantics. The association survives child-router replacement during replay. Native
++collaboration items remain available in history for clients browsing children
++without attaching them.
++
++When a frontend reconnects, `thread/resume` first reuses the connection that
++already owns that thread. A changed model catalog must not route the resume to
++a second native process and collide with the original writer. Native unload,
++close and successful unloading unsubscribe responses release only that
++connection's ownership; a later resume can then select the current catalog.
++
++Native listing and resume responses in some Codex versions omit the source after
++unloading a thread. The adapter reads Codex's existing rollout header in that
++case; it does not create a source registry or modify native history.
