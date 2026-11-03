@@ -1,5 +1,6 @@
 import { beforeEach, expect, test, vi } from "vitest"
 
+import { IMAGE_WORKFLOW_INSTRUCTIONS, IMAGE_WORKFLOW_REVISION } from "@/agent/image-request"
 import { initI18n } from "@/lib/i18n"
 const native = vi.hoisted(() => ({
   ready: vi.fn(),
@@ -41,15 +42,16 @@ test("all new, resumed and forked conversations receive the application grant", 
   ] as const) {
     const context = await hostSessionContext("/project", operation)
     expect(context.mcpServers).toHaveLength(1)
-    expect(context.revision).toBe("global")
+    expect(context.revision).toBe(`global:${IMAGE_WORKFLOW_REVISION}`)
     await context.bind?.("destination")
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
+    expect(context.appendSystemPrompt).toContain(IMAGE_WORKFLOW_INSTRUCTIONS)
   }
   expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
 })
 test("disabled native authority removes tools for every conversation", async () => {
-  expect(await computerContextRevision()).toBe("disabled")
+  expect(await computerContextRevision()).toBe(`disabled:${IMAGE_WORKFLOW_REVISION}`)
   expect((await hostSessionContext("/project", { kind: "new" })).mcpServers).toEqual([])
 })
 test("browser previews never invoke native commands", async () => {

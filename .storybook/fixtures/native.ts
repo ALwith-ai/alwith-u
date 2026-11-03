@@ -44,6 +44,8 @@ export type ProviderCase =
   | "unsupported"
   | "rateLimited"
 let providerMode: ProviderCase = "ready"
+let seedreamConfigured = false
+let seedreamBaseUrl = ""
 let revision = Date.now()
 let values: Record<string, unknown> = {}
 export const nativeCalls: { command: string; payload: unknown }[] = []
@@ -56,6 +58,8 @@ export function resetNative(
   theme: "light" | "dark" = "light"
 ): void {
   providerMode = kind
+  seedreamConfigured = false
+  seedreamBaseUrl = ""
   resetVoice(voice)
   resetUpdater()
   resetGamepad()
@@ -220,6 +224,22 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     values = { ...values, ...input.changes }
     revision = Math.max(revision + 1, Date.now())
     return { revision, values, browserMigrated: true }
+  }
+  if (command === "images_configured") return seedreamConfigured
+  if (command === "images_read_settings" || command === "images_save_settings") {
+    if (command === "images_save_settings") {
+      const input = args.input as { baseUrl: string; apiKey: string | null; expectedRevision: number }
+      if (input.expectedRevision !== revision) throw new Error("Settings changed in another window; reload and retry")
+      seedreamBaseUrl = input.baseUrl.trim().replace(/\/+$/, "")
+      if (input.apiKey !== null) seedreamConfigured = input.apiKey !== ""
+      ++revision
+    }
+    return {
+      revision,
+      baseUrl: seedreamBaseUrl,
+      defaultBaseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      configured: seedreamConfigured
+    }
   }
   if (command === "providers_read" || command === "providers_apply") return providers
   if (command === "providers_save_custom" || command === "providers_remove_custom") {

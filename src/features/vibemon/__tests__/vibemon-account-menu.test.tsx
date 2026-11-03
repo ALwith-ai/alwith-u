@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { usePlatformAuth } from "@/features/auth/store"
+import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { SidebarAccountMenu } from "@/features/sessions/sidebar-account-menu"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -94,7 +95,8 @@ async function openMenu() {
   const view = render(
     <div data-sidebar-footer-row>
       <SidebarAccountMenu onOpenSettings={() => {}} onCreated={() => {}} />
-    </div>
+    </div>,
+    { wrapper: SessionListHostProvider }
   )
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: /Pet tester/ }))))
   return view

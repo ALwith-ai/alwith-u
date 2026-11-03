@@ -1,11 +1,19 @@
 // Only main owns the ACP connection. The chat window receives projections and forwards
 // a fixed set of actions; it never attaches an agent or persists another conversation.
 
-import type { RateLimitSnapshot, RealtimeEvent, Session } from "@alwith/module-chat/client"
+import {
+  mergeMeta,
+  type PromptOptions,
+  type RateLimitSnapshot,
+  type RealtimeEvent,
+  type Session
+} from "@alwith/module-chat/client"
+import type { ImageSelection } from "@alwith/module-chat/image"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
 import { type AppState, CodexClient } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
+import { useImagePreferences } from "@/features/images/preferences"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
 
@@ -17,11 +25,21 @@ const STATE = "chat:client-state"
 const LIMITS = "chat:client-limits"
 const CLOSED = "chat:client-closed"
 const REALTIME = "chat:client-realtime"
+function imagePromptOptions(options: PromptOptions = {}): PromptOptions {
+  const requested = (options.meta?.alwith as { imageSelection?: ImageSelection } | undefined)?.imageSelection
+  return {
+    ...options,
+    meta: mergeMeta(options.meta, {
+      alwith: { imageSelection: requested === undefined ? useImagePreferences.getState().selection : requested }
+    })
+  }
+}
 const METHODS = [
   "connect",
   "startRealtime",
   "stopRealtime",
   "newSession",
+  "newImageSession",
   "prepareDraft",
   "discardDraft",
   "transferDraft",
@@ -31,11 +49,14 @@ const METHODS = [
   "listArchived",
   "open",
   "loadOlderHistory",
+  "readSubagentHistory",
+  "readSessionHistory",
   "activityReply",
   "loadHistoryNavigation",
   "previewHistoryTurn",
   "loadHistoryTurn",
   "prompt",
+  "promptWithImages",
   "executeShell",
   "retrySession",
   "cancel",
@@ -45,6 +66,7 @@ const METHODS = [
   "resumeAccountModel",
   "respond",
   "readRateLimits",
+  "readAccount",
   "requestPrediction",
   "fuzzyFileSearch",
   "renameSession",
@@ -378,6 +400,9 @@ export class RemoteChatClient extends CodexClient {
   override newSession(...args: Parameters<CodexClient["newSession"]>): Promise<string> {
     return this.request("newSession", [args[0], args[1] ?? null, "chat"])
   }
+  override newImageSession(...args: Parameters<CodexClient["newImageSession"]>): Promise<string> {
+    return this.request("newImageSession", args)
+  }
   override readSessionSummary(
     ...args: Parameters<CodexClient["readSessionSummary"]>
   ): ReturnType<CodexClient["readSessionSummary"]> {
@@ -396,6 +421,13 @@ export class RemoteChatClient extends CodexClient {
   override loadOlderHistory(...args: Parameters<CodexClient["loadOlderHistory"]>): Promise<void> {
     return this.request("loadOlderHistory", args)
   }
+
+  override readSubagentHistory(...args: Parameters<CodexClient["readSubagentHistory"]>) {
+    return this.request("readSubagentHistory", args)
+  }
+  override readSessionHistory(...args: Parameters<CodexClient["readSessionHistory"]>) {
+    return this.request("readSessionHistory", args)
+  }
   override loadHistoryNavigation(...args: Parameters<CodexClient["loadHistoryNavigation"]>): Promise<void> {
     return this.request("loadHistoryNavigation", args)
   }
@@ -412,13 +444,18 @@ export class RemoteChatClient extends CodexClient {
     return this.request("delete", args)
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
-    return this.request("prompt", args)
+    return this.request("prompt", [args[0], args[1], imagePromptOptions(args[2])])
   }
   override executeShell(...args: Parameters<CodexClient["executeShell"]>): ReturnType<CodexClient["executeShell"]> {
     return this.request("executeShell", args)
   }
   override retrySession(...args: Parameters<CodexClient["retrySession"]>): Promise<void> {
     return this.request("retrySession", args)
+  }
+  override promptWithImages(
+    ...args: Parameters<CodexClient["promptWithImages"]>
+  ): ReturnType<CodexClient["promptWithImages"]> {
+    return this.request("promptWithImages", [args[0], args[1], imagePromptOptions(args[2])])
   }
   override cancel(...args: Parameters<CodexClient["cancel"]>): Promise<void> {
     return this.request("cancel", args)
@@ -446,6 +483,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override readRateLimits(): Promise<RateLimitSnapshot> {
     return this.request("readRateLimits", [])
+  }
+  override readAccount(): ReturnType<CodexClient["readAccount"]> {
+    return this.request("readAccount", [])
   }
   override fuzzyFileSearch(
     ...args: Parameters<CodexClient["fuzzyFileSearch"]>

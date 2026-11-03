@@ -8,6 +8,17 @@ import { openPathInApp } from "@/lib/open-with-app"
 
 import * as files from "../../file-actions"
 
+vi.mock("@/features/images/availability", () => ({
+  useImageAvailability: () => ({
+    available: true,
+    canGenerate: true,
+    chatgptConnected: true,
+    seedreamConfigured: true,
+    checking: false,
+    error: null
+  })
+}))
+
 vi.mock("@/lib/open-with-app", () => ({
   readAppsInfo: () => Promise.resolve([{ name: "Preview", bundle_id: "com.apple.Preview", icon: null }]),
   openPathInApp: vi.fn().mockResolvedValue(undefined)
@@ -103,11 +114,11 @@ test("failed file actions report the error and keep the preview usable", async (
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
 
-test("inline-only images disable local opening and reset zoom when another image opens", async () => {
+test("inline-only images allow opening and reset zoom when another image opens", async () => {
   const view = render(<ImageLightbox />)
   mounted.push(view)
   act(() => openImageLightbox("data:image/png;base64,aGVsbG8=", "Inline"))
-  expect(view.getByRole("button", { name: "Open" })).toBeDisabled()
+  expect(view.getByRole("button", { name: "Open" })).toBeEnabled()
   expect(view.queryByRole("button", { name: "Open in side panel" })).toBeNull()
   fireEvent.click(view.getByRole("button", { name: "Zoom" }))
   fireEvent.click(view.getByRole("menuitemradio", { name: "200%" }))
@@ -192,4 +203,22 @@ test("a local file source can open even when the gallery has no separate URI", a
   fireEvent.click(button)
   await waitFor(() => expect(open).toHaveBeenCalledWith("/tmp/source image.png"))
   expect(view.queryByText("Hidden name")).toBeNull()
+})
+
+test("gallery previews do not mount a duplicate editor in the offscreen chat with the same source id", async () => {
+  const original = vi.fn()
+  const edit = vi.fn().mockResolvedValue(undefined)
+  const view = render(
+    <>
+      <ImageLightbox sessionId="source" onSend={original} />
+      <ImageLightbox sessionId="source" scope="gallery" onSend={edit} />
+    </>
+  )
+  mounted.push(view)
+  act(() => openImageGallery([{ src: "data:image/png;base64,b3JpZw==", alt: "Source" }], 0, "source", "gallery"))
+  expect(view.getAllByRole("dialog")).toHaveLength(1)
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  await waitFor(() => expect(edit).toHaveBeenCalledOnce())
+  expect(original).not.toHaveBeenCalled()
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })

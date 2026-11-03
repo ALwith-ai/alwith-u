@@ -2,6 +2,7 @@ import { computerContext } from "@alwith/module-computer"
 import { isTauri } from "@tauri-apps/api/core"
 
 import type { ClientOptions } from "@/agent/client"
+import { IMAGE_WORKFLOW_INSTRUCTIONS, IMAGE_WORKFLOW_REVISION } from "@/agent/image-request"
 import { commands } from "@/bindings"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
@@ -9,7 +10,7 @@ import i18n from "@/lib/i18n"
 
 export async function computerContextRevision(): Promise<string> {
   if (!isTauri()) return "disabled"
-  return commands.computerRevision()
+  return `${await commands.computerRevision()}:${IMAGE_WORKFLOW_REVISION}`
 }
 
 export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd) => {
@@ -18,7 +19,12 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   const descriptor = await commands.computerContext()
   const computer = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
   const device = await deviceSessionContext()
-  const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt, device.appendSystemPrompt]
+  const appendSystemPrompt = [
+    drive.appendSystemPrompt,
+    computer.appendSystemPrompt,
+    device.appendSystemPrompt,
+    IMAGE_WORKFLOW_INSTRUCTIONS
+  ]
     .filter(Boolean)
     .join("\n\n")
   const binders = [
@@ -30,7 +36,7 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
     device.bind
   ].filter((bind) => bind !== undefined)
   return {
-    revision: computer.revision,
+    revision: `${computer.revision}:${IMAGE_WORKFLOW_REVISION}`,
     bind:
       binders.length > 0
         ? async (sessionId: string) => {

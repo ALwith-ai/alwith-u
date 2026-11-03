@@ -8,6 +8,7 @@ import {
   DownloadIcon,
   FolderOpenIcon,
   LoaderCircleIcon,
+  MessageSquareIcon,
   XIcon
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
 
+import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -25,6 +27,9 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+import { useImageAvailability } from "@/features/images/availability"
+import { ImageModelSelect } from "@/features/images/model-select"
+import { ImageServiceNotice } from "@/features/images/service-notice"
 import { type AppInfo, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
 import { isMac } from "@/lib/platform"
 
@@ -33,8 +38,21 @@ import { ImageEditOverlay, ImageEditToolbar, useImageEditor } from "./image-edit
 
 // Gallery entries keep their original attachment identity for file operations.
 type PreviewImage = ActivityImage & { uri?: string }
-type LightboxState = { images: PreviewImage[]; index: number; sessionId?: string; sending: boolean }
-const useLightbox = create<LightboxState>(() => ({ images: [], index: 0, sessionId: undefined, sending: false }))
+type LightboxScope = "conversation" | "gallery"
+type LightboxState = {
+  images: PreviewImage[]
+  index: number
+  sessionId?: string
+  sending: boolean
+  scope: LightboxScope
+}
+const useLightbox = create<LightboxState>(() => ({
+  images: [],
+  index: 0,
+  sessionId: undefined,
+  sending: false,
+  scope: "conversation"
+}))
 const closeLightbox = (): void => {
   if (!useLightbox.getState().sending)
     useLightbox.setState({ images: [], index: 0, sessionId: undefined, sending: false })
@@ -45,10 +63,15 @@ export function openImageLightbox(src: string, alt = "", uri?: string, sessionId
   openImageGallery([{ src, alt, uri }], 0, sessionId)
 }
 
-export function openImageGallery(images: PreviewImage[], index: number, sessionId?: string): void {
+export function openImageGallery(
+  images: PreviewImage[],
+  index: number,
+  sessionId?: string,
+  scope: LightboxScope = "conversation"
+): void {
   if (useLightbox.getState().sending) return
   if (images[index] === undefined) throw new Error("Image gallery index is out of range")
-  useLightbox.setState({ images, index, sessionId })
+  useLightbox.setState({ images, index, sessionId, scope })
 }
 
 function moveImage(direction: number): void {
@@ -74,12 +97,14 @@ function ImagePreview({
   image,
   index,
   count,
-  onSend
+  onSend,
+  onOpenConversation
 }: {
   image: PreviewImage
   index: number
   count: number
   onSend?: SendImageEdit
+  onOpenConversation?: () => void
 }) {
   const { t } = useTranslation()
   const viewport = useRef<HTMLDivElement>(null)
@@ -90,10 +115,21 @@ function ImagePreview({
   const [apps, setApps] = useState<AppInfo[]>([])
   const [appsError, setAppsError] = useState(false)
   const [failed, setFailed] = useState(false)
+  const cachedFile = useRef<Promise<string> | null>(null)
   const sending = useLightbox((state) => state.sending)
-  const editor = useImageEditor(image.src, natural, onSend, closeLightbox, setLightboxSending, sending)
+  const availability = useImageAvailability(onSend !== undefined)
+  const editor = useImageEditor(
+    image.src,
+    natural,
+    onSend,
+    closeLightbox,
+    setLightboxSending,
+    sending,
+    availability.canGenerate
+  )
   const path = localPath(image.uri) ?? localPath(image.src)
   const data = /^data:(image\/[^;,]+);base64,([\s\S]*)$/.exec(image.src)
+  const canOpen = path !== null || data !== null
   const name = image.uri ? chatFileName(image.uri) : `image.${data?.[1]?.split("/")[1] ?? "png"}`
   const fit =
     natural.width && bounds.width
@@ -119,6 +155,17 @@ function ImagePreview({
       setBusy(false)
     }
   }
+  const resolvePath = async (): Promise<string> => {
+    if (path) return path
+    if (!data) throw new Error("Image has no local file or inline data")
+    // Materialize only on an explicit file action and reuse the same file within this preview.
+    return (cachedFile.current ??= commands
+      .chatWritePastedFile({ name, data: Array.from(Uint8Array.fromBase64(data[2])) })
+      .catch((error: unknown) => {
+        cachedFile.current = null
+        throw error
+      }))
+  }
   const loadApps = (): void => {
     setAppsError(false)
     void readAppsInfo(
@@ -135,6 +182,12 @@ function ImagePreview({
       <header className="flex w-full shrink-0 items-center justify-end gap-3 px-4 py-3">
         <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
         <div className="flex shrink-0 items-center gap-2" role="toolbar" aria-label={t("chat.image.tools")}>
+          {onOpenConversation && (
+            <Button variant="ghost" size="sm" disabled={editor.sending} onClick={onOpenConversation}>
+              <MessageSquareIcon />
+              {t("images.openConversation")}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="outline" className="rounded-full" aria-label={t("chat.image.zoom")} />}
@@ -158,14 +211,14 @@ function ImagePreview({
           </DropdownMenu>
           <div
             className="flex items-center rounded-full border bg-background"
-            title={!path ? t("chat.image.localRequired") : undefined}
+            title={!canOpen ? t("chat.image.localRequired") : undefined}
           >
             <Button
               variant="ghost"
               className="rounded-s-full"
-              disabled={!path || busy || editor.sending}
-              title={!path ? t("chat.image.localRequired") : undefined}
-              onClick={() => path && void run(() => openPath(path))}
+              disabled={!canOpen || busy || editor.sending}
+              title={!canOpen ? t("chat.image.localRequired") : undefined}
+              onClick={() => void run(async () => openPath(await resolvePath()))}
             >
               <FolderOpenIcon />
               {t("actions.open")}
@@ -177,9 +230,9 @@ function ImagePreview({
                     variant="ghost"
                     size="icon"
                     className="rounded-e-full"
-                    disabled={!path || busy || editor.sending}
+                    disabled={!canOpen || busy || editor.sending}
                     aria-label={t("chat.image.openWith")}
-                    title={!path ? t("chat.image.localRequired") : undefined}
+                    title={!canOpen ? t("chat.image.localRequired") : undefined}
                   />
                 }
               >
@@ -189,14 +242,14 @@ function ImagePreview({
                 {apps.map((app) => (
                   <DropdownMenuItem
                     key={app.bundle_id}
-                    onClick={() => path && void run(() => openPathInApp(app.bundle_id, path))}
+                    onClick={() => void run(async () => openPathInApp(app.bundle_id, await resolvePath()))}
                   >
                     {app.icon && <img src={app.icon} alt="" className="size-4" />}
                     {app.name}
                   </DropdownMenuItem>
                 ))}
                 {appsError && <DropdownMenuItem disabled>{t("chat.image.appsUnavailable")}</DropdownMenuItem>}
-                <DropdownMenuItem onClick={() => path && void run(() => revealItemsInDir(path))}>
+                <DropdownMenuItem onClick={() => void run(async () => revealItemsInDir(await resolvePath()))}>
                   {t("chat.filePreview.reveal")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -255,6 +308,12 @@ function ImagePreview({
           )}
         </div>
       </div>
+      {!failed && editor.available && <ImageServiceNotice availability={availability} />}
+      {!failed && editor.available && availability.available && (
+        <div className="flex shrink-0 justify-center px-4">
+          <ImageModelSelect />
+        </div>
+      )}
       {!failed && <ImageEditToolbar editor={editor} />}
       {count > 1 && (
         <>
@@ -284,10 +343,20 @@ function ImagePreview({
   )
 }
 
-export function ImageLightbox({ sessionId, onSend }: { sessionId?: string; onSend?: SendImageEdit }) {
+export function ImageLightbox({
+  sessionId,
+  onSend,
+  scope = "conversation",
+  onOpenConversation
+}: {
+  sessionId?: string
+  onSend?: SendImageEdit
+  scope?: LightboxScope
+  onOpenConversation?: () => void
+}) {
   const { t } = useTranslation()
-  const { images, index, sessionId: owner } = useLightbox()
-  const image = owner === sessionId ? images[index] : undefined
+  const { images, index, sessionId: owner, scope: ownerScope } = useLightbox()
+  const image = owner === sessionId && ownerScope === scope ? images[index] : undefined
   return (
     <Dialog open={image !== undefined} onOpenChange={(open) => !open && closeLightbox()}>
       <DialogContent
@@ -312,6 +381,14 @@ export function ImageLightbox({ sessionId, onSend }: { sessionId?: string; onSen
             index={index}
             count={images.length}
             onSend={onSend}
+            onOpenConversation={
+              onOpenConversation
+                ? () => {
+                    closeLightbox()
+                    onOpenConversation()
+                  }
+                : undefined
+            }
           />
         )}
       </DialogContent>

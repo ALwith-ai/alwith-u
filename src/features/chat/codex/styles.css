@@ -1,5 +1,34 @@
 @import "@alwith/module-chat/styles.css";
 
+/* Image conversations expose generation previews instead of the coding activity ledger. */
+[data-image-conversation] .codex-work-section,
+[data-image-conversation] .codex-pending-message {
+  display: none;
+}
+
+/* Both model menus use the conversation catalog's width. */
+[data-slot="dropdown-menu-content"]:is([data-image-model-menu], :has(> [data-model-menu-header])) {
+  width: 280px;
+}
+
+/* The animated image placeholder already conveys progress without a separate status badge. */
+.codex-image-generation[aria-busy="true"] .codex-image-generation-status {
+  display: none;
+}
+
+/* Keep conversation previews compact; the lightbox owns full-size viewing. */
+.codex-generated-image {
+  max-width: min(20rem, 100%);
+}
+
+.codex-generated-image img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(20rem, 45vh);
+  object-fit: contain;
+}
+
 /* The project picker belongs to the host, outside the shared composer. */
 @media (hover: hover) {
   .chat-project-picker:not(:disabled):not([aria-disabled="true"]):not([data-disabled]):hover {

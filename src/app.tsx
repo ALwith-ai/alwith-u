@@ -36,6 +36,9 @@ import { ExtensionsSection } from "@/features/extensions/extensions-section"
 import { showExtensionLimitations } from "@/features/extensions/legacy/limitations"
 import { reportExtensionError } from "@/features/extensions/runtime"
 import { useExtensions } from "@/features/extensions/use-extensions"
+import { ImagePage } from "@/features/images/image-page"
+import { imageNavigation, openImagesForSession } from "@/features/images/navigation"
+import { useImagePreferenceSync } from "@/features/images/preferences"
 import { AppStatusBar } from "@/features/layout/components/app-status-bar"
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
@@ -99,6 +102,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [driveSidebar, setDriveSidebar] = useState<HTMLDivElement | null>(null)
   const [workspaceToolbar, setWorkspaceToolbar] = useState<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [imageTarget, setImageTarget] = useState<string | null>(null)
+  const navigationRevision = useRef(0)
   useEffect(() => {
     if (isTauri()) void commands.bridgeSetActiveSession({ sessionId: selectedId })
   }, [selectedId])
@@ -111,12 +116,19 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // Management pages share the leading screen; the offscreen chat stays mounted.
-  const [view, setView] = useState<"chat" | "plugins" | "extensions" | "vibemon" | "archives" | "story" | "extension">(
-    "chat"
+  const [view, setView] = useState<
+    "chat" | "plugins" | "extensions" | "vibemon" | "archives" | "images" | "story" | "extension"
+  >("chat")
+  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives" | "images">(
+    "extensions"
   )
-  const [leadingPage, setLeadingPage] = useState<"plugins" | "extensions" | "vibemon" | "archives">("extensions")
   const leading =
-    view === "plugins" || view === "extensions" || view === "vibemon" || view === "extension" || view === "archives"
+    view === "images" ||
+    view === "plugins" ||
+    view === "extensions" ||
+    view === "vibemon" ||
+    view === "extension" ||
+    view === "archives"
   const [extensionView, setExtensionView] = useState<string | null>(null)
   const openExtension = useCallback(
     (id: string): void => {
@@ -131,6 +143,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     },
     [extensionRuntime]
   )
+  const openImages = useCallback(() => {
+    ++navigationRevision.current
+    setImageTarget(null)
+    setLeadingPage("images")
+    setView("images")
+  }, [])
+  useImagePreferenceSync()
   const openArchives = useCallback(() => {
     setLeadingPage("archives")
     setView("archives")
@@ -150,12 +169,14 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     setView("vibemon")
   }, [])
   const openLeading = useCallback((): void => {
-    if (leadingPage === "extensions") openExtensions()
+    if (leadingPage === "images") openImages()
+    else if (leadingPage === "extensions") openExtensions()
     else if (leadingPage === "vibemon") openVibemon()
     else if (leadingPage === "archives") openArchives()
     else openPlugins()
-  }, [leadingPage, openExtensions, openVibemon, openArchives, openPlugins])
+  }, [leadingPage, openExtensions, openVibemon, openArchives, openPlugins, openImages])
   const session = useSession(selectedId)
+  const imageSession = useSession(imageTarget)
   const draftSessions = useApp((state) => state.draftSessions)
   const { busy, operation } = useSurfaceOperation()
   const extensionSession = useRef(session)
@@ -214,6 +235,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   const select = useCallback(
     (sessionRow: SessionSummary) => {
+      const revision = ++navigationRevision.current
       // Codex refuses to resume an archived session; opening one restores it first, as the
       // official client does.
       void operation
@@ -233,6 +255,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             include: (sessionRow) => client.includeSession(sessionRow),
             open: (id, cwd) => client.open(id, cwd),
             show: (id) => {
+              if (revision !== navigationRevision.current) return
               setSurfaceGeneration((value) => value + 1)
               setView("chat")
               setSelectedId(id)
@@ -243,6 +266,18 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         .catch((error: unknown) => toast.error(describe(error)))
     },
     [operation]
+  )
+
+  useEffect(
+    () =>
+      imageNavigation.subscribe((state) => {
+        if (!state.request) return
+        ++navigationRevision.current
+        setImageTarget(state.request.sessionId)
+        setLeadingPage("images")
+        setView("images")
+      }),
+    []
   )
 
   const chooseDraftFolder = useCallback((directory: string | null) => {
@@ -291,6 +326,16 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       const stopClient = await serveChatClient(client, undefined, (error) => toast.error(describe(error)))
       const stopSurface = await serveChatSurface(async (action) => {
         switch (action.type) {
+          case "images": {
+            if (typeof action.sessionId !== "string" || !client.state.sessions[action.sessionId])
+              throw new Error("Invalid image source session")
+            await openImagesForSession(action.sessionId)
+            const win = getCurrentWebviewWindow()
+            await win.unminimize()
+            await win.show()
+            await win.setFocus()
+            return null
+          }
           case "vibemon": {
             if (action.view !== "pull" && action.view !== "equip") throw new Error("Invalid Vibémon view")
             flushSync(() => {
@@ -628,6 +673,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}
               onOpenVibemon={openVibemon}
+              onOpenImages={openImages}
               onOpenWindow={() => void openChatWindow().catch((error) => toast.error(describe(error)))}
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
@@ -644,6 +690,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               <LeadingNavigation
                 activePage={view === "extension" ? null : leadingPage}
                 onOpenVibemon={openVibemon}
+                onOpenImages={openImages}
                 onOpenArchives={openArchives}
                 onOpenPlugins={openExtensions}
               >
@@ -658,6 +705,21 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               <SidebarInset className="main-chat-surface flex min-h-0 flex-col">
                 {leading && actionCards}
                 {view === "archives" && <ArchivedChatsPage />}
+                {view === "images" && (
+                  <ImagePage
+                    contextSession={imageSession ?? session}
+                    contextSessionId={imageTarget ?? undefined}
+                    cwd={null}
+                    busy={busy}
+                    onCreated={(id) => {
+                      ++navigationRevision.current
+                      setSelectedId(id)
+                      setSurfaceGeneration((value) => value + 1)
+                      setView("chat")
+                    }}
+                    onOpenConversation={select}
+                  />
+                )}
                 {/* Atlas gestures and overview previews need the default page before navigation settles. */}
                 <div
                   className={

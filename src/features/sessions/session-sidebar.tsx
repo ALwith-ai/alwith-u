@@ -49,6 +49,7 @@ import { useDriveVisible } from "@/features/drive/use-drive-visible"
 import { GuideButton } from "@/features/guide/guide-button"
 import type { MainScreen } from "@/features/layout/components/main-sidebar-layout"
 import { useApp } from "@/lib/client"
+import { ImageIcon } from "@/features/images/image-icon"
 import { updateLabels } from "@/lib/update-labels"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
@@ -80,7 +81,7 @@ function SessionRowActions({ sessionRow, collectionId }: { sessionRow: SessionSu
 
 type SessionSidebarProps = {
   screen: MainScreen
-  leadingPage: "plugins" | "extensions" | "vibemon" | "archives"
+  leadingPage: "plugins" | "extensions" | "vibemon" | "archives" | "images"
   selectedId: string | null
   onSelect: (sessionRow: SessionSummary) => void
   onNewChat: () => void
@@ -90,6 +91,7 @@ type SessionSidebarProps = {
   onOpenVibemon?: () => void
   onOpenSettings: () => void
   onOpenPlugins: () => void
+  onOpenImages?: () => void
   extensionNavigation?: ReactNode
   drivePanel?: ReactNode
   onSwitchScreen: () => void
@@ -115,6 +117,7 @@ function SidebarPanels({
   onOpenVibemon,
   onOpenSettings,
   onOpenPlugins,
+  onOpenImages,
   extensionNavigation,
   drivePanel,
   onSwitchScreen
@@ -241,6 +244,18 @@ function SidebarPanels({
               className={MENU_HIGHLIGHT}
               onClick={onOpenVibemon}
             >
+          {onOpenImages && (
+            <NavigationItemButton
+              active={screen === "leading" && leadingPage === "images"}
+              className={MENU_HIGHLIGHT}
+              onClick={onOpenImages}
+            >
+              <NavigationLeading>
+                <ImageIcon />
+              </NavigationLeading>
+              <span>{t("images.title")}</span>
+            </NavigationItemButton>
+          )}
               <NavigationLeading>
                 <PawPrintIcon />
               </NavigationLeading>

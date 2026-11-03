@@ -46,6 +46,14 @@ if (typeof document !== "undefined") {
     Object.getPrototypeOf(Buffer.prototype) as { constructor: Uint8ArrayConstructor }
   ).constructor
   globalThis.ArrayBuffer = Buffer.alloc(0).buffer.constructor as ArrayBufferConstructor
+  // Node 24 lacks the typed-array base64 API supported by the desktop webview.
+  if (typeof Uint8Array.prototype.toBase64 !== "function") {
+    Object.defineProperty(Uint8Array.prototype, "toBase64", {
+      value(this: Uint8Array) {
+        return Buffer.from(this.buffer, this.byteOffset, this.byteLength).toString("base64")
+      }
+    })
+  }
   // jsdom's FileReader rejects the Node Blobs that fetch responses produce; read any blob-like
   // value through its own methods instead.
   globalThis.FileReader = class NodeFileReader extends EventTarget {

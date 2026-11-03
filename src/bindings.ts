@@ -61,7 +61,8 @@ export const commands = {
   deviceAttachments: (): Promise<AttachmentInfo_Serialize[]> =>
     __t3Invoke<AttachmentInfo_Serialize[]>("device_attachments"),
   /**
-   *  The panel attaches on behalf of its conversation so the agent's tools see the same device.
+   *  The panel opens a device for its conversation so the agent's tools see the same one; a device another
+   *  conversation holds moves to this one.
    */
   deviceAttach: (args: {
     sessionId: string
@@ -139,6 +140,13 @@ export const commands = {
     github: string | null
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
   prepareCursorImport: (args: { cwds: string[] }): Promise<null> => __t3Invoke<null>("prepare_cursor_import", args),
+  imagesCancel: (args: { requestId: string }): Promise<null> => __t3Invoke<null>("images_cancel", args),
+  imagesConfigured: (): Promise<boolean> => __t3Invoke<boolean>("images_configured"),
+  imagesReadSettings: (): Promise<ImageSettings> => __t3Invoke<ImageSettings>("images_read_settings"),
+  imagesSaveSettings: (args: { input: ImageSettingsInput_Deserialize }): Promise<ImageSettings> =>
+    __t3Invoke<ImageSettings>("images_save_settings", args),
+  imagesGenerateSeedream: (args: { input: ImageInput }): Promise<ImageResult> =>
+    __t3Invoke<ImageResult>("images_generate_seedream", args),
   voiceStart: (args: { options: StartOptions_Deserialize; events: __t3Channel<VoiceEvent_Serialize> }): Promise<null> =>
     __t3Invoke<null>("voice_start", args),
   voiceControl: (args: { action: string; recordingId: string }): Promise<null> =>
@@ -423,6 +431,11 @@ export type CommandErrors = {
   draftDirectory: string
   workbuddyCreate: string
   prepareCursorImport: string
+  imagesCancel: string
+  imagesConfigured: string
+  imagesReadSettings: string
+  imagesSaveSettings: string
+  imagesGenerateSeedream: string
   voiceStart: string
   voiceControl: string
   voiceProfiles: string
@@ -1027,6 +1040,44 @@ export type HttpResponse = {
   url: string
   headers: { [key in string]: string }
   body: number[]
+}
+
+export type ImageData = {
+  mimeType: string
+  data: string
+}
+
+export type ImageInput = {
+  requestId: string
+  model: string
+  size: string
+  prompt: string
+  images: string[]
+}
+
+export type ImageResult = {
+  images: ImageData[]
+}
+
+export type ImageSettings = {
+  revision: number
+  baseUrl: string
+  defaultBaseUrl: string
+  configured: boolean
+}
+
+export type ImageSettingsInput = ImageSettingsInput_Serialize | ImageSettingsInput_Deserialize
+
+export type ImageSettingsInput_Deserialize = {
+  expectedRevision: number
+  baseUrl: string
+  apiKey?: string | null
+}
+
+export type ImageSettingsInput_Serialize = {
+  expectedRevision: number
+  baseUrl: string
+  apiKey: string | null
 }
 
 export type ImportedImage = {

@@ -1904,3 +1904,18 @@ test("selecting the default folder explicitly does not reuse a projectless draft
   expect(explicit).not.toBe(quick)
   expect(fake.deleted.has(quick)).toBe(true)
 })
+
+test("child history is read without resuming, selecting or claiming its writer", async () => {
+  const { client, fake, port } = await make()
+  const before = client.state
+  const page = await client.readSubagentHistory("recorded-child", "/work", null)
+  expect(page.session.id).toBe("recorded-child")
+  expect(page.session.items.some((item) => item.kind === "assistant")).toBe(true)
+  expect(page.session.items.every((item) => item.replayed)).toBe(true)
+  expect(client.state).toBe(before)
+  expect(port.attached).toEqual([])
+  expect(fake.modelHints.size).toBe(0)
+  expect(fake.historyRequests).toEqual([
+    expect.objectContaining({ sessionId: "recorded-child", mode: "browse", limit: 5 })
+  ])
+})

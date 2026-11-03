@@ -303,7 +303,7 @@ fn update(saved: &Saved, id: String, input: Option<Input>, expected_revision: u6
     })
 }
 
-fn normalize_base_url(value: &str) -> Result<String, String> {
+pub(crate) fn normalize_base_url(value: &str) -> Result<String, String> {
     let mut url = reqwest::Url::parse(value.trim()).map_err(|error| format!("API base URL is invalid: {error}"))?;
     let local_http = url.scheme() == "http" && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"));
     if url.scheme() != "https" && !local_http {

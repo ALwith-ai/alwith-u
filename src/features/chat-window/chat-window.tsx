@@ -13,6 +13,7 @@ import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
+import { useImagePreferenceSync } from "@/features/images/preferences"
 import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
 import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
@@ -39,6 +40,7 @@ function report(error: unknown): void {
 
 export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const { t } = useTranslation()
+  useImagePreferenceSync()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)

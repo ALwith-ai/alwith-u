@@ -26,6 +26,11 @@ vi.mock("../sections/appearance-section", () => ({ AppearanceSection: () => null
 vi.mock("../sections/account-section", () => ({ AccountSection: () => null }))
 vi.mock("../sections/provider-section", () => ({ ProviderSection: () => null }))
 vi.mock("../sections/voice-section", () => ({ VoiceSection: () => null }))
+vi.mock("../sections/image-section", () => ({
+  ImageSection: ({ onOpenModels }: { onOpenModels: () => void }) => (
+    <button onClick={onOpenModels}>Manage image account</button>
+  )
+}))
 vi.mock("../sections/computer-section", () => ({ ComputerSection: () => null }))
 vi.mock("../sections/about-section", () => ({ AboutSection: () => null }))
 
@@ -67,4 +72,18 @@ test("explorer settings expose the global hidden-file switch", () => {
   fireEvent.click(screen.getByRole("button", { name: "Explorer" }))
   expect(screen.getByRole("region", { name: "Explorer" })).toBeVisible()
   expect(screen.getByRole("switch", { name: "Show hidden files" })).toBeVisible()
+})
+
+test("image settings have a permanent section and account management returns to Models", () => {
+  window.history.replaceState(null, "", "/settings.html?tab=images")
+  try {
+    render(<SettingsPage />)
+    expect(screen.getByRole("region", { name: "Images" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Images" })).toHaveAttribute("aria-current", "page")
+    fireEvent.click(screen.getByRole("button", { name: "Manage image account" }))
+    expect(screen.getByRole("region", { name: "Models" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Images" })).not.toHaveAttribute("aria-current")
+  } finally {
+    window.history.replaceState(null, "", "/")
+  }
 })

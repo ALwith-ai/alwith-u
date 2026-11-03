@@ -4,6 +4,8 @@ import { type StateSetter } from "@alwith/api/client"
 // U's Codex client extends the adapter-owned ACP client with two chat slots, gateway
 // model hints, and fork titles. Runtime transport and run states remain in @alwith/api.
 import {
+  type Agent,
+  type AgentRequest,
   type ClientOptions as BaseClientOptions,
   CodexClient as CodexAcpClient,
   type CodexClientState,
@@ -12,19 +14,25 @@ import {
   type ForkOrigin,
   isBooleanOption,
   isGroupedSelect,
+  isImage,
   isSelectOption,
+  isToolCallSubject,
   mergeMeta,
   type NewSessionOptions,
   type PendingAction,
+  type PromptOptions,
   type ReplayScope,
   type Session,
   type SessionOperation,
   type SessionRequestOptions,
   type SessionSummary
 } from "@alwith/module-chat/client"
+import { IMAGE_TOOL, imageArtifacts, imageModel, type ImageSelection, imageToolSet } from "@alwith/module-chat/image"
 
 import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
+import { imageGenerationPrompt, type ImageRequestAspect, imageRequestAspect } from "./image-request"
+import { IMAGE_THREAD_SOURCE, isImageSession } from "./session-kind"
 
 export type { ForkOrigin, PendingAction }
 
@@ -50,6 +58,15 @@ export type Launch = { engine: string; [key: string]: unknown }
 export type ClientOptions = BaseClientOptions & {
   /** Resolve a slot selection against the host's applied provider configuration. */
   resolveModel?: (model: string | null) => Promise<string | null>
+  imageService?: {
+    selection: () => ImageSelection
+    generateExternal: (
+      selection: ImageSelection,
+      prompt: string,
+      images: string[],
+      signal?: AbortSignal
+    ) => Promise<{ images: { mimeType: string; data: string }[] }>
+  }
 }
 
 export type DraftOwner = "main" | "chat"
@@ -105,13 +122,214 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private readonly resolveModelOption: ClientOptions["resolveModel"]
 
   constructor(openPort: () => Promise<RuntimeClient<Launch>>, options: ClientOptions) {
-    const { resolveModel, ...base } = options
+    const { resolveModel, imageService, ...base } = options
     super(
       openPort,
       { info: { name: "alwith-u", version: "0.1.0" }, ...base },
       { sessionWindows: {}, draftSessions: {}, accountModelRecovery: {} }
     )
     this.resolveModelOption = resolveModel
+    this.imageService = imageService
+  }
+
+  private readonly imageService: ClientOptions["imageService"]
+  private readonly imageRequests = new Map<
+    string,
+    { selection: ImageSelection; references: Map<string, string>; aspect?: ImageRequestAspect }
+  >()
+
+  protected override sessionMeta(operation: SessionOperation): Record<string, unknown> | undefined {
+    return mergeMeta(super.sessionMeta(operation), this.imageService ? { alwith: { tools: imageToolSet } } : undefined)
+  }
+
+  override prompt(id: string, prompt: acp.ContentBlock[], options: PromptOptions = {}): Promise<string> {
+    if (!this.imageService) return super.prompt(id, prompt, options)
+    imageRequestAspect((options.meta?.alwith as { imageAspectRatio?: unknown } | undefined)?.imageAspectRatio)
+    const requested = (options.meta?.alwith as { imageSelection?: ImageSelection } | undefined)?.imageSelection
+    if (requested !== undefined) imageModel(requested)
+    const nextSelection = requested === undefined ? this.imageService.selection() : requested
+    const selection = {
+      ...(this.session(id).state !== "idle" ? (this.imageRequests.get(id)?.selection ?? nextSelection) : nextSelection)
+    }
+    imageModel(selection)
+    const requestId = crypto.randomUUID()
+    this.promptImages.set(
+      requestId,
+      new Map(
+        prompt.flatMap((block, index) =>
+          isImage(block) ? [[`attachment:${index}`, `data:${block.mimeType};base64,${block.data}`] as const] : []
+        )
+      )
+    )
+    return super
+      .prompt(id, prompt, {
+        ...options,
+        meta: mergeMeta(options.meta, { alwith: { imageSelection: selection, imageRequestId: requestId } })
+      })
+      .finally(() => this.promptImages.delete(requestId))
+  }
+
+  protected override promptMeta(id: string, options: PromptOptions): Record<string, unknown> | undefined {
+    const selection = (options.meta?.alwith as { imageSelection?: ImageSelection } | undefined)?.imageSelection
+    if (selection && this.imageService && (this.session(id).state === "idle" || !this.imageRequests.has(id))) {
+      const references = new Map(imageArtifacts(this.session(id)).map((image) => [image.id, image.src]))
+      // Prompt attachments are supplied by the caller in promptWithImages below or ordinary image edits.
+      for (const [key, value] of this.promptImages.get(
+        (options.meta?.alwith as { imageRequestId: string }).imageRequestId
+      ) ?? [])
+        references.set(key, value)
+      const aspect = imageRequestAspect((options.meta?.alwith as { imageAspectRatio?: unknown }).imageAspectRatio)
+      this.imageRequests.set(id, { selection, references, ...(aspect ? { aspect } : {}) })
+    }
+    return super.promptMeta(id, options)
+  }
+
+  private readonly activeImages = new Map<string, Set<AbortController>>()
+  private readonly promptImages = new Map<string, Map<string, string>>()
+
+  promptWithImages(id: string, prompt: acp.ContentBlock[], options: PromptOptions = {}): Promise<string> {
+    return this.prompt(id, prompt, options)
+  }
+
+  protected override handleAgentRequest(agent: Agent, request: AgentRequest): boolean {
+    if (this.imageService && request.method === "session/request_permission") {
+      const params = request.params as acp.RequestPermissionRequest
+      const session = this.state.sessions[params.sessionId]
+      // The adapter identifies a declared client tool with its exact description in the permission title.
+      // Sending an image prompt already authorizes this tool; other permissions stay in the normal ledger.
+      if (
+        session?.attached &&
+        !session.readOnly &&
+        this.imageRequests.has(params.sessionId) &&
+        params.title === imageToolSet.definitions[0]!.description &&
+        params.subject != null &&
+        isToolCallSubject(params.subject) &&
+        params.subject.toolCall.kind === "other" &&
+        params.options.some((option) => option.optionId === "allow_once" && option.kind === "allow_once")
+      ) {
+        void agent.respond(request.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
+        return true
+      }
+    }
+    if (!this.imageService || request.method !== "_alwith/tool/call") return super.handleAgentRequest(agent, request)
+    const params = request.params as {
+      sessionId?: unknown
+      name?: unknown
+      arguments?: unknown
+      toolSetRevision?: unknown
+      toolCallId?: unknown
+    }
+    if (params.name !== IMAGE_TOOL) return super.handleAgentRequest(agent, request)
+    const run = async () => {
+      if (typeof params.sessionId !== "string" || params.toolSetRevision !== imageToolSet.revision)
+        throw new Error("Invalid image tool session or revision")
+      const sessionId = params.sessionId
+      const snapshot = this.imageRequests.get(sessionId)
+      const session = this.state.sessions[sessionId]
+      if (!snapshot || !session?.attached || session.readOnly) throw new Error("Image request is no longer active")
+      const args = params.arguments as { prompt?: unknown; references?: unknown }
+      if (
+        typeof args?.prompt !== "string" ||
+        !args.prompt.trim() ||
+        (args.references !== undefined &&
+          (!Array.isArray(args.references) || args.references.some((ref) => typeof ref !== "string")))
+      )
+        throw new Error("Invalid image instructions or references")
+      const ids = args.references as string[] | undefined
+      const images = (ids ?? [...snapshot.references.keys()].filter((id) => id.startsWith("attachment:"))).map((id) => {
+        const image = snapshot.references.get(id)
+        if (!image) throw new Error(`Unknown image reference: ${id}`)
+        return image
+      })
+      const model = imageModel(snapshot.selection)
+      if (images.length > model.maxReferences) throw new Error(`This model supports ${model.maxReferences} references`)
+      const controller = new AbortController()
+      const active = this.activeImages.get(sessionId) ?? new Set<AbortController>()
+      active.add(controller)
+      this.activeImages.set(sessionId, active)
+      let result: { images: { mimeType: string; data: string }[] }
+      try {
+        const prompt = imageGenerationPrompt(args.prompt, snapshot.aspect)
+        result =
+          model.provider === "chatgpt"
+            ? await agent.request(
+                "_codex/images/generate",
+                { prompt, images },
+                { cancellationSignal: controller.signal }
+              )
+            : await this.imageService!.generateExternal(snapshot.selection, prompt, images, controller.signal)
+      } finally {
+        active.delete(controller)
+        if (!active.size) this.activeImages.delete(sessionId)
+      }
+      controller.signal.throwIfAborted()
+      if (this.imageRequests.get(sessionId) !== snapshot || !this.state.sessions[sessionId]?.attached)
+        throw new Error("Image request was cancelled or replaced")
+      result.images.forEach((image, index) =>
+        snapshot.references.set(
+          `${String(params.toolCallId)}:${index + 1}`,
+          `data:${image.mimeType};base64,${image.data}`
+        )
+      )
+      return {
+        success: true,
+        contentItems: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              kind: "alwith.image",
+              version: 1,
+              model: model.id,
+              size: snapshot.selection.size,
+              displayed: true,
+              message:
+                "The application already displays these images and provides downloads. Finish with the returned image reference; do not regenerate, echo image data or write files to deliver this result.",
+              references: ids ?? [],
+              images: result.images.map((_, index) => ({ reference: `${String(params.toolCallId)}:${index + 1}` }))
+            })
+          },
+          ...result.images.map((image) => ({ type: "image", ...image }))
+        ]
+      }
+    }
+    void run()
+      .then(
+        (result) => agent.respond(request.id, result),
+        (error) =>
+          agent.respond(request.id, {
+            success: false,
+            contentItems: [{ type: "text", text: error instanceof Error ? error.message : String(error) }]
+          })
+      )
+      .catch(() => undefined)
+    return true
+  }
+
+  private releaseImages(id: string): void {
+    for (const controller of this.activeImages.get(id) ?? []) controller.abort()
+    this.activeImages.delete(id)
+    this.imageRequests.delete(id)
+  }
+
+  protected override onDisconnected(): void {
+    for (const id of this.imageRequests.keys()) this.releaseImages(id)
+    this.promptImages.clear()
+    super.onDisconnected()
+  }
+
+  override async cancel(id: string): Promise<void> {
+    this.releaseImages(id)
+    await super.cancel(id)
+  }
+
+  override async close(id: string): Promise<void> {
+    this.releaseImages(id)
+    await super.close(id)
+  }
+
+  override async stopSession(id: string): Promise<void> {
+    this.releaseImages(id)
+    await super.stopSession(id)
   }
 
   private setApp(partial: StateSetter<AppState>): void {
@@ -283,7 +501,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     await this.listSessions()
     const project = this.projectPath(cwd)
     const group = this.sessionGroup({ cwd: project }).id
-    return this.state.sessionList.filter((item) => this.sessionGroup(item).id === group)
+    return this.state.sessionList.filter((item) => !isImageSession(item) && this.sessionGroup(item).id === group)
   }
 
   // ── Slots: create, open, configure ──
@@ -304,17 +522,57 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private async createNativeSession(
     cwd: string | undefined,
     model: string | null,
-    owner: DraftOwner | null
+    owner: DraftOwner | null,
+    meta?: Record<string, unknown>
   ): Promise<string> {
     const id = await super.newSession(cwd, {
       draft: owner !== null,
-      meta: mergeMeta(modelHint(model), owner === null ? undefined : { alwith: { draft: true } })
+      meta: mergeMeta(mergeMeta(modelHint(model), meta), owner === null ? undefined : { alwith: { draft: true } })
     })
     if (owner !== null) {
       this.draftDirectoryIntents.set(id, cwd)
       this.setApp((state) => ({ draftSessions: { ...state.draftSessions, [id]: owner } }))
     }
     this.noteModel(this.session(id))
+    return id
+  }
+
+  /** Discovery can configure an unmaterialized native session without replacing the main draft. */
+  async newImageSession(cwd?: string, options: { draft?: boolean; from?: string } = {}): Promise<string> {
+    const directory = cwd ?? (await this.refreshProjectContext(true)).chatDirectory
+    const version = options.draft ? null : ++this.slotVersions.main
+    const source = options.from ? this.session(options.from) : null
+    const model = await this.resolveModel(
+      (source ? selectedModel(source.configOptions) : null) ?? this.savedModels.main ?? this.slotModels.main
+    )
+    const id = await super.newSession(directory, {
+      draft: options.draft ?? false,
+      meta: mergeMeta(modelHint(model), {
+        codex: { threadSource: IMAGE_THREAD_SOURCE },
+        ...(options.draft ? { alwith: { draft: true } } : {})
+      })
+    })
+    try {
+      for (const option of source?.configOptions ?? []) {
+        if (option.category !== "thought_level" && option.category !== "model_config") continue
+        const target = this.session(id).configOptions.find((entry) => entry.configId === option.configId)
+        if (!target || target.currentValue === option.currentValue) continue
+        if (isBooleanOption(option) && isBooleanOption(target)) {
+          await this.setConfig(id, option.configId, option.currentValue)
+        } else if (isSelectOption(option) && isSelectOption(target)) {
+          const choices = isGroupedSelect(target.options)
+            ? target.options.flatMap((group) => group.options)
+            : target.options
+          if (choices.some((choice) => choice.value === option.currentValue))
+            await this.setConfig(id, option.configId, option.currentValue)
+        }
+      }
+    } catch (error) {
+      await this.delete(id)
+      throw error
+    }
+    this.noteModel(this.session(id))
+    if (version !== null) this.activateSlot("main", id, version)
     return id
   }
 

@@ -5,6 +5,7 @@ import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { CodexClient } from "@/agent/client"
+import { useImagePreferences } from "@/features/images/preferences"
 
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
 import { DesktopCodexClient } from "../desktop-client"
@@ -65,6 +66,45 @@ function eventBus(): ChatEvents {
     }
   }
 }
+
+test("image drafts, submissions and read-only gallery history stay on the main ACP owner", async () => {
+  const fake = createFakeAgent()
+  const owner = new CodexClient(() => Promise.resolve(new FakeHubPort(() => fake.app)), {
+    agentId: "codex",
+    launch: { engine: "codex" }
+  })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const read = vi.spyOn(owner, "readSessionHistory")
+  const prompt = vi.spyOn(owner, "promptWithImages")
+  const selection = useImagePreferences.getState().selection
+  try {
+    await remote.connect()
+    const main = await owner.prepareDraft("main", "/tmp/images")
+    const id = await remote.newImageSession("/tmp/images", { draft: true, from: main })
+    expect(owner.state.drafts[id]).toBe(true)
+    expect(remote.state.drafts[id]).toBe(true)
+    expect(owner.state.draftSessions).toEqual({ [main]: "main" })
+    const selected = { model: "doubao-seedream-5-0-pro-260628", size: "1K" } as const
+    useImagePreferences.setState({ selection: selected })
+    await remote.promptWithImages(id, [{ type: "text", text: "A blue circle" }])
+    expect(prompt).toHaveBeenCalledWith(id, [{ type: "text", text: "A blue circle" }], {
+      meta: { alwith: { imageSelection: selected } }
+    })
+    await vi.waitFor(() => expect(owner.session(id).state).toBe("idle"))
+    const items = remote.session(id).items
+    const history = await remote.readSessionHistory(id, "/tmp/images")
+    expect(read).toHaveBeenCalledWith(id, "/tmp/images")
+    expect(history.session.id).toBe(id)
+    expect(remote.session(id).items).toEqual(items)
+  } finally {
+    useImagePreferences.setState({ selection })
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
 
 test("floating pagination forwards the session id and receives older messages from its owner", async () => {
   const fake = createFakeAgent()
@@ -564,7 +604,10 @@ for (const surface of ["main", "chat"] as const) {
           {
             sessionId: id,
             prompt: [{ type: "text", text: "Provider selection test" }],
-            _meta: { codex: { messageSentAt: expect.any(Number) as number } }
+            _meta: {
+              codex: { messageSentAt: expect.any(Number) as number },
+              ...(surface === "chat" ? { alwith: { imageSelection: useImagePreferences.getState().selection } } : {})
+            }
           }
         ]
       ])

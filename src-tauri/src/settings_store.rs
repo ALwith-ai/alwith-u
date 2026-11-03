@@ -243,6 +243,20 @@ impl SettingsStore {
         credentials.insert(key.into(), value.into());
         self.commit(self.values.clone(), credentials)
     }
+    pub fn save_image_provider(&mut self, base_url: &str, api_key: Option<&str>, expected: u64) -> Result<(), String> {
+        let changes = BTreeMap::from([("images.seedream.baseUrl".into(), json!(base_url))]);
+        let values = self.next(changes, Some(expected))?;
+        let mut credentials = self.secrets.snapshot();
+        if let Some(api_key) = api_key {
+            if api_key.is_empty() {
+                credentials.remove("images.seedream.apiKey");
+            } else {
+                validate_secret("images.seedream.apiKey", api_key)?;
+                credentials.insert("images.seedream.apiKey".into(), api_key.into());
+            }
+        }
+        self.commit(values, credentials)
+    }
     pub fn remove_secret(&mut self, key: &str) -> Result<(), String> {
         self.ready()?;
         validate_secret_key(key)?;
@@ -286,7 +300,7 @@ fn normalize(values: &mut BTreeMap<String, Value>) {
     }
 }
 fn validate_secret_key(key: &str) -> Result<(), String> {
-    if matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey") {
+    if matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey" | "images.seedream.apiKey") {
         Ok(())
     } else {
         Err("Unknown credential key".into())
@@ -338,6 +352,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         "voice.doubao.resourceId" => {
             value.as_str().is_some_and(|v| v.trim().bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b)))
         }
+        "images.seedream.baseUrl" => value.as_str().is_some_and(|v| v.len() <= 2048),
         "collections.data" => valid_collections(value),
         "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
         "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),

@@ -1,6 +1,5 @@
 import { applyUpdate, CodexClient, createSession, type Session } from "@alwith/module-chat/client"
-import { ConversationProvider, SessionActions } from "@alwith/module-chat/conversation"
-import { SessionTimeline } from "@alwith/module-chat/session-timeline"
+import { ConversationBody, ConversationProvider, SessionActions } from "@alwith/module-chat/conversation"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, waitFor } from "storybook/test"
@@ -11,7 +10,8 @@ function message(session: Session, text: string) {
   return applyUpdate(session, {
     sessionUpdate: "agent_message",
     messageId: "answer",
-    content: [{ type: "text", text }]
+    content: [{ type: "text", text }],
+    _meta: { codex: { turnId: `${session.id}-turn` } }
   })
 }
 function fixture() {
@@ -32,7 +32,7 @@ function fixture() {
         parentId: parent.id,
         description: "Check child messages, approvals and cancellation",
         capabilities: { cancel: {} },
-        _meta: null
+        _meta: { codex: { threadId: "worker", parentTurnId: "parent-turn" } }
       }
     },
     "Child messages arrive on their own session. The parent keeps ownership and approvals remain accessible."
@@ -42,7 +42,12 @@ function fixture() {
       ...createSession("nested", "/preview", "Compatibility check"),
       attached: true,
       state: "requires_action",
-      subagent: { parentId: child.id, description: "Verify U and TV", capabilities: { cancel: {} }, _meta: null }
+      subagent: {
+        parentId: child.id,
+        description: "Verify U and TV",
+        capabilities: { cancel: {} },
+        _meta: { codex: { threadId: "nested", parentTurnId: "worker-turn" } }
+      }
     },
     "The shared client supports both applications. Permission is required to inspect the fixture directory."
   )
@@ -65,6 +70,8 @@ function fixture() {
       }
     ]
   })
+  client.readSubagentHistory = (threadId) =>
+    Promise.resolve({ session: createSession(threadId, "/preview"), cursor: null })
   client.cancel = (id) => {
     client.store.setState((state) => ({
       sessions: { ...state.sessions, [id]: { ...state.sessions[id], state: "idle" } }
@@ -85,7 +92,7 @@ function Preview() {
   return (
     <ConversationProvider host={host} client={client}>
       <div className="flex h-[640px] min-w-0 flex-col">
-        <SessionTimeline session={parent} client={client} host={host} />
+        <ConversationBody session={parent} />
         <SessionActions sessionId={parent.id} />
       </div>
     </ConversationProvider>
@@ -99,15 +106,15 @@ type Story = StoryObj<typeof meta>
 export const NestedApproval: Story = {
   name: "嵌套授权请求",
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("button", { name: /Protocol review Needs input/ }))
+    await userEvent.click(canvas.getByRole("button", { name: /Protocol review.*Needs input/ }))
     await waitFor(async () => {
       await expect(canvas.getByText(/Child messages arrive/)).toBeVisible()
     })
-    await userEvent.click(canvas.getByRole("button", { name: /Compatibility check Needs input/ }))
+    await userEvent.click(canvas.getByRole("button", { name: /Compatibility check.*Needs input/ }))
     await waitFor(async () => {
       await expect(canvas.getByText(/The shared client supports/)).toBeVisible()
     })
-    await userEvent.click(canvas.getByRole("option", { name: "1 Allow once" }))
+    await userEvent.click(canvas.getByRole("option", { name: /1\s*Allow once/ }))
     await waitFor(async () => {
       await expect(canvas.queryByRole("listbox")).toBeNull()
     })

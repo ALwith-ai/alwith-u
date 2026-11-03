@@ -37,6 +37,7 @@ export type FakeAgent = {
   /** Pushes a `_codex/rate_limits_updated` notification to the connected client. */
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
+  requestTool: (params: unknown) => Promise<unknown>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   resumeResponse: { current: ((signal: AbortSignal) => Promise<acp.ResumeSessionResponse>) | null }
   replayUpdates: acp.SessionUpdate[]
@@ -136,7 +137,7 @@ export function createFakeAgent(): FakeAgent {
       protocolVersion: 2,
       info: { name: "fake-codex", version: "1" },
       capabilities: {
-        session: { fork: {}, systemPrompt: {} },
+        session: { fork: {}, systemPrompt: {}, prompt: { image: {} } },
         _meta: {
           codex: {
             forkAtTurn: true,
@@ -223,7 +224,13 @@ export function createFakeAgent(): FakeAgent {
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
     const id = sessionId()
     modelHints.set(id, hint)
-    return { sessionId: id, configOptions: optionsFor(hint, params._meta), availableCommands: sessionCommands.current }
+    const source = (params._meta?.codex as { threadSource?: unknown } | undefined)?.threadSource
+    return {
+      sessionId: id,
+      configOptions: optionsFor(hint, params._meta),
+      availableCommands: sessionCommands.current,
+      ...(typeof source === "string" ? { _meta: { codex: { threadSource: source } } } : {})
+    }
   })
   app.onRequest("session/fork", async ({ params, client }) => {
     forks.push(params)
@@ -515,6 +522,10 @@ export function createFakeAgent(): FakeAgent {
     historyResponse,
     resumeResponse,
     pushRateLimits,
+    requestTool: async (params) => {
+      if (link === null) throw new Error("Fake agent is not connected")
+      return link.request("_alwith/tool/call", params)
+    },
     requestForm: async (params) => {
       if (link === null) throw new Error("Fake agent is not connected")
       return link.request("elicitation/create", params)

@@ -12,6 +12,7 @@ export const IMAGE_ASPECT_RATIOS = [
 export type ImageAspectRatio = (typeof IMAGE_ASPECT_RATIOS)[number]["value"]
 export type Point = { x: number; y: number }
 export type Stroke = { tool: "pen" | "rectangle" | "arrow"; points: Point[]; width: number; color: string }
+export type ImageComment = Point & { id: string; text: string; color: string }
 export type ImageEditRequest = {
   mode: EditMode
   source: string
@@ -87,7 +88,12 @@ export function strokePath(stroke: Stroke, width: number, height: number): strin
   return `M${x} ${y}${segments}`
 }
 
-export async function renderImageEdit(source: string, strokes: Stroke[], mask: boolean): Promise<string> {
+export async function renderImageEdit(
+  source: string,
+  strokes: Stroke[],
+  mask: boolean,
+  comments: ImageComment[] = []
+): Promise<string> {
   const image = new Image()
   image.src = source
   await image.decode()
@@ -108,6 +114,25 @@ export async function renderImageEdit(source: string, strokes: Stroke[], mask: b
     context.strokeStyle = mask ? "white" : stroke.color
     context.lineWidth = stroke.width * Math.min(canvas.width, canvas.height)
     context.stroke(new Path2D(strokePath(stroke, canvas.width, canvas.height)))
+  }
+  if (!mask) {
+    const radius = Math.max(10, Math.min(canvas.width, canvas.height) * 0.018)
+    comments.forEach((comment, index) => {
+      const x = comment.x * canvas.width
+      const y = comment.y * canvas.height
+      context.beginPath()
+      context.arc(x, y, radius, 0, Math.PI * 2)
+      context.fillStyle = comment.color
+      context.fill()
+      context.strokeStyle = "white"
+      context.lineWidth = Math.max(1, radius / 8)
+      context.stroke()
+      context.fillStyle = "white"
+      context.font = `600 ${radius}px sans-serif`
+      context.textAlign = "center"
+      context.textBaseline = "middle"
+      context.fillText(String(index + 1), x, y)
+    })
   }
   return canvas.toDataURL("image/png")
 }

@@ -1,12 +1,17 @@
 import type { Session } from "@alwith/module-chat/client"
 import { nativeTurnId } from "@alwith/module-chat/client"
 import { ConversationView } from "@alwith/module-chat/conversation"
-import { type ReactNode, type RefObject, useCallback, useRef } from "react"
+import { type ReactNode, type RefObject, useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import { useStore } from "zustand"
 
 import type { SessionSummary } from "@/agent/client"
+import { isImageSession } from "@/agent/session-kind"
 import { CollectionPicker } from "@/features/collection/collection-menu"
 import { SessionPreview } from "@/features/computer/session-preview"
+import { submitImageEdit } from "@/features/images/edit-session"
+import { ImageIcon } from "@/features/images/image-icon"
+import { imageConversationPresentation } from "@/features/images/image-presentation"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client } from "@/lib/client"
 
@@ -37,6 +42,7 @@ function Conversation({
   session,
   voiceResume,
   onOpenWindow,
+  onSelectSession,
   onReturnToMain,
   headerTarget,
   projectMenu,
@@ -48,27 +54,63 @@ function Conversation({
   const { t } = useTranslation()
   const host = useChatHost(session.id)
   const timeline = useTimelineSlots()
+  const imageConversation = useStore(client.store, (state) =>
+    [...state.sessionList, ...state.archivedSessions].some((row) => row.sessionId === session.id && isImageSession(row))
+  )
+  const title = session.title?.trim()
+  const imageTitle =
+    !title || title === t("sidebar.newChat") || title === "New chat" || title === "新聊天"
+      ? t("images.conversationTitle")
+      : title
   const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
+  const presentation = useMemo(
+    () => imageConversationPresentation(session, imageConversation),
+    [session, imageConversation]
+  )
+  const attachRoot = useCallback(
+    (node: HTMLDivElement | null) => {
+      rootRef.current = node
+      node?.toggleAttribute("data-image-conversation", imageConversation)
+    },
+    [rootRef, imageConversation]
+  )
   return (
     <ConversationView
-      session={session}
+      session={presentation}
       client={client}
       host={host}
-      rootRef={rootRef}
+      rootRef={attachRoot}
       timeline={timeline}
       header={
         <>
           <ChatHeader
             target={headerTarget}
-            title={session.title ?? (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))}
-            project={projectMenu}
+            title={
+              imageConversation
+                ? imageTitle
+                : title || (session.items.length === 0 ? t("sidebar.newChat") : t("sidebar.untitled"))
+            }
+            project={
+              imageConversation ? (
+                <span
+                  className="inline-flex size-8 shrink-0 items-center justify-center"
+                  aria-label={t("images.title")}
+                >
+                  <ImageIcon className="size-4" />
+                </span>
+              ) : (
+                projectMenu
+              )
+            }
           >
-            <CollectionPicker
-              sessionId={session.id}
-              favorite
-              hoverBackground="control"
-              className="transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
-            />
+            {!imageConversation && (
+              <CollectionPicker
+                sessionId={session.id}
+                favorite
+                hoverBackground="control"
+                className="transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
+              />
+            )}
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
               onOpenWindow={onOpenWindow}
@@ -103,11 +145,12 @@ function Conversation({
       <ImageLightbox
         sessionId={session.id}
         onSend={async (prompt) => {
-          const current = client.state.sessions[session.id]
-          if (client.state.connection !== "ready" || !current?.attached || current.restoring || current.readOnly) {
-            throw new Error(t("chat.image.edit.notReady"))
-          }
-          await client.prompt(session.id, prompt)
+          if (!imageConversation && !onSelectSession) throw new Error("Image edit navigation is unavailable")
+          const source = [...client.state.sessionList, ...client.state.archivedSessions].find(
+            (row) => row.sessionId === session.id
+          ) ?? { sessionId: session.id, cwd: session.cwd, title: session.title, updatedAt: null, archived: false }
+          const target = await submitImageEdit(client, source, prompt, t("chat.image.edit.notReady"))
+          if (target.sessionId !== session.id) onSelectSession!(target)
         }}
       />
     </ConversationView>

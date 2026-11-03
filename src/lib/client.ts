@@ -1,7 +1,7 @@
 import { observeRunStates } from "@alwith/api"
 import type { Session } from "@alwith/module-chat/client"
 // The app-wide CodexClient instance and the React bindings to its store.
-import { isTauri } from "@tauri-apps/api/core"
+import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
@@ -10,6 +10,8 @@ import { macProjectPaths } from "@/agent/project-path"
 import { commands, events } from "@/bindings"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
+import { useImagePreferences } from "@/features/images/preferences"
+import { chatHistoryState } from "@/lib/chat-history"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -22,6 +24,22 @@ export const client =
     : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
+        imageService: {
+          selection: () => useImagePreferences.getState().selection,
+          generateExternal: async (selection, prompt, images, signal) => {
+            const requestId = crypto.randomUUID()
+            const cancel = () => {
+              void invoke("images_cancel", { requestId }).catch(() => undefined)
+            }
+            signal?.throwIfAborted()
+            signal?.addEventListener("abort", cancel, { once: true })
+            try {
+              return await invoke("images_generate_seedream", { input: { ...selection, prompt, images, requestId } })
+            } finally {
+              signal?.removeEventListener("abort", cancel)
+            }
+          }
+        },
         projectPaths: isMac() ? macProjectPaths : undefined,
         resolveModel: async (model) => {
           const providers = await applyProvidersWhenIdle()
@@ -73,7 +91,7 @@ export async function stopSession(sessionId: string): Promise<void> {
 }
 
 export function useApp<T>(selector: (state: AppState) => T): T {
-  return useStore(client.store, selector)
+  return useStore(client.store, (state) => selector(chatHistoryState(state)))
 }
 
 export function useSession(id: string | null): Session | null {

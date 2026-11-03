@@ -18,6 +18,7 @@ export type SettingsSection =
   | "account"
   | "provider"
   | "voice"
+  | "images"
   | "computer"
   | "extensions"
   | "drive"
@@ -32,6 +33,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "explorer",
   "drive",
   "voice",
+  "images",
   "trackpad",
   "computer",
   "mobile",

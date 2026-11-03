@@ -48,14 +48,18 @@ test("selects the most recently active main conversation after a handoff", () =>
       record("moving", 50),
       record("floating", 60),
       { ...record("draft", 70), reusableDraft: true },
-      record("local-draft", 80)
+      record("local-draft", 80),
+      record("image", 90)
     ].map((record) => [record.sessionId, record])
   )
-  current.sessionWindows = { floating: "chat", older: "main", recent: "main" }
+  current.sessionWindows = { floating: "chat", older: "main", recent: "main", image: "main" }
   current.sessions = Object.fromEntries(
-    ["older", "recent", "floating"].map((id) => [id, { ...createSession(id, "/tmp"), attached: true }])
+    ["older", "recent", "floating", "image"].map((id) => [id, { ...createSession(id, "/tmp"), attached: true }])
   )
   current.draftSessions = { "local-draft": "main" }
+  current.sessionList = [
+    { sessionId: "image", cwd: "/tmp", title: "Image", updatedAt: null, archived: false, threadSource: "alwith-images" }
+  ]
   expect(recentMainActivity(current, "moving")?.sessionId).toBe("recent")
 })
 

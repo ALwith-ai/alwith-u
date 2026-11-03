@@ -25,6 +25,7 @@ mod extension_wire;
 mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
+mod images;
 mod imports;
 mod installed_apps;
 mod legacy_extensions;
@@ -368,6 +369,11 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
                 imports::prepare_cursor_import,
+                images::images_cancel,
+                images::images_configured,
+                images::images_read_settings,
+                images::images_save_settings,
+                images::images_generate_seedream,
                 voice::voice_start,
                 voice::voice_control,
                 voice::voice_profiles,
