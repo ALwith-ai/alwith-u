@@ -82,7 +82,8 @@ export function DraftProjectPicker({
           <Button
             variant="ghost"
             size="icon-xs"
-            className="relative size-4 rounded-full p-0 hover:bg-transparent dark:hover:bg-transparent"
+            data-hover-background="none"
+            className="relative size-4 rounded-full p-0 hover:bg-transparent focus-visible:border-transparent focus-visible:ring-0 dark:hover:bg-transparent"
             aria-label={t("chat.draft.workOutsideProject")}
             title={t("chat.draft.workOutsideProject")}
             disabled={defaultCwd === null}
@@ -99,8 +100,9 @@ export function DraftProjectPicker({
             <Button
               variant="ghost"
               size="sm"
+              data-hover-background="none"
               className={cn(
-                "h-7 min-w-0 shrink gap-1.5 rounded-full py-0 text-sm font-normal text-inherit hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent",
+                "h-7 min-w-0 shrink gap-1.5 rounded-full py-0 text-sm font-normal text-inherit hover:bg-transparent focus-visible:border-transparent focus-visible:ring-0 aria-expanded:bg-transparent dark:hover:bg-transparent",
                 hasProject ? "ps-0 pe-2" : "px-2"
               )}
             />

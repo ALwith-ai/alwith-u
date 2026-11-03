@@ -11,6 +11,8 @@ interface SessionsUiState {
   /** Current sidebar panel. */
   view: SidebarView
   setView: (view: SidebarView) => void
+  driveSearchOpen: boolean
+  setDriveSearchOpen: (open: boolean) => void
   /** Acknowledged Activity notifications, independent of Runtime conversation read state. */
   activitySeen: ReadonlyMap<string, string>
   setActivitySeen: (next: ReadonlyMap<string, string>) => void
@@ -27,6 +29,8 @@ interface SessionsUiState {
 export const useSessionsUiStore = create<SessionsUiState>((set) => ({
   view: "sessions",
   setView: (view) => set({ view }),
+  driveSearchOpen: false,
+  setDriveSearchOpen: (driveSearchOpen) => set({ driveSearchOpen }),
   activitySeen: new Map(),
   setActivitySeen: (activitySeen) => set({ activitySeen }),
   projectOpen: new Map(),

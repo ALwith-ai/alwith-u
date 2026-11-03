@@ -29,10 +29,14 @@
   object-fit: contain;
 }
 
-/* The project picker belongs to the host, outside the shared composer. */
+/* The host project capsule owns hover and keyboard focus for both nested controls. */
+.chat-project-picker:has(:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 @media (hover: hover) {
-  .chat-project-picker:not(:disabled):not([aria-disabled="true"]):not([data-disabled]):hover {
+  .chat-project-picker:hover {
     background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
-    background-image: none;
   }
 }

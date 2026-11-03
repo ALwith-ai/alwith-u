@@ -31,6 +31,54 @@ afterEach(async () => {
   })
 })
 
+test("images are fixed sidebar navigation even offline and open their own leading page", async () => {
+  client.store.setState({ connection: "disconnected", agent: null })
+  function Harness() {
+    const [screen, setScreen] = useState<MainScreen>("main")
+    const [page, setPage] = useState<"images" | "plugins">("plugins")
+    return (
+      <MainSidebarLayout
+        initialPinned
+        screen={screen}
+        leading={<main>{page === "images" ? "Image creation" : "Plugin content"}</main>}
+        main={<main>Chat content</main>}
+        sidebar={
+          <SessionSidebar
+            screen={screen}
+            leadingPage={page}
+            selectedId={null}
+            onSelect={() => setScreen("main")}
+            onNewChat={() => setScreen("main")}
+            onNewProjectChat={() => {}}
+            onSearch={() => {}}
+            onOpenWindow={() => {}}
+            onOpenSettings={() => {}}
+            onOpenImages={() => {
+              setPage("images")
+              setScreen("leading")
+            }}
+            onOpenPlugins={() => {
+              setPage("plugins")
+              setScreen("leading")
+            }}
+            onSwitchScreen={() => setScreen(screen === "main" ? "leading" : "main")}
+          />
+        }
+      />
+    )
+  }
+  const view = render(<Harness />)
+  const images = view.getByRole("button", { name: "Images" })
+  expect(images.previousElementSibling).toBe(view.getByRole("button", { name: "Toolbox" }))
+  expect(images).not.toHaveAttribute("aria-current")
+  await act(() => Promise.try(() => fireEvent.click(images)))
+  expect(images).toHaveAttribute("aria-current", "page")
+  expect(view.getByText("Image creation")).toBeVisible()
+  expect(view.container.querySelector('[data-screen-panel="main"]')).toHaveAttribute("aria-hidden", "true")
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Back to main screen" }))))
+  expect(images).not.toHaveAttribute("aria-current")
+})
+
 test("footer arrows switch screens, plugins are selected only on the leading screen, and new chat returns to main", async () => {
   // The plugins entry is fixed navigation: it does not wait for the engine to connect.
   client.store.setState({ connection: "connecting", agent: null })
@@ -186,14 +234,22 @@ test("Drive mounts on first visit and retains input across tab switches until ac
   expect(useSessionsUiStore.getState().view).toBe("sessions")
 })
 
-test("project counts show only the number of sessions", () => {
+test("ordinary history and project counts exclude dedicated image sessions", () => {
   useSessionsUiStore.setState({ view: "sessions" })
   client.store.setState({
     sessionListLoaded: true,
     projectContext: projectContext(),
     sessionList: [
       { sessionId: "one", cwd: "/tmp/project", title: "One", updatedAt: null, archived: false },
-      { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false }
+      { sessionId: "two", cwd: "/tmp/project", title: "Two", updatedAt: null, archived: false },
+      {
+        sessionId: "image",
+        cwd: "/tmp/project",
+        title: "Image creation",
+        updatedAt: null,
+        archived: false,
+        threadSource: "alwith-images"
+      }
     ]
   })
   const view = render(
@@ -220,6 +276,8 @@ test("project counts show only the number of sessions", () => {
     />
   )
   expect(view.getByText("2", { exact: true })).toBeVisible()
+  expect(view.queryByText("Image creation")).not.toBeInTheDocument()
+  expect(client.state.sessionList).toHaveLength(3)
   expect(view.queryByText(/loaded/i)).toBeNull()
   expect(view.queryByRole("button", { name: "Load more" })).toBeNull()
 })

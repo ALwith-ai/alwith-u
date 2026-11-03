@@ -382,6 +382,7 @@ body,
 .sidebar-drive .alwith-drive-launcher {
   min-height: 0;
   flex: 1;
+  padding: 0;
 }
 .sidebar-drive .alwith-drive-navigation {
   min-width: 0;
@@ -392,13 +393,17 @@ body,
 }
 .sidebar-drive .alwith-drive-toolbar {
   justify-content: space-between;
+  padding-inline: 6px 0;
+}
+.sidebar-drive .alwith-drive-navigation p {
+  padding-inline: 6px;
 }
 .sidebar-drive .alwith-drive-toolbar .alwith-drive-actions {
-  gap: 4px;
+  gap: 2px;
 }
 .sidebar-drive .alwith-drive-toolbar button {
-  width: 24px;
-  height: 24px;
+  width: var(--navigation-row-height, 30px);
+  height: var(--navigation-row-height, 30px);
   padding: 0;
   border-radius: 8px;
 }

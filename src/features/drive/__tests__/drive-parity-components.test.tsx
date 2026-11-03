@@ -365,7 +365,7 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
     />
   )
   expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
-  expect(screen.getByText("report.md", { exact: false })).toBeVisible()
+  for (const element of screen.getAllByText("report.md", { exact: false })) expect(element).toBeVisible()
   fireEvent.click(screen.getByRole("button", { name: "Reveal" }))
   await waitFor(() => expect(reveal).toHaveBeenCalledWith("/drive/report.conflict.md"))
   fireEvent.click(screen.getByRole("button", { name: "Re-check" }))

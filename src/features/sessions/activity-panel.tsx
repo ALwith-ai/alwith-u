@@ -66,10 +66,12 @@ function sessionOf(sessionRows: SessionSummary[], record: SessionRunState): Sess
 
 export function ActivityPanel({
   selectedId,
-  onSelect
+  onSelect,
+  query = ""
 }: {
   selectedId: string | null
   onSelect: (sessionRow: SessionSummary) => void
+  query?: string
 }) {
   const { t } = useTranslation()
   const runStates = useApp((state) => state.runStates)
@@ -79,16 +81,19 @@ export function ActivityPanel({
   const draftSessions = useApp((state) => state.draftSessions)
 
   const order = useActivityOrder((state) => state.ids)
+  const search = query.trim().toLocaleLowerCase()
   const rows = useMemo(
     () =>
       order.flatMap((sid) => {
         const record = runStates[sid]
         // The derived order and source can notify React separately; never render a retired row.
-        return record && (!record.reusableDraft || draftSessions[sid] !== undefined)
-          ? [{ sid, record, sessionRow: sessionOf(sessionRows, record) }]
-          : []
+        if (!record || (record.reusableDraft && draftSessions[sid] === undefined)) return []
+        const sessionRow = sessionOf(sessionRows, record)
+        // Keep the new-conversation entry available while filtering existing activity titles.
+        if (search && !record.reusableDraft && !(sessionRow.title ?? "").toLocaleLowerCase().includes(search)) return []
+        return [{ sid, record, sessionRow }]
       }),
-    [order, runStates, sessionRows, draftSessions]
+    [order, runStates, sessionRows, draftSessions, search]
   )
 
   // Foreground means occupying a visible chat surface, including the separate chat window.

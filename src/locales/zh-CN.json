@@ -112,6 +112,8 @@
     "deleteTitle": "删除这个聊天?",
     "deleteDescription": "该聊天将被永久删除。此操作不可撤销。",
     "search": "搜索聊天…",
+    "searchActivity": "搜索活动标题",
+    "searchDrive": "搜索云盘",
     "noResults": "未找到聊天",
     "stop": "停止",
     "settings": "设置",

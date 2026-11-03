@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useSessionsUiStore } from "@/features/sessions/store"
 import { useWorkspace } from "@/features/workspace/context"
 import { openExternal } from "@/lib/open"
 import { openSettingsWindow } from "@/lib/window-manager"
@@ -68,6 +69,7 @@ export function DrivePage({
   onOpenProject: (root: RootInfo) => Promise<void>
 }): ReactNode {
   const workspace = useWorkspace()
+  const searchVisible = useSessionsUiStore((state) => state.driveSearchOpen)
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("zh") ? "zh-CN" : "en"
   const { snapshot } = useDrive(drive)
@@ -81,6 +83,7 @@ export function DrivePage({
   }
   const host: DriveHost = {
     searchShortcut: false,
+    searchVisible,
     readDirectory: async (path) =>
       (await (await driveFileSystem(path)).readDirectory(path)).map((entry) => ({
         name: entry.name,
