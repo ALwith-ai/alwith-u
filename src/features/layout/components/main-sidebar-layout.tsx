@@ -90,6 +90,7 @@ export function MainSidebarLayout({
       onScreenChange={onScreenChange}
       onRegionChange={regionChanged}
       initialNavigationPinned={initialPinned}
+      minimumChatWidth={420}
       onNavigationPinnedChange={persistPinned}
       labels={labels}
       direction={i18n.dir()}
