@@ -30,7 +30,7 @@ export type FakeAgent = {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
   }
   configChanges: string[]
-  /** Names set through `_codex/session_rename`. */
+  /** Names set through `session/set_title`. */
   renamed: Map<string, string>
   /** File search queries the client sent (`_codex/fuzzy_file_search`). */
   fileSearches: string[]
@@ -163,18 +163,14 @@ export function createFakeAgent(): FakeAgent {
     spendControlReached: null,
     planType: "plus"
   })
-  app.onRequest(
-    "_codex/session_rename",
-    (value: unknown) => value as { sessionId: string; name: string },
-    async ({ params, client }) => {
-      renamed.set(params.sessionId, params.name)
-      await client.notify("session/update", {
-        sessionId: params.sessionId,
-        update: { sessionUpdate: "session_info_update", title: params.name }
-      })
-      return {}
-    }
-  )
+  app.onRequest("session/set_title", async ({ params, client }) => {
+    renamed.set(params.sessionId, params.title)
+    await client.notify("session/update", {
+      sessionId: params.sessionId,
+      update: { sessionUpdate: "session_info_update", title: params.title }
+    })
+    return { title: params.title }
+  })
   app.onRequest(
     "_codex/account_read",
     () => ({}),
@@ -247,23 +243,12 @@ export function createFakeAgent(): FakeAgent {
   const fullListRequests: unknown[] = []
   const list = (params: acp.ListSessionsRequest) => {
     if (listSessions.current !== null) return listSessions.current(params)
-    const wantArchived =
-      typeof params._meta?.codex === "object" && (params._meta.codex as { archived?: boolean }).archived === true
+    const wantArchived = params.archived === "only"
     return {
       sessions: [
-        {
-          sessionId: "h1",
-          cwd: "/tmp/one",
-          title: "First",
-          _meta: { codex: { archived: false } }
-        },
-        {
-          sessionId: "h2",
-          cwd: "/tmp/two",
-          title: "Second",
-          _meta: { codex: { archived: true } }
-        }
-      ].filter((item) => item._meta.codex.archived === wantArchived && !deleted.has(item.sessionId))
+        { sessionId: "h1", cwd: "/tmp/one", title: "First", archived: false },
+        { sessionId: "h2", cwd: "/tmp/two", title: "Second", archived: true }
+      ].filter((item) => item.archived === wantArchived && !deleted.has(item.sessionId))
     }
   }
   app.onRequest("session/list", ({ params }) => list(params))
@@ -472,26 +457,18 @@ export function createFakeAgent(): FakeAgent {
   app.onNotification("session/cancel", ({ params }) => {
     active.get(params.sessionId)?.abort()
   })
-  app.onRequest(
-    "_codex/session_archive",
-    (value: unknown) => value as { sessionId: string },
-    ({ params }) => {
-      archived.add(params.sessionId)
-      return {}
-    }
-  )
+  app.onRequest("session/archive", ({ params }) => {
+    archived.add(params.sessionId)
+    return {}
+  })
   app.onRequest("session/delete", ({ params }) => {
     deleted.add(params.sessionId)
     return {}
   })
-  app.onRequest(
-    "_codex/session_unarchive",
-    (value: unknown) => value as { sessionId: string },
-    ({ params }) => {
-      archived.delete(params.sessionId)
-      return {}
-    }
-  )
+  app.onRequest("session/unarchive", ({ params }) => {
+    archived.delete(params.sessionId)
+    return {}
+  })
   return {
     app,
     archived,

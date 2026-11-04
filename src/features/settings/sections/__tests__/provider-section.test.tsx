@@ -327,13 +327,20 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.getByLabelText("Codex").getAttribute("aria-busy")).toBe("true")
   expect(view.queryByRole("button")).toBeNull()
   const account: SettingsAccount = {
-    account: { account: { type: "chatgpt", email: "test@example.test", planType: "pro" }, requiresOpenaiAuth: true },
+    account: {
+      account: { type: "chatgpt", email: "test@example.test", planType: "pro", workspaceName: null },
+      requiresOpenaiAuth: true,
+      workspaceRouting: null
+    },
     rateLimits: {
       limitId: null,
       limitName: null,
       credits: null,
+      individualLimit: null,
       spendControlReached: null,
       planType: "pro",
+      normalModelSlug: null,
+      rateLimitReachedType: null,
       primary: { usedPercent: 27, windowDurationMins: 10080, resetsAt: null },
       secondary: null
     }
@@ -353,7 +360,7 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.queryByRole("button")).toBeNull()
   view.rerender(
     <CodexAccountSummary
-      account={{ account: { account: null, requiresOpenaiAuth: true }, rateLimits: null }}
+      account={{ account: { account: null, requiresOpenaiAuth: true, workspaceRouting: null }, rateLimits: null }}
       disabled={false}
       onSignOut={signOut}
     />

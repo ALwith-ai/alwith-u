@@ -527,9 +527,11 @@ test("installed sidebar lists only installed plugins and switches right-hand det
       marketplacePath: marketplace.path,
       shareUrl: null,
       skills: [],
+      onboardingSkill: null,
       mcpServers: [],
       hooks: [],
       apps: [],
+      appTemplates: [],
       scheduledTasks: null
     })
   )

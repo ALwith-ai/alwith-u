@@ -30,10 +30,10 @@ test("floating file completion delegates both empty and typed queries to the mai
   initialFiles.mockResolvedValue([file])
   try {
     await remote.connect()
-    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"] })).toEqual({ files: [file] })
+    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"], cancellationToken: null })).toEqual({ files: [file] })
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "")
     expect(fake.fileSearches).toEqual([])
-    expect((await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"] })).files).toMatchObject([
+    expect((await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"], cancellationToken: null })).files).toMatchObject([
       { root: "/selected-project", path: "中文 #1.txt" }
     ])
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "client")

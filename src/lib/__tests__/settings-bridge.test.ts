@@ -58,7 +58,7 @@ test("settings authenticates through main and refreshes the account after login 
       },
       account: () =>
         Promise.resolve({
-          account: { account: signedIn ? { type: "apiKey" } : null, requiresOpenaiAuth: true },
+          account: { account: signedIn ? { type: "apiKey" } : null, requiresOpenaiAuth: true, workspaceRouting: null },
           rateLimits: null
         }),
       onRateLimits: () => () => {}
@@ -69,7 +69,7 @@ test("settings authenticates through main and refreshes the account after login 
   await client.requestSignIn("api-key", { "api-key": { apiKey: "test-only" } })
   expect(calls).toEqual([["api-key", { "api-key": { apiKey: "test-only" } }]])
   expect(bus.messages.findLast((item) => item.event === "settings:account")?.payload).toEqual({
-    account: { account: { type: "apiKey" }, requiresOpenaiAuth: true },
+    account: { account: { type: "apiKey" }, requiresOpenaiAuth: true, workspaceRouting: null },
     rateLimits: null
   })
   await client.requestActionResponse("request-1", { action: "accept" })

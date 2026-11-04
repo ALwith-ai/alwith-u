@@ -263,8 +263,10 @@ test("remote app aliases use the service ID for install and read; local sources 
     shareUrl: null,
     description: null,
     skills: [],
+    onboardingSkill: null,
     hooks: [],
     apps: [],
+    appTemplates: [],
     mcpServers: [],
     scheduledTasks: null
   }
