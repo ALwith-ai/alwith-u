@@ -10,7 +10,7 @@ import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { projectContext } from "@/agent/__tests__/project-context"
-import { CodexClient } from "@/agent/client"
+import { type ClientOptions, CodexClient } from "@/agent/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"
@@ -18,7 +18,7 @@ import * as chatWindow from "@/lib/chat-window"
 import { client, useApp, useSession } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 import type { Preferences } from "@/lib/preferences"
-import type { ProviderSnapshot } from "@/lib/providers"
+import { type ProviderSnapshot, resolveSessionModel } from "@/lib/providers"
 import { mockOf } from "@/test/mock-of"
 
 import { navigationSoundStore } from "../codex/navigation-sound-store"
@@ -42,11 +42,15 @@ const providers: ProviderSnapshot = {
   error: null
 }
 
-function environment(nativeWindow = false) {
+function environment(nativeWindow = false, resolveModel?: ClientOptions["resolveModel"]) {
   return Promise.try(() => {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
-    const real = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    const real = new CodexClient(() => Promise.resolve(port), {
+      agentId: "codex",
+      launch: { engine: "codex" },
+      resolveModel
+    })
     real.store.setState({ projectContext: projectContext() })
     const previous = client.state
     client.store.setState(real.state)
@@ -1341,6 +1345,76 @@ test.each(["gateway", "native"] as const)(
       await act(() => Promise.try(() => view.unmount()))
       failure.mockRestore()
       restore()
+    }
+  }
+)
+
+test.each([false, true])(
+  "enterprise logout preserves unsent input with revocation delivered first: %s",
+  async (revokedFirst) => {
+    mockIPC(() => undefined, { shouldMockEvents: true })
+    const accountModel = "gateway:finture-enterprise:company"
+    let snapshot: ProviderSnapshot = {
+      ...providers,
+      managedProviders: [
+        {
+          id: "finture-enterprise",
+          name: "Enterprise",
+          baseUrl: "https://gateway.example",
+          models: [{ api_id: "company", label: "Company" }]
+        }
+      ]
+    }
+    const env = await environment(false, async (model, purpose) => resolveSessionModel(model, snapshot, purpose))
+    env.fake.gateways.set("finture-enterprise", {
+      providerId: "openai",
+      apiType: "openai",
+      baseUrl: "https://gateway.example",
+      _meta: { codex: { id: "finture-enterprise", name: "Enterprise" }, alwith: { models: [{ id: accountModel }] } }
+    })
+    env.real.setModelSelections({ main: accountModel, chat: null })
+    let selected: string | null = null
+    const onCreated = (id: string) => {
+      selected = id
+    }
+    const ui = () => (
+      <DraftChat
+        owner="main"
+        cwd="/tmp/enterprise-logout"
+        onCwdChange={() => {}}
+        onCreated={onCreated}
+        onSendingChange={() => {}}
+        onAuthRequired={() => {}}
+        onNewChat={() => {}}
+        providerSnapshot={snapshot}
+      />
+    )
+    const view = render(ui())
+    try {
+      await waitFor(() => expect(selected).not.toBeNull())
+      const previous = must<string>(selected, "enterprise draft")
+      await act(() =>
+        Promise.try(() => {
+          fireEvent.input(view.getByRole("textbox"), { target: { value: "keep my input after logout" } })
+          fireEvent.keyUp(view.getByRole("textbox"), { key: "t" })
+        })
+      )
+      snapshot = { ...providers, revision: 2, appliedRevision: 2 }
+      env.fake.gateways.delete("finture-enterprise")
+      if (revokedFirst) await act(() => Promise.try(() => env.real.markAccountModelsUnavailable([previous])))
+      view.rerender(ui())
+      await waitFor(() => expect(selected).not.toBe(previous))
+      await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
+      const replacement = must<string>(selected, "native replacement")
+      expect(env.fake.modelHints.get(replacement)).toBeNull()
+      expect(env.fake.deleted.has(previous)).toBe(true)
+      expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep my input after logout")
+      expect(view.queryByText(/selected ALwith account model is unavailable/i)).toBeNull()
+      expect(env.real.state.sessionList).toEqual([])
+    } finally {
+      await act(() => Promise.try(() => view.unmount()))
+      env.restore()
+      clearMocks()
     }
   }
 )

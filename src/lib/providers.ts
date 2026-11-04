@@ -122,12 +122,16 @@ export function gatewayModelId(providerId: string, modelId: string): string {
 }
 
 /** Desktop's default selection prefers a user-configured provider; native defaults stay engine-owned. */
-export function resolveSessionModel(model: string | null, snapshot: ProviderSnapshot): string | null {
+export function resolveSessionModel(
+  model: string | null,
+  snapshot: ProviderSnapshot,
+  purpose: "session" | "draft" = "session"
+): string | null {
   const models = providerGroups(snapshot).flatMap((group) =>
     group.models.map((entry) => gatewayModelId(group.id, entry.id))
   )
   if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
-  if (isAccountModel(model))
+  if (isAccountModel(model) && purpose === "session")
     throw new Error("The selected ALwith account model is unavailable. Select another model before sending.")
   return models[0] ?? null
 }

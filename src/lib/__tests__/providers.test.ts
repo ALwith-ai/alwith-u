@@ -136,3 +136,21 @@ test("account model classification follows the catalog source and exact provider
   expect(isAccountModel("gpt-6-sol")).toBe(false)
   expect(isAccountModel(null)).toBe(false)
 })
+
+test.each(["gateway:litellm:old", "gateway:finture-enterprise:old"])(
+  "new drafts can replace the unavailable saved account model %s",
+  (model) => {
+    const snapshot: ProviderSnapshot = {
+      revision: 2,
+      appliedRevision: 2,
+      status: "applied",
+      error: null,
+      providers: {},
+      customProviders: []
+    }
+    expect(resolveSessionModel(model, snapshot, "draft")).toBeNull()
+    snapshot.providers.deepseek = { configured: true, region: null, base_url: null }
+    expect(resolveSessionModel(model, snapshot, "draft")).toBe(gatewayModelId("deepseek", PROVIDERS[0]!.models[0]!.id))
+    expect(() => resolveSessionModel(model, snapshot)).toThrow(/unavailable/i)
+  }
+)

@@ -23,11 +23,13 @@ export const client =
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
         projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async (model) => {
+        resolveModel: async (model, purpose) => {
           const providers = await applyProvidersWhenIdle()
           // Create a reusable draft on the currently applied catalog. Prompt admission retries
           // the saved provider revision after active turns have finished.
-          return providers.status === "pending" && !isAccountModel(model) ? null : resolveSessionModel(model, providers)
+          return providers.status === "pending" && !isAccountModel(model)
+            ? null
+            : resolveSessionModel(model, providers, purpose)
         },
         sessionContext: hostSessionContext,
         sessionContextRevision: computerContextRevision,
